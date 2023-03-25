@@ -247,18 +247,6 @@ let _ =
       flush_all ();
       exit n)
 
-let _ =
-  Lang.add_builtin "sleep" ~category:`System
-    ~descr:
-      "Interrupt execution for a given amount of seconds. This freezes the \
-       calling thread and should not be used in the main streaming loop."
-    [("", Lang.float_t, None, Some "Number of seconds of sleep.")]
-    Lang.unit_t
-    (fun p ->
-      let t = Lang.to_float (List.assoc "" p) in
-      Unix.sleepf t;
-      Lang.unit)
-
 let reopen = Lang.add_module "reopen"
 
 let () =

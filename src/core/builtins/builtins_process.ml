@@ -24,6 +24,29 @@ let log = Log.make ["process"]
 let process = Modules.process
 
 let _ =
+  if Sys.os_type <> "Win32" then
+    ignore
+      (let ret_t =
+         Lang.record_t [("user", Lang.float_t); ("system", Lang.float_t)]
+       in
+       Lang.add_builtin ~base:process "time" ~category:`System [] ret_t
+         ~descr:"Get the execution time of the current liquidsoap process."
+         (fun _ ->
+           let { Unix.tms_utime = user; tms_stime = system } = Unix.times () in
+           Lang.record
+             [("user", Lang.float user); ("system", Lang.float system)]))
+
+let () =
+  List.iter
+    (fun (name, fd) ->
+      ignore
+        (Lang.add_builtin_value ~base:process name ~category:`System
+           ~descr:("The process' " ^ name)
+           (Builtins_socket.Socket_value.to_value (Http.unix_socket fd))
+           Builtins_socket.Socket_value.t))
+    [("stdin", Unix.stdin); ("stdout", Unix.stdout); ("stderr", Unix.stderr)]
+
+let _ =
   let ret_t =
     Lang.method_t Lang.unit_t
       [

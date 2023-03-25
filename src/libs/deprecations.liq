@@ -720,3 +720,10 @@ def compress.old(~id=null(), s) =
   deprecated("compress.old", "compress")
   compress(id=id, s)
 end
+
+# Deprecated: use `thread.pause`
+# @flag deprecated
+def sleep(s) =
+  deprecated("sleep", "thread.pause")
+  thread.pause(s)
+end
