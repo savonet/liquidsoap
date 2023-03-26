@@ -357,6 +357,7 @@ let mk_video ~mode ~codec ~params ~options ~field output =
             (Ffmpeg_utils.best_pts frame)
         in
         Avutil.Frame.set_pts frame frame_pts;
+        Avutil.Frame.set_pkt_dts frame None;
         Av.write_frame stream frame)
   in
 
