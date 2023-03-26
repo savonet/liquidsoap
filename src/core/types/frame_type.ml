@@ -91,7 +91,20 @@ let content_type frame_type =
           in
           Typing.(frame_type <: default_t);
           default_t
-      | _ -> frame_type
+      | _ ->
+          (try
+             (* Map audio and video fields to their default value when possible. *)
+             Typing.satisfies_constraint base_type Format_type.internal_media;
+             List.iter
+               (function
+                 | { Type.meth = "audio"; scheme = [], ty } ->
+                     Typing.(ty <: Format_type.audio ())
+                 | { Type.meth = "video"; scheme = [], ty } ->
+                     Typing.(ty <: Format_type.video ())
+                 | _ -> ())
+               meths
+           with _ -> ());
+          frame_type
   in
   let meths, _ = Type.split_meths frame_type in
   let meths = List.filter (fun { Type.optional } -> not optional) meths in

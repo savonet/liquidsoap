@@ -341,6 +341,19 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  default_format.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} default_format.liq liquidsoap %{test_liq} default_format.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   infallible-shutdown.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe

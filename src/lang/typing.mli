@@ -53,3 +53,6 @@ val sup : pos:Pos.Option.t -> t -> t -> t
 
 (** Bind a variable *)
 val bind : ?variance:Type.variance -> t -> t -> unit
+
+(** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
+val satisfies_constraint : t -> constr -> unit
