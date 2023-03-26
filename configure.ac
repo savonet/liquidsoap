@@ -5,7 +5,7 @@ AC_INIT([liquidsoap],
         [savonet-users@lists.sourceforge.net],
         [liquidsoap],
         [https://github.com/savonet/liquidsoap])
-git_snapshot=false
+git_snapshot=true
 version="$PACKAGE_VERSION"
 min_ocaml_version=4.12.0
 git_commit=`git rev-parse --short HEAD || true`

@@ -1,3 +1,9 @@
+2.1.x (rolling-release)
+=====
+
+Fixed:
+* Fixed non-monotonous PTS in ffmpeg raw content (#2978)
+
 2.1.4 (2022-03-01)
 =====
 
