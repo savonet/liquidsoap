@@ -33,8 +33,8 @@ module Fps = struct
     | `Filter { time_base } -> time_base
     | `Pass_through time_base -> time_base
 
-  let init ~width ~height ~pixel_format ~time_base ?pixel_aspect ?source_fps
-      ~target_fps () =
+  let init ?(start_pts = 0L) ~width ~height ~pixel_format ~time_base
+      ?pixel_aspect ?source_fps ~target_fps () =
     let config = Avfilter.init () in
     let _buffer =
       let args =
@@ -70,6 +70,21 @@ module Fps = struct
       in
       Avfilter.attach ~name:"fps" ~args fps config
     in
+    let setpts =
+      match
+        List.find_opt
+          (fun { Avfilter.name } -> name = "setpts")
+          Avfilter.filters
+      with
+        | Some setpts -> setpts
+        | None -> failwith "Could not find setpts ffmpeg filter!"
+    in
+    let setpts =
+      let args =
+        [`Pair ("expr", `String (Printf.sprintf "%Ld+PTS-STARTPTS" start_pts))]
+      in
+      Avfilter.attach ~name:"setpts" ~args setpts config
+    in
     let _buffersink =
       Avfilter.attach ~name:"buffersink" Avfilter.buffersink config
     in
@@ -78,6 +93,9 @@ module Fps = struct
       (List.hd Avfilter.(fps.io.inputs.video));
     Avfilter.link
       (List.hd Avfilter.(fps.io.outputs.video))
+      (List.hd Avfilter.(setpts.io.inputs.video));
+    Avfilter.link
+      (List.hd Avfilter.(setpts.io.outputs.video))
       (List.hd Avfilter.(_buffersink.io.inputs.video));
     let graph = Avfilter.launch config in
     let _, input = List.hd Avfilter.(graph.inputs.video) in
@@ -86,14 +104,14 @@ module Fps = struct
     { input; output; time_base }
 
   (* Source fps is not always known so it is optional here. *)
-  let init ~width ~height ~pixel_format ~time_base ?pixel_aspect ?source_fps
-      ~target_fps () =
+  let init ?start_pts ~width ~height ~pixel_format ~time_base ?pixel_aspect
+      ?source_fps ~target_fps () =
     match source_fps with
       | Some f when f = target_fps -> `Pass_through time_base
       | _ ->
           `Filter
-            (init ~width ~height ~pixel_format ~time_base ?pixel_aspect
-               ?source_fps ~target_fps ())
+            (init ?start_pts ~width ~height ~pixel_format ~time_base
+               ?pixel_aspect ?source_fps ~target_fps ())
 
   let convert converter frame cb =
     match converter with
