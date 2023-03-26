@@ -320,10 +320,13 @@ let mk_video ~mode ~codec ~params ~options ~field output =
 
   let converter = ref None in
 
+  let start_pts = ref 0L in
+
   let mk_converter ~pixel_format ~time_base ~stream_idx () =
     let c =
-      Ffmpeg_avfilter_utils.Fps.init ~width:target_width ~height:target_height
-        ~pixel_format ~time_base ~pixel_aspect ~target_fps ()
+      Ffmpeg_avfilter_utils.Fps.init ~start_pts:!start_pts ~width:target_width
+        ~height:target_height ~pixel_format ~time_base ~pixel_aspect ~target_fps
+        ()
     in
     converter := Some (pixel_format, time_base, stream_idx, c);
     c
@@ -334,7 +337,6 @@ let mk_video ~mode ~codec ~params ~options ~field output =
       | None -> mk_converter ~stream_idx ~pixel_format ~time_base ()
       | Some (p, t, i, _) when (p, t, i) <> (pixel_format, time_base, stream_idx)
         ->
-          log#important "Frame format change detected!";
           mk_converter ~stream_idx ~pixel_format ~time_base ()
       | Some (_, _, _, c) -> c
   in
@@ -357,6 +359,7 @@ let mk_video ~mode ~codec ~params ~options ~field output =
             (Ffmpeg_utils.best_pts frame)
         in
         Avutil.Frame.set_pts frame frame_pts;
+        start_pts := Int64.succ !start_pts;
         Av.write_frame stream frame)
   in
 
