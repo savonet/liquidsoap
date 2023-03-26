@@ -17,7 +17,7 @@ depends: [
   "conf-autoconf" {dev}
   "conf-automake" {dev}
   "ocaml-windows" {>= "4.08.0"}
-  "camomile-windows" {>= "1.0.0"}
+  "camomile-windows" {>= "1.0.0" & < "2.0.0"}
   "dtools-windows" {>= "0.4.4"}
   "duppy-windows" {>= "0.9.1"}
   "menhir" {>= "20180703" & <= "20211128"}
