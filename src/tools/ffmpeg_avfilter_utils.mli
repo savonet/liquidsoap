@@ -26,6 +26,7 @@ module Fps : sig
   val time_base : t -> Avutil.rational
 
   val init :
+    ?start_pts:int64 ->
     width:int ->
     height:int ->
     pixel_format:Avutil.Pixel_format.t ->
