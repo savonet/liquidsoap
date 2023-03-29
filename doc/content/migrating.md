@@ -3,6 +3,18 @@
 In this page, we list the most common catches when migrating to a new version of
 Liquidsoap.
 
+### Generalities
+
+If you are installing via `opam`, it can be useful to create a [new switch](https://opam.ocaml.org/doc/Usage.html) to install
+the new version of `liquidsoap`. This will allow to test the new version while keeping
+the old version around in case you to revert to it.
+
+More generally, we recommend to always keep a version of your script around and also
+to make sure that you test your new script with a staging environment that is
+close to production. Streaming issues can build up over time. We do our best to
+release the most stable possible code but problems can arise from many reasons
+so, always best to first to a trial run before putting things to production!
+
 ## From 2.1.x to 2.2.x
 
 ### References
