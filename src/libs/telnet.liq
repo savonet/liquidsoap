@@ -127,6 +127,35 @@ def replaces input.harbor(%argsof(input.harbor), s) =
   s
 end
 
+%ifdef input.harbor.ssl
+# @docof input.harbor.ssl
+def replaces input.harbor.ssl(%argsof(input.harbor.ssl), s) =
+  s = input.harbor.ssl(%argsof(input.harbor.ssl), s)
+
+  s.on_get_ready(memoize({
+    begin
+      server.register(namespace=source.id(s), description="Stop current source client, if connected.",
+                     "stop", fun (_) -> begin
+                        s.stop()
+                        "Done"
+                      end)
+
+      server.register(namespace=source.id(s), description="Display current status.",
+                      "status", fun (_) -> begin
+                        s.status()
+                      end)
+
+      server.register(namespace=source.id(s), description="Get the buffer's length, in seconds.",
+                      "buffer_length", fun (_) -> begin
+                        "#{s.buffer_length()}"
+                      end)
+    end
+  }))
+
+  s
+end
+%endif
+
 %ifdef input.http
 # @docof input.http
 def replaces input.http(%argsof(input.http), s) =
