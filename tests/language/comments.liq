@@ -34,6 +34,23 @@ is comment
 
 #---------------->#
 
+s = "foo
+#<-----
+this is a comment inside a string,
+it is not a code comment!
+#---->
+bar
+"
+ignore(s)
+
+r = r/foo
+#<-----
+this is a comment inside a regexp,
+it is not a code comment!
+#---->
+bar/
+ignore(r)
+
 def f() =
   test.equals(x, 1)
 
