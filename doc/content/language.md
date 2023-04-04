@@ -1332,17 +1332,33 @@ Comments can be added to your code in two ways:
 
 _Multi-line comments_ are comments that can span multiple lines. They are delimitated
 by the sequence of characters `#<` at the beginning and `>#` at the end. Anything
-in between those two sequences is considered code comment. Nested code comments
-are also accepted:
+in between those two sequences is considered code comment.
+
+Here are some examples:
+
+Simple multiline comments:
 
 ```liquidsoap
+#< This is a comment >#
+```
+
+Multiline comments can be nested:
+```liquidsoap
+#<
+This is a top-level comment
+
+  # This is also a comment
+
+  #<
+    This is a nested code comment
+  ># 
+>#
+```
+
+Fancy looking multiline comment
+```liquidsoap
 #<------- BEGIN CODE COMMENT ----#
-    This is a comment
-
-# This is also a comment
-
-  #< This is a nested code comment >#
-
+Comments can also look like this
 #--------- END CODE COMMENT ----->#
 ```
 
