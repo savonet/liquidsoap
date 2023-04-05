@@ -1343,6 +1343,7 @@ Simple multiline comments:
 ```
 
 Multiline comments can be nested:
+
 ```liquidsoap
 #<
 This is a top-level comment
@@ -1351,11 +1352,12 @@ This is a top-level comment
 
   #<
     This is a nested code comment
-  ># 
+  >#
 >#
 ```
 
 Fancy looking multiline comment
+
 ```liquidsoap
 #<------- BEGIN CODE COMMENT ----#
 Comments can also look like this
