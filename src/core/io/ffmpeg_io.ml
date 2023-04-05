@@ -34,6 +34,14 @@ let normalize_metadata =
 
 exception Stopped
 
+type container = {
+  input : Avutil.input Avutil.container;
+  decoder : Decoder.buffer -> unit;
+  buffer : Decoder.buffer;
+  get_metadata : unit -> (string * string) list;
+  closed : bool Atomic.t;
+}
+
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   ~clock_safe ~max_buffer ~on_error ~on_stop ~on_start ~on_connect
   ~on_disconnect ~new_track_on_metadata ?format ~opts url =
@@ -46,6 +54,13 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     inherit Source.no_seek
     val connect_task = Atomic.make None
     val container = Atomic.make None
+
+    initializer
+      Lifecycle.on_core_shutdown (fun () ->
+          match Atomic.get container with
+            | None -> ()
+            | Some { closed } -> Atomic.set closed true)
+
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
     method private is_connected = Atomic.get container <> None
@@ -57,9 +72,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method self_sync = (`Dynamic, self#get_self_sync && self#is_connected)
     method private start = self#connect
     method private stop = self#disconnect
-    val interrupt = Atomic.make false
-    method interrupt () = Atomic.get interrupt
-    initializer Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true)
     val mutable url = url
     method url = url ()
     method set_url u = url <- u
@@ -81,7 +93,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         Atomic.set source_status `Polling;
         let opts = Hashtbl.copy opts in
         let url = self#url in
-        let input = Av.open_input ~interrupt:self#interrupt ?format ~opts url in
+        let closed = Atomic.make false in
+        let input =
+          Av.open_input
+            ~interrupt:(fun () -> Atomic.get closed)
+            ?format ~opts url
+        in
         if Hashtbl.length opts > 0 then
           failwith
             (Printf.sprintf "Unrecognized options: %s"
@@ -116,7 +133,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                (Av.get_input_metadata input))
         in
         on_connect input;
-        Atomic.set container (Some (input, decoder, buffer, get_metadata));
+        Atomic.set container
+          (Some { input; decoder; buffer; get_metadata; closed });
         Atomic.set source_status (`Connected url);
         -1.
       with
@@ -147,18 +165,19 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
               Duppy.Async.wake_up t)
 
     method private disconnect =
-      (match Atomic.get container with
+      (match Atomic.exchange container None with
         | None -> ()
-        | Some (input, _, _, _) ->
-            Atomic.set interrupt true;
-            (try Av.close input
-             with exn ->
-               let bt = Printexc.get_backtrace () in
-               Utils.log_exception ~log:self#log ~bt
-                 (Printf.sprintf "Error while disconnecting: %s"
-                    (Printexc.to_string exn)));
-            Atomic.set container None;
-            Atomic.set interrupt false;
+        | Some { input; closed } ->
+            Atomic.set closed true;
+            self#mutexify
+              (fun () ->
+                try Av.close input
+                with exn ->
+                  let bt = Printexc.get_backtrace () in
+                  Utils.log_exception ~log:self#log ~bt
+                    (Printf.sprintf "Error while disconnecting: %s"
+                       (Printexc.to_string exn)))
+              ();
             on_disconnect ());
       (* Make sure the polling task stops as well. *)
       ignore
@@ -177,13 +196,13 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private get_frame frame =
       let pos = Frame.position frame in
       try
-        let _, decoder, buffer, get_metadata =
-          Option.get (Atomic.get container)
-        in
+        let { decoder; buffer; closed } = Option.get (Atomic.get container) in
         while Generator.length self#buffer < Lazy.force Frame.size do
-          decoder buffer
+          if Atomic.get closed then raise Not_connected;
+          self#mutexify (fun () -> decoder buffer) ()
         done;
         Generator.fill self#buffer frame;
+        let { get_metadata } = Option.get (Atomic.get container) in
         let m = get_metadata () in
         if last_metadata <> m then (
           let meta = Hashtbl.create (List.length m) in
