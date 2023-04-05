@@ -1325,3 +1325,51 @@ output.icecast(%mp3, host="localhost", port=8000,
 ```
 
 so that passwords are not shown in the main script.
+
+### Code comments
+
+Comments can be added to your code in two ways:
+
+_Multi-line comments_ are comments that can span multiple lines. They are delimitated
+by the sequence of characters `#<` at the beginning and `>#` at the end. Anything
+in between those two sequences is considered code comment.
+
+Here are some examples:
+
+Simple multiline comments:
+
+```liquidsoap
+#< This is a comment >#
+```
+
+Multiline comments can be nested:
+
+```liquidsoap
+#<
+This is a top-level comment
+
+  # This is also a comment
+
+  #<
+    This is a nested code comment
+  >#
+>#
+```
+
+Fancy looking multiline comment
+
+```liquidsoap
+#<------- BEGIN CODE COMMENT ----#
+Comments can also look like this
+#--------- END CODE COMMENT ----->#
+```
+
+_Single-line comments_ are comments that are limited to the current line. Such comments
+are started with the character `#` without a following `<`. Anything after the initial
+`#` character and until the end of the line is considered code comment:
+
+```liquidsoap
+def f(x) = # This is a single line comment.
+  123
+end
+```
