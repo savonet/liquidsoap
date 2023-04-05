@@ -19,7 +19,8 @@ s = ...
 s = stereotool(
   library_file="/path/to/stereotool/shared/lib",
   license_key="my_license_key",
-  preset="/path/to/preset/file"
+  preset="/path/to/preset/file",
+  s
 )
 ```
 
