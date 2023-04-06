@@ -155,6 +155,7 @@ let _ =
       let license_key =
         Lang.to_valued_option Lang.to_string (List.assoc "license_key" p)
       in
+      let license_key = if license_key = Some "" then None else license_key in
       let load_type = Lang.to_string (List.assoc "load_type" p) in
       let preset =
         Lang.to_valued_option Lang.to_string (List.assoc "preset" p)
