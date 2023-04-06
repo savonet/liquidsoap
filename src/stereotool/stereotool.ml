@@ -11,6 +11,8 @@ end
 
 exception Library_not_found
 
+let strnlen = foreign "strnlen" (ocaml_bytes @-> int @-> returning int)
+
 module C (Conf : Config) = struct
   let lib =
     try Dl.dlopen ~filename:Conf.filename ~flags:[Dl.RTLD_NOW]
@@ -108,8 +110,10 @@ let unlincensed_used_features =
   let buf = Bytes.create buflen in
   fun { handler; _module } ->
     let module C = (val _module : C) in
-    if C.unlincensed_used_features handler (ocaml_bytes_start buf) buflen then
-      Some (Bytes.to_string buf)
+    let ptr = ocaml_bytes_start buf in
+    if C.unlincensed_used_features handler ptr buflen then (
+      let n = strnlen ptr buflen in
+      Some (Bytes.to_string (Bytes.sub buf 0 n)))
     else None
 
 let load_preset ?(load_type = `Totalinit) ~filename { handler; _module } =

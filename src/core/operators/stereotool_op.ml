@@ -49,9 +49,10 @@ class stereotool ~field ~preset ~load_type ~handler source =
 
     method valid_license = Stereotool.valid_license handler
 
-    method unlincensed_used_features =
-      Stereotool.unlincensed_used_features handler
+    val unlincensed_used_features =
+      lazy (Stereotool.unlincensed_used_features handler)
 
+    method unlincensed_used_features = Lazy.force unlincensed_used_features
     val mutable latency = None
 
     method latency =
@@ -74,13 +75,15 @@ class stereotool ~field ~preset ~load_type ~handler source =
         | Some filename ->
             if not (self#load_preset ~load_type filename) then
               self#log#important "Preset load failed!");
-      self#log#info
+      let valid_license = self#valid_license in
+      let level = if valid_license then 4 else 3 in
+      self#log#f level
         "Stereotool initialized! Valid license: %b, latency: %.02fs, \
          API/software version: %d/%d"
         self#valid_license self#latency self#api_version self#software_version;
-      match Stereotool.unlincensed_used_features handler with
+      match self#unlincensed_used_features with
         | None -> ()
-        | Some s -> self#log#info "Using unlicensed features: %s" s
+        | Some s -> self#log#f level "Using unlicensed features: %s" s
 
     method stype = source#stype
     method remaining = source#remaining
