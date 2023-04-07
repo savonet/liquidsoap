@@ -193,7 +193,7 @@ let args_of, app_of =
               (Term.List (List.map (term_of_value ~pos (get_list_type ())) l))
         | Value.Tuple l ->
             mk_tm
-              (Term.List
+              (Term.Tuple
                  (List.mapi
                     (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
                     l))

@@ -29,7 +29,7 @@
 %include "protocols.liq"
 %include "resolvers.liq"
 %include "externals.liq"
-%include "shoutcast.liq"
+%include "icecast.liq"
 %include "lastfm.liq"
 %include "server.liq"
 %include "telnet.liq"

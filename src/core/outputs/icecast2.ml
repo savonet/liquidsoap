@@ -186,9 +186,6 @@ end
 module M = Icecast_utils.Icecast_v (Icecast)
 open M
 
-let no_mount = "Use [name]"
-let no_name = "Use [mount]"
-
 let user_agent =
   Lang.product (Lang.string "User-Agent") (Lang.string Http.user_agent)
 
@@ -196,15 +193,9 @@ let proto frame_t =
   Output.proto
   @ Icecast_utils.base_proto frame_t
   @ [
-      ( "mount",
-        Lang.string_t,
-        Some (Lang.string no_mount),
-        Some "Source mount point. Mandatory when streaming to icecast." );
-      ( "icy_id",
-        Lang.int_t,
-        Some (Lang.int 1),
-        Some "Shoutcast source ID. Only supported by Shoutcast v2." );
-      ("name", Lang.string_t, Some (Lang.string no_name), None);
+      ("mount", Lang.string_t, None, Some "Source mount point.");
+      ("icy_id", Lang.int_t, Some (Lang.int 1), Some "Shoutcast source ID.");
+      ("name", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ("host", Lang.string_t, Some (Lang.string "localhost"), None);
       ("port", Lang.int_t, Some (Lang.int 8000), None);
       ( "connection_timeout",
@@ -232,28 +223,39 @@ let proto frame_t =
           "Encoding used to send metadata and stream info (name, genre and \
            description). If null, defaults to \"UTF-8\"." );
       ("genre", Lang.nullable_t Lang.string_t, Some Lang.null, None);
-      ( "protocol",
-        Lang.string_t,
-        Some (Lang.string "http"),
-        Some
-          "Protocol of the streaming server: 'http' or 'https' for Icecast, \
-           'icy' for shoutcast." );
+      ("protocol", Lang.string_t, Some (Lang.string "http"), None);
       ( "method",
         Lang.string_t,
         Some (Lang.string "source"),
         Some
-          "method to use with the 'http(s)' protocol. One of: 'source', 'put' \
+          "Method to use with the 'http(s)' protocol. One of: 'source', 'put' \
            or 'post'." );
       ( "chunked",
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Used chunked transfer with the 'http(s)' protocol." );
+      ( "send_icy_metadata",
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
+        Some "Send new metadata using the ICY protocol. Guessed when `null`" );
       ( "icy_metadata",
-        Lang.string_t,
-        Some (Lang.string "guess"),
+        Lang.list_t Lang.string_t,
         Some
-          "Send new metadata using the ICY protocol. One of: \"guess\", \
-           \"true\", \"false\"" );
+          (Lang.list
+             (List.map Lang.string
+                [
+                  "song";
+                  "title";
+                  "artist";
+                  "genre";
+                  "date";
+                  "album";
+                  "tracknum";
+                  "comment";
+                  "dj";
+                  "next";
+                ])),
+        Some "List of metadata to send with ICY metadata update" );
       ("url", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ("description", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ( "on_connect",
@@ -323,30 +325,28 @@ class output p =
             (Error.Invalid_value
                (v, "Valid values are 'http' (icecast) and 'icy' (shoutcast)"))
   in
-  let icy_metadata =
-    let v = List.assoc "icy_metadata" p in
-    let icy =
-      match Lang.to_string v with
-        | "guess" -> `Guess
-        | "true" -> `True
-        | "false" -> `False
-        | _ ->
-            raise
-              (Error.Invalid_value
-                 (v, "Valid values are 'guess', 'true' or 'false'"))
-    in
-    match (data.format, icy) with
-      | _, `True -> true
-      | _, `False -> false
-      | x, `Guess when x = mpeg || x = wav || x = aac || x = flac -> true
-      | x, `Guess when x = ogg_application || x = ogg_audio || x = ogg_video ->
+  let send_icy_metadata =
+    match
+      ( data.format,
+        Lang.to_valued_option Lang.to_bool (List.assoc "send_icy_metadata" p) )
+    with
+      | _, Some b -> b
+      | format, None
+        when format = mpeg || format = wav || format = aac || format = flac ->
+          true
+      | format, None
+        when format = ogg_application || format = ogg_audio
+             || format = ogg_video ->
           false
-      | _, _ ->
+      | _ ->
           raise
             (Error.Invalid_value
                ( List.assoc "icy_metadata" p,
                  "Could not guess icy_metadata for this format, please specify \
                   either 'true' or 'false'." ))
+  in
+  let icy_metadata =
+    List.map Lang.to_string (Lang.to_list (List.assoc "icy_metadata" p))
   in
   let out_enc =
     match s_opt "encoding" with
@@ -356,19 +356,16 @@ class output p =
   let source = Lang.assoc "" 2 p in
   let icy_id = Lang.to_int (List.assoc "icy_id" p) in
   let mount = s "mount" in
-  let name = Charset.convert ~target:out_enc (s "name") in
-  let mount, name =
-    match (protocol, name, mount) with
-      | Cry.Http _, name, mount when name = no_name && mount = no_mount ->
-          raise
-            (Error.Invalid_value
-               ( List.assoc "mount" p,
-                 "Either name or mount must be defined for icecast sources." ))
-      | Cry.Icy, name, _ when name = no_name ->
-          (Cry.Icy_id icy_id, Printf.sprintf "sc#%i" icy_id)
-      | Cry.Icy, name, _ -> (Cry.Icy_id icy_id, name)
-      | _, name, mount when name = no_name -> (Cry.Icecast_mount mount, mount)
-      | _ -> (Cry.Icecast_mount mount, name)
+  let name =
+    match Lang.to_option (List.assoc "name" p) with
+      | None -> mount
+      | Some v -> Lang.to_string v
+  in
+  let name = Charset.convert ~target:out_enc name in
+  let mount =
+    match protocol with
+      | Cry.Icy -> Cry.Icy_id icy_id
+      | _ -> Cry.Icecast_mount mount
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -447,54 +444,20 @@ class output p =
 
     method insert_metadata m =
       (* Update metadata using ICY if told to.. *)
-      if icy_metadata then (
-        let get h l k = try (k, Hashtbl.find h k) :: l with _ -> l in
-        let getd h k d l =
-          try (k, Hashtbl.find h k) :: l with _ -> (k, d) :: l
-        in
-        let m = Meta_format.to_metadata m in
-        let def_title =
-          match get m [] "uri" with
-            | (_, s) :: _ -> (
-                let title = Filename.basename s in
-                try String.sub title 0 (String.rindex title '.')
-                with Not_found -> title)
-            | [] -> "Unknown"
-        in
-        let default_song =
-          (try Hashtbl.find m "artist" ^ " - " with _ -> "")
-          ^ try Hashtbl.find m "title" with _ -> "Unknown"
-        in
-        let a =
-          Array.of_list
-            (getd m "title" def_title
-               (getd m "song" default_song
-                  (List.fold_left (get m) []
-                     [
-                       "artist";
-                       "genre";
-                       "date";
-                       "album";
-                       "tracknum";
-                       "comment";
-                       "dj";
-                       "next";
-                     ])))
-        in
+      if send_icy_metadata then (
         let f = Charset.convert ~target:out_enc in
-        let a = Array.map (fun (x, y) -> (x, f y)) a in
-        let m =
-          let ret = Hashtbl.create 10 in
-          let f (x, y) = Hashtbl.add ret x y in
-          Array.iter f a;
-          ret
-        in
+        let icy_meta = Hashtbl.create 10 in
+        let m = Meta_format.to_metadata m in
+        Hashtbl.iter
+          (fun lbl v ->
+            if List.mem lbl icy_metadata then Hashtbl.replace icy_meta lbl (f v))
+          m;
         match Cry.get_status connection with
           | Cry.Connected _ -> (
               try
                 Cry.update_metadata
                   ~charset:(Charset.to_string out_enc)
-                  connection m
+                  connection icy_meta
               with e ->
                 self#log#important
                   "Metadata update may have failed with error: %s"
