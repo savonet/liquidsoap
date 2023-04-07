@@ -202,7 +202,14 @@ let peek_media gen = Tutils.mutexify gen.lock (fun () -> _media_content gen) ()
 (* The following is frame-specific and should hopefully go away when
    we switch to immutable content. *)
 
-let _frame_position frame = match _remaining frame with -1 -> 0 | r -> r
+let _frame_position frame =
+  match
+    List.rev
+      (Content.Track_marks.get_data
+         (Frame_base.Fields.find Frame_base.Fields.track_marks frame.content))
+  with
+    | p :: _ -> p
+    | _ -> 0
 
 let _frame_remaining frame =
   Lazy.force Frame_settings.size - _frame_position frame
