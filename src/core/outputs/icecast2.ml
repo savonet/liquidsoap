@@ -189,6 +189,22 @@ open M
 let user_agent =
   Lang.product (Lang.string "User-Agent") (Lang.string Http.user_agent)
 
+let default_icy_song () =
+  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+    {|fun (m) -> begin
+  title = m["title"]
+  artist = m["artist"]
+  if artist != "" and title != "" then
+    "#{artist} - #{title}"
+  elsif artist != "" then
+    artist
+  elsif title != "" then
+    title
+  else
+    null()
+  end
+end|}
+
 let proto frame_t =
   Output.proto
   @ Icecast_utils.base_proto frame_t
@@ -256,6 +272,16 @@ let proto frame_t =
                   "next";
                 ])),
         Some "List of metadata to send with ICY metadata update" );
+      ( "icy_song",
+        Lang.fun_t
+          [(false, "", Lang.metadata_t)]
+          (Lang.nullable_t Lang.string_t),
+        Some (default_icy_song ()),
+        Some
+          "Function used to generate the default icy \"song\" metadata. \
+           Metadata is not added when returning `null`. Default: `$(artist) - \
+           $(title)` if both are defined, otherwise `artist` or `title` if \
+           either is defined or `null`." );
       ("url", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ("description", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ( "on_connect",
@@ -347,6 +373,10 @@ class output p =
   in
   let icy_metadata =
     List.map Lang.to_string (Lang.to_list (List.assoc "icy_metadata" p))
+  in
+  let icy_song = List.assoc "icy_song" p in
+  let icy_song m =
+    Lang.to_valued_option Lang.to_string (Lang.apply icy_song [("", m)])
   in
   let out_enc =
     match s_opt "encoding" with
@@ -452,17 +482,22 @@ class output p =
           (fun lbl v ->
             if List.mem lbl icy_metadata then Hashtbl.replace icy_meta lbl (f v))
           m;
-        match Cry.get_status connection with
-          | Cry.Connected _ -> (
-              try
-                Cry.update_metadata
-                  ~charset:(Charset.to_string out_enc)
-                  connection icy_meta
-              with e ->
-                self#log#important
-                  "Metadata update may have failed with error: %s"
-                  (Printexc.to_string e))
-          | Cry.Disconnected -> ()
+        if not (Hashtbl.mem icy_meta "song") then (
+          match icy_song (Lang.metadata m) with
+            | None -> ()
+            | Some v -> (
+                Hashtbl.add icy_meta "song" (f v);
+                match Cry.get_status connection with
+                  | Cry.Connected _ -> (
+                      try
+                        Cry.update_metadata
+                          ~charset:(Charset.to_string out_enc)
+                          connection icy_meta
+                      with e ->
+                        self#log#important
+                          "Metadata update may have failed with error: %s"
+                          (Printexc.to_string e))
+                  | Cry.Disconnected -> ()))
         (* Do nothing if shout connection isn't available *))
       else (
         (* Encoder is not always present.. *)
