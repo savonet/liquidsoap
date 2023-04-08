@@ -485,20 +485,19 @@ class output p =
         if not (Hashtbl.mem icy_meta "song") then (
           match icy_song (Lang.metadata m) with
             | None -> ()
-            | Some v -> (
-                Hashtbl.add icy_meta "song" (f v);
-                match Cry.get_status connection with
-                  | Cry.Connected _ -> (
-                      try
-                        Cry.update_metadata
-                          ~charset:(Charset.to_string out_enc)
-                          connection icy_meta
-                      with e ->
-                        self#log#important
-                          "Metadata update may have failed with error: %s"
-                          (Printexc.to_string e))
-                  | Cry.Disconnected -> ()))
-        (* Do nothing if shout connection isn't available *))
+            | Some v -> Hashtbl.add icy_meta "song" (f v));
+        (* Do nothing if shout connection isn't available *)
+        match Cry.get_status connection with
+          | Cry.Connected _ -> (
+              try
+                Cry.update_metadata
+                  ~charset:(Charset.to_string out_enc)
+                  connection icy_meta
+              with e ->
+                self#log#important
+                  "Metadata update may have failed with error: %s"
+                  (Printexc.to_string e))
+          | Cry.Disconnected -> ())
       else (
         (* Encoder is not always present.. *)
         match encoder with
