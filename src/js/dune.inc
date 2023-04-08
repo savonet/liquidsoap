@@ -42,7 +42,6 @@ interactive.liq
 http_codes.liq
 predicate.liq
 file.liq
-shoutcast.liq
 getter.liq
 io.liq
 switches.liq
@@ -56,6 +55,7 @@ playlist.liq
 testing.liq
 hls.liq
 runtime.liq
+icecast.liq
 http_extra.liq
 server.liq
 settings.liq)))

@@ -23,6 +23,19 @@ The `!x` notation for getting the value of a reference is now deprecated. You
 should write `x()` instead. And `x := v` is now an alias for `x.set(v)` (both
 can be used interchangeably).
 
+### Icecast and Shoutcast outputs
+
+`output.icecast` and `output.shoutcast` are some of our oldest operators and were in dire need of some
+cleanup so we did it!
+
+We applied the following changes:
+
+- Old `icy_metadata` argument was renamed to `send_icy_metadata` and changed to a nullable `bool`. `null` means guess.
+- New `icy_metadata` argument now returns a list of metadata to send with ICY updates.
+- Added a `icy_song` argument to generate default `"song"` metadata for ICY updates. Defaults to `<artist> - <title>` when available, otherwise `artist` or `title` if available, otherwise `null`, meaning don't add the metadata.
+- Cleaned up and removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
+- Made `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
+
 ### Timeout
 
 We used to have timeout values labelled `timeout` or `timeout_ms`, some of these would be integer and

@@ -309,7 +309,14 @@ module Value = struct
         print (" * " ^ l ^ " : " ^ a.arg_type ^ default ^ "\n");
         Option.iter (fun d -> print (reflow ~indent:5 d)) a.arg_description;
         print "\n\n")
-      f.arguments;
+      (List.stable_sort
+         (fun v v' ->
+           match (v, v') with
+             | (None, _), (None, _) -> 0
+             | (None, _), _ -> 1
+             | _, (None, _) -> -1
+             | (l, _), (l', _) -> Stdlib.compare l l')
+         f.arguments);
     if f.methods <> [] then (
       print "Methods:\n\n";
       List.iter

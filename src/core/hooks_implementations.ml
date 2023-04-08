@@ -1,20 +1,5 @@
 module Hooks = Liquidsoap_lang.Hooks
-
-let () = Hooks.liq_libs_dir := Configure.liq_libs_dir
-
-let () =
-  let on_change v =
-    Hooks.log_path :=
-      if v then (try Some Dtools.Log.conf_file_path#get with _ -> None)
-      else None
-  in
-  Dtools.Log.conf_file#on_change on_change;
-  ignore (Option.map on_change Dtools.Log.conf_file#get_d)
-
-type sub = Lang.Regexp.sub = {
-  matches : string option list;
-  groups : (string * string) list;
-}
+module Lang = Liquidsoap_lang.Lang
 
 let cflags_of_flags (flags : Liquidsoap_lang.Regexp.flag list) =
   List.fold_left
@@ -55,21 +40,6 @@ let regexp ?(flags = []) s =
       substitute ~rex ~subst s
   end
 
-let () =
-  Hooks.collect_after := Clock.collect_after;
-  Hooks.regexp := regexp;
-  (Hooks.make_log := fun name -> (Log.make name :> Hooks.log));
-  Hooks.type_of_encoder := Lang_encoder.type_of_encoder;
-  Hooks.make_encoder := Lang_encoder.make_encoder;
-  Hooks.has_encoder :=
-    fun fmt ->
-      try
-        let (_ : Encoder.factory) =
-          Encoder.get_factory (Lang_encoder.V.of_value fmt)
-        in
-        true
-      with _ -> false
-
 (* For source eval check there are cases of:
      source('a) <: (source('a).{ source methods })?
    b/c of source.dynamic so we want to dig deeper
@@ -84,10 +54,10 @@ let eval_check ~env:_ ~tm v =
     let s = Lang_source.Source_val.of_value v in
     let scheme = Typing.generalize ~level:(-1) (deep_demeth tm.Term.t) in
     let ty = Typing.instantiate ~level:(-1) scheme in
-    Typing.(Lang.source_t ~methods:false s#frame_type <: ty);
+    Typing.(Lang_source.source_t ~methods:false s#frame_type <: ty);
     s#content_type_computation_allowed)
   else if Track.is_value v then (
-    let field, source = Lang.to_track v in
+    let field, source = Lang_source.to_track v in
     match field with
       | _ when field = Frame.Fields.metadata -> ()
       | _ when field = Frame.Fields.track_marks -> ()
@@ -95,12 +65,10 @@ let eval_check ~env:_ ~tm v =
           let scheme = Typing.generalize ~level:(-1) (deep_demeth tm.Term.t) in
           let ty = Typing.instantiate ~level:(-1) scheme in
           let frame_t =
-            Lang.frame_t (Lang.univ_t ())
+            Frame_type.make (Lang.univ_t ())
               (Frame.Fields.add field ty Frame.Fields.empty)
           in
           Typing.(source#frame_type <: frame_t))
-
-let () = Hooks.eval_check := eval_check
 
 let mk_field_t ~pos (kind, params) =
   if kind = "any" then Type.var ~pos ()
@@ -130,7 +98,9 @@ let mk_source_ty ~pos name args =
     raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
 
   match args with
-    | [] -> Lang.source_t (Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty)
+    | [] ->
+        Lang_source.source_t
+          (Frame_type.make (Lang.univ_t ()) Frame.Fields.empty)
     | args ->
         let fields =
           List.fold_left
@@ -141,11 +111,32 @@ let mk_source_ty ~pos name args =
             Frame.Fields.empty args
         in
 
-        Lang.source_t (Lang.frame_t Lang.unit_t fields)
+        Lang_source.source_t (Frame_type.make Lang.unit_t fields)
 
-let () = Hooks.mk_source_ty := mk_source_ty
-let () = Hooks.getpwnam := Unix.getpwnam
-
-let () =
+let register () =
+  Hooks.liq_libs_dir := Configure.liq_libs_dir;
+  let on_change v =
+    Hooks.log_path :=
+      if v then (try Some Dtools.Log.conf_file_path#get with _ -> None)
+      else None
+  in
+  Dtools.Log.conf_file#on_change on_change;
+  ignore (Option.map on_change Dtools.Log.conf_file#get_d);
+  Hooks.collect_after := Clock.collect_after;
+  Hooks.regexp := regexp;
+  (Hooks.make_log := fun name -> (Log.make name :> Hooks.log));
+  Hooks.type_of_encoder := Lang_encoder.type_of_encoder;
+  Hooks.make_encoder := Lang_encoder.make_encoder;
+  Hooks.eval_check := eval_check;
+  (Hooks.has_encoder :=
+     fun fmt ->
+       try
+         let (_ : Encoder.factory) =
+           Encoder.get_factory (Lang_encoder.V.of_value fmt)
+         in
+         true
+       with _ -> false);
+  Hooks.mk_source_ty := mk_source_ty;
+  Hooks.getpwnam := Unix.getpwnam;
   Hooks.source_methods_t :=
-    fun () -> Lang.source_t ~methods:true (Lang.univ_t ())
+    fun () -> Lang_source.source_t ~methods:true (Lang.univ_t ())

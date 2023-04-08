@@ -292,14 +292,14 @@
   comments.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} comments.liq liquidsoap %{test_liq} comments.liq)))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   pattern.liq

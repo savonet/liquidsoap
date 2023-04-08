@@ -43,6 +43,14 @@ Changed:
   `output.shoutcast` to `UTF-8` (#2704)
 - BREAKING: all `timeout` settings and parameters are now `float` values
   and in seconds (#2809)
+- BREAKING: in `output.{shoutcast,icecast}`:
+  - Old `icy_metadata` renamed to `send_icy_metadata` and changed to a nullable `bool`. `null` means guess.
+  - New `icy_metadata` now returns a list of metadata to send with ICY updates.
+  - Added `icy_song` argument to generate default `"song"` metadata for ICY updates. Defaults
+    to `<artist> - <title>` when available, otherwise `artist` or `title` if available, otherwise
+    `null`, meaning don't add the metadata.
+  - Cleanup, removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
+  - Make `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.

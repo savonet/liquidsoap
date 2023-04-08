@@ -156,7 +156,7 @@ let args_of, app_of =
     List.map
       (fun (n, n', v) ->
         let t = Type.make ~pos (get_arg_type t n).Type.descr in
-        (n, n', t, Option.map (term_of_value ~pos t) v))
+        (n, n', t, Option.map (term_of_value ~pos ~name:n t) v))
       args
   and get_app ~pos _ args =
     List.map
@@ -166,7 +166,7 @@ let args_of, app_of =
             { t = Type.var ~pos (); term = Var n; methods = Term.Methods.empty }
         ))
       args
-  and term_of_value ~pos t v =
+  and term_of_value_base ~pos t v =
     let get_list_type () =
       match (Type.deref t).Type.descr with
         | Type.(List { t }) -> t
@@ -190,25 +190,24 @@ let args_of, app_of =
         | Value.Ground g -> mk_tm (Term.Ground g)
         | Value.List l ->
             mk_tm
-              (Term.List (List.map (term_of_value ~pos (get_list_type ())) l))
+              (Term.List
+                 (List.map (term_of_value_base ~pos (get_list_type ())) l))
         | Value.Tuple l ->
             mk_tm
-              (Term.List
+              (Term.Tuple
                  (List.mapi
-                    (fun idx v -> term_of_value ~pos (get_tuple_type idx) v)
+                    (fun idx v ->
+                      term_of_value_base ~pos (get_tuple_type idx) v)
                     l))
         | Value.Null -> mk_tm Term.Null
-        | Value.Fun (args, [], body) ->
+        (* Ignoring env is not correct here but this is an internal operator
+           so we have to trust that devs using it via %argsof now that they are doing. *)
+        | Value.Fun (args, _, body) ->
             let body =
               Term.{ body with t = Type.make ~pos body.t.Type.descr }
             in
             mk_tm (Term.Fun (Term.free_vars body, get_args ~pos t args, body))
-        | _ ->
-            raise
-              (Parse_error
-                 ( pos,
-                   Printf.sprintf "Value %s cannot be represented as a term"
-                     (Value.to_string v) ))
+        | _ -> assert false
     in
     let meths, _ = Type.split_meths t in
     {
@@ -222,6 +221,15 @@ let args_of, app_of =
             process_value ~t meth)
           v.Value.methods;
     }
+  and term_of_value ~pos ~name t v =
+    try term_of_value_base ~pos t v
+    with _ ->
+      raise
+        (Parse_error
+           ( pos,
+             Printf.sprintf
+               "Argument %s: value %s cannot be represented as a term" name
+               (Value.to_string v) ))
   in
   let args_of = gen_args_of get_args in
   let app_of = gen_args_of get_app in

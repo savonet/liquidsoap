@@ -3,6 +3,8 @@ include Lang_source
 include Lang_encoder.L
 module Doc = Liquidsoap_lang.Doc
 
+let () = Hooks_implementations.register ()
+
 (** Helpers for defining protocols. *)
 
 let add_protocol ~syntax ~doc ~static name resolver =
