@@ -18,18 +18,20 @@ We noticed that you did not install the samplerate package. We strongly
 recommend this package for audio samplerate conversion."""
     {success & !samperate-enabled}
   """\
-We noticed that you did not install the cry package that provides icecast
-output. This is a feature most users want."""
-    {success & !cry-enabled}
+We noticed that you did not install the taglib package that provides support
+to decode metadata tags from many audio and video media files. This is a feature
+most users want."""
+    {success & !taglib-enabled}
   """\
 We noticed that you did not install any ssl support package. Liquidsoap won't
 be able to use any HTTPS feature. You might want to install one of ssl or
 osx-secure-transport package."""
     {success & !ssl-enabled & !secure-transport-enabled}
   """\
-We noticed that you did not install the camomile package that provides charset
-conversion. Make sure that you only use UTF-8 tags."""
-    {success & !camomile-enabled}
+We noticed that your build includes GStreamer support. This support is DEPRECATED.
+We suggest you consider moving to FFmpeg, which should provide same the same level
+of functionalities."""
+    {success & gstreamer-enabled}
 ]
 depexts: ["coreutils"] {os = "macos" & os-distribution = "homebrew"}
 dev-repo: "git+https://github.com/savonet/liquidsoap.git"

@@ -23,6 +23,8 @@
 open Value
 open Ground
 
+let log = Log.make ["gstreamer"]
+
 let type_of_encoder p =
   let has_video =
     List.exists
@@ -35,6 +37,12 @@ let type_of_encoder p =
   else Encoder.audio_type channels
 
 let make ?pos params =
+  let () =
+    log#important
+      "Gstreamer is DEPRECATED! Please consider moving to FFMPEG. See: \
+       https://github.com/savonet/liquidsoap/issues/2592 for some discussion \
+       and example."
+  in
   let defaults =
     {
       Gstreamer_format.channels = 2;

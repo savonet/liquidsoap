@@ -25,7 +25,7 @@ open Extralib
 open Gstreamer
 module GU = Gstreamer_utils
 
-let log = Log.make ["io"; "gstreamer"]
+let log = Log.make ["gstreamer"]
 let gst_clock = Tutils.lazy_cell (fun () -> Clock.clock "gstreamer")
 
 let string_of_state_change = function
@@ -45,6 +45,12 @@ type ('a, 'b) element = {
 }
 
 class virtual ['a, 'b] element_factory ~on_error =
+  let () =
+    log#important
+      "Gstreamer is DEPRECATED! Please consider moving to FFMPEG. See: \
+       https://github.com/savonet/liquidsoap/issues/2592 for some discussion \
+       and example."
+  in
   object (self)
     val restart_m = Mutex.create ()
     val mutable restarting = false

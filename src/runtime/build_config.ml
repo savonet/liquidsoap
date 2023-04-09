@@ -121,6 +121,7 @@ let opam_config =
 opam-version: "2.0"
 variables {
   ffmpeg-enabled: %{string_of_bool Ffmpeg_option.enabled}
+  gstreamer-enabled: %{string_of_bool Gstreamer_option.enabled}
   lame-enabled: %{string_of_bool Lame_option.enabled}
   mad-enabled: %{string_of_bool Mad_option.enabled}
   samperate-enabled: %{string_of_bool Samplerate_option.enabled}
