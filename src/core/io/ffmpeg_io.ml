@@ -54,13 +54,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     inherit Source.no_seek
     val connect_task = Atomic.make None
     val container = Atomic.make None
-
-    initializer
-      Lifecycle.on_core_shutdown (fun () ->
-          match Atomic.get container with
-            | None -> ()
-            | Some { closed } -> Atomic.set closed true)
-
+    val shutdown = Atomic.make false
+    initializer Lifecycle.on_core_shutdown (fun () -> Atomic.set shutdown true)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
     method private is_connected = Atomic.get container <> None
@@ -96,7 +91,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let closed = Atomic.make false in
         let input =
           Av.open_input
-            ~interrupt:(fun () -> Atomic.get closed)
+            ~interrupt:(fun () -> Atomic.get shutdown || Atomic.get closed)
             ?format ~opts url
         in
         if Hashtbl.length opts > 0 then
@@ -198,7 +193,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       try
         let { decoder; buffer; closed } = Option.get (Atomic.get container) in
         while Generator.length self#buffer < Lazy.force Frame.size do
-          if Atomic.get closed then raise Not_connected;
+          if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
           self#mutexify (fun () -> decoder buffer) ()
         done;
         Generator.fill self#buffer frame;
