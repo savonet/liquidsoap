@@ -68,6 +68,9 @@
   compress_exp
   content
   content_audio
+  content_pcm_base
+  content_pcm_f32
+  content_pcm_s16
   content_base
   content_midi
   content_timed
@@ -231,6 +234,7 @@
   theora_format
   time_warp
   track
+  track_map
   tutils
   type
   typing

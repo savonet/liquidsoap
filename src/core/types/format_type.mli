@@ -23,6 +23,7 @@
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 val descr : descr -> Type.descr
+val pcm_audio : Type.constr
 val track : Type.constr
 val muxed_tracks : Type.constr
 val internal_tracks : Type.constr
@@ -30,11 +31,11 @@ val content_type : Type.t -> Content_base.format
 val kind_handler : Content_base.kind * Type.t -> Type.custom_handler
 
 (** Some common types *)
-val audio : unit -> Type.t
+val audio : ?pcm_kind:Content_base.kind -> unit -> Type.t
 
-val audio_mono : unit -> Type.t
-val audio_stereo : unit -> Type.t
-val audio_n : int -> Type.t
+val audio_mono : ?pcm_kind:Content_base.kind -> unit -> Type.t
+val audio_stereo : ?pcm_kind:Content_base.kind -> unit -> Type.t
+val audio_n : ?pcm_kind:Content_base.kind -> int -> Type.t
 val video : unit -> Type.t
 val midi : unit -> Type.t
 val midi_n : int -> Type.t

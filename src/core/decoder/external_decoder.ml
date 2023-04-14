@@ -91,13 +91,7 @@ let create_stream process input =
   Gc.finalise close ret;
   ret
 
-let audio_n n =
-  Content.(
-    Audio.lift_params
-      {
-        Content.channel_layout =
-          lazy (Audio_converter.Channel_layout.layout_of_channels n);
-      })
+let audio_n = Frame_base.format_of_channels ~pcm_kind:Content.Audio.kind
 
 let test_ctype f filename =
   (* 0 = file rejected,

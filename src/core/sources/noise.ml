@@ -41,6 +41,21 @@ class noise duration =
                 Audio.Generator.white_noise
                   (Content.Audio.get_data (Frame.get frame field))
                   audio_pos audio_len
+            (* This is not optimal. *)
+            | _ when Content_pcm_s16.is_format typ ->
+                let pcm = Content_pcm_s16.get_data (Frame.get frame field) in
+                let audio = Content_pcm_s16.to_audio pcm in
+                Audio.Generator.white_noise audio audio_pos audio_len;
+                Content_pcm_s16.blit_audio audio audio_pos pcm audio_pos
+                  audio_len;
+                Frame.set frame field (Content_pcm_s16.lift_data pcm)
+            | _ when Content_pcm_f32.is_format typ ->
+                let pcm = Content_pcm_f32.get_data (Frame.get frame field) in
+                let audio = Content_pcm_f32.to_audio pcm in
+                Audio.Generator.white_noise audio audio_pos audio_len;
+                Content_pcm_f32.blit_audio audio audio_pos pcm audio_pos
+                  audio_len;
+                Frame.set frame field (Content_pcm_f32.lift_data pcm)
             | _ when Content.Video.is_format typ ->
                 Video.Canvas.iter Image.YUV420.randomize
                   (Content.Video.get_data (Frame.get frame field))

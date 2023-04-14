@@ -24,6 +24,7 @@ val mk_audio_decoder :
   channels:int ->
   stream:(Avutil.input, Avutil.audio, [ `Frame ]) Av.stream ->
   field:Frame.field ->
+  pcm_kind:Content.kind ->
   Avutil.audio Avcodec.params ->
   buffer:Decoder.buffer ->
   Avutil.audio Avutil.Frame.t ->

@@ -58,8 +58,8 @@ val add_break : t -> int -> unit
 val get_content : Frame.t -> Source.source -> (Content.data * int * int) option
 
 (** Get video contents. Raises [Not_found] is frame has no video *)
-val content : t -> Content.data
+val content : ?field:Frame.field -> t -> Content.data
 
 (** Get video content. Raises [Content.Invalid] if video content is not in
     internal format and [Not_found] if frame has no video content. *)
-val data : t -> Content.Video.data
+val data : ?field:Frame.field -> t -> Content.Video.data

@@ -22,8 +22,8 @@ val get_all_metadata : t -> (int * metadata) list
 
 (** Get the MIDI content. Raises [Not_found] if frame has
     no midi content. *)
-val content : t -> Content.data
+val content : ?field:Frame.field -> t -> Content.data
 
 (** Get the MIDI content in [Midi] format. Raises [Content.Invalid]
   * if content is not [Midi] and [Not_found] if frame has no midi content. *)
-val midi : t -> Content.Midi.data
+val midi : ?field:Frame.field -> t -> Content.Midi.data

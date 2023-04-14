@@ -151,14 +151,8 @@ let file_type ~ctype:_ filename =
       Some
         (Frame.Fields.make
            ~audio:
-             Content.(
-               Audio.lift_params
-                 {
-                   Content.channel_layout =
-                     lazy
-                       (Audio_converter.Channel_layout.layout_of_channels
-                          channels);
-                 })
+             (Frame_base.format_of_channels ~pcm_kind:Content.Audio.kind
+                channels)
            ()))
 
 let wav_mime_types =
