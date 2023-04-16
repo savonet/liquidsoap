@@ -138,7 +138,7 @@ let register_format_handler fn = Queue.add fn format_handlers
 
 exception Found_format of format_handler
 
-let get_params_handler p =
+let get_format_handler p =
   try
     Queue.iter
       (fun fn ->
@@ -197,7 +197,7 @@ let register_data_handler t h =
   Array.unsafe_set data_handlers t h
 
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
-let make ?length k = (get_params_handler k).make length
+let make ?length k = (get_format_handler k).make length
 let blit src = (get_data_handler src).blit src
 let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
@@ -208,9 +208,9 @@ let append c c' = (get_data_handler c).append c c'
 let copy c = (get_data_handler c).copy c
 let format c = (get_data_handler c).format c
 let clear c = (get_data_handler c).clear c
-let kind p = (get_params_handler p).kind ()
+let kind p = (get_format_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
-let string_of_format k = (get_params_handler k).string_of_format ()
+let string_of_format k = (get_format_handler k).string_of_format ()
 
 let () =
   Printexc.register_printer (function
@@ -222,23 +222,12 @@ let () =
     | _ -> None)
 
 let merge p p' =
-  let { merge } = get_params_handler p in
+  let { merge } = get_format_handler p in
   try merge p' with _ -> raise (Incompatible_format (p, p'))
 
-let duplicate p = (get_params_handler p).duplicate ()
-let compatible p p' = (get_params_handler p).compatible p'
-let string_of_kind f = (get_kind_handler f).string_of_kind ()
-
-type internal_entry = { is_kind : kind -> bool; is_format : format -> bool }
-
-type internal_entries = {
-  mutable none : internal_entry option;
-  mutable audio : internal_entry option;
-  mutable video : internal_entry option;
-  mutable midi : internal_entry option;
-}
-
-let internal_entries = { none = None; audio = None; video = None; midi = None }
+let duplicate p = (get_format_handler p).duplicate ()
+let compatible p p' = (get_format_handler p).compatible p'
+let string_of_kind k = (get_kind_handler k).string_of_kind ()
 
 module MkContentBase (C : ContentSpecs) :
   Content
@@ -387,12 +376,12 @@ module MkContentBase (C : ContentSpecs) :
 
   let () =
     register_kind_handler (function
-      | Kind f ->
+      | Kind k ->
           Some
             {
               default_format =
-                (fun () -> Format (Unifier.make (C.default_params f)));
-              string_of_kind = (fun () -> C.string_of_kind f);
+                (fun () -> Format (Unifier.make (C.default_params k)));
+              string_of_kind = (fun () -> C.string_of_kind k);
             }
       | _ -> None);
     register_format_handler (function
@@ -411,7 +400,7 @@ module MkContentBase (C : ContentSpecs) :
                   let kind = C.string_of_kind C.kind in
                   let params = C.string_of_params (Unifier.deref p) in
                   match params with
-                    | "" -> C.string_of_kind C.kind
+                    | "" -> kind
                     | _ -> Printf.sprintf "%s(%s)" kind params);
             }
       | _ -> None);
