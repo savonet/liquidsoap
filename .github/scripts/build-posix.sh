@@ -44,7 +44,7 @@ opam update
 # See: https://github.com/whitequark/ocaml-inotify/pull/20
 git clone https://github.com/whitequark/ocaml-inotify.git
 cd ocaml-inotify && opam pin -n .
-opam install -y uri inotify
+opam install -y uri inotify camomile.1.0.2
 
 cd /tmp/liquidsoap-full
 
