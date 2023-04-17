@@ -25,6 +25,8 @@ git reset --hard
 
 ./.github/scripts/checkout-deps.sh
 
+opam install -y camomile.1.0.2
+
 cd /tmp/liquidsoap-full
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
