@@ -162,6 +162,7 @@
   max_duration
   mean
   meta_format
+  merge_metadata
   midi_decoder
   midi_routing
   midimeter

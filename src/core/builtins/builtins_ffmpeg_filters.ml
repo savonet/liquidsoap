@@ -718,7 +718,7 @@ let _ =
        [
          ( "pass_metadata",
            Lang.bool_t,
-           Some (Lang.bool false),
+           Some (Lang.bool true),
            Some "Pass liquidsoap's metadata to this stream" );
          ("", Graph.t, None, None);
          ("", video_frame_t, None, None);
@@ -786,7 +786,7 @@ let _ =
     [
       ( "pass_metadata",
         Lang.bool_t,
-        Some (Lang.bool false),
+        Some (Lang.bool true),
         Some "Pass ffmpeg stream metadata to liquidsoap" );
       ( "fps",
         Lang.nullable_t Lang.int_t,
