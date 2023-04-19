@@ -170,6 +170,21 @@ let source =
           []
           (fst (Lang.split_meths tracks))
       in
+      if
+        List.for_all
+          (fun { fields } ->
+            List.for_all
+              (fun { target_field } ->
+                target_field = Frame.Fields.metadata
+                || target_field = Frame.Fields.track_marks)
+              fields)
+          tracks
+      then
+        Runtime_error.raise ~pos:(Lang.pos p)
+          ~message:
+            "source muxer needs at least one track with content that is not \
+             metadata or track_marks!"
+          "invalid";
       let s = new muxer tracks in
       let target_fields =
         List.fold_left
@@ -210,7 +225,7 @@ let _ =
       let _, s = Lang.to_track (List.assoc "" p) in
       (Frame.Fields.track_marks, s))
 
-let _ =
+let track_metadata =
   let track_t = Type.var ~constraints:[Format_type.media ~strict:true ()] () in
   let return_t = Format_type.metadata in
   Lang.add_track_operator ~base:Modules.track "metadata" ~category:`Track
