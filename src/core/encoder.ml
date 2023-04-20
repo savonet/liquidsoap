@@ -214,13 +214,14 @@ let file_output = function Ffmpeg _ -> true | _ -> false
 
 let with_file_output ?(append = false) encoder file =
   match encoder with
-    | Ffmpeg opts ->
-        Hashtbl.replace opts.Ffmpeg_format.opts "truncate"
-          (`Int (if append then 0 else 1));
+    | Ffmpeg params ->
+        let opts = Hashtbl.copy params.Ffmpeg_format.opts in
+        Hashtbl.replace opts "truncate" (`Int (if append then 0 else 1));
         Ffmpeg
           {
-            opts with
+            params with
             Ffmpeg_format.output = `Url (Printf.sprintf "file:%s" file);
+            opts;
           }
     | _ -> failwith "No file output!"
 
