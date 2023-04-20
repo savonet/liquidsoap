@@ -133,8 +133,8 @@ let _ =
         Some Lang.null,
         Some "Initial height of the video (defaults ot the same as frame)." );
     ]
-    ~return_t:(Lang.internal_t ()) ~category:`Video
-    ~descr:"A plane where one can draw."
+    ~return_t:(Lang.internal_tracks_t ())
+    ~category:`Video ~descr:"A plane where one can draw."
     ~meth:
       [
         ("clear", ([], Lang.fun_t [] Lang.unit_t), "Clear the board.", clear);

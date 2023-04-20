@@ -46,6 +46,7 @@ let ord_constr =
       (fun ~subtype:_ ~satisfies b ->
         let m, b = split_meths b in
         match b.descr with
+          | Var _ -> satisfies b
           | Custom c when Ground_type.is_ground c.Type_base.typ -> ()
           | Tuple [] ->
               (* For records, we want to ensure that all fields are ordered. *)

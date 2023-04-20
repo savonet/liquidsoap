@@ -13,7 +13,7 @@ let add_protocol ~syntax ~doc ~static name resolver =
   Plug.register Request.protocols ~doc name spec
 
 let frame_t base_type fields = Frame_type.make base_type fields
-let internal_t () = Frame_type.internal ()
+let internal_tracks_t () = Frame_type.internal_tracks ()
 
 let format_t t =
   Type.make

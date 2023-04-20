@@ -23,8 +23,9 @@
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 val descr : descr -> Type.descr
-val internal_media : Type.constr
-val media : strict:bool -> unit -> Type.constr
+val track : Type.constr
+val muxed_tracks : Type.constr
+val internal_tracks : Type.constr
 val content_type : Type.t -> Content_base.format
 val kind_handler : Content_base.kind * Type.t -> Type.custom_handler
 

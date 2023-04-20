@@ -41,6 +41,9 @@ let to_metadata t =
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
+let metadata_track_t = Format_type.metadata
+let track_marks_t = Format_type.track_marks
+
 module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
   type content = Source.source
 

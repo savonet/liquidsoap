@@ -1,5 +1,7 @@
 open Type
 
+exception Failed
+
 let () = Frame_settings.lazy_config_eval := true
 
 let should_work t t' r =
@@ -328,3 +330,68 @@ let () =
   with
     | Test_failed -> raise Test_failed
     | _ -> ()
+
+let () =
+  (* source('a) where 'a is an internal media type. *)
+  let a = Lang.source_t (Lang.internal_tracks_t ()) in
+  (* source(video: ffmpeg.video.raw, 'b) *)
+  let b =
+    Lang.source_t
+      (Frame_type.make (Lang.univ_t ())
+         Frame.Fields.(
+           add video
+             (Type.make
+                (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
+             empty))
+  in
+
+  let () =
+    try
+      Typing.(a <: b);
+      raise Failed
+    with
+      | Failed -> raise Failed
+      | _ -> ()
+  in
+
+  (* source('a) where 'a is an internal media type. *)
+  let a = Lang.source_t (Lang.internal_tracks_t ()) in
+  (* source(video: ffmpeg.video.raw, 'b) *)
+  let b =
+    Lang.source_t
+      (Frame_type.make (Lang.univ_t ())
+         Frame.Fields.(
+           add video
+             (Type.make
+                (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
+             empty))
+  in
+
+  try
+    Typing.(b <: a);
+    raise Failed
+  with
+    | Failed -> raise Failed
+    | _ -> ()
+
+let () =
+  (* { audio: 'a, metadata: metadata, track_marks : track_marks } where 'a is an internal media type. *)
+  let a =
+    Lang.record_t
+      [
+        ("audio", Lang.internal_tracks_t ());
+        ("metadata", Lang.metadata_track_t);
+        ("track_marks", Lang.track_marks_t);
+      ]
+  in
+  (* 'b.{metadata? : metadata, track_marks? : track_marks } where 'b is an internal media type. *)
+  let b =
+    Lang.optional_method_t
+      (Lang.internal_tracks_t ())
+      [
+        ("metadata", ([], Lang.metadata_track_t), "");
+        ("track_marks", ([], Lang.track_marks_t), "");
+      ]
+  in
+
+  Typing.(a <: b)

@@ -292,7 +292,7 @@ let () =
 
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c. *)
 let rec satisfies_constraint b c =
-  match (demeth b).descr with
+  match (deref b).descr with
     | Var { contents = Free v } ->
         v.constraints <- Constraints.add c v.constraints
     | _ ->

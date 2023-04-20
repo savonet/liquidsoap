@@ -9,7 +9,11 @@ s = source(
 
 s = source.on_track(s, fun (_) -> test.pass())
 
-tmp = file.temp("foo", "mp3")
+tmp = file.temp("foo", "flv")
 on_shutdown({file.remove(tmp)})
 
-output.file(%mp3, tmp, s)
+output.file(
+  %ffmpeg(format="flv",%video.raw(codec="libx264")),
+  tmp,
+  s
+)
