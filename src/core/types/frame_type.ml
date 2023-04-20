@@ -93,7 +93,8 @@ let content_type frame_type =
           default_t
       | _ ->
           (try
-             (* Map audio and video fields to their default value when possible. *)
+             (* Map audio and video fields to their default value when possible.
+                This is in case the source has types such as { audio = 'a } *)
              Typing.satisfies_constraint base_type Format_type.internal_media;
              List.iter
                (function
