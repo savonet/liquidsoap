@@ -13,7 +13,7 @@ tmp = file.temp("foo", "flv")
 on_shutdown({file.remove(tmp)})
 
 output.file(
-  %ffmpeg(format="flv",%video.raw(codec="libx264")),
+  %ffmpeg(format="flv",%video(codec="libx264")),
   tmp,
   s
 )
