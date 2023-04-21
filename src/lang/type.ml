@@ -32,6 +32,7 @@ let num_constr =
       (fun ~subtype:_ ~satisfies:_ b ->
         let b = demeth b in
         match b.descr with
+          | Custom { typ = Ground.Never.Type }
           | Custom { typ = Ground.Int.Type }
           | Custom { typ = Ground.Float.Type } ->
               ()

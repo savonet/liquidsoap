@@ -159,6 +159,7 @@ let internal_track =
         let b = Type.demeth b in
         match b.Type.descr with
           | Type.Var _ -> satisfies b
+          | Type.(Custom { typ = Ground.Never.Type }) -> ()
           | Type.Custom { Type.typ = Kind (k, _) }
             when List.exists (is_kind k) internal_modules ->
               ()
@@ -182,6 +183,7 @@ let internal_tracks =
         List.iter
           (fun { Type.scheme = _, typ } ->
             match (Type.demeth typ).Type.descr with
+              | Type.(Custom { typ = Ground.Never.Type }) -> ()
               | Type.Custom { Type.typ = Kind (k, _) }
                 when List.exists (is_kind k) internal_modules ->
                   ()
@@ -204,6 +206,7 @@ let track =
         let b = Type.demeth b in
         match b.Type.descr with
           | Type.Var _ -> satisfies b
+          | Type.(Custom { typ = Ground.Never.Type })
           | Type.Custom { Type.typ = Kind _ }
           | Type.Custom { Type.typ = Format _ } ->
               ()
@@ -224,6 +227,7 @@ let muxed_tracks =
         List.iter
           (fun { Type.scheme = _, typ } ->
             match (Type.demeth typ).Type.descr with
+              | Type.(Custom { typ = Ground.Never.Type }) -> ()
               | Type.Custom { Type.typ = Kind _ }
               | Type.Custom { Type.typ = Format _ } ->
                   ()
