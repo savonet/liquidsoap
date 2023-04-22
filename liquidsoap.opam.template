@@ -24,7 +24,7 @@ most users want."""
     {success & !taglib-enabled}
   """\
 We noticed that you did not install any ssl support package. Liquidsoap won't
-be able to use any HTTPS feature. You might want to install one of ssl or
+be able to use any of the `https.{get,...}` operators. You might want to install one of ssl or
 osx-secure-transport package."""
     {success & !ssl-enabled & !secure-transport-enabled}
   """\
