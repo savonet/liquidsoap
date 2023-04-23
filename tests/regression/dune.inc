@@ -198,6 +198,19 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  external-encoder.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} external-encoder.liq liquidsoap %{test_liq} external-encoder.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   GH1129.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
