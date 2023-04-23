@@ -112,13 +112,13 @@ let encoder id ext =
   let encode frame start len =
     let channels = ext.channels in
     let samplerate = Lazy.force ext.samplerate in
-    let width, height = Option.get ext.video in
-    let width = Lazy.force width in
-    let height = Lazy.force height in
     let sbuf =
-      if ext.video <> None then
+      if ext.video <> None then (
+        let width, height = Option.get ext.video in
+        let width = Lazy.force width in
+        let height = Lazy.force height in
         Avi_encoder.encode_frame ~channels ~samplerate ~converter ~width ~height
-          frame start len
+          frame start len)
       else (
         let b = AFrame.pcm frame in
         let start = Frame.audio_of_main start in
