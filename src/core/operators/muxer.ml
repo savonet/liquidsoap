@@ -140,11 +140,7 @@ class muxer tracks =
   end
 
 let source =
-  let frame_t =
-    Lang.frame_t
-      (Type.var ~constraints:[Format_type.media ~strict:false ()] ())
-      Frame.Fields.empty
-  in
+  let frame_t = Lang.univ_t ~constraints:[Format_type.muxed_tracks] () in
   let tracks_t =
     Type.meth ~optional:true "track_marks"
       ([], Format_type.track_marks)
@@ -216,7 +212,7 @@ let source =
       s)
 
 let _ =
-  let track_t = Type.var ~constraints:[Format_type.media ~strict:true ()] () in
+  let track_t = Lang.univ_t ~constraints:[Format_type.track] () in
   let return_t = Format_type.track_marks in
   Lang.add_track_operator ~base:Modules.track "track_marks" ~category:`Track
     ~descr:"Return the track marks associated with the given track" ~return_t
@@ -226,7 +222,7 @@ let _ =
       (Frame.Fields.track_marks, s))
 
 let track_metadata =
-  let track_t = Type.var ~constraints:[Format_type.media ~strict:true ()] () in
+  let track_t = Lang.univ_t ~constraints:[Format_type.track] () in
   let return_t = Format_type.metadata in
   Lang.add_track_operator ~base:Modules.track "metadata" ~category:`Track
     ~descr:"Return the metadata associated with the given track" ~return_t

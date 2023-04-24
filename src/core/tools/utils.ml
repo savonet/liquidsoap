@@ -472,3 +472,11 @@ let subst_vars s =
   List.fold_left
     (fun v (r, s) -> Str.global_replace (Str.regexp r) (s ()) v)
     s !substs
+
+let concat_with_last ~last sep l =
+  match List.rev l with
+    | [] -> ""
+    | [x] -> x
+    | [x; y] -> Printf.sprintf "%s %s %s" y last x
+    | x :: l ->
+        Printf.sprintf "%s %s %s" (String.concat sep (List.rev l)) last x

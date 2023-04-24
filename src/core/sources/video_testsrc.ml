@@ -74,7 +74,7 @@ class testsrc ?(duration = None) ~width ~height () =
   end
 
 let _ =
-  let return_t = Lang.internal_t () in
+  let return_t = Lang.internal_tracks_t () in
   Lang.add_operator ~base:Modules.video "testsrc" ~category:`Input
     ~descr:"Generate a test video."
     [

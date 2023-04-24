@@ -50,7 +50,7 @@ class noise duration =
   end
 
 let _ =
-  let return_t = Lang.internal_t () in
+  let return_t = Lang.internal_tracks_t () in
   Lang.add_operator "noise" ~category:`Input
     ~descr:"Generate audio/video noise source."
     [

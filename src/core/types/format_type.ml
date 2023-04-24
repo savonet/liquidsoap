@@ -22,7 +22,7 @@
 
 type Type.custom += Kind of (Content_base.kind * Type.t)
 type Type.custom += Format of Content_base.format
-type Type.constr_t += InternalMedia | Media
+type Type.constr_t += Track | MuxedTracks | InternalTrack | InternalTracks
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 let get_format = function Format f -> f | _ -> assert false
@@ -102,68 +102,142 @@ let descr descr =
   in
   Type.Custom (kind_handler k)
 
-let rec content_type ~default ty =
+let rec content_type ?kind ty =
   match (Type.demeth ty).Type.descr with
-    | Type.Custom { Type.typ = Kind (k, ty) } ->
-        content_type ~default:(fun () -> Content_base.default_format k) ty
+    | Type.Custom { Type.typ = Kind (kind, ty) } -> content_type ~kind ty
     | Type.Custom { Type.typ = Format f } -> f
-    | Type.Var _ -> default ()
+    | Type.Var _ -> Content_base.default_format (Option.get kind)
     | _ -> assert false
 
-let internal_media =
+module type Content = sig
+  val kind : Content_base.kind
+  val is_kind : Content_base.kind -> bool
+  val is_format : Content_base.format -> bool
+end
+
+module Content_metadata = struct
+  include Content_timed.Metadata
+
+  let kind = Content_base.kind format
+end
+
+module Content_track_marks = struct
+  include Content_timed.Track_marks
+
+  let kind = Content_base.kind format
+end
+
+let internal_modules =
+  [
+    (module Content_audio : Content);
+    (module Content_video : Content);
+    (module Content_metadata : Content);
+    (module Content_track_marks : Content);
+  ]
+
+let string_of_kind m =
+  let module Content = (val m : Content) in
+  Content_base.string_of_kind Content.kind
+
+let is_kind k m =
+  let module Content = (val m : Content) in
+  Content.is_kind k
+
+let is_format f m =
+  let module Content = (val m : Content) in
+  Content.is_format f
+
+let internal_track =
   {
-    Type.t = InternalMedia;
+    Type.t = InternalTrack;
     constr_descr =
-      Printf.sprintf "an internal media type (%s or %s)"
-        (Content_base.string_of_kind Content_audio.kind)
-        (Content_base.string_of_kind Content_video.kind);
+      Printf.sprintf "an internal track type (%s)"
+        (Utils.concat_with_last ~last:"or" ", "
+           (List.map string_of_kind internal_modules));
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
-        match (Type.deref b).Type.descr with
-          | Type.Tuple [] -> ()
-          | Type.Constr { params } ->
-              List.iter (fun (_, typ) -> satisfies typ) params
-          | Type.Meth _ ->
-              let meths, base_type = Type.split_meths b in
-              List.iter
-                (fun Type.{ scheme = _, field_type } -> satisfies field_type)
-                meths;
-              satisfies base_type
-          | Type.Custom { Type.typ = Kind (k, _) } when Content_audio.is_kind k
-            ->
+        let b = Type.demeth b in
+        match b.Type.descr with
+          | Type.Var _ -> satisfies b
+          | Type.(Custom { typ = Ground.Never.Type }) -> ()
+          | Type.Custom { Type.typ = Kind (k, _) }
+            when List.exists (is_kind k) internal_modules ->
               ()
-          | Type.Custom { Type.typ = Kind (k, _) } when Content_video.is_kind k
-            ->
-              ()
-          | Type.Custom { Type.typ = Format f } when Content_audio.is_format f
-            ->
-              ()
-          | Type.Custom { Type.typ = Format f } when Content_video.is_format f
-            ->
+          | Type.Custom { Type.typ = Format f }
+            when List.exists (is_format f) internal_modules ->
               ()
           | _ -> raise Type.Unsatisfied_constraint);
   }
 
-let media ~strict () =
+let internal_tracks =
   {
-    Type.t = Media;
-    constr_descr = "any media type (pcm, etc...)";
+    Type.t = InternalTracks;
+    constr_descr = "a set of internal tracks";
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
-        match (Type.deref b).Type.descr with
+        let meths, base_type = Type.split_meths b in
+        (match base_type.Type.descr with
+          | Type.Var _ -> satisfies base_type
           | Type.Tuple [] -> ()
-          | Type.Constr { params } when not strict ->
-              List.iter (fun (_, typ) -> satisfies typ) params
-          | Type.Meth _ when not strict ->
-              let _, base_type = Type.split_meths b in
-              satisfies base_type
+          | _ -> raise Type.Unsatisfied_constraint);
+        List.iter
+          (fun { Type.scheme = _, typ } ->
+            match (Type.demeth typ).Type.descr with
+              | Type.(Custom { typ = Ground.Never.Type }) -> ()
+              | Type.Custom { Type.typ = Kind (k, _) }
+                when List.exists (is_kind k) internal_modules ->
+                  ()
+              | Type.Custom { Type.typ = Format f }
+                when List.exists (is_format f) internal_modules ->
+                  ()
+              | Type.Var { contents = Free v } ->
+                  v.constraints <-
+                    Type.Constraints.add internal_track v.constraints
+              | _ -> raise Type.Unsatisfied_constraint)
+          meths);
+  }
+
+let track =
+  {
+    Type.t = Track;
+    constr_descr = "a source track";
+    satisfied =
+      (fun ~subtype:_ ~satisfies b ->
+        let b = Type.demeth b in
+        match b.Type.descr with
+          | Type.Var _ -> satisfies b
+          | Type.(Custom { typ = Ground.Never.Type })
           | Type.Custom { Type.typ = Kind _ }
           | Type.Custom { Type.typ = Format _ } ->
               ()
           | _ -> raise Type.Unsatisfied_constraint);
   }
 
-let content_type = content_type ~default:(fun _ -> assert false)
+let muxed_tracks =
+  {
+    Type.t = MuxedTracks;
+    constr_descr = "a set of tracks to be muxed into a source";
+    satisfied =
+      (fun ~subtype:_ ~satisfies b ->
+        let meths, base_type = Type.split_meths b in
+        (match (Type.demeth base_type).Type.descr with
+          | Type.Var _ -> satisfies base_type
+          | Type.Tuple [] -> ()
+          | _ -> raise Type.Unsatisfied_constraint);
+        List.iter
+          (fun { Type.scheme = _, typ } ->
+            match (Type.demeth typ).Type.descr with
+              | Type.(Custom { typ = Ground.Never.Type }) -> ()
+              | Type.Custom { Type.typ = Kind _ }
+              | Type.Custom { Type.typ = Format _ } ->
+                  ()
+              | Type.Var { contents = Free v } ->
+                  v.constraints <- Type.Constraints.add track v.constraints
+              | _ -> raise Type.Unsatisfied_constraint)
+          meths);
+  }
+
+let content_type ty = content_type ty
 let audio () = Type.make (descr (`Kind Content_audio.kind))
 
 let () =
@@ -210,10 +284,10 @@ let track_marks = Type.make (descr (`Format Content_timed.Track_marks.format))
 
 let () =
   Type.register_type "track_marks" (fun () ->
-      Type.make (Type.Custom (format_handler Content_timed.Track_marks.format)))
+      Type.make (descr (`Format Content_timed.Track_marks.format)))
 
 let metadata = Type.make (descr (`Format Content_timed.Metadata.format))
 
 let () =
   Type.register_type "metadata" (fun () ->
-      Type.make (Type.Custom (format_handler Content_timed.Track_marks.format)))
+      Type.make (descr (`Format Content_timed.Track_marks.format)))

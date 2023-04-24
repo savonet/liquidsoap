@@ -41,6 +41,9 @@ let to_metadata t =
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 
+let metadata_track_t = Format_type.metadata
+let track_marks_t = Format_type.track_marks
+
 module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
   type content = Source.source
 
@@ -303,11 +306,7 @@ type 'a operator_method = string * scheme * string * ('a -> value)
 (** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
 let check_content v t =
   let checked_values = ref [] in
-  let check t t' =
-    Typing.(
-      t <: t';
-      t' <: t)
-  in
+  let check t t' = Typing.(t <: t') in
   let rec check_value v t =
     if not (List.memq v !checked_values) then (
       (* We need to avoid checking the same value multiple times, otherwise we

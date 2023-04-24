@@ -28,8 +28,8 @@ open Liquidsoap_lang
 (* Same as [Lang.frame_t] (with position) *)
 val make : ?pos:Pos.t -> Type.t -> Type.t Frame.Fields.t -> Type.t
 
-(* Same as [Lang.internal_t] (with position) *)
-val internal : ?pos:Pos.t -> unit -> Type.t
+(* Same as [Lang.internal_tracks_t] (with position) *)
+val internal_tracks : ?pos:Pos.t -> unit -> Type.t
 
 (* [set_field frame_type field field_type] assigns a field to a frame type. *)
 val set_field : Type.t -> Frame.field -> Type.t -> Type.t

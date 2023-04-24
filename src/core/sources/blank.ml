@@ -69,7 +69,7 @@ class blank duration =
   end
 
 let blank =
-  let return_t = Lang.internal_t () in
+  let return_t = Lang.internal_tracks_t () in
   Lang.add_operator "blank" ~category:`Input
     ~descr:"Produce silence and blank images." ~return_t
     [

@@ -38,8 +38,8 @@ let make ?pos base_type fields =
       Type.make ?pos (Type.Meth (meth, typ)))
     fields base_type
 
-let internal ?pos () =
-  Type.var ?pos ~constraints:[Format_type.internal_media] ()
+let internal_tracks ?pos () =
+  Type.var ?pos ~constraints:[Format_type.internal_tracks] ()
 
 let set_field frame_type field field_type =
   let field = Frame.Fields.string_of_field field in
@@ -93,8 +93,9 @@ let content_type frame_type =
           default_t
       | _ ->
           (try
-             (* Map audio and video fields to their default value when possible. *)
-             Typing.satisfies_constraint base_type Format_type.internal_media;
+             (* Map audio and video fields to their default value when possible.
+                This is in case the source has types such as { audio = 'a } *)
+             Typing.satisfies_constraint base_type Format_type.internal_tracks;
              List.iter
                (function
                  | { Type.meth = "audio"; scheme = [], ty } ->

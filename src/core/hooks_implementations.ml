@@ -79,7 +79,7 @@ let mk_field_t ~pos (kind, params) =
         | [] -> Type.make (Format_type.descr (`Kind k))
         | [("", "any")] -> Type.var ()
         | [("", "internal")] ->
-            Type.var ~constraints:[Format_type.internal_media] ()
+            Type.var ~constraints:[Format_type.internal_tracks] ()
         | param :: params ->
             let mk_format (label, value) = Content.parse_param k label value in
             let f = mk_format param in
