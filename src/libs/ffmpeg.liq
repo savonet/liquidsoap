@@ -206,6 +206,8 @@ let video.add_text.ffmpeg.raw = ()
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
+# @method on_change Method to call when parameters have changed to update the filter's rendered out, including when text changes.
+# @method on_metadata Method to call on new metadata.
 def video.add_text.ffmpeg.raw.filter(
                               ~color=0xffffff,~cycle=true,~font=null(),
                               ~metadata=null(),~size=18,~speed=70,~x=getter(10),~y=getter(10),
