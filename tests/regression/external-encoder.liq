@@ -1,13 +1,12 @@
-s = sine()
-
 tmp = file.temp("foo", "flv")
 on_shutdown({file.remove(tmp)})
 
 encoder = %external(process="cat")
 
 output.file(
+  fallible=true,
   encoder,
   "/tmp/cat",
   on_start=test.pass,
-  sine()
+  sine(duration=1.)
 )
