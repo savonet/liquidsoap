@@ -33,7 +33,6 @@ def output.shoutcast(
     %argsof(
      output.icecast[!method,!mount,!headers,!description,!protocol]
     ),
-    method="icy",
     mount="",
     headers=headers,
     protocol="icy",
