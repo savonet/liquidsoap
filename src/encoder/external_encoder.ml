@@ -84,6 +84,12 @@ let encoder id ext =
         log#important "Error: %s" (Printexc.to_string e);
         restart_decision ()
   in
+  (* Signal end of process instead of always waiting
+     for zero read. See: https://lkml.indiana.edu/hypermail/linux/kernel/0106.0/0768.html *)
+  let on_stop v =
+    Condition.signal condition;
+    v
+  in
   let log s = log#important "%s" s in
   let on_stdout =
     Tutils.mutexify mutex (fun puller ->

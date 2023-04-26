@@ -4,6 +4,7 @@
 Fixed:
 * Fixed non-monotonous PTS in ffmpeg raw content (#2978)
 * Fixed external encoder (#3020)
+* Fixed deadlock in `%external` encoder (#3029)
 
 2.1.4 (2022-03-01)
 =====
