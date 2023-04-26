@@ -83,8 +83,9 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
           let encoder_time_base = Avcodec.time_base encoder in
 
           let duration_converter =
-            Ffmpeg_utils.Duration.init ~src:encoder_time_base
-              ~get_ts:Avcodec.Packet.get_dts
+            Ffmpeg_utils.Duration.init ~mode:`DTS ~src:encoder_time_base
+              ~convert_ts:false ~get_ts:Avcodec.Packet.get_dts
+              ~set_ts:Avcodec.Packet.set_dts ()
           in
 
           let params = Some (`Audio (Avcodec.params encoder)) in
@@ -138,8 +139,9 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
           in
           Typing.(effective_t <: type_t);
           let duration_converter =
-            Ffmpeg_utils.Duration.init ~src:target_time_base
-              ~get_ts:Ffmpeg_utils.best_pts
+            Ffmpeg_utils.Duration.init ~mode:`PTS ~src:target_time_base
+              ~convert_ts:false ~get_ts:Avutil.Frame.pts
+              ~set_ts:Avutil.Frame.set_pts ()
           in
           ( target_sample_format,
             None,
@@ -268,8 +270,9 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
           let encoder_time_base = Avcodec.time_base encoder in
 
           let duration_converter =
-            Ffmpeg_utils.Duration.init ~src:encoder_time_base
-              ~get_ts:Avcodec.Packet.get_dts
+            Ffmpeg_utils.Duration.init ~mode:`DTS ~src:encoder_time_base
+              ~convert_ts:false ~get_ts:Avcodec.Packet.get_dts
+              ~set_ts:Avcodec.Packet.set_dts ()
           in
 
           let write_packet packet =
@@ -322,8 +325,9 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
           Typing.(effective_t <: type_t);
 
           let duration_converter =
-            Ffmpeg_utils.Duration.init ~src:time_base
-              ~get_ts:Ffmpeg_utils.best_pts
+            Ffmpeg_utils.Duration.init ~mode:`PTS ~src:time_base
+              ~convert_ts:false ~get_ts:Avutil.Frame.pts
+              ~set_ts:Avutil.Frame.set_pts ()
           in
 
           function

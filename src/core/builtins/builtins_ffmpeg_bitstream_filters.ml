@@ -141,7 +141,8 @@ let mk_handler (type a) ~stream_idx ~time_base
     params;
     time_base;
     duration_converter =
-      Ffmpeg_utils.Duration.init ~src:time_base ~get_ts:Avcodec.Packet.get_dts;
+      Ffmpeg_utils.Duration.init ~mode:`DTS ~src:time_base ~convert_ts:false
+        ~get_ts:Avcodec.Packet.get_dts ~set_ts:Avcodec.Packet.set_dts ();
   }
 
 let handler_getters (type a) ~put_data ~(mk_params : a mk_params)

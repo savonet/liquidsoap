@@ -1,8 +1,9 @@
-log.level.set(4)
-settings.decoder.decoders.set(["ffmpeg"])
+log.level := 4
+settings.decoder.decoders := ["ffmpeg"]
 
 fname = argv(default="",1)
-out = "#{fname}+test_ffmpeg_filter.mp4"
+fname2 = argv(default="",2)
+out = "#{fname}+ffmpeg_filter_changing_rate.mp4"
 
 if file.exists(out) then
   file.remove(out)
@@ -20,30 +21,29 @@ def f(s) =
     v = ffmpeg.filter.hflip(graph, v)
     v = ffmpeg.filter.video.output(graph, v)
 
-    source({audio=a, video=v})
+    source({audio=a, video=v, metadata=track.metadata(a)})
   end
 
   ffmpeg.filter.create(mkfilter)
 end
 
 s = single(fname)
+s' = single(fname2)
 
-s = sequence([s,s,s,s,s,source.fail()])
+last = single(id="last",fname)
+last = metadata.map(fun (_) -> [("title","done")], last)
+
+s = sequence([s,s',s,s',s,last,s,s',s])
 
 s = f(s)
 
-started = ref(false)
-
-def on_track(_) =
-  started := true
-end
-
-s.on_track(on_track)
+done = ref(false)
+passed = ref(false)
 
 clock.assign_new(id='test_clock',sync='none',[s])
 
-def on_done () =
-  if !started then
+def on_done (_) =
+  if done() and not passed() then
     j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
     let json.parse ( parsed : {
@@ -65,6 +65,7 @@ def on_done () =
        null.get(audio_stream.codec_name) == "aac" and
        null.get(audio_stream.sample_fmt) == "fltp" and
        null.get(audio_stream.sample_rate) == "44100" then
+      passed := true
       test.pass()
     else
       test.fail()
@@ -72,4 +73,22 @@ def on_done () =
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio.raw(codec="aac"),%video.raw(codec="libx264")), out, s)
+def should_reopen(~error=_, ~metadata) =
+  metadata = metadata ?? []
+  if metadata["title"] == "done" then begin
+    done := true
+    0.
+  end else null () end
+end
+
+output.file(
+  fallible=true,
+  should_reopen=should_reopen,
+  on_close=on_done,
+  %ffmpeg(
+    format="mp4",
+    %audio.raw(codec="aac"),
+    %video.raw(codec="libx264")
+  ),
+  {if done() then "done.mp4" else out end},
+  s)

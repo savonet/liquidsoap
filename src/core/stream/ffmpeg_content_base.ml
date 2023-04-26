@@ -40,12 +40,6 @@ let new_stream_idx () =
   stream_idx := Int64.succ !stream_idx;
   !stream_idx
 
-let sub c ofs len =
-  {
-    c with
-    data = List.filter (fun (pos, _) -> ofs <= pos && pos < ofs + len) c.data;
-  }
-
 let compare (x : int) (y : int) = x - y [@@inline always]
 
 let blit :
@@ -62,7 +56,7 @@ let blit :
      assumed to have been done beforehand. *)
   dst.params <- src.params;
   let data =
-    List.filter (fun (pos, _) -> pos <= dst_pos || dst_pos + len < pos) dst.data
+    List.filter (fun (pos, _) -> pos < dst_pos || dst_pos + len <= pos) dst.data
   in
   let src_end = src_pos + len in
   let data =

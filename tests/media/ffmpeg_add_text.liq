@@ -4,7 +4,7 @@ settings.decoder.decoders.set(["ffmpeg"])
 test.skip()
 
 fname = argv(default="",1)
-out = "#{fname}+test_ffmpeg_filter.mp4"
+out = "#{fname}+ffmpeg_filter.mp4"
 
 if file.exists(out) then
   file.remove(out)

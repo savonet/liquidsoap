@@ -31,7 +31,8 @@ exception Empty
 
 let mk_decoder ~stream_idx ~stream_time_base ~mk_packet ~put_data params =
   let duration_converter =
-    Ffmpeg_utils.Duration.init ~src:stream_time_base ~get_ts:Packet.get_dts
+    Ffmpeg_utils.Duration.init ~mode:`DTS ~src:stream_time_base
+      ~convert_ts:false ~get_ts:Packet.get_dts ~set_ts:Packet.set_dts ()
   in
   fun ~buffer packet ->
     try

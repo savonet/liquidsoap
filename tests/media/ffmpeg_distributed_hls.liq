@@ -45,7 +45,7 @@ streams = [
 
 output_dir = file.temp_dir("liq","hls")
 
-state_file = path.concat(path.dirname(argv(0)), "test_ffmpeg_distributed_hls_state.json")
+state_file = path.concat(path.dirname(argv(0)), "ffmpeg_distributed_hls_state.json")
 process.run("cp #{state_file} #{output_dir}/state.json")
 
 def cleanup() =
