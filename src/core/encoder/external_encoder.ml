@@ -88,7 +88,7 @@ let encoder id ext =
      for zero read. See: https://lkml.indiana.edu/hypermail/linux/kernel/0106.0/0768.html *)
   let on_stop v =
     Condition.signal condition;
-    v
+    on_stop v
   in
   let log s = log#important "%s" s in
   let on_stdout =
