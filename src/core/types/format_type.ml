@@ -103,10 +103,20 @@ let descr descr =
   Type.Custom (kind_handler k)
 
 let rec content_type ?kind ty =
-  match (Type.demeth ty).Type.descr with
-    | Type.Custom { Type.typ = Kind (kind, ty) } -> content_type ~kind ty
-    | Type.Custom { Type.typ = Format f } -> f
-    | Type.Var _ -> Content_base.default_format (Option.get kind)
+  match ((Type.demeth ty).Type.descr, kind) with
+    | Type.Custom { Type.typ = Kind (kind, ty) }, None -> content_type ~kind ty
+    | Type.Custom { Type.typ = Format f }, Some k when Content_base.kind f = k
+      ->
+        f
+    | Type.Var _, Some kind -> Content_base.default_format kind
+    | Type.Var _, None ->
+        Runtime_error.raise
+          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~message:
+            "Untyped track value! Tracks must have a type to drive decoders \
+             and encoders. Either use it in a track-specific operator, add a \
+             type annotation or remove the variable."
+          "eval"
     | _ -> assert false
 
 module type Content = sig
