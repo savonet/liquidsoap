@@ -1,3 +1,7 @@
+#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+
+%include "test.liq"
+
 s = sine()
 
 tmp = file.temp("foo", "flv")
