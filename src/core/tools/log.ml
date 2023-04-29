@@ -72,7 +72,8 @@ let make path : t =
       log#f ~pre_process:(Console.colorize [`blue]) 4
 
     (** If you are debugging. *)
-    method debug : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 5
+    method debug : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#f ~pre_process:(Console.colorize [`cyan]) 5
 
     method level =
       try Some (Dtools.Conf.as_int (Dtools.Log.conf_level#ut#path log#path))#get
