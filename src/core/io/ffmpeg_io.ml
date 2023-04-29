@@ -188,16 +188,22 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     val mutable last_metadata = []
 
+    method private get_connected_container =
+      match Atomic.get container with
+        | None -> raise Not_connected
+        | Some c -> c
+
     method private get_frame frame =
       let pos = Frame.position frame in
+      let breaks = Frame.breaks frame in
       try
-        let { decoder; buffer; closed } = Option.get (Atomic.get container) in
+        let { decoder; buffer; closed } = self#get_connected_container in
         while Generator.length self#buffer < Lazy.force Frame.size do
           if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
           self#mutexify (fun () -> decoder buffer) ()
         done;
         Generator.fill self#buffer frame;
-        let { get_metadata } = Option.get (Atomic.get container) in
+        let { get_metadata } = self#get_connected_container in
         let m = get_metadata () in
         if last_metadata <> m then (
           let meta = Hashtbl.create (List.length m) in
@@ -211,7 +217,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           ~bt:(Printexc.raw_backtrace_to_string bt)
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn);
-        Frame.add_break frame pos;
+        if List.length breaks = List.length (Frame.breaks frame) then
+          Frame.add_break frame pos;
         self#reconnect
   end
 
