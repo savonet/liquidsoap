@@ -29,6 +29,7 @@ type opts = (string, opt_val) Hashtbl.t
 type hwaccel = [ `None | `Auto ]
 
 type audio_options = {
+  pcm_kind : Content.kind;
   channels : int;
   samplerate : int Lazy.t;
   sample_format : string option;

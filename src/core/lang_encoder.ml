@@ -68,12 +68,12 @@ let raise_generic_error (l, t) =
              (Value.to_string v))
     | `Encoder _ -> raise_error ~pos:None "unexpected subencoder"
 
-(** An encoder. *)
+(* An encoder. *)
 type encoder = {
+  (* Compute the kind of the encoder. *)
   type_of_encoder : Term.encoder_params -> Type.t Frame.Fields.t;
-      (** Compute the kind of the encoder. *)
+  (* Actually create the encoder. *)
   make : Hooks.encoder_params -> Encoder.format;
-      (** Actually create the encoder. *)
 }
 
 let encoders = ref []
@@ -93,9 +93,27 @@ let channels_of_params ?(default = 2) p =
         | "", `Term { term = Ground (String "mono") } -> Some 1
         | "stereo", `Term { term = Ground (Bool b); _ } ->
             Some (if b then 2 else 1)
+        | "stereo", `Term ({ t = { Type.pos } } as tm) ->
+            raise_error ~pos
+              (Printf.sprintf
+                 "Invalid value %s for stereo mode. Only static `true` or \
+                  `false` are allowed."
+                 (Term.to_string tm))
         | "mono", `Term { term = Ground (Bool b); _ } ->
             Some (if b then 1 else 2)
+        | "mono", `Term ({ t = { Type.pos } } as tm) ->
+            raise_error ~pos
+              (Printf.sprintf
+                 "Invalid value %s for mono mode. Only static `true` or \
+                  `false` are allowed."
+                 (Term.to_string tm))
         | "channels", `Term { term = Ground (Int n) } -> Some n
+        | "channels", `Term ({ t = { Type.pos } } as tm) ->
+            raise_error ~pos
+              (Printf.sprintf
+                 "Invalid value %s for channels mode. Only static numbers are \
+                  allowed."
+                 (Term.to_string tm))
         | _ -> None)
       p
   with
@@ -103,7 +121,7 @@ let channels_of_params ?(default = 2) p =
     | None -> default
 
 (** Compute a kind from a non-fully evaluated format. This should give the same
-    result than [Encoder.kind_of_format] once evaluated... *)
+    result than [Encoder.type_of_format] once evaluated... *)
 let type_of_encoder ((e, p) : Term.encoder) = (find_encoder e).type_of_encoder p
 
 let type_of_encoder ~pos e =

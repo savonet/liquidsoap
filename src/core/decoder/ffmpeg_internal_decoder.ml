@@ -26,11 +26,60 @@ open Mm
 
 let log = Log.make ["decoder"; "ffmpeg"; "internal"]
 
+module type Converter_type = sig
+  type t
+
+  module Content : sig
+    type data
+
+    val lift_data : ?offset:int -> ?length:int -> data -> Content_base.data
+  end
+
+  val create :
+    ?options:Swresample.options list ->
+    Avutil.Channel_layout.t ->
+    ?in_sample_format:Avutil.Sample_format.t ->
+    int ->
+    Avutil.Channel_layout.t ->
+    ?out_sample_format:Avutil.Sample_format.t ->
+    int ->
+    t
+
+  val convert :
+    ?offset:int -> ?length:int -> t -> Swresample.Frame.t -> Content.data
+end
+
 module ConverterInput = Swresample.Make (Swresample.Frame)
-module Converter = ConverterInput (Swresample.PlanarFloatArray)
+
+module Converter = struct
+  module Content = Content_audio
+  include ConverterInput (Swresample.PlanarFloatArray)
+end
+
+module Converter_pcm_s16 = struct
+  module Content = Content_pcm_s16
+  include ConverterInput (Swresample.S16PlanarBigArray)
+end
+
+module Converter_pcm_f32 = struct
+  module Content = Content_pcm_f32
+  include ConverterInput (Swresample.FltPlanarBigArray)
+end
+
 module Scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
 
-let mk_audio_decoder ~channels ~stream ~field codec =
+let mk_audio_decoder ~channels ~stream ~field ~pcm_kind codec =
+  let converter =
+    match pcm_kind with
+      | _ when Content_audio.is_kind pcm_kind ->
+          (module Converter : Converter_type)
+      | _ when Content_pcm_s16.is_kind pcm_kind ->
+          (module Converter_pcm_s16 : Converter_type)
+      | _ when Content_pcm_f32.is_kind pcm_kind ->
+          (module Converter_pcm_f32 : Converter_type)
+      | _ -> raise Content_base.Invalid
+  in
+  let module Converter = (val converter : Converter_type) in
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;
   let in_sample_rate = ref (Avcodec.Audio.get_sample_rate codec) in
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
@@ -59,7 +108,8 @@ let mk_audio_decoder ~channels ~stream ~field codec =
       in_sample_format := frame_in_sample_format;
       converter := mk_converter ());
     let content = Converter.convert !converter frame in
-    buffer.Decoder.put_pcm ~field ~samplerate:target_sample_rate content;
+    Generator.put buffer.Decoder.generator field
+      (Converter.Content.lift_data content);
     let metadata = Avutil.Frame.metadata frame in
     if metadata <> [] then (
       let m = Hashtbl.create (List.length metadata) in

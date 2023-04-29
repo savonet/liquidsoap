@@ -20,33 +20,31 @@
 
  *****************************************************************************)
 
-open Frame
+open Content_base
 
-type t = Frame.t
+module Specs = struct
+  include Content_pcm_base
 
-let tov = Frame.main_of_video
+  type kind = [ `Pcm_f32 ]
 
-let vot ?round x =
-  match round with
-    | None | Some `Down -> Frame.video_of_main x
-    | Some `Up -> Frame.video_of_main (x + Lazy.force Frame.video_rate - 1)
+  let kind = `Pcm_f32
+  let kind_of_string = function "pcm_f32" -> Some `Pcm_f32 | _ -> None
 
-let content ?(field = Frame.Fields.video) b =
-  try Frame.get b field with Not_found -> raise Content.Invalid
+  type data =
+    (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t array
 
-let data ?field b = Content.Video.get_data (content ?field b)
-let size _ = vot (Lazy.force size)
-let next_sample_position t = vot ~round:`Up (Frame.position t)
-let add_break t i = add_break t (tov i)
-let is_partial t = is_partial t
-let position t = vot (position t)
+  let string_of_kind = function `Pcm_f32 -> "pcm_f32"
+  let copy = copy ~fmt:Bigarray.float32
+  let make = make ~fmt:Bigarray.float32
+end
 
-let get_content frame source =
-  let p0 = Frame.position frame in
-  let p1 =
-    source#get frame;
-    Frame.position frame
-  in
-  let v0 = vot ~round:`Up p0 in
-  let v1 = vot ~round:`Down p1 in
-  if v0 < v1 then Some (content frame, v0, v1 - v0) else None
+include MkContentBase (Specs)
+
+let kind = lift_kind `Pcm_f32
+let clear = Content_pcm_base.clear_content ~v:0.
+let to_value (v : float) = v [@@inline always]
+let of_value (v : float) = v [@@inline always]
+let from_audio = Content_pcm_base.from_audio ~to_value ~fmt:Bigarray.float32
+let to_audio = Content_pcm_base.to_audio ~of_value
+let blit_audio = Content_pcm_base.blit_audio ~to_value
+let channels_of_format = Content_pcm_base.channels_of_format ~get_params

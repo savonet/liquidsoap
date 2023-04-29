@@ -407,9 +407,14 @@ class virtual operator ?(name = "src") sources =
             ct
 
     method private audio_channels =
-      Content.Audio.channels_of_format
-        (Option.get
-           (Frame.Fields.find_opt Frame.Fields.audio self#content_type))
+      match Frame.Fields.find_opt Frame.Fields.audio self#content_type with
+        | Some c when Content.Audio.is_format c ->
+            Content.Audio.channels_of_format c
+        | Some c when Content_pcm_s16.is_format c ->
+            Content_pcm_s16.channels_of_format c
+        | Some c when Content_pcm_f32.is_format c ->
+            Content_pcm_f32.channels_of_format c
+        | _ -> raise Content.Invalid
 
     method private video_dimensions =
       Content.Video.dimensions_of_format

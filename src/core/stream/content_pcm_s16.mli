@@ -20,33 +20,17 @@
 
  *****************************************************************************)
 
-open Frame
+include
+  Content_base.Content
+    with type kind = [ `Pcm_s16 ]
+     and type params = Content_audio.params
+     and type data =
+      (int, Bigarray.int16_signed_elt, Bigarray.c_layout) Bigarray.Array1.t
+      array
 
-type t = Frame.t
-
-let tov = Frame.main_of_video
-
-let vot ?round x =
-  match round with
-    | None | Some `Down -> Frame.video_of_main x
-    | Some `Up -> Frame.video_of_main (x + Lazy.force Frame.video_rate - 1)
-
-let content ?(field = Frame.Fields.video) b =
-  try Frame.get b field with Not_found -> raise Content.Invalid
-
-let data ?field b = Content.Video.get_data (content ?field b)
-let size _ = vot (Lazy.force size)
-let next_sample_position t = vot ~round:`Up (Frame.position t)
-let add_break t i = add_break t (tov i)
-let is_partial t = is_partial t
-let position t = vot (position t)
-
-let get_content frame source =
-  let p0 = Frame.position frame in
-  let p1 =
-    source#get frame;
-    Frame.position frame
-  in
-  let v0 = vot ~round:`Up p0 in
-  let v1 = vot ~round:`Down p1 in
-  if v0 < v1 then Some (content frame, v0, v1 - v0) else None
+val kind : Content_base.kind
+val clear : data -> int -> int -> unit
+val from_audio : Content_audio.data -> data
+val to_audio : data -> Content_audio.data
+val blit_audio : Content_audio.data -> int -> data -> int -> int -> unit
+val channels_of_format : Content_base.format -> int

@@ -110,7 +110,7 @@ module Buffer = struct
   (* The kind of value shared by a producer and a consumer. *)
   type control = {
     lock : Mutex.t;
-    generator : Generator.t;
+    generator : Generator.t Lazy.t;
     mutable buffering : bool;
     mutable abort : bool;
   }
@@ -123,21 +123,27 @@ module Buffer = struct
       inherit Source.source ~name:id ()
       method self_sync = (`Static, false)
       method stype = `Fallible
-      method remaining = proceed c (fun () -> Generator.remaining c.generator)
+
+      method remaining =
+        proceed c (fun () -> Generator.remaining (Lazy.force c.generator))
+
       method is_ready = proceed c (fun () -> not c.buffering)
 
       method seek len =
-        let len = min (Generator.length c.generator) len in
-        Generator.truncate c.generator len;
+        let len = min (Generator.length (Lazy.force c.generator)) len in
+        Generator.truncate (Lazy.force c.generator) len;
         len
 
-      method buffer_length = Generator.length c.generator
+      method buffer_length = Generator.length (Lazy.force c.generator)
 
       method private get_frame frame =
         proceed c (fun () ->
             assert (not c.buffering);
-            Generator.fill c.generator frame;
-            if Frame.is_partial frame && Generator.length c.generator = 0 then (
+            Generator.fill (Lazy.force c.generator) frame;
+            if
+              Frame.is_partial frame
+              && Generator.length (Lazy.force c.generator) = 0
+            then (
               self#log#important "Buffer emptied, start buffering...";
               c.buffering <- true))
 
@@ -163,19 +169,20 @@ module Buffer = struct
             if c.abort then (
               c.abort <- false;
               source#abort_track);
-            Generator.feed c.generator frame;
-            if Generator.length c.generator > prebuf then (
+            Generator.feed (Lazy.force c.generator) frame;
+            if Generator.length (Lazy.force c.generator) > prebuf then (
               c.buffering <- false;
-              if Generator.length c.generator > maxbuf then
-                Generator.truncate c.generator
-                  (Generator.length c.generator - maxbuf)))
+              if Generator.length (Lazy.force c.generator) > maxbuf then
+                Generator.truncate (Lazy.force c.generator)
+                  (Generator.length (Lazy.force c.generator) - maxbuf)))
     end
 
   let create ~id ~autostart ~infallible ~on_start ~on_stop ~pre_buffer
       ~max_buffer source_val =
     let control =
       {
-        generator = Generator.create (Lang.to_source source_val)#content_type;
+        generator =
+          lazy (Generator.create (Lang.to_source source_val)#content_type);
         lock = Mutex.create ();
         buffering = true;
         abort = false;

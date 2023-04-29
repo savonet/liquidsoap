@@ -598,16 +598,10 @@ let get_type ~ctype ~url container =
                    Ffmpeg_raw_content.(
                      Audio.lift_params (AudioSpecs.mk_params p)));
               Frame.Fields.add field format content_type
-          | p, Some _ ->
+          | p, Some format ->
               Frame.Fields.add field
-                Content.(
-                  Audio.lift_params
-                    {
-                      Content.channel_layout =
-                        lazy
-                          (Audio_converter.Channel_layout.layout_of_channels
-                             (Avcodec.Audio.get_nb_channels p));
-                    })
+                (Frame_base.format_of_channels ~pcm_kind:(Content.kind format)
+                   (Avcodec.Audio.get_nb_channels p))
                 content_type
           | _ -> content_type)
       Frame.Fields.empty audio_streams
@@ -790,7 +784,30 @@ let mk_streams ~ctype ~decode_first_metadata container =
                     ( stream,
                       check_metadata stream
                         (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
-                           ~stream ~field params) ))
+                           ~stream ~field ~pcm_kind:Content.Audio.kind params)
+                    ))
+                  streams,
+                pos + 1 )
+          | Some format when Content_pcm_s16.is_format format ->
+              let channels = Content_pcm_s16.channels_of_format format in
+              ( Streams.add idx
+                  (`Audio_frame
+                    ( stream,
+                      check_metadata stream
+                        (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
+                           ~stream ~field ~pcm_kind:Content_pcm_s16.kind params)
+                    ))
+                  streams,
+                pos + 1 )
+          | Some format when Content_pcm_f32.is_format format ->
+              let channels = Content_pcm_f32.channels_of_format format in
+              ( Streams.add idx
+                  (`Audio_frame
+                    ( stream,
+                      check_metadata stream
+                        (Ffmpeg_internal_decoder.mk_audio_decoder ~channels
+                           ~stream ~field ~pcm_kind:Content_pcm_f32.kind params)
+                    ))
                   streams,
                 pos + 1 )
           | _ -> (streams, pos + 1))

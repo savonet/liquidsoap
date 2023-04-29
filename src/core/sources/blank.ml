@@ -56,6 +56,14 @@ class blank duration =
                 Audio.clear
                   (Content.Audio.get_data (Frame.get ab field))
                   audio_pos audio_len
+            | _ when Content_pcm_s16.is_format typ ->
+                Content_pcm_s16.clear
+                  (Content_pcm_s16.get_data (Frame.get ab field))
+                  audio_pos audio_len
+            | _ when Content_pcm_f32.is_format typ ->
+                Content_pcm_f32.clear
+                  (Content_pcm_f32.get_data (Frame.get ab field))
+                  audio_pos audio_len
             | _ when Content.Video.is_format typ ->
                 Video.Canvas.blank
                   (Content.Video.get_data (Frame.get ab field))

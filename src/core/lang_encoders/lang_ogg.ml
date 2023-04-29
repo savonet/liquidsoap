@@ -35,8 +35,8 @@ let type_of_encoder p =
   let video =
     List.exists (function "", `Encoder ("theora", _) -> true | _ -> false) p
   in
-  if not video then Encoder.audio_type channels
-  else Encoder.audio_video_type channels
+  if not video then Encoder.audio_type ~pcm_kind:Content.Audio.kind channels
+  else Encoder.audio_video_type ~pcm_kind:Content.Audio.kind channels
 
 let make p =
   let ogg_audio e p =

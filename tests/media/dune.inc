@@ -172,6 +172,26 @@
 (rule
   (alias citest)
   (package liquidsoap)
+  (target @ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:test_encoder_in ./test_encoder.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(pcm_s16,codec=\"aac\"))" sine "@ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4"))))
+(rule
+  (alias citest)
+  (package liquidsoap)
+  (target @ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:test_encoder_in ./test_encoder.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(pcm_f32,codec=\"aac\"))" sine "@ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4"))))
+(rule
+  (alias citest)
+  (package liquidsoap)
   (target @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']]_encoder.liq)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
@@ -443,6 +463,32 @@
 (rule
  (alias citest)
  (package liquidsoap)
+ (target @ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(pcm_s16,codec=\"aac\"))")))
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (target @ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(pcm_f32,codec=\"aac\"))")))
+(rule
+ (alias citest)
+ (package liquidsoap)
  (target @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4)
  (deps
   (:encoder @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']]_encoder.liq)
@@ -527,6 +573,8 @@
 @ogg[@opus[mono]].ogg
 @ogg[@opus[stereo]].ogg
 @ffmpeg[format='mp4',@audio[codec='aac']].mp4
+@ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4
+@ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4
@@ -1201,6 +1249,84 @@
  (package liquidsoap)
  (deps
   all_media_files
+  test_mono.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Mono decoding test for @ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4" liquidsoap %{test_liq} test_mono.liq -- "@ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4")))
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_stereo.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Stereo decoding test for @ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4" liquidsoap %{test_liq} test_stereo.liq -- "@ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4")))
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_audio_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg audio decoder test for @ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4" liquidsoap %{test_liq} test_ffmpeg_audio_decoder.liq -- "@ffmpeg[format='mp4',@audio[pcm_s16,codec='aac']].mp4")))
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_mono.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Mono decoding test for @ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4" liquidsoap %{test_liq} test_mono.liq -- "@ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4")))
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_stereo.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "Stereo decoding test for @ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4" liquidsoap %{test_liq} test_stereo.liq -- "@ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4")))
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_ffmpeg_audio_decoder.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg audio decoder test for @ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4" liquidsoap %{test_liq} test_ffmpeg_audio_decoder.liq -- "@ffmpeg[format='mp4',@audio[pcm_f32,codec='aac']].mp4")))
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  all_media_files
   test_ffmpeg_video_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1781,3 +1907,16 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} "test_taglib.liq" liquidsoap %{test_liq} test_taglib.liq -- "")))
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  test_pcm_s16_decode.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "test_pcm_s16_decode.liq" liquidsoap %{test_liq} test_pcm_s16_decode.liq -- "")))

@@ -14,6 +14,7 @@ let add_protocol ~syntax ~doc ~static name resolver =
 
 let frame_t base_type fields = Frame_type.make base_type fields
 let internal_tracks_t () = Frame_type.internal_tracks ()
+let pcm_audio_t () = Frame_type.pcm_audio ()
 
 let format_t t =
   Type.make

@@ -245,6 +245,10 @@ val frame_t : t -> t Frame.Fields.t -> t
    applied. Equivalent to: ['a where 'a is an internal media type] *)
 val internal_tracks_t : unit -> t
 
+(* Return a generic frame type with the pcm audio constraint
+   applied. *)
+val pcm_audio_t : unit -> t
+
 (** [fun_t args r] is the type of a function taking [args] as parameters
   * and returning values of type [r].
   * The elements of [r] are of the form [(b,l,t)] where [b] indicates if

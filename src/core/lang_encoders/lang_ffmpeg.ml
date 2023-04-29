@@ -184,25 +184,50 @@ let type_of_encoder =
                       | `Audio ->
                           let channels =
                             try
-                              let channels =
-                                try List.assoc "channels" args
-                                with Not_found -> List.assoc "ac" args
+                              let name, channels =
+                                try ("channels", List.assoc "channels" args)
+                                with Not_found -> ("ac", List.assoc "ac" args)
                               in
                               match channels with
                                 | `Term { Term.term = Term.Ground (Int n) } -> n
-                                | _ -> raise Exit
-                            with
-                              | Not_found -> 2
-                              | Exit -> raise Not_found
+                                | `Term ({ t = { Type.pos } } as tm) ->
+                                    Lang_encoder.raise_error ~pos
+                                      (Printf.sprintf
+                                         "Invalid value %s for %s parameter. \
+                                          Only static numbers are allowed."
+                                         name (Term.to_string tm))
+                                | _ ->
+                                    Lang_encoder.raise_error ~pos:None
+                                      (Printf.sprintf
+                                         "Invalid value for %s parameter." name)
+                            with Not_found -> 2
                           in
-                          Content.(
-                            Audio.lift_params
-                              {
-                                Content.channel_layout =
-                                  lazy
-                                    (Audio_converter.Channel_layout
-                                     .layout_of_channels channels);
-                              })
+                          let pcm_kind =
+                            List.fold_left
+                              (fun pcm_kind -> function
+                                | ( "",
+                                    `Term
+                                      { Term.term = Term.Ground (String "pcm") }
+                                  ) ->
+                                    Content.Audio.kind
+                                | ( "",
+                                    `Term
+                                      {
+                                        Term.term =
+                                          Term.Ground (String "pcm_s16");
+                                      } ) ->
+                                    Content_pcm_s16.kind
+                                | ( "",
+                                    `Term
+                                      {
+                                        Term.term =
+                                          Term.Ground (String "pcm_f32");
+                                      } ) ->
+                                    Content_pcm_f32.kind
+                                | _ -> pcm_kind)
+                              Content.Audio.kind args
+                          in
+                          Frame_base.format_of_channels ~pcm_kind channels
                       | `Video -> Content.(default_format Video.kind))
             in
             let field = Frame.Fields.register field in
@@ -240,7 +265,8 @@ let ffmpeg_gen params =
 
   let default_audio =
     {
-      Ffmpeg_format.channels = 2;
+      Ffmpeg_format.pcm_kind = Content_audio.kind;
+      channels = 2;
       samplerate = Frame.audio_rate;
       sample_format = None;
     }
@@ -272,6 +298,18 @@ let ffmpeg_gen params =
   let rec parse_audio_args ~opts options = function
     | [] -> options
     (* Audio options *)
+    | ("", t) :: args when to_string t = "pcm" ->
+        parse_audio_args ~opts
+          { options with Ffmpeg_format.pcm_kind = Content_audio.kind }
+          args
+    | ("", t) :: args when to_string t = "pcm_s16" ->
+        parse_audio_args ~opts
+          { options with Ffmpeg_format.pcm_kind = Content_pcm_s16.kind }
+          args
+    | ("", t) :: args when to_string t = "pcm_f32" ->
+        parse_audio_args ~opts
+          { options with Ffmpeg_format.pcm_kind = Content_pcm_f32.kind }
+          args
     | ("channels", t) :: args ->
         parse_audio_args ~opts
           { options with Ffmpeg_format.channels = to_int t }

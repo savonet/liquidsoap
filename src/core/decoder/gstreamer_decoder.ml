@@ -277,14 +277,7 @@ let get_type ~channels filename =
   in
   let audio =
     if audio = 0 then None
-    else
-      Some
-        Content.(
-          Audio.lift_params
-            {
-              Content.channel_layout =
-                lazy (Audio_converter.Channel_layout.layout_of_channels audio);
-            })
+    else Some (Frame_base.format_of_channels ~pcm_kind:Content.Audio.kind audio)
   in
   let video =
     if video = 0 then None else Some Content.(default_format Video.kind)

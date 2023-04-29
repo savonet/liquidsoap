@@ -2,6 +2,8 @@
 
 New:
 
+- Added support for less memory hungry audio formats, namely
+  `pcm_s16` and `pcm_f32` (#3008)
 - Added support for native osc library (#2426, #2480).
 - SRT: added support for passphrase, pbkeylen, streamid,
   added native type for srt sockets with methods, moved stats
