@@ -41,7 +41,7 @@ type t =
   ; set_level : int -> unit >
 
 let make path : t =
-  let log = Dtools.Log.make path in
+  let log = Dtools.Log.make (List.map (Console.colorize [`green]) path) in
   object
     (** Is that level active (i.e. will it print logs) *)
     method active lvl = log#active lvl
@@ -64,7 +64,8 @@ let make path : t =
       log#f ~pre_process:(Console.colorize [`yellow]) 2
 
     (** The user should now about this. *)
-    method important : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 3
+    method important : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#f ~pre_process:(Console.colorize [`white; `bold]) 3
 
     (** The advanced user should be interested in this. *)
     method info : 'a. ('a, unit, string, unit) format4 -> 'a =
