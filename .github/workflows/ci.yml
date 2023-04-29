@@ -216,7 +216,6 @@ jobs:
       fail-fast: false
       matrix:
         ocaml-compiler:
-          - 5.0.x
           - 4.14.x
     steps:
       - name: Checkout latest code
