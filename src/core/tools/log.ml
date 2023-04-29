@@ -22,9 +22,16 @@
 
 (** Logging functions. *)
 
+module Console = Liquidsoap_lang.Console
+
 type t =
   < active : int -> bool
-  ; f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
+  ; f :
+      'a.
+      ?pre_process:(string -> string) ->
+      int ->
+      ('a, unit, string, unit) format4 ->
+      'a
   ; critical : 'a. ('a, unit, string, unit) format4 -> 'a
   ; severe : 'a. ('a, unit, string, unit) format4 -> 'a
   ; important : 'a. ('a, unit, string, unit) format4 -> 'a
@@ -40,19 +47,28 @@ let make path : t =
     method active lvl = log#active lvl
 
     (** Logging function. *)
-    method f : 'a. int -> ('a, unit, string, unit) format4 -> 'a = log#f
+    method f
+        : 'a.
+          ?pre_process:(string -> string) ->
+          int ->
+          ('a, unit, string, unit) format4 ->
+          'a =
+      log#f
 
     (** The program will not function after that. *)
-    method critical : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 1
+    method critical : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#f ~pre_process:(Console.colorize [`bold; `red]) 1
 
     (** The behavior of the program will be strongly affected. *)
-    method severe : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 2
+    method severe : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#f ~pre_process:(Console.colorize [`yellow]) 2
 
     (** The user should now about this. *)
     method important : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 3
 
     (** The advanced user should be interested in this. *)
-    method info : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 4
+    method info : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#f ~pre_process:(Console.colorize [`blue]) 4
 
     (** If you are debugging. *)
     method debug : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 5

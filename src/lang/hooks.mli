@@ -3,7 +3,12 @@
 val regexp : (?flags:Regexp.flag list -> string -> Regexp.regexp) ref
 
 type log =
-  < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
+  < f :
+      'a.
+      ?pre_process:(string -> string) ->
+      int ->
+      ('a, unit, string, unit) format4 ->
+      'a
   ; critical : 'a. ('a, unit, string, unit) format4 -> 'a
   ; severe : 'a. ('a, unit, string, unit) format4 -> 'a
   ; important : 'a. ('a, unit, string, unit) format4 -> 'a

@@ -16,7 +16,12 @@ let collect_after = ref (fun fn -> fn ())
 let regexp = Regexp.regexp_ref
 
 type log =
-  < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
+  < f :
+      'a.
+      ?pre_process:(string -> string) ->
+      int ->
+      ('a, unit, string, unit) format4 ->
+      'a
   ; critical : 'a. ('a, unit, string, unit) format4 -> 'a
   ; severe : 'a. ('a, unit, string, unit) format4 -> 'a
   ; important : 'a. ('a, unit, string, unit) format4 -> 'a
@@ -27,9 +32,10 @@ let make_log =
   ref (fun name ->
       let name = String.concat "." name in
       object (self : log)
-        method f lvl =
+        method f ?(pre_process = fun x -> x) lvl =
           let time = Unix.gettimeofday () in
           Printf.ksprintf (fun s ->
+              let s = pre_process s in
               List.iter
                 (Printf.printf "%f [%s:%d]: %s" time name lvl)
                 (String.split_on_char '\n' s))
@@ -43,7 +49,7 @@ let make_log =
 
 let log name =
   object (self : log)
-    method f lvl = (!make_log name)#f lvl
+    method f ?pre_process lvl = (!make_log name)#f ?pre_process lvl
     method critical = self#f 1
     method severe = self#f 2
     method important = self#f 3
