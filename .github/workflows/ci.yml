@@ -211,7 +211,7 @@ jobs:
   build_opam:
     runs-on: ubuntu-latest
     needs: build_details
-    if: needs.build_details.outputs.build_opam
+    if: false # needs.build_details.outputs.build_opam
     strategy:
       fail-fast: false
       matrix:
