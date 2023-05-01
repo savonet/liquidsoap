@@ -15,7 +15,7 @@ and transport =
   < name : string
   ; protocol : string
   ; default_port : int
-  ; connect : ?bind_address:string -> string -> int -> socket
+  ; connect : ?bind_address:string -> ?timeout:float -> string -> int -> socket
   ; accept : Unix.file_descr -> socket * Unix.sockaddr >
 
 type uri = {
@@ -24,6 +24,10 @@ type uri = {
   port : int option;
   path : string;
 }
+
+(** Base unix connect *)
+val connect :
+  ?bind_address:string -> ?timeout:float -> string -> int -> Unix.file_descr
 
 (** Unix transport and socket. *)
 val unix_transport : transport

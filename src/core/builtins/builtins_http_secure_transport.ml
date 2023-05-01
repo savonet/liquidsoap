@@ -50,40 +50,15 @@ let transport ~password ~certificate ~key:_ () =
     method protocol = "https"
     method default_port = 443
 
-    method connect ?bind_address host port =
-      let sockaddr =
-        Unix.ADDR_INET ((Unix.gethostbyname host).Unix.h_addr_list.(0), port)
-      in
-      let domain =
-        match sockaddr with
-          | Unix.ADDR_UNIX _ -> Unix.PF_UNIX
-          | Unix.ADDR_INET (_, _) -> Unix.PF_INET
-      in
-      let sock = Unix.socket ~cloexec:true domain Unix.SOCK_STREAM 0 in
-      begin
-        try Unix.connect sock sockaddr
-        with exn ->
-          Unix.close sock;
-          raise exn
-      end;
-      begin
-        match bind_address with
-          | None -> ()
-          | Some s ->
-              let bind_addr_inet =
-                (Unix.gethostbyname s).Unix.h_addr_list.(0)
-              in
-              (* Seems like you need to bind on port 0 *)
-              let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
-              Unix.bind sock bind_addr
-      end;
+    method connect ?bind_address ?timeout host port =
+      let socket = Http.connect ?bind_address ?timeout host port in
       let ctx =
         SecureTransport.init SecureTransport.Client SecureTransport.Stream
       in
       SecureTransport.set_peer_domain_name ctx host;
-      SecureTransport.set_connection ctx sock;
+      SecureTransport.set_connection ctx socket;
       SecureTransport.handshake ctx;
-      secure_transport_socket self sock ctx
+      secure_transport_socket self socket ctx
 
     method accept sock =
       let sock, caller = Unix.accept ~cloexec:true sock in

@@ -20,7 +20,7 @@ and transport =
   < name : string
   ; protocol : string
   ; default_port : int
-  ; connect : ?bind_address:string -> string -> int -> socket
+  ; connect : ?bind_address:string -> ?timeout:float -> string -> int -> socket
   ; accept : Unix.file_descr -> socket * Unix.sockaddr >
 
 let unix_socket transport fd : socket =
@@ -43,33 +43,83 @@ let unix_socket transport fd : socket =
     method close = Unix.close fd
   end
 
+let sockaddr_of_address address =
+  match Unix.getaddrinfo address "0" [AI_NUMERICHOST] with
+    | [] -> raise Not_found
+    | addr :: _ -> addr.ai_addr
+
+let resolve_host host port =
+  match
+    Unix.getaddrinfo host (string_of_int port) [AI_SOCKTYPE SOCK_STREAM]
+  with
+    | [] -> raise Not_found
+    | l -> List.rev l
+
+let connect_sockaddr ?bind_address ?timeout sockaddr =
+  let domain = Unix.domain_of_sockaddr sockaddr in
+  let socket = Unix.socket ~cloexec:true domain Unix.SOCK_STREAM 0 in
+  (try
+     match bind_address with
+       | None -> ()
+       | Some s -> Unix.bind socket (sockaddr_of_address s)
+   with exn ->
+     let bt = Printexc.get_raw_backtrace () in
+     begin
+       try Unix.close socket with _ -> ()
+     end;
+     Printexc.raise_with_backtrace exn bt);
+  let do_timeout = timeout <> None in
+  let check_timeout () =
+    match timeout with
+      | Some timeout ->
+          (* Block in a select call for [timeout] seconds. *)
+          let _, w, _ = Unix.select [] [socket] [] timeout in
+          if w = [] then raise (Tutils.Timeout timeout);
+          Unix.clear_nonblock socket;
+          socket
+      | None -> assert false
+  in
+  let finish () =
+    try
+      if do_timeout then Unix.set_nonblock socket;
+      Unix.connect socket sockaddr;
+      if do_timeout then Unix.clear_nonblock socket;
+      socket
+    with
+      | Unix.Unix_error (Unix.EINPROGRESS, _, _) -> check_timeout ()
+      | Unix.Unix_error (Unix.EWOULDBLOCK, _, _) when Sys.os_type = "Win32" ->
+          check_timeout ()
+  in
+  try finish ()
+  with e ->
+    let bt = Printexc.get_raw_backtrace () in
+    begin
+      try Unix.close socket with _ -> ()
+    end;
+    Printexc.raise_with_backtrace e bt
+
+let connect ?bind_address ?timeout host port =
+  let rec connect_any ?bind_address ?timeout (addrs : Unix.addr_info list) =
+    match addrs with
+      | [] -> raise Not_found
+      | [addr] ->
+          (* Let a possible error bubble up *)
+          connect_sockaddr ?bind_address ?timeout addr.ai_addr
+      | addr :: tail -> (
+          try connect_sockaddr ?bind_address ?timeout addr.ai_addr
+          with _ -> connect_any ?bind_address ?timeout tail)
+  in
+  connect_any ?bind_address ?timeout (resolve_host host port)
+
 let unix_transport : transport =
   object (self)
     method name = "unix"
     method protocol = "http"
     method default_port = 80
 
-    method connect ?bind_address host port =
-      let socket = Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_STREAM 0 in
-      begin
-        match bind_address with
-          | None -> ()
-          | Some s ->
-              let bind_addr_inet =
-                (Unix.gethostbyname s).Unix.h_addr_list.(0)
-              in
-              (* Seems like you need to bind on port 0 *)
-              let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
-              Unix.bind socket bind_addr
-      end;
-      try
-        Unix.connect socket
-          (Unix.ADDR_INET ((Unix.gethostbyname host).Unix.h_addr_list.(0), port));
-        unix_socket self socket
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Unix.close socket;
-        Printexc.raise_with_backtrace exn bt
+    method connect ?bind_address ?timeout host port =
+      let socket = connect ?bind_address ?timeout host port in
+      unix_socket self socket
 
     method accept fd =
       let fd, addr = Unix.accept ~cloexec:true fd in

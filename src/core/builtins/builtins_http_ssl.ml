@@ -63,31 +63,23 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
     method protocol = "https"
     method default_port = 443
 
-    method connect ?bind_address host port =
-      let socketaddr =
-        Unix.ADDR_INET ((Unix.gethostbyname host).Unix.h_addr_list.(0), port)
-      in
+    method connect ?bind_address ?timeout host port =
       let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Client_context in
       (* TODO: add option.. *)
       Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
       Ssl.set_verify_depth ctx 3;
       ignore (Ssl.set_default_verify_paths ctx);
-      let domain =
-        match socketaddr with
-          | Unix.ADDR_UNIX _ -> Unix.PF_UNIX
-          | Unix.ADDR_INET (_, _) -> Unix.PF_INET
-      in
-      let unix_socket = Unix.socket domain Unix.SOCK_STREAM 0 in
+      let unix_socket = Http.connect ?bind_address ?timeout host port in
       let socket =
         try
-          Unix.connect unix_socket socketaddr;
           let socket = Ssl.embed_socket unix_socket ctx in
           (try Ssl.set_client_SNI_hostname socket host with _ -> ());
           Ssl.connect socket;
           socket
         with exn ->
+          let bt = Printexc.get_raw_backtrace () in
           Unix.close unix_socket;
-          raise exn
+          Printexc.raise_with_backtrace exn bt
       in
       begin
         match bind_address with

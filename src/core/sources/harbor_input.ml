@@ -313,8 +313,8 @@ let _ =
         Some (Lang.int 8005),
         Some "Port used to connect to the source." );
       ( "transport",
-        Lang.http_transport_t,
-        Some (Lang.http_transport Http.unix_transport),
+        Lang.http_transport_base_t,
+        Some (Lang.base_http_transport Http.unix_transport),
         Some
           "Http transport. Use `http.transport.ssl` or \
            `http.transport.secure_transport`, when available, to enable HTTPS \

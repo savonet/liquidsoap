@@ -33,6 +33,13 @@ let _ =
       ("host", Lang.string_t, Some (Lang.string "localhost"), None);
       ("port", Lang.int_t, Some (Lang.int 8000), None);
       ("user", Lang.string_t, Some (Lang.string "source"), None);
+      ( "transport",
+        Lang.http_transport_base_t,
+        Some (Lang.base_http_transport Http.unix_transport),
+        Some
+          "Http transport. Use `http.transport.ssl` or \
+           `http.transport.secure_transport`, when available, to enable HTTPS \
+           output" );
       ("password", Lang.string_t, Some (Lang.string "hackme"), None);
       ( "mount",
         Lang.string_t,
@@ -77,6 +84,7 @@ let _ =
       in
       let host = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
+      let transport = Lang.to_http_transport (List.assoc "transport" p) in
       let headers =
         List.map
           (fun v ->
@@ -94,7 +102,6 @@ let _ =
         match Lang.to_string v with
           | "icy" -> Cry.Icy
           | "http" -> Cry.Http Cry.Source (* Verb doesn't matter here. *)
-          | "https" -> Cry.Https Cry.Source
           | _ ->
               raise
                 (Error.Invalid_value
@@ -108,7 +115,7 @@ let _ =
       begin
         try
           Cry.manual_update_metadata ~host ~port ~protocol ~user ~password
-            ~mount ~headers metas
+            ~mount ~headers ~transport metas
         with e ->
           log#severe "Manual metadata update failed: %s" (Printexc.to_string e)
       end;
