@@ -1,4 +1,5 @@
 opam-version: "2.0"
+version: "0.4.5"
 synopsis: "Library providing various helper functions to make daemons"
 maintainer: ["Romain Beauxis <toots@rastageeks.org>"]
 authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
