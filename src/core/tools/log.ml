@@ -26,12 +26,7 @@ module Console = Liquidsoap_lang.Console
 
 type t =
   < active : int -> bool
-  ; f :
-      'a.
-      ?pre_process:(string -> string) ->
-      int ->
-      ('a, unit, string, unit) format4 ->
-      'a
+  ; f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
   ; critical : 'a. ('a, unit, string, unit) format4 -> 'a
   ; severe : 'a. ('a, unit, string, unit) format4 -> 'a
   ; important : 'a. ('a, unit, string, unit) format4 -> 'a
@@ -47,33 +42,27 @@ let make path : t =
     method active lvl = log#active lvl
 
     (** Logging function. *)
-    method f
-        : 'a.
-          ?pre_process:(string -> string) ->
-          int ->
-          ('a, unit, string, unit) format4 ->
-          'a =
-      log#f
+    method f : 'a. int -> ('a, unit, string, unit) format4 -> 'a = log#f
 
     (** The program will not function after that. *)
     method critical : 'a. ('a, unit, string, unit) format4 -> 'a =
-      log#f ~pre_process:(Console.colorize [`bold; `red]) 1
+      log#g ~pre_process:(Console.colorize [`bold; `red]) 1
 
     (** The behavior of the program will be strongly affected. *)
     method severe : 'a. ('a, unit, string, unit) format4 -> 'a =
-      log#f ~pre_process:(Console.colorize [`yellow]) 2
+      log#g ~pre_process:(Console.colorize [`yellow]) 2
 
     (** The user should now about this. *)
     method important : 'a. ('a, unit, string, unit) format4 -> 'a =
-      log#f ~pre_process:(Console.colorize [`white; `bold]) 3
+      log#g ~pre_process:(Console.colorize [`white; `bold]) 3
 
     (** The advanced user should be interested in this. *)
     method info : 'a. ('a, unit, string, unit) format4 -> 'a =
-      log#f ~pre_process:(Console.colorize [`blue]) 4
+      log#g ~pre_process:(Console.colorize [`blue]) 4
 
     (** If you are debugging. *)
     method debug : 'a. ('a, unit, string, unit) format4 -> 'a =
-      log#f ~pre_process:(Console.colorize [`cyan]) 5
+      log#g ~pre_process:(Console.colorize [`cyan]) 5
 
     method level =
       try Some (Dtools.Conf.as_int (Dtools.Log.conf_level#ut#path log#path))#get
