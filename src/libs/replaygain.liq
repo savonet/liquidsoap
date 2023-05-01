@@ -31,7 +31,7 @@ end
 # @param fname File name.
 def file.replaygain(~id=null(), fname)
   id = string.id.default(default="file.replaygain", id)
-  r = request.create(fname)
+  r = request.create(resolve_metadata=false, fname)
   if request.resolve(r) then
     log.info(label=id, "Computing replay gain for #{fname}.")
     t = time()

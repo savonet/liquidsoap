@@ -33,6 +33,10 @@ let _ =
         Some
           "Indicate that the request is persistent, i.e. that it may be used \
            again once it has been played." );
+      ( "resolve_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Set to `false` to prevent metadata resolution on this request." );
       ( "temporary",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -45,6 +49,7 @@ let _ =
     (fun p ->
       let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
+      let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
       let initial = Lang.to_string (List.assoc "" p) in
       let l = String.length initial in
       let initial =
@@ -60,7 +65,8 @@ let _ =
           Request.indicator ~temporary:true initial :: indicators
         else indicators
       in
-      Request.Value.to_value (Request.create ~persistent ~indicators initial))
+      Request.Value.to_value
+        (Request.create ~resolve_metadata ~persistent ~indicators initial))
 
 let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap
