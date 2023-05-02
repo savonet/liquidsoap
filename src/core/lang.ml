@@ -52,8 +52,12 @@ module HttpTransport = struct
         fun transport -> int transport#default_port );
     ]
 
+  let base_t = t
+
   let t =
     method_t t (List.map (fun (lbl, t, descr, _) -> (lbl, t, descr)) meths)
+
+  let to_base_value = to_value
 
   let to_value transport =
     meth (to_value transport)
@@ -61,5 +65,7 @@ module HttpTransport = struct
 end
 
 let http_transport_t = HttpTransport.t
+let http_transport_base_t = HttpTransport.base_t
 let to_http_transport = HttpTransport.of_value
 let http_transport = HttpTransport.to_value
+let base_http_transport = HttpTransport.to_base_value

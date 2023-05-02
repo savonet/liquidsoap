@@ -264,8 +264,11 @@ val metadata_t : t
 (** A getter on an arbitrary type. *)
 val getter_t : t -> t
 
-(** Abstract http transport *)
+(** Abstract http transport with all methods *)
 val http_transport_t : t
+
+(** Same with no methods. *)
+val http_transport_base_t : t
 
 val unit : value
 val int : int -> value
@@ -284,6 +287,7 @@ val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
 val reference : (unit -> value) -> (value -> unit) -> value
 val http_transport : Http.transport -> value
+val base_http_transport : Http.transport -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
     the label and optional values. Second string value is used when renaming

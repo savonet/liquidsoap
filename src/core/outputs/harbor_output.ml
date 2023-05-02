@@ -75,8 +75,8 @@ let proto frame_t =
       ("mount", Lang.string_t, None, None);
       ("port", Lang.int_t, Some (Lang.int 8000), None);
       ( "transport",
-        Lang.http_transport_t,
-        Some (Lang.http_transport Http.unix_transport),
+        Lang.http_transport_base_t,
+        Some (Lang.base_http_transport Http.unix_transport),
         Some
           "Http transport. Use `http.transport.ssl` or \
            `http.transport.secure_transport`, when available, to enable HTTPS \

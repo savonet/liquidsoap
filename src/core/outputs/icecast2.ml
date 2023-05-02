@@ -214,6 +214,13 @@ let proto frame_t =
       ("name", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ("host", Lang.string_t, Some (Lang.string "localhost"), None);
       ("port", Lang.int_t, Some (Lang.int 8000), None);
+      ( "transport",
+        Lang.http_transport_base_t,
+        Some (Lang.base_http_transport Http.unix_transport),
+        Some
+          "Http transport. Use `http.transport.ssl` or \
+           `http.transport.secure_transport`, when available, to enable HTTPS \
+           output" );
       ( "connection_timeout",
         Lang.float_t,
         Some (Lang.float 5.),
@@ -344,7 +351,6 @@ class output p =
     let v = List.assoc "protocol" p in
     match Lang.to_string v with
       | "http" -> Cry.Http m
-      | "https" -> Cry.Https m
       | "icy" -> Cry.Icy
       | _ ->
           raise
@@ -409,9 +415,10 @@ class output p =
   in
   let host = s "host" in
   let port = e Lang.to_int "port" in
+  let transport = e Lang.to_http_transport "transport" in
   let user =
     match (protocol, s_opt "user") with
-      | Cry.Http _, None | Cry.Https _, None -> "source"
+      | Cry.Http _, None -> "source"
       | _, user -> Option.value ~default:"" user
   in
   let password = s "password" in
@@ -438,7 +445,7 @@ class output p =
         f (Lang.to_product v))
       (Lang.to_list (List.assoc "headers" p))
   in
-  let connection = Cry.create ~timeout ?connection_timeout () in
+  let connection = Cry.create ~timeout ~transport ?connection_timeout () in
   object (self)
     inherit
       Output.encoded
