@@ -244,6 +244,12 @@ module Value = struct
         print "\n")
       categories
 
+  let colorize = Console.colorize
+  let title_color = colorize [`white; `bold]
+  let type_color = colorize [`yellow; `bold]
+  let default_color = colorize [`red; `bold]
+  let label_color = colorize [`cyan; `bold]
+
   let print name print =
     let f = get name in
     let reflow ?(indent = 0) ?(cols = 70) s =
@@ -282,31 +288,32 @@ module Value = struct
         s;
       Buffer.contents buf
     in
-    print f.description;
+    print (title_color f.description);
     print "\n\n";
-    print "Type: ";
+    print (title_color "Type: ");
     print f.typ;
     print "\n\n";
-    print ("Category: " ^ string_of_category f.category ^ "\n\n");
+    print (title_color "Category: " ^ string_of_category f.category ^ "\n\n");
     if f.flags <> [] then (
       let flags = f.flags |> List.map string_of_flag |> String.concat "," in
-      print ("Flags: " ^ flags ^ "\n\n"));
+      print (title_color "Flags: " ^ flags ^ "\n\n"));
     List.iter
       (fun e ->
-        print "Example:\n\n";
+        print (title_color "Example:\n\n");
         print e;
         print "\n\n")
       f.examples;
-    print "Arguments:\n\n";
+    print (title_color "Arguments:\n\n");
     List.iter
       (fun (l, a) ->
         let l = Option.value ~default:"(unlabeled)" l in
+        let l = label_color l in
         let default =
           match a.arg_default with
-            | Some d -> " (default: " ^ d ^ ")"
+            | Some d -> " (default: " ^ default_color d ^ ")"
             | None -> ""
         in
-        print (" * " ^ l ^ " : " ^ a.arg_type ^ default ^ "\n");
+        print (" * " ^ l ^ " : " ^ type_color a.arg_type ^ default ^ "\n");
         Option.iter (fun d -> print (reflow ~indent:5 d)) a.arg_description;
         print "\n\n")
       (List.stable_sort
@@ -318,10 +325,10 @@ module Value = struct
              | (l, _), (l', _) -> Stdlib.compare l l')
          f.arguments);
     if f.methods <> [] then (
-      print "Methods:\n\n";
+      print (title_color "Methods:\n\n");
       List.iter
         (fun (l, m) ->
-          print (" * " ^ l ^ " : " ^ m.meth_type ^ "\n");
+          print (" * " ^ label_color l ^ " : " ^ type_color m.meth_type ^ "\n");
           Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
           print "\n\n")
         (List.sort compare f.methods))
