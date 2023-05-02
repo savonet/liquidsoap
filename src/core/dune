@@ -20,7 +20,8 @@
   dune-build-info
   duppy
   fileutils
-  liquidsoap_lang
+  liquidsoap-lang
+  liquidsoap-lang.console
   menhirLib
   camomile.lib
   curl

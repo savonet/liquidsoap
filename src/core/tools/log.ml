@@ -22,8 +22,6 @@
 
 (** Logging functions. *)
 
-module Console = Liquidsoap_lang.Console
-
 type t =
   < active : int -> bool
   ; f : 'a. int -> ('a, unit, string, unit) format4 -> 'a

@@ -79,7 +79,7 @@
  (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx ppx_string))
- (libraries dune-site str unix menhirLib)
+ (libraries liquidsoap-lang.console dune-site str unix menhirLib)
  (modules
   build_config
   builtins_bool
@@ -95,7 +95,6 @@
   builtins_string
   builtins_yaml
   builtins_ref
-  console
   doc
   environment
   error

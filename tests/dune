@@ -10,4 +10,4 @@
 (executable
  (name run_test)
  (modules run_test)
- (libraries unix threads))
+ (libraries liquidsoap-lang.console unix threads))
