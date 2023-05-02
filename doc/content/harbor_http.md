@@ -115,9 +115,9 @@ is available and can be passed to each `harbor` operator:
 
 ```liquidsoap
 transport = http.transport.ssl(
-  certificate="/path/to/certificate/file",
-  key="/path/to/secret/key/file",
-  password="optional password"
+  certificate="/path/to/certificate/file", # Server mode: required, client mode: optional, add certificate to trusted pool
+  key="/path/to/secret/key/file", # Server mode: required, client mode: ignored
+  password="optional password" # Required if key file requires one
 )
 
 harbor.http.register(transport=transport, port=8000, ...)
@@ -125,6 +125,8 @@ harbor.http.register(transport=transport, port=8000, ...)
 input.harbor(transport=..., port=8000, ...)
 
 output.harbor(transport=..., port=8000, ...)
+
+output.icecast(transport=..., port=8000, ...)
 ```
 
 A given port can only support one type of transport at a time and registering handlers, sources or outputs on the same port with different transports
