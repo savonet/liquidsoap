@@ -246,7 +246,7 @@ module Value = struct
 
   let colorize = Console.colorize
   let title_color = colorize [`white; `bold]
-  let type_color = colorize [`yellow; `bold]
+  let type_color = colorize [`yellow]
   let default_color = colorize [`red; `bold]
   let label_color = colorize [`cyan; `bold]
 

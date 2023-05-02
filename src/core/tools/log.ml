@@ -52,7 +52,7 @@ let make path : t =
 
     (** The program will not function after that. *)
     method critical : 'a. ('a, unit, string, unit) format4 -> 'a =
-      log#g ~colorize:(colorize [`bold; `red]) 1
+      log#g ~colorize:(colorize [`red]) 1
 
     (** The behavior of the program will be strongly affected. *)
     method severe : 'a. ('a, unit, string, unit) format4 -> 'a =
@@ -60,7 +60,7 @@ let make path : t =
 
     (** The user should now about this. *)
     method important : 'a. ('a, unit, string, unit) format4 -> 'a =
-      log#g ~colorize:(colorize [`white; `bold]) 3
+      log#g ~colorize:(colorize []) 3
 
     (** The advanced user should be interested in this. *)
     method info : 'a. ('a, unit, string, unit) format4 -> 'a =
