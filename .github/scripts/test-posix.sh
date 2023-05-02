@@ -7,4 +7,6 @@ eval "$(opam config env)"
 OCAMLPATH="$(cat ../.ocamlpath)"
 export OCAMLPATH
 
+export CLICOLOR_FORCE=1
+
 dune build @citest
