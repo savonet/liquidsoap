@@ -9,4 +9,4 @@ export OCAMLPATH
 
 export CLICOLOR_FORCE=1
 
-dune build @citest
+dune build @citest --error-reporting=twice --display=quiet
