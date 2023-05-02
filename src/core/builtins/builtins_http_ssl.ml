@@ -53,7 +53,7 @@ let ssl_socket transport ssl =
     method write = Ssl.write ssl
 
     method close =
-      Ssl.shutdown ssl;
+      ignore (Ssl.close_notify ssl);
       Unix.close (Ssl.file_descr_of_socket ssl)
   end
 

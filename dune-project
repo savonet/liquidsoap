@@ -113,7 +113,7 @@
     (soundtouch (< 0.1.9))
     (speex (< 0.4.0))
     (srt (< 0.3.0))
-    (ssl (< 0.5.12))
+    (ssl (< 0.5.13))
     (taglib (< 0.3.10))
     (sdl-liquidsoap (< 2))
     (tsdl-image (< 0.3.2))
