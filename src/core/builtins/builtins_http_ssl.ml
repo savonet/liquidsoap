@@ -64,41 +64,59 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
     method default_port = 443
 
     method connect ?bind_address ?timeout host port =
-      let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Client_context in
-      (* TODO: add option.. *)
-      Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
-      Ssl.set_verify_depth ctx 3;
-      ignore (Ssl.set_default_verify_paths ctx);
-      let unix_socket = Http.connect ?bind_address ?timeout host port in
-      let socket =
-        try
-          let socket = Ssl.embed_socket unix_socket ctx in
-          (try Ssl.set_client_SNI_hostname socket host with _ -> ());
-          Ssl.connect socket;
-          socket
-        with exn ->
-          let bt = Printexc.get_raw_backtrace () in
-          Unix.close unix_socket;
-          Printexc.raise_with_backtrace exn bt
-      in
-      begin
-        match bind_address with
-          | None -> ()
-          | Some s ->
-              let unix_socket = Ssl.file_descr_of_socket socket in
-              let bind_addr_inet =
-                (Unix.gethostbyname s).Unix.h_addr_list.(0)
-              in
-              (* Seems like you need to bind on port 0 *)
-              let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
-              Unix.bind unix_socket bind_addr
-      end;
-      ssl_socket self socket
+      try
+        let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Client_context in
+        (* TODO: add option.. *)
+        Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
+        (* Add certificate from transport if passed. *)
+        (try
+           let cert = Utils.read_all (certificate ()) in
+           Ssl.add_cert_to_store ctx cert
+         with _ -> ());
+        Ssl.set_verify_depth ctx 3;
+        ignore (Ssl.set_default_verify_paths ctx);
+        let unix_socket = Http.connect ?bind_address ?timeout host port in
+        let socket =
+          try
+            let socket = Ssl.embed_socket unix_socket ctx in
+            (try Ssl.set_client_SNI_hostname socket host with _ -> ());
+            Ssl.connect socket;
+            let err = Ssl.get_verify_result socket in
+            if err <> 0 then
+              Runtime_error.raise ~pos:[]
+                ~message:
+                  (Printf.sprintf "SSL verification error: %s"
+                     (Ssl.get_verify_error_string err))
+                "ssl";
+            socket
+          with exn ->
+            let bt = Printexc.get_raw_backtrace () in
+            Unix.close unix_socket;
+            Printexc.raise_with_backtrace exn bt
+        in
+        begin
+          match bind_address with
+            | None -> ()
+            | Some s ->
+                let unix_socket = Ssl.file_descr_of_socket socket in
+                let bind_addr_inet =
+                  (Unix.gethostbyname s).Unix.h_addr_list.(0)
+                in
+                (* Seems like you need to bind on port 0 *)
+                let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
+                Unix.bind unix_socket bind_addr
+        end;
+        ssl_socket self socket
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"ssl" exn
 
     method accept sock =
       let s, caller = Unix.accept ~cloexec:true sock in
       set_socket_default ~read_timeout ~write_timeout s;
-      let ctx = get_ctx ~password ~certificate ~key () in
+      let ctx =
+        get_ctx ~password ~certificate:(certificate ()) ~key:(key ()) ()
+      in
       let ssl_s = Ssl.embed_socket s ctx in
       Ssl.accept ssl_s;
       (ssl_socket self ssl_s, caller)
@@ -120,8 +138,19 @@ let _ =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "SSL certificate password" );
-      ("certificate", Lang.string_t, None, Some "Path to certificate file");
-      ("key", Lang.string_t, None, Some "Path to certificate private key");
+      ( "certificate",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some
+          "Path to certificate file. Required in server mode, e.g. \
+           `input.harbor`, etc. If passed in client mode, certificate is added \
+           to the list of valid certificates." );
+      ( "key",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some
+          "Path to certificate private key. Required in server mode, e.g. \
+           `input.harbor`, etc." );
     ]
     Lang.http_transport_t
     (fun p ->
@@ -134,7 +163,18 @@ let _ =
       let password =
         Lang.to_valued_option Lang.to_string (List.assoc "password" p)
       in
-      let certificate = Lang.to_string (List.assoc "certificate" p) in
-      let key = Lang.to_string (List.assoc "key" p) in
+      let raise name =
+        Runtime_error.raise ~pos:(Lang.pos p)
+          ~message:("Cannot find SSL " ^ name ^ " file!")
+          "not_found"
+      in
+      let find name () =
+        match Lang.to_valued_option Lang.to_string (List.assoc name p) with
+          | None -> raise name
+          | Some f when not (Sys.file_exists f) -> raise name
+          | Some f -> f
+      in
+      let certificate = find "certificate" in
+      let key = find "key" in
       Lang.http_transport
         (transport ~read_timeout ~write_timeout ~password ~certificate ~key ()))

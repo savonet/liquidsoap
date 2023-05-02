@@ -394,6 +394,29 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  icecast_ssl.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} icecast_ssl.liq liquidsoap %{test_liq} icecast_ssl.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   request.liq
   ./file1.mp3
   ./file2.mp3

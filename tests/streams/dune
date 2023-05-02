@@ -112,3 +112,30 @@
   (with-stdout-to
    %{target}
    (system "for i in `seq 1 100000`; do echo \"file$i.mp3\"; done"))))
+
+(rule
+ (alias citest)
+  (targets ssl.cert ssl.key)
+  (action
+    (run openssl req -x509 -newkey rsa:4096 -keyout ssl.key -out ssl.cert -sha256 -days 3650 -nodes -subj "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=CommonNameOrHostname")))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./icecast_ssl.liq
+  ./ssl.cert ./ssl.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Icecast SSL connection"
+   liquidsoap
+   --no-stdlib
+   %{stdlib}
+   %{test_liq}
+   ./icecast_ssl.liq)))
