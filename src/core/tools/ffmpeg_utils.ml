@@ -89,16 +89,19 @@ let best_pts frame =
     | None -> Avutil.Frame.best_effort_timestamp frame
 
 let liq_main_ticks_time_base () =
-  { Avutil.num = 1; den = Lazy.force Frame.main_rate }
+  { Avutil.num = 1; den = SyncLazy.force Frame.main_rate }
 
 let liq_audio_sample_time_base () =
-  { Avutil.num = 1; den = Lazy.force Frame.audio_rate }
+  { Avutil.num = 1; den = SyncLazy.force Frame.audio_rate }
 
 let liq_video_sample_time_base () =
-  { Avutil.num = 1; den = Lazy.force Frame.video_rate }
+  { Avutil.num = 1; den = SyncLazy.force Frame.video_rate }
 
 let liq_frame_time_base () =
-  { Avutil.num = Lazy.force Frame.size; den = Lazy.force Frame.main_rate }
+  {
+    Avutil.num = SyncLazy.force Frame.size;
+    den = SyncLazy.force Frame.main_rate;
+  }
 
 let liq_frame_pixel_format () = `Yuv420p
 

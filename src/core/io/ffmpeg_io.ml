@@ -192,7 +192,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       let pos = Frame.position frame in
       try
         let { decoder; buffer; closed } = Option.get (Atomic.get container) in
-        while Generator.length self#buffer < Lazy.force Frame.size do
+        while Generator.length self#buffer < SyncLazy.force Frame.size do
           if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
           self#mutexify (fun () -> decoder buffer) ()
         done;

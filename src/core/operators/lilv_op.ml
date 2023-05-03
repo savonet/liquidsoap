@@ -76,7 +76,7 @@ class lilv_mono (source : source) plugin input output params =
                 (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
           (fun _ ->
             Plugin.instantiate plugin
-              (float_of_int (Lazy.force Frame.audio_rate)))
+              (float_of_int (SyncLazy.force Frame.audio_rate)))
       in
       Array.iter Plugin.Instance.activate i;
       inst <- Some i
@@ -108,7 +108,7 @@ class lilv (source : source) plugin inputs outputs params =
     inherit base source
 
     val inst =
-      Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
+      Plugin.instantiate plugin (float_of_int (SyncLazy.force Frame.audio_rate))
 
     initializer Plugin.Instance.activate inst
 
@@ -158,7 +158,7 @@ class lilv_nosource plugin outputs params =
     method self_sync = (`Static, false)
 
     val inst =
-      Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
+      Plugin.instantiate plugin (float_of_int (SyncLazy.force Frame.audio_rate))
 
     initializer Plugin.Instance.activate inst
 
@@ -192,7 +192,7 @@ class lilv_noout source plugin inputs params =
     inherit base source
 
     val inst =
-      Plugin.instantiate plugin (float_of_int (Lazy.force Frame.audio_rate))
+      Plugin.instantiate plugin (float_of_int (SyncLazy.force Frame.audio_rate))
 
     initializer Plugin.Instance.activate inst
 

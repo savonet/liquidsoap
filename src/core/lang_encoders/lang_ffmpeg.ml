@@ -199,7 +199,7 @@ let type_of_encoder =
                             Audio.lift_params
                               {
                                 Content.channel_layout =
-                                  lazy
+                                  SyncLazy.from_val
                                     (Audio_converter.Channel_layout
                                      .layout_of_channels channels);
                               })
@@ -282,11 +282,17 @@ let ffmpeg_gen params =
           args
     | ("samplerate", t) :: args ->
         parse_audio_args ~opts
-          { options with Ffmpeg_format.samplerate = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.samplerate = SyncLazy.from_val (to_int t);
+          }
           args
     | ("ar", t) :: args ->
         parse_audio_args ~opts
-          { options with Ffmpeg_format.samplerate = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.samplerate = SyncLazy.from_val (to_int t);
+          }
           args
     | ("sample_format", t) :: args ->
         parse_audio_args ~opts
@@ -300,19 +306,25 @@ let ffmpeg_gen params =
     | [] -> options
     | ("framerate", t) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.framerate = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.framerate = SyncLazy.from_val (to_int t);
+          }
           args
     | ("r", t) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.framerate = Lazy.from_val (to_int t) }
+          {
+            options with
+            Ffmpeg_format.framerate = SyncLazy.from_val (to_int t);
+          }
           args
     | ("width", t) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.width = Lazy.from_val (to_int t) }
+          { options with Ffmpeg_format.width = SyncLazy.from_val (to_int t) }
           args
     | ("height", t) :: args ->
         parse_video_args ~opts
-          { options with Ffmpeg_format.height = Lazy.from_val (to_int t) }
+          { options with Ffmpeg_format.height = SyncLazy.from_val (to_int t) }
           args
     | ("pixel_format", { value = Ground (String "none"); _ }) :: args ->
         parse_video_args ~opts

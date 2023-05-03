@@ -212,7 +212,7 @@ let _frame_position frame =
     | _ -> 0
 
 let _frame_remaining frame =
-  Lazy.force Frame_settings.size - _frame_position frame
+  SyncLazy.force Frame_settings.size - _frame_position frame
 
 let feed ?offset ?length ?fields gen =
   Tutils.mutexify gen.lock (fun frame ->
@@ -278,8 +278,8 @@ let fill gen =
                      at frame boundaries. *)
                   | f when f = Frame_base.Fields.track_marks -> (
                       match Content.Track_marks.get_data rem with
-                        | 0 :: d when new_pos <> Lazy.force Frame_settings.size
-                          ->
+                        | 0 :: d
+                          when new_pos <> SyncLazy.force Frame_settings.size ->
                             Content.Track_marks.set_data rem d
                         | _ -> ())
                   | f when f = Frame_base.Fields.metadata ->

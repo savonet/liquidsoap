@@ -28,7 +28,7 @@ let noop () = ()
   * is an output. *)
 class audio_output ~pass_metadata ~name ~frame_t ~field source =
   let convert_frame_pts =
-    lazy
+    SyncLazy.from_val
       Ffmpeg_utils.(
         convert_time_base ~src:(liq_frame_time_base ())
           ~dst:(liq_main_ticks_time_base ()))
@@ -81,7 +81,7 @@ class audio_output ~pass_metadata ~name ~frame_t ~field source =
 
 class video_output ~pass_metadata ~name ~frame_t ~field source =
   let convert_frame_pts =
-    lazy
+    SyncLazy.from_val
       Ffmpeg_utils.(
         convert_time_base ~src:(liq_frame_time_base ())
           ~dst:(liq_main_ticks_time_base ()))
@@ -253,7 +253,7 @@ type video_config = {
 class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
   frame_t =
   let duration =
-    lazy (Frame.main_of_seconds (1. /. float (SyncLazy.force fps)))
+    SyncLazy.from_val (Frame.main_of_seconds (1. /. float (SyncLazy.force fps)))
   in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)

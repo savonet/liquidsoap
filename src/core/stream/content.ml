@@ -36,12 +36,12 @@ end
 include Content_timed
 
 type audio_params = Content_audio.Specs.params = {
-  channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+  channel_layout : [ `Mono | `Stereo | `Five_point_one ] SyncLazy.t;
 }
 
 type video_params = Content_video.Specs.params = {
-  width : int Lazy.t option;
-  height : int Lazy.t option;
+  width : int SyncLazy.t option;
+  height : int SyncLazy.t option;
 }
 
 type midi_params = Content_midi.Specs.params = { channels : int }

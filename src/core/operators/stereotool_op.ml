@@ -50,9 +50,9 @@ class stereotool ~field ~preset ~load_type ~handler source =
     method valid_license = Stereotool.valid_license handler
 
     val unlincensed_used_features =
-      lazy (Stereotool.unlincensed_used_features handler)
+      SyncLazy.from_val (Stereotool.unlincensed_used_features handler)
 
-    method unlincensed_used_features = Lazy.force unlincensed_used_features
+    method unlincensed_used_features = SyncLazy.force unlincensed_used_features
     val mutable latency = None
 
     method latency =
@@ -62,7 +62,7 @@ class stereotool ~field ~preset ~load_type ~handler source =
             let v =
               Frame.seconds_of_audio
                 (Stereotool.latency
-                   ~samplerate:(Lazy.force Frame.audio_rate)
+                   ~samplerate:(SyncLazy.force Frame.audio_rate)
                    ~feed_silence:true handler)
             in
             latency <- Some v;
@@ -98,7 +98,7 @@ class stereotool ~field ~preset ~load_type ~handler source =
       let position = AFrame.position buf in
       let b = Content.Audio.get_data (Frame.get buf field) in
       Stereotool.process
-        ~samplerate:(Lazy.force Frame.audio_rate)
+        ~samplerate:(SyncLazy.force Frame.audio_rate)
         handler b offset (position - offset)
   end
 

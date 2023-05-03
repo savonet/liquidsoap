@@ -8,6 +8,8 @@ let force ((v, m) : 'a t) =
   Mutex.lock m;
   Fun.protect ~finally:(fun () -> Mutex.unlock m) @@ fun () -> Lazy.force v
 
+let to_fun v () = force v
+
 let map f ((v, m) : 'a t) =
   Mutex.lock m;
   Fun.protect ~finally:(fun () -> Mutex.unlock m) @@ fun () -> (Lazy.map f v, m)

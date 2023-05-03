@@ -34,10 +34,10 @@ let force f fd x =
   if x <> x' then failwith "cannot obtain desired OSS settings"
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "OSS")
+let clock = SyncLazy.from_fun (fun () -> Clock.clock "OSS")
 
 class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
     inherit
@@ -51,7 +51,7 @@ class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Source.clock))
+          (Clock.create_known (SyncLazy.force clock :> Source.clock))
 
     val mutable fd = None
     method! self_sync = (`Dynamic, fd <> None)
@@ -85,11 +85,12 @@ class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
   end
 
 class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
-        ~get_clock ~clock_safe
+        ~get_clock:(fun () -> SyncLazy.force clock)
+        ~clock_safe
         ~name:(Printf.sprintf "oss_in(%s)" dev)
         ~on_start ~on_stop ~fallible ~autostart:start ()
 

@@ -132,7 +132,7 @@ let _ =
           (Source.Clock_variables.get s#clock)#get_tick
         else 0
       in
-      let frame_position = Lazy.force Frame.duration *. float ticks in
+      let frame_position = SyncLazy.force Frame.duration *. float ticks in
       let in_frame_position = Frame.seconds_of_main (Frame.position s#memo) in
       Lang.float (frame_position +. in_frame_position))
 

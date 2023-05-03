@@ -30,7 +30,7 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~start dev source =
   let buffer_length = AFrame.size () in
   let alsa_buffer = Alsa_settings.alsa_buffer#get in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   let periods = Alsa_settings.periods#get in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)

@@ -24,7 +24,7 @@ open Mm
 open Pulseaudio
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "pulseaudio")
+let clock = SyncLazy.from_fun (fun () -> Clock.clock "pulseaudio")
 
 (** Error translator *)
 let error_translator e =
@@ -51,7 +51,7 @@ class output ~infallible ~start ~on_start ~on_stop p =
   let device = Lang.to_string (List.assoc "device" p) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
   let val_source = List.assoc "" p in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
   object (self)
     inherit base ~client ~device
@@ -65,7 +65,7 @@ class output ~infallible ~start ~on_start ~on_stop p =
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Source.clock))
+          (Clock.create_known (SyncLazy.force clock :> Source.clock))
 
     val mutable stream = None
 
@@ -117,12 +117,12 @@ class input p =
     let f = List.assoc "on_stop" p in
     fun () -> ignore (Lang.apply f [])
   in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
-        ~get_clock ~name:"input.pulseaudio" ~clock_safe ~on_start ~on_stop
-          ~autostart:start ~fallible ()
+        ~get_clock:(SyncLazy.to_fun clock) ~name:"input.pulseaudio" ~clock_safe
+          ~on_start ~on_stop ~autostart:start ~fallible ()
 
     inherit base ~client ~device
     method private start = self#open_device
