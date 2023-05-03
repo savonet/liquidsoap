@@ -73,8 +73,8 @@ class pitch every length freq_min freq_max (source : source) =
 
     (** Array used to get data to analyze. *)
     method databuf =
-      Lazy.force
-        (Lazy.from_fun (fun () -> Audio.create self#audio_channels length))
+      SyncLazy.force
+        (SyncLazy.from_fun (fun () -> Audio.create self#audio_channels length))
 
     val mutable computations = -1
     method stype = source#stype

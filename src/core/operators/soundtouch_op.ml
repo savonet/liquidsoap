@@ -79,7 +79,8 @@ class soundtouch source_val rate tempo pitch =
     method private get_frame buf =
       consumer#set_output_enabled true;
       while
-        Generator.length self#buffer < Lazy.force Frame.size && source#is_ready
+        Generator.length self#buffer < SyncLazy.force Frame.size
+        && source#is_ready
       do
         self#child_tick
       done;
@@ -89,7 +90,9 @@ class soundtouch source_val rate tempo pitch =
     method! wake_up a =
       super#wake_up a;
       st <-
-        Some (Soundtouch.make self#audio_channels (Lazy.force Frame.audio_rate));
+        Some
+          (Soundtouch.make self#audio_channels
+             (SyncLazy.force Frame.audio_rate));
       self#log#important "Using soundtouch %s."
         (Soundtouch.get_version_string (Option.get st));
       write_frame_ref := self#write_frame
