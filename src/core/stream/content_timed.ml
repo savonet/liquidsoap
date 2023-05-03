@@ -46,7 +46,7 @@ module Specs = struct
 
   let sub c ofs len =
     {
-      c with
+      length = Finite len;
       data =
         List.filter_map
           (fun (pos, x) ->

@@ -1,13 +1,13 @@
 log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
 
-out_copy = "test_ffmpeg_inline_encode_decode_video_copy.mp4"
+out_copy = "ffmpeg_inline_encode_decode_audio_copy.mp4"
 
 if file.exists(out_copy) then
   file.remove(out_copy)
 end
 
-out_encode = "test_ffmpeg_inline_encode_decode_video_encode.mp4"
+out_encode = "ffmpeg_inline_encode_decode_audio_encode.mp4"
 if file.exists(out_encode) then
   file.remove(out_encode)
 end
@@ -22,15 +22,19 @@ def on_done () =
 
     let json.parse ( parsed : {
       streams: [{
+        channel_layout: string,
+        sample_rate: string,
+        sample_fmt: string,
         codec_name: string,
-        pix_fmt: string
       }]
     }) = j
 
-   let [stream] = parsed.streams
+    let [stream] = parsed.streams
 
-    stream.codec_name == "h264" and
-    stream.pix_fmt == "yuv420p"
+    stream.channel_layout == "stereo" and
+    stream.codec_name == "aac" and
+    stream.sample_fmt == "fltp" and
+    stream.sample_rate == "44100"
   end
 
   todo := !todo - 1
@@ -44,9 +48,9 @@ def on_done () =
   end
 end
 
-s = ffmpeg.encode.video(
+s = ffmpeg.encode.audio(
   %ffmpeg(
-    %video(codec="libx264")
+    %audio(codec="aac")
   ),
   s
 )
@@ -55,13 +59,13 @@ output.file(
   fallible=true,
   on_stop=on_done,
   %ffmpeg(
-    %video.copy,
+    %audio.copy,
   ),
   out_copy,
   s
 )
 
-s = ffmpeg.decode.video(s)
+s = ffmpeg.decode.audio(s)
 
 clock.assign_new(sync='none',[s])
 
@@ -69,7 +73,7 @@ output.file(
   fallible=true,
   on_stop=on_done,
   %ffmpeg(
-    %video(codec="libx264")
+    %audio(codec="aac")
   ),
   out_encode,
   s

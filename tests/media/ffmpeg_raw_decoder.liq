@@ -2,7 +2,7 @@ log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
 
 fname = argv(default="",1)
-out = "#{fname}+test_ffmpeg_raw_and_encode_decoder.mp4"
+out = "#{fname}+ffmpeg_raw_decoder.mp4"
 
 if file.exists(out) then
   file.remove(out)
@@ -15,7 +15,7 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+  ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
   let json.parse ( parsed : {
     streams: [{
@@ -25,7 +25,7 @@ def on_done () =
       codec_name: string?,
       pix_fmt: string?
     }]
-  }) = j
+  }) = ojson
 
   video_stream = list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)
   audio_stream = list.find((fun (stream) -> null.defined(stream.sample_rate)), parsed.streams)
@@ -42,4 +42,4 @@ def on_done () =
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio(codec="aac"),%video.raw(codec="libx264")), out, s)
+output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio.raw(codec="aac"),%video.raw(codec="libx264")), out, s)

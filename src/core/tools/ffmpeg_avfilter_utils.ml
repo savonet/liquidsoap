@@ -117,7 +117,7 @@ module Fps = struct
     match converter with
       | `Pass_through _ -> cb frame
       | `Filter { input; output } ->
-          Avutil.Frame.set_pts frame (Ffmpeg_utils.best_pts frame);
+          Avutil.Frame.set_pts frame (Avutil.Frame.pts frame);
           input frame;
           let rec flush () =
             try

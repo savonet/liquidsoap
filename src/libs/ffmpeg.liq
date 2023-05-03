@@ -389,10 +389,9 @@ let ffmpeg.filter.audio_video = ()
 # Return a source with audio and video from a filter's output.
 # @category Source / Output
 # @param id Force the value of the source ID.
-# @param fps Output frame per seconds. Defaults to global value.
-def ffmpeg.filter.audio_video.output(~id=null(), ~fps=null(), graph, audio, video)
+def ffmpeg.filter.audio_video.output(~id=null(), graph, audio, video)
   audio = ffmpeg.filter.audio.output(graph, audio.tracks().audio)
-  video = ffmpeg.filter.video.output(fps=fps, graph, video.tracks().video)
+  video = ffmpeg.filter.video.output(graph, video.tracks().video)
   source(id=id, {audio=audio, video=video})
 end
 %endif

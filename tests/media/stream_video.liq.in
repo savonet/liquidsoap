@@ -1,18 +1,24 @@
-log.level.set(5)
+log.level.set(4)
+settings.ffmpeg.log.level.set(12)
 audio.samplerate.set(48000)
-video.frame.rate.set(45)
-settings.decoder.decoders.set(["ffmpeg"])
 
-fname = argv(default="",1)
-out = "#{fname}+test_ffmpeg_video_decoder.mp4"
+out = "stream_video.mp4"
 
 if file.exists(out) then
   file.remove(out)
 end
 
-s = single(fname)
+s = noise(duration=2.)
 
 s = once(s)
+
+clock.assign_new(sync='none',[s])
+
+output.udp(id="output",port=5001,host="localhost",fallible=true,@FORMAT@,s)
+
+s = input.udp(id="input",port=5001,host="localhost",buffer=0.1,"application/ffmpeg")
+
+s = (s:source(1,1,0))
 
 clock.assign_new(sync='none',[s])
 
@@ -35,4 +41,4 @@ def on_done () =
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mp4",%video(codec="libx264")), out, s)
+output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mp4",%audio(codec="aac",channels=1),%video(codec="libx264")), out, s)
