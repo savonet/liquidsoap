@@ -25,6 +25,7 @@ open Source
 class map_metadata source rewrite_f insert_missing update strip =
   object (self)
     inherit operator ~name:"metadata.map" [source]
+    initializer Typing.(self#frame_type <: Lang.unit_t)
     method stype = source#stype
     method is_ready = source#is_ready
     method remaining = source#remaining
