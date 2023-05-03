@@ -127,6 +127,7 @@ val reference : ?pos:Pos.t -> t -> t
 
 val meths : ?pos:Pos.t -> string list -> scheme -> t -> t
 val split_meths : t -> meth list * t
+val filter_meths : t -> (meth -> bool) -> t
 val var : ?constraints:constr list -> ?level:int -> ?pos:Pos.t -> unit -> t
 val mk_invariant : t -> unit
 val to_string_fun : (?generalized:var list -> t -> string) ref
