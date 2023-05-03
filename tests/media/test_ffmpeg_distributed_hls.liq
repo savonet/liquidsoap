@@ -7,6 +7,8 @@ if debian_version == "10" then
   test.skip()
 end
 
+fname = argv(default="",1)
+
 main_encoder =
   %ffmpeg(
     %audio(
@@ -32,7 +34,7 @@ mp4 = %ffmpeg(
   frag_duration=2,
   %audio.copy, %video.copy)
 
-s = noise()
+s = single(fname)
 
 encoded = ffmpeg.encode.audio_video(main_encoder, s)
 
@@ -94,6 +96,8 @@ def segment_name(~position,~extname,stream_name) =
   timestamp = int_of_float(time())
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
+
+clock.assign_new(id='test_clock',sync='none',[encoded])
 
 output.file.hls(playlist="live.m3u8",
                 segment_duration=2.0,

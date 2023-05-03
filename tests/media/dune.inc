@@ -1873,19 +1873,6 @@
  (package liquidsoap)
  (deps
   all_media_files
-  test_ffmpeg_distributed_hls.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} "test_ffmpeg_distributed_hls.liq" liquidsoap %{test_liq} test_ffmpeg_distributed_hls.liq -- "")))
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  all_media_files
   test_ffmpeg_raw_hls.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)

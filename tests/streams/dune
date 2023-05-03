@@ -115,9 +115,24 @@
 
 (rule
  (alias citest)
-  (targets ssl.cert ssl.key)
-  (action
-    (run openssl req -x509 -newkey rsa:4096 -keyout ssl.key -out ssl.cert -sha256 -days 3650 -nodes -subj "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=CommonNameOrHostname")))
+ (targets ssl.cert ssl.key)
+ (action
+  (run
+   openssl
+   req
+   -x509
+   -newkey
+   rsa:4096
+   -keyout
+   ssl.key
+   -out
+   ssl.cert
+   -sha256
+   -days
+   3650
+   -nodes
+   -subj
+   "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=CommonNameOrHostname")))
 
 (rule
  (alias citest)
@@ -125,7 +140,8 @@
  (deps
   ../../src/bin/liquidsoap.exe
   ./icecast_ssl.liq
-  ./ssl.cert ./ssl.key
+  ./ssl.cert
+  ./ssl.key
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
