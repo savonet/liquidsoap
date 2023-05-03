@@ -54,6 +54,7 @@ Changed:
     `null`, meaning don't add the metadata.
   - Cleanup, removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
   - Make `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
+- BREAKING: reworked reloading logic in `output.file` (#2924, see migration notes for more details).
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.
