@@ -364,6 +364,44 @@ let check_content v t =
 
 let _meth = meth
 
+let check_arguments ~env ~return_t arguments =
+  (* Create a fresh instantiation of the return type and the type of arguments. *)
+  let return_t, arguments =
+    let s =
+      (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
+      Typing.generalize ~level:(-1)
+        (Type.make
+           (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) arguments)))
+    in
+    let t = Typing.instantiate ~level:(-1) s in
+    match t.Type.descr with
+      | Type.Tuple (return_t :: arguments_t) ->
+          ( return_t,
+            List.map2
+              (fun (name, _, _, _) typ -> (name, typ))
+              arguments arguments_t )
+      | _ -> assert false
+  in
+  let arguments =
+    List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') arguments
+  in
+  (* Negotiate content for all sources and formats in the arguments. *)
+  let () =
+    let env =
+      List.stable_sort
+        (fun (l, _) (l', _) -> Stdlib.compare l l')
+        (List.filter
+           (fun (lbl, _) -> lbl <> Liquidsoap_lang.Lang_core.pos_var)
+           env)
+    in
+    List.iter2
+      (fun (name, typ) (name', v) ->
+        assert (name = name');
+        check_content v typ)
+      arguments env
+  in
+  return_t
+
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
   let compare (x, _, _, _) (y, _, _, _) =
@@ -386,41 +424,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
         | [] -> None
         | p :: _ -> Some p
     in
-    (* Create a fresh instantiation of the return type and the type of arguments. *)
-    let return_t, arguments =
-      let s =
-        (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
-        Typing.generalize ~level:(-1)
-          (Type.make
-             (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) arguments)))
-      in
-      let t = Typing.instantiate ~level:(-1) s in
-      match t.Type.descr with
-        | Type.Tuple (return_t :: arguments_t) ->
-            ( return_t,
-              List.map2
-                (fun (name, _, _, _) typ -> (name, typ))
-                arguments arguments_t )
-        | _ -> assert false
-    in
-    let arguments =
-      List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') arguments
-    in
-    (* Negotiate content for all sources and formats in the arguments. *)
-    let () =
-      let env =
-        List.stable_sort
-          (fun (l, _) (l', _) -> Stdlib.compare l l')
-          (List.filter
-             (fun (lbl, _) -> lbl <> Liquidsoap_lang.Lang_core.pos_var)
-             env)
-      in
-      List.iter2
-        (fun (name, typ) (name', v) ->
-          assert (name = name');
-          check_content v typ)
-        arguments env
-    in
+    let return_t = check_arguments ~return_t ~env arguments in
     try
       let src : < Source.source ; .. > = f env in
       Typing.(src#frame_type <: return_t);
@@ -462,7 +466,12 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: arguments
   in
   let f env =
+    let return_t = check_arguments ~return_t ~env arguments in
     let field, (src : < Source.source ; .. >) = f env in
+    Typing.(
+      src#frame_type
+      <: method_t (univ_t ())
+           [(Frame.Fields.string_of_field field, ([], return_t), "")]);
     ignore
       (Option.map
          (fun id -> src#set_id id)
