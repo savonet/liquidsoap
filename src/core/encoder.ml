@@ -94,7 +94,7 @@ let type_of_format f =
                           let params =
                             {
                               Content.channel_layout =
-                                lazy
+                                SyncLazy.from_val
                                   (Audio_converter.Channel_layout
                                    .layout_of_channels channels);
                             }

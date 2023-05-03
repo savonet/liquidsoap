@@ -23,8 +23,7 @@
 (* Some of the code below was borrowed from opam. *)
 
 let dumb_term =
-  SyncLazy.from_val
-    (try Sys.getenv "TERM" = "dumb" with Not_found -> Sys.win32)
+  Lazy.from_val (try Sys.getenv "TERM" = "dumb" with Not_found -> Sys.win32)
 
 type color_conf = [ `Always | `Never | `Auto ]
 
@@ -32,15 +31,15 @@ let color_conf : color_conf ref = ref `Auto
 
 let color =
   let auto =
-    SyncLazy.from_val
-      (try Unix.isatty Unix.stdout && not (SyncLazy.force dumb_term)
+    Lazy.from_val
+      (try Unix.isatty Unix.stdout && not (Lazy.force dumb_term)
        with _ -> false)
   in
   fun () ->
     match !color_conf with
       | `Always -> true
       | `Never -> false
-      | `Auto -> SyncLazy.force auto
+      | `Auto -> Lazy.force auto
 
 type text_style =
   [ `bold
