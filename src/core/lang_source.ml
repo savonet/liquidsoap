@@ -468,10 +468,11 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
   let f env =
     let return_t = check_arguments ~return_t ~env arguments in
     let field, (src : < Source.source ; .. >) = f env in
-    Typing.(
-      src#frame_type
-      <: method_t (univ_t ())
-           [(Frame.Fields.string_of_field field, ([], return_t), "")]);
+    (if field <> Frame.Fields.track_marks && field <> Frame.Fields.metadata then
+       Typing.(
+         src#frame_type
+         <: method_t (univ_t ())
+              [(Frame.Fields.string_of_field field, ([], return_t), "")]));
     ignore
       (Option.map
          (fun id -> src#set_id id)
