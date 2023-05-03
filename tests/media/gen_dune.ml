@@ -31,6 +31,7 @@ let standalone_tests =
     "test_ffmpeg_distributed_hls.liq";
     "test_ffmpeg_raw_hls.liq";
     "test_taglib.liq";
+    "test_pcm_s16_decode.liq";
   ]
 
 let audio_formats =
@@ -52,6 +53,8 @@ let audio_formats =
     "%ogg(%opus(mono)).ogg";
     "%ogg(%opus(stereo)).ogg";
     {|%ffmpeg(format="mp4",%audio(codec="aac")).mp4|};
+    {|%ffmpeg(format="mp4",%audio(pcm_s16,codec="aac")).mp4|};
+    {|%ffmpeg(format="mp4",%audio(pcm_f32,codec="aac")).mp4|};
   ]
 
 let video_formats = [{|%ffmpeg(format="mp4",%video(codec="libx264")).mp4|}]

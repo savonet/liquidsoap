@@ -1,5 +1,37 @@
 audio = ()
 
+let audio.encode = ()
+
+# Encode audio track to pcm_s16
+# @category Source / Audio processing
+def audio.encode.pcm_s16(~id=null("audio.encode.pcm_s16"), s) =
+  let {audio, ...tracks} = source.tracks(s)
+  source(id=id, tracks.{audio = track.encode.audio.pcm_s16(audio)})
+end
+
+# Encode audio track to pcm_f32
+# @category Source / Audio processing
+def audio.encode.pcm_f32(~id=null("audio.encode.pcm_f32"), s) =
+  let {audio, ...tracks} = source.tracks(s)
+  source(id=id, tracks.{audio = track.encode.audio.pcm_f32(audio)})
+end
+
+let audio.decode = ()
+
+# Decode audio track to pcm_s16
+# @category Source / Audio processing
+def audio.decode.pcm_s16(~id=null("audio.decode.pcm_s16"), s) =
+  let {audio, ...tracks} = source.tracks(s)
+  source(id=id, tracks.{audio = track.decode.audio.pcm_s16(audio)})
+end
+
+# Decode audio track to pcm_f32
+# @category Source / Audio processing
+def audio.decode.pcm_f32(~id=null("audio.decode.pcm_f32"), s) =
+  let {audio, ...tracks} = source.tracks(s)
+  source(id=id, tracks.{audio = track.decode.audio.pcm_f32(audio)})
+end
+
 # Samplerate for audio.
 # @category Settings
 def audio.samplerate =

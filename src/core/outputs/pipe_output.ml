@@ -278,8 +278,11 @@ class virtual piped_output ~name p =
       need_reopen <- false
 
     method private close_encoder =
-      let flush = (Option.get encoder).Encoder.stop () in
-      super#send flush
+      match encoder with
+        | None -> ()
+        | Some encoder ->
+            let flush = encoder.Encoder.stop () in
+            super#send flush
 
     method! stop =
       if self#is_open then (
@@ -298,11 +301,11 @@ class virtual piped_output ~name p =
       try super#output
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
+        self#close_encoder;
+        self#close_pipe;
         let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
         let open_delay = should_reopen ~error () in
         if open_delay < 0. then Printexc.raise_with_backtrace exn bt;
-        self#close_encoder;
-        self#close_pipe;
         open_date <- Unix.gettimeofday () +. open_delay;
         self#log#important "Error while streaming: %s, will re-open in %.02fs"
           (Printexc.to_string exn) open_delay
@@ -323,14 +326,17 @@ class virtual piped_output ~name p =
       if self#is_open then super#send b
 
     method! insert_metadata metadata =
-      let open_delay =
-        should_reopen ~metadata:(Meta_format.to_metadata metadata) ()
-      in
-      if open_delay <= 0. then super#insert_metadata metadata
-      else (
-        self#log#info "New metadata received, will re-open in %.02fs" open_delay;
-        need_reopen <- true;
-        open_date <- Unix.gettimeofday () +. open_delay)
+      match should_reopen ~metadata:(Meta_format.to_metadata metadata) () with
+        | 0. ->
+            self#reopen;
+            super#insert_metadata metadata
+        | open_delay ->
+            super#insert_metadata metadata;
+            if open_delay > 0. then (
+              self#log#info "New metadata received, will re-open in %.02fs"
+                open_delay;
+              need_reopen <- true;
+              open_date <- Unix.gettimeofday () +. open_delay)
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to

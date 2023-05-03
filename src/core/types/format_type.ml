@@ -22,36 +22,61 @@
 
 type Type.custom += Kind of (Content_base.kind * Type.t)
 type Type.custom += Format of Content_base.format
-type Type.constr_t += Track | MuxedTracks | InternalTrack | InternalTracks
+
+type Type.constr_t +=
+  | PcmAudio
+  | Track
+  | MuxedTracks
+  | InternalTrack
+  | InternalTracks
+
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 let get_format = function Format f -> f | _ -> assert false
 let get_kind = function Kind k -> k | _ -> assert false
 
+(* By convention, all format for pcm kind are from Content_audio to
+   allow shared parameters between the different pcm implementations. *)
+let normalize_format f =
+  match f with
+    | _ when Content_pcm_s16.is_format f ->
+        Content_audio.lift_params (Content_pcm_s16.get_params f)
+    | _ when Content_pcm_f32.is_format f ->
+        Content_audio.lift_params (Content_pcm_f32.get_params f)
+    | _ -> f
+
+let denormalize_format k f =
+  match k with
+    | _ when Content_pcm_s16.is_kind k ->
+        Content_pcm_s16.lift_params (Content_audio.get_params f)
+    | _ when Content_pcm_f32.is_kind k ->
+        Content_pcm_f32.lift_params (Content_audio.get_params f)
+    | _ -> f
+
 let format_handler f =
   {
-    Type.typ = Format f;
+    Type.typ = Format (normalize_format f);
     copy_with = (fun _ f -> Format (Content_base.duplicate (get_format f)));
     occur_check = (fun _ _ -> ());
     filter_vars =
       (fun _ l f ->
         ignore (get_format f);
         l);
-    repr =
-      (fun _ _ f -> `Constr (Content_base.string_of_format (get_format f), []));
+    repr = (fun _ _ _ -> assert false);
     subtype = (fun _ f f' -> Content_base.merge (get_format f) (get_format f'));
     sup =
       (fun _ f f' ->
         Content_base.merge (get_format f) (get_format f');
         f);
-    to_string = (fun f -> Content_base.string_of_format (get_format f));
+    to_string = (fun _ -> assert false);
   }
 
 let format_descr f = Type.Custom (format_handler f)
 
 let string_of_kind (k, ty) =
   match (Type.deref ty).Type.descr with
-    | Type.(Custom { typ = Format f }) -> Content_base.string_of_format f
+    | Type.(Custom { typ = Format f }) ->
+        Content_base.string_of_format (denormalize_format k f)
     | _ ->
         Printf.sprintf "%s(%s)"
           (Content_base.string_of_kind k)
@@ -60,7 +85,7 @@ let string_of_kind (k, ty) =
 let repr_of_kind repr l (k, ty) =
   match (Type.deref ty).Type.descr with
     | Type.(Custom { typ = Format f }) ->
-        `Constr (Content_base.string_of_format f, [])
+        `Constr (Content_base.string_of_format (denormalize_format k f), [])
     | _ -> `Constr (Content_base.string_of_kind k, [(`Covariant, repr l ty)])
 
 let kind_handler k =
@@ -97,7 +122,9 @@ let kind_handler k =
 let descr descr =
   let k =
     match descr with
-      | `Format f -> (Content_base.kind f, Type.make (format_descr f))
+      | `Format f ->
+          let kind = Content_base.kind f in
+          (kind, Type.make (format_descr f))
       | `Kind k -> (k, Type.var ())
   in
   Type.Custom (kind_handler k)
@@ -105,9 +132,7 @@ let descr descr =
 let rec content_type ?kind ty =
   match ((Type.demeth ty).Type.descr, kind) with
     | Type.Custom { Type.typ = Kind (kind, ty) }, None -> content_type ~kind ty
-    | Type.Custom { Type.typ = Format f }, Some k when Content_base.kind f = k
-      ->
-        f
+    | Type.Custom { Type.typ = Format f }, Some k -> denormalize_format k f
     | Type.Var _, Some kind -> Content_base.default_format kind
     | Type.Var _, None ->
         Runtime_error.raise
@@ -125,6 +150,13 @@ module type Content = sig
   val is_format : Content_base.format -> bool
 end
 
+let pcm_modules =
+  [
+    (module Content_audio : Content);
+    (module Content_pcm_s16 : Content);
+    (module Content_pcm_f32 : Content);
+  ]
+
 module Content_metadata = struct
   include Content_timed.Metadata
 
@@ -138,12 +170,12 @@ module Content_track_marks = struct
 end
 
 let internal_modules =
-  [
-    (module Content_audio : Content);
-    (module Content_video : Content);
-    (module Content_metadata : Content);
-    (module Content_track_marks : Content);
-  ]
+  pcm_modules
+  @ [
+      (module Content_video : Content);
+      (module Content_metadata : Content);
+      (module Content_track_marks : Content);
+    ]
 
 let string_of_kind m =
   let module Content = (val m : Content) in
@@ -157,13 +189,13 @@ let is_format f m =
   let module Content = (val m : Content) in
   Content.is_format f
 
-let internal_track =
+let check_track ~t modules =
   {
-    Type.t = InternalTrack;
+    Type.t;
     constr_descr =
-      Printf.sprintf "an internal track type (%s)"
+      Printf.sprintf "a track of type: %s"
         (Utils.concat_with_last ~last:"or" ", "
-           (List.map string_of_kind internal_modules));
+           (List.map string_of_kind modules));
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let b = Type.demeth b in
@@ -171,13 +203,16 @@ let internal_track =
           | Type.Var _ -> satisfies b
           | Type.(Custom { typ = Ground.Never.Type }) -> ()
           | Type.Custom { Type.typ = Kind (k, _) }
-            when List.exists (is_kind k) internal_modules ->
+            when List.exists (is_kind k) modules ->
               ()
           | Type.Custom { Type.typ = Format f }
-            when List.exists (is_format f) internal_modules ->
+            when List.exists (is_kind (Content_base.kind f)) modules ->
               ()
           | _ -> raise Type.Unsatisfied_constraint);
   }
+
+let pcm_audio = check_track ~t:PcmAudio pcm_modules
+let internal_track = check_track ~t:InternalTrack internal_modules
 
 let internal_tracks =
   {
@@ -248,38 +283,27 @@ let muxed_tracks =
   }
 
 let content_type ty = content_type ty
-let audio () = Type.make (descr (`Kind Content_audio.kind))
+
+let audio ?(pcm_kind = Content_audio.kind) () =
+  Type.make (descr (`Kind pcm_kind))
 
 let () =
   Type.register_type (Content_base.string_of_kind Content_audio.kind) (fun () ->
       Type.make (Type.Custom (kind_handler (Content_audio.kind, Type.var ()))))
 
-let audio_mono () =
+let audio_n ?(pcm_kind = Content_audio.kind) n =
   Type.make
     (descr
        (`Format
-         Content_audio.(
-           lift_params { channel_layout = SyncLazy.from_val `Mono })))
+         (Frame_base.audio_format ~pcm_kind
+            {
+              channel_layout =
+                SyncLazy.from_val
+                  (Audio_converter.Channel_layout.layout_of_channels n);
+            })))
 
-let audio_stereo () =
-  Type.make
-    (descr
-       (`Format
-         Content_audio.(
-           lift_params { channel_layout = SyncLazy.from_val `Stereo })))
-
-let audio_n n =
-  Type.make
-    (descr
-       (`Format
-         Content_audio.(
-           lift_params
-             {
-               channel_layout =
-                 SyncLazy.from_val
-                   (Audio_converter.Channel_layout.layout_of_channels n);
-             })))
-
+let audio_mono ?pcm_kind () = audio_n ?pcm_kind 1
+let audio_stereo ?pcm_kind () = audio_n ?pcm_kind 2
 let video () = Type.make (descr (`Kind Content_video.kind))
 
 let () =

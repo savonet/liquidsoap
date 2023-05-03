@@ -26,6 +26,12 @@ open Mm
 
 open Source
 
+let to_audio = function
+  | c when Content.Audio.is_data c -> Content.Audio.get_data c
+  | c when Content_pcm_s16.is_data c -> Content_pcm_s16.(to_audio (get_data c))
+  | c when Content_pcm_f32.is_data c -> Content_pcm_f32.(to_audio (get_data c))
+  | _ -> raise Content.Invalid
+
 class gen ~seek name g freq duration ampl =
   let g = g (freq ()) in
   object
@@ -34,16 +40,27 @@ class gen ~seek name g freq duration ampl =
     method private synthesize frame off len =
       let off = Frame.audio_of_main off in
       let len = Frame.audio_of_main len in
-      let buf = AFrame.pcm frame in
+      let content = AFrame.content frame in
+      let buf = to_audio content in
       g#set_frequency (freq ());
       g#set_volume (ampl ());
-      g#fill buf off len
+      g#fill buf off len;
+      match content with
+        | _ when Content.Audio.is_data content -> ()
+        | _ when Content_pcm_s16.is_data content ->
+            let pcm = Content_pcm_s16.get_data content in
+            Content_pcm_s16.blit_audio buf off pcm off len;
+            Frame.set_audio frame (Content_pcm_s16.lift_data pcm)
+        | _ when Content_pcm_f32.is_data content ->
+            let pcm = Content_pcm_f32.get_data content in
+            Content_pcm_f32.blit_audio buf off pcm off len;
+            Frame.set_audio frame (Content_pcm_f32.lift_data pcm)
+        | _ -> raise Content.Invalid
   end
 
 let add name g =
   let return_t =
-    Lang.frame_t Lang.unit_t
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
+    Lang.frame_t Lang.unit_t (Frame.Fields.make ~audio:(Lang.pcm_audio_t ()) ())
   in
   Lang.add_operator name ~category:`Input
     ~descr:("Generate a " ^ name ^ " wave.")

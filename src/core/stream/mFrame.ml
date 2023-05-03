@@ -28,8 +28,11 @@ let mot = midi_of_main
 let tom = main_of_midi
 let size () = mot (SyncLazy.force Frame.size)
 let position t = mot (position t)
-let content b = try Frame.midi b with Not_found -> raise Content.Invalid
-let midi b = Content.Midi.get_data (content b)
+
+let content ?(field = Frame.Fields.midi) b =
+  try Frame.get b field with Not_found -> raise Content.Invalid
+
+let midi ?field b = Content.Midi.get_data (content ?field b)
 let add_break t i = add_break t (tom i)
 let is_partial = is_partial
 

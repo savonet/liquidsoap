@@ -1,0 +1,29 @@
+opam-version: "2.0"
+version: "0.4.5"
+synopsis: "Library providing various helper functions to make daemons"
+maintainer: ["Romain Beauxis <toots@rastageeks.org>"]
+authors: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+license: "GPL"
+homepage: "https://github.com/savonet/ocaml-dtools"
+bug-reports: "https://github.com/savonet/ocaml-dtools/issues"
+depends: [
+  "ocaml-windows" {>= "4.05.0"}
+  "dune" {>= "2.8"}
+]
+build: [
+  [
+    "dune"
+    "build"
+    "-p"
+    "dtools"
+    "-j"
+    jobs
+    "-x"
+    "windows"
+    "@install"
+  ]
+]
+dev-repo: "git+https://github.com/savonet/ocaml-dtools.git"
+url {
+  src: "https://github.com/savonet/ocaml-dtools/archive/main.tar.gz"
+}

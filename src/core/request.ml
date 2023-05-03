@@ -124,6 +124,7 @@ type status = Idle | Resolving | Ready | Playing | Destroyed
 type t = {
   id : int;
   initial_uri : string;
+  resolve_metadata : bool;
   mutable ctype : Frame.content_type option;
   (* No kind for raw requests *)
   persistent : bool;
@@ -314,31 +315,32 @@ let file_is_readable name =
   with Unix.Unix_error _ -> false
 
 let read_metadata t =
-  let indicator = peek_indicator t in
-  let name = indicator.string in
-  if not (file_exists name) then
-    log#important "File %s does not exist!" (Lang_string.quote_string name)
-  else if not (file_is_readable name) then
-    log#important "Read permission denied for %s!"
-      (Lang_string.quote_string name)
-  else
-    List.iter
-      (fun (_, resolver) ->
-        try
-          let ans = resolver name in
-          List.iter
-            (fun (k, v) ->
-              let k = String.lowercase_ascii k in
-              if conf_override_metadata#get || get_metadata t k = None then
-                Hashtbl.replace indicator.metadata k v)
-            ans;
-          if conf_duration#get && get_metadata t "duration" = None then (
-            try
-              Hashtbl.replace indicator.metadata "duration"
-                (string_of_float (duration name))
-            with Not_found -> ())
-        with _ -> ())
-      (get_decoders conf_metadata_decoders mresolvers)
+  if t.resolve_metadata then (
+    let indicator = peek_indicator t in
+    let name = indicator.string in
+    if not (file_exists name) then
+      log#important "File %s does not exist!" (Lang_string.quote_string name)
+    else if not (file_is_readable name) then
+      log#important "Read permission denied for %s!"
+        (Lang_string.quote_string name)
+    else
+      List.iter
+        (fun (_, resolver) ->
+          try
+            let ans = resolver name in
+            List.iter
+              (fun (k, v) ->
+                let k = String.lowercase_ascii k in
+                if conf_override_metadata#get || get_metadata t k = None then
+                  Hashtbl.replace indicator.metadata k v)
+              ans;
+            if conf_duration#get && get_metadata t "duration" = None then (
+              try
+                Hashtbl.replace indicator.metadata "duration"
+                  (string_of_float (duration name))
+              with Not_found -> ())
+          with _ -> ())
+        (get_decoders conf_metadata_decoders mresolvers))
 
 let local_check t =
   let check_decodable ctype =
@@ -346,7 +348,9 @@ let local_check t =
       while t.decoder = None && file_exists (peek_indicator t).string do
         let indicator = peek_indicator t in
         let name = indicator.string in
-        let metadata = get_all_metadata t in
+        let metadata =
+          if t.resolve_metadata then get_all_metadata t else Hashtbl.create 0
+        in
         if not (file_is_readable name) then (
           log#important "Read permission denied for %s!"
             (Lang_string.quote_string name);
@@ -456,6 +460,7 @@ module Pool = Pool.Make (struct
       id = 0;
       initial_uri = "";
       ctype = None;
+      resolve_metadata = false;
       persistent = false;
       status = Destroyed;
       resolving = None;
@@ -516,7 +521,8 @@ let clean () =
   Pool.iter (fun _ r -> if r.status <> Destroyed then destroy ~force:true r);
   Pool.clear ()
 
-let create ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
+let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
+    ?(indicators = []) u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in
@@ -532,6 +538,7 @@ let create ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
         id = 0;
         initial_uri = u;
         ctype = None;
+        resolve_metadata;
         (* This is fixed when resolving the request. *)
         persistent;
         on_air = None;

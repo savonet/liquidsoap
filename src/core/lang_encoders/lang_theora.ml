@@ -23,8 +23,7 @@
 open Value
 open Ground
 
-let type_of_encoder p =
-  Encoder.audio_video_type (Lang_encoder.channels_of_params p)
+let type_of_encoder _ = Encoder.video_type ()
 
 let make params =
   let defaults =

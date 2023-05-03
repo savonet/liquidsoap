@@ -33,8 +33,9 @@ let type_of_encoder p =
       p
   in
   let channels = Lang_encoder.channels_of_params p in
-  if has_video then Encoder.audio_video_type channels
-  else Encoder.audio_type channels
+  let pcm_kind = Content.Audio.kind in
+  if has_video then Encoder.audio_video_type ~pcm_kind channels
+  else Encoder.audio_type ~pcm_kind channels
 
 let make ?pos params =
   let () =

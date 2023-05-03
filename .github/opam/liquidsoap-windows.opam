@@ -24,6 +24,7 @@ depends: [
   "duppy-windows" {>= "0.9.1"}
   "mm-windows" {>= "0.8.1"}
   "pcre-windows" {>= "7.5.0"}
+  "cry-windows" {>= "1.0.0"}
   "sedlex"
   "sedlex-windows"
   "menhir"
@@ -40,7 +41,6 @@ depopts: [
   "ao-windows"
   "bjack-windows"
   "camlimages-windows"
-  "cry-windows"
   "dssi-windows"
   "faad-windows"
   "fdkaac-windows"

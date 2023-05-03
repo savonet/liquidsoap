@@ -41,6 +41,8 @@ let make ?pos base_type fields =
 let internal_tracks ?pos () =
   Type.var ?pos ~constraints:[Format_type.internal_tracks] ()
 
+let pcm_audio ?pos () = Type.var ?pos ~constraints:[Format_type.pcm_audio] ()
+
 let set_field frame_type field field_type =
   let field = Frame.Fields.string_of_field field in
   let meth =
@@ -78,7 +80,9 @@ let content_type frame_type =
       | [], Type.Var _ ->
           let audio =
             if Frame_settings.conf_audio_channels#get > 0 then
-              Some (Format_type.audio_n Frame_settings.conf_audio_channels#get)
+              Some
+                (Format_type.audio_n ~pcm_kind:Content_audio.kind
+                   Frame_settings.conf_audio_channels#get)
             else None
           in
           let video =
@@ -99,7 +103,8 @@ let content_type frame_type =
              List.iter
                (function
                  | { Type.meth = "audio"; scheme = [], ty } ->
-                     Typing.(ty <: Format_type.audio ())
+                     Typing.(
+                       ty <: Format_type.audio ~pcm_kind:Content_audio.kind ())
                  | { Type.meth = "video"; scheme = [], ty } ->
                      Typing.(ty <: Format_type.video ())
                  | _ -> ())

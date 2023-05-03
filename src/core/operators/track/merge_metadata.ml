@@ -29,6 +29,7 @@ class merge_metadata tracks =
   let self_sync_type = Utils.self_sync_type sources in
   object (self)
     inherit Source.operator ~name:"track.metadata.merge" sources as super
+    initializer Typing.(self#frame_type <: Lang.unit_t)
     method stype = stype
 
     method self_sync =

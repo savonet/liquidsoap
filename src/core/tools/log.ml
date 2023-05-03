@@ -34,6 +34,14 @@ type t =
   ; set_level : int -> unit >
 
 let make path : t =
+  let colorize colors { Dtools.Log.time; label; level; log } =
+    {
+      Dtools.Log.time;
+      label = Option.map (Console.colorize [`green]) label;
+      level;
+      log = Console.colorize colors log;
+    }
+  in
   let log = Dtools.Log.make path in
   object
     (** Is that level active (i.e. will it print logs) *)
@@ -43,19 +51,24 @@ let make path : t =
     method f : 'a. int -> ('a, unit, string, unit) format4 -> 'a = log#f
 
     (** The program will not function after that. *)
-    method critical : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 1
+    method critical : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#g ~colorize:(colorize [`red]) 1
 
     (** The behavior of the program will be strongly affected. *)
-    method severe : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 2
+    method severe : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#g ~colorize:(colorize [`yellow]) 2
 
     (** The user should now about this. *)
-    method important : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 3
+    method important : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#g ~colorize:(colorize []) 3
 
     (** The advanced user should be interested in this. *)
-    method info : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 4
+    method info : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#g ~colorize:(colorize [`blue]) 4
 
     (** If you are debugging. *)
-    method debug : 'a. ('a, unit, string, unit) format4 -> 'a = log#f 5
+    method debug : 'a. ('a, unit, string, unit) format4 -> 'a =
+      log#g ~colorize:(colorize [`cyan]) 5
 
     method level =
       try Some (Dtools.Conf.as_int (Dtools.Log.conf_level#ut#path log#path))#get

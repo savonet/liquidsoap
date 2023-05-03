@@ -2,6 +2,8 @@
 
 New:
 
+- Added support for less memory hungry audio formats, namely
+  `pcm_s16` and `pcm_f32` (#3008)
 - Added support for native osc library (#2426, #2480).
 - SRT: added support for passphrase, pbkeylen, streamid,
   added native type for srt sockets with methods, moved stats
@@ -34,6 +36,7 @@ New:
 - Added the `pico2wave` protocol in order to perform speech synthesis using
   [Pico TTS](https://github.com/naggety/picotts) (#2934).
 - Added `"metadata_url"` to the default list of exported metadata (#2946)
+- Added log colors!
 
 Changed:
 
@@ -51,6 +54,7 @@ Changed:
     `null`, meaning don't add the metadata.
   - Cleanup, removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
   - Make `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
+- BREAKING: reworked reloading logic in `output.file` (#2924, see migration notes for more details).
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.

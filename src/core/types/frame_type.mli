@@ -31,6 +31,9 @@ val make : ?pos:Pos.t -> Type.t -> Type.t Frame.Fields.t -> Type.t
 (* Same as [Lang.internal_tracks_t] (with position) *)
 val internal_tracks : ?pos:Pos.t -> unit -> Type.t
 
+(* Same as [Lang.pcm_audio_t] (with position) *)
+val pcm_audio : ?pos:Pos.t -> unit -> Type.t
+
 (* [set_field frame_type field field_type] assigns a field to a frame type. *)
 val set_field : Type.t -> Frame.field -> Type.t -> Type.t
 

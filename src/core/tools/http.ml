@@ -5,78 +5,13 @@ type uri = {
   path : string;
 }
 
-type event = [ `Write | `Read | `Both ]
+type event = Cry.event
+type socket = Cry.socket
+type transport = Cry.transport
 
-type socket =
-  < typ : string
-  ; transport : transport
-  ; file_descr : Unix.file_descr
-  ; wait_for : ?log:(string -> unit) -> event -> float -> unit
-  ; write : Bytes.t -> int -> int -> int
-  ; read : Bytes.t -> int -> int -> int
-  ; close : unit >
-
-and transport =
-  < name : string
-  ; protocol : string
-  ; default_port : int
-  ; connect : ?bind_address:string -> string -> int -> socket
-  ; accept : Unix.file_descr -> socket * Unix.sockaddr >
-
-let unix_socket transport fd : socket =
-  object
-    method typ = "unix"
-    method file_descr = fd
-    method transport = transport
-
-    method wait_for ?log (event : event) d =
-      let event =
-        match event with
-          | `Read -> `Read fd
-          | `Write -> `Write fd
-          | `Both -> `Both fd
-      in
-      Tutils.wait_for ?log event d
-
-    method write = Unix.write fd
-    method read = Unix.read fd
-    method close = Unix.close fd
-  end
-
-let unix_transport : transport =
-  object (self)
-    method name = "unix"
-    method protocol = "http"
-    method default_port = 80
-
-    method connect ?bind_address host port =
-      let socket = Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_STREAM 0 in
-      begin
-        match bind_address with
-          | None -> ()
-          | Some s ->
-              let bind_addr_inet =
-                (Unix.gethostbyname s).Unix.h_addr_list.(0)
-              in
-              (* Seems like you need to bind on port 0 *)
-              let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
-              Unix.bind socket bind_addr
-      end;
-      try
-        Unix.connect socket
-          (Unix.ADDR_INET ((Unix.gethostbyname host).Unix.h_addr_list.(0), port));
-        unix_socket self socket
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Unix.close socket;
-        Printexc.raise_with_backtrace exn bt
-
-    method accept fd =
-      let fd, addr = Unix.accept ~cloexec:true fd in
-      (unix_socket self fd, addr)
-  end
-
-let unix_socket = unix_socket unix_transport
+let connect = Cry.unix_connect
+let unix_transport = Cry.unix_transport
+let unix_socket = Cry.unix_socket
 let user_agent = Configure.vendor
 
 let args_split s =

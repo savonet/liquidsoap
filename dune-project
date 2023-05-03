@@ -17,12 +17,12 @@
   (name liquidsoap)
   (depends
     (ocaml (>= 4.14.0))
-    (dtools (>= 0.4.4))
+    (dtools (>= 0.4.5))
     (duppy (>= 0.9.1))
     (mm (>= 0.8.3))
     (pcre (>= 7.5.0))
     (ocurl (>= 0.9.2))
-    (cry (>= 0.6.5))
+    (cry (>= 1.0.0))
     (camomile (>= 2.0.0))
     uri
     fileutils
@@ -113,7 +113,7 @@
     (soundtouch (< 0.1.9))
     (speex (< 0.4.0))
     (srt (< 0.3.0))
-    (ssl (< 0.5.2))
+    (ssl (< 0.5.13))
     (taglib (< 0.3.10))
     (sdl-liquidsoap (< 2))
     (tsdl-image (< 0.3.2))

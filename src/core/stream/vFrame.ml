@@ -31,8 +31,10 @@ let vot ?round x =
     | None | Some `Down -> Frame.video_of_main x
     | Some `Up -> Frame.video_of_main (x + SyncLazy.force Frame.video_rate - 1)
 
-let content b = try Frame.video b with Not_found -> raise Content.Invalid
-let data b = Content.Video.get_data (content b)
+let content ?(field = Frame.Fields.video) b =
+  try Frame.get b field with Not_found -> raise Content.Invalid
+
+let data ?field b = Content.Video.get_data (content ?field b)
 let size _ = vot (SyncLazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)
 let add_break t i = add_break t (tov i)

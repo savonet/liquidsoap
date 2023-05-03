@@ -24,8 +24,43 @@ open Mm
 
 (** FFMPEG internal encoder *)
 
-module InternalResampler =
-  Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
+module type InternalResampler_type = sig
+  type t
+
+  module Content : sig
+    type data
+
+    val get_data : Content.data -> data
+  end
+
+  val create :
+    ?options:Swresample.options list ->
+    Avutil__Channel_layout.t ->
+    ?in_sample_format:Avutil__Sample_format.t ->
+    int ->
+    Avutil__Channel_layout.t ->
+    ?out_sample_format:Avutil__Sample_format.t ->
+    int ->
+    t
+
+  val convert :
+    ?offset:int -> ?length:int -> t -> Content.data -> Swresample.Frame.t
+end
+
+module InternalResampler = struct
+  module Content = Content_audio
+  include Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
+end
+
+module InternalResampler_pcm_s16 = struct
+  module Content = Content_pcm_s16
+  include Swresample.Make (Swresample.S16PlanarBigArray) (Swresample.Frame)
+end
+
+module InternalResampler_pcm_f32 = struct
+  module Content = Content_pcm_f32
+  include Swresample.Make (Swresample.FltPlanarBigArray) (Swresample.Frame)
+end
 
 module RawResampler = Swresample.Make (Swresample.Frame) (Swresample.Frame)
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
@@ -96,6 +131,19 @@ let write_audio_frame ~time_base ~sample_rate ~channel_layout ~sample_format
           Avfilter.Utils.convert_audio converter write_frame frame
 
 let mk_audio ~mode ~codec ~params ~options ~field output =
+  let internal_resampler =
+    match params.Ffmpeg_format.pcm_kind with
+      | pcm_kind when Content_audio.is_kind pcm_kind ->
+          (module InternalResampler : InternalResampler_type)
+      | pcm_kind when Content_pcm_s16.is_kind pcm_kind ->
+          (module InternalResampler_pcm_s16 : InternalResampler_type)
+      | pcm_kind when Content_pcm_f32.is_kind pcm_kind ->
+          (module InternalResampler_pcm_f32 : InternalResampler_type)
+      | _ -> raise Content_base.Invalid
+  in
+  let module InternalResampler =
+    (val internal_resampler : InternalResampler_type)
+  in
   let codec =
     try Avcodec.Audio.find_encoder_by_name codec
     with e ->
@@ -132,11 +180,9 @@ let mk_audio ~mode ~codec ~params ~options ~field output =
     fun frame start len ->
       let astart = Frame.audio_of_main start in
       let alen = Frame.audio_of_main len in
-      let content = Generator.get_field frame field in
-      [
-        InternalResampler.convert ~length:alen ~offset:astart resampler
-          (Content.Audio.get_data content);
-      ]
+      let content = Content.sub (Frame.get frame field) astart alen in
+      let pcm = InternalResampler.Content.get_data content in
+      [InternalResampler.convert ~length:alen ~offset:0 resampler pcm]
   in
 
   let raw_converter =
@@ -377,8 +423,7 @@ let mk_video ~mode ~codec ~params ~options ~field output =
     fun frame start len ->
       let vstart = Frame.video_of_main start in
       let vstop = Frame.video_of_main (start + len) in
-      let content = Generator.get_field frame field in
-      let vbuf = Content.Video.get_data content in
+      let vbuf = VFrame.data ~field frame in
       for i = vstart to vstop - 1 do
         let f =
           Video.Canvas.get vbuf i

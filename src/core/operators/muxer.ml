@@ -236,10 +236,14 @@ let track_metadata =
 let _ =
   let frame_t = Lang.univ_t () in
   let return_t = Lang_source.source_tracks_t frame_t in
+  let arguments = [("", Lang.source_t ~methods:false frame_t, None, None)] in
   Lang.add_builtin ~base:source "tracks" ~category:(`Source `Track)
-    ~descr:"Return the tracks of a given source."
-    [("", Lang.source_t ~methods:false frame_t, None, None)]
-    return_t
-    (fun p ->
-      let s = Lang.to_source (List.assoc "" p) in
+    ~descr:"Return the tracks of a given source." arguments return_t (fun env ->
+      let return_t = Lang_source.check_arguments ~return_t ~env arguments in
+      let return_t =
+        Type.filter_meths return_t (fun { Type.meth } ->
+            meth <> "metadata" && meth <> "track_marks")
+      in
+      let s = Lang.to_source (List.assoc "" env) in
+      Typing.(s#frame_type <: return_t);
       Lang_source.source_tracks s)

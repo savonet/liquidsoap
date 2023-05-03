@@ -294,7 +294,7 @@ let print_string ?(pager = false) s =
   let pager = if Sys.getenv_opt "PAGER" = Some "none" then false else pager in
   let default = output_string stdout in
   let cmd =
-    let cmds = [("less", "-F -X"); ("more", "")] in
+    let cmds = [("less", "-F -X -r -f"); ("more", "")] in
     let cmds = try (Sys.getenv "PAGER", "") :: cmds with Not_found -> cmds in
     let cmds =
       try (Sys.getenv "MANPAGER", "") :: cmds with Not_found -> cmds

@@ -75,6 +75,8 @@ module Error = struct
         fun { pos } -> Lang_core.Stacktrace.to_value pos );
     ]
 
+  let base_t = t
+
   let t =
     Lang_core.method_t t
       (List.map (fun (lbl, t, descr, _) -> (lbl, t, descr)) meths)
@@ -97,7 +99,7 @@ let _ =
   Lang_core.add_builtin ~base:error_module "raise" ~category:`Programming
     ~descr:"Raise an error."
     [
-      ("", Error.t, None, Some "Error kind.");
+      ("", Error.base_t, None, Some "Error kind.");
       ( "",
         Lang_core.string_t,
         Some (Lang_core.string ""),
@@ -133,7 +135,7 @@ let _ =
     ~flags:[`Hidden] ~descr:"Execute a function, catching eventual exceptions."
     [
       ( "errors",
-        Lang_core.nullable_t (Lang_core.list_t Error.t),
+        Lang_core.nullable_t (Lang_core.list_t Error.base_t),
         None,
         Some "Kinds of errors to catch. Catches all errors if not set." );
       ("", Lang_core.fun_t [] a, None, Some "Function to execute.");

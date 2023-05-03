@@ -51,6 +51,7 @@ let make params =
   Encoder.AVI avi
 
 let type_of_encoder p =
-  Encoder.audio_video_type (Lang_encoder.channels_of_params p)
+  Encoder.audio_video_type ~pcm_kind:Content.Audio.kind
+    (Lang_encoder.channels_of_params p)
 
 let () = Lang_encoder.register "avi" type_of_encoder make
