@@ -90,7 +90,7 @@ let mk_encoder source format =
   Printf.printf
     {|
 (rule
-  (alias citest)
+  (alias mediatest)
   (package liquidsoap)
   (target %s)
   (deps
@@ -106,7 +106,7 @@ let mk_encoded_file format =
   Printf.printf
     {|
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target %s)
  (deps
@@ -127,7 +127,7 @@ let () =
   Printf.printf
     {|
 (rule
-  (alias citest)
+  (alias mediatest)
   (package liquidsoap)
   (target all_media_files)
   (deps
@@ -139,7 +139,7 @@ let file_test ~label ~test fname =
   Printf.printf
     {|
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (deps
   all_media_files
