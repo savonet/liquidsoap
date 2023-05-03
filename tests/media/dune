@@ -127,6 +127,46 @@
 (rule
  (alias citest)
  (package liquidsoap)
+ (target long-video.mp4)
+ (action
+  (run
+   ffmpeg
+   -f
+   lavfi
+   -i
+   "testsrc=d=30:s=1920x1080:r=24,format=yuv420p"
+   -f
+   lavfi
+   -i
+   "sine=f=440:b=4"
+   -shortest
+   %{target})))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  long-video.mp4
+  test_ffmpeg_distributed_hls.liq
+  test_ffmpeg_distributed_hls_state.json
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "test_ffmpeg_distributed_hls.liq"
+   liquidsoap
+   %{test_liq}
+   test_ffmpeg_distributed_hls.liq
+   --
+   long-video.mp4)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
  (deps
   all_media_files
   background.jpg
