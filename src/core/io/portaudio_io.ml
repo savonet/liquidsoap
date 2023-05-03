@@ -107,7 +107,7 @@ class virtual base =
   end
 
 let open_device ~mode ~latency ~channels ~buflen device_id =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   match device_id with
     | None ->
         Portaudio.open_default_stream ~format:Portaudio.format_float32 0

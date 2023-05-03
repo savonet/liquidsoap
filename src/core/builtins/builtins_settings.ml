@@ -53,7 +53,7 @@ let dtools_constr =
 (* Return a lazy variable, to be executed when all dependent
    OCaml modules have been linked. *)
 let settings_module =
-  lazy
+  SyncLazy.from_val
     (let get_conf_type conf =
        let is_type fn =
          try

@@ -72,7 +72,7 @@ module Pipeline = struct
   let decode_video () = Printf.sprintf "decodebin ! %s" (convert_video ())
 
   let audio_format channels =
-    let rate = Lazy.force Frame.audio_rate in
+    let rate = SyncLazy.force Frame.audio_rate in
     Printf.sprintf
       "audio/x-raw,format=S16LE,layout=interleaved,channels=%d,rate=%d" channels
       rate
@@ -94,17 +94,17 @@ module Pipeline = struct
       max_buffers drop sync name (audio_format channels)
 
   let video_format () =
-    let width = Lazy.force Frame.video_width in
-    let height = Lazy.force Frame.video_height in
-    let fps = Lazy.force Frame.video_rate in
+    let width = SyncLazy.force Frame.video_width in
+    let height = SyncLazy.force Frame.video_height in
+    let fps = SyncLazy.force Frame.video_rate in
     Printf.sprintf
       "video/x-raw,format=I420,width=%d,height=%d,framerate=%d/1,pixel-aspect-ratio=1/1"
       width height fps
 
   let video_src ?(block = true) ?(maxBytes = 10 * Utils.pagesize)
       ?(format = Gstreamer.Format.Time) name =
-    let width = Lazy.force Frame.video_width in
-    let height = Lazy.force Frame.video_height in
+    let width = SyncLazy.force Frame.video_width in
+    let height = SyncLazy.force Frame.video_height in
     let blocksize = width * height * 4 in
     Printf.sprintf
       "appsrc name=\"%s\" block=%B caps=\"%s\" format=%s blocksize=%d \
@@ -123,8 +123,8 @@ module Pipeline = struct
 end
 
 let render_image pipeline =
-  let width = Lazy.force Frame.video_width in
-  let height = Lazy.force Frame.video_height in
+  let width = SyncLazy.force Frame.video_width in
+  let height = SyncLazy.force Frame.video_height in
   let pipeline =
     Printf.sprintf "%s ! %s ! %s" pipeline
       (Pipeline.convert_video ())

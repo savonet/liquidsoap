@@ -87,7 +87,7 @@ let log = Log.make ["main"]
 let load_libs =
   (* Register settings module. Needs to be done last to make sure every
      dependent OCaml module has been linked. *)
-  Lazy.force Builtins_settings.settings_module;
+  SyncLazy.force Builtins_settings.settings_module;
   let loaded = ref false in
   fun () ->
     if !stdlib && not !loaded then (
