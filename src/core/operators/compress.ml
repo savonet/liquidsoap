@@ -72,7 +72,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       let partial = AFrame.is_partial buf in
       let buf = Content.Audio.get_data (Frame.get buf field) in
       let chans = self#audio_channels in
-      let samplerate = float (Lazy.force Frame.audio_rate) in
+      let samplerate = float (SyncLazy.force Frame.audio_rate) in
       let threshold = threshold () in
       let knee = knee () in
       let ratio = ratio () in

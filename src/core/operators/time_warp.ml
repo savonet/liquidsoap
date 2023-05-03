@@ -49,7 +49,7 @@ module MG = struct
   let metadata g len = List.filter (fun (t, _) -> t < len) g.metadata
 
   let feed_from_frame g frame =
-    let size = Lazy.force Frame.size in
+    let size = SyncLazy.force Frame.size in
     let length = length g in
     g.metadata <-
       g.metadata
@@ -76,7 +76,7 @@ module MG = struct
   let fill g frame =
     let offset = Frame.position frame in
     let needed =
-      let size = Lazy.force Frame.size in
+      let size = SyncLazy.force Frame.size in
       let remaining = remaining g in
       let remaining = if remaining = -1 then length g else remaining in
       min (size - offset) remaining
@@ -378,7 +378,7 @@ module AdaptativeBuffer = struct
             let scale n = int_of_float (float n *. scaling) in
             let unscale n = int_of_float (float n /. scaling) in
             let ofs = Frame.position frame in
-            let len = Lazy.force Frame.size - ofs in
+            let len = SyncLazy.force Frame.size - ofs in
             let aofs = Frame.audio_of_main ofs in
             let alen = Frame.audio_of_main len in
             let buf = AFrame.pcm frame in

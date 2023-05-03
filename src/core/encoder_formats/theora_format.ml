@@ -25,10 +25,10 @@ type bitrate_control = Quality of int | Bitrate of int
 type t = {
   (* TODO: framerate ! *)
   bitrate_control : bitrate_control;
-  width : int Lazy.t;
-  height : int Lazy.t;
-  picture_width : int Lazy.t;
-  picture_height : int Lazy.t;
+  width : int SyncLazy.t;
+  height : int SyncLazy.t;
+  picture_width : int SyncLazy.t;
+  picture_height : int SyncLazy.t;
   picture_x : int;
   picture_y : int;
   aspect_numerator : int;
@@ -53,7 +53,7 @@ let print_some_int v x =
   match x with None -> "" | Some x -> Printf.sprintf "%s=%i" v x
 
 let to_string th =
-  let f = Lazy.force in
+  let f = SyncLazy.force in
   Printf.sprintf
     "%%theora(%s,width=%d,height=%d,picture_width=%d,picture_height=%d,picture_x=%d,picture_y=%d,aspect_numerator=%d,aspect_denominator=%d,keyframe_frequency=%d,%s,soft_target=%b,%s,%s)"
     (bit_ctl_to_string th.bitrate_control)

@@ -113,7 +113,7 @@ class lufs window source =
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     method channels = self#audio_channels
-    method samplerate = float_of_int (Lazy.force Frame.audio_rate)
+    method samplerate = float_of_int (SyncLazy.force Frame.audio_rate)
     val mutable stage1 = id
     val mutable stage2 = id
 

@@ -339,7 +339,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             with Not_found -> raise (Unbound (pos, var))
           in
           base_type >: Typing.instantiate ~level s;
-          if Lazy.force Term.debug then
+          if SyncLazy.force Term.debug then
             Printf.eprintf "Instantiate %s : %s becomes %s\n" var
               (Type.string_of_scheme s) (Type.to_string base_type)
       | Let ({ pat; replace; def; body; _ } as l) ->

@@ -50,9 +50,9 @@ class virtual source ?name ~seek duration =
         let off = Frame.position frame in
         let len =
           match remaining with
-            | None -> Lazy.force Frame.size - off
+            | None -> SyncLazy.force Frame.size - off
             | Some r ->
-                let len = min (Lazy.force Frame.size - off) r in
+                let len = min (SyncLazy.force Frame.size - off) r in
                 remaining <- Some (r - len);
                 len
         in

@@ -155,7 +155,7 @@ let file_type ~ctype:_ filename =
                Audio.lift_params
                  {
                    Content.channel_layout =
-                     lazy
+                     SyncLazy.from_val
                        (Audio_converter.Channel_layout.layout_of_channels
                           channels);
                  })

@@ -47,7 +47,10 @@ module Specs = struct
   let copy m = Array.map MIDI.copy m
   let params m = { channels = MIDI.Multitrack.channels m }
   let kind = `Midi
-  let default_params _ = { channels = Lazy.force Frame_settings.midi_channels }
+
+  let default_params _ =
+    { channels = SyncLazy.force Frame_settings.midi_channels }
+
   let clear _ = ()
 
   let make ?(length = 0) { channels } =

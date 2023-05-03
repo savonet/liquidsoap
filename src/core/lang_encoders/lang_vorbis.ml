@@ -40,7 +40,7 @@ let make_cbr params =
     List.fold_left
       (fun f -> function
         | "samplerate", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.samplerate = Lazy.from_val i }
+            { f with Vorbis_format.samplerate = SyncLazy.from_val i }
         | "bitrate", `Value { value = Ground (Int i); _ } ->
             { f with Vorbis_format.mode = Vorbis_format.CBR i }
         | "stereo", `Value { value = Ground (Bool b); _ } ->
@@ -80,7 +80,7 @@ let make_abr params =
     List.fold_left
       (fun f -> function
         | "samplerate", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.samplerate = Lazy.from_val i }
+            { f with Vorbis_format.samplerate = SyncLazy.from_val i }
         | "bitrate", `Value { value = Ground (Int i); _ } ->
             let x, _, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, Some i, y) }
@@ -122,7 +122,7 @@ let make params =
     List.fold_left
       (fun f -> function
         | "samplerate", `Value { value = Ground (Int i); _ } ->
-            { f with Vorbis_format.samplerate = Lazy.from_val i }
+            { f with Vorbis_format.samplerate = SyncLazy.from_val i }
         | "quality", `Value { value = Ground (Float q); pos } ->
             if q < -0.2 || q > 1. then
               Lang_encoder.raise_error ~pos "quality should be in [(-0.2)..1]";

@@ -16,7 +16,7 @@
 (package
   (name liquidsoap)
   (depends
-    (ocaml (and (>= 4.14.0) (< 5.0.0)))
+    (ocaml (>= 4.14.0))
     (dtools (>= 0.4.4))
     (duppy (>= 0.9.1))
     (mm (>= 0.8.3))

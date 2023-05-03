@@ -73,7 +73,7 @@ let () =
               List.map (fun (t, s) -> (Frame.main_of_seconds t, s)) srt
             in
             let srt = List.to_seq srt |> Queue.of_seq in
-            let frame_size = Lazy.force Frame.size in
+            let frame_size = SyncLazy.force Frame.size in
             let t = ref 0 in
             let fill frame =
               if not (Queue.is_empty srt) then (

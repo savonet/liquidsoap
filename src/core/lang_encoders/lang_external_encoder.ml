@@ -55,7 +55,7 @@ let make params =
         | "channels", `Value { value = Ground (Int c); _ } ->
             { f with External_encoder_format.channels = c }
         | "samplerate", `Value { value = Ground (Int i); _ } ->
-            { f with External_encoder_format.samplerate = Lazy.from_val i }
+            { f with External_encoder_format.samplerate = SyncLazy.from_val i }
         | "video", `Value { value = Ground (Bool b); _ } ->
             let w, h =
               match f.External_encoder_format.video with
@@ -72,7 +72,7 @@ let make params =
                 | None -> (Frame.video_width, Frame.video_height)
                 | Some (w, h) -> (w, h)
             in
-            let w = Lazy.from_val w in
+            let w = SyncLazy.from_val w in
             { f with External_encoder_format.video = Some (w, h) }
         | "height", `Value { value = Ground (Int h); _ } ->
             let w, _ =
@@ -80,7 +80,7 @@ let make params =
                 | None -> (Frame.video_width, Frame.video_height)
                 | Some (w, h) -> (w, h)
             in
-            let h = Lazy.from_val h in
+            let h = SyncLazy.from_val h in
             { f with External_encoder_format.video = Some (w, h) }
         | "header", `Value { value = Ground (Bool h); _ } ->
             { f with External_encoder_format.header = h }

@@ -26,7 +26,7 @@ type t = Frame.t
 
 let mot = midi_of_main
 let tom = main_of_midi
-let size () = mot (Lazy.force Frame.size)
+let size () = mot (SyncLazy.force Frame.size)
 let position t = mot (position t)
 let content b = try Frame.midi b with Not_found -> raise Content.Invalid
 let midi b = Content.Midi.get_data (content b)

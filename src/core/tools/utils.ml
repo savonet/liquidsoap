@@ -417,7 +417,7 @@ let string_of_size n =
   else Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
 
 let self_sync_type sources =
-  lazy
+  SyncLazy.from_val
     (fst
        (List.fold_left
           (fun cur s ->

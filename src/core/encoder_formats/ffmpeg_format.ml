@@ -30,14 +30,14 @@ type hwaccel = [ `None | `Auto ]
 
 type audio_options = {
   channels : int;
-  samplerate : int Lazy.t;
+  samplerate : int SyncLazy.t;
   sample_format : string option;
 }
 
 type video_options = {
-  framerate : int Lazy.t;
-  width : int Lazy.t;
-  height : int Lazy.t;
+  framerate : int SyncLazy.t;
+  width : int SyncLazy.t;
+  height : int SyncLazy.t;
   pixel_format : string option;
   hwaccel : hwaccel;
   hwaccel_device : string option;
@@ -113,10 +113,11 @@ let to_string m =
                      Hashtbl.add stream_opts "codec" (`String codec))
                    codec);
               Hashtbl.add stream_opts "framerate"
-                (`Int (Lazy.force options.framerate));
-              Hashtbl.add stream_opts "width" (`Int (Lazy.force options.width));
+                (`Int (SyncLazy.force options.framerate));
+              Hashtbl.add stream_opts "width"
+                (`Int (SyncLazy.force options.width));
               Hashtbl.add stream_opts "height"
-                (`Int (Lazy.force options.height));
+                (`Int (SyncLazy.force options.height));
               Hashtbl.add stream_opts "hwaccel"
                 (`Var
                   (match options.hwaccel with
@@ -139,7 +140,7 @@ let to_string m =
                    codec);
               Hashtbl.add stream_opts "channels" (`Int options.channels);
               Hashtbl.add stream_opts "samplerate"
-                (`Int (Lazy.force options.samplerate));
+                (`Int (SyncLazy.force options.samplerate));
               Printf.sprintf "%s(%s%s)" name
                 (if Pcre.pmatch ~pat:"audio" name then "" else "audio_content,")
                 (string_of_options stream_opts)

@@ -249,7 +249,7 @@ let source_methods =
               else 0
             in
             let frame_position =
-              Lazy.force Frame.duration *. float_of_int ticks
+              SyncLazy.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
               Frame.seconds_of_main (Frame.position s#memo)
@@ -500,8 +500,8 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
               (* TODO since inner-bound variables don't mask outer ones in [env],
                *   we are actually checking values that may be out of reach. *)
               let v = List.assoc v env in
-              if Lazy.is_val v then (
-                let v = Lazy.force v in
+              if SyncLazy.is_val v then (
+                let v = SyncLazy.force v in
                 iter_value v)
               else ()
             with Not_found -> ())

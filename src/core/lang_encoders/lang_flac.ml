@@ -53,7 +53,7 @@ let flac_gen params =
       | "channels", `Value { value = Ground (Int i); _ } ->
           { f with Flac_format.channels = i }
       | "samplerate", `Value { value = Ground (Int i); _ } ->
-          { f with Flac_format.samplerate = Lazy.from_val i }
+          { f with Flac_format.samplerate = SyncLazy.from_val i }
       | "compression", `Value { value = Ground (Int i); pos } ->
           if i < 0 || i > 8 then
             Lang_encoder.raise_error ~pos "invalid compression value";

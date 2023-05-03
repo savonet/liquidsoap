@@ -64,7 +64,7 @@ class audio_output ~pass_metadata ~name ~frame_t ~field source =
           init frame;
           let pts =
             Int64.add
-              ((Lazy.force convert_frame_pts) self#nb_frames)
+              ((SyncLazy.force convert_frame_pts) self#nb_frames)
               (Int64.of_int pos)
           in
           Avutil.Frame.set_pts frame (Some pts);
@@ -115,7 +115,7 @@ class video_output ~pass_metadata ~name ~frame_t ~field source =
           init frame;
           let pts =
             Int64.add
-              ((Lazy.force convert_frame_pts) self#nb_frames)
+              ((SyncLazy.force convert_frame_pts) self#nb_frames)
               (Int64.of_int pos)
           in
           Avutil.Frame.set_pts frame (Some pts);
@@ -137,7 +137,7 @@ class virtual ['a] input_base ~self_sync_type ~self_sync ~is_ready ~pull =
     val mutable output = None
 
     method self_sync : Source.self_sync =
-      (Lazy.force self_sync_type, self_sync ())
+      (SyncLazy.force self_sync_type, self_sync ())
 
     method pull =
       pull ();
@@ -147,7 +147,9 @@ class virtual ['a] input_base ~self_sync_type ~self_sync ~is_ready ~pull =
              let flush = self#flush_buffer output in
              let rec f () =
                try
-                 while Generator.length self#buffer < Lazy.force Frame.size do
+                 while
+                   Generator.length self#buffer < SyncLazy.force Frame.size
+                 do
                    flush ()
                  done
                with Avutil.Error `Eagain ->
@@ -159,11 +161,11 @@ class virtual ['a] input_base ~self_sync_type ~self_sync ~is_ready ~pull =
            output)
 
     method is_ready =
-      Generator.length self#buffer >= Lazy.force Frame.size || is_ready ()
+      Generator.length self#buffer >= SyncLazy.force Frame.size || is_ready ()
 
     method private get_frame frame =
       let b = Frame.breaks frame in
-      if Generator.length self#buffer < Lazy.force Frame.size then self#pull;
+      if Generator.length self#buffer < SyncLazy.force Frame.size then self#pull;
       Generator.fill self#buffer frame;
       if List.length b + 1 <> List.length (Frame.breaks frame) then (
         let cur_pos = Frame.position frame in
@@ -250,7 +252,9 @@ type video_config = {
 
 class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
   frame_t =
-  let duration = lazy (Frame.main_of_seconds (1. /. float (Lazy.force fps))) in
+  let duration =
+    lazy (Frame.main_of_seconds (1. /. float (SyncLazy.force fps)))
+  in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit Source.source ~name:"ffmpeg.filter.output" ()
@@ -294,7 +298,7 @@ class video_input ~self_sync_type ~self_sync ~is_ready ~pull ~pass_metadata ~fps
           }
         in
         let params = Ffmpeg_raw_content.VideoSpecs.frame_params frame in
-        let length = Lazy.force duration in
+        let length = SyncLazy.force duration in
         let content =
           { Ffmpeg_raw_content.VideoSpecs.params; data = [(0, frame)]; length }
         in

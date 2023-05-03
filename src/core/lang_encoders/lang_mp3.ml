@@ -31,8 +31,8 @@ let allowed_bitrates =
   ]
 
 let check_samplerate ~pos i =
-  lazy
-    (let i = Lazy.force i in
+  SyncLazy.from_val
+    (let i = SyncLazy.force i in
      let allowed =
        [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
      in
@@ -76,7 +76,10 @@ let mp3_base f = function
   | "msg", `Value { value = Ground (String m); _ } ->
       { f with Mp3_format.msg = m }
   | "samplerate", `Value { value = Ground (Int i); pos } ->
-      { f with Mp3_format.samplerate = check_samplerate ~pos (Lazy.from_val i) }
+      {
+        f with
+        Mp3_format.samplerate = check_samplerate ~pos (SyncLazy.from_val i);
+      }
   | "id3v2", `Value { value = Ground (Bool true); pos } -> (
       match !Mp3_format.id3v2_export with
         | None ->

@@ -44,7 +44,8 @@ let audio_type n =
                 Audio.lift_params
                   {
                     Content.channel_layout =
-                      lazy (Audio_converter.Channel_layout.layout_of_channels n);
+                      SyncLazy.from_val
+                        (Audio_converter.Channel_layout.layout_of_channels n);
                   }))))
     ()
 
@@ -90,7 +91,7 @@ let type_of_format = function
                             Audio.lift_params
                               {
                                 Content.channel_layout =
-                                  lazy
+                                  SyncLazy.from_val
                                     (Audio_converter.Channel_layout
                                      .layout_of_channels channels);
                               })
@@ -135,7 +136,7 @@ let string_of_format = function
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
-      Some (Lazy.force width, Lazy.force height)
+      Some (SyncLazy.force width, SyncLazy.force height)
   | Ffmpeg m -> (
       match
         List.fold_left
@@ -146,7 +147,8 @@ let video_size = function
               | _ -> cur)
           [] m.Ffmpeg_format.streams
       with
-        | (width, height) :: [] -> Some (Lazy.force width, Lazy.force height)
+        | (width, height) :: [] ->
+            Some (SyncLazy.force width, SyncLazy.force height)
         | _ -> None)
   | _ -> None
 

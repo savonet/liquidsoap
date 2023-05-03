@@ -40,11 +40,11 @@ let make params =
         | "channels", `Value { value = Ground (Int c); _ } ->
             { f with Avi_format.channels = c }
         | "samplerate", `Value { value = Ground (Int i); _ } ->
-            { f with Avi_format.samplerate = Lazy.from_val i }
+            { f with Avi_format.samplerate = SyncLazy.from_val i }
         | "width", `Value { value = Ground (Int i); _ } ->
-            { f with Avi_format.width = Lazy.from_val i }
+            { f with Avi_format.width = SyncLazy.from_val i }
         | "height", `Value { value = Ground (Int i); _ } ->
-            { f with Avi_format.height = Lazy.from_val i }
+            { f with Avi_format.height = SyncLazy.from_val i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in

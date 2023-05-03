@@ -27,7 +27,12 @@ module Specs = struct
   open Frame_settings
 
   type kind = [ `Canvas ]
-  type params = { width : int Lazy.t option; height : int Lazy.t option }
+
+  type params = {
+    width : int SyncLazy.t option;
+    height : int SyncLazy.t option;
+  }
+
   type data = Video.Canvas.t
 
   let internal_content_type = Some `Video
@@ -51,21 +56,31 @@ module Specs = struct
   let parse_param label value =
     match label with
       | "width" ->
-          Some { width = Some (lazy (int_of_string value)); height = None }
+          Some
+            {
+              width = Some (SyncLazy.from_val (int_of_string value));
+              height = None;
+            }
       | "height" ->
-          Some { width = None; height = Some (lazy (int_of_string value)) }
+          Some
+            {
+              width = None;
+              height = Some (SyncLazy.from_val (int_of_string value));
+            }
       | _ -> None
 
   let merge p p' =
     {
       width =
-        Option.map Lazy.from_val
+        Option.map SyncLazy.from_val
           (merge_param ~name:"width"
-             (Option.map Lazy.force p.width, Option.map Lazy.force p'.width));
+             ( Option.map SyncLazy.force p.width,
+               Option.map SyncLazy.force p'.width ));
       height =
-        Option.map Lazy.from_val
+        Option.map SyncLazy.from_val
           (merge_param ~name:"height"
-             (Option.map Lazy.force p.height, Option.map Lazy.force p'.height));
+             ( Option.map SyncLazy.force p.height,
+               Option.map SyncLazy.force p'.height ));
     }
 
   let compatible p p' =
@@ -87,8 +102,8 @@ module Specs = struct
     else (
       let i = data.(0) in
       {
-        width = Some (lazy (Video.Canvas.Image.width i));
-        height = Some (lazy (Video.Canvas.Image.height i));
+        width = Some (SyncLazy.from_val (Video.Canvas.Image.width i));
+        height = Some (SyncLazy.from_val (Video.Canvas.Image.height i));
       })
 
   let kind = `Canvas
@@ -103,9 +118,9 @@ let kind = lift_kind `Canvas
 let dimensions_of_format p =
   let p = get_params p in
   let width =
-    Lazy.force (Option.value ~default:Frame_settings.video_width p.width)
+    SyncLazy.force (Option.value ~default:Frame_settings.video_width p.width)
   in
   let height =
-    Lazy.force (Option.value ~default:Frame_settings.video_height p.height)
+    SyncLazy.force (Option.value ~default:Frame_settings.video_height p.height)
   in
   (width, height)

@@ -25,7 +25,7 @@ open Source
 type mode = Low_pass | High_pass | Band_pass | Notch
 
 class filter (source : source) freq q wet mode =
-  let rate = float (Lazy.force Frame.audio_rate) in
+  let rate = float (SyncLazy.force Frame.audio_rate) in
   object (self)
     inherit operator ~name:"filter" [source] as super
     method stype = source#stype

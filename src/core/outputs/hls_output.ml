@@ -203,9 +203,9 @@ type stream = {
   name : string;
   format : Encoder.format;
   encoder : Encoder.encoder;
-  video_size : (int * int) option Lazy.t;
-  bandwidth : int Lazy.t;
-  codecs : string Lazy.t;  (** codecs (see RFC 6381) *)
+  video_size : (int * int) option SyncLazy.t;
+  bandwidth : int SyncLazy.t;
+  codecs : string SyncLazy.t;  (** codecs (see RFC 6381) *)
   extname : string;
   mutable init_state : init_state;
   mutable init_position : int;
@@ -286,9 +286,9 @@ class hls_output p =
   (* better choice? *)
   let segment_duration = Lang.to_float (List.assoc "segment_duration" p) in
   let segment_ticks =
-    Frame.main_of_seconds segment_duration / Lazy.force Frame.size
+    Frame.main_of_seconds segment_duration / SyncLazy.force Frame.size
   in
-  let segment_main_duration = segment_ticks * Lazy.force Frame.size in
+  let segment_main_duration = segment_ticks * SyncLazy.force Frame.size in
   let segment_duration = Frame.seconds_of_main segment_main_duration in
   let segment_name = Lang.to_fun (List.assoc "segment_name" p) in
   let segment_name ~position ~extname sname =
@@ -323,7 +323,7 @@ class hls_output p =
       let encoder = encoder_factory name Meta_format.empty_metadata in
       let bandwidth, codecs, extname, video_size =
         let bandwidth =
-          lazy
+          SyncLazy.from_val
             (try Lang.to_int (List.assoc "bandwidth" stream_info)
              with Not_found -> (
                match Encoder.(encoder.hls.bitrate ()) with
@@ -341,7 +341,7 @@ class hls_output p =
                                 name )))))
         in
         let codecs =
-          lazy
+          SyncLazy.from_val
             (try Lang.to_string (List.assoc "codecs" stream_info)
              with Not_found -> (
                match Encoder.(encoder.hls.codec_attrs ()) with
@@ -374,7 +374,7 @@ class hls_output p =
         in
         let extname = if extname = "mp4" then "m4s" else extname in
         let video_size =
-          lazy
+          SyncLazy.from_val
             (try
                let w, h =
                  Lang.to_product (List.assoc "video_size" stream_info)
@@ -406,7 +406,7 @@ class hls_output p =
     (mk_streams, mk_streams ())
   in
   let x_version =
-    lazy
+    SyncLazy.from_val
       (if
          List.find_opt
            (fun s ->
@@ -570,7 +570,7 @@ class hls_output p =
         (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n"
            (int_of_float (ceil segment_duration)));
       output_string oc
-        (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (Lazy.force x_version));
+        (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (SyncLazy.force x_version));
       output_string oc
         (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" media_sequence);
       output_string oc
@@ -608,13 +608,14 @@ class hls_output p =
         let oc = self#open_out main_playlist_filename in
         output_string oc "#EXTM3U\r\n";
         output_string oc
-          (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (Lazy.force x_version));
+          (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (SyncLazy.force x_version));
         List.iter
           (fun s ->
             let line =
               Printf.sprintf "#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=%S%s\r\n"
-                (Lazy.force s.bandwidth) (Lazy.force s.codecs)
-                (match Lazy.force s.video_size with
+                (SyncLazy.force s.bandwidth)
+                (SyncLazy.force s.codecs)
+                (match SyncLazy.force s.video_size with
                   | None -> ""
                   | Some (w, h) -> Printf.sprintf ",RESOLUTION=%dx%d" w h)
             in

@@ -110,8 +110,8 @@ let lazy_config_eval = ref false
 let delayed_eval = Queue.create ()
 
 let delayed f =
-  let ret = lazy (f ()) in
-  Queue.push (fun () -> ignore (Lazy.force ret)) delayed_eval;
+  let ret = SyncLazy.from_val (f ()) in
+  Queue.push (fun () -> ignore (SyncLazy.force ret)) delayed_eval;
   ret
 
 let () =
@@ -126,7 +126,7 @@ let delayed_conf ~to_string x =
       log#info "frame.%s set to: %s" (String.concat "." routes) (to_string ret);
       ret)
 
-let ( !! ) = Lazy.force
+let ( !! ) = SyncLazy.force
 
 (** The channel numbers are only defaults, used when channel numbers
   * cannot be inferred / are not forced from the context.

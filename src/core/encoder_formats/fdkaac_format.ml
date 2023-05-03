@@ -34,7 +34,7 @@ type t = {
   bitrate_mode : bitrate_mode;
   bitrate : int;
   channels : int;
-  samplerate : int Lazy.t;
+  samplerate : int SyncLazy.t;
   sbr_mode : bool;
   transmux : transmux;
 }
@@ -86,7 +86,8 @@ let to_string m =
   Printf.sprintf
     "%%fdkaac(afterburner=%b,aot=%S,%s,channels=%d,samplerate=%d,sbr_mode=%b,transmux=%S)"
     m.afterburner (string_of_aot m.aot) br_info m.channels
-    (Lazy.force m.samplerate) m.sbr_mode
+    (SyncLazy.force m.samplerate)
+    m.sbr_mode
     (string_of_transmux m.transmux)
 
 let bitrate m = m.bitrate * 1000

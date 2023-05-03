@@ -186,12 +186,12 @@ let _ =
       let width =
         match width with
           | Some width -> width
-          | None -> Lazy.force Frame.video_width
+          | None -> SyncLazy.force Frame.video_width
       in
       let height =
         match height with
           | Some height -> height
-          | None -> Lazy.force Frame.video_height
+          | None -> SyncLazy.force Frame.video_height
       in
       let img = Video.YUV420.create width height in
       Printf.printf "image: %dx%d\nx%!" width height;

@@ -156,35 +156,35 @@ val compatible : content_type -> content_type -> bool
   * I'm currently unsure how much they are really useful. *)
 
 (** Default number of audio channels. *)
-val audio_channels : int Lazy.t
+val audio_channels : int SyncLazy.t
 
 (** Is video enabled? *)
-val default_video_enabled : bool Lazy.t
+val default_video_enabled : bool SyncLazy.t
 
 (** Default number of MIDI channels. *)
-val midi_channels : int Lazy.t
+val midi_channels : int SyncLazy.t
 
 (** Width of video images. *)
-val video_width : int Lazy.t
+val video_width : int SyncLazy.t
 
 (** Height of video images. *)
-val video_height : int Lazy.t
+val video_height : int SyncLazy.t
 
 (** Rate of audio (in samples per second). *)
-val audio_rate : int Lazy.t
+val audio_rate : int SyncLazy.t
 
 (** Video rate (in images per second). *)
-val video_rate : int Lazy.t
+val video_rate : int SyncLazy.t
 
-val midi_rate : int Lazy.t
+val midi_rate : int SyncLazy.t
 
 (** Ticks per second. *)
-val main_rate : int Lazy.t
+val main_rate : int SyncLazy.t
 
-val size : int Lazy.t
+val size : int SyncLazy.t
 
 (** Duration of a frame in seconds. *)
-val duration : float Lazy.t
+val duration : float SyncLazy.t
 
 (** {2 Time and frequency conversions} *)
 

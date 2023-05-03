@@ -72,15 +72,15 @@ let add name g =
 
 let sine f =
   new Audio.Generator.of_mono
-    (new Audio.Mono.Generator.sine (Lazy.force Frame.audio_rate) f)
+    (new Audio.Mono.Generator.sine (SyncLazy.force Frame.audio_rate) f)
 
 let square f =
   new Audio.Generator.of_mono
-    (new Audio.Mono.Generator.square (Lazy.force Frame.audio_rate) f)
+    (new Audio.Mono.Generator.square (SyncLazy.force Frame.audio_rate) f)
 
 let saw f =
   new Audio.Generator.of_mono
-    (new Audio.Mono.Generator.saw (Lazy.force Frame.audio_rate) f)
+    (new Audio.Mono.Generator.saw (SyncLazy.force Frame.audio_rate) f)
 
 let sine = add "sine" sine
 

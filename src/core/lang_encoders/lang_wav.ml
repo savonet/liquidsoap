@@ -55,7 +55,7 @@ let make params =
         | "duration", `Value { value = Ground (Float d); _ } ->
             { f with Wav_format.duration = Some d }
         | "samplerate", `Value { value = Ground (Int i); _ } ->
-            { f with Wav_format.samplerate = Lazy.from_val i }
+            { f with Wav_format.samplerate = SyncLazy.from_val i }
         | "samplesize", `Value { value = Ground (Int i); pos } ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
               Lang_encoder.raise_error ~pos "invalid sample size";

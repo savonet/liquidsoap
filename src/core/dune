@@ -225,6 +225,7 @@
   strings
   swap
   switch
+  syncLazy
   synth_op
   synthesized
   term

@@ -97,7 +97,9 @@ let register obj name descr =
          let adsr =
            if Lang.to_bool (f "envelope") then
              Some
-               (Audio.Mono.Effect.ADSR.make (Lazy.force Frame.audio_rate) adsr)
+               (Audio.Mono.Effect.ADSR.make
+                  (SyncLazy.force Frame.audio_rate)
+                  adsr)
            else None
          in
          let src = Lang.to_source (f "") in
@@ -143,11 +145,13 @@ let register obj name descr =
          let adsr =
            if Lang.to_bool (f "envelope") then
              Some
-               (Audio.Mono.Effect.ADSR.make (Lazy.force Frame.audio_rate) adsr)
+               (Audio.Mono.Effect.ADSR.make
+                  (SyncLazy.force Frame.audio_rate)
+                  adsr)
            else None
          in
          let synths =
-           Array.init (Lazy.force Frame.midi_channels) (fun c ->
+           Array.init (SyncLazy.force Frame.midi_channels) (fun c ->
                ((fun () -> 1.), new synth (obj adsr) src c 1.))
          in
          let synths =
@@ -167,17 +171,17 @@ let register obj name descr =
 
 let () =
   register
-    (fun adsr -> new Synth.sine ?adsr (Lazy.force Frame.audio_rate))
+    (fun adsr -> new Synth.sine ?adsr (SyncLazy.force Frame.audio_rate))
     "sine" "Sine synthesizer."
 
 let () =
   register
-    (fun adsr -> new Synth.square ?adsr (Lazy.force Frame.audio_rate))
+    (fun adsr -> new Synth.square ?adsr (SyncLazy.force Frame.audio_rate))
     "square" "Square synthesizer."
 
 let () =
   register
-    (fun adsr -> new Synth.saw ?adsr (Lazy.force Frame.audio_rate))
+    (fun adsr -> new Synth.saw ?adsr (SyncLazy.force Frame.audio_rate))
     "saw" "Saw synthesizer."
 
 (*

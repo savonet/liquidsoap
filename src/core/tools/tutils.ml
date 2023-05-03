@@ -380,15 +380,3 @@ let shutdown code =
     Condition.signal no_problem)
 
 let exit_code () = match !run with `Exit code -> code | _ -> 0
-
-(** Thread-safe lazy cell. *)
-let lazy_cell f =
-  let lock = Mutex.create () in
-  let c = ref None in
-  mutexify lock (fun () ->
-      match !c with
-        | Some v -> v
-        | None ->
-            let v = f () in
-            c := Some v;
-            v)

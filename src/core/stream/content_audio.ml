@@ -29,7 +29,7 @@ module Specs = struct
   type kind = [ `Pcm ]
 
   type params = {
-    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+    channel_layout : [ `Mono | `Stereo | `Five_point_one ] SyncLazy.t;
   }
 
   type data = Audio.Mono.buffer array
@@ -55,9 +55,9 @@ module Specs = struct
   let copy d = Audio.copy d 0 (Audio.length d)
 
   let param_of_channels = function
-    | 1 -> { channel_layout = lazy `Mono }
-    | 2 -> { channel_layout = lazy `Stereo }
-    | 6 -> { channel_layout = lazy `Five_point_one }
+    | 1 -> { channel_layout = SyncLazy.from_val `Mono }
+    | 2 -> { channel_layout = SyncLazy.from_val `Stereo }
+    | 6 -> { channel_layout = SyncLazy.from_val `Five_point_one }
     | _ -> raise Invalid
 
   let channels_of_param = function
@@ -67,16 +67,16 @@ module Specs = struct
 
   let parse_param label value =
     match (label, value) with
-      | "", "mono" -> Some { channel_layout = lazy `Mono }
-      | "", "stereo" -> Some { channel_layout = lazy `Stereo }
-      | "", "5.1" -> Some { channel_layout = lazy `Five_point_one }
+      | "", "mono" -> Some { channel_layout = SyncLazy.from_val `Mono }
+      | "", "stereo" -> Some { channel_layout = SyncLazy.from_val `Stereo }
+      | "", "5.1" -> Some { channel_layout = SyncLazy.from_val `Five_point_one }
       | _ -> None
 
   let params d = param_of_channels (Array.length d)
   let kind = `Pcm
 
   let default_params _ =
-    param_of_channels (Lazy.force Frame_settings.audio_channels)
+    param_of_channels (SyncLazy.force Frame_settings.audio_channels)
 
   let clear _ = ()
 
@@ -98,10 +98,10 @@ include MkContentBase (Specs)
 let kind = lift_kind `Pcm
 
 let format_of_channels = function
-  | 1 -> lift_params { channel_layout = lazy `Mono }
-  | 2 -> lift_params { channel_layout = lazy `Stereo }
-  | 6 -> lift_params { channel_layout = lazy `Five_point_one }
+  | 1 -> lift_params { channel_layout = SyncLazy.from_val `Mono }
+  | 2 -> lift_params { channel_layout = SyncLazy.from_val `Stereo }
+  | 6 -> lift_params { channel_layout = SyncLazy.from_val `Five_point_one }
   | _ -> raise Invalid
 
 let channels_of_format p =
-  Specs.(channels_of_param (Lazy.force (get_params p).channel_layout))
+  Specs.(channels_of_param (SyncLazy.force (get_params p).channel_layout))

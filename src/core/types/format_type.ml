@@ -257,12 +257,16 @@ let () =
 let audio_mono () =
   Type.make
     (descr
-       (`Format Content_audio.(lift_params { channel_layout = lazy `Mono })))
+       (`Format
+         Content_audio.(
+           lift_params { channel_layout = SyncLazy.from_val `Mono })))
 
 let audio_stereo () =
   Type.make
     (descr
-       (`Format Content_audio.(lift_params { channel_layout = lazy `Stereo })))
+       (`Format
+         Content_audio.(
+           lift_params { channel_layout = SyncLazy.from_val `Stereo })))
 
 let audio_n n =
   Type.make
@@ -272,7 +276,8 @@ let audio_n n =
            lift_params
              {
                channel_layout =
-                 lazy (Audio_converter.Channel_layout.layout_of_channels n);
+                 SyncLazy.from_val
+                   (Audio_converter.Channel_layout.layout_of_channels n);
              })))
 
 let video () = Type.make (descr (`Kind Content_video.kind))

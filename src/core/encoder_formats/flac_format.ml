@@ -23,7 +23,7 @@
 type t = {
   channels : int;
   bits_per_sample : int;
-  samplerate : int Lazy.t;
+  samplerate : int SyncLazy.t;
   compression : int;
   fill : int option;
 }
@@ -31,4 +31,6 @@ type t = {
 let to_string m =
   Printf.sprintf
     "%%flac(channels=%i,bits_per_sample=%i,samplerate=%d,compression=%i)"
-    m.channels m.bits_per_sample (Lazy.force m.samplerate) m.compression
+    m.channels m.bits_per_sample
+    (SyncLazy.force m.samplerate)
+    m.compression
