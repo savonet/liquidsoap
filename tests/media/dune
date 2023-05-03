@@ -22,12 +22,15 @@
   (diff dune.inc dune.inc.gen)))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target first-concat.mp4)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -37,12 +40,15 @@
    %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target second-concat.mp4)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -52,12 +58,15 @@
    %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target third-concat.mp4)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -67,21 +76,47 @@
    %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target background.jpg)
  (action
-  (run ffmpeg -f lavfi -i testsrc=size=1280x720 -t 1 -f mjpeg %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=size=1280x720
+   -t
+   1
+   -f
+   mjpeg
+   %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target logo.png)
  (action
-  (run ffmpeg -f lavfi -i testsrc=size=50x50 -t 1 -f mjpeg %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=size=50x50
+   -t
+   1
+   -f
+   mjpeg
+   %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (deps
   first-concat.mp4
@@ -104,7 +139,7 @@
    ffmpeg_copy_concat.liq)))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (deps
   all_media_files
@@ -125,12 +160,15 @@
    ffmpeg_complex_filter.liq)))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target long-video.mp4)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -143,7 +181,7 @@
    %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (deps
   long-video.mp4
@@ -165,7 +203,7 @@
    long-video.mp4)))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (deps
   all_media_files
@@ -188,7 +226,7 @@
    ffmpeg_transparency_filter.liq)))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (deps
   all_media_files

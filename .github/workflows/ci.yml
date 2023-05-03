@@ -164,6 +164,9 @@ jobs:
     container:
       image: savonet/liquidsoap-ci:debian_bullseye_amd64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    strategy:
+      matrix:
+        target: ["@citest", "@mediatest"]
     env:
       HOME: /home/opam
     steps:
@@ -196,7 +199,7 @@ jobs:
       - name: Run tests
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh
+          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
       - name: Export potential core dumps
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
