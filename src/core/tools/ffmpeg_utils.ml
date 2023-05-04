@@ -83,11 +83,6 @@ let () =
       Avutil.Log.set_callback (fun s -> log#f level "%s" (String.trim s)))
 *)
 
-let best_pts frame =
-  match Avutil.Frame.pts frame with
-    | Some pts -> Some pts
-    | None -> Avutil.Frame.best_effort_timestamp frame
-
 let liq_main_ticks_time_base () =
   { Avutil.num = 1; den = SyncLazy.force Frame.main_rate }
 
@@ -182,35 +177,56 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
 
 module Duration = struct
   type 'a t = {
-    get_ts : 'a -> Int64.t option;
+    mode : [ `PTS | `DTS ];
+    convert_ts : bool;
+    get_ts : 'a -> int64 option;
+    set_ts : 'a -> int64 option -> unit;
     src : Avutil.rational;
     dst : Avutil.rational;
-    mutable last_packet : 'a option;
+    offset : int64;
+    mutable last_ts : int64 option;
     mutable packets : (int * 'a) list;
   }
 
-  let init ~src ~get_ts =
+  let init ?(offset = 0L) ?last_ts ~mode ~src ~convert_ts ~get_ts ~set_ts () =
     {
+      mode;
+      convert_ts;
       get_ts;
+      set_ts;
       src;
       dst = liq_main_ticks_time_base ();
-      last_packet = None;
+      offset;
+      last_ts;
       packets = [];
     }
 
+  let last_ts { last_ts } = last_ts
+
   let push t packet =
-    let { get_ts; last_packet; packets; src; dst } = t in
-    t.last_packet <- Some packet;
-    let last_ts =
-      Option.join (Option.map (fun packet -> get_ts packet) last_packet)
+    let { mode; offset; convert_ts; set_ts; get_ts; last_ts; packets; src; dst }
+        =
+      t
     in
     let duration =
       match (last_ts, get_ts packet) with
-        | None, Some _ -> 0
-        | Some old_pts, Some pts ->
-            let d = Int64.sub pts old_pts in
+        | None, Some ts ->
+            let ts = Int64.add ts offset in
+            set_ts packet (Some ts);
+            t.last_ts <- Some ts;
+            0
+        | Some old_ts, Some ts ->
+            let ts = Int64.add ts offset in
+            if ts < old_ts then (
+              log#important "Invalid ffmpeg content: non-monotonic %s!"
+                (match mode with `DTS -> "DTS" | `PTS -> "PTS");
+              raise Content.Invalid);
+            set_ts packet
+              (Some (if convert_ts then convert_time_base ~src ~dst ts else ts));
+            t.last_ts <- Some ts;
+            let d = Int64.sub ts old_ts in
             Int64.to_int (convert_time_base ~src ~dst d)
-        | _, None -> 0
+        | _ -> 0
     in
     if duration > 0 then (
       t.packets <- [(0, packet)];

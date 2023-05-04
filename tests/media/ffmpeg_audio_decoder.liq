@@ -1,24 +1,17 @@
-log.level.set(4)
-settings.ffmpeg.log.level.set(12)
-audio.samplerate.set(48000)
+log.level.set(5)
+settings.frame.audio.samplerate.set(48000)
+settings.decoder.decoders.set(["ffmpeg"])
 
-out = "test_stream_audio.wav"
+fname = argv(default="",1)
+out = "#{fname}+ffmpeg_audio_decoder.wav"
 
 if file.exists(out) then
   file.remove(out)
 end
 
-s = noise(duration=2.)
+s = single(fname)
 
 s = once(s)
-
-clock.assign_new(sync='none',[s])
-
-output.udp(id="output",port=5001,host="localhost",fallible=true,@FORMAT@,s)
-
-s = input.udp(id="input",port=5001,host="localhost",buffer=0.1,"application/ffmpeg")
-
-s = (s:source(1,0,0))
 
 clock.assign_new(sync='none',[s])
 

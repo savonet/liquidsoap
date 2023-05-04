@@ -687,9 +687,7 @@ let mk_decoder ~streams ~target_position container =
           | `Audio_frame (i, frame) -> (
               match Streams.find_opt i streams with
                 | Some (`Audio_frame (_, decode)) ->
-                    if
-                      check_pts (List.hd audio_frame)
-                        (Ffmpeg_utils.best_pts frame)
+                    if check_pts (List.hd audio_frame) (Avutil.Frame.pts frame)
                     then decode ~buffer frame
                 | _ -> f ())
           | `Audio_packet (i, packet) -> (
@@ -703,9 +701,7 @@ let mk_decoder ~streams ~target_position container =
           | `Video_frame (i, frame) -> (
               match Streams.find_opt i streams with
                 | Some (`Video_frame (_, decode)) ->
-                    if
-                      check_pts (List.hd video_frame)
-                        (Ffmpeg_utils.best_pts frame)
+                    if check_pts (List.hd video_frame) (Avutil.Frame.pts frame)
                     then decode ~buffer frame
                 | _ -> f ())
           | `Video_packet (i, packet) -> (
@@ -903,7 +899,7 @@ let create_decoder ~ctype fname =
             `Audio_packet (stream, decoder)
         | `Audio_frame (stream, decoder) ->
             let decoder ~buffer frame =
-              set_remaining stream (Ffmpeg_utils.best_pts frame);
+              set_remaining stream (Avutil.Frame.pts frame);
               decoder ~buffer frame
             in
             `Audio_frame (stream, decoder)
@@ -915,7 +911,7 @@ let create_decoder ~ctype fname =
             `Video_packet (stream, decoder)
         | `Video_frame (stream, decoder) ->
             let decoder ~buffer frame =
-              set_remaining stream (Ffmpeg_utils.best_pts frame);
+              set_remaining stream (Avutil.Frame.pts frame);
               decoder ~buffer frame
             in
             `Video_frame (stream, decoder))

@@ -22,12 +22,15 @@
   (diff dune.inc dune.inc.gen)))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target first-concat.mp4)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -37,12 +40,15 @@
    %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target second-concat.mp4)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -52,12 +58,15 @@
    %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target third-concat.mp4)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -67,27 +76,53 @@
    %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target background.jpg)
  (action
-  (run ffmpeg -f lavfi -i testsrc=size=1280x720 -t 1 -f mjpeg %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=size=1280x720
+   -t
+   1
+   -f
+   mjpeg
+   %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (target logo.png)
  (action
-  (run ffmpeg -f lavfi -i testsrc=size=50x50 -t 1 -f mjpeg %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=size=50x50
+   -t
+   1
+   -f
+   mjpeg
+   %{target})))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (deps
   first-concat.mp4
   second-concat.mp4
   third-concat.mp4
-  test_ffmpeg_copy_concat.liq
+  ffmpeg_copy_concat.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -101,14 +136,14 @@
    --no-stdlib
    %{stdlib}
    %{test_liq}
-   test_ffmpeg_copy_concat.liq)))
+   ffmpeg_copy_concat.liq)))
 
 (rule
- (alias citest)
+ (alias mediatest)
  (package liquidsoap)
  (deps
   all_media_files
-  test_ffmpeg_complex_filter.liq
+  ffmpeg_complex_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -122,16 +157,59 @@
    --no-stdlib
    %{stdlib}
    %{test_liq}
-   test_ffmpeg_complex_filter.liq)))
+   ffmpeg_complex_filter.liq)))
 
 (rule
- (alias citest)
+ (alias mediatest)
+ (package liquidsoap)
+ (target long-video.mp4)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=d=30:s=1920x1080:r=24,format=yuv420p"
+   -f
+   lavfi
+   -i
+   "sine=f=440:b=4"
+   -shortest
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps
+  long-video.mp4
+  ffmpeg_distributed_hls.liq
+  ffmpeg_distributed_hls_state.json
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg distributed HLS encoding"
+   liquidsoap
+   %{test_liq}
+   ffmpeg_distributed_hls.liq
+   --
+   long-video.mp4)))
+
+(rule
+ (alias mediatest)
  (package liquidsoap)
  (deps
   all_media_files
   background.jpg
   logo.png
-  test_ffmpeg_transparency_filter.liq
+  ffmpeg_transparency_filter.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -145,4 +223,30 @@
    --no-stdlib
    %{stdlib}
    %{test_liq}
-   test_ffmpeg_transparency_filter.liq)))
+   ffmpeg_transparency_filter.liq)))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  background.jpg
+  logo.png
+  ffmpeg_filter_changing_rate.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg filter with changing video rate"
+   liquidsoap
+   --no-stdlib
+   %{stdlib}
+   %{test_liq}
+   ./ffmpeg_filter_changing_rate.liq
+   --
+   ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
+   ./@ffmpeg\[format='mp4',@audio[codec='aac\',channels=2],@video[codec='libx264',r=12]].mp4)))

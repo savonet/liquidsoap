@@ -49,7 +49,6 @@ class virtual output :
        method private add_metadata : Request.metadata -> unit
        method private metadata_queue : Request.metadata Queue.t
        method private reset : unit
-       method private nb_frames : int64
        method virtual private send_frame : Frame.t -> unit
        method virtual private start : unit
        method virtual private stop : unit

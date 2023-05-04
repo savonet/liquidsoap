@@ -25,8 +25,8 @@
 let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
     params =
   let duration_converter =
-    Ffmpeg_utils.Duration.init ~src:stream_time_base
-      ~get_ts:Ffmpeg_utils.best_pts
+    Ffmpeg_utils.Duration.init ~mode:`PTS ~src:stream_time_base
+      ~convert_ts:false ~get_ts:Avutil.Frame.pts ~set_ts:Avutil.Frame.set_pts ()
   in
   fun ~buffer frame ->
     match Ffmpeg_utils.Duration.push duration_converter frame with

@@ -402,7 +402,7 @@ let mk_video ~mode ~codec ~params ~options ~field output =
             (fun pts ->
               Ffmpeg_utils.convert_time_base ~src:time_base
                 ~dst:stream_time_base pts)
-            (Ffmpeg_utils.best_pts frame)
+            (Avutil.Frame.pts frame)
         in
         Avutil.Frame.set_pts frame frame_pts;
         start_pts := Int64.succ !start_pts;
@@ -460,7 +460,7 @@ let mk_video ~mode ~codec ~params ~options ~field output =
                   in
                   fun frame ->
                     let scaled = RawScaler.convert scaler frame in
-                    Avutil.Frame.set_pts scaled (Ffmpeg_utils.best_pts frame);
+                    Avutil.Frame.set_pts scaled (Avutil.Frame.pts frame);
                     scaled)
                 else fun f -> f
               in

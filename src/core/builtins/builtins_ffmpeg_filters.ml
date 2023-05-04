@@ -589,6 +589,7 @@ let _ =
        ~base:ffmpeg_filter_audio "input"
        ~descr:"Attach an audio track to a filter's input"
        [
+         ("id", Lang.nullable_t Lang.string_t, Some Lang.null, None);
          ( "pass_metadata",
            Lang.bool_t,
            Some (Lang.bool true),
@@ -598,6 +599,10 @@ let _ =
        ]
        Audio.t
        (fun p ->
+         let id =
+           Option.value ~default:"ffmpeg.filter.audio.input"
+             (Lang.to_valued_option Lang.to_string (List.assoc "id" p))
+         in
          let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
          let graph_v = Lang.assoc "" 1 p in
          let config = get_config graph_v in
@@ -629,6 +634,7 @@ let _ =
                  raise (Error.Clock_conflict (pos, a, b))
              | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
          in
+         s#set_id id;
          Queue.add (s :> Source.source) graph.graph_inputs;
 
          let args = ref None in
@@ -684,8 +690,10 @@ let _ =
                      (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
                 ())
          in
+         let field = Frame.Fields.audio in
          let s =
            new Ffmpeg_filter_io.audio_input
+             ~field
              ~pull:(fun () -> pull graph)
              ~is_ready:(fun () -> is_ready graph)
              ~self_sync:(fun () -> self_sync graph)
@@ -710,13 +718,14 @@ let _ =
                   Hashtbl.add graph.entries.outputs.audio name s#set_output)))
            graph.init;
 
-         (Frame.Fields.audio, (s :> Source.source))));
+         (field, (s :> Source.source))));
 
   ignore
     (Lang.add_builtin ~category:(`Source `FFmpegFilter)
        ~base:ffmpeg_filter_video "input"
        ~descr:"Attach a video track to a filter's input"
        [
+         ("id", Lang.nullable_t Lang.string_t, Some Lang.null, None);
          ( "pass_metadata",
            Lang.bool_t,
            Some (Lang.bool true),
@@ -726,6 +735,10 @@ let _ =
        ]
        Video.t
        (fun p ->
+         let id =
+           Option.value ~default:"ffmpeg.filter.video.input"
+             (Lang.to_valued_option Lang.to_string (List.assoc "id" p))
+         in
          let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
          let graph_v = Lang.assoc "" 1 p in
          let config = get_config graph_v in
@@ -757,6 +770,7 @@ let _ =
                  raise (Error.Clock_conflict (pos, a, b))
              | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
          in
+         s#set_id id;
          Queue.add (s :> Source.source) graph.graph_inputs;
 
          let args = ref None in
@@ -769,6 +783,7 @@ let _ =
                in
                Avfilter.(
                  Hashtbl.add graph.entries.inputs.video name s#set_input);
+               init_graph graph;
                List.hd Avfilter.(_buffer.io.outputs.video))
          in
 
@@ -790,10 +805,6 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Pass ffmpeg stream metadata to liquidsoap" );
-      ( "fps",
-        Lang.nullable_t Lang.int_t,
-        Some Lang.null,
-        Some "Output frame per seconds. Defaults to global value" );
       ("", Graph.t, None, None);
       ("", Video.t, None, None);
     ]
@@ -803,10 +814,6 @@ let _ =
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
 
-      let fps = Lang.to_option (Lang.assoc "fps" 1 p) in
-      let fps = Option.map (fun v -> SyncLazy.from_val (Lang.to_int v)) fps in
-      let fps = Option.value fps ~default:Frame.video_rate in
-
       let frame_t =
         Lang.frame_t Lang.unit_t
           (Frame.Fields.make
@@ -815,12 +822,14 @@ let _ =
                   (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
              ())
       in
+      let field = Frame.Fields.video in
       let s =
         new Ffmpeg_filter_io.video_input
+          ~field
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
           ~self_sync:(fun () -> self_sync graph)
-          ~self_sync_type:(self_sync_type graph) ~pass_metadata ~fps frame_t
+          ~self_sync_type:(self_sync_type graph) ~pass_metadata frame_t
       in
       Queue.add (s :> Source.source) graph.graph_outputs;
 
@@ -832,29 +841,15 @@ let _ =
                  | _ -> assert false
              in
              let name = uniq_name "buffersink" in
-             let target_frame_rate = SyncLazy.force fps in
-             let fps =
-               match Avfilter.find_opt "fps" with
-                 | Some f -> f
-                 | None -> failwith "Could not find ffmpeg fps filter"
-             in
-             let fps =
-               let args = [`Pair ("fps", `Int target_frame_rate)] in
-               Avfilter.attach ~name:(uniq_name "fps") ~args fps config
-             in
              let _buffersink =
                Avfilter.attach ~name Avfilter.buffersink config
              in
-             Avfilter.(link pad (List.hd fps.io.inputs.video));
-             Avfilter.(
-               link
-                 (List.hd fps.io.outputs.video)
-                 (List.hd _buffersink.io.inputs.video));
+             Avfilter.(link pad (List.hd _buffersink.io.inputs.video));
              Avfilter.(
                Hashtbl.add graph.entries.outputs.video name s#set_output)))
         graph.init;
 
-      (Frame.Fields.video, (s :> Source.source)))
+      (field, (s :> Source.source)))
 
 let unify_clocks ~clock sources =
   Queue.iter (fun s -> Clock.unify clock s#clock) sources

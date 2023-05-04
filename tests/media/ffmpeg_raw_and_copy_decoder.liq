@@ -2,7 +2,7 @@ log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
 
 fname = argv(default="",1)
-out = "#{fname}+test_ffmpeg_copy_decoder.mp4"
+out = "#{fname}+ffmpeg_raw_and_copy_decoder.mp4"
 
 if file.exists(out) then
   file.remove(out)
@@ -56,4 +56,4 @@ def on_done () =
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio.copy,%video.copy), out, s)
+output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio.copy,%video.raw(codec="libx264")), out, s)
