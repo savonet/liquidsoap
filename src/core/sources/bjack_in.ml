@@ -23,7 +23,7 @@
 open Mm
 
 let log = Log.make ["input"; "jack"]
-let bjack_clock = Tutils.lazy_cell (fun () -> Clock.clock "bjack")
+let bjack_clock = SyncLazy.from_fun (fun () -> Clock.clock "bjack")
 
 class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
   ~server =

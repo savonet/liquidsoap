@@ -23,7 +23,7 @@
 open Mm
 
 (** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "portaudio")
+let clock = SyncLazy.from_fun (fun () -> Clock.clock "portaudio")
 
 let initialized = ref false
 
@@ -162,7 +162,7 @@ class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~device_id
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Source.clock))
+          (Clock.create_known (SyncLazy.force clock :> Source.clock))
 
     val mutable stream = None
     method! self_sync = (`Dynamic, stream <> None)
@@ -205,8 +205,8 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
 
     inherit
       Start_stop.active_source
-        ~get_clock ~clock_safe ~name:"input.portaudio" ~on_start ~on_stop
-          ~fallible ~autostart:start ()
+        ~get_clock:(SyncLazy.to_fun clock) ~clock_safe ~name:"input.portaudio"
+          ~on_start ~on_stop ~fallible ~autostart:start ()
 
     method private start = self#open_device
     method private stop = self#close_device

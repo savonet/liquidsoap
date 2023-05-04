@@ -26,7 +26,7 @@ open Gstreamer
 module GU = Gstreamer_utils
 
 let log = Log.make ["gstreamer"]
-let gst_clock = Tutils.lazy_cell (fun () -> Clock.clock "gstreamer")
+let gst_clock = SyncLazy.from_fun (fun () -> Clock.clock "gstreamer")
 
 let string_of_state_change = function
   | Element.State_change_success -> "success"
@@ -191,7 +191,7 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (gst_clock () :> Source.clock))
+          (Clock.create_known (SyncLazy.force gst_clock :> Source.clock))
 
     method start =
       let el = self#get_element in
