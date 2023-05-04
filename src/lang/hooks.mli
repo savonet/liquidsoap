@@ -18,8 +18,7 @@ val log_path : string option ref
 (* Media-specific dependencies. *)
 
 val eval_check :
-  (env:(string * Value.t SyncLazy.t) list -> tm:Term.term -> Value.t -> unit)
-  ref
+  (env:(string * Value.t Lazy.t) list -> tm:Term.term -> Value.t -> unit) ref
 
 type encoder_params =
   (string * [ `Value of Value.t | `Encoder of encoder ]) list

@@ -109,7 +109,7 @@ module Env = struct
 
   (** Find the value of a variable in the environment. *)
   let lookup (env : t) var =
-    try SyncLazy.force (List.assoc var env)
+    try Lazy.force (List.assoc var env)
     with Not_found ->
       let bt = Printexc.get_raw_backtrace () in
       Printexc.raise_with_backtrace
@@ -132,7 +132,7 @@ module Env = struct
   let add_lazy (env : t) x v : t = (x, v) :: env
 
   (** Bind a variable to a value in an environment. *)
-  let add env x v = add_lazy env x (SyncLazy.from_val v)
+  let add env x v = add_lazy env x (Lazy.from_val v)
 
   (** Bind multiple variables in an environment. *)
   let adds env binds = List.fold_right (fun (x, v) env -> add env x v) binds env
@@ -280,7 +280,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                     let v () =
                       if replace then Value.remeth (Env.lookup env x) v else v
                     in
-                    (x, SyncLazy.from_fun v)
+                    (x, Lazy.from_fun v)
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
@@ -307,7 +307,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                       in
                       meths ll v t
                     in
-                    (l, SyncLazy.from_fun v))
+                    (l, Lazy.from_fun v))
             (eval_pat pat v)
         in
         let env = Env.adds_lazy env penv in
@@ -318,7 +318,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     | RFun (x, fv, p, body) ->
         let p, env = prepare_fun ~eval_check fv p env in
         let rec v () =
-          let env = Env.add_lazy env x (SyncLazy.from_fun v) in
+          let env = Env.add_lazy env x (Lazy.from_fun v) in
           mk (Value.Fun (p, env, body))
         in
         v ()
@@ -365,7 +365,7 @@ let eval ?env tm =
       | Some env -> env
       | None -> Environment.default_environment ()
   in
-  let env = List.map (fun (x, v) -> (x, SyncLazy.from_val v)) env in
+  let env = List.map (fun (x, v) -> (x, Lazy.from_val v)) env in
   let eval_check = !Hooks.eval_check in
   eval ~eval_check env tm
 
@@ -472,7 +472,7 @@ let toplevel_add ?doc pat ~t v =
             let typ = Repr.string_of_type ~generalized t in
             { doc with typ; arguments; methods }
           in
-          Some (SyncLazy.from_fun doc)
+          Some (Lazy.from_fun doc)
   in
   let env, pa = Typechecking.type_of_pat ~level:max_int ~pos:None pat in
   Typing.(t <: pa);
@@ -503,7 +503,7 @@ let rec eval_toplevel ?(interactive = false) t =
                   failwith "TODO: cannot replace toplevel patterns for now")
         in
         toplevel_add ?doc pat ~t:(generalized, def_t) def;
-        if SyncLazy.force debug then
+        if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (Type.to_string ~generalized def_t);
         let var = string_of_pat pat in

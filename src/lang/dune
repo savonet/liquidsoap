@@ -126,7 +126,6 @@
   runtime_error
   sites
   startup
-  syncLazy
   term
   type
   type_base

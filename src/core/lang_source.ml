@@ -510,8 +510,8 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
               (* TODO since inner-bound variables don't mask outer ones in [env],
                *   we are actually checking values that may be out of reach. *)
               let v = List.assoc v env in
-              if SyncLazy.is_val v then (
-                let v = SyncLazy.force v in
+              if Lazy.is_val v then (
+                let v = Lazy.force v in
                 iter_value v)
               else ()
             with Not_found -> ())

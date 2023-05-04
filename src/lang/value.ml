@@ -31,7 +31,7 @@ type t = { pos : Pos.Option.t; value : in_value; methods : t Methods.t }
 and env = (string * t) list
 
 (* Some values have to be lazy in the environment because of recursive functions. *)
-and lazy_env = (string * t SyncLazy.t) list
+and lazy_env = (string * t Lazy.t) list
 
 and in_value =
   | Ground of Ground.t

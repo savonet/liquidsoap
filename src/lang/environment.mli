@@ -32,7 +32,7 @@ val get_builtin : string -> (Type.scheme * Value.t) option
 val add_builtin :
   ?override:bool ->
   ?register:bool ->
-  ?doc:Doc.Value.t SyncLazy.t ->
+  ?doc:Doc.Value.t Lazy.t ->
   string list ->
   Type.scheme * Value.t ->
   unit

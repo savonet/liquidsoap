@@ -56,7 +56,7 @@ type value = Value.t = {
 }
 
 and env = (string * value) list
-and lazy_env = (string * value SyncLazy.t) list
+and lazy_env = (string * value Lazy.t) list
 
 and in_value = Value.in_value =
   | Ground of Ground.t
