@@ -298,8 +298,8 @@ let audio_n ?(pcm_kind = Content_audio.kind) n =
          (Frame_base.audio_format ~pcm_kind
             {
               channel_layout =
-                SyncLazy.from_val
-                  (Audio_converter.Channel_layout.layout_of_channels n);
+                SyncLazy.from_fun (fun () ->
+                    Audio_converter.Channel_layout.layout_of_channels n);
             })))
 
 let audio_mono ?pcm_kind () = audio_n ?pcm_kind 1

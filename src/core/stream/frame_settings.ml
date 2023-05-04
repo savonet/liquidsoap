@@ -110,7 +110,7 @@ let lazy_config_eval = ref false
 let delayed_eval = Queue.create ()
 
 let delayed f =
-  let ret = SyncLazy.from_val (f ()) in
+  let ret = SyncLazy.from_fun f in
   Queue.push (fun () -> ignore (SyncLazy.force ret)) delayed_eval;
   ret
 

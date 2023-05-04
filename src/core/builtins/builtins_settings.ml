@@ -53,137 +53,137 @@ let dtools_constr =
 (* Return a lazy variable, to be executed when all dependent
    OCaml modules have been linked. *)
 let settings_module =
-  SyncLazy.from_val
-    (let get_conf_type conf =
-       let is_type fn =
-         try
-           ignore (fn conf);
-           true
-         with _ -> false
-       in
-       let has_default_value fn =
-         try
-           ignore (fn conf)#get;
-           true
-         with _ -> false
-       in
-       if is_type Dtools.Conf.as_unit then (Lang.unit_t, false)
-       else if is_type Dtools.Conf.as_int then
-         (Lang.int_t, has_default_value Dtools.Conf.as_int)
-       else if is_type Dtools.Conf.as_float then
-         (Lang.float_t, has_default_value Dtools.Conf.as_float)
-       else if is_type Dtools.Conf.as_bool then
-         (Lang.bool_t, has_default_value Dtools.Conf.as_bool)
-       else if is_type Dtools.Conf.as_string then
-         (Lang.string_t, has_default_value Dtools.Conf.as_string)
-       else if is_type Dtools.Conf.as_list then
-         (Lang.list_t Lang.string_t, has_default_value Dtools.Conf.as_list)
-       else (Lang.unit_t, false)
-     in
-     let set_t ty =
-       [
-         ("description", ([], Lang.string_t), "Description of the setting");
-         ( "comments",
-           ([], Lang.string_t),
-           "Additional comments about the setting" );
-       ]
-       @
-       if ty = Lang.unit_t then []
-       else
-         [
-           ( "set",
-             ([], Lang.fun_t [(false, "", ty)] Lang.unit_t),
-             "Set configuration value" );
-         ]
-     in
-     let get_t ~has_default_value ty =
-       match (ty, has_default_value) with
-         | ty, _ when ty = Lang.unit_t -> Lang.unit_t
-         | ty, true -> Lang.fun_t [] ty
-         | ty, false -> Lang.fun_t [] (Lang.nullable_t ty)
-     in
-     let rec get_type ?(sub = []) conf =
-       let ty, has_default_value = get_conf_type conf in
-       Lang.method_t
-         (get_t ~has_default_value ty)
-         (set_t ty @ leaf_types conf @ sub)
-     and leaf_types conf =
-       List.map
-         (fun label ->
-           let ty = get_type (conf#path [label]) in
-           let label = Utils.normalize_parameter_string label in
-           ( label,
-             ([], ty),
-             Printf.sprintf "Entry for configuration key %s" label ))
-         conf#subs
-     in
-     let log_t = get_type Dtools.Log.conf in
-     let init_t = get_type Dtools.Init.conf in
-     let settings_t =
-       get_type
-         ~sub:
-           [
-             ("init", ([], init_t), "Daemon settings");
-             ("log", ([], log_t), "Logging settings");
-           ]
-         Configure.conf
-     in
-     let get_v fn conv_to conv_from conf =
-       let get =
-         Lang.val_fun [] (fun _ ->
-             try conv_to (fn conf)#get with _ -> Lang.null)
-       in
-       let set =
-         Lang.val_fun
-           [("", "", None)]
-           (fun p ->
-             (fn conf)#set (conv_from (List.assoc "" p));
-             Lang.unit)
-       in
-       (get, Some set)
-     in
-     let rec get_value ?(sub = []) conf =
-       let to_v fn conv_to conv_from =
-         try
-           ignore (fn conf);
-           raise (Found (get_v fn conv_to conv_from conf))
-         with
-           | Found v -> raise (Found v)
-           | _ -> ()
-       in
-       let get_v, set_v =
-         try
-           to_v Dtools.Conf.as_int Lang.int Lang.to_int;
-           to_v Dtools.Conf.as_float Lang.float Lang.to_float;
-           to_v Dtools.Conf.as_bool Lang.bool Lang.to_bool;
-           to_v Dtools.Conf.as_string Lang.string Lang.to_string;
-           to_v Dtools.Conf.as_list
-             (fun l -> Lang.list (List.map Lang.string l))
-             (fun v -> List.map Lang.to_string (Lang.to_list v));
-           (Lang.unit, None)
-         with Found v -> v
-       in
-       Lang.meth get_v
-         ((if set_v <> None then [("set", Option.get set_v)] else [])
-         @ [
-             ("description", Lang.string (String.trim conf#descr));
-             ( "comments",
-               Lang.string (String.trim (String.concat "" conf#comments)) );
-           ]
-         @ leaf_values conf @ sub)
-     and leaf_values conf =
-       List.map
-         (fun label ->
-           let v = get_value (conf#path [label]) in
-           (Utils.normalize_parameter_string label, v))
-         conf#subs
-     in
-     let init = get_value Dtools.Init.conf in
-     let log = get_value Dtools.Log.conf in
-     settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
-     ignore
-       (Lang.add_builtin_value ~category:`Settings "settings"
-          ~descr:"All settings." ~flags:[`Hidden] !settings settings_t))
+  SyncLazy.from_fun (fun () ->
+      let get_conf_type conf =
+        let is_type fn =
+          try
+            ignore (fn conf);
+            true
+          with _ -> false
+        in
+        let has_default_value fn =
+          try
+            ignore (fn conf)#get;
+            true
+          with _ -> false
+        in
+        if is_type Dtools.Conf.as_unit then (Lang.unit_t, false)
+        else if is_type Dtools.Conf.as_int then
+          (Lang.int_t, has_default_value Dtools.Conf.as_int)
+        else if is_type Dtools.Conf.as_float then
+          (Lang.float_t, has_default_value Dtools.Conf.as_float)
+        else if is_type Dtools.Conf.as_bool then
+          (Lang.bool_t, has_default_value Dtools.Conf.as_bool)
+        else if is_type Dtools.Conf.as_string then
+          (Lang.string_t, has_default_value Dtools.Conf.as_string)
+        else if is_type Dtools.Conf.as_list then
+          (Lang.list_t Lang.string_t, has_default_value Dtools.Conf.as_list)
+        else (Lang.unit_t, false)
+      in
+      let set_t ty =
+        [
+          ("description", ([], Lang.string_t), "Description of the setting");
+          ( "comments",
+            ([], Lang.string_t),
+            "Additional comments about the setting" );
+        ]
+        @
+        if ty = Lang.unit_t then []
+        else
+          [
+            ( "set",
+              ([], Lang.fun_t [(false, "", ty)] Lang.unit_t),
+              "Set configuration value" );
+          ]
+      in
+      let get_t ~has_default_value ty =
+        match (ty, has_default_value) with
+          | ty, _ when ty = Lang.unit_t -> Lang.unit_t
+          | ty, true -> Lang.fun_t [] ty
+          | ty, false -> Lang.fun_t [] (Lang.nullable_t ty)
+      in
+      let rec get_type ?(sub = []) conf =
+        let ty, has_default_value = get_conf_type conf in
+        Lang.method_t
+          (get_t ~has_default_value ty)
+          (set_t ty @ leaf_types conf @ sub)
+      and leaf_types conf =
+        List.map
+          (fun label ->
+            let ty = get_type (conf#path [label]) in
+            let label = Utils.normalize_parameter_string label in
+            ( label,
+              ([], ty),
+              Printf.sprintf "Entry for configuration key %s" label ))
+          conf#subs
+      in
+      let log_t = get_type Dtools.Log.conf in
+      let init_t = get_type Dtools.Init.conf in
+      let settings_t =
+        get_type
+          ~sub:
+            [
+              ("init", ([], init_t), "Daemon settings");
+              ("log", ([], log_t), "Logging settings");
+            ]
+          Configure.conf
+      in
+      let get_v fn conv_to conv_from conf =
+        let get =
+          Lang.val_fun [] (fun _ ->
+              try conv_to (fn conf)#get with _ -> Lang.null)
+        in
+        let set =
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              (fn conf)#set (conv_from (List.assoc "" p));
+              Lang.unit)
+        in
+        (get, Some set)
+      in
+      let rec get_value ?(sub = []) conf =
+        let to_v fn conv_to conv_from =
+          try
+            ignore (fn conf);
+            raise (Found (get_v fn conv_to conv_from conf))
+          with
+            | Found v -> raise (Found v)
+            | _ -> ()
+        in
+        let get_v, set_v =
+          try
+            to_v Dtools.Conf.as_int Lang.int Lang.to_int;
+            to_v Dtools.Conf.as_float Lang.float Lang.to_float;
+            to_v Dtools.Conf.as_bool Lang.bool Lang.to_bool;
+            to_v Dtools.Conf.as_string Lang.string Lang.to_string;
+            to_v Dtools.Conf.as_list
+              (fun l -> Lang.list (List.map Lang.string l))
+              (fun v -> List.map Lang.to_string (Lang.to_list v));
+            (Lang.unit, None)
+          with Found v -> v
+        in
+        Lang.meth get_v
+          ((if set_v <> None then [("set", Option.get set_v)] else [])
+          @ [
+              ("description", Lang.string (String.trim conf#descr));
+              ( "comments",
+                Lang.string (String.trim (String.concat "" conf#comments)) );
+            ]
+          @ leaf_values conf @ sub)
+      and leaf_values conf =
+        List.map
+          (fun label ->
+            let v = get_value (conf#path [label]) in
+            (Utils.normalize_parameter_string label, v))
+          conf#subs
+      in
+      let init = get_value Dtools.Init.conf in
+      let log = get_value Dtools.Log.conf in
+      settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
+      ignore
+        (Lang.add_builtin_value ~category:`Settings "settings"
+           ~descr:"All settings." ~flags:[`Hidden] !settings settings_t))
 
 (** Hack to keep track of latest settings at runtime. *)
 let _ =

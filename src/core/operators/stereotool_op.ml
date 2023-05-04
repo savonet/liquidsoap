@@ -50,7 +50,7 @@ class stereotool ~field ~preset ~load_type ~handler source =
     method valid_license = Stereotool.valid_license handler
 
     val unlincensed_used_features =
-      SyncLazy.from_val (Stereotool.unlincensed_used_features handler)
+      SyncLazy.from_fun (fun () -> Stereotool.unlincensed_used_features handler)
 
     method unlincensed_used_features = SyncLazy.force unlincensed_used_features
     val mutable latency = None

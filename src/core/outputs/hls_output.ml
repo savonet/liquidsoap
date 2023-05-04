@@ -323,40 +323,40 @@ class hls_output p =
       let encoder = encoder_factory name Meta_format.empty_metadata in
       let bandwidth, codecs, extname, video_size =
         let bandwidth =
-          SyncLazy.from_val
-            (try Lang.to_int (List.assoc "bandwidth" stream_info)
-             with Not_found -> (
-               match Encoder.(encoder.hls.bitrate ()) with
-                 | Some b -> b + (b / 10)
-                 | None -> (
-                     try Encoder.bitrate format
-                     with Not_found ->
-                       raise
-                         (Error.Invalid_value
-                            ( fmt,
-                              Printf.sprintf
-                                "Bandwidth for stream %S cannot be inferred \
-                                 from codec, please specify it with: \
-                                 `%%encoder(...).{bandwidth = <number>, ...}`"
-                                name )))))
+          SyncLazy.from_fun (fun () ->
+              try Lang.to_int (List.assoc "bandwidth" stream_info)
+              with Not_found -> (
+                match Encoder.(encoder.hls.bitrate ()) with
+                  | Some b -> b + (b / 10)
+                  | None -> (
+                      try Encoder.bitrate format
+                      with Not_found ->
+                        raise
+                          (Error.Invalid_value
+                             ( fmt,
+                               Printf.sprintf
+                                 "Bandwidth for stream %S cannot be inferred \
+                                  from codec, please specify it with: \
+                                  `%%encoder(...).{bandwidth = <number>, ...}`"
+                                 name )))))
         in
         let codecs =
-          SyncLazy.from_val
-            (try Lang.to_string (List.assoc "codecs" stream_info)
-             with Not_found -> (
-               match Encoder.(encoder.hls.codec_attrs ()) with
-                 | Some attrs -> attrs
-                 | None -> (
-                     try Encoder.iso_base_file_media_file_format format
-                     with Not_found ->
-                       raise
-                         (Error.Invalid_value
-                            ( fmt,
-                              Printf.sprintf
-                                "Stream info for stream %S cannot be inferred \
-                                 from codec, please specify it with: \
-                                 `%%encoder(...).{codecs = \"...\", ...}`"
-                                name )))))
+          SyncLazy.from_fun (fun () ->
+              try Lang.to_string (List.assoc "codecs" stream_info)
+              with Not_found -> (
+                match Encoder.(encoder.hls.codec_attrs ()) with
+                  | Some attrs -> attrs
+                  | None -> (
+                      try Encoder.iso_base_file_media_file_format format
+                      with Not_found ->
+                        raise
+                          (Error.Invalid_value
+                             ( fmt,
+                               Printf.sprintf
+                                 "Stream info for stream %S cannot be inferred \
+                                  from codec, please specify it with: \
+                                  `%%encoder(...).{codecs = \"...\", ...}`"
+                                 name )))))
         in
         let extname =
           try Lang.to_string (List.assoc "extname" stream_info)
@@ -374,16 +374,16 @@ class hls_output p =
         in
         let extname = if extname = "mp4" then "m4s" else extname in
         let video_size =
-          SyncLazy.from_val
-            (try
-               let w, h =
-                 Lang.to_product (List.assoc "video_size" stream_info)
-               in
-               Some (Lang.to_int w, Lang.to_int h)
-             with Not_found -> (
-               match Encoder.(encoder.hls.video_size ()) with
-                 | Some s -> Some s
-                 | None -> Encoder.video_size format))
+          SyncLazy.from_fun (fun () ->
+              try
+                let w, h =
+                  Lang.to_product (List.assoc "video_size" stream_info)
+                in
+                Some (Lang.to_int w, Lang.to_int h)
+              with Not_found -> (
+                match Encoder.(encoder.hls.video_size ()) with
+                  | Some s -> Some s
+                  | None -> Encoder.video_size format))
         in
         (bandwidth, codecs, extname, video_size)
       in
@@ -406,17 +406,17 @@ class hls_output p =
     (mk_streams, mk_streams ())
   in
   let x_version =
-    SyncLazy.from_val
-      (if
-         List.find_opt
-           (fun s ->
-             match s.current_segment with
-               | Some { init_filename = Some _ } -> true
-               | _ -> false)
-           streams
-         <> None
-       then 7
-       else 3)
+    SyncLazy.from_fun (fun () ->
+        if
+          List.find_opt
+            (fun s ->
+              match s.current_segment with
+                | Some { init_filename = Some _ } -> true
+                | _ -> false)
+            streams
+          <> None
+        then 7
+        else 3)
   in
   let source = Lang.assoc "" 3 p in
   let main_playlist_filename = Lang.to_string (List.assoc "playlist" p) in

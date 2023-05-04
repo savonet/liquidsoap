@@ -417,15 +417,16 @@ let string_of_size n =
   else Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
 
 let self_sync_type sources =
-  SyncLazy.from_val
-    (fst
-       (List.fold_left
-          (fun cur s ->
-            match (cur, s#self_sync) with
-              | (`Static, None), (`Static, v) -> (`Static, Some v)
-              | (`Static, Some v), (`Static, v') when v = v' -> (`Static, Some v)
-              | _ -> (`Dynamic, None))
-          (`Static, None) sources))
+  SyncLazy.from_fun (fun () ->
+      fst
+        (List.fold_left
+           (fun cur s ->
+             match (cur, s#self_sync) with
+               | (`Static, None), (`Static, v) -> (`Static, Some v)
+               | (`Static, Some v), (`Static, v') when v = v' ->
+                   (`Static, Some v)
+               | _ -> (`Dynamic, None))
+           (`Static, None) sources))
 
 let string_of_pcre_error =
   Pcre.(

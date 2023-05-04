@@ -94,9 +94,9 @@ let type_of_format f =
                           let params =
                             {
                               Content.channel_layout =
-                                SyncLazy.from_val
-                                  (Audio_converter.Channel_layout
-                                   .layout_of_channels channels);
+                                SyncLazy.from_fun (fun () ->
+                                    Audio_converter.Channel_layout
+                                    .layout_of_channels channels);
                             }
                           in
                           `Format (Frame_base.audio_format ~pcm_kind params)

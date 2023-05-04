@@ -45,15 +45,15 @@ let make params =
     ]
   in
   let check_samplerate ~pos i =
-    SyncLazy.from_val
-      (let i = SyncLazy.force i in
-       if not (List.mem i valid_samplerates) then (
-         let err =
-           Printf.sprintf "invalid samplerate value. Possible values: %s"
-             (String.concat ", " (List.map string_of_int valid_samplerates))
-         in
-         Lang_encoder.raise_error ~pos err);
-       i)
+    SyncLazy.from_fun (fun () ->
+        let i = SyncLazy.force i in
+        if not (List.mem i valid_samplerates) then (
+          let err =
+            Printf.sprintf "invalid samplerate value. Possible values: %s"
+              (String.concat ", " (List.map string_of_int valid_samplerates))
+          in
+          Lang_encoder.raise_error ~pos err);
+        i)
   in
   let defaults =
     {
