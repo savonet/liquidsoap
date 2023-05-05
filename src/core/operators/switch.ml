@@ -170,7 +170,9 @@ class virtual switch ~name ~override_meta ~transition_length
                        * transition in between. *)
                       match c.source#last_metadata with
                         | Some m when replay_meta ->
-                            new Insert_metadata.replay m c.source
+                            let s = new Insert_metadata.replay m c.source in
+                            Typing.(s#frame_type <: self#frame_type);
+                            s
                         | _ -> c.source
                     in
                     new_source#get_ready activation;
@@ -198,7 +200,9 @@ class virtual switch ~name ~override_meta ~transition_length
                            * transition in between. *)
                           match c.source#last_metadata with
                             | Some m when replay_meta ->
-                                new Insert_metadata.replay m c.source
+                                let s = new Insert_metadata.replay m c.source in
+                                Typing.(s#frame_type <: self#frame_type);
+                                s
                             | _ -> c.source
                         in
                         let s =
