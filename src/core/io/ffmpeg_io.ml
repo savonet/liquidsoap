@@ -113,6 +113,13 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           Ffmpeg_decoder.mk_decoder ~streams ~target_position:(ref None) input
         in
         let buffer = Decoder.mk_buffer ~ctype:self#content_type self#buffer in
+        (* FFmpeg has memory leaks with chained ogg stream so we manually
+           reset the metadata after fetching it. *)
+        let get_metadata stream =
+          let m = Av.get_metadata stream in
+          Av.set_metadata stream [];
+          m
+        in
         let get_metadata () =
           normalize_metadata
             (Ffmpeg_decoder.Streams.fold
@@ -120,10 +127,10 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                  m
                  @
                  match stream with
-                   | `Audio_frame (stream, _) -> Av.get_metadata stream
-                   | `Audio_packet (stream, _) -> Av.get_metadata stream
-                   | `Video_frame (stream, _) -> Av.get_metadata stream
-                   | `Video_packet (stream, _) -> Av.get_metadata stream)
+                   | `Audio_frame (stream, _) -> get_metadata stream
+                   | `Audio_packet (stream, _) -> get_metadata stream
+                   | `Video_frame (stream, _) -> get_metadata stream
+                   | `Video_packet (stream, _) -> get_metadata stream)
                streams
                (Av.get_input_metadata input))
         in

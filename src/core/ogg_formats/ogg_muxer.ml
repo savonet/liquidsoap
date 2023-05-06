@@ -42,7 +42,7 @@ type page_end_time = Ogg.Page.t -> position
 type header_encoder = Ogg.Stream.stream -> Ogg.Page.t
 type fisbone_packet = Ogg.Stream.stream -> Ogg.Stream.packet option
 type stream_start = Ogg.Stream.stream -> Ogg.Page.t list
-type end_of_stream = Ogg.Stream.stream -> unit
+type end_of_stream = Ogg.Stream.stream -> Ogg.Page.t list
 
 type 'a stream = {
   os : Ogg.Stream.stream;
@@ -343,6 +343,8 @@ let add_available src encoder =
   if is_empty src then
     Hashtbl.remove encoder.tracks (Ogg.Stream.serialno src.os)
 
+let queue_add src p = Queue.add p src.available
+
 (** Encode data. Implicitly calls [streams_start]
   * if not called before. *)
 let encode encoder id data =
@@ -350,7 +352,6 @@ let encode encoder id data =
   if encoder.state = Eos then (
     log#info "%s: Cannot encode: ogg stream finished.." encoder.id;
     raise Invalid_usage);
-  let queue_add src p = Queue.add p src.available in
   match data with
     | Audio_data x -> (
         match Hashtbl.find encoder.tracks id with
@@ -377,12 +378,12 @@ let end_of_track encoder id =
     | Video_track x ->
         if not (Ogg.Stream.eos x.os) then (
           log#info "%s: Setting end of track %nx." encoder.id id;
-          x.stream_end x.os);
+          List.iter (queue_add x) (x.stream_end x.os));
         add_available x encoder
     | Audio_track x ->
         if not (Ogg.Stream.eos x.os) then (
           log#info "%s: Setting end of track %nx." encoder.id id;
-          x.stream_end x.os);
+          List.iter (queue_add x) (x.stream_end x.os));
         add_available x encoder
 
 (** Flush data from all tracks in the stream. *)
