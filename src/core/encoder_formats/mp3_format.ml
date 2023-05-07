@@ -68,8 +68,6 @@ type t = {
   internal_quality : int;
   samplerate : int Lazy.t;
   id3v2 : id3v2_export option;
-  msg_interval : float;
-  msg : string;
 }
 
 let id3v2_export : id3v2_export option ref = ref None

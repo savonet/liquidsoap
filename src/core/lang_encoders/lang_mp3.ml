@@ -50,8 +50,6 @@ let mp3_base_defaults () =
     bitrate_control = Mp3_format.CBR 128;
     internal_quality = 2;
     id3v2 = None;
-    msg_interval = 0.1;
-    msg = "";
   }
 
 let mp3_base f = function
@@ -73,10 +71,6 @@ let mp3_base f = function
         Lang_encoder.raise_error ~pos
           "internal quality must be a value between 0 and 9";
       { f with Mp3_format.internal_quality = q }
-  | "msg_interval", `Value { value = Ground (Float i); _ } ->
-      { f with Mp3_format.msg_interval = i }
-  | "msg", `Value { value = Ground (String m); _ } ->
-      { f with Mp3_format.msg = m }
   | "samplerate", `Value { value = Ground (Int i); pos } ->
       { f with Mp3_format.samplerate = check_samplerate ~pos (Lazy.from_val i) }
   | "id3v2", `Value { value = Ground (Bool true); pos } -> (
