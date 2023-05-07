@@ -1,5 +1,5 @@
 (env
- (dev
+ (_
   (flags
    (:standard -w -9 -alert --deprecated))))
 
