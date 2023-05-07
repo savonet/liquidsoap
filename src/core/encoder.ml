@@ -301,4 +301,29 @@ let get_factory fmt =
     Plug.iter plug (fun _ f ->
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
-  with Found factory -> factory
+  with Found factory ->
+    fun name m ->
+      let { insert_metadata; hls; encode; stop; header } = factory name m in
+      (* Protect all functions with a mutex. *)
+      let m = Mutex.create () in
+      let insert_metadata = Tutils.mutexify m insert_metadata in
+      let { init_encode; split_encode; codec_attrs; bitrate; video_size } =
+        hls
+      in
+      let init_encode frame ofs len =
+        Tutils.mutexify m (fun () -> init_encode frame ofs len) ()
+      in
+      let split_encode frame ofs len =
+        Tutils.mutexify m (fun () -> split_encode frame ofs len) ()
+      in
+      let codec_attrs = Tutils.mutexify m codec_attrs in
+      let bitrate = Tutils.mutexify m bitrate in
+      let video_size = Tutils.mutexify m video_size in
+      let hls =
+        { init_encode; split_encode; codec_attrs; bitrate; video_size }
+      in
+      let encode frame ofs len =
+        Tutils.mutexify m (fun () -> encode frame ofs len) ()
+      in
+      let stop = Tutils.mutexify m stop in
+      { insert_metadata; hls; encode; stop; header }
