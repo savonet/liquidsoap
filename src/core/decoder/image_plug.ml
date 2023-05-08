@@ -40,7 +40,7 @@ let file_extensions =
     "File extensions used for decoding metadata using native parser."
     ~d:["png"; "jpg"; "jpeg"]
 
-let get_tags fname =
+let get_tags ~metadata:_ fname =
   try
     if
       not

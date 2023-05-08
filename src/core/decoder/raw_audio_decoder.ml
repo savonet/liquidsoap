@@ -153,7 +153,7 @@ let () =
       priority = (fun () -> 1);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> Some ["audio/x-raw"]);
-      file_type = (fun ~ctype:_ _ -> None);
+      file_type = (fun ~metadata:_ ~ctype:_ _ -> None);
       file_decoder = None;
       stream_decoder =
         Some

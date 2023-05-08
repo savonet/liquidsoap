@@ -113,7 +113,11 @@ type decoder_specs = {
   priority : unit -> int;
   file_extensions : unit -> string list option;
   mime_types : unit -> string list option;
-  file_type : ctype:Frame.content_type -> string -> Frame.content_type option;
+  file_type :
+    metadata:Frame.metadata ->
+    ctype:Frame.content_type ->
+    string ->
+    Frame.content_type option;
   file_decoder : file_decoder option;
   stream_decoder : (ctype:Frame.content_type -> string -> stream_decoder) option;
 }
@@ -206,6 +210,8 @@ let conf_priorities =
     ~p:(conf_decoder#plug "priorities")
     "Priorities used for choosing audio and video file decoders"
 
+let base_mime s = List.hd (String.split_on_char ';' s)
+
 let test_file ?(log = log) ?mimes ?extensions fname =
   if not (Sys.file_exists fname) then (
     log#info "File %s does not exist!" (Lang_string.quote_string fname);
@@ -228,12 +234,8 @@ let test_file ?(log = log) ?mimes ?extensions fname =
         | None, _ -> true
         | _, None -> false
         | Some mimes, Some mime ->
-            let mimes =
-              List.map
-                (fun mime -> List.hd (String.split_on_char ';' mime))
-                mimes
-            in
-            let ret = List.mem mime mimes in
+            let mimes = List.map base_mime mimes in
+            let ret = List.mem (base_mime mime) mimes in
             if not ret then
               log#info "Unsupported MIME type for %s: %s!"
                 (Lang_string.quote_string fname)
@@ -310,7 +312,7 @@ let get_file_decoder ~metadata ~ctype filename =
         (fun (name, specs) ->
           log#info "Trying decoder %S" name;
           try
-            match specs.file_type ~ctype filename with
+            match specs.file_type ~metadata ~ctype filename with
               | Some decoded_type ->
                   if can_decode_type decoded_type ctype then
                     raise (Found (name, decoded_type, specs))
@@ -385,16 +387,9 @@ let get_stream_decoder ~ctype mime =
         &&
         match specs.mime_types () with
           | None -> false
-          | Some mimes -> (
-              try
-                ignore
-                  (List.find
-                     (fun m ->
-                       try String.sub m 0 (String.length mime) = mime
-                       with Invalid_argument _ -> false)
-                     mimes);
-                true
-              with Not_found -> false))
+          | Some mimes ->
+              let mimes = List.map base_mime mimes in
+              List.mem (base_mime mime) mimes)
       (get_decoders ())
   in
   if decoders = [] then (

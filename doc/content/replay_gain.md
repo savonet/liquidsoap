@@ -56,7 +56,7 @@ behind some `request.dynamic.list` operator. If you are using the
 Protocols can be chained, for instance:
 
 ```
-annotate:foo=\"bar":replaygain:/path/to/file.mp3
+annotate:foo="bar":replaygain:/path/to/file.mp3
 ```
 
 ### Applying replay gain information

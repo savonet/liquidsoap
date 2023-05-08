@@ -103,6 +103,33 @@ output.file(%vorbis, output,fallible=true,
                      on_stop=shutdown,source)
 ```
 
+## Transmitting signal
+
+It is possible to send raw PCM signal between two instances using the [FFmpeg encoder](ffmpeg.html). Here's an example using
+the SRT transport protocol:
+
+Sender:
+
+```liquidsoap
+enc = %ffmpeg(
+  format="s16le",
+  %audio(
+    codec="pcm_s16le",
+    ac=2,
+    ar=48000
+  )
+)
+output.srt(enc, s)
+```
+
+Receiver:
+
+```liquidsoap
+s = input.srt(
+  content_type="application/ffmpeg;format=s16le,ch_layout=stereo,sample_rate=48000"
+)
+```
+
 ## Scheduling
 
 ```liquidsoap

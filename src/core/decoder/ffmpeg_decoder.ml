@@ -494,8 +494,46 @@ let priority =
     ~p:(Decoder.conf_priorities#plug "ffmpeg")
     "Priority for the ffmpeg decoder" ~d:10
 
-let duration file =
-  let container = Av.open_input file in
+let parse_encoder_params s =
+  let lexbuf = Sedlexing.Utf8.from_string ("(" ^ s ^ ")") in
+  let processor =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Liquidsoap_lang.Parser.plain_encoder_params
+  in
+  let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
+  processor tokenizer
+
+let parse_input_args args =
+  try
+    let args = parse_encoder_params args in
+    List.fold_left
+      (fun (args, format) -> function
+        | "f", `Term Term.{ term = Var format; _ }
+        | "format", `Term Term.{ term = Var format; _ } ->
+            (args, Av.Format.find_input_format format)
+        | k, `Term Term.{ term = Var v; _ } -> ((k, `String v) :: args, format)
+        | k, `Term Term.{ term = Ground (Ground.String s); _ } ->
+            ((k, `String s) :: args, format)
+        | k, `Term Term.{ term = Ground (Ground.Int i); _ } ->
+            ((k, `Int i) :: args, format)
+        | k, `Term Term.{ term = Ground (Ground.Float f); _ } ->
+            ((k, `Float f) :: args, format)
+        | _ -> assert false)
+      ([], None) args
+  with _ ->
+    Runtime_error.raise ~pos:[] ~message:"Invalid mime type arguments!"
+      "ffmpeg_decoder"
+
+let parse_file_decoder_args metadata =
+  match Hashtbl.find_opt metadata "ffmpeg_options" with
+    | Some args -> parse_input_args args
+    | None -> ([], None)
+
+let duration ~metadata file =
+  let args, format = parse_file_decoder_args metadata in
+  let opts = Hashtbl.create 10 in
+  List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+  let container = Av.open_input ?format ~opts file in
   Tutils.finalize
     ~k:(fun () -> Av.close container)
     (fun () ->
@@ -503,13 +541,18 @@ let duration file =
       Option.map (fun d -> Int64.to_float d /. 1000.) duration)
 
 let () =
-  Plug.register Request.dresolvers "ffmepg" ~doc:"" (fun fname ->
-      match duration fname with None -> raise Not_found | Some d -> d)
+  Plug.register Request.dresolvers "ffmepg" ~doc:"" (fun ~metadata fname ->
+      match duration ~metadata fname with
+        | None -> raise Not_found
+        | Some d -> d)
 
 let tags_substitutions = [("track", "tracknumber")]
 
-let get_tags file =
-  let container = Av.open_input file in
+let get_tags ~metadata file =
+  let args, format = parse_file_decoder_args metadata in
+  let opts = Hashtbl.create 10 in
+  List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+  let container = Av.open_input ?format ~opts file in
   Tutils.finalize
     ~k:(fun () -> Av.close container)
     (fun () ->
@@ -858,8 +901,9 @@ let mk_streams ~ctype ~decode_first_metadata container =
   in
   streams
 
-let create_decoder ~ctype fname =
-  let duration = duration fname in
+let create_decoder ~ctype ~metadata fname =
+  let args, format = parse_file_decoder_args metadata in
+  let duration = duration ~metadata fname in
   let remaining = ref duration in
   let m = Mutex.create () in
   let set_remaining stream pts =
@@ -882,11 +926,12 @@ let create_decoder ~ctype fname =
         match !remaining with None -> -1 | Some r -> Frame.main_of_seconds r)
   in
   let opts = Hashtbl.create 10 in
+  List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
   let ext = Filename.extension fname in
   if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then (
     Hashtbl.add opts "loop" (`Int 1);
     Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
-  let container = Av.open_input ~opts fname in
+  let container = Av.open_input ?format ~opts fname in
   let streams = mk_streams ~ctype ~decode_first_metadata:false container in
   let streams =
     Streams.map
@@ -936,8 +981,8 @@ let create_decoder ~ctype fname =
     close,
     get_remaining )
 
-let create_file_decoder ~metadata:_ ~ctype filename =
-  let decoder, close, remaining = create_decoder ~ctype filename in
+let create_file_decoder ~metadata ~ctype filename =
+  let decoder, close, remaining = create_decoder ~ctype ~metadata filename in
   Decoder.file_decoder ~filename ~close ~remaining ~ctype decoder
 
 let create_stream_decoder ~ctype mime input =
@@ -946,13 +991,26 @@ let create_stream_decoder ~ctype mime input =
       | None -> None
       | Some fn -> Some (fun len _ -> fn len)
   in
+  let mime, (args, format) =
+    match String.split_on_char ';' mime with
+      | "application/ffmpeg" :: args ->
+          ("application/ffmpeg", parse_input_args (String.concat ";" args))
+      | _ -> (mime, ([], None))
+  in
   let opts = Hashtbl.create 10 in
+  List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
   if List.exists (fun s -> mime = s) image_mime_types#get then (
     Hashtbl.add opts "loop" (`Int 1);
     Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
   let container =
-    Av.open_input_stream ?seek:seek_input ~opts input.Decoder.read
+    Av.open_input_stream ?seek:seek_input ~opts ?format input.Decoder.read
   in
+  if Hashtbl.length opts > 0 then
+    Runtime_error.raise ~pos:[]
+      ~message:
+        (Printf.sprintf "Unrecognized options: %s"
+           (Ffmpeg_format.string_of_options opts))
+      "ffmpeg_decoder";
   let streams = mk_streams ~ctype ~decode_first_metadata:true container in
   let target_position = ref None in
   {
@@ -960,7 +1018,7 @@ let create_stream_decoder ~ctype mime input =
     decode = mk_decoder ~streams ~target_position container;
   }
 
-let get_file_type ~ctype filename =
+let get_file_type ~metadata ~ctype filename =
   (* If file is an image, leave internal decoding to
      the image decoder. *)
   match
@@ -971,7 +1029,10 @@ let get_file_type ~ctype filename =
            && Content.Video.is_format format ->
         Frame.Fields.make ()
     | _ ->
-        let container = Av.open_input filename in
+        let args, format = parse_file_decoder_args metadata in
+        let opts = Hashtbl.create 10 in
+        List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+        let container = Av.open_input ?format ~opts filename in
         Tutils.finalize
           ~k:(fun () -> Av.close container)
           (fun () -> get_type ~ctype ~url:filename container)
@@ -987,7 +1048,9 @@ let () =
       file_extensions =
         (fun () -> Some (file_extensions#get @ image_file_extensions#get));
       mime_types = (fun () -> Some (mime_types#get @ image_mime_types#get));
-      file_type = (fun ~ctype filename -> Some (get_file_type ~ctype filename));
+      file_type =
+        (fun ~metadata ~ctype filename ->
+          Some (get_file_type ~metadata ~ctype filename));
       file_decoder = Some create_file_decoder;
       stream_decoder = Some create_stream_decoder;
     }

@@ -459,6 +459,12 @@ let () =
           ignore
             (Lang.add_builtin ~base:file_metadata name ~category:`File
                [
+                 ( "metadata",
+                   Lang.metadata_t,
+                   Some (Lang.list []),
+                   Some
+                     "Optional metadata used to decode the file, e.g. \
+                      `ffmpeg_options`." );
                  ( "",
                    Lang.string_t,
                    None,
@@ -469,7 +475,8 @@ let () =
                  ("Read metadata from a file using the " ^ name ^ " decoder.")
                (fun p ->
                  let uri = Lang.to_string (List.assoc "" p) in
-                 let m = try decoder uri with _ -> [] in
+                 let metadata = Lang.to_metadata (List.assoc "metadata" p) in
+                 let m = try decoder ~metadata uri with _ -> [] in
                  let m =
                    List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
                  in

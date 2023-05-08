@@ -159,11 +159,11 @@ let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
 
 exception Duration of float
 
-let duration file =
+let duration ~metadata file =
   try
     Plug.iter dresolvers (fun _ resolver ->
         try
-          let ans = resolver file in
+          let ans = resolver ~metadata file in
           raise (Duration ans)
         with
           | Duration e -> raise (Duration e)
@@ -327,7 +327,7 @@ let read_metadata t =
       List.iter
         (fun (_, resolver) ->
           try
-            let ans = resolver name in
+            let ans = resolver ~metadata:indicator.metadata name in
             List.iter
               (fun (k, v) ->
                 let k = String.lowercase_ascii k in
@@ -337,7 +337,7 @@ let read_metadata t =
             if conf_duration#get && get_metadata t "duration" = None then (
               try
                 Hashtbl.replace indicator.metadata "duration"
-                  (string_of_float (duration name))
+                  (string_of_float (duration ~metadata:indicator.metadata name))
               with Not_found -> ())
           with _ -> ())
         (get_decoders conf_metadata_decoders mresolvers))

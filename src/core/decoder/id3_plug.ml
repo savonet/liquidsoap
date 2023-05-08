@@ -55,7 +55,7 @@ let file_extensions =
      parser"
     ~d:["mp3"; "wav"]
 
-let get_tags parse fname =
+let get_tags ~metadata:_ parse fname =
   try
     if
       not

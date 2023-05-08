@@ -23,7 +23,11 @@
 let decoder_metadata = Lang.add_module ~base:Modules.decoder "metadata"
 
 let _ =
-  let resolver_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.metadata_t in
+  let resolver_t =
+    Lang.fun_t
+      [(false, "metadata", Lang.metadata_t); (false, "", Lang.string_t)]
+      Lang.metadata_t
+  in
   Lang.add_builtin ~base:decoder_metadata "add" ~category:`Liquidsoap
     ~descr:"Register an external file metadata decoder."
     [
@@ -39,8 +43,11 @@ let _ =
     (fun p ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let resolver name =
-        let ret = Lang.apply f [("", Lang.string name)] in
+      let resolver ~metadata name =
+        let ret =
+          Lang.apply f
+            [("metadata", Lang.metadata metadata); ("", Lang.string name)]
+        in
         let ret = Lang.to_list ret in
         let ret = List.map Lang.to_product ret in
         let ret =

@@ -114,13 +114,14 @@ let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =
       priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
-      file_type = (fun ~ctype:_ filename -> test_ctype test filename);
+      file_type =
+        (fun ~metadata:_ ~ctype:_ filename -> test_ctype test filename);
       file_decoder =
         Some (fun ~metadata:_ ~ctype filename -> create process ctype filename);
       stream_decoder = Some (fun ~ctype:_ _ -> create_stream process);
     };
 
-  let duration filename =
+  let duration ~metadata:_ filename =
     let process =
       Printf.sprintf "cat %s | %s" (Filename.quote filename) process
     in
@@ -186,7 +187,8 @@ let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
       priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
-      file_type = (fun ~ctype:_ filename -> test_ctype test filename);
+      file_type =
+        (fun ~metadata:_ ~ctype:_ filename -> test_ctype test filename);
       file_decoder =
         Some
           (fun ~metadata:_ ~ctype:_ filename ->
@@ -194,5 +196,5 @@ let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
       stream_decoder = None;
     };
 
-  let duration filename = duration (process filename) in
+  let duration ~metadata:_ filename = duration (process filename) in
   Plug.register Request.dresolvers name ~doc duration

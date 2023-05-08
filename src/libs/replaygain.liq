@@ -51,7 +51,7 @@ end
 # `replaygain:` protocol.
 # @category Liquidsoap
 def enable_replaygain_metadata()
-  def replaygain_metadata(fname)
+  def replaygain_metadata(~metadata=_, fname)
     gain = file.replaygain(fname)
     if null.defined(gain) then
       [("replaygain_track_gain","#{null.get(gain)} dB")]

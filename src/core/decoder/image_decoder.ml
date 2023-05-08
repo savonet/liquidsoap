@@ -154,7 +154,7 @@ let () =
       file_extensions = (fun () -> None);
       mime_types = (fun () -> None);
       file_type =
-        (fun ~ctype filename ->
+        (fun ~metadata:_ ~ctype filename ->
           if
             Decoder.get_image_file_decoder filename <> None
             && is_audio_compatible ctype && is_video_compatible ctype

@@ -180,7 +180,7 @@ def enable_external_flac_decoder() =
   if file.which(metaflac) != null() then
     log(label="decoder.external","Enabling EXTERNAL_FLAC metadata \
                 resolver.")
-    def flac_meta(fname)
+    def flac_meta(~metadata=_, fname)
       ret = process.read.lines("#{metaflac} --export-tags-to=- \
                    #{process.quote(fname)}")
       ret = list.map(r/=/.split, ret)
@@ -273,7 +273,7 @@ def enable_external_faad_decoder() =
     end
     decoder.oblivious.add(name="EXTERNAL_FAAD",description="Decode files using \
                           the faad binary.", test=test_faad, faad_p)
-    def faad_meta(file) =
+    def faad_meta(~metadata=_, file) =
       if faad_test(file) then
         ret = process.read.lines("#{faad} -i #{process.quote(file)} 2>&1")
         # Yea, this is ugly programming (again)!

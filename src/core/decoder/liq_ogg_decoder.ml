@@ -229,7 +229,7 @@ let create_decoder ?(merge_tracks = false) source input =
 
 (** File decoder *)
 
-let file_type ~ctype:_ filename =
+let file_type ~metadata:_ ~ctype:_ filename =
   let decoder, fd = Ogg_decoder.init_from_file ~log:demuxer_log filename in
   let tracks = Ogg_decoder.get_standard_tracks decoder in
   Tutils.finalize
@@ -300,7 +300,7 @@ let () =
 
 (** Metadata *)
 
-let get_tags file =
+let get_tags ~metadata:_ file =
   if
     not
       (Decoder.test_file ~log ~mimes:mime_types#get
