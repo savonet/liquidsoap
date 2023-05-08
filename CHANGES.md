@@ -102,6 +102,8 @@ Changed:
   protocol.
 - The `sleeper` operator is now scripted (#2899).
 - Reworked remote request file extension resolution (#2947)
+- Protect accesses to lazy values using mutexes in order to build correctly with
+  OCaml 5 (#3049).
 
 Fixed:
 
