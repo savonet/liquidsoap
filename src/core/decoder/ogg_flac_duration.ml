@@ -24,8 +24,8 @@
 
 let duration file =
   let sync, fd = Ogg.Sync.create_from_file file in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun _ ->
       let test_flac () =
         (* Get First page *)

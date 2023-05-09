@@ -218,8 +218,8 @@ let _ =
       in
       let asynchronous () =
         let out_pipe, in_pipe = Unix.pipe ~cloexec:true () in
-        Tutils.finalize
-          ~k:(fun () ->
+        Fun.protect
+          ~finally:(fun () ->
             ignore (Unix.close in_pipe);
             ignore (Unix.close out_pipe))
           (fun () ->

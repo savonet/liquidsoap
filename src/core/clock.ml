@@ -537,7 +537,7 @@ let collect_after f =
   Mutex.lock lock;
   after_collect_tasks := !after_collect_tasks + 1;
   Mutex.unlock lock;
-  Tutils.finalize f ~k:(fun () ->
+  Fun.protect f ~finally:(fun () ->
       Mutex.lock lock;
       after_collect_tasks := !after_collect_tasks - 1;
       collect ~must_lock:false)

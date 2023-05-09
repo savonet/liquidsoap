@@ -66,8 +66,8 @@ let get_tags fname =
       try Taglib.File.open_file `OggOpus fname
       with _ -> Taglib.File.open_file `Autodetect fname
     in
-    Tutils.finalize
-      ~k:(fun () -> Taglib.File.close_file f)
+    Fun.protect
+      ~finally:(fun () -> Taglib.File.close_file f)
       (fun () ->
         let tags =
           List.fold_left

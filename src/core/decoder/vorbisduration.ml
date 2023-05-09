@@ -24,8 +24,8 @@
 
 let duration file =
   let dec, fd = Vorbis.File.Decoder.openfile file in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun _ -> Vorbis.File.Decoder.duration dec (-1))
 
 let () = Plug.register Request.dresolvers "vorbis" ~doc:"" duration

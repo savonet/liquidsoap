@@ -85,30 +85,8 @@ let scheduler_log =
     ~d:false "Log scheduler messages"
 
 let mutexify lock f x =
-  let after =
-    try
-      Mutex.lock lock;
-      fun () -> Mutex.unlock lock
-    with Sys_error _ -> fun () -> ()
-  in
-  try
-    let ans = f x in
-    after ();
-    ans
-  with e ->
-    let bt = Printexc.get_raw_backtrace () in
-    after ();
-    Printexc.raise_with_backtrace e bt
-
-let finalize ~k f =
-  try
-    let x = f () in
-    k ();
-    x
-  with e ->
-    let bt = Printexc.get_raw_backtrace () in
-    k ();
-    Printexc.raise_with_backtrace e bt
+  Mutex.lock lock;
+  Fun.protect ~finally:(fun () -> Mutex.unlock lock) (fun () -> f x)
 
 let seems_locked =
   if Sys.win32 then fun _ -> true

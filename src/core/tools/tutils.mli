@@ -77,10 +77,6 @@ type event =
  * Raises [Timeout elapsed_time] if timeout is reached. *)
 val wait_for : ?log:(string -> unit) -> event -> float -> unit
 
-(** [finalize ~k f] calls [f] and returns it result,
-  * and always executes [k], even when [f] raises an exception. *)
-val finalize : k:(unit -> unit) -> (unit -> 'a) -> 'a
-
 (** Tests whether a mutex is locked, without blocking.
   * We cannot check on Win32, where [true] is always returned:
   * it always "seems" OK, we don't raise false alarms.
