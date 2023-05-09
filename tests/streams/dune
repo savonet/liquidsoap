@@ -25,37 +25,103 @@
  (alias citest)
  (target file1.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=220:duration=5" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=5"
+   -ac
+   2
+   %{target})))
 
 (rule
  (alias citest)
  (target file2.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=5"
+   -ac
+   2
+   %{target})))
 
 (rule
  (alias citest)
  (target file3.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=880:duration=5" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=880:duration=5"
+   -ac
+   2
+   %{target})))
 
 (rule
  (alias citest)
  (target jingle1.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=220:duration=2" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=2"
+   -ac
+   2
+   %{target})))
 
 (rule
  (alias citest)
  (target jingle2.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=440:duration=2" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=2"
+   -ac
+   2
+   %{target})))
 
 (rule
  (alias citest)
  (target jingle3.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=880:duration=2" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=880:duration=2"
+   -ac
+   2
+   %{target})))
 
 (rule
  (alias citest)
@@ -63,6 +129,9 @@
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -79,6 +148,9 @@
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i

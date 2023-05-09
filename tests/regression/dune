@@ -10,12 +10,16 @@
  (action
   (with-stdout-to
    dune.inc.gen
-   (run ../gen_dune.exe))))
+   (run ./gen_dune.exe))))
 
 (rule
  (alias gendune)
  (action
   (diff dune.inc dune.inc.gen)))
+
+(executable
+ (name gen_dune)
+ (modules gen_dune))
 
 (rule
  (alias citest)

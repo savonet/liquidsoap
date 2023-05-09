@@ -4,7 +4,6 @@
  (package liquidsoap)
  (deps
   rec.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -17,7 +16,6 @@
  (package liquidsoap)
  (deps
   loop.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -30,7 +28,6 @@
  (package liquidsoap)
  (deps
   type_errors.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -43,7 +40,6 @@
  (package liquidsoap)
  (deps
   thread.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -56,7 +52,6 @@
  (package liquidsoap)
  (deps
   process.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -69,7 +64,6 @@
  (package liquidsoap)
  (deps
   ref.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -82,7 +76,6 @@
  (package liquidsoap)
  (deps
   conversions.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -95,7 +88,6 @@
  (package liquidsoap)
  (deps
   regexp.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -108,7 +100,6 @@
  (package liquidsoap)
  (deps
   null.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -121,7 +112,6 @@
  (package liquidsoap)
  (deps
   math.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -134,7 +124,6 @@
  (package liquidsoap)
  (deps
   socket.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -147,7 +136,6 @@
  (package liquidsoap)
  (deps
   pp.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -160,7 +148,6 @@
  (package liquidsoap)
  (deps
   error.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -173,7 +160,6 @@
  (package liquidsoap)
  (deps
   string.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -186,7 +172,6 @@
  (package liquidsoap)
  (deps
   stdlib.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -199,7 +184,6 @@
  (package liquidsoap)
  (deps
   yaml.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -212,7 +196,6 @@
  (package liquidsoap)
  (deps
   argsof.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -225,7 +208,6 @@
  (package liquidsoap)
  (deps
   file.watch.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -238,7 +220,6 @@
  (package liquidsoap)
  (deps
   interactive.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -251,7 +232,6 @@
  (package liquidsoap)
  (deps
   predicate.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -264,7 +244,6 @@
  (package liquidsoap)
  (deps
   file.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -277,7 +256,6 @@
  (package liquidsoap)
  (deps
   getter.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -290,7 +268,6 @@
  (package liquidsoap)
  (deps
   comments.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -303,7 +280,6 @@
  (package liquidsoap)
  (deps
   pattern.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -316,7 +292,6 @@
  (package liquidsoap)
  (deps
   list.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -329,7 +304,6 @@
  (package liquidsoap)
  (deps
   mem_usage.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -342,7 +316,6 @@
  (package liquidsoap)
  (deps
   metadata.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -355,7 +328,6 @@
  (package liquidsoap)
  (deps
   file.watch2.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -368,7 +340,6 @@
  (package liquidsoap)
  (deps
   functions.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -381,7 +352,6 @@
  (package liquidsoap)
  (deps
   record.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -394,7 +364,6 @@
  (package liquidsoap)
  (deps
   osc.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -407,7 +376,6 @@
  (package liquidsoap)
  (deps
   file_protocol.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -420,7 +388,6 @@
  (package liquidsoap)
  (deps
   eval.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -433,7 +400,6 @@
  (package liquidsoap)
  (deps
   bool.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -446,7 +412,6 @@
  (package liquidsoap)
  (deps
   json.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -459,7 +424,6 @@
  (package liquidsoap)
  (deps
   encoders.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -472,7 +436,6 @@
  (package liquidsoap)
  (deps
   doc.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -485,7 +448,6 @@
  (package liquidsoap)
  (deps
   typing.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -498,7 +460,6 @@
  (package liquidsoap)
  (deps
   time.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)

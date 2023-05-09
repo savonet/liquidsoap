@@ -25,7 +25,6 @@ let () =
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)

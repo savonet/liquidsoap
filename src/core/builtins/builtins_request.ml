@@ -181,12 +181,12 @@ let _ =
 let _ =
   Lang.add_builtin ~base:request "duration" ~category:`Liquidsoap
     [
-      ("", Lang.string_t, None, None);
-      ( "",
+      ( "metadata",
         Lang.metadata_t,
         Some (Lang.list []),
         Some "Optional metadata used to decode the file, e.g. `ffmpeg_options`."
       );
+      ("", Lang.string_t, None, None);
     ]
     (Lang.nullable_t Lang.float_t)
     ~descr:

@@ -14,6 +14,7 @@ let () =
  (package liquidsoap)
  (deps
   %s
+  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
