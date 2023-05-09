@@ -46,7 +46,7 @@ let create_gen enc freq m =
     Vorbis.Encoder.encode_buffer_float enc os b ofs len
   in
   let empty_data () =
-    Array.make (Lazy.force Frame.audio_channels) (Array.make 1 0.)
+    Array.make (SyncLazy.force Frame.audio_channels) (Array.make 1 0.)
   in
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
@@ -92,7 +92,7 @@ let create ~channels ~samplerate ~quality ~metadata () =
 let create_vorbis = function
   | Ogg_format.Vorbis vorbis ->
       let channels = vorbis.Vorbis_format.channels in
-      let samplerate = Lazy.force vorbis.Vorbis_format.samplerate in
+      let samplerate = SyncLazy.force vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
         let m = Meta_format.to_metadata m in
         let metadata = Vorbis.tags m () in

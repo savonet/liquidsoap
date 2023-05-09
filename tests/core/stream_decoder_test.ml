@@ -36,7 +36,7 @@ let () =
   try
     while true do
       try
-        while Generator.length generator < Lazy.force Frame.size do
+        while Generator.length generator < SyncLazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;
         Generator.fill generator frame;

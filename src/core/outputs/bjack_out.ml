@@ -30,7 +30,7 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
   source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   object (self)
     inherit
       Output.output
@@ -52,7 +52,8 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (Bjack_in.bjack_clock () :> Source.clock))
+          (Clock.create_known
+             (SyncLazy.force Bjack_in.bjack_clock :> Source.clock))
 
     val mutable device = None
     method! self_sync = (`Dynamic, device <> None)

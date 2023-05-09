@@ -49,7 +49,8 @@ class virtual switch ~name ~override_meta ~transition_length
       (List.map (fun c -> c.transition) cases)
   in
   let self_sync_type =
-    if !failed then lazy `Dynamic else Utils.self_sync_type !sources
+    if !failed then SyncLazy.from_val `Dynamic
+    else Utils.self_sync_type !sources
   in
   object (self)
     inherit operator ~name (List.map (fun x -> x.source) cases)
@@ -139,7 +140,7 @@ class virtual switch ~name ~override_meta ~transition_length
        can return anything so we check if any source might be not
        self_sync in this case *)
     method self_sync =
-      ( Lazy.force self_sync_type,
+      ( SyncLazy.force self_sync_type,
         match selected with
           | Some s -> snd s.effective_source#self_sync
           | None -> List.exists (fun c -> snd c.source#self_sync) cases )

@@ -27,13 +27,13 @@ open Mm
 open Ao
 
 (** As with ALSA (even more maybe) it would be better to have one clock
-  * per driver... but it might also depend on driver options. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "ao")
+    per driver... but it might also depend on driver options. *)
+let clock = SyncLazy.from_fun (fun () -> Clock.clock "ao")
 
 class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
   ~options ?channels_matrix source start =
   let samples_per_frame = AFrame.size () in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
   object (self)
     inherit
@@ -56,7 +56,7 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Source.clock))
+          (Clock.create_known (SyncLazy.force clock :> Source.clock))
 
     val mutable device = None
     method! self_sync = (`Dynamic, device <> None)
@@ -66,7 +66,7 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
         | Some d -> d
         | None ->
             (* Wait for things to settle... TODO I don't need that! *)
-            Thread.delay (5. *. Lazy.force Frame.duration);
+            Thread.delay (5. *. SyncLazy.force Frame.duration);
             let driver =
               if driver = "" then get_default_driver () else find_driver driver
             in

@@ -26,7 +26,7 @@ open Gstreamer
 module GU = Gstreamer_utils
 
 let log = Log.make ["gstreamer"]
-let gst_clock = Tutils.lazy_cell (fun () -> Clock.clock "gstreamer")
+let gst_clock = SyncLazy.from_fun (fun () -> Clock.clock "gstreamer")
 
 let string_of_state_change = function
   | Element.State_change_success -> "success"
@@ -191,7 +191,7 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       super#set_clock;
       if clock_safe then
         Clock.unify self#clock
-          (Clock.create_known (gst_clock () :> Source.clock))
+          (Clock.create_known (SyncLazy.force gst_clock :> Source.clock))
 
     method start =
       let el = self#get_element in
@@ -269,7 +269,7 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       let el = self#get_element in
       try
         if not (Frame.is_partial frame) then (
-          let len = Lazy.force Frame.size in
+          let len = SyncLazy.force Frame.size in
           let duration = Gstreamer_utils.time_of_main len in
           if has_audio then (
             let pcm = AFrame.pcm frame in

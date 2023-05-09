@@ -33,14 +33,14 @@ let allowed_bitrates =
   ]
 
 let check_samplerate ~pos i =
-  lazy
-    (let i = Lazy.force i in
-     let allowed =
-       [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
-     in
-     if not (List.mem i allowed) then
-       Lang_encoder.raise_error ~pos "invalid samplerate value";
-     i)
+  SyncLazy.from_fun (fun () ->
+      let i = SyncLazy.force i in
+      let allowed =
+        [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
+      in
+      if not (List.mem i allowed) then
+        Lang_encoder.raise_error ~pos "invalid samplerate value";
+      i)
 
 let mp3_base_defaults () =
   {
@@ -72,7 +72,10 @@ let mp3_base f = function
           "internal quality must be a value between 0 and 9";
       { f with Mp3_format.internal_quality = q }
   | "samplerate", `Value { value = Ground (Int i); pos } ->
-      { f with Mp3_format.samplerate = check_samplerate ~pos (Lazy.from_val i) }
+      {
+        f with
+        Mp3_format.samplerate = check_samplerate ~pos (SyncLazy.from_val i);
+      }
   | "id3v2", `Value { value = Ground (Bool true); pos } -> (
       match !Mp3_format.id3v2_export with
         | None ->

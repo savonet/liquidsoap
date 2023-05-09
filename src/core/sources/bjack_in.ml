@@ -23,12 +23,12 @@
 open Mm
 
 let log = Log.make ["input"; "jack"]
-let bjack_clock = Tutils.lazy_cell (fun () -> Clock.clock "bjack")
+let bjack_clock = SyncLazy.from_fun (fun () -> Clock.clock "bjack")
 
 class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
   ~server =
   let samples_per_frame = AFrame.size () in
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   let seconds_per_frame = float samples_per_frame /. float samples_per_second in
   let bytes_per_sample = 2 in
 

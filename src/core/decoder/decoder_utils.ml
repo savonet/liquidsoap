@@ -33,7 +33,7 @@ let samplerate_converter () =
   let state = ref None in
   fun ~samplerate audio_buf ofs len ->
     let _channels = Array.length audio_buf in
-    let audio_dst_rate = float (Lazy.force Frame.audio_rate) in
+    let audio_dst_rate = float (SyncLazy.force Frame.audio_rate) in
     let ratio = audio_dst_rate /. float samplerate in
     match !state with
       | Some converter ->

@@ -20,34 +20,11 @@
 
  *****************************************************************************)
 
-type quality = float
-type bitrate = int
+type 'a t
 
-type mode =
-  | VBR of quality (* Variable bitrate. *)
-  | CBR of bitrate (* Constant bitrate. *)
-  | ABR of bitrate option * bitrate option * bitrate option
-
-(* Average: min,avg,max. *)
-
-type t = {
-  channels : int;
-  mode : mode;
-  samplerate : int SyncLazy.t;
-  fill : int option;
-}
-
-let string_of_mode = function
-  | ABR (min, avg, max) ->
-      let f v x =
-        match x with Some x -> Printf.sprintf "%s=%d," v x | None -> ""
-      in
-      Printf.sprintf ".abr(%s%s%s" (f "min_bitrate" min) (f "bitrate" avg)
-        (f "max_bitrate" max)
-  | CBR bitrate -> Printf.sprintf ".cbr(bitrate=%d" bitrate
-  | VBR q -> Printf.sprintf "(quality=%.2f" q
-
-let to_string v =
-  Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)" (string_of_mode v.mode)
-    v.channels
-    (SyncLazy.force v.samplerate)
+val from_lazy : 'a Lazy.t -> 'a t
+val from_val : 'a -> 'a t
+val from_fun : (unit -> 'a) -> 'a t
+val force : 'a t -> 'a
+val to_fun : 'a t -> unit -> 'a
+val is_val : 'a t -> bool

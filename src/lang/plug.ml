@@ -35,16 +35,16 @@ class ['a] plug ?(register_hook = fun _ -> ()) doc insensitive duplicates =
       in
       let doc () =
         match (doc, sdoc) with
-          | Some d, _ -> Lazy.force d
+          | Some d, _ -> SyncLazy.force d
           | None, None -> Doc.trivial "(no doc)"
           | None, Some s -> Doc.trivial s
       in
       if duplicates then (
-        subsections <- (plugin, Lazy.from_fun doc) :: subsections;
+        subsections <- (plugin, SyncLazy.from_fun doc) :: subsections;
         plugins <- (plugin, v) :: plugins)
       else (
         subsections <-
-          (plugin, Lazy.from_fun doc)
+          (plugin, SyncLazy.from_fun doc)
           :: List.filter (fun (k, _) -> k <> plugin) subsections;
         plugins <-
           (plugin, v) :: List.filter (fun (k, _) -> k <> plugin) plugins);

@@ -26,7 +26,7 @@ type write_frame = write_payload -> unit
 let write_to_buffer ~fields g = function
   | `Frame frame ->
       Generator.feed ~fields g frame;
-      let excess = Generator.length g - Lazy.force Frame.size in
+      let excess = Generator.length g - SyncLazy.force Frame.size in
       if 0 < excess then Generator.truncate g excess
   | `Flush -> ()
 
@@ -77,7 +77,7 @@ class producer ?create_known_clock ~check_self_sync ~consumers ~name () =
         (List.map (fun s -> Lang.source (s :> Source.source)) consumers) as child_support
 
     method self_sync =
-      ( Lazy.force self_sync_type,
+      ( SyncLazy.force self_sync_type,
         List.fold_left (fun cur s -> cur || snd s#self_sync) false consumers )
 
     method stype = if infallible then `Infallible else `Fallible
@@ -118,7 +118,8 @@ class producer ?create_known_clock ~check_self_sync ~consumers ~name () =
       let b = Frame.breaks buf in
       List.iter (fun c -> c#set_output_enabled true) consumers;
       while
-        Generator.length self#buffer < Lazy.force Frame.size && self#is_ready
+        Generator.length self#buffer < SyncLazy.force Frame.size
+        && self#is_ready
       do
         self#child_tick
       done;

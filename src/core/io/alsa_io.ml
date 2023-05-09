@@ -32,7 +32,7 @@ let handle lbl f x =
       (Printf.sprintf "Error while setting %s: %s" lbl (string_of_error e))
 
 class virtual base dev mode =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   let samples_per_frame = AFrame.size () in
   let periods = Alsa_settings.periods#get in
   object (self)
@@ -156,7 +156,7 @@ class virtual base dev mode =
   end
 
 class output ~clock_safe ~start ~infallible ~on_stop ~on_start dev val_source =
-  let samples_per_second = Lazy.force Frame.audio_rate in
+  let samples_per_second = SyncLazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
     inherit

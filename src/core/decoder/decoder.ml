@@ -243,7 +243,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     ext_ok || mime_ok)
 
 let channel_layout audio =
-  Lazy.force Content.(Audio.(get_params audio).Content.channel_layout)
+  SyncLazy.force Content.(Audio.(get_params audio).Content.channel_layout)
 
 let can_decode_type decoded_type target_type =
   let map_convertible cur (field, target_field) =
@@ -469,12 +469,13 @@ let mk_buffer ~ctype generator =
                   (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
               with Content.Invalid ->
                 (* We might have encoded contents *)
-                (Lazy.force Frame.video_width, Lazy.force Frame.video_height)
+                ( SyncLazy.force Frame.video_width,
+                  SyncLazy.force Frame.video_height )
             in
             Decoder_utils.video_scale ~width ~height ()
           in
           let out_freq =
-            Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
+            Decoder_utils.{ num = SyncLazy.force Frame.video_rate; den = 1 }
           in
           fun ~fps (data : Content.Video.data) ->
             let data = Array.map video_scale data in

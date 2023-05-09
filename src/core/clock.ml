@@ -229,7 +229,7 @@ module MkClock (Time : Liq_time.T) = struct
         let last_latency_log = ref (time ()) in
         t0 <- time ();
         ticks <- 0L;
-        let frame_duration = Time.of_float (Lazy.force Frame.duration) in
+        let frame_duration = Time.of_float (SyncLazy.force Frame.duration) in
         let target_time () =
           t0
           |+| (frame_duration
@@ -475,9 +475,8 @@ let after_collect_tasks = ref 1
 
 let lock = Mutex.create ()
 
-(** We might not need a default clock, so we use a lazy clock value.
-  * We don't use Lazy because we need a thread-safe mechanism. *)
-let get_default = Tutils.lazy_cell (fun () -> (clock "main" :> Source.clock))
+(** We might not need a default clock, so we use a lazy clock value. *)
+let get_default = SyncLazy.from_fun (fun () -> (clock "main" :> Source.clock))
 
 let create_follow_clock id = (clock ~start:false id :> Source.clock)
 
@@ -508,7 +507,7 @@ let collect ~must_lock =
     Source.iterate_new_outputs (fun o ->
         if not (is_known o#clock) then (
           let clock =
-            if should_start o#clock then get_default ()
+            if should_start o#clock then SyncLazy.force get_default
             else create_follow_clock o#id
           in
           ignore (unify o#clock (create_known clock))));
@@ -551,7 +550,7 @@ let force_init filter =
       (fun () ->
         Source.iterate_new_outputs (fun o ->
             if filter o && not (is_known o#clock) then
-              ignore (unify o#clock (create_known (get_default ()))));
+              ignore (unify o#clock (create_known (SyncLazy.force get_default))));
         gc_alarm ();
         Clocks.fold (fun s l -> s#start_outputs filter :: l) clocks [])
       ()

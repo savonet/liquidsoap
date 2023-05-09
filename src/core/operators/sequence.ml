@@ -34,7 +34,7 @@ class sequence ?(merge = false) sources =
     val mutable seq_sources = sources
 
     method self_sync =
-      ( Lazy.force self_sync_type,
+      ( SyncLazy.force self_sync_type,
         match sources with hd :: _ -> snd hd#self_sync | [] -> false )
 
     method stype =

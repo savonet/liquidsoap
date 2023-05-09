@@ -26,8 +26,8 @@ type restart_condition = Delay of int | Metadata | No_condition
 
 type t = {
   channels : int;
-  samplerate : int Lazy.t;
-  video : (int Lazy.t * int Lazy.t) option;
+  samplerate : int SyncLazy.t;
+  video : (int SyncLazy.t * int SyncLazy.t) option;
   header : bool;
   restart_on_crash : bool;
   restart : restart_condition;
@@ -45,11 +45,13 @@ let to_string e =
     match e.video with
       | None -> "video=false"
       | Some (w, h) ->
-          Printf.sprintf "video=true,width=%d,height=%d" (Lazy.force w)
-            (Lazy.force h)
+          Printf.sprintf "video=true,width=%d,height=%d" (SyncLazy.force w)
+            (SyncLazy.force h)
   in
   Printf.sprintf
     "%%external(channels=%i,samplerate=%i,%s,header=%b,restart_on_crash=%b,%s,process=%s)"
-    e.channels (Lazy.force e.samplerate) video e.header e.restart_on_crash
+    e.channels
+    (SyncLazy.force e.samplerate)
+    video e.header e.restart_on_crash
     (string_of_restart_condition e.restart)
     e.process

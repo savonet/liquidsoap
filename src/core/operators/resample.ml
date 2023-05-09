@@ -93,7 +93,8 @@ class resample ~field ~ratio source =
     method private get_frame frame =
       consumer#set_output_enabled true;
       while
-        Generator.length self#buffer < Lazy.force Frame.size && source#is_ready
+        Generator.length self#buffer < SyncLazy.force Frame.size
+        && source#is_ready
       do
         self#child_tick
       done;

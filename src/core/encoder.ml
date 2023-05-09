@@ -94,9 +94,9 @@ let type_of_format f =
                           let params =
                             {
                               Content.channel_layout =
-                                lazy
-                                  (Audio_converter.Channel_layout
-                                   .layout_of_channels channels);
+                                SyncLazy.from_fun (fun () ->
+                                    Audio_converter.Channel_layout
+                                    .layout_of_channels channels);
                             }
                           in
                           `Format (Frame_base.audio_format ~pcm_kind params)
@@ -142,7 +142,7 @@ let string_of_format = function
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
-      Some (Lazy.force width, Lazy.force height)
+      Some (SyncLazy.force width, SyncLazy.force height)
   | Ffmpeg m -> (
       match
         List.fold_left
@@ -153,7 +153,8 @@ let video_size = function
               | _ -> cur)
           [] m.Ffmpeg_format.streams
       with
-        | (width, height) :: [] -> Some (Lazy.force width, Lazy.force height)
+        | (width, height) :: [] ->
+            Some (SyncLazy.force width, SyncLazy.force height)
         | _ -> None)
   | _ -> None
 

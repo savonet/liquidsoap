@@ -66,7 +66,7 @@ class dssi ?chan plugin descr outputs params source =
           (if chan <> None then 1 else all_chans)
           (fun _ ->
             Ladspa.Descriptor.instantiate (Descriptor.ladspa d)
-              (Lazy.force Frame.audio_rate)) )
+              (SyncLazy.force Frame.audio_rate)) )
 
     initializer
       Array.iter (fun inst -> Ladspa.Descriptor.activate inst) (snd di)

@@ -39,7 +39,7 @@ class echo (source : source) delay feedback ping_pong =
       effect <-
         Some
           (Audio.Effect.delay self#audio_channels
-             (Lazy.force Frame.audio_rate)
+             (SyncLazy.force Frame.audio_rate)
              ~ping_pong (delay ()) (feedback ()))
 
     val mutable past_pos = 0

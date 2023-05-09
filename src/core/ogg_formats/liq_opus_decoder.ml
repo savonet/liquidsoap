@@ -24,7 +24,7 @@ let samplerates = [8000; 12000; 16000; 24000; 48000]
 
 let () =
   Lifecycle.on_start (fun () ->
-      let rate = Lazy.force Frame.audio_rate in
+      let rate = SyncLazy.force Frame.audio_rate in
       let rec f = function
         | [] -> 48000
         | x :: l when x < rate -> f l

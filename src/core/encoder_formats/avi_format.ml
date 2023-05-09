@@ -24,13 +24,13 @@ type t = {
   (* Samplerate is lazy in order to avoid forcing the evaluation of the
      samplerate at typing time, see #933. For channels this is pointless since
      we really need that for typing. *)
-  samplerate : int Lazy.t;
+  samplerate : int SyncLazy.t;
   channels : int;
-  width : int Lazy.t;
-  height : int Lazy.t;
+  width : int SyncLazy.t;
+  height : int SyncLazy.t;
 }
 
 let to_string w =
   Printf.sprintf "%%avi(samplerate=%d,channels=%d,width=%d,height=%d)"
-    (Lazy.force w.samplerate) w.channels (Lazy.force w.width)
-    (Lazy.force w.height)
+    (SyncLazy.force w.samplerate)
+    w.channels (SyncLazy.force w.width) (SyncLazy.force w.height)

@@ -40,7 +40,8 @@ class muxer tracks =
     method stype = stype
 
     method self_sync =
-      (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
+      ( SyncLazy.force self_sync_type,
+        List.exists (fun s -> snd s#self_sync) sources )
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private sources_ready = List.for_all (fun s -> s#is_ready) sources
@@ -82,7 +83,8 @@ class muxer tracks =
         self#sources_ready
         && (force
            || Generator.remaining self#buffer = -1
-              && filled + Generator.length self#buffer < Lazy.force Frame.size)
+              && filled + Generator.length self#buffer
+                 < SyncLazy.force Frame.size)
       then (
         List.iter
           (fun { fields; source } ->

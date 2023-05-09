@@ -55,7 +55,8 @@ let alsa_buffer =
         "Set to 0 to disable this setting and use ALSA's default.";
       ]
 
-(** A dedicated clock for all ALSA I/O operators, to make sure other
-  * blocking I/O inteferes with them. In the future, we might even want
-  * to have different clocks for different ALSA devices. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "alsa")
+(** A dedicated clock for all ALSA I/O operators, to make sure other blocking
+    I/O inteferes with them. In the future, we might even want to have different
+    clocks for different ALSA devices. *)
+let get_clock =
+  SyncLazy.to_fun (SyncLazy.from_fun (fun () -> Clock.clock "alsa"))

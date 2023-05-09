@@ -249,7 +249,7 @@ let source_methods =
               else 0
             in
             let frame_position =
-              Lazy.force Frame.duration *. float_of_int ticks
+              SyncLazy.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
               Frame.seconds_of_main (Frame.position s#memo)

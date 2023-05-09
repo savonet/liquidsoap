@@ -37,7 +37,7 @@ let create speex ~metadata () =
       | _ -> false
   in
   let channels = if speex.Speex_format.stereo then 2 else 1 in
-  let rate = Lazy.force speex.Speex_format.samplerate in
+  let rate = SyncLazy.force speex.Speex_format.samplerate in
   let header =
     Speex.Header.init ~frames_per_packet ~mode ~vbr ~nb_channels:channels ~rate
       ()
@@ -175,7 +175,7 @@ let create_speex = function
       in
       let channels = if speex.Speex_format.stereo then 2 else 1 in
       let src_freq = float (Frame.audio_of_seconds 1.) in
-      let dst_freq = float (Lazy.force speex.Speex_format.samplerate) in
+      let dst_freq = float (SyncLazy.force speex.Speex_format.samplerate) in
       let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
       { Ogg_encoder.reset; encode; id = None }
   | _ -> assert false

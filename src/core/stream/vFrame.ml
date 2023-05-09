@@ -29,13 +29,13 @@ let tov = Frame.main_of_video
 let vot ?round x =
   match round with
     | None | Some `Down -> Frame.video_of_main x
-    | Some `Up -> Frame.video_of_main (x + Lazy.force Frame.video_rate - 1)
+    | Some `Up -> Frame.video_of_main (x + SyncLazy.force Frame.video_rate - 1)
 
 let content ?(field = Frame.Fields.video) b =
   try Frame.get b field with Not_found -> raise Content.Invalid
 
 let data ?field b = Content.Video.get_data (content ?field b)
-let size _ = vot (Lazy.force size)
+let size _ = vot (SyncLazy.force size)
 let next_sample_position t = vot ~round:`Up (Frame.position t)
 let add_break t i = add_break t (tov i)
 let is_partial t = is_partial t

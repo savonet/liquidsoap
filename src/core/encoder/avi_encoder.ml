@@ -32,7 +32,7 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
     =
   let target_width = width in
   let target_height = height in
-  let ratio = float samplerate /. float (Lazy.force Frame.audio_rate) in
+  let ratio = float samplerate /. float (SyncLazy.force Frame.audio_rate) in
   let audio =
     let astart = Frame.audio_of_main start in
     let alen = Frame.audio_of_main len in
@@ -93,10 +93,10 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
 
 let encoder avi =
   let channels = avi.channels in
-  let samplerate = Lazy.force avi.samplerate in
+  let samplerate = SyncLazy.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
-  let width = Lazy.force avi.width in
-  let height = Lazy.force avi.height in
+  let width = SyncLazy.force avi.width in
+  let height = SyncLazy.force avi.height in
   log#info "Encoding at %dx%d, %d channels, %d Hz.%!" width height channels
     samplerate;
   (* TODO: use duration *)

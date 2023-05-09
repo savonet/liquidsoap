@@ -639,7 +639,7 @@ let seek ~target_position ~container ticks =
   log#debug "Setting target position to %f" tpos;
   target_position := Some tpos;
   let ts = Int64.of_float (tpos *. 1000.) in
-  let frame_duration = Lazy.force Frame.duration in
+  let frame_duration = SyncLazy.force Frame.duration in
   let min_ts = Int64.of_float ((tpos -. frame_duration) *. 1000.) in
   let max_ts = ts in
   Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
@@ -885,7 +885,7 @@ let create_decoder ~ctype fname =
   let ext = Filename.extension fname in
   if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then (
     Hashtbl.add opts "loop" (`Int 1);
-    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
+    Hashtbl.add opts "framerate" (`Int (SyncLazy.force Frame.video_rate)));
   let container = Av.open_input ~opts fname in
   let streams = mk_streams ~ctype ~decode_first_metadata:false container in
   let streams =
@@ -949,7 +949,7 @@ let create_stream_decoder ~ctype mime input =
   let opts = Hashtbl.create 10 in
   if List.exists (fun s -> mime = s) image_mime_types#get then (
     Hashtbl.add opts "loop" (`Int 1);
-    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
+    Hashtbl.add opts "framerate" (`Int (SyncLazy.force Frame.video_rate)));
   let container =
     Av.open_input_stream ?seek:seek_input ~opts input.Decoder.read
   in

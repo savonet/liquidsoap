@@ -20,34 +20,22 @@
 
  *****************************************************************************)
 
-type quality = float
-type bitrate = int
+(** The Lazy module is not currently compatible with multithreading, see
+    https://github.com/ocaml-multicore/ocaml-multicore/issues/750 For now, we
+    mutexify all accesses by using this module. The interface is mostly the same
+    as the one as the Lazy module.
+*)
 
-type mode =
-  | VBR of quality (* Variable bitrate. *)
-  | CBR of bitrate (* Constant bitrate. *)
-  | ABR of bitrate option * bitrate option * bitrate option
+type 'a t = 'a Lazy.t * Mutex.t
 
-(* Average: min,avg,max. *)
+let[@inline] from_lazy v : 'a t = (v, Mutex.create ())
+let[@inline] from_val v : 'a t = from_lazy (Lazy.from_val v)
+let[@inline] from_fun f : 'a t = from_lazy (Lazy.from_fun f)
 
-type t = {
-  channels : int;
-  mode : mode;
-  samplerate : int SyncLazy.t;
-  fill : int option;
-}
+let map f ((v, m) : 'a t) =
+  Mutex.lock m;
+  Fun.protect ~finally:(fun () -> Mutex.unlock m) (fun () -> f v)
 
-let string_of_mode = function
-  | ABR (min, avg, max) ->
-      let f v x =
-        match x with Some x -> Printf.sprintf "%s=%d," v x | None -> ""
-      in
-      Printf.sprintf ".abr(%s%s%s" (f "min_bitrate" min) (f "bitrate" avg)
-        (f "max_bitrate" max)
-  | CBR bitrate -> Printf.sprintf ".cbr(bitrate=%d" bitrate
-  | VBR q -> Printf.sprintf "(quality=%.2f" q
-
-let to_string v =
-  Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)" (string_of_mode v.mode)
-    v.channels
-    (SyncLazy.force v.samplerate)
+let force v = map Lazy.force v
+let to_fun v () = force v
+let is_val v = map Lazy.is_val v

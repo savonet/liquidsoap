@@ -215,7 +215,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
           | None -> ()
 
     method self_sync : Source.self_sync =
-      (Lazy.force self_sync_type, self_sync ())
+      (SyncLazy.force self_sync_type, self_sync ())
 
     method pull =
       (* Init is driven by the pull. *)
@@ -232,7 +232,9 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
             flush ()
           done
         with Avutil.Error `Eagain ->
-          if Generator.length self#buffer < Lazy.force Frame.size && is_ready ()
+          if
+            Generator.length self#buffer < SyncLazy.force Frame.size
+            && is_ready ()
           then (
             pull ();
             f ())
@@ -240,11 +242,11 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
       f ()
 
     method is_ready =
-      Generator.length self#buffer >= Lazy.force Frame.size || is_ready ()
+      Generator.length self#buffer >= SyncLazy.force Frame.size || is_ready ()
 
     method private get_frame frame =
       let b = Frame.breaks frame in
-      if Generator.length self#buffer < Lazy.force Frame.size then self#pull;
+      if Generator.length self#buffer < SyncLazy.force Frame.size then self#pull;
       Generator.fill self#buffer frame;
       if List.length b + 1 <> List.length (Frame.breaks frame) then (
         let cur_pos = Frame.position frame in
