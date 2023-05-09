@@ -80,7 +80,7 @@ let create process ctype filename =
   {
     dec with
     Decoder.close =
-      (fun () -> Tutils.finalize ~k:(fun () -> dec.Decoder.close ()) !close);
+      (fun () -> Fun.protect ~finally:(fun () -> dec.Decoder.close ()) !close);
   }
 
 let create_stream process input =

@@ -142,8 +142,8 @@ let () =
  * that libmad can actually open the file -- which doesn't mean much. *)
 let file_type filename =
   let fd = Mad.openfile filename in
-  Tutils.finalize
-    ~k:(fun () -> Mad.close fd)
+  Fun.protect
+    ~finally:(fun () -> Mad.close fd)
     (fun () ->
       ignore (Mad.decode_frame_float fd);
       let f = Mad.get_frame_format fd in

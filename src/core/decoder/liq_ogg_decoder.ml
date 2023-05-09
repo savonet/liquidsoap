@@ -232,8 +232,8 @@ let create_decoder ?(merge_tracks = false) source input =
 let file_type ~metadata:_ ~ctype:_ filename =
   let decoder, fd = Ogg_decoder.init_from_file ~log:demuxer_log filename in
   let tracks = Ogg_decoder.get_standard_tracks decoder in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let audio =
         match tracks.Ogg_decoder.audio_track with
@@ -308,8 +308,8 @@ let get_tags ~metadata:_ file =
   then raise Not_found;
   let decoder, fd = Ogg_decoder.init_from_file ~log:demuxer_log file in
   let tracks = Ogg_decoder.get_standard_tracks decoder in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let get f t =
         match t with

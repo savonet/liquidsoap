@@ -238,8 +238,8 @@ let get_type ~channels filename =
     in
     try
       let bin = Gstreamer.Pipeline.parse_launch pipeline in
-      Tutils.finalize
-        ~k:(fun () ->
+      Fun.protect
+        ~finally:(fun () ->
           ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
           GU.flush ~log bin)
         (fun () ->
@@ -260,8 +260,8 @@ let get_type ~channels filename =
           (GU.Pipeline.decode_video ())
       in
       let bin = Gstreamer.Pipeline.parse_launch pipeline in
-      Tutils.finalize
-        ~k:(fun () ->
+      Fun.protect
+        ~finally:(fun () ->
           ignore (Gstreamer.Element.set_state bin Gstreamer.Element.State_null);
           GU.flush ~log bin)
         (fun () ->
