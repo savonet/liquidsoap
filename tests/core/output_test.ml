@@ -18,7 +18,7 @@ class failed =
     inherit Debug_sources.fail "failed"
 
     method! get frame =
-      Frame.add_break frame (Lazy.force Frame.size);
+      Frame.add_break frame (SyncLazy.force Frame.size);
       Printf.printf "Frame pos: %d\n%!" (Frame.position frame);
       assert (not (Frame.is_partial frame))
   end

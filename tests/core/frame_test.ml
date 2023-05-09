@@ -4,7 +4,7 @@ let () =
   Frame_settings.lazy_config_eval := true;
 
   let src = create (Frame.Fields.make ()) in
-  add_break src (Lazy.force size);
+  add_break src (SyncLazy.force size);
   let m = Hashtbl.create 1 in
   Hashtbl.add m "foo" "bar";
   set_all_metadata src [(0, m)];

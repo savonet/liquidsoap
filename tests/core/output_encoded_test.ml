@@ -35,7 +35,7 @@ let () =
   Frame_settings.lazy_config_eval := true;
   let encoded_test = new encoded_test in
   let frame = Frame.dummy () in
-  Frame.add_break frame (Lazy.force Frame.size);
+  Frame.add_break frame (SyncLazy.force Frame.size);
   let m = Hashtbl.create 1 in
   Hashtbl.add m "foo" "bla";
   Frame.set_metadata frame 0 m;
