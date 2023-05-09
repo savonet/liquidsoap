@@ -112,8 +112,8 @@ let priority =
  * that libmad can actually open the file -- which doesn't mean much. *)
 let file_type filename =
   let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let write _ = () in
       let h = Flac.Decoder.File.create_from_fd write fd in
@@ -156,8 +156,8 @@ let get_tags file =
          ~extensions:file_extensions#get file)
   then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let write _ = () in
       let h = Flac.Decoder.File.create_from_fd write fd in
@@ -177,8 +177,8 @@ let check filename =
 let duration file =
   if not (check file) then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun () ->
       let write _ = () in
       let h = Flac.Decoder.File.create_from_fd write fd in

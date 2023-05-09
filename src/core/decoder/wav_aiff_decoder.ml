@@ -118,8 +118,8 @@ let create ?header input =
 
 let file_type ~ctype:_ filename =
   let header = Wav_aiff.fopen filename in
-  Tutils.finalize
-    ~k:(fun () -> Wav_aiff.close header)
+  Fun.protect
+    ~finally:(fun () -> Wav_aiff.close header)
     (fun () ->
       let channels =
         let channels = Wav_aiff.channels header in

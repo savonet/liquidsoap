@@ -496,8 +496,8 @@ let priority =
 
 let duration file =
   let container = Av.open_input file in
-  Tutils.finalize
-    ~k:(fun () -> Av.close container)
+  Fun.protect
+    ~finally:(fun () -> Av.close container)
     (fun () ->
       let duration = Av.get_input_duration container ~format:`Millisecond in
       Option.map (fun d -> Int64.to_float d /. 1000.) duration)
@@ -510,8 +510,8 @@ let tags_substitutions = [("track", "tracknumber")]
 
 let get_tags file =
   let container = Av.open_input file in
-  Tutils.finalize
-    ~k:(fun () -> Av.close container)
+  Fun.protect
+    ~finally:(fun () -> Av.close container)
     (fun () ->
       (* For now we only add the metadata from the best audio track *)
       let audio_tags =
@@ -972,8 +972,8 @@ let get_file_type ~ctype filename =
         Frame.Fields.make ()
     | _ ->
         let container = Av.open_input filename in
-        Tutils.finalize
-          ~k:(fun () -> Av.close container)
+        Fun.protect
+          ~finally:(fun () -> Av.close container)
           (fun () -> get_type ~ctype ~url:filename container)
 
 let () =
