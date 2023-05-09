@@ -113,6 +113,7 @@ Fixed:
   prevent listening socket from being re-created on listener disconnection (#2556)
 - Fixed race condition when switching `input.ffmpeg`-based urls (#2956)
 - Fixed deadlock in `%external` encoder (#3029)
+- Fixed crash in encoders due to concurrent access (#3064)
 
 ---
 

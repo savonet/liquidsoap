@@ -45,7 +45,7 @@ let conf_verbosity =
     ~comments:
       [
         "Set FFMPEG log level, one of: \"quiet\", \"panic\", \"fatal\", ";
-        "\"error\", \"warning\", \"info\", \"verbose\" or \"debug\"";
+        "\"error\", \"warning\", \"info\", \"verbose\", \"debug\" or \"trace\".";
       ]
 
 let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:3
@@ -72,6 +72,7 @@ let () =
           | "info" -> `Info
           | "verbose" -> `Verbose
           | "debug" -> `Debug
+          | "trace" -> `Trace
           | _ ->
               log#severe "Invalid value for \"ffmpeg.log.verbosity\"!";
               `Quiet
