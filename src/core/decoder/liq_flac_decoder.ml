@@ -142,14 +142,14 @@ let () =
       priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
-      file_type = (fun ~ctype:_ filename -> file_type filename);
+      file_type = (fun ~metadata:_ ~ctype:_ filename -> file_type filename);
       file_decoder = Some file_decoder;
       stream_decoder = Some (fun ~ctype:_ _ -> create_decoder);
     }
 
 let log = Log.make ["metadata"; "flac"]
 
-let get_tags file =
+let get_tags ~metadata:_ file =
   if
     not
       (Decoder.test_file ~log ~mimes:mime_types#get
@@ -174,7 +174,7 @@ let check filename =
           true
         with _ -> false)
 
-let duration file =
+let duration ~metadata:_ file =
   if not (check file) then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
   Fun.protect

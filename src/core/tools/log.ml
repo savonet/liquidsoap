@@ -43,12 +43,19 @@ let make path : t =
     }
   in
   let log = Dtools.Log.make path in
-  object
+  object (self)
     (** Is that level active (i.e. will it print logs) *)
     method active lvl = log#active lvl
 
     (** Logging function. *)
-    method f : 'a. int -> ('a, unit, string, unit) format4 -> 'a = log#f
+    method f : 'a. int -> ('a, unit, string, unit) format4 -> 'a =
+      function
+      | 1 -> self#critical
+      | 2 -> self#severe
+      | 3 -> self#important
+      | 4 -> self#info
+      | 5 -> self#debug
+      | v -> log#f v
 
     (** The program will not function after that. *)
     method critical : 'a. ('a, unit, string, unit) format4 -> 'a =

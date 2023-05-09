@@ -14,6 +14,8 @@ New:
 - Added support for the proprietary shared stereotool library (#2953)
 - Added `video.align`.
 - Added `string.index`.
+- Added support for ffmpeg decoder parameters to allow decoding of
+  raw PCM stream and file (#3066)
 - Added support for unit interactive variables: those call a handler when their
   value is set.
 - Added support for id3v2 `v2.2.0` frames and pictures.

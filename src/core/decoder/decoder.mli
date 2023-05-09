@@ -88,7 +88,11 @@ type decoder_specs = {
    * None means accept all mime-types. *)
   mime_types : unit -> string list option;
   (* None means no decodable content for that file. *)
-  file_type : ctype:Frame.content_type -> string -> Frame.content_type option;
+  file_type :
+    metadata:Frame.metadata ->
+    ctype:Frame.content_type ->
+    string ->
+    Frame.content_type option;
   file_decoder : file_decoder option;
   (* String argument is the full mime-type. *)
   stream_decoder : (ctype:Frame.content_type -> string -> stream_decoder) option;

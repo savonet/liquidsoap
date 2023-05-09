@@ -22,7 +22,7 @@
 
 (** Read duration of ogg/flac files. *)
 
-let duration file =
+let duration ~metadata:_ file =
   let sync, fd = Ogg.Sync.create_from_file file in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)

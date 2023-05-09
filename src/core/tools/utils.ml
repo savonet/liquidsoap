@@ -25,8 +25,8 @@
    as severe otherwise. Backtrace should be captured as early
    as possible. *)
 let log_exception ~(log : Log.t) ~bt msg =
-  if log#active 4 (* info *) then log#info "%s\n%s" msg bt
-  else log#severe "%s" msg
+  log#severe "%s" msg;
+  if log#active 4 (* info *) then log#info "%s" bt
 
 (* Force locale to C *)
 external force_locale : unit -> unit = "liquidsoap_set_locale" [@@noalloc]

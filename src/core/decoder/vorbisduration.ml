@@ -22,7 +22,7 @@
 
 (** Read duration of ogg/vorbis files. *)
 
-let duration file =
+let duration ~metadata:_ file =
   let dec, fd = Vorbis.File.Decoder.openfile file in
   Fun.protect
     ~finally:(fun () -> Unix.close fd)

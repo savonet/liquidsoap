@@ -55,7 +55,7 @@ let tag_aliases = [("track", "tracknumber")]
 
 (** We used to force the format. However, now that we check extensions, taglib's
   * automatic format detection should work. *)
-let get_tags fname =
+let get_tags ~metadata:_ fname =
   try
     if
       not

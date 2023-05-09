@@ -111,6 +111,9 @@ open Parser_helper
 %start time_predicate
 %type <Term.t> time_predicate
 
+%start plain_encoder_params
+%type <Parser_helper.encoder_param list> plain_encoder_params
+
 %type <Parser_helper.let_decoration> _let
 %type <string> annotate_key
 %type <(string * string) list> annotate_metadata
@@ -546,6 +549,9 @@ encoder_params:
   |                                    { [] }
   | encoder_param                      { [$1] }
   | encoder_param COMMA encoder_params { $1::$3 }
+
+plain_encoder_params:
+  | LPAR encoder_params RPAR { $2 }
 
 record:
   | VAR GETS expr {

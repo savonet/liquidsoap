@@ -4,6 +4,11 @@ settings.log.level.set(4)
 
 test.check(fun () ->
   begin
+    if request.duration("file1.mp3") != 5.06 then
+      print("Invalid duration!")
+      test.fail()
+    end
+
     r = request.dynamic(prefetch=1, fun () -> request.create("invalid"))
 
     if not r.add(request.create("file2.mp3")) then

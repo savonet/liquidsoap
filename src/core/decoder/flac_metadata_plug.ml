@@ -39,7 +39,7 @@ let file_extensions =
     "File extensions used for decoding metadata using native FLAC parser."
     ~d:["flac"]
 
-let get_tags parse fname =
+let get_tags ~metadata:_ parse fname =
   try
     if
       not

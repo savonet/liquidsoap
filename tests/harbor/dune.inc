@@ -4,7 +4,6 @@
  (package liquidsoap)
  (deps
   http3.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -17,7 +16,6 @@
  (package liquidsoap)
  (deps
   http2.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -30,7 +28,6 @@
  (package liquidsoap)
  (deps
   http.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -43,7 +40,6 @@
  (package liquidsoap)
  (deps
   put.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
@@ -56,7 +52,6 @@
  (package liquidsoap)
  (deps
   post.liq
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)

@@ -67,7 +67,7 @@ let () =
       file_extensions = (fun () -> Some ["mid"]);
       mime_types = (fun () -> Some ["audio/midi"]);
       file_type =
-        (fun ~ctype:_ _ ->
+        (fun ~metadata:_ ~ctype:_ _ ->
           Some
             (Frame.Fields.make
                ~midi:Content.(Midi.lift_params { Content.channels = 16 })

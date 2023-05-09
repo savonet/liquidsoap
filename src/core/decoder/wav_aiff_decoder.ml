@@ -116,7 +116,7 @@ let create ?header input =
 
 (* File decoding *)
 
-let file_type ~ctype:_ filename =
+let file_type ~metadata:_ ~ctype:_ filename =
   let header = Wav_aiff.fopen filename in
   Fun.protect
     ~finally:(fun () -> Wav_aiff.close header)
@@ -216,7 +216,7 @@ let () =
     }
 
 let () =
-  let duration file =
+  let duration ~metadata:_ file =
     let w = Wav_aiff.fopen file in
     let ret = Wav_aiff.duration w in
     Wav_aiff.close w;
@@ -243,7 +243,7 @@ let () =
       priority = (fun () -> basic_priorities#get);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> Some basic_mime_types#get);
-      file_type = (fun ~ctype:_ _ -> None);
+      file_type = (fun ~metadata:_ ~ctype:_ _ -> None);
       file_decoder = None;
       stream_decoder =
         Some (fun ~ctype:_ _ -> create ~header:(`Wav, 8, 2, 8000, -1));

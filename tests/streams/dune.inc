@@ -15,7 +15,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -38,7 +37,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -61,7 +59,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -84,7 +81,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -107,7 +103,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -130,7 +125,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -153,7 +147,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -176,7 +169,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -199,7 +191,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -222,7 +213,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -245,7 +235,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -268,7 +257,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -291,7 +279,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -314,7 +301,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -337,12 +323,33 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} ctype1.liq liquidsoap %{test_liq} ctype1.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  srt_raw_pcm.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} srt_raw_pcm.liq liquidsoap %{test_liq} srt_raw_pcm.liq)))
 
 (rule
  (alias citest)
@@ -360,7 +367,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -383,7 +389,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -406,7 +411,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -429,7 +433,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -452,7 +455,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -475,7 +477,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -498,7 +499,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -521,7 +521,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -544,7 +543,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -567,7 +565,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -590,7 +587,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -613,7 +609,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -636,7 +631,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -659,7 +653,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -682,7 +675,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -705,7 +697,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -728,7 +719,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -751,7 +741,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -774,7 +763,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -797,7 +785,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -820,7 +807,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -843,7 +829,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -866,7 +851,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -889,7 +873,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -912,7 +895,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -935,7 +917,6 @@
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)

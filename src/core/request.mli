@@ -175,10 +175,10 @@ val on_air : t -> unit
 (** Query whether a request is currently being streamed. *)
 val is_on_air : t -> bool
 
-(** [duration filename] computes the duration of audio data contained in
+(** [duration ~metadata filename] computes the duration of audio data contained in
     [filename]. The computation may be expensive.
     @raise Not_found if no duration computation method is found. *)
-val duration : string -> float
+val duration : metadata:Frame.metadata -> string -> float
 
 (** Return a decoder if the file has been resolved, guaranteed to have
     available data to deliver. *)
@@ -187,11 +187,12 @@ val get_decoder : t -> Decoder.file_decoder_ops option
 (** {1 Plugs} *)
 
 (** Functions for computing duration. *)
-val dresolvers : (string -> float) Plug.t
+val dresolvers : (metadata:Frame.metadata -> string -> float) Plug.t
 
 (** Functions for resolving metadata. Metadata filling isn't included in Decoder
     because we want it to occur immediately after request resolution. *)
-val mresolvers : (string -> (string * string) list) Plug.t
+val mresolvers :
+  (metadata:Frame.metadata -> string -> (string * string) list) Plug.t
 
 (** Functions for resolving URIs. *)
 val protocols : protocol Plug.t

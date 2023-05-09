@@ -73,6 +73,50 @@ Please note that, due to a technical limitation, we are not yet able to route `f
 the liquidsoap logging facilities, which means that `ffmpeg` logs are currently only printed to the
 process's standard output and that the `settings.ffmpeg.log.level` is currently not used.
 
+### Decoder arguments
+
+In some cases, for instance when sending raw PCM data, it might be required to pass some arguments to
+the ffmpeg decoder to let it know what kind of format, codec, etc. it should decode.
+
+There are two ways to do that:
+
+- For _streams_, the `content_type` argument can be used. The convention is to use `"application/ffmpeg;<arguments>"`.
+- For _files_, the `ffmpeg_options` metadata can be used, for instance using the `annotate` protocol: `annotate:ffmpeg_options="<arguments>":/path/to/file.raw`
+
+Here's an example of a SRT input and output that can be used to send raw PCM data between two instances:
+
+Sender:
+
+```liquidsoap
+enc = %ffmpeg(
+  format="s16le",
+  %audio(
+    codec="pcm_s16le",
+    ac=2,
+    ar=48000
+  )
+)
+
+output.srt(enc, s)
+```
+
+Receiver:
+
+```liquidsoap
+s = input.srt(
+  content_type="application/ffmpeg;format=s16le,ch_layout=stereo,sample_rate=48000"
+)
+```
+
+If, instead of using `output.srt` above, we were using `output.file` and saving to a file
+named `bla.raw`, this file could be read with a `single` source this way:
+
+```liquidsoap
+s = single("annotate:ffmpeg_options='format=s16le,ch_layout=stereo,sample_rate=44100':/tmp/bla.raw")
+```
+
+This could also be done in a `playlist` or `request.dynamic` and etc.
+
 ## Encoders
 
 See detailed [ffmpeg encoders](ffmpeg_encoder.html) article.

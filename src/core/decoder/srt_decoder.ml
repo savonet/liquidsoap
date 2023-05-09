@@ -47,7 +47,7 @@ let () =
       file_extensions = (fun () -> Some srt_file_extensions#get);
       mime_types = (fun () -> Some srt_mime_types#get);
       file_type =
-        (fun ~ctype fname ->
+        (fun ~metadata:_ ~ctype fname ->
           if Srt_parser.check_file fname then
             Some
               (Frame.Fields.make
