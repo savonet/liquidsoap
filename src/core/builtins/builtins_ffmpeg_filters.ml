@@ -75,20 +75,20 @@ type graph = {
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
   graph_outputs : Source.source Queue.t;
-  init : unit SyncLazy.t Queue.t;
+  init : unit Lazy.t Queue.t;
   entries : (inputs, outputs) Avfilter.io;
 }
 
 let init_graph graph =
   if Queue.fold (fun b v -> b && v ()) true graph.input_inits then (
-    try Queue.iter SyncLazy.force graph.init
+    try Queue.iter Lazy.force graph.init
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
       graph.failed <- true;
       Printexc.raise_with_backtrace exn bt)
 
 let initialized graph =
-  Queue.fold (fun cur q -> cur && SyncLazy.is_val q) true graph.init
+  Queue.fold (fun cur q -> cur && Lazy.is_val q) true graph.init
 
 let is_ready graph =
   (not graph.failed)
@@ -414,7 +414,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                 else Lang.assoc "" (idx + ofs + 1) p
               in
               Queue.push
-                (SyncLazy.from_fun (fun () ->
+                (Lazy.from_fun (fun () ->
                      List.iteri
                        (fun idx input ->
                          let output =
@@ -703,7 +703,7 @@ let _ =
 
          let pad = Audio.of_value (Lang.assoc "" 2 p) in
          Queue.add
-           (SyncLazy.from_fun (fun () ->
+           (Lazy.from_fun (fun () ->
                 let pad =
                   match pad with
                     | `Output pad -> SyncLazy.force pad
@@ -834,7 +834,7 @@ let _ =
       Queue.add (s :> Source.source) graph.graph_outputs;
 
       Queue.add
-        (SyncLazy.from_fun (fun () ->
+        (Lazy.from_fun (fun () ->
              let pad =
                match Video.of_value (Lang.assoc "" 2 p) with
                  | `Output p -> SyncLazy.force p
@@ -892,7 +892,7 @@ let _ =
       in
       unify_clocks ~clock:output_clock graph.graph_outputs;
       Queue.add
-        (SyncLazy.from_fun (fun () ->
+        (Lazy.from_fun (fun () ->
              log#info "Initializing graph";
              let filter = Avfilter.launch config in
              Avfilter.(
