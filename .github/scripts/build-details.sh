@@ -28,7 +28,7 @@ if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ "rolling-release-" || "${BRANCH}
   BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}, {"platform": "arm64", "runs-on": "self-hosted", "alpine-arch": "aarch64", "docker-platform": "linux/arm64"}]'
 
   echo "Enabling opam build"
-  echo "##[set-output name=build_opam;]true"
+  echo "build_opam=true" >> "${GITHUB_OUTPUT}"
 
   echo "Branch has a docker release"
   DOCKER_RELEASE=true
@@ -55,13 +55,15 @@ else
   IS_ROLLING_RELEASE=
 fi
 
-echo "##[set-output name=branch;]${BRANCH}"
-echo "##[set-output name=is_release;]${IS_RELEASE}"
-echo "##[set-output name=build_os;]${BUILD_OS}"
-echo "##[set-output name=build_platform;]${BUILD_PLATFORM}"
-echo "##[set-output name=build_include;]${BUILD_INCLUDE}"
-echo "##[set-output name=docker_release;]${DOCKER_RELEASE}"
-echo "##[set-output name=is_rolling_release;]${IS_ROLLING_RELEASE}"
-echo "##[set-output name=sha;]${SHA}"
-echo "##[set-output name=s3-artifact-basepath;]s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
-echo "##[set-output name=is_fork;]${IS_FORK}"
+{
+  echo "branch=${BRANCH}"
+  echo "is_release=${IS_RELEASE}"
+  echo "build_os=${BUILD_OS}"
+  echo "build_platform=${BUILD_PLATFORM}"
+  echo "build_include=${BUILD_INCLUDE}"
+  echo "docker_release=${DOCKER_RELEASE}"
+  echo "is_rolling_release=${IS_ROLLING_RELEASE}"
+  echo "sha=${SHA}"
+  echo "s3-artifact-basepath=s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
+  echo "is_fork=${IS_FORK}"
+} >> "${GITHUB_OUTPUT}"
