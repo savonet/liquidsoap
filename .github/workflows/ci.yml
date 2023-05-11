@@ -513,7 +513,6 @@ jobs:
         build_minimal,
         build_js,
         run_tests,
-        build_opam,
         build_posix,
         build_win32,
         fetch_s3_artifacts,
