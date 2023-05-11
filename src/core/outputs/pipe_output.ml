@@ -370,8 +370,11 @@ class virtual ['a] chan_output p =
         Lang.raise_as_runtime ~bt ~kind:"system" exn
 
     method close_pipe =
-      self#close_chan (Option.get chan);
-      chan <- None
+      match chan with
+        | None -> ()
+        | Some ch ->
+            self#close_chan ch;
+            chan <- None
 
     method is_open = chan <> None
   end
