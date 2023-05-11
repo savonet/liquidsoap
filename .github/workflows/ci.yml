@@ -637,7 +637,7 @@ jobs:
 
   build_docker_release:
     runs-on: ubuntu-latest
-    needs: [build_details, build_opam, build_docker, build_docker_alpine]
+    needs: [build_details, build_docker, build_docker_alpine]
     if: needs.build_details.outputs.docker_release
     steps:
       - name: Checkout code
