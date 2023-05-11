@@ -111,10 +111,9 @@ let create_encoder ~opus ~comments () =
     else Ogg_muxer.Time (Int64.to_float granulepos /. 48000.)
   in
   let end_of_stream os =
-    let enc = get_enc os in
     (* Assert that at least some data was encoded.. *)
     if not !started then data_encoder (empty_data ()) os ();
-    Opus.Encoder.eos enc
+    Ogg.Stream.terminate os
   in
   {
     Ogg_muxer.header_encoder;

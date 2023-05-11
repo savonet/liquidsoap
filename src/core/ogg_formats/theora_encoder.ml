@@ -148,7 +148,7 @@ let create_encoder ~theora ~metadata () =
       in
       Image.YUV420.blank_all yuv;
       Theora.Encoder.encode_buffer enc os theora_yuv);
-    Theora.Encoder.eos enc os
+    Ogg.Stream.terminate os
   in
   {
     Ogg_muxer.header_encoder;

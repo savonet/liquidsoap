@@ -145,7 +145,7 @@ let create speex ~metadata () =
     if granulepos < Int64.zero then Ogg_muxer.Unknown
     else Ogg_muxer.Time (Int64.to_float granulepos /. float rate)
   in
-  let end_of_stream os = Speex.Encoder.eos enc os in
+  let end_of_stream os = Ogg.Stream.terminate os in
   {
     Ogg_muxer.header_encoder;
     fisbone_packet;

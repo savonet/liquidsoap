@@ -71,7 +71,7 @@ type fisbone_packet = Ogg.Stream.stream -> Ogg.Stream.packet option
 type stream_start = Ogg.Stream.stream -> Ogg.Page.t list
 
 (** Ends the track. *)
-type end_of_stream = Ogg.Stream.stream -> unit
+type end_of_stream = Ogg.Stream.stream -> Ogg.Page.t list
 
 (** A data encoder is an encoder for either a audio or a video track. *)
 type data_encoder =
