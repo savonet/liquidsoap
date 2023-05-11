@@ -114,6 +114,7 @@ let _ =
       in
       begin
         try
+          let transport = (transport :> Cry.transport) in
           Cry.manual_update_metadata ~host ~port ~protocol ~user ~password
             ~mount ~headers ~transport metas
         with e ->

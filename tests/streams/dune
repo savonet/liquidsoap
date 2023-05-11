@@ -204,7 +204,7 @@
    3650
    -nodes
    -subj
-   "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=CommonNameOrHostname")))
+   "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost")))
 
 (rule
  (alias citest)
@@ -227,3 +227,69 @@
    %{stdlib}
    %{test_liq}
    ./icecast_ssl.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./icecast_tls.liq
+  ./ssl.cert
+  ./ssl.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Icecast TLS connection"
+   liquidsoap
+   --no-stdlib
+   %{stdlib}
+   %{test_liq}
+   ./icecast_tls.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./icecast_ssl_tls.liq
+  ./ssl.cert
+  ./ssl.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Icecast SSL+TLS connection"
+   liquidsoap
+   --no-stdlib
+   %{stdlib}
+   %{test_liq}
+   ./icecast_ssl_tls.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./icecast_tls_ssl.liq
+  ./ssl.cert
+  ./ssl.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Icecast TLS+SSL connection"
+   liquidsoap
+   --no-stdlib
+   %{stdlib}
+   %{test_liq}
+   ./icecast_tls_ssl.liq)))

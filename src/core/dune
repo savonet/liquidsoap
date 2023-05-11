@@ -559,14 +559,6 @@
  (modules oss_io))
 
 (library
- (name liquidsoap_secure_transport)
- (libraries osx-secure-transport liquidsoap_core liquidsoap_builtins)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules builtins_http_secure_transport))
-
-(library
  (name liquidsoap_portaudio)
  (libraries portaudio liquidsoap_core)
  (library_flags -linkall)
@@ -660,7 +652,7 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules ssl_base builtins_http_ssl))
+ (modules ssl_base builtins_ssl))
 
 (library
  (name liquidsoap_stereotool)
@@ -685,6 +677,20 @@
  (wrapped false)
  (optional)
  (modules liq_theora_decoder theora_encoder))
+
+(library
+ (name liquidsoap_tls)
+ (libraries
+  tls
+  ca-certs
+  mirage-crypto-rng.unix
+  cstruct
+  liquidsoap_core
+  liquidsoap_builtins)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_tls))
 
 (library
  (name liquidsoap_vorbis)
@@ -751,7 +757,6 @@
   opus_option
   osc_option
   oss_option
-  osx_secure_transport_option
   portaudio_option
   posix_time_option
   prometheus_option
@@ -766,6 +771,7 @@
   stereotool_option
   taglib_option
   theora_option
+  tls_option
   vorbis_option
   winsvc_option
   yaml_option
@@ -923,11 +929,6 @@
    (liquidsoap_oss -> oss_option.enabled.ml)
    (-> oss_option.disabled.ml))
   (select
-   osx_secure_transport_option.ml
-   from
-   (liquidsoap_secure_transport -> osx_secure_transport_option.enabled.ml)
-   (-> osx_secure_transport_option.disabled.ml))
-  (select
    portaudio_option.ml
    from
    (liquidsoap_portaudio -> portaudio_option.enabled.ml)
@@ -1002,6 +1003,11 @@
    from
    (liquidsoap_theora -> theora_option.enabled.ml)
    (-> theora_option.disabled.ml))
+  (select
+   tls_option.ml
+   from
+   (liquidsoap_tls -> tls_option.enabled.ml)
+   (-> tls_option.disabled.ml))
   (select
    vorbis_option.ml
    from

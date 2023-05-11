@@ -401,11 +401,12 @@ module Socket_value = struct
 
   let to_unix_value v =
     let socket = Http.unix_socket v in
+    let server = socket#transport#server in
     Lang.meth (to_server_value socket)
       [
         ( "accept",
           Lang.val_fun [] (fun _ ->
-              let fd, sockaddr = socket#transport#accept socket#file_descr in
+              let fd, sockaddr = server#accept socket#file_descr in
               Lang.product (to_value fd) (Socket_addr.to_value sockaddr)) );
         ( "connect",
           Lang.val_fun

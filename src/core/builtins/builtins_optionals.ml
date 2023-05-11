@@ -42,7 +42,6 @@ let () =
       ("opus", Opus_option.enabled);
       ("osc", Osc_option.enabled);
       ("oss", Oss_option.enabled);
-      ("osx_secure_transport", Osx_secure_transport_option.enabled);
       ("portaudio", Portaudio_option.enabled);
       ("posix_time2", Posix_time_option.enabled);
       ("prometheus", Prometheus_option.enabled);
@@ -54,6 +53,7 @@ let () =
       ("speex", Speex_option.enabled);
       ("srt", Srt_option.enabled);
       ("ssl", Ssl_option.enabled);
+      ("tls", Tls_option.enabled);
       ("taglib", Taglib_option.enabled);
       ("theora", Theora_option.enabled);
       ("vorbis", Vorbis_option.enabled);

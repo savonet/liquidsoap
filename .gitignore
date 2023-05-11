@@ -3,3 +3,5 @@
 _build/
 liquidsoap.config
 *.install
+tests/streams/ssl.cert
+tests/streams/ssl.key

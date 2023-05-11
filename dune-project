@@ -62,7 +62,6 @@
     ogg
     opus
     osc-unix
-    osx-secure-transport
     portaudio
     posix-time2
     pulseaudio
@@ -74,6 +73,7 @@
     srt
     ssl
     taglib
+    tls-liquidsoap
     theora
     tsdl
     tsdl-image
@@ -167,4 +167,11 @@
    (conflicts
      (liquidsoap-lang (<> :version)))
    (synopsis "Liquidosap emacs mode")
+)
+
+(package
+   (name tls-liquidsoap)
+   (allow_empty)
+   (depends tls ca-certs)
+   (synopsis "Liquidosap dependencies for TLS optional features")
 )

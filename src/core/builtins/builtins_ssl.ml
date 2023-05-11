@@ -21,15 +21,6 @@
 
  *****************************************************************************)
 
-let get_ctx ~password ~certificate ~key () =
-  let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
-  ignore
-    (Option.map
-       (fun password -> Ssl.set_password_callback ctx (fun _ -> password))
-       password);
-  Ssl.use_certificate ctx certificate key;
-  ctx
-
 let set_socket_default ~read_timeout ~write_timeout fd =
   ignore (Option.map (Unix.setsockopt_float fd Unix.SO_RCVTIMEO) read_timeout);
   ignore (Option.map (Unix.setsockopt_float fd Unix.SO_SNDTIMEO) write_timeout)
@@ -55,6 +46,26 @@ let ssl_socket transport ssl =
     method close =
       ignore (Ssl.close_notify ssl);
       Unix.close (Ssl.file_descr_of_socket ssl)
+  end
+
+let server ~read_timeout ~write_timeout ~password ~certificate ~key transport =
+  let context = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
+  let () =
+    ignore
+      (Option.map
+         (fun password -> Ssl.set_password_callback context (fun _ -> password))
+         password);
+    Ssl.use_certificate context (certificate ()) (key ())
+  in
+  object
+    method transport = transport
+
+    method accept sock =
+      let s, caller = Unix.accept ~cloexec:true sock in
+      set_socket_default ~read_timeout ~write_timeout s;
+      let ssl_s = Ssl.embed_socket s context in
+      Ssl.accept ssl_s;
+      (ssl_socket transport ssl_s, caller)
   end
 
 let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
@@ -111,15 +122,8 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"ssl" exn
 
-    method accept sock =
-      let s, caller = Unix.accept ~cloexec:true sock in
-      set_socket_default ~read_timeout ~write_timeout s;
-      let ctx =
-        get_ctx ~password ~certificate:(certificate ()) ~key:(key ()) ()
-      in
-      let ssl_s = Ssl.embed_socket s ctx in
-      Ssl.accept ssl_s;
-      (ssl_socket self ssl_s, caller)
+    method server =
+      server ~read_timeout ~write_timeout ~password ~certificate ~key self
   end
 
 let _ =

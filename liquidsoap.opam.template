@@ -23,10 +23,10 @@ to decode metadata tags from many audio and video media files. This is a feature
 most users want."""
     {success & !taglib-enabled}
   """\
-We noticed that you did not install any ssl support package. Liquidsoap won't
-be able to use any of the `https.{get,...}` operators. You might want to install one of ssl or
-osx-secure-transport package."""
-    {success & !ssl-enabled & !secure-transport-enabled}
+We noticed that you did not install any ssl or tls support. Liquidsoap won't
+be able to use SSL encryption in its input or output operators. You might want
+to install one of ssl or tls-liquidsoap package."""
+    {success & !ssl-enabled & !tls-enabled}
   """\
 We noticed that your build includes GStreamer support. This support is DEPRECATED.
 We suggest you consider moving to FFmpeg, which should provide same the same level

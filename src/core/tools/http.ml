@@ -6,12 +6,61 @@ type uri = {
 }
 
 type event = Cry.event
-type socket = Cry.socket
-type transport = Cry.transport
+
+type socket =
+  < typ : string
+  ; transport : transport
+  ; file_descr : Unix.file_descr
+  ; wait_for : ?log:(string -> unit) -> event -> float -> unit
+  ; write : Bytes.t -> int -> int -> int
+  ; read : Bytes.t -> int -> int -> int
+  ; close : unit >
+
+and server =
+  < transport : transport ; accept : Unix.file_descr -> socket * Unix.sockaddr >
+
+and transport =
+  < name : string
+  ; protocol : string
+  ; default_port : int
+  ; connect : ?bind_address:string -> ?timeout:float -> string -> int -> socket
+  ; server : server >
 
 let connect = Cry.unix_connect
-let unix_transport = Cry.unix_transport
-let unix_socket = Cry.unix_socket
+
+let rec unix_socket fd =
+  let s = Cry.unix_socket fd in
+  object
+    method typ = s#typ
+    method file_descr = fd
+    method transport = unix_transport ()
+    method wait_for = s#wait_for
+    method write = s#write
+    method read = s#read
+    method close = s#close
+  end
+
+and unix_transport () =
+  object (self)
+    method name = Cry.unix_transport#name
+    method protocol = Cry.unix_transport#protocol
+    method default_port = Cry.unix_transport#default_port
+
+    method connect ?bind_address ?timeout host port =
+      let fd = Cry.unix_connect ?bind_address ?timeout host port in
+      unix_socket fd
+
+    method server =
+      object
+        method transport = self
+
+        method accept fd =
+          let fd, addr = Unix.accept ~cloexec:true fd in
+          (unix_socket fd, addr)
+      end
+  end
+
+let unix_transport = unix_transport ()
 let user_agent = Configure.vendor
 
 let args_split s =
