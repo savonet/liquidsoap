@@ -21,15 +21,6 @@
 
  *****************************************************************************)
 
-let get_ctx ~password ~certificate ~key () =
-  let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
-  ignore
-    (Option.map
-       (fun password -> Ssl.set_password_callback ctx (fun _ -> password))
-       password);
-  Ssl.use_certificate ctx certificate key;
-  ctx
-
 let set_socket_default ~read_timeout ~write_timeout fd =
   ignore (Option.map (Unix.setsockopt_float fd Unix.SO_RCVTIMEO) read_timeout);
   ignore (Option.map (Unix.setsockopt_float fd Unix.SO_SNDTIMEO) write_timeout)
@@ -70,7 +61,7 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
         Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
         (* Add certificate from transport if passed. *)
         (try
-           let cert = Utils.read_all (certificate ()) in
+           let cert = Utils.read_all certificate in
            Ssl.add_cert_to_store ctx cert
          with _ -> ());
         Ssl.set_verify_depth ctx 3;
@@ -111,13 +102,26 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"ssl" exn
 
+    val context = Atomic.make None
+
+    method private context =
+      match Atomic.get context with
+        | Some ctx -> ctx
+        | None ->
+            let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
+            ignore
+              (Option.map
+                 (fun password ->
+                   Ssl.set_password_callback ctx (fun _ -> password))
+                 password);
+            Ssl.use_certificate ctx certificate key;
+            Atomic.set context (Some ctx);
+            ctx
+
     method accept sock =
       let s, caller = Unix.accept ~cloexec:true sock in
       set_socket_default ~read_timeout ~write_timeout s;
-      let ctx =
-        get_ctx ~password ~certificate:(certificate ()) ~key:(key ()) ()
-      in
-      let ssl_s = Ssl.embed_socket s ctx in
+      let ssl_s = Ssl.embed_socket s self#context in
       Ssl.accept ssl_s;
       (ssl_socket self ssl_s, caller)
   end
@@ -168,7 +172,7 @@ let _ =
           ~message:("Cannot find SSL " ^ name ^ " file!")
           "not_found"
       in
-      let find name () =
+      let find name =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
           | None -> raise name
           | Some f when not (Sys.file_exists f) -> raise name
