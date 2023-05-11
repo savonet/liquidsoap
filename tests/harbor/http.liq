@@ -231,7 +231,15 @@ def f() =
   test.equals("#{resp}", "")
 
   # transport conflict
-  transport = http.transport.ssl(certificate="foo", key="bla")
+  certificate = file.temp("cert", "pem")
+  file.write(data="foo", certificate)
+  on_shutdown({file.remove(certificate)})
+
+  key = file.temp("cert", "key")
+  file.write(data="foo", key)
+  on_shutdown({file.remove(key)})
+
+  transport = http.transport.ssl(certificate=certificate, key=key)
   try
     harbor.http.register("/default", transport=transport, port=3456, fun (_, _) -> ())
     test.fail()
