@@ -165,6 +165,7 @@ jobs:
       image: savonet/liquidsoap-ci:debian_bullseye_amd64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
+      fail-fast: false
       matrix:
         target: ["@citest", "@mediatest"]
     env:
