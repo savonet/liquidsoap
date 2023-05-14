@@ -1,4 +1,6 @@
-transport = http.transport.ssl(
+log.level := 4
+
+transport = http.transport.tls(
   certificate="./ssl.cert",
   key="./ssl.key"
 )
@@ -9,7 +11,7 @@ s = sine()
 
 output.icecast(
   port=port,
-  mount="ssl_test",
+  mount="tls_test",
   transport=transport,
   %vorbis,
   s)
@@ -18,7 +20,7 @@ i = input.harbor(
   buffer=2.,
   port=port,
   transport=transport,
-  "ssl_test")
+  "tls_test")
 
 i = source.on_track(i, fun (_) -> test.pass())
 

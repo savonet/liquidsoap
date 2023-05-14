@@ -12,6 +12,7 @@ New:
 - Added support for FLAC metadata (#2952)
 - Added support for YAML parsing and rendering (#2855)
 - Added support for the proprietary shared stereotool library (#2953)
+- Added TLS support via `ocaml-tls` (#3074)
 - Added `video.align`.
 - Added `string.index`.
 - Added support for ffmpeg decoder parameters to allow decoding of
@@ -104,6 +105,8 @@ Changed:
   protocol.
 - The `sleeper` operator is now scripted (#2899).
 - Reworked remote request file extension resolution (#2947)
+- REMOVED `osx-secure-transport`. Doubt it was ever used, API deprecated
+  upstream (#3067)
 
 Fixed:
 
@@ -114,6 +117,7 @@ Fixed:
 - Fixed race condition when switching `input.ffmpeg`-based urls (#2956)
 - Fixed deadlock in `%external` encoder (#3029)
 - Fixed crash in encoders due to concurrent access (#3064)
+- Fixed long-term connection issues with SSL (#3067)
 
 ---
 

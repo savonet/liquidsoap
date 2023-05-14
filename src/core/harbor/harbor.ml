@@ -1004,9 +1004,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let open_port ~transport ~icy port =
     log#info "Opening port %d with icy = %b" port icy;
     let max_conn = conf_harbor_max_conn#get in
+    let server = transport#server in
     let process_client sock =
       try
-        let socket, caller = transport#accept sock in
+        let socket, caller = server#accept sock in
         let ip = Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller in
         log#info "New client on port %i: %s" port ip;
         let unix_socket = T.file_descr_of_socket socket in

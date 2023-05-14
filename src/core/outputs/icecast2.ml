@@ -445,6 +445,7 @@ class output p =
         f (Lang.to_product v))
       (Lang.to_list (List.assoc "headers" p))
   in
+  let transport = (transport :> Cry.transport) in
   let connection = Cry.create ~timeout ~transport ?connection_timeout () in
   object (self)
     inherit
@@ -592,7 +593,9 @@ class output p =
        * The output will just try to reconnect later. *)
       | e ->
         let bt = Printexc.get_raw_backtrace () in
-        self#log#severe "Connection failed: %s" (Printexc.to_string e);
+        Utils.log_exception ~log:self#log
+          ~bt:(Printexc.raw_backtrace_to_string bt)
+          (Printf.sprintf "Connection failed: %s" (Printexc.to_string e));
         self#icecast_stop;
         let delay = on_error e in
         if delay >= 0. then (

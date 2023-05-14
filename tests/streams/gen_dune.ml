@@ -1,8 +1,18 @@
+let static_tests =
+  [
+    "icecast_ssl.liq";
+    "icecast_tls.liq";
+    "icecast_tls_ssl.liq";
+    "icecast_ssl_tls.liq";
+  ]
+
 let () =
   let location = Sys.getcwd () in
   let tests =
     List.filter
-      (fun f -> Filename.extension f = ".liq")
+      (fun f ->
+        (not (List.mem (Filename.basename f) static_tests))
+        && Filename.extension f = ".liq")
       (Array.to_list (Sys.readdir location))
   in
   List.iter

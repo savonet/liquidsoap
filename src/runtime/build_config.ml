@@ -104,8 +104,8 @@ let build_config =
    - memtrace          : %{Memtrace_option.detected}
    - mem_usage         : %{Mem_usage_option.detected}
    - osc               : %{Osc_option.detected}
-   - SecureTransport   : %{Osx_secure_transport_option.detected}
    - ssl               : %{Ssl_option.detected}
+   - tls               : %{Tls_option.detected}
    - posix-time2       : %{Posix_time_option.detected}
    - windows service   : %{Winsvc_option.detected}
    - YAML support      : %{Yaml_option.detected}
@@ -125,9 +125,9 @@ variables {
   lame-enabled: %{string_of_bool Lame_option.enabled}
   mad-enabled: %{string_of_bool Mad_option.enabled}
   samperate-enabled: %{string_of_bool Samplerate_option.enabled}
-  secure-transport-enabled: %{string_of_bool Osx_secure_transport_option.enabled}
   shine-enabled: %{string_of_bool Shine_option.enabled}
   ssl-enabled: %{string_of_bool Ssl_option.enabled}
+  tls-enabled: %{string_of_bool Tls_option.enabled}
   taglib-enabled: %{string_of_bool Taglib_option.enabled}
 }
 |}]
