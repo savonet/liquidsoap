@@ -193,9 +193,14 @@ let server ~read_timeout ~write_timeout ~certificate ~key transport =
 
     method accept sock =
       let fd, caller = Unix.accept ~cloexec:true sock in
-      let session = Liq_tls.init_server ~server fd in
-      set_socket_default ~read_timeout ~write_timeout fd;
-      (tls_socket ~session transport, caller)
+      try
+        let session = Liq_tls.init_server ~server fd in
+        set_socket_default ~read_timeout ~write_timeout fd;
+        (tls_socket ~session transport, caller)
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Unix.close fd;
+        Printexc.raise_with_backtrace exn bt
   end
 
 let transport ~read_timeout ~write_timeout ~certificate ~key () =

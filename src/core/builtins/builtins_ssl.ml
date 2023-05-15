@@ -63,9 +63,14 @@ let server ~read_timeout ~write_timeout ~password ~certificate ~key transport =
     method accept sock =
       let s, caller = Unix.accept ~cloexec:true sock in
       set_socket_default ~read_timeout ~write_timeout s;
-      let ssl_s = Ssl.embed_socket s context in
-      Ssl.accept ssl_s;
-      (ssl_socket transport ssl_s, caller)
+      try
+        let ssl_s = Ssl.embed_socket s context in
+        Ssl.accept ssl_s;
+        (ssl_socket transport ssl_s, caller)
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Unix.close s;
+        Printexc.raise_with_backtrace exn bt
   end
 
 let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
@@ -167,16 +172,23 @@ let _ =
       let password =
         Lang.to_valued_option Lang.to_string (List.assoc "password" p)
       in
-      let raise name =
+      let raise ?(details = "") name =
         Runtime_error.raise ~pos:(Lang.pos p)
-          ~message:("Cannot find SSL " ^ name ^ " file!")
+          ~message:("Cannot find SSL " ^ name ^ " file!" ^ details)
           "not_found"
       in
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
           | None -> raise name
-          | Some f when not (Sys.file_exists f) -> raise name
-          | Some f -> f
+          | Some path ->
+              let resolved_path = Utils.resolve_path path in
+              if not (Sys.file_exists resolved_path) then
+                raise
+                  ~details:
+                    (" Given path: " ^ path ^ ", resolved path: "
+                   ^ resolved_path)
+                  name;
+              resolved_path
       in
       let certificate = find "certificate" in
       let key = find "key" in
