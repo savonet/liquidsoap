@@ -143,15 +143,19 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         self#disconnect ~lock:true;
         if debug then raise e
 
+    val mutable is_registered = false
+
     method! private wake_up act =
       super#wake_up act;
       Generator.set_max_length self#buffer max_length;
       Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
-        (self :> Harbor.source)
+        (self :> Harbor.source);
+      is_registered <- true
 
     method! private sleep =
       self#disconnect ~lock:true;
-      Harbor.remove_source ~port ~mountpoint ()
+      if is_registered then Harbor.remove_source ~port ~mountpoint ();
+      is_registered <- false
 
     method register_decoder mime =
       let mime =

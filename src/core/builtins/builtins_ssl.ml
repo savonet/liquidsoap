@@ -172,14 +172,14 @@ let _ =
       let password =
         Lang.to_valued_option Lang.to_string (List.assoc "password" p)
       in
-      let raise ?(details = "") name =
+      let raise ?(details = "") ~action name =
         Runtime_error.raise ~pos:(Lang.pos p)
-          ~message:("Cannot find SSL " ^ name ^ " file!" ^ details)
+          ~message:("Cannot " ^ action ^ " SSL " ^ name ^ " file!" ^ details)
           "not_found"
       in
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
-          | None -> raise name
+          | None -> raise ~action:"find" name
           | Some path ->
               let resolved_path = Utils.resolve_path path in
               if not (Sys.file_exists resolved_path) then
@@ -187,7 +187,13 @@ let _ =
                   ~details:
                     (" Given path: " ^ path ^ ", resolved path: "
                    ^ resolved_path)
-                  name;
+                  ~action:"find" name;
+              if not (Utils.is_readable resolved_path) then
+                raise
+                  ~details:
+                    (" Given path: " ^ path ^ ", resolved path: "
+                   ^ resolved_path)
+                  ~action:"read" name;
               resolved_path
       in
       let certificate = find "certificate" in

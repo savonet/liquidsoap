@@ -72,6 +72,14 @@ let remove_one f l =
   in
   aux [] l
 
+let is_readable f =
+  try
+    if not (Sys.file_exists f) then raise Not_found;
+    let fd = Unix.openfile f [Unix.O_RDONLY] 0o644 in
+    Unix.close fd;
+    true
+  with _ -> false
+
 (* Read all data from a given filename.
  * We cannot use really_input with the
  * reported length of the file because

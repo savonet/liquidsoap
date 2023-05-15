@@ -274,16 +274,29 @@ let _ =
       let write_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "write_timeout" p)
       in
-      let raise name =
+      let raise ?(details = "") ~action name =
         Runtime_error.raise ~pos:(Lang.pos p)
-          ~message:("Cannot find SSL " ^ name ^ " file!")
+          ~message:("Cannot " ^ action ^ " SSL " ^ name ^ " file!" ^ details)
           "not_found"
       in
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
-          | None -> raise name
-          | Some f when not (Sys.file_exists f) -> raise name
-          | Some f -> f
+          | None -> raise ~action:"find" name
+          | Some path ->
+              let resolved_path = Utils.resolve_path path in
+              if not (Sys.file_exists resolved_path) then
+                raise
+                  ~details:
+                    (" Given path: " ^ path ^ ", resolved path: "
+                   ^ resolved_path)
+                  ~action:"find" name;
+              if not (Utils.is_readable resolved_path) then
+                raise
+                  ~details:
+                    (" Given path: " ^ path ^ ", resolved path: "
+                   ^ resolved_path)
+                  ~action:"read" name;
+              resolved_path
       in
       let certificate = find "certificate" in
       let key = find "key" in
