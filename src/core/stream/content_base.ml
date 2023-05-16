@@ -318,23 +318,23 @@ module MkContentBase (C : ContentSpecs) :
       @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
     assert (dst_len = length dst)
 
-  let consolidate_chunks d =
-    match (length d, d.chunks) with
-      | 0, _ ->
-          d.chunks <- [];
-          d
-      | _, [{ offset = 0; length = None }] -> d
-      | length, _ ->
-          let buf = C.make ~length d.params in
-          ignore
-            (List.fold_left
-               (fun pos ({ data; offset } as chunk) ->
-                 let length = chunk_length chunk in
-                 C.blit data offset buf pos length;
-                 pos + length)
-               0 d.chunks);
-          d.chunks <- [{ offset = 0; length = Some length; data = buf }];
-          d
+  let consolidate_chunks =
+    let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
+      let length = chunk_length chunk in
+      C.blit data offset buf pos length;
+      pos + length
+    in
+    fun d ->
+      match (length d, d.chunks) with
+        | 0, _ ->
+            d.chunks <- [];
+            d
+        | _, [{ offset = 0; length = None }] -> d
+        | length, _ ->
+            let buf = C.make ~length d.params in
+            ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
+            d.chunks <- [{ offset = 0; length = Some length; data = buf }];
+            d
 
   let blit src src_pos dst dst_pos len =
     let src = content src in
