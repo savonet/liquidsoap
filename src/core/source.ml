@@ -743,17 +743,22 @@ class virtual operator ?(name = "src") sources =
        It cannot be called directly, but [#get] should be used instead, for
        dealing with caching if needed. *)
     method virtual private get_frame : Frame.t -> unit
+    val mutable in_output = false
 
     (* Prepare for output round. *)
     method before_output =
-      List.iter (fun s -> s#before_output) sources;
-      self#iter_watchers (fun w -> w.before_output ())
+      if not in_output then (
+        List.iter (fun s -> s#before_output) sources;
+        self#iter_watchers (fun w -> w.before_output ());
+        in_output <- true)
 
     (* Cleanup after output round. *)
     method after_output =
-      List.iter (fun s -> s#after_output) sources;
-      self#advance;
-      self#iter_watchers (fun w -> w.after_output ())
+      if in_output then (
+        List.iter (fun s -> s#after_output) sources;
+        self#advance;
+        self#iter_watchers (fun w -> w.after_output ());
+        in_output <- false)
 
     (* Reset the cache frame *)
     method advance = Frame.clear self#memo
