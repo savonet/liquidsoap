@@ -35,6 +35,10 @@ class muxer tracks =
     else `Fallible
   in
   let self_sync_type = Utils.self_sync_type sources in
+  let track_frames = ref [] in
+  let clear_track_frames () =
+    List.iter (fun (_, frame) -> Frame.clear frame) !track_frames
+  in
   object (self)
     inherit Source.operator ~name:"source" sources as super
     method stype = stype
@@ -62,14 +66,33 @@ class muxer tracks =
         | -1, r -> r
         | r, _ -> r
 
-    val mutable track_frames = Hashtbl.create (List.length tracks)
-
     method private track_frame source =
-      try Hashtbl.find track_frames source
+      try List.assq source !track_frames
       with Not_found ->
         let f = Frame.create source#content_type in
-        Hashtbl.add track_frames source f;
+        track_frames := (source, f) :: !track_frames;
         f
+
+    method private feed_track ~tmp ~filled ~start ~stop
+        { source_field; target_field; processor } =
+      let c = Content.sub (Frame.get tmp source_field) start (stop - start) in
+      match source_field with
+        | f when f = Frame.Fields.metadata ->
+            List.iter
+              (fun (pos, m) -> Generator.add_metadata ~pos self#buffer m)
+              (Content.Metadata.get_data c)
+        | f when f = Frame.Fields.track_marks ->
+            if Frame.is_partial tmp then
+              Generator.add_track_mark ~pos:(stop - filled) self#buffer
+        | _ -> Generator.put self#buffer target_field (processor c)
+
+    method private feed_fields ~filled { fields; source } =
+      let tmp = self#track_frame source in
+      let start = Frame.position tmp in
+      if Frame.is_partial tmp && source#is_ready then (
+        source#get tmp;
+        let stop = Frame.position tmp in
+        List.iter (self#feed_track ~tmp ~filled ~start ~stop) fields)
 
     (* In the current streaming model, we might still need to force
        a source#get to get the next break/metadata at the beginning of
@@ -84,31 +107,7 @@ class muxer tracks =
            || Generator.remaining self#buffer = -1
               && filled + Generator.length self#buffer < Lazy.force Frame.size)
       then (
-        List.iter
-          (fun { fields; source } ->
-            let tmp = self#track_frame source in
-            let start = Frame.position tmp in
-            if Frame.is_partial tmp && source#is_ready then (
-              source#get tmp;
-              let stop = Frame.position tmp in
-              List.iter
-                (fun { source_field; target_field; processor } ->
-                  let c =
-                    Content.sub (Frame.get tmp source_field) start (stop - start)
-                  in
-                  match source_field with
-                    | f when f = Frame.Fields.metadata ->
-                        List.iter
-                          (fun (pos, m) ->
-                            Generator.add_metadata ~pos self#buffer m)
-                          (Content.Metadata.get_data c)
-                    | f when f = Frame.Fields.track_marks ->
-                        if Frame.is_partial tmp then
-                          Generator.add_track_mark ~pos:(stop - filled)
-                            self#buffer
-                    | _ -> Generator.put self#buffer target_field (processor c))
-                fields))
-          tracks;
+        List.iter (self#feed_fields ~filled) tracks;
         self#feed ~force:false buf)
 
     (* There are two situations here:
@@ -135,7 +134,7 @@ class muxer tracks =
 
     method! advance =
       super#advance;
-      Hashtbl.iter (fun _ frame -> Frame.clear frame) track_frames;
+      clear_track_frames ();
       Frame.clear self#buffer
   end
 
