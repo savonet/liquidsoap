@@ -498,3 +498,6 @@ let write_all fd b =
   in
   let len = Bytes.length b in
   if len > 0 then f 0 len
+
+(* Stdlib.abs_float is not inlined!. *)
+let abs_float (f : float) = if f < 0. then -.f else f [@@inline always]

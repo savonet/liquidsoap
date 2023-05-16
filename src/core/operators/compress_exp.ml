@@ -41,7 +41,7 @@ class compress ~field (source : source) mu =
         for i = offset to AFrame.position buf - 1 do
           let x = b_c.(i) in
           let sign = if x < 0. then -1. else 1. in
-          b_c.(i) <- sign *. (1. -. ((1. -. abs_float x) ** mu))
+          b_c.(i) <- sign *. (1. -. ((1. -. Utils.abs_float x) ** mu))
         done
       done
   end
