@@ -113,11 +113,10 @@ let free_metadata b t =
 let free_all_metadata b = set_all_metadata b []
 
 let blit_content src src_pos dst dst_pos len =
-  let blit src dst = blit src src_pos dst dst_pos len in
   Fields.iter
     (fun field dst ->
       if field <> Fields.track_marks && field <> Fields.metadata then
-        blit (Fields.find field src) dst)
+        blit (Fields.find field src) src_pos dst dst_pos len)
     dst
 
 let blit src src_pos dst dst_pos len =

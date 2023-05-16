@@ -65,19 +65,19 @@ class virtual base ~name tracks =
         Hashtbl.add track_frames source f;
         f
 
+    method private feed_track ~offset pos { source } =
+      let tmp = self#track_frame source in
+      let start = Frame.position tmp in
+      let tmp_pos =
+        if start <= offset then (
+          source#get tmp;
+          Frame.position tmp)
+        else start
+      in
+      min pos tmp_pos
+
     method private feed ~offset tracks =
-      List.fold_left
-        (fun pos { source } ->
-          let tmp = self#track_frame source in
-          let start = Frame.position tmp in
-          let tmp_pos =
-            if start <= offset then (
-              source#get tmp;
-              Frame.position tmp)
-            else start
-          in
-          min pos tmp_pos)
-        max_int tracks
+      List.fold_left (self#feed_track ~offset) max_int tracks
 
     (* For backward compatibility: set metadata from the first
        track effectively summed. This should be called after #feed *)

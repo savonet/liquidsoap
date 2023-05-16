@@ -346,9 +346,9 @@ module MkContentBase (C : ContentSpecs) :
       @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
     assert (dst_len = length dst)
 
-  let clear d =
-    let d = content d in
-    List.iter (fun { data } -> C.clear data) d.chunks
+  let clear =
+    let clear_content { data } = C.clear data in
+    fun d -> List.iter clear_content (content d).chunks
 
   let make ?length params =
     { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
