@@ -28,7 +28,7 @@ let average_diff delta buf ofs len =
   let s = ref 0. in
   for i = 0 to len - delta - 1 do
     for c = 0 to Array.length buf - 1 do
-      s := !s +. abs_float (buf.(c).(ofs + i + delta) -. buf.(c).(ofs + i))
+      s := !s +. Utils.abs_float (buf.(c).(ofs + i + delta) -. buf.(c).(ofs + i))
     done
   done;
   !s /. float ((len - delta) * Array.length buf)

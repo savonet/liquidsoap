@@ -67,7 +67,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
         let x =
           let x = ref 0. in
           for c = 0 to chans - 1 do
-            x := max !x (abs_float buf.(c).(i))
+            x := max !x (Utils.abs_float buf.(c).(i))
           done;
           peak <- peak +. (window_coef *. (!x -. peak));
           peak

@@ -107,7 +107,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
                   ringbuffer.(c).(ringbuffer_pos) <- buf.(c).(i);
                   old)
               in
-              x := max !x (abs_float old)
+              x := max !x (Utils.abs_float old)
             done;
             if lookahead > 0 then
               ringbuffer_pos <- (ringbuffer_pos + 1) mod lookahead;
