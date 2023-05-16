@@ -60,13 +60,9 @@ class resample ~field ~ratio source =
       converter <- Some (Audio_converter.Samplerate.create self#audio_channels);
       write_frame_ref := self#write_frame
 
-    method! before_output =
-      super#before_output;
-      child_support#before_output
-
-    method! after_output =
-      super#after_output;
-      child_support#after_output
+    initializer
+      self#on_before_output (fun () -> child_support#child_before_output);
+      self#on_after_output (fun () -> child_support#child_after_output)
 
     method private write_frame =
       function `Frame frame -> self#process_frame frame | `Flush -> ()

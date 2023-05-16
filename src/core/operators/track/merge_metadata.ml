@@ -28,7 +28,7 @@ class merge_metadata tracks =
   in
   let self_sync_type = Utils.self_sync_type sources in
   object (self)
-    inherit Source.operator ~name:"track.metadata.merge" sources as super
+    inherit Source.operator ~name:"track.metadata.merge" sources
     initializer Typing.(self#frame_type <: Lang.unit_t)
     method stype = stype
 
@@ -40,13 +40,13 @@ class merge_metadata tracks =
     method is_ready = List.for_all (fun s -> s#is_ready) sources
     method seek len = len
     method remaining = -1
-    val mutable track_frames = Hashtbl.create (List.length tracks)
+    val mutable track_frames = []
 
     method private track_frame source =
-      try Hashtbl.find track_frames source
+      try List.assq source track_frames
       with Not_found ->
         let f = Frame.create source#content_type in
-        Hashtbl.add track_frames source f;
+        track_frames <- (source, f) :: track_frames;
         f
 
     method get_frame buf =
@@ -69,9 +69,9 @@ class merge_metadata tracks =
       in
       Frame.add_break buf max_pos
 
-    method! advance =
-      super#advance;
-      Hashtbl.iter (fun _ frame -> Frame.clear frame) track_frames
+    initializer
+      self#on_after_output (fun () ->
+          List.iter (fun (_, frame) -> Frame.clear frame) track_frames)
   end
 
 let _ =

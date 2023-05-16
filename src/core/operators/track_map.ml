@@ -24,7 +24,7 @@ open Source
 
 class track_map ~name ~field ~fn s =
   object (self)
-    inherit operator ~name [s] as super
+    inherit operator ~name [s]
     method stype = s#stype
     method remaining = s#remaining
     method abort_track = s#abort_track
@@ -60,9 +60,7 @@ class track_map ~name ~field ~fn s =
         (Frame.get_all_metadata tmp_frame);
       Frame.add_break buf end_pos
 
-    method! advance =
-      super#advance;
-      Frame.clear self#tmp_frame
+    initializer self#on_after_output (fun () -> Frame.clear self#tmp_frame)
   end
 
 let _ =

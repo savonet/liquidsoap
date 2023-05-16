@@ -276,14 +276,11 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
           with Process_handler.Finished -> ())
         ()
 
-    method! before_output =
-      super#before_output;
-      child_support#before_output
-
-    method! after_output =
-      super#after_output;
-      (* As long as we have a process, we let it drive the child source entirely. *)
-      if handler = None then child_support#after_output
+    initializer
+      self#on_before_output (fun () -> child_support#child_before_output);
+      self#on_after_output (fun () ->
+          (* As long as we have a process, we let it drive the child source entirely. *)
+          if handler = None then child_support#child_after_output)
   end
 
 let _ =
