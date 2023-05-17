@@ -168,7 +168,7 @@ let _ =
         try Stereotool.init ?license_key ~filename:library ()
         with Stereotool.Library_not_found ->
           Runtime_error.raise ~pos:(Lang.pos p)
-            ~message:"Stereotool library not found or invalid!" "invalid"
+            ~message:"Invalid stereotool library" "invalid"
       in
       let field, src = Lang.to_track (List.assoc "" p) in
       (field, new stereotool ~field ~preset ~load_type ~handler src))
