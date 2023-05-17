@@ -75,9 +75,7 @@
     taglib
     tls-liquidsoap
     theora
-    tsdl
-    tsdl-image
-    tsdl-ttf
+    sdl-liquidsoap
     vorbis
     yaml
     xmlplaylist)
@@ -116,7 +114,6 @@
     (ssl (< 0.5.13))
     (taglib (< 0.3.10))
     (sdl-liquidsoap (< 2))
-    (tsdl-image (< 0.3.2))
     (theora (< 0.4.0))
     (vorbis (< 0.8.0))
     (xmlplaylist (< 0.1.3)))
@@ -171,7 +168,24 @@
 
 (package
    (name tls-liquidsoap)
+   (version 1)
    (allow_empty)
    (depends tls ca-certs)
-   (synopsis "Liquidosap dependencies for TLS optional features")
+   (synopsis "Virtual package install liquidosap dependencies for TLS optional features")
+)
+
+(package
+   (name prometheus-liquidsoap)
+   (version 2)
+   (allow_empty)
+   (depends prometheus-app cohttp-lwt-unix)
+   (synopsis "Virtual package installing liquidsoap dependencies for prometheus optional features")
+)
+
+(package
+   (name sdl-liquidsoap)
+   (version 3)
+   (allow_empty)
+   (depends tsdl (tsdl-image (>= 0.3.2)) tsdl-ttf)
+   (synopsis "Virtual package installing liquidsoap dependencies for SDL optional features")
 )

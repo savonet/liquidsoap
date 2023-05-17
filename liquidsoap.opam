@@ -78,9 +78,7 @@ depopts: [
   "taglib"
   "tls-liquidsoap"
   "theora"
-  "tsdl"
-  "tsdl-image"
-  "tsdl-ttf"
+  "sdl-liquidsoap"
   "vorbis"
   "yaml"
   "xmlplaylist"
@@ -120,7 +118,6 @@ conflicts: [
   "ssl" {< "0.5.13"}
   "taglib" {< "0.3.10"}
   "sdl-liquidsoap" {< "2"}
-  "tsdl-image" {< "0.3.2"}
   "theora" {< "0.4.0"}
   "vorbis" {< "0.8.0"}
   "xmlplaylist" {< "0.1.3"}
