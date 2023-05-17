@@ -90,13 +90,9 @@ class accelerate ~ratio ~randomize source_val =
       filled <- filled + (after - before);
       self#child_tick
 
-    method! before_output =
-      super#before_output;
-      child_support#before_output
-
-    method! after_output =
-      super#after_output;
-      child_support#after_output
+    initializer
+      self#on_before_output (fun () -> child_support#child_before_output);
+      self#on_after_output (fun () -> child_support#child_after_output)
   end
 
 let _ =

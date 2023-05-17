@@ -239,6 +239,7 @@ let _ =
       o#get_ready [s];
       log#info "Start dropping source.";
       while s#is_ready do
+        o#before_output;
         o#output;
         o#after_output
       done;

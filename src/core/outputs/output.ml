@@ -52,7 +52,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
         raise (Error.Invalid_value (val_source, "That source is fallible"))
 
     initializer Typing.(source#frame_type <: self#frame_type)
-    inherit active_operator ~name:output_kind [source] as super
+    inherit active_operator ~name:output_kind [source]
     inherit Start_stop.base ~on_start ~on_stop as start_stop
     method virtual private start : unit
     method virtual private stop : unit
@@ -173,15 +173,13 @@ class virtual output ~output_kind ?(name = "") ~infallible
           self#log#important "Source failed (no more tracks) stopping output...";
           self#transition_to `Idle))
 
-    method! after_output =
-      (* Let [memo] be cleared and signal propagated *)
-      super#after_output;
-
-      (* Perform skip if needed *)
-      if skip then (
-        self#log#important "Performing user-requested skip";
-        skip <- false;
-        self#abort_track)
+    initializer
+      self#on_after_output (fun () ->
+          (* Perform skip if needed *)
+          if skip then (
+            self#log#important "Performing user-requested skip";
+            skip <- false;
+            self#abort_track))
   end
 
 class dummy ~infallible ~on_start ~on_stop ~autostart source =

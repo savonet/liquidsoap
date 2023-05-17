@@ -201,13 +201,17 @@ class virtual source :
 
        method is_active : bool
 
+       (* Register callback to be executed on #before_output. *)
+       method on_before_output : (unit -> unit) -> unit
+
        (** Prepare for output round. *)
        method before_output : unit
 
+       (* Register callback to be executed on #after_output. *)
+       method on_after_output : (unit -> unit) -> unit
+
        (** Cleanup after output round. *)
        method after_output : unit
-
-       method advance : unit
 
        (** {1 Utilities} *)
 

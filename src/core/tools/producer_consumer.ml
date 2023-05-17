@@ -129,13 +129,9 @@ class producer ?create_known_clock ~check_self_sync ~consumers ~name () =
         let cur_pos = Frame.position buf in
         Frame.set_breaks buf (b @ [cur_pos]))
 
-    method! before_output =
-      super#before_output;
-      child_support#before_output
-
-    method! after_output =
-      super#after_output;
-      child_support#after_output
+    initializer
+      self#on_before_output (fun () -> child_support#child_before_output);
+      self#on_after_output (fun () -> child_support#child_after_output)
 
     method abort_track =
       Generator.add_track_mark self#buffer;

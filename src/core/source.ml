@@ -744,19 +744,40 @@ class virtual operator ?(name = "src") sources =
        dealing with caching if needed. *)
     method virtual private get_frame : Frame.t -> unit
 
+    (* Set to [true] when we're inside an output cycle. *)
+    val mutable in_output = false
+    val mutable on_before_output = []
+    method on_before_output fn = on_before_output <- fn :: on_before_output
+
+    initializer
+      List.iter
+        (fun s -> self#on_before_output (fun () -> s#before_output))
+        sources;
+      self#on_before_output (fun () ->
+          self#iter_watchers (fun w -> w.before_output ()))
+
     (* Prepare for output round. *)
     method before_output =
-      List.iter (fun s -> s#before_output) sources;
-      self#iter_watchers (fun w -> w.before_output ())
+      if not in_output then (
+        List.iter (fun fn -> fn ()) on_before_output;
+        in_output <- true)
+
+    val mutable on_after_output = []
+    method on_after_output fn = on_after_output <- fn :: on_after_output
+
+    initializer
+      self#on_after_output (fun () -> Frame.clear self#memo);
+      List.iter
+        (fun s -> self#on_after_output (fun () -> s#after_output))
+        sources;
+      self#on_after_output (fun () ->
+          self#iter_watchers (fun w -> w.after_output ()))
 
     (* Cleanup after output round. *)
     method after_output =
-      List.iter (fun s -> s#after_output) sources;
-      self#advance;
-      self#iter_watchers (fun w -> w.after_output ())
-
-    (* Reset the cache frame *)
-    method advance = Frame.clear self#memo
+      if in_output then (
+        List.iter (fun fn -> fn ()) on_after_output;
+        in_output <- false)
   end
 
 (** Entry-point sources, which need to actively perform some task. *)

@@ -32,7 +32,7 @@ class virtual base ~name tracks =
   let sources = List.map (fun { source } -> source) tracks in
   let self_sync_type = Utils.self_sync_type sources in
   object (self)
-    inherit Source.operator ~name sources as super
+    inherit Source.operator ~name sources
 
     method stype =
       if List.exists (fun s -> s#stype = `Infallible) sources then `Infallible
@@ -56,13 +56,13 @@ class virtual base ~name tracks =
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method is_ready = List.exists (fun s -> s#is_ready) sources
     method seek n = match sources with [s] -> s#seek n | _ -> 0
-    val mutable track_frames = Hashtbl.create (List.length tracks)
+    val mutable track_frames = []
 
     method private track_frame source =
-      try Hashtbl.find track_frames source
+      try List.assq source track_frames
       with Not_found ->
         let f = Frame.create source#content_type in
-        Hashtbl.add track_frames source f;
+        track_frames <- (source, f) :: track_frames;
         f
 
     method private feed_track ~offset pos { source } =
@@ -106,9 +106,9 @@ class virtual base ~name tracks =
                   Frame.set_metadata buf pos m)
               (Frame.get_all_metadata tmp)
 
-    method! advance =
-      super#advance;
-      Hashtbl.iter (fun _ frame -> Frame.clear frame) track_frames
+    initializer
+      self#on_after_output (fun () ->
+          List.iter (fun (_, frame) -> Frame.clear frame) track_frames)
   end
 
 (** Add/mix several sources together.

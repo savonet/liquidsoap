@@ -26,7 +26,7 @@
  *  stack of sources. *)
 class max_duration ~override_meta ~duration source =
   object (self)
-    inherit Source.operator ~name:"max_duration" [] as super
+    inherit Source.operator ~name:"max_duration" []
     val mutable remaining = duration
     val mutable s : Source.source = source
     method self_sync = source#self_sync
@@ -75,9 +75,9 @@ class max_duration ~override_meta ~duration source =
         s <- Debug_sources.empty ();
         s#get_ready [(self :> Source.source)])
 
-    method! after_output =
-      super#after_output;
-      s#after_output
+    initializer
+      self#on_before_output (fun () -> s#before_output);
+      self#on_after_output (fun () -> s#after_output)
   end
 
 let _ =

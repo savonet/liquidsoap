@@ -40,7 +40,7 @@ class muxer tracks =
     List.iter (fun (_, frame) -> Frame.clear frame) !track_frames
   in
   object (self)
-    inherit Source.operator ~name:"source" sources as super
+    inherit Source.operator ~name:"source" sources
     method stype = stype
 
     method self_sync =
@@ -132,10 +132,10 @@ class muxer tracks =
       self#feed ~force:true buf;
       Generator.fill self#buffer buf
 
-    method! advance =
-      super#advance;
-      clear_track_frames ();
-      Frame.clear self#buffer
+    initializer
+      self#on_after_output (fun () ->
+          clear_track_frames ();
+          Frame.clear self#buffer)
   end
 
 let source =

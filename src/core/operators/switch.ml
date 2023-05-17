@@ -56,6 +56,12 @@ class virtual switch ~name ~override_meta ~transition_length
     val mutable transition_length = transition_length
     val mutable selected : selection option = None
 
+    method private is_selected_generated =
+      match selected with
+        | None -> false
+        | Some { child = { source }; effective_source } ->
+            source != effective_source
+
     (** We have to explicitly manage our children as they are dynamically created
     * by application of the transition functions. In particular we need a list
     * of all children that have output data in the current round. *)
@@ -83,27 +89,21 @@ class virtual switch ~name ~override_meta ~transition_length
             cached_selected <- self#select;
             cached_selected
 
-    method! after_output =
-      (* Advance the memo frame. *)
-      self#advance;
+    initializer
+      self#on_after_output (fun () ->
+          (* Propagate to all sub-sources, i.e. our children and the transitions
+           * wrapping them:
+           *  - current transition if [selected],
+           *  - old one in [to_finish]. *)
+          if self#is_selected_generated then
+            (Option.get selected).effective_source#after_output;
+          List.iter (fun s -> s#after_output) to_finish;
+          to_finish <- [];
 
-      (* Propagate to all sub-sources, i.e. our children and the transitions
-       * wrapping them:
-       *  - current transition is [selected],
-       *  - old one in [to_finish]. *)
-      List.iter (fun s -> s.source#after_output) cases;
-      begin
-        match selected with
-          | None -> ()
-          | Some s -> s.effective_source#after_output
-      end;
-      List.iter (fun s -> s#after_output) to_finish;
-      to_finish <- [];
-
-      (* Selection may have been triggered by a call to #is_ready, without
-       * any call to #get_ready (in particular if #select returned None).
-       * It is cleared here in order to get a chance to be re-computed later. *)
-      cached_selected <- None
+          (* Selection may have been triggered by a call to #is_ready, without
+           * any call to #get_ready (in particular if #select returned None).
+           * It is cleared here in order to get a chance to be re-computed later. *)
+          cached_selected <- None)
 
     val mutable activation = []
 
@@ -125,9 +125,8 @@ class virtual switch ~name ~override_meta ~transition_length
             (fun s -> s#leave ~dynamic:true (self :> source))
             transition)
         cases;
-      match selected with
-        | None -> ()
-        | Some s -> s.effective_source#leave (self :> source)
+      if self#is_selected_generated then
+        (Option.get selected).effective_source#leave (self :> source)
 
     method is_ready = need_eot || selected <> None || self#cached_select <> None
 

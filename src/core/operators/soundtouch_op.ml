@@ -94,13 +94,9 @@ class soundtouch source_val rate tempo pitch =
         (Soundtouch.get_version_string (Option.get st));
       write_frame_ref := self#write_frame
 
-    method! before_output =
-      super#before_output;
-      child_support#before_output
-
-    method! private after_output =
-      super#after_output;
-      child_support#after_output
+    initializer
+      self#on_before_output (fun () -> child_support#child_before_output);
+      self#on_after_output (fun () -> child_support#child_after_output)
   end
 
 let _ =

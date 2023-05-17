@@ -39,7 +39,7 @@ type state = [ `Idle | `No_cue_out | `Cue_out of int * int ]
 class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
   let source = Lang.to_source source_val in
   object (self)
-    inherit operator ~name:"cue_cut" [source] as super
+    inherit operator ~name:"cue_cut" [source]
 
     inherit!
       Child_support.base ~check_self_sync:true [source_val] as child_support
@@ -60,13 +60,9 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
             if source_remaining = -1 then target
             else min source#remaining target
 
-    method! before_output =
-      super#before_output;
-      child_support#before_output
-
-    method! after_output =
-      super#after_output;
-      child_support#after_output
+    initializer
+      self#on_before_output (fun () -> child_support#child_before_output);
+      self#on_after_output (fun () -> child_support#child_after_output)
 
     method private get_cue_points buf pos =
       match Frame.get_metadata buf pos with
