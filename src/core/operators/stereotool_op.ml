@@ -164,6 +164,7 @@ let _ =
         Lang.to_valued_option Lang.to_string (List.assoc "preset" p)
       in
       let handler =
+        let library = Utils.check_readable ~pos:(Lang.pos p) library in
         try Stereotool.init ?license_key ~filename:library ()
         with Stereotool.Library_not_found ->
           Runtime_error.raise ~pos:(Lang.pos p)
