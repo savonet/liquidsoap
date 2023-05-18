@@ -105,7 +105,7 @@ end
 
 ### Harbor HTTP server
 
-The API for registering HTTP server endpoint was completely. It should be more flexible and
+The API for registering HTTP server endpoint was completely rewritten. It should be more flexible and
 provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](harbor_http.html)
 for more details.
 
