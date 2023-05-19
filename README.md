@@ -88,13 +88,21 @@ contribute to the code through [pull
 requests](https://github.com/savonet/liquidsoap/pulls). You can checkout the
 code with
 
-```
+```sh
 git checkout git@github.com:savonet/liquidsoap.git
 ```
 
-and build with
+To build the code, you will need all the required `opam` packages installed. You can do it this way:
 
+```sh
+cd liquidsoap/
+opam pin -ny .
+opam install --deps-only liquidsoap
 ```
+
+Now, you can build with
+
+```sh
 dune build
 ```
 
