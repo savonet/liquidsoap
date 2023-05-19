@@ -73,7 +73,8 @@ let parse_time t =
       None;
     ]
 
-let skipped = [%sedlex.regexp? Sub (white_space, '\n') | '\r' | '\t']
+let white_space = [%sedlex.regexp? Sub (white_space, '\n')]
+let skipped = [%sedlex.regexp? white_space | '\r' | '\t']
 let decimal_digit = [%sedlex.regexp? '0' .. '9']
 
 let decimal_literal =
