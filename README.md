@@ -100,7 +100,10 @@ opam pin -ny .
 opam install --deps-only liquidsoap
 ```
 
-Now, you can build with
+You might also need to pin a local version of the OCaml modules that we maintain in relation to `liquidsoap`. This can be
+done by pinning that module locally using `opam`.
+
+Assuming that all dendencies are installed, you can now build with
 
 ```sh
 dune build
