@@ -73,7 +73,11 @@ let parse_time t =
       None;
     ]
 
-let white_space = [%sedlex.regexp? Sub (white_space, '\n')]
+(* See: https://en.wikipedia.org/wiki/Whitespace_character *)
+let line_break =
+  [%sedlex.regexp? '\n' | '\r' | '\x0C' | '\x0B' | 0x2028 | 0x2029]
+
+let white_space = [%sedlex.regexp? Sub (white_space, line_break)]
 let skipped = [%sedlex.regexp? white_space | '\r' | '\t']
 let decimal_digit = [%sedlex.regexp? '0' .. '9']
 
@@ -147,7 +151,7 @@ let rec token lexbuf =
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_comment pos buf lexbuf;
         PP_COMMENT (Regexp.split (Regexp.regexp "\n") (Buffer.contents buf))
-    | '\n' -> PP_ENDL
+    | line_break -> PP_ENDL
     | "%ifdef", Plus ' ', var, Star ("" | '.', var) ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.indexp_from matched 6 (fun c -> c <> ' ') in

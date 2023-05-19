@@ -1,8 +1,12 @@
-x = false
+def f() =
+  x = false
 
-ignore(x)
+  ignore(x)
 
 #
-x = true
+  x = true
 
-if x then test.pass() else test.fail () end
+  if x then test.pass() else test.fail () end
+end
+
+test.check(f)
