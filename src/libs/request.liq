@@ -60,7 +60,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
       push(r)
       "#{request.id(r)}"
     end
-    s.on_get_ready(memoize({
+    s.on_wake_up(memoize({
       begin
         server.register(namespace=source.id(s), description="Flush the queue and skip the current track",
                         "flush_and_skip", fun (_) -> try

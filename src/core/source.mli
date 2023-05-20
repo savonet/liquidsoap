@@ -51,7 +51,7 @@ type metadata = (int * (string, string) Hashtbl.t) list
 type clock_sync_mode = [ sync | `Unknown ]
 
 type watcher = {
-  get_ready :
+  wake_up :
     stype:source_t ->
     is_active:bool ->
     id:string ->
@@ -59,7 +59,7 @@ type watcher = {
     clock_id:string ->
     clock_sync_mode:clock_sync_mode ->
     unit;
-  leave : unit -> unit;
+  sleep : unit -> unit;
   get_frame :
     start_time:float ->
     end_time:float ->
@@ -96,7 +96,7 @@ class virtual source :
        (** {1 Init/shutdown} *)
 
        (** Register a callback, to be executed when source shuts down. *)
-       method on_shutdown : (unit -> unit) -> unit
+       method on_sleep : (unit -> unit) -> unit
 
        (** The clock under which the source will run, initially unknown. *)
        method clock : clock_variable
@@ -118,22 +118,23 @@ class virtual source :
            or anything custom. *)
        method private set_clock : unit
 
-       (** Register a callback when get_ready is called. *)
-       method on_get_ready : (unit -> unit) -> unit
-
-       (** The operator says to the source that he will ask it frames. *)
+       (** The operator says to the source that he will ask it frames. It may be called multiple times. *)
        method get_ready : ?dynamic:bool -> source list -> unit
+
+       (** Register a callback when wake_up is called. *)
+       method on_wake_up : (unit -> unit) -> unit
 
        (** Called when the source must be ready and had no active operator,
            means that the source has to initialize. This method is called by
-           [get_ready] and not called externally. *)
+           [get_ready] and not called externally. It should be called only once
+           over the course of the source use. *)
        method private wake_up : source list -> unit
 
-       (** Register a callback when leave is called. *)
-       method on_leave : (unit -> unit) -> unit
-
-       (** Opposite of [get_ready] : the operator no longer needs the source. *)
+       (** Opposite of [get_ready] : the operator no longer needs the source. it may be called multiple times. *)
        method leave : ?failed_to_start:bool -> ?dynamic:bool -> source -> unit
+
+       (** Register a callback when sleep is called. *)
+       method on_sleep : (unit -> unit) -> unit
 
        method private sleep : unit
 

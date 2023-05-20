@@ -266,7 +266,7 @@ type metadata = (int * (string, string) Hashtbl.t) list
 type clock_sync_mode = [ sync | `Unknown ]
 
 type watcher = {
-  get_ready :
+  wake_up :
     stype:source_t ->
     is_active:bool ->
     id:string ->
@@ -274,7 +274,7 @@ type watcher = {
     clock_id:string ->
     clock_sync_mode:clock_sync_mode ->
     unit;
-  leave : unit -> unit;
+  sleep : unit -> unit;
   get_frame :
     start_time:float ->
     end_time:float ->
@@ -455,12 +455,6 @@ class virtual operator ?(name = "src") sources =
     val mutable dynamic_activations : operator list list = []
     val mutable static_activations : operator list list = []
 
-    (* List of callbacks executed when source shuts down. *)
-    val mutable on_shutdown = []
-
-    method on_shutdown =
-      self#mutexify (fun fn -> on_shutdown <- fn :: on_shutdown)
-
     method private update_caching_mode =
       let string_of activations =
         String.concat ", "
@@ -496,10 +490,21 @@ class virtual operator ?(name = "src") sources =
               caching <- true;
               self#log#debug "Enabling caching mode: %s." msg)
 
-    val mutable on_get_ready = []
+    val mutable on_wake_up = []
 
-    method on_get_ready =
-      self#mutexify (fun fn -> on_get_ready <- on_get_ready @ [fn])
+    method on_wake_up =
+      self#mutexify (fun fn -> on_wake_up <- on_wake_up @ [fn])
+
+    initializer
+      self#on_wake_up (fun () ->
+          let clock_id, clock_sync_mode =
+            match deref self#clock with
+              | Known c -> (c#id, (c#sync_mode :> clock_sync_mode))
+              | _ -> ("unknown", `Unknown)
+          in
+          self#iter_watchers (fun w ->
+              w.wake_up ~stype:self#stype ~is_active:self#is_active ~id:self#id
+                ~ctype:self#content_type ~clock_id ~clock_sync_mode))
 
     (* Ask for initialization.
        The current implementation makes it dangerous to call #get_ready from
@@ -511,31 +516,23 @@ class virtual operator ?(name = "src") sources =
       if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets up with content type: %s." id
           (Frame.string_of_content_type self#content_type);
-        self#wake_up activation);
+        self#wake_up activation;
+        List.iter (fun fn -> fn ()) on_wake_up);
       if dynamic then dynamic_activations <- activation :: dynamic_activations
       else static_activations <- activation :: static_activations;
-      self#update_caching_mode;
-      let clock_id, clock_sync_mode =
-        match deref self#clock with
-          | Known c -> (c#id, (c#sync_mode :> clock_sync_mode))
-          | _ -> ("unknown", `Unknown)
-      in
-      self#iter_watchers (fun w ->
-          w.get_ready ~stype:self#stype ~is_active:self#is_active ~id:self#id
-            ~ctype:self#content_type ~clock_id ~clock_sync_mode);
-      let on_get_ready = self#mutexify (fun () -> on_get_ready) () in
-      List.iter (fun fn -> fn ()) on_get_ready
+      self#update_caching_mode
 
-    val mutable on_leave = []
-    method on_leave = self#mutexify (fun fn -> on_leave <- on_leave @ [fn])
+    val mutable on_sleep = []
+    method on_sleep = self#mutexify (fun fn -> on_sleep <- on_sleep @ [fn])
+
+    initializer
+      self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
 
     (* Release the source, which will shutdown if possible.
        The current implementation makes it dangerous to call #leave from
        another thread than the Root one, as interleaving with #get is
        forbidden. *)
     method leave ?(failed_to_start = true) ?(dynamic = false) src =
-      let on_leave = self#mutexify (fun () -> on_leave) () in
-      List.iter (fun fn -> fn ()) on_leave;
       let rec remove acc = function
         | [] when failed_to_start -> []
         | [] ->
@@ -549,13 +546,8 @@ class virtual operator ?(name = "src") sources =
       self#update_caching_mode;
       if static_activations = [] && dynamic_activations = [] then (
         source_log#info "Source %s gets down." id;
-        self#mutexify
-          (fun () ->
-            List.iter (fun fn -> try fn () with _ -> ()) on_shutdown;
-            on_shutdown <- [])
-          ();
-        self#sleep);
-      self#iter_watchers (fun w -> w.leave ())
+        self#sleep;
+        List.iter (fun fn -> try fn () with _ -> ()) on_sleep)
 
     method is_up = static_activations <> [] || dynamic_activations <> []
 

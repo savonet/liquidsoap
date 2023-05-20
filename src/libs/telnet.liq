@@ -2,7 +2,7 @@
 def replaces request.dynamic(%argsof(request.dynamic), fn) =
   s = request.dynamic(%argsof(request.dynamic), fn)
 
-  s.on_get_ready(memoize({
+  s.on_wake_up(memoize({
     server.register(namespace=source.id(s), description="Flush the queue and skip the current track",
                     "flush_and_skip", fun (_) -> try
                       s.set_queue([])
@@ -21,7 +21,7 @@ end
 def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
   s = input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video))
 
-  s.on_get_ready(memoize({
+  s.on_wake_up(memoize({
     begin
       server.register(namespace=source.id(s), description="Set gstreamer pipeline state to play",
                       "play", fun (_) -> try
@@ -57,7 +57,7 @@ end
 def replaces blank.strip(%argsof(blank.strip), s) =
   s = blank.strip(%argsof(blank.strip), s)
 
-  s.on_get_ready(memoize({
+  s.on_wake_up(memoize({
     server.register(namespace=source.id(s), description="Check if the source is stripping.",
                     "is_stripping", fun (_) -> begin
                       "#{s.is_blank()}"
@@ -71,7 +71,7 @@ end
 def replaces output.external(%argsof(output.external), f, p, s) =
   s = output.external(%argsof(output.external), f, p, s)
 
-  s.on_get_ready(memoize({
+  s.on_wake_up(memoize({
     server.register(namespace=s.id(), description="Re-open the output.",
                     "reopen", fun (_) -> begin
                       s.reopen()
@@ -86,7 +86,7 @@ end
 def replaces input.external.avi(%argsof(input.external.avi), s) =
   s = input.external.avi(%argsof(input.external.avi), s)
 
-  s.on_get_ready(memoize({
+  s.on_wake_up(memoize({
     server.register(namespace=source.id(s), description="Show internal buffer length (in seconds).",
                     "buffer_length", fun (_) -> begin
                       buffered = s.buffered()
@@ -104,7 +104,7 @@ end
 def replaces input.harbor(%argsof(input.harbor), s) =
   s = input.harbor(%argsof(input.harbor), s)
 
-  s.on_get_ready(memoize({
+  s.on_wake_up(memoize({
     begin
       server.register(namespace=source.id(s), description="Stop current source client, if connected.",
                      "stop", fun (_) -> begin
@@ -132,7 +132,7 @@ end
 def replaces input.http(%argsof(input.http), s) =
   s = input.http(%argsof(input.http), s)
 
-  s.on_get_ready(memoize({
+  s.on_wake_up(memoize({
     begin
       server.register(namespace=source.id(s), description="Start the source, if needed.",
                       "start", fun (_) -> begin
