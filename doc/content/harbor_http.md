@@ -110,14 +110,21 @@ harbor.http.middleware.register(harbor.http.middleware.cors(origin="example.com"
 
 ## Https support
 
-`https` is supported using either `libssl` or macos' `SecureTransport`. When compiled with either of them, a `http.transport.ssl` or `http.transport.secure_transport`
+`https` is supported using either `libssl` or `ocaml-tls`. When compiled with either of them, a `http.transport.ssl` or `http.transport.tls`
 is available and can be passed to each `harbor` operator:
 
 ```liquidsoap
 transport = http.transport.ssl(
-  certificate="/path/to/certificate/file", # Server mode: required, client mode: optional, add certificate to trusted pool
-  key="/path/to/secret/key/file", # Server mode: required, client mode: ignored
-  password="optional password" # Required if key file requires one
+  # Server mode: required,
+  # client mode: optional, add certificate to trusted pool
+  certificate="/path/to/certificate/file",
+
+  # Server mode: required, client mode: ignored
+  key="/path/to/secret/key/file",
+
+  # Required if key file requires one.
+  # TLS does not support password encrypted keys!
+  password="optional password"
 )
 
 harbor.http.register(transport=transport, port=8000, ...)

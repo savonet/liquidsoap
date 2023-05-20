@@ -37,6 +37,12 @@ We applied the following changes:
 - Cleaned up and removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
 - Made `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
 
+### Harbor HTTP server and SSL support
+
+The API for registering HTTP server endpoint and using SSL was completely rewritten. It should be more flexible and
+provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](harbor_http.html)
+for more details. The [Https support](harbor_http.html#https-support) section also explains the new SSL/TLS API.
+
 ### Timeout
 
 We used to have timeout values labelled `timeout` or `timeout_ms`, some of these would be integer and
@@ -102,12 +108,6 @@ def should_reload(~metadata, ~restart) =
   end
 end
 ```
-
-### Harbor HTTP server
-
-The API for registering HTTP server endpoint was completely rewritten. It should be more flexible and
-provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](harbor_http.html)
-for more details.
 
 ### Metadata overrides
 
