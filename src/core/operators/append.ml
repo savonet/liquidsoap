@@ -125,8 +125,12 @@ class append ~insert_missing ~merge source f =
           | `Append s -> snd s#self_sync
           | _ -> snd source#self_sync )
 
-    (* Other behaviours could be wanted, but for now #abort_track won't cancel
-     * any to-be-appended track. *)
+    method cancel_pending =
+      (match Atomic.get state with
+        | `Replay (Some s) -> self#unregister s
+        | _ -> ());
+      Atomic.set state `Idle
+
     method abort_track = source#abort_track
 
     (* Finally, the administrative bit *)
@@ -174,6 +178,30 @@ let _ =
            track is to be appended." );
     ]
     ~return_t:frame_t ~category:`Track
+    ~meth:
+      [
+        ( "skip",
+          ([], Lang.fun_t [(true, "cancel_pending", Lang.bool_t)] Lang.unit_t),
+          "Skip the current track. Pending appended source are cancelled by \
+           default. Pass `cancel_pending=false` to keep it.",
+          fun s ->
+            Lang.val_fun
+              [("cancel_pending", "cancel_pending", Some (Lang.bool true))]
+              (fun p ->
+                let cancel_pending =
+                  Lang.to_bool (List.assoc "cancel_pending" p)
+                in
+                if cancel_pending then s#cancel_pending;
+                s#abort_track;
+                Lang.unit) );
+        ( "cancel_pending",
+          ([], Lang.fun_t [] Lang.unit_t),
+          "Cancel any pending appended source.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                s#cancel_pending;
+                Lang.unit) );
+      ]
     ~descr:
       "Append an extra track to every track. Set the metadata 'liq_append' to \
        'false' to inhibit appending on one track."
