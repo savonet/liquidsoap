@@ -275,7 +275,7 @@ class virtual switch ~name ~override_meta ~transition_length
 
 let default_transition =
   Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
-    "fun (_, y) -> y"
+    "fun (x, y) -> sequence([x,y])"
 
 (** Switch: switch according to user-defined predicates. *)
 
@@ -394,7 +394,9 @@ let _ =
        ( "transitions",
          Lang.list_t transition_t,
          Some (Lang.list []),
-         Some "Transition functions, padded with `fun (x,y) -> y` functions." ));
+         Some
+           "Transition functions, padded with `fun (x,y) -> sequence([x,y])` \
+            functions." ));
       ( "single",
         Lang.list_t Lang.bool_t,
         Some (Lang.list []),

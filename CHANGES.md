@@ -59,6 +59,8 @@ Changed:
   - Make `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
 - BREAKING: reworked reloading logic in `output.file` (#2924, see migration notes for more details).
 - Added support for a Javascript build an interpreter.
+- Changed default transition in switch, fallback, etc. to `fun (x,y) -> sequence([x,y])` to make
+  sure that all pending data on the old source is consumed.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.
 - Cancel pending append when skipping current track on `append` source.

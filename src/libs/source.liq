@@ -150,7 +150,7 @@ end
 # that plays a sequence `[intro,main,outro]` as single track and loops back.
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
-# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
+# @param ~transitions Transition functions, padded with `fun (x,y) -> sequence([x,y])` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
 def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
