@@ -38,10 +38,14 @@
   - take the opportunity to change the handling of track boundaries (currently
     boundary = we have a partial fill, which has quite messy corner cases)
 - Rewrite streaming loop
+- rewrite the clock system
+  - the code is unreadable and overengineered ⇒ simplify it
+  - we want to get rid of the assumption clock = thread
 - Take advantage of multicore
 - Support for proper modules
 - Optimize runtime: start time, typing and memory usage
 - Add script tooling, prettier etc.
+- Redefine switch-based transitions.
 
 ## Backlog
 
@@ -49,9 +53,6 @@
 - refine video support in order to have next liquidshop running on Liquidsoap
   (dogfooding)
 - native RTMP support (and ensure that HLS output is easy to use)
-- rewrite the clock system
-  - the code is unreadable and overengineered ⇒ simplify it
-  - we want to get rid of the assumption clock = thread
 - rewrite switch / sequence / etc. operators based on only one binary operator:
   fallback
   - note: predicates can ben encoded in availablility
