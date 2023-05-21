@@ -260,6 +260,62 @@ output.icecast(
 This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.
 Then if you start a source client and tell it to stream to your server, on port 8080, with password "hackme", the live source will become available and the radio will stream it immediately.
 
+## Play a short silence when transitioning out of `input.harbor`
+
+If the live connection is unstable, for instance when streaming through a roaming phone device, it can be interesting
+to add an extra `5s` of silence when transitioning out of a live `input.harbor` to give the input some chance to reconnect.
+
+This can be done with the `append` operator:
+
+```liquidsoap
+# The live source. We use a short buffer to switch
+# more quickly to the source when reconnecting
+live_source = input.harbor("mount-point-name", buffer=3.)
+
+# A playlist source.
+playlist_source = playlist("/path/to/playlist")
+
+# Set to `true` when we should be adding
+# silence
+should_append = ref(false)
+
+# Append 5. of silence when needed.
+fallback_source = append(
+  playlist_source, fun (_) ->
+    if should_append() then
+      should_append := false
+      blank(duration=5.)
+    else
+      source.fail()
+    end
+)
+
+# Transition to live
+def to_live(playlist, live) =
+  sequence([playlist,live])
+end
+
+# Transition back to playlist
+def to_playlist(live, playlist) =
+  # Ask to insert a silent track.
+  should_append := true
+
+  # Cancel current track. This will also set the playlist
+  # to play a new track. If needed, `cancel_pending` can
+  # be used to for a new silent track without skipping the
+  # playlist current track.
+  fallback_source.skip()
+
+  sequence([live, playlist])
+end
+
+radio = fallback(
+  track_sensitive=false,
+  transitions=[to_live, to_playlist],
+  [live_source, fallback_source]
+)
+```
+
 ## Dump a stream into segmented files
 
 It is sometimes useful (or even legally necessary) to keep a backup of an audio

@@ -61,6 +61,7 @@ Changed:
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.
+- Cancel pending append when skipping current track on `append` source.
 - Errors now report proper stack trace via their `trace` method, making it
   possible to programmatically point to file, line and character offsets
   of each step in the error call trace (#2712)
