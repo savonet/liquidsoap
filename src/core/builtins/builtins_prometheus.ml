@@ -165,11 +165,11 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   let last_start_time = ref 0. in
   let last_end_time = ref 0. in
   let last_data = Gauge.labels (get_last_data ~label_names) labels in
-  let get_ready ~stype:_ ~is_active:_ ~id:_ ~ctype:_ ~clock_id:_
+  let wake_up ~stype:_ ~is_active:_ ~id:_ ~ctype:_ ~clock_id:_
       ~clock_sync_mode:_ =
     ()
   in
-  let leave () = () in
+  let sleep () = () in
   let get_frame ~start_time ~end_time ~start_position ~end_position
       ~is_partial:_ ~metadata:_ =
     last_start_time := start_time;
@@ -186,8 +186,8 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   in
   let watcher =
     {
-      Source.get_ready;
-      leave;
+      Source.wake_up;
+      sleep;
       get_frame;
       before_output = (fun _ -> ());
       after_output;
