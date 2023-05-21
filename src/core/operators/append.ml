@@ -34,12 +34,12 @@ class append ~insert_missing ~merge source f =
   let self_sync_type =
     if !failed then lazy `Dynamic else Utils.self_sync_type !sources
   in
+  let state = Atomic.make `Idle in
   object (self)
     inherit operator ~name:"append" [source]
-    val mutable state = `Idle
 
     method private get_frame buf =
-      match state with
+      match Atomic.get state with
         | `Idle -> (
             let start = Frame.position buf in
             source#get buf;
@@ -55,7 +55,7 @@ class append ~insert_missing ~merge source f =
                   self#register append;
                   if finished then
                     if append#is_ready then (
-                      state <- `Append append;
+                      Atomic.set state (`Append append);
                       if merge then (
                         let pos = Frame.position buf in
                         self#get_frame buf;
@@ -66,20 +66,20 @@ class append ~insert_missing ~merge source f =
                         "Track ends and append source is not ready: won't \
                          append.";
                       self#unregister append;
-                      state <- `Idle)
-                  else state <- `Replay (Some append)
+                      Atomic.set state `Idle)
+                  else Atomic.set state (`Replay (Some append))
               | _ ->
                   self#log#important
                     "No metadata at beginning of track: won't append.";
-                  state <- (if finished then `Idle else `Replay None))
+                  Atomic.set state (if finished then `Idle else `Replay None))
         | `Replay None ->
             source#get buf;
-            if Frame.is_partial buf then state <- `Idle
+            if Frame.is_partial buf then Atomic.set state `Idle
         | `Replay (Some a) ->
             source#get buf;
             if Frame.is_partial buf then
               if a#is_ready then (
-                state <- `Append a;
+                Atomic.set state (`Append a);
                 if merge then (
                   let pos = Frame.position buf in
                   self#get_frame buf;
@@ -88,23 +88,23 @@ class append ~insert_missing ~merge source f =
               else (
                 self#log#important
                   "Track ends and append source is not ready: won't append.";
-                state <- `Idle;
+                Atomic.set state `Idle;
                 self#unregister a)
         | `Append a ->
             a#get buf;
             if Frame.is_partial buf then (
-              state <- `Idle;
+              Atomic.set state `Idle;
               self#unregister a)
 
     method stype = source#stype
 
     method is_ready =
-      match state with
+      match Atomic.get state with
         | `Idle | `Replay None -> source#is_ready
         | `Append s | `Replay (Some s) -> source#is_ready || s#is_ready
 
     method remaining =
-      match state with
+      match Atomic.get state with
         | `Idle | `Replay None -> source#remaining
         | `Replay (Some s) when s#is_ready && merge ->
             let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
@@ -113,7 +113,7 @@ class append ~insert_missing ~merge source f =
         | `Append s -> s#remaining
 
     method seek n =
-      match state with
+      match Atomic.get state with
         | `Idle | `Replay None -> source#seek n
         | `Replay (Some s) when s#is_ready && merge -> 0
         | `Replay (Some _) -> source#seek n
@@ -121,7 +121,7 @@ class append ~insert_missing ~merge source f =
 
     method self_sync =
       ( Lazy.force self_sync_type,
-        match state with
+        match Atomic.get state with
           | `Append s -> snd s#self_sync
           | _ -> snd source#self_sync )
 
@@ -133,7 +133,7 @@ class append ~insert_missing ~merge source f =
     val mutable activation = []
 
     method! private wake_up activator =
-      assert (state = `Idle);
+      assert (Atomic.get state = `Idle);
       activation <- (self :> source) :: activator;
       source#get_ready activation;
       Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f
@@ -142,11 +142,11 @@ class append ~insert_missing ~merge source f =
       source#leave (self :> source);
       Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f;
       begin
-        match state with
+        match Atomic.get state with
           | `Replay (Some a) | `Append a -> self#unregister a
           | _ -> ()
       end;
-      state <- `Idle
+      Atomic.set state `Idle
 
     method private register a = a#get_ready activation
     method private unregister a = a#leave (self :> source)
