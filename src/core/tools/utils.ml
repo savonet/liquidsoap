@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+include Liquidsoap_lang.Utils
+
 (* Util to log exception and backtrace together
    when log level is set to info and just exception
    as severe otherwise. Backtrace should be captured as early
@@ -37,11 +39,6 @@ external pagesize : unit -> int = "liquidsoap_get_pagesize"
 
 let pagesize = pagesize ()
 let () = force_locale ()
-
-(* Resolve a path. *)
-let resolve_path ?cwd path =
-  let cwd = match cwd with None -> Sys.getcwd () | Some cwd -> cwd in
-  if Filename.is_relative path then Filename.concat cwd path else path
 
 (* Several list utilities *)
 
@@ -71,27 +68,6 @@ let remove_one f l =
     | x :: l -> if f x then List.rev_append acc l else aux (x :: acc) l
   in
   aux [] l
-
-let readable f =
-  try
-    let fd = Unix.openfile f [Unix.O_RDONLY] 0o644 in
-    Unix.close fd;
-    true
-  with _ -> false
-
-let check_readable ~pos path =
-  let resolved_path = resolve_path path in
-  let details =
-    if path = resolved_path then ""
-    else " Given path: " ^ path ^ ", resolved path: " ^ resolved_path
-  in
-  if not (Sys.file_exists resolved_path) then
-    Runtime_error.raise ~pos ~message:("File not found!" ^ details) "not_found";
-  if not (readable resolved_path) then
-    Runtime_error.raise ~pos
-      ~message:("File is not readable!" ^ details)
-      "not_found";
-  resolved_path
 
 (* Read all data from a given filename.
  * We cannot use really_input with the

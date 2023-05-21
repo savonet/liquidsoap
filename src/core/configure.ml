@@ -1,3 +1,5 @@
+let add_subst = Utils.add_subst
+
 open Liquidsoap_lang
 include Build_config
 include Liquidsoap_paths
@@ -28,8 +30,8 @@ let libs_versions () =
 
 let () =
   Lifecycle.before_init (fun () ->
-      Utils.add_subst "<sysrundir>" (rundir ());
-      Utils.add_subst "<syslogdir>" (logdir ()))
+      add_subst "<sysrundir>" (rundir ());
+      add_subst "<syslogdir>" (logdir ()))
 
 let restart = ref false
 

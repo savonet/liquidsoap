@@ -134,4 +134,5 @@
   typechecking
   typing
   unifier
+  utils
   value))

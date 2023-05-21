@@ -22,10 +22,6 @@
 
 type tokenizer = unit -> Parser.token * Pos.t
 
-let fst3 (x, _, _) = x
-let snd3 (_, y, _) = y
-let trd3 (_, _, z) = z
-
 let mk_tokenizer ?(fname = "") lexbuf =
   Sedlexing.set_filename lexbuf fname;
   fun () ->
@@ -102,46 +98,40 @@ let eval_ifdefs tokenizer =
   in
   token
 
+type includer_entry = {
+  tokenizer : tokenizer;
+  path : string;
+  channel : in_channel;
+}
+
 (** Expand %include statements by inserting the content of files. Filenames are
    understood relatively to the current directory, which can be a relative path
    such as "." or "..". *)
-let includer dir tokenizer =
+let includer ~pwd tokenizer =
   let stack = Stack.create () in
-  let peek () = try fst3 (Stack.top stack) with Stack.Empty -> tokenizer in
-  let current_dir () = try snd3 (Stack.top stack) with Stack.Empty -> dir in
+  let peek () =
+    try (Stack.top stack).tokenizer with Stack.Empty -> tokenizer
+  in
+  let current_dir () = try (Stack.top stack).path with Stack.Empty -> pwd in
   let rec token () =
     match peek () () with
       | Parser.PP_INCLUDE fname, (_, curp) ->
-          let fname = Lang_string.home_unrelate fname in
-          let fname =
-            if Filename.is_relative fname then
-              Filename.concat (current_dir ()) fname
-            else fname
+          let resolved_fname =
+            Utils.check_readable ~current_dir:(current_dir ())
+              ~pos:[(curp, curp)]
+              fname
           in
-          let channel =
-            try open_in fname
-            with Sys_error _ ->
-              flush_all ();
-              Printf.printf "%sine %d, char %d: cannot %%include, "
-                (if curp.Lexing.pos_fname = "" then "L"
-                 else
-                   Printf.sprintf "File %s, l"
-                     (Lang_string.quote_string curp.Lexing.pos_fname))
-                curp.Lexing.pos_lnum
-                (curp.Lexing.pos_cnum - curp.Lexing.pos_bol);
-              Printf.printf "file %s doesn't exist.\n"
-                (Lang_string.quote_string fname);
-              flush_all ();
-              exit 1
-          in
+          let channel = open_in resolved_fname in
           let lexbuf = Sedlexing.Utf8.from_channel channel in
+          (* We use user-provided filename here to make it more clear
+             to the user. *)
           let tokenizer = mk_tokenizer ~fname lexbuf in
-          Stack.push (tokenizer, Filename.dirname fname, channel) stack;
+          Stack.push { tokenizer; path = Filename.dirname fname; channel } stack;
           token ()
       | (Parser.EOF, _) as tok ->
           if Stack.is_empty stack then tok
           else (
-            close_in (trd3 (Stack.pop stack));
+            close_in (Stack.pop stack).channel;
             token ())
       | x -> x
   in
@@ -156,7 +146,7 @@ type exp_item =
   | LPar
   | String_of
 
-let expand_string tokenizer =
+let expand_string ?fname tokenizer =
   let state = Queue.create () in
   let add pos x = Queue.add (x, pos) state in
   let pop () = ignore (Queue.take state) in
@@ -167,7 +157,7 @@ let expand_string tokenizer =
     let rec parse = function
       | s :: x :: l ->
           let lexbuf = Sedlexing.Utf8.from_string x in
-          let tokenizer = mk_tokenizer lexbuf in
+          let tokenizer = mk_tokenizer ?fname lexbuf in
           let tokenizer () = (fst (tokenizer ()), pos) in
           List.iter add
             [String s; Concat; LPar; String_of; Expr tokenizer; RPar; RPar];
@@ -572,8 +562,8 @@ let strip_newlines tokenizer =
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname ~pwd lexbuf =
   let tokenizer =
-    mk_tokenizer ?fname lexbuf |> includer pwd |> eval_ifdefs |> parse_comments
-    |> expand_string |> int_meth |> dotvar |> uminus |> strip_newlines
+    mk_tokenizer ?fname lexbuf |> includer ~pwd |> eval_ifdefs |> parse_comments
+    |> expand_string ?fname |> int_meth |> dotvar |> uminus |> strip_newlines
   in
   fun () ->
     let t, (startp, endp) = tokenizer () in
