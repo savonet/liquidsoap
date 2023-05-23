@@ -326,7 +326,7 @@ class virtual operator ?(name = "src") sources =
     method set_id ?(definitive = true) s =
       let s = Pcre.substitute ~pat:"[ \t\n.]" ~subst:(fun _ -> "_") s in
       if not definitive_id then (
-        id <- s;
+        id <- Lang_string.generate_id s;
         definitive_id <- definitive);
 
       (* Sometimes the ID is changed during initialization, in order to make it
