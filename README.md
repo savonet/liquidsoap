@@ -96,6 +96,10 @@ To build the code, you will need all the required `opam` packages installed. You
 
 ```sh
 cd liquidsoap/
+opam pin git+https://github.com/savonet/ocaml-dtools
+opam pin git+https://github.com/savonet/ocaml-cry
+opam pin git+https://github.com/savonet/ocaml-metadata
+opam pin git+https://github.com/savonet/ocaml-ffmpeg # optional
 opam pin -ny .
 opam install --deps-only liquidsoap
 ```
