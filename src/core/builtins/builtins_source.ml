@@ -195,11 +195,12 @@ let _ =
       let s = Lang.to_source (Lang.assoc "" 3 p) in
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
       let fo = Pipe_output.new_file_output p in
+      let clock = Clock.clock ~start:false "source_dumper" in
+      Clock.unify s#clock (Clock.create_known clock);
       fo#get_ready [s];
       log#info "Start dumping source.";
       while s#is_ready do
-        fo#output;
-        fo#after_output
+        clock#end_tick
       done;
       log#info "Source dumped.";
       fo#leave s;
@@ -221,12 +222,12 @@ let _ =
           ~on_stop:(fun () -> ())
           ~autostart:true (Lang.source s)
       in
+      let clock = Clock.clock ~start:false "source_dropper" in
+      Clock.unify s#clock (Clock.create_known clock);
       o#get_ready [s];
       log#info "Start dropping source.";
       while s#is_ready do
-        o#before_output;
-        o#output;
-        o#after_output
+        clock#end_tick
       done;
       log#info "Source dropped.";
       o#leave s;

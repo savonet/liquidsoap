@@ -151,6 +151,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
     method private get_frame buf = if Frame.is_partial buf then source#get buf
 
     method private output =
+      self#has_ticked;
       if self#is_ready && state <> `Stopped then
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (

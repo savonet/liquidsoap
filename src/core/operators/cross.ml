@@ -121,7 +121,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let s = (s :> source) in
       s#get_ready ~dynamic:true [(self :> source)];
       Clock.unify source#clock s#clock;
-      s#before_output;
       transition_source <- Some s
 
     method cleanup_transition_source =
@@ -166,13 +165,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       last_child_tick <- (Clock.get self#clock)#get_tick
 
     initializer
-      self#on_before_output (fun () ->
-          source#before_output;
-          ignore (Option.map (fun s -> s#before_output) transition_source);
-          child_support#child_before_output);
+      self#on_before_output (fun () -> child_support#child_before_output);
       self#on_after_output (fun () ->
-          source#after_output;
-          ignore (Option.map (fun s -> s#after_output) transition_source);
           let main_clock = Clock.get self#clock in
           (* Is it really a new tick? *)
           if main_time <> main_clock#get_tick then (

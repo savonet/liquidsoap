@@ -205,14 +205,9 @@ class virtual source :
        (* Register callback to be executed on #before_output. *)
        method on_before_output : (unit -> unit) -> unit
 
-       (** Prepare for output round. *)
-       method before_output : unit
-
        (* Register callback to be executed on #after_output. *)
        method on_after_output : (unit -> unit) -> unit
-
-       (** Cleanup after output round. *)
-       method after_output : unit
+       method private has_ticked : unit
 
        (** {1 Utilities} *)
 
@@ -292,6 +287,7 @@ class type clock =
     (** Streaming *)
 
     method start_outputs : (active_source -> bool) -> unit -> active_source list
+    method on_after_output : int -> (unit -> unit) -> unit
     method get_tick : int
     method end_tick : unit
   end

@@ -68,9 +68,7 @@ class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
       Gc.finalise (finalise_child_clock self#child_clock) self
 
     method private child_tick =
-      List.iter (fun c -> c#before_output) children;
       (Clock.get self#child_clock)#end_tick;
-      List.iter (fun c -> c#after_output) children;
       needs_tick <- false
 
     (* This methods always set [need_tick] to true. If the source is not
