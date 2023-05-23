@@ -27,7 +27,16 @@ let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
 class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
-  let children = List.map Lang.to_source children_val in
+  let children =
+    List.map
+      (fun s ->
+        new Output.dummy
+          ~infallible:false
+          ~on_start:(fun () -> ())
+          ~on_stop:(fun () -> ())
+          ~autostart:true s)
+      children_val
+  in
   let create_child_clock id =
     if create_known_clock then
       Clock.create_known
