@@ -20,12 +20,7 @@
 
  *****************************************************************************)
 
-type field = {
-  target_field : Frame.field;
-  source_field : Frame.field;
-  processor : Content.data -> Content.data;
-}
-
+type field = { target_field : Frame.field; source_field : Frame.field }
 type track = { mutable fields : field list; source : Source.source }
 
 class muxer tracks =
@@ -73,8 +68,13 @@ class muxer tracks =
         track_frames := (source, f) :: !track_frames;
         f
 
+    method private can_generate_data =
+      List.for_all
+        (fun s -> s#is_ready && Frame.is_partial (self#track_frame s))
+        sources
+
     method private feed_track ~tmp ~filled ~start ~stop
-        { source_field; target_field; processor } =
+        { source_field; target_field } =
       let c = Content.sub (Frame.get tmp source_field) start (stop - start) in
       match source_field with
         | f when f = Frame.Fields.metadata ->
@@ -84,7 +84,7 @@ class muxer tracks =
         | f when f = Frame.Fields.track_marks ->
             if Frame.is_partial tmp then
               Generator.add_track_mark ~pos:(stop - filled) self#buffer
-        | _ -> Generator.put self#buffer target_field (processor c)
+        | _ -> Generator.put self#buffer target_field c
 
     method private feed_fields ~filled { fields; source } =
       let tmp = self#track_frame source in
@@ -102,7 +102,7 @@ class muxer tracks =
     method private feed ~force buf =
       let filled = Frame.position buf in
       if
-        self#sources_ready
+        self#can_generate_data
         && (force
            || Generator.remaining self#buffer = -1
               && filled + Generator.length self#buffer < Lazy.force Frame.size)
@@ -150,13 +150,12 @@ let source =
     [("", tracks_t, None, Some "Tracks to mux")]
     (fun p ->
       let tracks = List.assoc "" p in
-      let processor c = c in
       let tracks =
         List.fold_left
           (fun tracks (label, t) ->
             let source_field, s = Lang.to_track t in
             let target_field = Frame.Fields.register label in
-            let field = { source_field; target_field; processor } in
+            let field = { source_field; target_field } in
             match List.find_opt (fun { source } -> source == s) tracks with
               | Some track ->
                   track.fields <- field :: track.fields;
