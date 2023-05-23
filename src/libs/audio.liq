@@ -166,8 +166,8 @@ end
 # A limiter. This is a `compress` with tweaked parameters.
 # @category Source / Audio processing
 # @flag extra
-def limit(~attack=getter(50.), ~release=getter(200.), ~ratio=getter(20.), ~threshold=getter(-2.), ~pre_gain=getter(0.), ~gain=getter(0.), s)
-  compress(attack=attack, release=release, ratio=ratio, threshold=threshold, pre_gain=pre_gain, gain=gain, s)
+def limit(~id=null(), ~attack=getter(50.), ~release=getter(200.), ~ratio=getter(20.), ~threshold=getter(-2.), ~pre_gain=getter(0.), ~gain=getter(0.), s)
+  compress(id=id, attack=attack, release=release, ratio=ratio, threshold=threshold, pre_gain=pre_gain, gain=gain, s)
 end
 
 # A bandpass filter obtained by chaining a low-pass and a high-pass filter.
