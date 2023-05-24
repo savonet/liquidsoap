@@ -26,10 +26,7 @@ class accelerate ~ratio ~randomize source_val =
   let source = Lang.to_source source_val in
   object (self)
     inherit operator ~name:"accelerate" [source] as super
-
-    inherit!
-      Child_support.base ~check_self_sync:true [source_val] as child_support
-
+    inherit! Child_support.base ~check_self_sync:true [source_val]
     method self_sync = source#self_sync
     method stype = source#stype
     method seek = source#seek
@@ -89,10 +86,6 @@ class accelerate ~ratio ~randomize source_val =
       let after = Frame.position frame in
       filled <- filled + (after - before);
       self#child_tick
-
-    initializer
-      self#on_before_output (fun () -> child_support#child_before_output);
-      self#on_after_output (fun () -> child_support#child_after_output)
   end
 
 let _ =

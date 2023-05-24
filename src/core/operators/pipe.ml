@@ -57,9 +57,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     inherit source ~name:"pipe" () as super
 
     (* We are expecting real-rate with a couple of hickups.. *)
-    inherit!
-      Child_support.base ~check_self_sync:false [source_val] as child_support
-
+    inherit! Child_support.base ~check_self_sync:false [source_val]
     inherit Generated.source ~empty_on_abort:false ~bufferize ()
     val mutable samplesize = 16
     val mutable samplerate = Frame.audio_of_seconds 1.
@@ -275,12 +273,6 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
             handler <- None
           with Process_handler.Finished -> ())
         ()
-
-    initializer
-      self#on_before_output (fun () -> child_support#child_before_output);
-      self#on_after_output (fun () ->
-          (* As long as we have a process, we let it drive the child source entirely. *)
-          if handler = None then child_support#child_after_output)
   end
 
 let _ =

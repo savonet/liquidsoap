@@ -98,7 +98,8 @@ class type ['a, 'b] proto_clock =
     method detach_clock : 'b -> unit
     method sub_clocks : 'b list
     method start_outputs : ('a -> bool) -> unit -> 'a list
-    method on_after_output : int -> (unit -> unit) -> unit
+    method on_before_output : (unit -> unit) -> unit
+    method on_after_output : (unit -> unit) -> unit
     method get_tick : int
     method end_tick : unit
   end
@@ -705,8 +706,7 @@ class virtual operator ?(name = "src") sources =
         in_output <- true;
         self#before_output;
         match deref clock with
-          | Known c ->
-              c#on_after_output (Obj.magic self) (fun () -> self#after_output)
+          | Known c -> c#on_after_output (fun () -> self#after_output)
           | _ -> assert false)
 
     (* [#get buf] completes the frame with the next data in the stream.
@@ -835,7 +835,8 @@ class type clock =
     method detach_clock : clock_variable -> unit
     method sub_clocks : clock_variable list
     method start_outputs : (active_source -> bool) -> unit -> active_source list
-    method on_after_output : int -> (unit -> unit) -> unit
+    method on_before_output : (unit -> unit) -> unit
+    method on_after_output : (unit -> unit) -> unit
     method get_tick : int
     method end_tick : unit
   end

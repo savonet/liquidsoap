@@ -26,12 +26,6 @@ type active_source = Source.active_source
 
 include Source.Clock_variables
 
-module AfterOutput = Set.Make (struct
-  type t = int * (unit -> unit)
-
-  let compare (s, _) (s', _) = s - s' [@@inline always]
-end)
-
 let create_known s = create_known (s :> Source.clock)
 let log = Log.make ["clock"]
 
@@ -283,10 +277,10 @@ module MkClock (Time : Liq_time.T) = struct
         log#important "Streaming loop stopped."
 
       val thread_name = "clock_" ^ id
-      val mutable on_after_output = AfterOutput.empty
-
-      method on_after_output s fn =
-        on_after_output <- AfterOutput.add (s, fn) on_after_output
+      val mutable on_before_output = []
+      method on_before_output fn = on_before_output <- fn :: on_before_output
+      val mutable on_after_output = []
+      method on_after_output fn = on_after_output <- fn :: on_after_output
 
       (** This is the main streaming step *)
       method end_tick =
@@ -307,7 +301,8 @@ module MkClock (Time : Liq_time.T) = struct
             ()
         in
         List.iter (fun (s : active_source) -> leave s) leaving;
-        on_after_output <- AfterOutput.empty;
+        on_after_output <- [];
+        List.iter (fun fn -> fn ()) on_before_output;
         let error =
           List.fold_left
             (fun e s ->
@@ -344,7 +339,8 @@ module MkClock (Time : Liq_time.T) = struct
            * be able to leave all sources. *)
           if not allow_streaming_errors#get then Tutils.shutdown 1);
         round <- round + 1;
-        AfterOutput.iter (fun (_, fn) -> fn ()) on_after_output
+        on_before_output <- [];
+        List.iter (fun fn -> fn ()) on_after_output
 
       method start_outputs f =
         (* Extract the list of outputs to start, mark them as Starting

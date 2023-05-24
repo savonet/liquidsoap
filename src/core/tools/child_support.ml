@@ -27,16 +27,7 @@ let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
 class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
-  let children =
-    List.map
-      (fun s ->
-        new Output.dummy
-          ~infallible:false
-          ~on_start:(fun () -> ())
-          ~on_stop:(fun () -> ())
-          ~autostart:true s)
-      children_val
-  in
+  let children = List.map Lang.to_source children_val in
   let create_child_clock id =
     if create_known_clock then
       Clock.create_known
@@ -80,13 +71,20 @@ class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
       (Clock.get self#child_clock)#end_tick;
       needs_tick <- false
 
-    (* This methods always set [need_tick] to true. If the source is not
+    (* This always set [need_tick] to true. If the source is not
        [#is_ready], [#after_output] is called during a clock tick,
        which means that the children clock is _always_ animated by the
        main clock when the source becomes unavailable. Otherwise, we
        expect the source to make a decision about executing a child clock
        tick as part of its [#get_frame] implementation. See [cross.ml] or
        [soundtouch.ml] as examples. *)
-    method child_before_output = needs_tick <- true
-    method child_after_output = if needs_tick then self#child_tick
+    method virtual on_wake_up : (unit -> unit) -> unit
+
+    initializer
+      self#on_wake_up (fun () ->
+          let clock = Source.Clock_variables.get self#clock in
+          clock#on_before_output (fun () ->
+              needs_tick <- true;
+              clock#on_after_output (fun () ->
+                  if needs_tick then self#child_tick)))
   end
