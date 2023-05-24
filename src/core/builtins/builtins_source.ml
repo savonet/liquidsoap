@@ -21,6 +21,8 @@
  *****************************************************************************)
 
 let source = Muxer.source
+let should_stop = Atomic.make false
+let () = Lifecycle.on_core_shutdown (fun () -> Atomic.set should_stop true)
 
 let _ =
   Lang.add_builtin ~base:source "set_name" ~category:(`Source `Liquidsoap)
@@ -196,10 +198,10 @@ let _ =
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
       let fo = Pipe_output.new_file_output p in
       let clock = Clock.clock ~start:false "source_dumper" in
-      Clock.unify s#clock (Clock.create_known clock);
-      fo#get_ready [s];
+      Clock.unify fo#clock (Clock.create_known clock);
+      ignore (clock#start_outputs (fun _ -> true) ());
       log#info "Start dumping source.";
-      while s#is_ready do
+      while (not (Atomic.get should_stop)) && fo#is_ready do
         clock#end_tick
       done;
       log#info "Source dumped.";
@@ -223,10 +225,10 @@ let _ =
           ~autostart:true (Lang.source s)
       in
       let clock = Clock.clock ~start:false "source_dropper" in
-      Clock.unify s#clock (Clock.create_known clock);
-      o#get_ready [s];
+      Clock.unify o#clock (Clock.create_known clock);
+      ignore (clock#start_outputs (fun _ -> true) ());
       log#info "Start dropping source.";
-      while s#is_ready do
+      while (not (Atomic.get should_stop)) && o#is_ready do
         clock#end_tick
       done;
       log#info "Source dropped.";
