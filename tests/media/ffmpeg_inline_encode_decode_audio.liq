@@ -12,9 +12,7 @@ if file.exists(out_encode) then
   file.remove(out_encode)
 end
 
-s = once(blank(duration=10.))
-
-todo = ref(2)
+s = once(blank(id="blank", duration=10.))
 
 def on_done () =
   def check(out) =
@@ -37,27 +35,27 @@ def on_done () =
     stream.sample_rate == "44100"
   end
 
-  todo := !todo - 1
-
-  if !todo == 0 then
-    if check(out_copy) and check(out_encode) then
-      test.pass()
-    else
-      test.fail()
-    end
+  if check(out_copy) and check(out_encode) then
+    test.pass()
+  else
+    test.fail()
   end
 end
 
 s = ffmpeg.encode.audio(
+  id="ffmpeg.encode.audio",
   %ffmpeg(
     %audio(codec="aac")
   ),
   s
 )
 
-output.file(
+# This output might stop when the top-level
+# output stops because it is not pulled anymore
+# We'll have to see how we can make this better.
+encoded_output = output.file(
+  id="output.file",
   fallible=true,
-  on_stop=on_done,
   %ffmpeg(
     %audio.copy,
   ),
@@ -65,13 +63,17 @@ output.file(
   s
 )
 
-s = ffmpeg.decode.audio(s)
+s = ffmpeg.decode.audio(id="ffmpeg.decode.audio", s)
 
 clock.assign_new(sync='none',[s])
 
 output.file(
+  id="output.file_2",
   fallible=true,
-  on_stop=on_done,
+  on_stop=fun () -> begin
+    encoded_output.stop()
+    on_done()
+  end,
   %ffmpeg(
     %audio(codec="aac")
   ),
