@@ -410,7 +410,7 @@ let generate_id =
     if not (Hashtbl.mem t name) then Hashtbl.add t name (ref (-1));
     let n = Hashtbl.find t name in
     incr n;
-    name ^ "_" ^ string_of_int !n
+    if !n = 0 then name else name ^ "." ^ string_of_int !n
 
 (** Decode Base64-encoded data *)
 let decode64 s =
