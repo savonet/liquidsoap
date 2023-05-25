@@ -279,6 +279,8 @@ module MkClock (Time : Liq_time.T) = struct
       val thread_name = "clock_" ^ id
       val mutable on_before_output = []
       method on_before_output fn = on_before_output <- fn :: on_before_output
+      val mutable on_output = []
+      method on_output fn = on_output <- fn :: on_output
       val mutable on_after_output = []
       method on_after_output fn = on_after_output <- fn :: on_after_output
 
@@ -323,6 +325,8 @@ module MkClock (Time : Liq_time.T) = struct
                       e))
             [] active
         in
+        List.iter (fun fn -> fn ()) on_output;
+        on_output <- [];
         if error <> [] then (
           Tutils.mutexify lock
             (fun () ->

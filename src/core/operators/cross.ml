@@ -35,10 +35,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
   let original_duration_getter = duration_getter in
   object (self)
     inherit source ~name:"cross" () as super
-
-    inherit!
-      Child_support.base ~check_self_sync:true [val_source] as child_support
-
+    inherit! Child_support.base ~check_self_sync:true [val_source]
     initializer Typing.(s#frame_type <: self#frame_type)
     method stype = `Fallible
 
@@ -150,9 +147,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     (* in main time *)
     val mutable status = `Idle
 
-    method! private child_tick =
-      child_support#child_tick;
-      Frame.clear self#buf_frame
+    method private child_get source frame =
+      let clock = Source.Clock_variables.get self#child_clock in
+      clock#on_output (fun () -> source#get frame);
+      self#child_tick
 
     method private save_last_metadata mode buf_frame =
       let compare x y = -compare (fst x) (fst y) in
@@ -197,7 +195,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
               self#get_frame frame)
             else (
               let p = Frame.position frame in
-              source#get frame;
+              self#child_get source frame;
               self#save_last_metadata `Before frame;
               self#update_cross_length frame p)
         | `Before ->
@@ -210,7 +208,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             (* The track finished.
              * We compute rms_after and launch the transition. *)
             if source#is_ready then self#analyze_after;
-            self#child_tick;
             self#create_transition;
 
             (* Check if the new source is ready *)
@@ -220,7 +217,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                * to wait that we become ready again. *)
               Frame.add_break frame (Frame.position frame)
         | `After when (Option.get transition_source)#is_ready ->
-            (Option.get transition_source)#get frame;
+            self#child_get (Option.get transition_source) frame;
+
             if Generator.length pending_after = 0 && Frame.is_partial frame then (
               status <- `Idle;
               self#cleanup_transition_source;
@@ -247,12 +245,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
      * where [d=AFrame.size-1]. *)
     method private buffering n =
       let buf_frame = self#buf_frame in
-      (* For the first call, the position is the old position in the main
-       * frame. After that it'll always be 0. *)
-      if not (Frame.is_partial buf_frame) then self#child_tick;
+      if not (Frame.is_partial buf_frame) then Frame.clear buf_frame;
       let start = AFrame.position buf_frame in
       let stop =
-        source#get buf_frame;
+        self#child_get source buf_frame;
         AFrame.position buf_frame
       in
       self#save_last_metadata `Before buf_frame;
@@ -284,7 +280,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let rec f () =
         let start = AFrame.position buf_frame in
         let stop =
-          source#get buf_frame;
+          self#child_get source buf_frame;
           AFrame.position buf_frame
         in
         Generator.feed
@@ -303,7 +299,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         if AFrame.is_partial buf_frame && not source#is_ready then
           Generator.add_track_mark gen_after
         else (
-          self#child_tick;
+          if not (Frame.is_partial buf_frame) then Frame.clear buf_frame;
           if after_len < before_len then f ())
       in
       f ()

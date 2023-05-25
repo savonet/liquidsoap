@@ -288,6 +288,7 @@ class type clock =
 
     method start_outputs : (active_source -> bool) -> unit -> active_source list
     method on_before_output : (unit -> unit) -> unit
+    method on_output : (unit -> unit) -> unit
     method on_after_output : (unit -> unit) -> unit
     method get_tick : int
     method end_tick : unit
