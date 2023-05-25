@@ -38,6 +38,7 @@
   - take the opportunity to change the handling of track boundaries (currently
     boundary = we have a partial fill, which has quite messy corner cases)
 - Rewrite streaming loop
+- Simple mechanism to tell source how much data will be exepected in advance (e.g. 10s with cross) to allow automatic buffer management.
 - rewrite the clock system
   - the code is unreadable and overengineered ⇒ simplify it
   - we want to get rid of the assumption clock = thread
