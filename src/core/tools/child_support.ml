@@ -80,11 +80,18 @@ class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
        [soundtouch.ml] as examples. *)
     method virtual on_wake_up : (unit -> unit) -> unit
 
+    method private child_before_output =
+      needs_tick <- true;
+      let clock = Source.Clock_variables.get self#clock in
+      clock#on_after_output (fun () -> self#child_after_output)
+
+    method private child_after_output =
+      if needs_tick then self#child_tick;
+      let clock = Source.Clock_variables.get self#clock in
+      clock#on_before_output (fun () -> self#child_before_output)
+
     initializer
       self#on_wake_up (fun () ->
           let clock = Source.Clock_variables.get self#clock in
-          clock#on_before_output (fun () ->
-              needs_tick <- true;
-              clock#on_after_output (fun () ->
-                  if needs_tick then self#child_tick)))
+          clock#on_before_output (fun () -> self#child_before_output))
   end
