@@ -130,10 +130,12 @@ class muxer tracks =
        off. *)
     method get_frame buf =
       self#feed ~force:true buf;
-      Generator.fill self#buffer buf
+      Generator.fill self#buffer buf;
+      self#log#critical "get_frame"
 
     initializer
       self#on_after_output (fun () ->
+          self#log#critical "after_output";
           clear_track_frames ();
           Frame.clear self#buffer)
   end
