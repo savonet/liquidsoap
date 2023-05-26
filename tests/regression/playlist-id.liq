@@ -10,7 +10,7 @@ def f() =
   t("bla", "bla")
   t("bla/gni.pls", "gni.pls")
   t("./gni.pls", "gni.pls")
-  t(".", "foo_0")
+  t(".", "foo")
 
   test.pass()
 end
