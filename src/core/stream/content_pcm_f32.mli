@@ -33,3 +33,4 @@ val from_audio : Content_audio.data -> data
 val to_audio : data -> Content_audio.data
 val blit_audio : Content_audio.data -> int -> data -> int -> int -> unit
 val channels_of_format : Content_base.format -> int
+val amplify : data -> float -> unit

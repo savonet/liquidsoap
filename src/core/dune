@@ -42,7 +42,7 @@
    (-> liqmagic.disabled.ml)))
  (foreign_stubs
   (language c)
-  (names unix_c))
+  (names unix_c content_pcm_c))
  (wrapped false)
  (library_flags -linkall)
  (modules

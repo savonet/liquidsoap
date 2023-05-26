@@ -34,6 +34,23 @@ class amplify ~field (source : source) override_field coeff =
     method seek = source#seek
     method self_sync = source#self_sync
 
+    method private amplify c k offset len =
+      match Content.format c with
+        | f when Content.Audio.is_format f ->
+            let data = Content.Audio.get_data c in
+            Audio.amplify k data offset len
+        | f when Content_pcm_s16.is_format f ->
+            let data = Content_pcm_s16.get_data c in
+            Content_pcm_s16.amplify
+              (Array.map (fun c -> Bigarray.Array1.sub c offset len) data)
+              k
+        | f when Content_pcm_f32.is_format f ->
+            let data = Content_pcm_f32.get_data c in
+            Content_pcm_f32.amplify
+              (Array.map (fun c -> Bigarray.Array1.sub c offset len) data)
+              k
+        | _ -> assert false
+
     method private get_frame buf =
       let offset = AFrame.position buf in
       source#get buf;
@@ -56,16 +73,16 @@ class amplify ~field (source : source) override_field coeff =
           | None -> ()
       end;
       let k = match override with Some o -> o | None -> coeff () in
-      if k <> 1. then (
-        let data = Content.Audio.get_data (Frame.get buf field) in
-        Audio.amplify k data offset (AFrame.position buf - offset));
+      if k <> 1. then
+        self#amplify (Frame.get buf field) k offset
+          (AFrame.position buf - offset);
       if AFrame.is_partial buf && override <> None then (
         self#log#info "End of the current overriding.";
         override <- None)
   end
 
 let _ =
-  let frame_t = Format_type.audio () in
+  let frame_t = Lang.pcm_audio_t () in
   Lang.add_track_operator ~base:Modules.track_audio "amplify"
     [
       ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");

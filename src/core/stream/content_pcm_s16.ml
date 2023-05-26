@@ -52,3 +52,10 @@ let from_audio =
 let to_audio = Content_pcm_base.to_audio ~of_value
 let blit_audio = Content_pcm_base.blit_audio ~to_value
 let channels_of_format = Content_pcm_base.channels_of_format ~get_params
+
+external amplify :
+  (int, Bigarray.int16_signed_elt, Bigarray.c_layout) Bigarray.Array1.t ->
+  float ->
+  unit = "liquidsoap_amplify_s16_ba"
+
+let amplify c v = Array.iter (fun c -> amplify c v) c
