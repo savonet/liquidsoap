@@ -373,9 +373,9 @@ class output p =
       | _ ->
           raise
             (Error.Invalid_value
-               ( List.assoc "icy_metadata" p,
-                 "Could not guess icy_metadata for this format, please specify \
-                  either 'true' or 'false'." ))
+               ( List.assoc "send_icy_metadata" p,
+                 "Could not guess send_icy_metadata for this format, please \
+                  specify either true or false." ))
   in
   let icy_metadata =
     List.map Lang.to_string (Lang.to_list (List.assoc "icy_metadata" p))
