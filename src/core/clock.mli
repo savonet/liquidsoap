@@ -79,7 +79,7 @@
  *   duration of each frame.
  *
  * About dependent clocks:
- * - The following is mostly implemented in [Child_resource] for reference.
+ * - The following is mostly implemented in [Child_support] for reference.
  * - In some operators such as [cross], [cue_cut], [soundtouch] and etc, the main
  *   operator wants full control over the children's clock.
  * - In this case, the children's source must all be statically non [self_sync]
@@ -99,7 +99,7 @@
  * - However, one should remember that the children clock needs to be eventually
  *   animated in order to allow the children outputs to detect source failure,
  *   trigger [on_stop] events and etc.
- * - Thus, the convention proposed in [Child_resource] is that, if the main source
+ * - Thus, the convention proposed in [Child_support] is that, if the main source
  *   is not available, it should always call [#end_tick] on each of the main clock
  *   tick. This is implemented by using a [needs_tick] that is always set to [true]
  *   on each [#after_output]. If [true], a [#end_tick] is executed on the children

@@ -74,7 +74,7 @@ class producer ?create_known_clock ~check_self_sync ~consumers ~name () =
     inherit!
       Child_support.base
         ?create_known_clock ~check_self_sync
-        (List.map (fun s -> Lang.source (s :> Source.source)) consumers) as child_support
+        (List.map (fun s -> Lang.source (s :> Source.source)) consumers)
 
     method self_sync =
       ( Lazy.force self_sync_type,
@@ -128,10 +128,6 @@ class producer ?create_known_clock ~check_self_sync ~consumers ~name () =
       if List.length b + 1 <> List.length (Frame.breaks buf) then (
         let cur_pos = Frame.position buf in
         Frame.set_breaks buf (b @ [cur_pos]))
-
-    initializer
-      self#on_before_output (fun () -> child_support#child_before_output);
-      self#on_after_output (fun () -> child_support#child_after_output)
 
     method abort_track =
       Generator.add_track_mark self#buffer;

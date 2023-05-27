@@ -98,6 +98,9 @@ class type ['a, 'b] proto_clock =
     method detach_clock : 'b -> unit
     method sub_clocks : 'b list
     method start_outputs : ('a -> bool) -> unit -> 'a list
+    method on_before_output : (unit -> unit) -> unit
+    method on_output : (unit -> unit) -> unit
+    method on_after_output : (unit -> unit) -> unit
     method get_tick : int
     method end_tick : unit
   end
@@ -672,6 +675,41 @@ class virtual operator ?(name = "src") sources =
           w.get_frame ~start_time ~start_position ~end_time ~end_position
             ~is_partial ~metadata)
 
+    (* Set to [true] when we're inside an output cycle. *)
+    val mutable in_output = false
+    val mutable on_before_output = []
+    method on_before_output fn = on_before_output <- fn :: on_before_output
+
+    initializer
+      self#on_before_output (fun () ->
+          self#iter_watchers (fun w -> w.before_output ()))
+
+    (* Prepare for output round. *)
+    method private before_output =
+      List.iter (fun fn -> fn ()) on_before_output;
+      in_output <- true
+
+    val mutable on_after_output = []
+    method on_after_output fn = on_after_output <- fn :: on_after_output
+
+    initializer
+      self#on_after_output (fun () -> Frame.clear self#memo);
+      self#on_after_output (fun () ->
+          self#iter_watchers (fun w -> w.after_output ()))
+
+    (* Cleanup after output round. *)
+    method private after_output =
+      List.iter (fun fn -> fn ()) on_after_output;
+      in_output <- false
+
+    method private has_ticked =
+      if not in_output then (
+        in_output <- true;
+        self#before_output;
+        match deref clock with
+          | Known c -> c#on_after_output (fun () -> self#after_output)
+          | _ -> assert false)
+
     (* [#get buf] completes the frame with the next data in the stream.
        Depending on whether caching is enabled or not,
        it calls [#get_frame] directly or tries to get data from the cache frame,
@@ -681,6 +719,7 @@ class virtual operator ?(name = "src") sources =
        round ([#after_output]). *)
     method get buf =
       assert (Frame.is_partial buf);
+      self#has_ticked;
 
       (* In some cases we can't avoid #get being called on a non-ready
          source, for example:
@@ -735,41 +774,6 @@ class virtual operator ?(name = "src") sources =
        It cannot be called directly, but [#get] should be used instead, for
        dealing with caching if needed. *)
     method virtual private get_frame : Frame.t -> unit
-
-    (* Set to [true] when we're inside an output cycle. *)
-    val mutable in_output = false
-    val mutable on_before_output = []
-    method on_before_output fn = on_before_output <- fn :: on_before_output
-
-    initializer
-      List.iter
-        (fun s -> self#on_before_output (fun () -> s#before_output))
-        sources;
-      self#on_before_output (fun () ->
-          self#iter_watchers (fun w -> w.before_output ()))
-
-    (* Prepare for output round. *)
-    method before_output =
-      if not in_output then (
-        List.iter (fun fn -> fn ()) on_before_output;
-        in_output <- true)
-
-    val mutable on_after_output = []
-    method on_after_output fn = on_after_output <- fn :: on_after_output
-
-    initializer
-      self#on_after_output (fun () -> Frame.clear self#memo);
-      List.iter
-        (fun s -> self#on_after_output (fun () -> s#after_output))
-        sources;
-      self#on_after_output (fun () ->
-          self#iter_watchers (fun w -> w.after_output ()))
-
-    (* Cleanup after output round. *)
-    method after_output =
-      if in_output then (
-        List.iter (fun fn -> fn ()) on_after_output;
-        in_output <- false)
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
@@ -832,6 +836,9 @@ class type clock =
     method detach_clock : clock_variable -> unit
     method sub_clocks : clock_variable list
     method start_outputs : (active_source -> bool) -> unit -> active_source list
+    method on_before_output : (unit -> unit) -> unit
+    method on_output : (unit -> unit) -> unit
+    method on_after_output : (unit -> unit) -> unit
     method get_tick : int
     method end_tick : unit
   end

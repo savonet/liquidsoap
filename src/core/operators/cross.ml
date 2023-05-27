@@ -30,15 +30,12 @@ let finalise_child_clock child_clock source =
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
 class cross val_source ~duration_getter ~override_duration ~persist_override
-  ~rms_width ~minimum_length ~conservative ~active transition =
+  ~rms_width ~minimum_length ~conservative transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
     inherit source ~name:"cross" () as super
-
-    inherit!
-      Child_support.base ~check_self_sync:true [val_source] as child_support
-
+    inherit! Child_support.base ~check_self_sync:true [val_source]
     initializer Typing.(s#frame_type <: self#frame_type)
     method stype = `Fallible
 
@@ -121,7 +118,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let s = (s :> source) in
       s#get_ready ~dynamic:true [(self :> source)];
       Clock.unify source#clock s#clock;
-      s#before_output;
       transition_source <- Some s
 
     method cleanup_transition_source =
@@ -148,39 +144,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         transition;
       self#cleanup_transition_source
 
-    method! private set_clock =
-      child_support#set_clock;
-      Lang.iter_sources
-        (fun s -> Clock.unify self#child_clock s#clock)
-        transition
-
-    val mutable main_time = 0
-    val mutable last_child_tick = 0
-
     (* in main time *)
     val mutable status = `Idle
 
-    method! private child_tick =
-      child_support#child_tick;
-      Frame.clear self#buf_frame;
-      last_child_tick <- (Clock.get self#clock)#get_tick
-
-    initializer
-      self#on_before_output (fun () ->
-          source#before_output;
-          ignore (Option.map (fun s -> s#before_output) transition_source);
-          child_support#child_before_output);
-      self#on_after_output (fun () ->
-          source#after_output;
-          ignore (Option.map (fun s -> s#after_output) transition_source);
-          let main_clock = Clock.get self#clock in
-          (* Is it really a new tick? *)
-          if main_time <> main_clock#get_tick then (
-            (* Did the child clock tick during this instant? *)
-            if active && last_child_tick <> main_time then (
-              self#child_tick;
-              last_child_tick <- main_time);
-            main_time <- main_clock#get_tick))
+    method private child_get source frame =
+      let clock = Source.Clock_variables.get self#child_clock in
+      clock#on_output (fun () -> source#get frame);
+      self#child_tick
 
     method private save_last_metadata mode buf_frame =
       let compare x y = -compare (fst x) (fst y) in
@@ -210,13 +180,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       self#set_cross_length
 
     method private get_frame frame =
-      let buf_frame = self#buf_frame in
       match status with
         | `Idle ->
             let rem = source#remaining in
             if conservative || (0 <= rem && rem <= cross_length) then (
               self#log#info "Buffering end of track...";
               status <- `Before;
+              let buf_frame = self#buf_frame in
               Frame.set_breaks buf_frame [Frame.position frame];
               Frame.set_all_metadata buf_frame [];
               self#buffering cross_length;
@@ -225,10 +195,9 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
               self#get_frame frame)
             else (
               let p = Frame.position frame in
-              source#get frame;
+              self#child_get source frame;
               self#save_last_metadata `Before frame;
-              self#update_cross_length frame p;
-              needs_tick <- true)
+              self#update_cross_length frame p)
         | `Before ->
             (* We started buffering but the track didn't end.
              * Play the beginning of the buffer while filling it more. *)
@@ -239,7 +208,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             (* The track finished.
              * We compute rms_after and launch the transition. *)
             if source#is_ready then self#analyze_after;
-            self#child_tick;
             self#create_transition;
 
             (* Check if the new source is ready *)
@@ -249,8 +217,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                * to wait that we become ready again. *)
               Frame.add_break frame (Frame.position frame)
         | `After when (Option.get transition_source)#is_ready ->
-            (Option.get transition_source)#get frame;
-            needs_tick <- true;
+            self#child_get (Option.get transition_source) frame;
+
             if Generator.length pending_after = 0 && Frame.is_partial frame then (
               status <- `Idle;
               self#cleanup_transition_source;
@@ -277,12 +245,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
      * where [d=AFrame.size-1]. *)
     method private buffering n =
       let buf_frame = self#buf_frame in
-      (* For the first call, the position is the old position in the main
-       * frame. After that it'll always be 0. *)
-      if not (Frame.is_partial buf_frame) then self#child_tick;
+      if not (Frame.is_partial buf_frame) then Frame.clear buf_frame;
       let start = AFrame.position buf_frame in
       let stop =
-        source#get buf_frame;
+        self#child_get source buf_frame;
         AFrame.position buf_frame
       in
       self#save_last_metadata `Before buf_frame;
@@ -314,7 +280,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let rec f () =
         let start = AFrame.position buf_frame in
         let stop =
-          source#get buf_frame;
+          self#child_get source buf_frame;
           AFrame.position buf_frame
         in
         Generator.feed
@@ -333,7 +299,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         if AFrame.is_partial buf_frame && not source#is_ready then
           Generator.add_track_mark gen_after
         else (
-          self#child_tick;
+          if not (Frame.is_partial buf_frame) then Frame.clear buf_frame;
           if after_len < before_len then f ())
       in
       f ()
@@ -485,15 +451,6 @@ let _ =
           "Do not trust remaining time estimations, always buffering data in \
            advance. This avoids being tricked by skips, either manual or \
            caused by blank.skip()." );
-      ( "active",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some
-          "The active behavior is to keep ticking the child's clock when the \
-           operator is not streaming. Otherwise the child's clock is strictly \
-           based on what is streamed off the child source, which results in \
-           time-dependent active sources to be frozen when that source is \
-           stopped." );
       ( "",
         Lang.fun_t
           [(false, "", transition_arg); (false, "", transition_arg)]
@@ -531,8 +488,7 @@ let _ =
       let rms_width = Frame.audio_of_seconds rms_width in
       let transition = Lang.assoc "" 1 p in
       let conservative = Lang.to_bool (List.assoc "conservative" p) in
-      let active = Lang.to_bool (List.assoc "active" p) in
       let source = Lang.assoc "" 2 p in
       new cross
-        source transition ~conservative ~active ~duration_getter ~rms_width
+        source transition ~conservative ~duration_getter ~rms_width
         ~minimum_length ~override_duration ~persist_override)

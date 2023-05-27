@@ -62,11 +62,6 @@ class virtual switch ~name ~override_meta ~transition_length
         | Some { child = { source }; effective_source } ->
             source != effective_source
 
-    (** We have to explicitly manage our children as they are dynamically created
-    * by application of the transition functions. In particular we need a list
-    * of all children that have output data in the current round. *)
-    val mutable to_finish = []
-
     (** Indicates that the former child was left without having finished its
     * track, in which case the switch will artificially produce an EOT. *)
     val mutable need_eot = false
@@ -91,15 +86,6 @@ class virtual switch ~name ~override_meta ~transition_length
 
     initializer
       self#on_after_output (fun () ->
-          (* Propagate to all sub-sources, i.e. our children and the transitions
-           * wrapping them:
-           *  - current transition if [selected],
-           *  - old one in [to_finish]. *)
-          if self#is_selected_generated then
-            (Option.get selected).effective_source#after_output;
-          List.iter (fun s -> s#after_output) to_finish;
-          to_finish <- [];
-
           (* Selection may have been triggered by a call to #is_ready, without
            * any call to #get_ready (in particular if #select returned None).
            * It is cleared here in order to get a chance to be re-computed later. *)
@@ -183,7 +169,6 @@ class virtual switch ~name ~override_meta ~transition_length
                       c.source#id
                       (if forget then " forgetful" else "");
                     old_selection.effective_source#leave (self :> source);
-                    to_finish <- old_selection.effective_source :: to_finish;
                     Clock.collect_after (fun () ->
                         let old_source =
                           if forget then Debug_sources.empty ()
@@ -234,7 +219,6 @@ class virtual switch ~name ~override_meta ~transition_length
               match selected with
                 | Some old_s ->
                     old_s.effective_source#leave (self :> source);
-                    to_finish <- old_s.effective_source :: to_finish;
                     selected <- None
                 | None -> ())
       in

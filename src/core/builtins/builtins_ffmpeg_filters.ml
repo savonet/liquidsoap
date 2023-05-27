@@ -94,9 +94,7 @@ let is_ready graph =
   (not graph.failed)
   && Queue.fold (fun cur s -> cur && s#is_ready) true graph.graph_inputs
 
-let pull graph =
-  (Clock.get (Queue.peek graph.graph_inputs)#clock)#end_tick;
-  Queue.iter (fun s -> s#after_output) graph.graph_inputs
+let pull graph = (Clock.get (Queue.peek graph.graph_inputs)#clock)#end_tick
 
 let self_sync_type graph =
   Lazy.from_fun (fun () ->

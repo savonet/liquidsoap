@@ -277,6 +277,12 @@ module MkClock (Time : Liq_time.T) = struct
         log#important "Streaming loop stopped."
 
       val thread_name = "clock_" ^ id
+      val mutable on_before_output = []
+      method on_before_output fn = on_before_output <- fn :: on_before_output
+      val mutable on_output = []
+      method on_output fn = on_output <- fn :: on_output
+      val mutable on_after_output = []
+      method on_after_output fn = on_after_output <- fn :: on_after_output
 
       (** This is the main streaming step *)
       method end_tick =
@@ -297,13 +303,14 @@ module MkClock (Time : Liq_time.T) = struct
             ()
         in
         List.iter (fun (s : active_source) -> leave s) leaving;
-        List.iter (fun s -> s#before_output) active;
-        let error, active =
+        on_after_output <- [];
+        List.iter (fun fn -> fn ()) on_before_output;
+        let error =
           List.fold_left
-            (fun (e, a) s ->
+            (fun e s ->
               try
                 s#output;
-                (e, s :: a)
+                e
               with exn -> (
                 let bt = Printexc.get_raw_backtrace () in
                 match on_error with
@@ -312,12 +319,14 @@ module MkClock (Time : Liq_time.T) = struct
                         s#id (Printexc.to_string exn)
                         (Printexc.raw_backtrace_to_string bt);
                       leave ~failed_to_start:true s;
-                      (s :: e, a)
+                      s :: e
                   | Some on_error ->
                       on_error exn bt;
-                      (e, s :: a)))
-            ([], []) active
+                      e))
+            [] active
         in
+        List.iter (fun fn -> fn ()) on_output;
+        on_output <- [];
         if error <> [] then (
           Tutils.mutexify lock
             (fun () ->
@@ -334,7 +343,8 @@ module MkClock (Time : Liq_time.T) = struct
            * be able to leave all sources. *)
           if not allow_streaming_errors#get then Tutils.shutdown 1);
         round <- round + 1;
-        List.iter (fun s -> s#after_output) active
+        on_before_output <- [];
+        List.iter (fun fn -> fn ()) on_after_output
 
       method start_outputs f =
         (* Extract the list of outputs to start, mark them as Starting

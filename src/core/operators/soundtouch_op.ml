@@ -37,10 +37,7 @@ class soundtouch source_val rate tempo pitch =
   in
   object (self)
     inherit operator ~name:"soundtouch" [(consumer :> Source.source)] as super
-
-    inherit!
-      Child_support.base ~check_self_sync:true [source_val] as child_support
-
+    inherit! Child_support.base ~check_self_sync:true [source_val]
     val mutable st = None
     method stype = source#stype
     method self_sync = source#self_sync
@@ -93,10 +90,6 @@ class soundtouch source_val rate tempo pitch =
       self#log#important "Using soundtouch %s."
         (Soundtouch.get_version_string (Option.get st));
       write_frame_ref := self#write_frame
-
-    initializer
-      self#on_before_output (fun () -> child_support#child_before_output);
-      self#on_after_output (fun () -> child_support#child_after_output)
   end
 
 let _ =

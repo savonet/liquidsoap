@@ -74,10 +74,6 @@ class max_duration ~override_meta ~duration source =
         s#leave (self :> Source.source);
         s <- Debug_sources.empty ();
         s#get_ready [(self :> Source.source)])
-
-    initializer
-      self#on_before_output (fun () -> s#before_output);
-      self#on_after_output (fun () -> s#after_output)
   end
 
 let _ =
