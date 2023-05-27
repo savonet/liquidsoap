@@ -22,6 +22,8 @@
 
 (** Connect sources to FFmpeg filters. *)
 
+exception Not_ready
+
 let noop () = ()
 
 type 'a _duration_converter = {
@@ -218,26 +220,31 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
       (Lazy.force self_sync_type, self_sync ())
 
     method pull =
-      (* Init is driven by the pull. *)
-      let output =
-        while output = None && is_ready () do
-          pull ()
-        done;
-        Option.get output
-      in
-      let flush = self#flush_buffer output in
-      let rec f () =
-        try
-          while true do
-            flush ()
-          done
-        with Avutil.Error `Eagain ->
-          if Generator.length self#buffer < Lazy.force Frame.size && is_ready ()
-          then (
-            pull ();
-            f ())
-      in
-      f ()
+      try
+        (* Init is driven by the pull. *)
+        let output =
+          while output = None do
+            if not (is_ready ()) then raise Not_ready;
+            pull ()
+          done;
+          Option.get output
+        in
+        let flush = self#flush_buffer output in
+        let rec f () =
+          try
+            while true do
+              flush ()
+            done
+          with Avutil.Error `Eagain ->
+            if
+              Generator.length self#buffer < Lazy.force Frame.size
+              && is_ready ()
+            then (
+              pull ();
+              f ())
+        in
+        f ()
+      with Not_ready -> ()
 
     method is_ready =
       Generator.length self#buffer >= Lazy.force Frame.size || is_ready ()
