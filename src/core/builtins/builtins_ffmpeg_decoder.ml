@@ -248,24 +248,30 @@ let decode_video_frame ~field ~mode generator =
         | Some v -> v
     in
 
-    fun ~time_base ~stream_idx frame ->
-      let width = Avutil.Video.frame_get_width frame in
-      let height = Avutil.Video.frame_get_height frame in
-      let pixel_format = Avutil.Video.frame_get_pixel_format frame in
-      let pixel_aspect = Avutil.Video.frame_get_pixel_aspect frame in
-      let scaler, fps_converter =
-        get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
-          ~stream_idx ()
+    let put ~scaler data =
+      let img =
+        Ffmpeg_utils.unpack_image ~width:internal_width ~height:internal_height
+          (InternalScaler.convert scaler data)
       in
-      Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (fun data ->
-          let img =
-            Ffmpeg_utils.unpack_image ~width:internal_width
-              ~height:internal_height
-              (InternalScaler.convert scaler data)
+      let data = Video.Canvas.single_image img in
+      let data = Content.Video.lift_data data in
+      Generator.put generator field data
+    in
+
+    fun ~time_base ~stream_idx -> function
+      | `Frame frame ->
+          let width = Avutil.Video.frame_get_width frame in
+          let height = Avutil.Video.frame_get_height frame in
+          let pixel_format = Avutil.Video.frame_get_pixel_format frame in
+          let pixel_aspect = Avutil.Video.frame_get_pixel_aspect frame in
+          let scaler, fps_converter =
+            get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
+              ~stream_idx ()
           in
-          let data = Video.Canvas.single_image img in
-          let data = Content.Video.lift_data data in
-          Generator.put generator field data)
+          Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (put ~scaler)
+      | `Flush ->
+          let scaler, fps_converter = Option.get !converter in
+          Ffmpeg_avfilter_utils.Fps.eof fps_converter (put ~scaler)
   in
 
   let mk_copy_decoder () =
@@ -297,10 +303,10 @@ let decode_video_frame ~field ~mode generator =
             ignore
               (Option.map
                  (fun stream_idx ->
-                   Avcodec.flush_decoder decoder
-                     (convert
-                        ~time_base:(Option.get !current_time_base)
-                        ~stream_idx))
+                   Avcodec.flush_decoder decoder (fun frame ->
+                       convert
+                         ~time_base:(Option.get !current_time_base)
+                         ~stream_idx (`Frame frame)))
                  !current_stream_idx);
             mk_decoder ~params ~stream_idx ~time_base
         | Some d -> d
@@ -325,7 +331,9 @@ let decode_video_frame ~field ~mode generator =
                   time_base;
                 } ) ->
                 let decoder = get_decoder ~params ~time_base ~stream_idx in
-                Avcodec.decode decoder (convert ~time_base ~stream_idx) packet
+                Avcodec.decode decoder
+                  (fun frame -> convert ~time_base ~stream_idx (`Frame frame))
+                  packet
             | _ -> assert false)
           data
     | `Flush ->
@@ -338,15 +346,20 @@ let decode_video_frame ~field ~mode generator =
                    ~time_base:(Option.get !current_time_base)
                    ~stream_idx:(Option.get !current_stream_idx)
                in
-               Avcodec.flush_decoder decoder
-                 (convert
-                    ~time_base:(Option.get !current_time_base)
-                    ~stream_idx))
+               Avcodec.flush_decoder decoder (fun frame ->
+                   convert
+                     ~time_base:(Option.get !current_time_base)
+                     ~stream_idx (`Frame frame));
+               convert
+                 ~time_base:(Option.get !current_time_base)
+                 ~stream_idx `Flush)
              !current_stream_idx)
   in
 
   let mk_raw_decoder () =
     let convert = mk_converter () in
+    let last_stream_idx = ref None in
+    let last_time_base = ref None in
     function
     | `Frame frame ->
         let { Ffmpeg_content_base.data; _ } =
@@ -357,9 +370,15 @@ let decode_video_frame ~field ~mode generator =
         in
         List.iter
           (fun (_, { Ffmpeg_raw_content.frame; stream_idx; time_base }) ->
-            convert ~time_base ~stream_idx frame)
+            last_stream_idx := Some stream_idx;
+            last_time_base := Some time_base;
+            convert ~time_base ~stream_idx (`Frame frame))
           data
-    | `Flush -> ()
+    | `Flush ->
+        convert
+          ~time_base:(Option.get !last_time_base)
+          ~stream_idx:(Option.get !last_stream_idx)
+          `Flush
   in
 
   let convert

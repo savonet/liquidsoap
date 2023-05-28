@@ -225,7 +225,7 @@ let create_decoder ?(merge_tracks = false) source input =
       log#info "End of track reached while seeking!";
       0
   in
-  { Decoder.decode; seek }
+  { Decoder.decode; seek; eof = (fun _ -> ()) }
 
 (** File decoder *)
 

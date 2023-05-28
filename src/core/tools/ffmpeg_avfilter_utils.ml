@@ -128,17 +128,24 @@ module Fps = struct
             (init ?start_pts ~width ~height ~pixel_format ~time_base
                ?pixel_aspect ?source_fps ~target_fps ())
 
+  let rec flush cb output =
+    try
+      cb (output.Avfilter.handler ());
+      flush cb output
+    with Avutil.Error `Eagain -> ()
+
   let convert converter frame cb =
     match converter with
       | `Pass_through _ -> cb frame
       | `Filter { input; output } ->
           Avutil.Frame.set_pts frame (Avutil.Frame.pts frame);
-          input frame;
-          let rec flush () =
-            try
-              cb (output.Avfilter.handler ());
-              flush ()
-            with Avutil.Error `Eagain -> ()
-          in
-          flush ()
+          input (`Frame frame);
+          flush cb output
+
+  let eof converter cb =
+    match converter with
+      | `Pass_through _ -> ()
+      | `Filter { input; output } -> (
+          input `Flush;
+          try flush cb output with Avutil.Error `Eof -> ())
 end

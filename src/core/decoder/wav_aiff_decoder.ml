@@ -112,7 +112,11 @@ let create ?header input =
           with _ -> 0)
       | _, _, _ -> 0
   in
-  { Decoder.decode = (fun buffer -> !decoder ~buffer); seek }
+  {
+    Decoder.decode = (fun buffer -> !decoder ~buffer);
+    seek;
+    eof = (fun _ -> ());
+  }
 
 (* File decoding *)
 

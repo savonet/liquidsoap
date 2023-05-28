@@ -128,7 +128,7 @@ let write_audio_frame ~time_base ~sample_rate ~channel_layout ~sample_format
         let add_filter_frame_pts = add_frame_pts () in
         fun frame ->
           add_filter_frame_pts frame;
-          Avfilter.Utils.convert_audio converter write_frame frame
+          Avfilter.Utils.convert_audio converter write_frame (`Frame frame)
 
 let mk_audio ~mode ~codec ~params ~options ~field output =
   let internal_resampler =
