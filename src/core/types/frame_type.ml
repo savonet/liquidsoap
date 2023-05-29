@@ -76,41 +76,31 @@ let content_type frame_type =
   let meths, base_type = Type.split_meths frame_type in
   let frame_type =
     match (meths, base_type.Type.descr) with
-      (* If type is empty we add default formats. *)
-      | [], Type.Var _ ->
+      (* Add unspecified types when they are default *)
+      | meths, Type.Var _ ->
           let audio =
-            if Frame_settings.conf_audio_channels#get > 0 then
-              Some
-                (Format_type.audio_n ~pcm_kind:Content_audio.kind
-                   Frame_settings.conf_audio_channels#get)
-            else None
+            match
+              ( List.find_opt (fun m -> m.Type.meth = "audio") meths,
+                Frame_settings.conf_audio_channels#get )
+            with
+              | Some _, _ | None, 0 -> None
+              | None, c ->
+                  Some (Format_type.audio_n ~pcm_kind:Content_audio.kind c)
           in
           let video =
-            if Frame_settings.conf_video_default#get then
-              Some (Format_type.video ())
-            else None
+            match
+              ( List.find_opt (fun m -> m.Type.meth = "video") meths,
+                Frame_settings.conf_video_default#get )
+            with
+              | Some _, _ | None, false -> None
+              | None, true -> Some (Format_type.video ())
           in
           let default_t =
             make (Type.var ()) (Frame.Fields.make ?audio ?video ())
           in
           Typing.(frame_type <: default_t);
           default_t
-      | _ ->
-          (try
-             (* Map audio and video fields to their default value when possible.
-                This is in case the source has types such as { audio = 'a } *)
-             Typing.satisfies_constraint base_type Format_type.internal_tracks;
-             List.iter
-               (function
-                 | { Type.meth = "audio"; scheme = [], ty } ->
-                     Typing.(
-                       ty <: Format_type.audio ~pcm_kind:Content_audio.kind ())
-                 | { Type.meth = "video"; scheme = [], ty } ->
-                     Typing.(ty <: Format_type.video ())
-                 | _ -> ())
-               meths
-           with _ -> ());
-          frame_type
+      | _ -> frame_type
   in
   let meths, _ = Type.split_meths frame_type in
   let meths = List.filter (fun { Type.optional } -> not optional) meths in
