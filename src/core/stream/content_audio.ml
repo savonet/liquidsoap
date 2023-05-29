@@ -50,8 +50,7 @@ module Specs = struct
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = audio_of_main in
-    let len = !(src_pos + len) - !src_pos in
-    Audio.blit src !src_pos dst !dst_pos len
+    Audio.blit src !src_pos dst !dst_pos !len
 
   let copy d = Audio.copy d 0 (Audio.length d)
 
