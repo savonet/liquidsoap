@@ -142,7 +142,11 @@ let rec content_type ?kind ty =
              and encoders. Either use it in a track-specific operator, add a \
              type annotation or remove the variable."
           "eval"
-    | _ -> assert false
+    | _ ->
+        Runtime_error.raise
+          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~message:(Printf.sprintf "Invalid track type: %s" (Type.to_string ty))
+          "eval"
 
 module type Content = sig
   val kind : Content_base.kind
