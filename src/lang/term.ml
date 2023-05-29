@@ -404,7 +404,9 @@ let rec free_vars tm =
         enc e
     | Cast (e, _) -> free_vars e
     | Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
-    | Invoke { invoked = e } -> free_vars e
+    | Invoke { invoked = e; default } ->
+        Vars.union (free_vars e)
+          (match default with None -> Vars.empty | Some d -> free_vars d)
     | Open (a, b) -> Vars.union (free_vars a) (free_vars b)
     | List l ->
         List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
