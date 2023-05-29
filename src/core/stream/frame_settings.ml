@@ -188,6 +188,7 @@ let main_of_video v = v * !!m_o_v
 let main_of_midi = main_of_audio
 let audio_of_main m = match !!m_o_a with 0 -> 0 | x -> m / x
 let video_of_main m = match !!m_o_v with 0 -> 0 | x -> m / x
+let video_of_main_f m = match !!m_o_v with 0 -> 0. | x -> float m /. float x
 
 (* TODO: for now MIDI rate is the same as audio rate. *)
 let midi_of_main = audio_of_main

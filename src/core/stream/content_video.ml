@@ -36,7 +36,9 @@ module Specs = struct
   let make ?(length = 0) (p : params) : data =
     let width = !!(Option.value ~default:video_width p.width) in
     let height = !!(Option.value ~default:video_height p.height) in
-    Video.Canvas.make (video_of_main length) (width, height)
+    (* We need to round off to make sure we always have room *)
+    let length = int_of_float (Float.ceil (video_of_main_f length)) in
+    Video.Canvas.make length (width, height)
 
   let length d = main_of_video (Video.Canvas.length d)
   let clear _ = ()
@@ -78,7 +80,10 @@ module Specs = struct
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = Frame_settings.video_of_main in
-    Video.Canvas.blit src !src_pos dst !dst_pos !len
+    let len = !(dst_pos + len) - !dst_pos in
+    let src_pos = !src_pos in
+    let dst_pos = !dst_pos in
+    Video.Canvas.blit src src_pos dst dst_pos len
 
   let copy = Video.Canvas.copy
 
@@ -98,6 +103,9 @@ end
 
 include MkContentBase (Specs)
 
+(* Internal video chunks are rounded off to the nearest integer
+   so we do need to make sure length is always specified. *)
+let make ?(length = 0) = make ~length
 let kind = lift_kind `Canvas
 
 let dimensions_of_format p =
