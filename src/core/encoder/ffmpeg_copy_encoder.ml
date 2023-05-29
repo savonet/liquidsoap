@@ -188,6 +188,7 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
     Ffmpeg_encoder_common.mk_stream;
     can_split;
     encode;
+    flush = (fun () -> ());
     codec_attr;
     bitrate;
     video_size;

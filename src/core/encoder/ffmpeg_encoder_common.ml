@@ -27,6 +27,7 @@ let log = Ffmpeg_utils.log
 type encoder = {
   mk_stream : Frame.t -> unit;
   encode : Frame.t -> int -> int -> unit;
+  flush : unit -> unit;
   can_split : unit -> bool;
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
@@ -213,6 +214,9 @@ let encoder ~mk_streams ffmpeg meta =
     encode ~encoder:!encoder frame start len;
     Strings.Mutable.flush buf
   in
+  let flush () =
+    Frame.Fields.iter (fun _ { flush } -> flush ()) !encoder.streams
+  in
   let insert_metadata m =
     let m =
       Hashtbl.fold (fun lbl v l -> (lbl, v) :: l) (Meta_format.to_metadata m) []
@@ -220,6 +224,7 @@ let encoder ~mk_streams ffmpeg meta =
     match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
       | _ when not !encoder.started -> Av.set_output_metadata !encoder.output m
       | `Stream, Some "ogg" ->
+          flush ();
           Av.close !encoder.output;
           encoder := make ();
           Av.set_output_metadata !encoder.output m
@@ -227,6 +232,7 @@ let encoder ~mk_streams ffmpeg meta =
   in
   insert_metadata meta;
   let stop () =
+    flush ();
     Av.close !encoder.output;
     Strings.Mutable.flush buf
   in

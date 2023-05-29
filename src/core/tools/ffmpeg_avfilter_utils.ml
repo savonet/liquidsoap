@@ -33,8 +33,8 @@ module Fps = struct
     | `Filter { time_base } -> time_base
     | `Pass_through time_base -> time_base
 
-  let init ?(start_pts = 0L) ~width ~height ~pixel_format ~time_base
-      ?pixel_aspect ?source_fps ~target_fps () =
+  let init ?start_pts ~width ~height ~pixel_format ~time_base ?pixel_aspect
+      ?source_fps ~target_fps () =
     let config = Avfilter.init () in
     let _buffer =
       let args =
@@ -57,19 +57,12 @@ module Fps = struct
       in
       Avfilter.attach ~name:"buffer" ~args Avfilter.buffer config
     in
-    let fps =
-      match
-        List.find_opt (fun { Avfilter.name } -> name = "fps") Avfilter.filters
-      with
-        | Some fps -> fps
-        | None -> failwith "Could not find fps ffmpeg filter!"
-    in
-    let fps =
-      let args =
-        [`Pair ("fps", `Rational { Avutil.num = target_fps; den = 1 })]
-      in
-      Avfilter.attach ~name:"fps" ~args fps config
-    in
+    (* There are two use-case:
+       - Decoder assumes no `start_pts` and want to keep negative
+         STARTPTS (to be skipped) but re-align positive STARTPTS
+         in case the file is a partial copy dump.
+       - Encoder wants to apply `start_pts` all the time and realign
+         all PTS accordingly. *)
     let setpts =
       match
         List.find_opt
@@ -81,21 +74,43 @@ module Fps = struct
     in
     let setpts =
       let args =
-        [`Pair ("expr", `String (Printf.sprintf "%Ld+PTS-STARTPTS" start_pts))]
+        match start_pts with
+          | Some start_pts ->
+              [
+                `Pair
+                  ("expr", `String (Printf.sprintf "%Ld+PTS-STARTPTS" start_pts));
+              ]
+          | None -> [`Pair ("expr", `String "PTS-min(STARTPTS, 0)")]
       in
       Avfilter.attach ~name:"setpts" ~args setpts config
+    in
+    let fps =
+      match
+        List.find_opt (fun { Avfilter.name } -> name = "fps") Avfilter.filters
+      with
+        | Some fps -> fps
+        | None -> failwith "Could not find fps ffmpeg filter!"
+    in
+    let fps =
+      let args =
+        [`Pair ("fps", `Rational { Avutil.num = target_fps; den = 1 })]
+      in
+      let args =
+        if start_pts = None then `Pair ("start_time", `Int 0) :: args else args
+      in
+      Avfilter.attach ~name:"fps" ~args fps config
     in
     let _buffersink =
       Avfilter.attach ~name:"buffersink" Avfilter.buffersink config
     in
     Avfilter.link
       (List.hd Avfilter.(_buffer.io.outputs.video))
-      (List.hd Avfilter.(fps.io.inputs.video));
-    Avfilter.link
-      (List.hd Avfilter.(fps.io.outputs.video))
       (List.hd Avfilter.(setpts.io.inputs.video));
     Avfilter.link
       (List.hd Avfilter.(setpts.io.outputs.video))
+      (List.hd Avfilter.(fps.io.inputs.video));
+    Avfilter.link
+      (List.hd Avfilter.(fps.io.outputs.video))
       (List.hd Avfilter.(_buffersink.io.inputs.video));
     let graph = Avfilter.launch config in
     let _, input = List.hd Avfilter.(graph.inputs.video) in
@@ -113,17 +128,24 @@ module Fps = struct
             (init ?start_pts ~width ~height ~pixel_format ~time_base
                ?pixel_aspect ?source_fps ~target_fps ())
 
+  let rec flush cb output =
+    try
+      cb (output.Avfilter.handler ());
+      flush cb output
+    with Avutil.Error `Eagain -> ()
+
   let convert converter frame cb =
     match converter with
       | `Pass_through _ -> cb frame
       | `Filter { input; output } ->
           Avutil.Frame.set_pts frame (Avutil.Frame.pts frame);
-          input frame;
-          let rec flush () =
-            try
-              cb (output.Avfilter.handler ());
-              flush ()
-            with Avutil.Error `Eagain -> ()
-          in
-          flush ()
+          input (`Frame frame);
+          flush cb output
+
+  let eof converter cb =
+    match converter with
+      | `Pass_through _ -> ()
+      | `Filter { input; output } -> (
+          input `Flush;
+          try flush cb output with Avutil.Error `Eof -> ())
 end

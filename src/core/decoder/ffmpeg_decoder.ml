@@ -688,6 +688,14 @@ let seek ~target_position ~container ticks =
   Av.seek ~fmt:`Millisecond ~min_ts ~max_ts ~ts container;
   ticks
 
+let mk_eof streams buffer =
+  Streams.iter
+    (fun _ -> function
+      | `Audio_frame (_, decoder) -> decoder ~buffer `Flush
+      | `Video_frame (_, decoder) -> decoder ~buffer `Flush
+      | _ -> ())
+    streams
+
 let mk_decoder ~streams ~target_position container =
   let check_pts stream pts =
     match (pts, !target_position) with
@@ -731,7 +739,7 @@ let mk_decoder ~streams ~target_position container =
               match Streams.find_opt i streams with
                 | Some (`Audio_frame (_, decode)) ->
                     if check_pts (List.hd audio_frame) (Avutil.Frame.pts frame)
-                    then decode ~buffer frame
+                    then decode ~buffer (`Frame frame)
                 | _ -> f ())
           | `Audio_packet (i, packet) -> (
               match Streams.find_opt i streams with
@@ -745,7 +753,7 @@ let mk_decoder ~streams ~target_position container =
               match Streams.find_opt i streams with
                 | Some (`Video_frame (_, decode)) ->
                     if check_pts (List.hd video_frame) (Avutil.Frame.pts frame)
-                    then decode ~buffer frame
+                    then decode ~buffer (`Frame frame)
                 | _ -> f ())
           | `Video_packet (i, packet) -> (
               match Streams.find_opt i streams with
@@ -944,7 +952,9 @@ let create_decoder ~ctype ~metadata fname =
             `Audio_packet (stream, decoder)
         | `Audio_frame (stream, decoder) ->
             let decoder ~buffer frame =
-              set_remaining stream (Avutil.Frame.pts frame);
+              (match frame with
+                | `Frame frame -> set_remaining stream (Avutil.Frame.pts frame)
+                | _ -> ());
               decoder ~buffer frame
             in
             `Audio_frame (stream, decoder)
@@ -956,7 +966,9 @@ let create_decoder ~ctype ~metadata fname =
             `Video_packet (stream, decoder)
         | `Video_frame (stream, decoder) ->
             let decoder ~buffer frame =
-              set_remaining stream (Avutil.Frame.pts frame);
+              (match frame with
+                | `Frame frame -> set_remaining stream (Avutil.Frame.pts frame)
+                | _ -> ());
               decoder ~buffer frame
             in
             `Video_frame (stream, decoder))
@@ -977,6 +989,7 @@ let create_decoder ~ctype ~metadata fname =
                   | 0 -> 0
                   | _ -> ticks));
       decode = mk_decoder ~streams ~target_position container;
+      eof = mk_eof streams;
     },
     close,
     get_remaining )
@@ -1016,6 +1029,7 @@ let create_stream_decoder ~ctype mime input =
   {
     Decoder.seek = seek ~target_position ~container;
     decode = mk_decoder ~streams ~target_position container;
+    eof = mk_eof streams;
   }
 
 let get_file_type ~metadata ~ctype filename =

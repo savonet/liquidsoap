@@ -67,6 +67,7 @@ type buffer = {
 
 type decoder = {
   decode : buffer -> unit;
+  eof : buffer -> unit;
   (* [seek x]: Skip [x] main ticks. Returns the number of ticks atcually
      skipped. *)
   seek : int -> int;
@@ -505,6 +506,11 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
     remaining ()
     + Generator.length buffer.generator
     + Frame.position frame - offset
+  in
+
+  let close () =
+    decoder.eof buffer;
+    close ()
   in
 
   let fill frame =

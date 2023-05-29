@@ -28,26 +28,28 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
     Ffmpeg_utils.Duration.init ~mode:`PTS ~src:stream_time_base
       ~convert_ts:false ~get_ts:Avutil.Frame.pts ~set_ts:Avutil.Frame.set_pts ()
   in
-  fun ~buffer frame ->
-    match Ffmpeg_utils.Duration.push duration_converter frame with
-      | Some (length, frames) ->
-          let data =
-            List.map
-              (fun (pos, frame) ->
-                ( pos,
-                  {
-                    Ffmpeg_raw_content.time_base = stream_time_base;
-                    stream_idx;
-                    frame;
-                  } ))
-              frames
-          in
-          let data =
-            { Ffmpeg_content_base.params = mk_params params; data; length }
-          in
-          let data = lift_data data in
-          put_data buffer.Decoder.generator data
-      | None -> ()
+  fun ~buffer -> function
+    | `Flush -> ()
+    | `Frame frame -> (
+        match Ffmpeg_utils.Duration.push duration_converter frame with
+          | Some (length, frames) ->
+              let data =
+                List.map
+                  (fun (pos, frame) ->
+                    ( pos,
+                      {
+                        Ffmpeg_raw_content.time_base = stream_time_base;
+                        stream_idx;
+                        frame;
+                      } ))
+                  frames
+              in
+              let data =
+                { Ffmpeg_content_base.params = mk_params params; data; length }
+              in
+              let data = lift_data data in
+              put_data buffer.Decoder.generator data
+          | None -> ())
 
 let mk_audio_decoder ~stream_idx ~format ~stream ~field params =
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;

@@ -128,7 +128,7 @@ let write_audio_frame ~time_base ~sample_rate ~channel_layout ~sample_format
         let add_filter_frame_pts = add_frame_pts () in
         fun frame ->
           add_filter_frame_pts frame;
-          Avfilter.Utils.convert_audio converter write_frame frame
+          Avfilter.Utils.convert_audio converter write_frame (`Frame frame)
 
 let mk_audio ~mode ~codec ~params ~options ~field output =
   let internal_resampler =
@@ -298,6 +298,7 @@ let mk_audio ~mode ~codec ~params ~options ~field output =
     Ffmpeg_encoder_common.mk_stream;
     can_split = can_split stream;
     encode;
+    flush = (fun () -> ());
     codec_attr;
     bitrate;
     video_size;
@@ -389,6 +390,19 @@ let mk_video ~mode ~codec ~params ~options ~field output =
 
   let stream_time_base = Av.get_time_base stream in
 
+  let write_frame ~time_base frame =
+    let frame_pts =
+      Option.map
+        (fun pts ->
+          Ffmpeg_utils.convert_time_base ~src:time_base ~dst:stream_time_base
+            pts)
+        (Avutil.Frame.pts frame)
+    in
+    Avutil.Frame.set_pts frame frame_pts;
+    start_pts := Int64.succ !start_pts;
+    Av.write_frame stream frame
+  in
+
   let fps_converter ~stream_idx ~time_base frame =
     let converter =
       get_converter ~time_base ~stream_idx
@@ -396,17 +410,15 @@ let mk_video ~mode ~codec ~params ~options ~field output =
         ()
     in
     let time_base = Ffmpeg_avfilter_utils.Fps.time_base converter in
-    Ffmpeg_avfilter_utils.Fps.convert converter frame (fun frame ->
-        let frame_pts =
-          Option.map
-            (fun pts ->
-              Ffmpeg_utils.convert_time_base ~src:time_base
-                ~dst:stream_time_base pts)
-            (Avutil.Frame.pts frame)
-        in
-        Avutil.Frame.set_pts frame frame_pts;
-        start_pts := Int64.succ !start_pts;
-        Av.write_frame stream frame)
+    Ffmpeg_avfilter_utils.Fps.convert converter frame (write_frame ~time_base)
+  in
+
+  let flush () =
+    match !converter with
+      | None -> ()
+      | Some (_, _, _, converter) ->
+          let time_base = Ffmpeg_avfilter_utils.Fps.time_base converter in
+          Ffmpeg_avfilter_utils.Fps.eof converter (write_frame ~time_base)
   in
 
   let internal_converter cb =
@@ -420,6 +432,7 @@ let mk_video ~mode ~codec ~params ~options ~field output =
     let nb_frames = ref 0L in
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in
     let stream_idx = 1L in
+
     fun frame start len ->
       let vstart = Frame.video_of_main start in
       let vstop = Frame.video_of_main (start + len) in
@@ -491,6 +504,7 @@ let mk_video ~mode ~codec ~params ~options ~field output =
     Ffmpeg_encoder_common.mk_stream;
     can_split = can_split stream;
     encode;
+    flush;
     codec_attr;
     bitrate;
     video_size;

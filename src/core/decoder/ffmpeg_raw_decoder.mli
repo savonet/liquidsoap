@@ -27,7 +27,7 @@ val mk_audio_decoder :
   field:Frame.field ->
   Avutil.audio Avcodec.params ->
   buffer:Decoder.buffer ->
-  Avutil.audio Avutil.Frame.t ->
+  [ `Frame of Avutil.audio Avutil.Frame.t | `Flush ] ->
   unit
 
 val mk_video_decoder :
@@ -37,5 +37,5 @@ val mk_video_decoder :
   field:Frame.field ->
   Avutil.video Avcodec.params ->
   buffer:Decoder.buffer ->
-  Avutil.video Avutil.Frame.t ->
+  [ `Frame of Avutil.video Avutil.Frame.t | `Flush ] ->
   unit

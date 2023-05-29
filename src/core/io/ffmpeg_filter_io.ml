@@ -93,7 +93,9 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
         self#frame_type <: frame_t;
         source#frame_type <: self#frame_type)
 
-    val mutable input = fun _ -> ()
+    val mutable input : [ `Frame of 'a Avutil.frame | `Flush ] -> unit =
+      fun _ -> ()
+
     method set_input fn = input <- fn
     val mutable init : 'a Avutil.frame -> unit = fun _ -> assert false
     method set_init v = init <- v
@@ -148,7 +150,7 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
                       in
                       if metadata <> [] then
                         Avutil.Frame.set_metadata frame metadata);
-                    input frame)
+                    input (`Frame frame))
                   frames)
         frames
   end
