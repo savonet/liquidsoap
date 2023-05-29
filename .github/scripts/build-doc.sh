@@ -9,3 +9,4 @@ export OCAMLPATH
 
 opam install -y odoc
 dune build @doc
+dune build --profile release ./src/js/interactive_js.bc.js
