@@ -30,3 +30,31 @@ let () =
   Hashtbl.add m "gni" "gno";
   Frame.set_metadata frame 123 m;
   assert (Frame.get_all_metadata frame = [(123, m)])
+
+(* Test content boundaries.
+   We create 3 content chunk and make
+   sure that the consolidated content
+   contains the last one's data. *)
+let () =
+  let length = Lazy.force Frame.size in
+  let chunk_len = length / 3 in
+  assert (Frame.video_of_main length = 1);
+  let fst = Content.make ~length Content.(default_format Video.kind) in
+  let fst = Content.sub fst 0 chunk_len in
+  let snd = Content.make ~length Content.(default_format Video.kind) in
+  let snd = Content.sub snd chunk_len chunk_len in
+  let thrd_d = Content.make ~length Content.(default_format Video.kind) in
+  let thrd = Content.sub thrd_d (2 * chunk_len) (length - (2 * chunk_len)) in
+  let data = Content.append fst snd in
+  let data = Content.append data thrd in
+  assert (Content.length data = length);
+  let final = Content.make ~length Content.(default_format Video.kind) in
+  Content.blit data 0 final 0 length;
+  let data = Content.Video.get_data data in
+  let final = Content.Video.get_data final in
+  assert (Array.length data = 1);
+  assert (Array.length final = 1);
+  assert (data.(0) == final.(0));
+  let thrd_d = Content.Video.get_data thrd_d in
+  assert (Array.length thrd_d = 1);
+  assert (thrd_d.(0) == final.(0))

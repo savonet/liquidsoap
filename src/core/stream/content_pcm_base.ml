@@ -31,9 +31,9 @@ let clear _ = ()
 
 let blit src src_pos dst dst_pos len =
   let ( ! ) = audio_of_main in
+  let len = !(src_pos + len) - !src_pos in
   let src_pos = !src_pos in
   let dst_pos = !dst_pos in
-  let len = !len in
   Array.iter2
     (fun src dst ->
       Bigarray.Array1.blit
