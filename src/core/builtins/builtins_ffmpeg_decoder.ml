@@ -270,8 +270,11 @@ let decode_video_frame ~field ~mode generator =
           in
           Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (put ~scaler)
       | `Flush ->
-          let scaler, fps_converter = Option.get !converter in
-          Ffmpeg_avfilter_utils.Fps.eof fps_converter (put ~scaler)
+          ignore
+            (Option.map
+               (fun (scaler, fps_converter) ->
+                 Ffmpeg_avfilter_utils.Fps.eof fps_converter (put ~scaler))
+               !converter)
   in
 
   let mk_copy_decoder () =
@@ -358,8 +361,7 @@ let decode_video_frame ~field ~mode generator =
 
   let mk_raw_decoder () =
     let convert = mk_converter () in
-    let last_stream_idx = ref None in
-    let last_time_base = ref None in
+    let last_params = ref None in
     function
     | `Frame frame ->
         let { Ffmpeg_content_base.data; _ } =
@@ -370,15 +372,15 @@ let decode_video_frame ~field ~mode generator =
         in
         List.iter
           (fun (_, { Ffmpeg_raw_content.frame; stream_idx; time_base }) ->
-            last_stream_idx := Some stream_idx;
-            last_time_base := Some time_base;
+            last_params := Some (time_base, stream_idx);
             convert ~time_base ~stream_idx (`Frame frame))
           data
     | `Flush ->
-        convert
-          ~time_base:(Option.get !last_time_base)
-          ~stream_idx:(Option.get !last_stream_idx)
-          `Flush
+        ignore
+          (Option.map
+             (fun (time_base, stream_idx) ->
+               convert ~time_base ~stream_idx `Flush)
+             !last_params)
   in
 
   let convert
