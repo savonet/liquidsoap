@@ -20,7 +20,7 @@ Copyright 2003-2023 Savonet team
 |                           |                                                                    |
 | ------------------------- | ------------------------------------------------------------------ |
 | Homepage                  | http://liquidsoap.info                                             |
-| Slack Chat                | http://slack.liquidsoap.info                                       |
+| Discord Chat              | http://chat.liquidsoap.info                                        |
 | Blog                      | https://www.liquidsoap.info/blog/                                  |
 | Bug reports               | https://github.com/savonet/liquidsoap/issues                       |
 | User questions            | https://github.com/savonet/liquidsoap/discussions                  |
