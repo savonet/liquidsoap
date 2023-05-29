@@ -381,9 +381,8 @@ module MkClock (Time : Liq_time.T) = struct
                   `Started s
                 with e ->
                   let bt = Printexc.get_backtrace () in
-                  Utils.log_exception ~log ~bt
-                    (Printf.sprintf "Error when starting %s: %s!" s#id
-                       (Printexc.to_string e));
+                  log#severe "Source %s failed while starting: %s!\n%s" s#id
+                    (Printexc.to_string e) bt;
                   leave ~failed_to_start:true s;
                   `Error s)
               to_start
