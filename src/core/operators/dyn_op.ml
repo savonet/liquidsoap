@@ -25,14 +25,6 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
     inherit Source.source ~name:"source.dynamic" ()
     method stype = if infallible then `Infallible else `Fallible
     val mutable activation = []
-
-    (* The dynamic stuff: #select calls the selection function and changes
-     * the source when needed, and #unregister_source does what its name says.
-     * Any sequence of calls to #select and #unregister_source is okay
-     * but they should not overlap.
-     * All that matters for cleanliness is that #unregister_source comes
-     * last, which #sleep ensures. *)
-    val source_lock = Mutex.create ()
     val mutable source : Source.source option = init
 
     method private unregister_source ~already_locked =
@@ -43,8 +35,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
               source <- None
           | None -> ()
       in
-      if already_locked then unregister ()
-      else Tutils.mutexify source_lock unregister ()
+      if already_locked then unregister () else self#mutexify unregister ()
 
     val mutable last_select = 0.
 
@@ -55,7 +46,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
     method private select =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
-        (Tutils.mutexify source_lock (fun () ->
+        (self#mutexify (fun () ->
              let s =
                match proposal with
                  | Some s ->
@@ -79,7 +70,11 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
        selection function to change the source. *)
     method! private wake_up ancestors =
       activation <- (self :> Source.source) :: ancestors;
-      Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f;
+      Lang.iter_sources
+        (fun s ->
+          Typing.(s#frame_type <: self#frame_type);
+          s#get_ready ~dynamic:true activation)
+        f;
       self#select
 
     method! private sleep =
