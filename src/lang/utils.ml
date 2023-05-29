@@ -31,8 +31,8 @@ let resolve_path ?current_dir path =
 
 let readable f =
   try
-    let c = open_out_gen [Open_rdonly] 0o644 f in
-    close_out c;
+    let c = open_in f in
+    close_in c;
     true
   with _ -> false
 
