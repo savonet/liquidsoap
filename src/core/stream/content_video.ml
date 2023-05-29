@@ -103,6 +103,9 @@ end
 
 include MkContentBase (Specs)
 
+(* Internal video chunks are rounded off to the nearest integer
+   so we do need to make sure length is always specified. *)
+let make ?(length = 0) = make ~length
 let kind = lift_kind `Canvas
 
 let dimensions_of_format p =
