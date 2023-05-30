@@ -20,6 +20,8 @@
 - add support for caching of types (#2878)
 - remove requests and use sources instead everywhere (a request is a source with
   one track [or more])
+  - Precise scheduling with queue.push, etc.: we could make the track available
+    at some precise time if requests were sources...
 - use naive (as in native.liq) implementation of switch (based on
   source.dynamic)
 - rework buffer.adaptative
