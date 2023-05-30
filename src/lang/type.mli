@@ -133,6 +133,7 @@ val mk_invariant : t -> unit
 val to_string_fun : (?generalized:var list -> t -> string) ref
 val to_string : ?generalized:var list -> t -> string
 val string_of_scheme : scheme -> string
+val is_var : t -> bool
 val is_fun : t -> bool
 val is_source : t -> bool
 

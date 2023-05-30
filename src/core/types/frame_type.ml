@@ -83,6 +83,8 @@ let content_type frame_type =
               ( List.find_opt (fun m -> m.Type.meth = "audio") meths,
                 Frame_settings.conf_audio_channels#get )
             with
+              | Some { Type.scheme = _, ty }, c when Type.is_var ty && c > 0 ->
+                  Some (Format_type.audio_n ~pcm_kind:Content_audio.kind c)
               | Some _, _ | None, 0 -> None
               | None, c ->
                   Some (Format_type.audio_n ~pcm_kind:Content_audio.kind c)
@@ -92,6 +94,8 @@ let content_type frame_type =
               ( List.find_opt (fun m -> m.Type.meth = "video") meths,
                 Frame_settings.conf_video_default#get )
             with
+              | Some { Type.scheme = _, ty }, true when Type.is_var ty ->
+                  Some (Format_type.video ())
               | Some _, _ | None, false -> None
               | None, true -> Some (Format_type.video ())
           in
