@@ -41,6 +41,7 @@
 %include "visualization.liq"
 %include "profiler.liq"
 %include "io.liq"
+%include "medialib.liq"
 %include "runtime.liq"
 %include "testing.liq"
 %include "liquidsoap.liq"
