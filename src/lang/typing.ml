@@ -182,6 +182,9 @@ let occur_check (a : var) =
   in
   occur_check
 
+let do_occur_check = ref true
+let occur_check a t = if !do_occur_check then occur_check a t
+
 (** Lower all type variables to given level. *)
 let update_level level a =
   let x = Type.var ~level () in
