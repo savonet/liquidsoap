@@ -75,36 +75,33 @@ let get_field frame_type field =
 let content_type frame_type =
   let meths, base_type = Type.split_meths frame_type in
   let frame_type =
-    match (meths, base_type.Type.descr) with
-      (* Add unspecified types when they are default *)
-      | meths, Type.Var _ ->
-          let audio =
-            match
-              ( List.find_opt (fun m -> m.Type.meth = "audio") meths,
-                Frame_settings.conf_audio_channels#get )
-            with
-              | Some { Type.scheme = _, ty }, c when Type.is_var ty && c > 0 ->
-                  Some (Format_type.audio_n ~pcm_kind:Content_audio.kind c)
-              | Some _, _ | None, 0 -> None
-              | None, c ->
-                  Some (Format_type.audio_n ~pcm_kind:Content_audio.kind c)
-          in
-          let video =
-            match
-              ( List.find_opt (fun m -> m.Type.meth = "video") meths,
-                Frame_settings.conf_video_default#get )
-            with
-              | Some { Type.scheme = _, ty }, true when Type.is_var ty ->
-                  Some (Format_type.video ())
-              | Some _, _ | None, false -> None
-              | None, true -> Some (Format_type.video ())
-          in
-          let default_t =
-            make (Type.var ()) (Frame.Fields.make ?audio ?video ())
-          in
-          Typing.(frame_type <: default_t);
-          default_t
-      | _ -> frame_type
+    (* Add default types. *)
+    let audio =
+      match
+        ( List.find_opt (fun m -> m.Type.meth = "audio") meths,
+          Frame_settings.conf_audio_channels#get )
+      with
+        | Some { Type.scheme = _, ty }, c when Type.is_var ty && c > 0 ->
+            Some (Format_type.audio_n ~pcm_kind:Content_audio.kind c)
+        | None, c when Type.is_var base_type && c > 0 ->
+            Some (Format_type.audio_n ~pcm_kind:Content_audio.kind c)
+        | Some { Type.scheme = _, ty }, _ -> Some ty
+        | None, _ -> None
+    in
+    let video =
+      match
+        ( List.find_opt (fun m -> m.Type.meth = "video") meths,
+          Frame_settings.conf_video_default#get )
+      with
+        | Some { Type.scheme = _, ty }, true when Type.is_var ty ->
+            Some (Format_type.video ())
+        | None, true when Type.is_var base_type -> Some (Format_type.video ())
+        | Some { Type.scheme = _, ty }, _ -> Some ty
+        | None, _ -> None
+    in
+    let default_t = make (Type.var ()) (Frame.Fields.make ?audio ?video ()) in
+    Typing.(frame_type <: default_t);
+    default_t
   in
   let meths, _ = Type.split_meths frame_type in
   let meths = List.filter (fun { Type.optional } -> not optional) meths in
