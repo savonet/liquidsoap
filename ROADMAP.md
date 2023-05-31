@@ -52,6 +52,7 @@
 
 ## Backlog
 
+- javascrtipt/browser support using [WebCodecs](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API)!
 - support for subtitles
 - refine video support in order to have next liquidshop running on Liquidsoap
   (dogfooding)
