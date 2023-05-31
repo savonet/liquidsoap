@@ -98,6 +98,15 @@ let _ =
       with _ -> Lang.int 0)
 
 let _ =
+  Lang.add_builtin ~base:file "mtime" ~category:`File
+    ~descr:"Last modification time."
+    [("", Lang.string_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let fname = List.assoc "" p |> Lang.to_string in
+      try Lang.float (Unix.stat fname).st_mtime with _ -> Lang.float 0.)
+
+let _ =
   Lang.add_builtin ~base:file "mkdir" ~category:`File
     ~descr:"Create a directory."
     [
