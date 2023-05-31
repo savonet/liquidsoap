@@ -237,7 +237,7 @@ def list.index(p, l)
   list.ind(l, 0, fun (x, _, r) -> if p(x) then 0 else r+1 end)
 end
 
-# list.assoc.mem(key,l) returns true if l contains a pair (key,value).
+# `list.assoc.mem(key,l)` returns `true` if `l` contains a pair (key,value).
 # @category List
 # @param a Key to look for
 # @param l List of pairs (key,value)
