@@ -368,6 +368,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 (new Sequence.sequence [before; after] :> source))
             in
             Clock.unify compound#clock s#clock;
+            Typing.(compound#frame_type <: self#frame_type);
             compound)
       in
       self#cleanup_transition_source;
