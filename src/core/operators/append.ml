@@ -153,8 +153,8 @@ class append ~insert_missing ~merge source f =
       Atomic.set state `Idle
 
     method private register a =
-      Clock.unify append#clock source#clock;
-      Typing.(append#frame_type <: self#frame_type);
+      Clock.unify a#clock source#clock;
+      Typing.(a#frame_type <: self#frame_type);
       a#get_ready activation
 
     method private unregister a = a#leave (self :> source)
