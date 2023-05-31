@@ -55,11 +55,19 @@ def medialib(~persistency=null(), directories=[])
     end
   end
 
-  def find(~artist=null(), ~artist_contains=null())
+  def find(~artist=null(), ~artist_contains=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~predicate=(fun(m)->true))
     def p(m)
       (null.defined(artist) ? m["artist"] == null.get(artist) : true)
       and
       (null.defined(artist_contains) ? string.contains(substring=null.get(artist_contains), m["artist"]) : true)
+      and
+      (null.defined(genre) ? m["genre"] == null.get(genre) : true)
+      and
+      (null.defined(title) ? m["title"] == null.get(title) : true)
+      and
+      (null.defined(title_contains) ? string.contains(substring=null.get(title_contains), m["title"]) : true)
+      and
+      predicate(m)
     end
     l = list.filter(fun (fm) -> p(snd(fm)), db())
     l = list.map(fst, l)
