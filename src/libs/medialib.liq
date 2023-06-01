@@ -10,7 +10,7 @@
 # @method refresh Update metadatas and look for new files.
 # @method add_directory Add a new directory which should be scanned.
 # @method clear Remove all known metadata.
-def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress=true, ~directories=[], dir=null())
+def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=true, ~directories=[], dir=null())
   id = string.id.default(default="medialib", id)
   refresh_time = refresh
   directories = ref(directories)
