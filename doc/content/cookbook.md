@@ -142,6 +142,24 @@ fallback([playlist("http://my/playlist"),
 switch([ ({0h-7h}, night), ({7h-24h}, day) ])
 ```
 
+## Generating playlists from a media library
+
+In order to store all the metadata of the files in a given directory and use
+those to generate playlists, you can use the `medialib` operator which takes as
+argument the directory to index. On first run, it will index all the files of
+the given folder, which can take some time (you are advised to use the
+`persistency` parameter in order to specify a file where metadata will be
+stored, in order to avoid reindexing at each run). The resulting object can then
+be queried with the `find` method in order to return all files matching given
+conditions and thus generate a playlist:
+
+```liquidsoap
+m = medialib(persistency="/tmp/medialib.json", "~/Music/")
+l = m.find(artist_contains="Brassens")
+l = list.shuffle(l)
+output(playlist.list(l))
+```
+
 ## Force a file/playlist to be played at least every XX minutes
 
 It can be useful to have a special playlist that is played at least every 20 minutes for instance (3 times per hour).
