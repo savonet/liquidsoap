@@ -22,7 +22,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=
 
   # Read metadata from file.
   def metadata(f)
-    m = file.metadata(f)
+    m = file.metadata.native(f)
     # Sanitize
     m = metadata.cover.remove(m)
     m = list.assoc.filter(fun (k,_) -> not list.mem(k, ["priv","rva2"]), m)

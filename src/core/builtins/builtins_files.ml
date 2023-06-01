@@ -496,6 +496,20 @@ let () =
                  Lang.metadata (Frame.metadata_of_list m)))))
 
 let _ =
+  Lang.add_builtin ~base:file_metadata "native" ~category:`File
+    [
+      ( "",
+        Lang.string_t,
+        None,
+        Some "File from which the metadata should be read." );
+    ]
+    Lang.metadata_t ~descr:"Read metadata from a file using the native decoder."
+    (fun p ->
+      let file = List.assoc "" p |> Lang.to_string in
+      let m = try Metadata.parse_file file with _ -> [] in
+      Lang.metadata (Frame.metadata_of_list m))
+
+let _ =
   Lang.add_builtin ~base:file "which" ~category:`File
     ~descr:
       "`file.which(\"progname\")` looks for an executable named \"progname\" \
