@@ -157,7 +157,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=
 
   t = time()
   load()
-  log.important(label=id,"Loaded library from #{persistency} in #{dt(t)}s")
+  log.important(label=id,"Loaded library from #{persistency} in #{dt(t)}s: #{list.length(db())} entries")
   t = time()
   progress = if initial_progress then fun(n,l) -> print(newline=false,"#{id}: updating #{n*100/l}%...\r") else fun(_,_) -> () end
   update(progress=progress)
