@@ -41,7 +41,6 @@ New:
 - Added `"metadata_url"` to the default list of exported metadata (#2946)
 - Added log colors!
 - Added `list.filter_map`.
-- Added `log.startup`.
 
 Changed:
 
