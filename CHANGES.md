@@ -40,6 +40,7 @@ New:
   [Pico TTS](https://github.com/naggety/picotts) (#2934).
 - Added `"metadata_url"` to the default list of exported metadata (#2946)
 - Added log colors!
+- Added `list.filter_map`.
 
 Changed:
 

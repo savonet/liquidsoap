@@ -121,6 +121,23 @@ def list.filter(~remove=fun(_)->(), p, l)
   list.ind(l, [], fun(x, _, l) -> if p(x) then list.cons(x, l) else (remove(x):unit); l end)
 end
 
+# Map a function on a list (like `list.map`) excepting that the value is removed
+# if the function returns `null`.
+# @category List
+# @param f Function called on every element of the list.
+# @param l The list.
+def list.filter_map(f, l)
+  def f(x, _, l)
+    y = f(x)
+    if null.defined(y) then
+      list.cons(null.get(y), l)
+    else
+      l
+    end
+  end
+  list.ind(l, [], f)
+end
+
 # Associate a value to a key in an association list. This functions raises
 # `error.not_found` if no default value is specified.
 # @category List
@@ -145,6 +162,14 @@ end
 def list.assoc.filter(p, l)
   def p(kv) = p(fst(kv), snd(kv)) end
   list.filter(p, l)
+end
+
+# Map a function of every element of the associative list, removing the entry if
+# the function returns `null`.
+# @category List
+def list.assoc.filter_map(f, l)
+  def f(kv) = f(fst(kv), snd(kv)) end
+  list.filter_map(f, l)
 end
 
 # Remove the first pair from an associative list.
