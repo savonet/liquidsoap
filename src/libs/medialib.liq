@@ -44,7 +44,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=
       db := list.assoc.remove(f, db())
     else
       # New file or not recent enough metadata
-      if not list.assoc.mem(f, db()) or needs_update(f,list.assoc(f,db())) then
+      if not list.assoc.mem(f,db()) or needs_update(f,list.assoc(f,db())) then
         db := (f,metadata(f)) :: list.assoc.remove(f,db())
       end
     end
