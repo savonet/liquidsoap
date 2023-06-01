@@ -119,8 +119,10 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress
   end
 
   # Find all files matching given criteria.
-  def find(~artist=null(), ~artist_contains=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename_contains=null(), ~filename_matches=null(), ~predicate=(fun(_)->true))
+  def find(~artist=null(), ~artist_contains=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~predicate=(fun(_)->true))
     def p(m)
+      myear = m["year"]
+
       (null.defined(artist) ? m["artist"] == null.get(artist) : true)
       and
       (null.defined(artist_contains) ? string.contains(substring=null.get(artist_contains), m["artist"]) : true)
@@ -134,6 +136,8 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress
       (null.defined(filename_contains) ? string.contains(substring=null.get(filename_contains), m["basename"]) : true)
       and
       (null.defined(filename_matches) ? string.match(pattern=null.get(filename_matches), m["basename"]) : true)
+      and
+      (null.defined(year) ? (string.is_int(myear) and string.to_int(myear) == year) : true)
       and
       predicate(m)
     end
