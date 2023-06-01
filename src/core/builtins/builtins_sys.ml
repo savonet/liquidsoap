@@ -271,7 +271,7 @@ let _ =
   Lang.add_builtin ~base:Modules.process "pid" ~category:`System [] Lang.int_t
     ~descr:"Get the process' pid." (fun _ -> Lang.int (Unix.getpid ()))
 
-let _ =
+let log_module =
   Lang.add_builtin "log" ~category:`Liquidsoap ~descr:"Log a message."
     [
       ("label", Lang.string_t, Some (Lang.string "lang"), None);
@@ -284,6 +284,22 @@ let _ =
       let label = Lang.to_string (List.assoc "label" p) in
       let level = Lang.to_int (List.assoc "level" p) in
       (Log.make [label])#f level "%s" msg;
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:log_module "startup" ~category:`Liquidsoap
+    ~descr:
+      "Log a startup message. Unless this function is used, log messages \
+       emitted at startup are discarded."
+    [
+      ("label", Lang.string_t, Some (Lang.string "lang"), None);
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.unit_t
+    (fun p ->
+      let msg = List.assoc "" p |> Lang.to_string in
+      let label = List.assoc "label" p |> Lang.to_string in
+      Startup.message "%s: %s" label msg;
       Lang.unit)
 
 let _ =
