@@ -21,7 +21,10 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress
   # Read metadata from file.
   def metadata(f)
     m = file.metadata(f)
+    # Sanitize
     m = metadata.cover.remove(m)
+    m = list.assoc.filter(fun (k,_) -> not list.mem(k, ["priv","rva2"]), m)
+    # Add more metadata
     m = ("basename",path.basename(f)) :: m
     m = ("last-scan",string.float(time())) :: m
     m
@@ -119,13 +122,15 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress
   end
 
   # Find all files matching given criteria.
-  def find(~artist=null(), ~artist_contains=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~predicate=(fun(_)->true))
+  def find(~artist=null(), ~artist_contains=null(), ~album=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~predicate=(fun(_)->true))
     def p(m)
       myear = m["year"]
 
       (null.defined(artist) ? m["artist"] == null.get(artist) : true)
       and
       (null.defined(artist_contains) ? string.contains(substring=null.get(artist_contains), m["artist"]) : true)
+      and
+      (null.defined(album) ? m["album"] == null.get(album) : true)
       and
       (null.defined(genre) ? m["genre"] == null.get(genre) : true)
       and
