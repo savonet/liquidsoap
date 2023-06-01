@@ -25,7 +25,7 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
       # New file or not recent enough metadata
       if not list.assoc.mem(f, db()) or needs_update(f,list.assoc(f,db())) then
         print("Adding #{f}")
-        db := (f,metadata(f)) :: list.assoc.remove(f, db())
+        db := (f,metadata(f)) :: list.assoc.remove(f,db())
       end
     end
   end
