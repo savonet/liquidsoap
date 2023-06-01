@@ -546,8 +546,7 @@ class external_output p =
       Unix.open_process_out process
 
     method close_chan chan =
-      try ignore (Unix.close_process_out chan)
-      with Sys_error msg when msg = "Broken pipe" -> ()
+      try ignore (Unix.close_process_out chan) with Sys_error _ -> ()
 
     method output_substring = output_substring
     method flush = flush
