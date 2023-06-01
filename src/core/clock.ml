@@ -212,11 +212,11 @@ module MkClock (Time : Liq_time.T) = struct
         begin
           match (self_sync, new_val) with
             | None, false | Some true, false ->
-                log#important "Delegating synchronisation to CPU clock";
+                log#important "Delegating synchronization to CPU clock";
                 t0 <- time ();
                 ticks <- 0L
             | None, true | Some false, true ->
-                log#important "Delegating synchronisation to active sources"
+                log#important "Delegating synchronization to active sources"
             | _ -> ()
         end;
         self_sync <- Some new_val;
