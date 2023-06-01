@@ -507,6 +507,7 @@ let _ =
     (fun p ->
       let file = List.assoc "" p |> Lang.to_string in
       let m = try Metadata.parse_file file with _ -> [] in
+      let m = List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m in
       Lang.metadata (Frame.metadata_of_list m))
 
 let _ =

@@ -108,7 +108,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=
   def store()
     if null.defined(persistency) then
       f = null.get(persistency)
-      data = json.stringify(db())
+      data = json.stringify(compact=true,db())
       file.write(data=data, f)
       log.info(label=id,"Wrote persistent file #{f}")
     end
