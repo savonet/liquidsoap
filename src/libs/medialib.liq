@@ -170,7 +170,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=
   log.important(label=id,"Stored library")
 
   if null.defined(refresh_time) then
-    thread.run(every=null.get(refresh_time), refresh)
+    thread.run(delay=null.get(refresh_time), every=null.get(refresh_time), refresh)
   end
 
   def clear()
