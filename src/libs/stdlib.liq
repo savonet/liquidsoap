@@ -1,4 +1,5 @@
-%include "error.liq"
+let import {error, assert, failwith} = "error.liq"
+
 %include "null.liq"
 %include "ref.liq"
 %include "list.liq"

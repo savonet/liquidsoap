@@ -28,13 +28,22 @@ open Ground
 type arglist = (string * string * Type.t * Term.t option) list
 
 type lexer_let_decoration =
-  [ `None | `Recursive | `Replaces | `Eval | `Json_parse | `Yaml_parse ]
+  [ `None
+  | `Recursive
+  | `Replaces
+  | `Eval
+  | `Import
+  | `Export
+  | `Json_parse
+  | `Yaml_parse ]
 
 type let_decoration =
   [ `None
   | `Recursive
   | `Replaces
   | `Eval
+  | `Import
+  | `Export
   | `Yaml_parse
   | `Json_parse of (string * Term.t) list ]
 
@@ -49,7 +58,7 @@ type binding = {
   cast : Type.t option;
 }
 
-let let_args ?doc ~decoration ~pat ?arglist ~def ?cast () =
+let let_args ?doc ?(decoration = `None) ~pat ?arglist ~def ?cast () =
   { doc; decoration; pat; arglist; def; cast }
 
 type encoder_param =
@@ -78,6 +87,8 @@ let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
   | `Yaml_parse -> `Yaml_parse
   | `Eval -> `Eval
+  | `Export -> `Export
+  | `Import -> `Import
   | `Recursive -> `Recursive
   | `None -> `None
   | `Replaces -> `Replaces
@@ -87,6 +98,8 @@ let string_of_let_decoration = function
   | `Recursive -> "rec"
   | `Replaces -> "replaces"
   | `Eval -> "eval"
+  | `Export -> "export"
+  | `Import -> "import"
   | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
@@ -431,7 +444,31 @@ let mk_eval ~pos (doc, pat, def, body, cast) =
   let def = mk ~pos (Cast (def, ty)) in
   mk ~pos (Let { doc; replace = false; pat; gen = []; def; body })
 
-let mk_let ~pos { doc; decoration; pat; arglist; def; cast } body =
+let import = ref (fun _ -> assert false)
+
+let rec mk_let ~pos { doc; decoration; pat; arglist; def; cast } body =
+  let decoration, def, body =
+    match (decoration, pat, def.term) with
+      | `Export, PVar [name], _ ->
+          ( `None,
+            def,
+            mk_let ~pos
+              (let_args
+                 ~pat:(PVar ["_export_"; name])
+                 ~def:(mk ~pos (Var name)) ())
+              body )
+      | `Export, _, _ ->
+          raise
+            (Parse_error (pos, "export only accepts a single variable name"))
+      | `Import, _, Ground (String _module) ->
+          let imported = !import _module in
+          (`None, imported, body)
+      | `Import, _, _ ->
+          raise
+            (Parse_error
+               (Option.value ~default:pos def.t.pos, "invalid module name!"))
+      | _ -> (decoration, def, body)
+  in
   match (arglist, decoration) with
     | Some arglist, `None | Some arglist, `Replaces ->
         let replace = decoration = `Replaces in

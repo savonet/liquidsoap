@@ -479,7 +479,7 @@ _let:
         | _ -> raise (Parse_error ($loc, "Invalid let constructor")) }
 
 binding:
-  | optvar GETS expr         { Parser_helper.let_args ~decoration:`None ~pat:(PVar [$1]) ~def:$3 () }
+  | optvar GETS expr         { Parser_helper.let_args ~pat:(PVar [$1]) ~def:$3 () }
   | _let pattern GETS expr   { Parser_helper.let_args ~decoration:$1 ~pat:$2 ~def:$4 () }
   | _let LPAR pattern COLON ty RPAR GETS expr
                              { Parser_helper.let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 () }

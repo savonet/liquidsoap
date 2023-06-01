@@ -205,12 +205,15 @@ let rec token lexbuf =
     | eof -> EOF
     | "def", Plus skipped, "rec", Plus skipped -> PP_DEF `Recursive
     | "def", Plus skipped, "replaces", Plus skipped -> PP_DEF `Replaces
+    | "def", Plus skipped, "export", Plus skipped -> PP_DEF `Export
     | "def" -> PP_DEF `None
     | "try" -> TRY
     | "catch" -> CATCH
     | "do" -> DO
     | "let", Plus skipped, "replaces", Plus skipped -> LET `Replaces
     | "let", Plus skipped, "eval", Plus skipped -> LET `Eval
+    | "let", Plus skipped, "export", Plus skipped -> LET `Export
+    | "let", Plus skipped, "import", Plus skipped -> LET `Import
     | "let", Plus skipped, "json.parse", Star skipped, '[' ->
         LETLBRA `Json_parse
     | "let", Plus skipped, "json.parse", Plus skipped -> LET `Json_parse
