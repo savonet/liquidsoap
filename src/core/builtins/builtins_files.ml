@@ -303,7 +303,11 @@ let _ =
 let _ =
   Lang.add_builtin ~base:path "basename" ~category:`File
     [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Get the base name of a path."
+    Lang.string_t
+    ~descr:
+      "Get the base name of a path, i.e. the name of the file without the full \
+       path. For instance `file.basename(\"/tmp/folder/bla.mp3\")` returns \
+       `\"bla.mp3\"`."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.basename f))
