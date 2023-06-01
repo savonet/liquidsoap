@@ -110,6 +110,12 @@ def list.fold.right(f, x, l)
   list.ind(l, x, fun (e, _, r) -> f(e, r))
 end
 
+# Concatenate all the elements of a list of lists.
+# @category List
+def list.flatten(l)
+  list.fold(fun(l,s) -> list.append(l,s), [], l)
+end
+
 # Filter a list according to a predicate. The order in which elements are
 # handled is not specified (and is currently implemented from the right).
 # @category List
