@@ -3,13 +3,17 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
 
   db = ref([])
 
-  # Read metadata from file
+  # Read metadata from file.
   def metadata(f)
     m = file.metadata(f)
     m = metadata.cover.remove(m)
-    m = ("filename",f) :: m
-    m = ("scan-time",string.float(time())) :: m
+    m = ("last-scan",string.float(time())) :: m
     m
+  end
+
+  # Whether an entry needs ot be updated.
+  def needs_update(f,m)
+    file.mtime(f) > string.to_float(m["last-scan"])
   end
 
   # Add a file to the database.
@@ -18,8 +22,9 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
     if not (file.exists(f)) then
       db := list.assoc.remove(f, db())
     else
-      # Not recent enough metadata
-      if not list.assoc.mem(f, db()) or (string.to_float(list.assoc("scan-time",list.assoc(f, db()))) > file.mtime(f)) then
+      # New file or not recent enough metadata
+      if not list.assoc.mem(f, db()) or needs_update(f,list.assoc(f,db())) then
+        print("Adding #{f}")
         db := (f,metadata(f)) :: list.assoc.remove(f, db())
       end
     end
@@ -27,10 +32,17 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
 
   # Update database by renewing metadata and removing removed files.
   def update()
-    for fm = list.iterator(db()) do
-      let (f,_) = fm
-      add(f)
+    def u(fm)
+      let (f,m) = fm
+      if not (file.exists(f)) then
+        null()
+      # elsif needs_update(f,m) then
+        # (f,metadata(m))
+      else
+        (f,m)
+      end
     end
+    db := list.filter_map(u,db())
   end
 
   # Make sure that new files from directories are registered.
@@ -52,8 +64,7 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
             db := null.get(parsed)
           end
         catch e do
-          log.important(label=id,"Failed to parse persistent file #{f}")
-          log.important(label=id,"#{e.kind}: #{e.message}")
+          log.important(label=id,"Failed to parse persistent file #{f}: #{e.kind}: #{e.message}")
         end
       end
     end
@@ -69,7 +80,7 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
     end
   end
 
-  def find(~artist=null(), ~artist_contains=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~predicate=(fun(m)->true))
+  def find(~artist=null(), ~artist_contains=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~predicate=(fun(_)->true))
     def p(m)
       (null.defined(artist) ? m["artist"] == null.get(artist) : true)
       and
@@ -88,9 +99,17 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
     l
   end
 
+  t = time()
   load()
+  log.startup(label=id,"Loaded library from #{persistency} in #{time()-t}s")
+  t = time()
+  update()
+  log.startup(label=id,"Updated library in #{time()-t}s: #{list.length(db())} entries")
+  t = time()
   scan()
+  log.startup(label=id,"Scanned new files in #{time()-t}s: #{list.length(db())} entries")
   store()
+  log.startup(label=id,"Stored library")
 
   {find = find}
 end
