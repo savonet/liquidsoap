@@ -1,12 +1,19 @@
-def medialib(~id=null(), ~persistency=null(), directories=[])
+# A library to store the metadata of files in given folders and query them. This
+# is useful to generate playlists based on metadata.
+# @category File
+def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
   id = string.id.default(default="medialib", id)
+  refresh_time = refresh
 
   db = ref([])
+
+  def dt(t) = string.float(decimal_places=2,time()-t) end
 
   # Read metadata from file.
   def metadata(f)
     m = file.metadata(f)
     m = metadata.cover.remove(m)
+    m = ("basename",path.basename(f)) :: m
     m = ("last-scan",string.float(time())) :: m
     m
   end
@@ -52,6 +59,14 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
     end
   end
 
+  # Refresh the library.
+  def refresh()
+    t = time()
+    update()
+    scan()
+    log.important(label=id, "Refreshed the library in #{dt(t)}s.")
+  end
+
   # Load from the persistent file.
   def load()
     db := []
@@ -80,6 +95,7 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
     end
   end
 
+  # Find all files matching given criteria.
   def find(~artist=null(), ~artist_contains=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~predicate=(fun(_)->true))
     def p(m)
       (null.defined(artist) ? m["artist"] == null.get(artist) : true)
@@ -101,15 +117,19 @@ def medialib(~id=null(), ~persistency=null(), directories=[])
 
   t = time()
   load()
-  log.startup(label=id,"Loaded library from #{persistency} in #{time()-t}s")
+  log.important(label=id,"Loaded library from #{persistency} in #{dt(t)}s")
   t = time()
   update()
-  log.startup(label=id,"Updated library in #{time()-t}s: #{list.length(db())} entries")
+  log.important(label=id,"Updated library in #{dt(t)}s: #{list.length(db())} entries")
   t = time()
   scan()
-  log.startup(label=id,"Scanned new files in #{time()-t}s: #{list.length(db())} entries")
+  log.important(label=id,"Scanned new files in #{dt(t)}s: #{list.length(db())} entries")
   store()
-  log.startup(label=id,"Stored library")
+  log.important(label=id,"Stored library")
+
+  if null.defined(refresh_time) then
+    thread.run(every=null.get(refresh_time), refresh)
+  end
 
   {find = find}
 end
