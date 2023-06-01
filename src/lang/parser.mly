@@ -479,17 +479,17 @@ _let:
         | _ -> raise (Parse_error ($loc, "Invalid let constructor")) }
 
 binding:
-  | optvar GETS expr         { None, `None,  PVar [$1], None,    $3, None }
-  | _let pattern GETS expr   { None, $1,     $2,        None,    $4, None }
+  | optvar GETS expr         { Parser_helper.let_args ~decoration:`None ~pat:(PVar [$1]) ~def:$3 () }
+  | _let pattern GETS expr   { Parser_helper.let_args ~decoration:$1 ~pat:$2 ~def:$4 () }
   | _let LPAR pattern COLON ty RPAR GETS expr
-                             { None, $1,     $3,        None,    $8, Some $5 }
-  | _let subfield GETS expr  { None, $1,     PVar $2,   None,    $4, None }
-  | DEF pattern g exprs END  { fst $1,              snd $1, $2,        None,    $4, None }
+                             { Parser_helper.let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 () }
+  | _let subfield GETS expr  { Parser_helper.let_args ~decoration:$1 ~pat:(PVar $2) ~def:$4 () }
+  | DEF pattern g exprs END  { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:$2 ~def:$4 () }
   | DEF LPAR pattern COLON ty RPAR g exprs END
-                             { fst $1,              snd $1, $3,        None,    $8, Some $5 }
-  | DEF subfield g exprs END { fst $1,              snd $1, PVar $2,   None,    $4, None }
+                             { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:$3 ~def:$8 ~cast:$5 () }
+  | DEF subfield g exprs END { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(PVar $2) ~def:$4 () }
   | DEF varlpar arglist RPAR g exprs END
-                             { fst $1,              snd $1, PVar $2, Some $3,   $6, None }
+                             { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(PVar $2) ~arglist:$3 ~def:$6 () }
 
 varlpar:
   | VARLPAR         { [$1] }
