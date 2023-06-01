@@ -4,15 +4,17 @@
 # @param ~persistency Store the database in given file, which is reuse to populate the database on next run.
 # @param ~refresh Scan directories for new files every given number of seconds.
 # @param ~initial_progress Show progress of library being indexed at startup.
-# @param directories Directories to look for files in.
+# @param ~directories Directories to look for files in.
+# @param dir Directory to look for files in.
 # @method find Find files according to conditions on metadata.
 # @method refresh Update metadatas and look for new files.
 # @method add_directory Add a new directory which should be scanned.
 # @method clear Remove all known metadata.
-def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress=true, directories=[])
+def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress=true, ~directories=[], dir=null())
   id = string.id.default(default="medialib", id)
   refresh_time = refresh
   directories = ref(directories)
+  if null.defined(dir) then directories := null.get(dir) :: directories() end
 
   db = ref([])
 
