@@ -1,7 +1,15 @@
 # A library to store the metadata of files in given folders and query them. This
 # is useful to generate playlists based on metadata.
 # @category File
-def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
+# @param ~persistency Store the database in given file, which is reuse to populate the database on next run.
+# @param ~refresh Scan directories for new files every given number of seconds.
+# @param ~initial_progress Show progress of library being indexed at startup.
+# @param directories Directories to look for files in.
+# @method find Find files according to conditions on metadata.
+# @method refresh Update metadatas and look for new files.
+# @method add_directory Add a new directory which should be scanned.
+# @method clear Remove all known metadata.
+def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress=true, directories=[])
   id = string.id.default(default="medialib", id)
   refresh_time = refresh
   directories = ref(directories)
@@ -38,36 +46,39 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
   end
 
   # Update database by renewing metadata and removing removed files.
-  def update()
+  def update(~progress=fun(_,_)->())
+    len = list.length(db())
     n = ref(0)
+    nu = ref(0)
     def u(fm)
       let (f,m) = fm
+      ref.incr(n)
+      progress(n(),len)
       if not (file.exists(f)) then
         null()
       elsif needs_update(f,m) then
-        n := n() + 1
+        ref.incr(nu)
         (f,metadata(f))
       else
         (f,m)
       end
     end
     db := list.filter_map(u,db())
-    log.debug(label=id, "Updated #{n()} files.")
+    log.debug(label=id, "Updated #{nu()} files.")
   end
 
   # Make sure that new files from directories are registered.
-  def scan()
-    for d = list.iterator(directories()) do
-      list.iter(add, file.ls(absolute=true, recursive=true, d))
+  def scan(~progress=fun(_,_)->())
+    l = list.map(fun(d) -> file.ls(absolute=true, recursive=true, d), directories())
+    l = list.flatten(l)
+    n = ref(0)
+    len = list.length(l)
+    def add(f)
+      ref.incr(n)
+      progress(n(),len)
+      add(f)
     end
-  end
-
-  # Refresh the library.
-  def refresh()
-    t = time()
-    update()
-    scan()
-    log.info(label=id, "Refreshed the library in #{dt(t)}s.")
+    list.iter(add, l)
   end
 
   # Load from the persistent file.
@@ -98,6 +109,15 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
     end
   end
 
+  # Refresh the library.
+  def refresh()
+    t = time()
+    update()
+    scan()
+    store()
+    log.info(label=id, "Refreshed the library in #{dt(t)}s.")
+  end
+
   # Find all files matching given criteria.
   def find(~artist=null(), ~artist_contains=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename_contains=null(), ~filename_matches=null(), ~predicate=(fun(_)->true))
     def p(m)
@@ -126,10 +146,12 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
   load()
   log.important(label=id,"Loaded library from #{persistency} in #{dt(t)}s")
   t = time()
-  update()
+  progress = if initial_progress then fun(n,l) -> print(newline=false,"#{id}: updating #{n*100/l}%...\r") else fun(_,_) -> () end
+  update(progress=progress)
   log.important(label=id,"Updated library in #{dt(t)}s: #{list.length(db())} entries")
   t = time()
-  scan()
+  progress = if initial_progress then fun(n,l) -> print(newline=false,"#{id}: scanning #{n*100/l}%...\r") else fun(_,_) -> () end
+  scan(progress=progress)
   log.important(label=id,"Scanned new files in #{dt(t)}s: #{list.length(db())} entries")
   store()
   log.important(label=id,"Stored library")
@@ -138,10 +160,14 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
     thread.run(every=null.get(refresh_time), refresh)
   end
 
+  def clear()
+    db := []
+  end
+
   def add_directory(d)
     directories := d :: directories()
     scan()
   end
 
-  {find = find, refresh = refresh, add_directory = add_directory}
+  {find = find, refresh = refresh, add_directory = add_directory, clear = clear}
 end
