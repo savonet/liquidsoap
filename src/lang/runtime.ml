@@ -185,7 +185,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
         (Lang_string.quote_string msg)
         pos;
       raise Error
-  | Sedlexing.MalFormed -> print_error ~formatter 15 "Malformed file."
+  | Sedlexing.MalFormed -> print_error ~formatter 15 "Malformed UTF8 content."
   | Term.Missing_arguments (pos, args) ->
       let args =
         List.map
@@ -264,11 +264,25 @@ let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
 let from_file = from_file ~ns:None
 
 let from_string ?parse_only ~lib expr =
-  let lexbuf = Sedlexing.Utf8.from_string expr in
+  let gen =
+    let pos = ref (-1) in
+    let len = String.length expr in
+    fun () ->
+      incr pos;
+      if !pos < len then Some expr.[!pos] else None
+  in
+  let lexbuf = Sedlexing.Utf8.from_gen gen in
   from_lexbuf ?parse_only ~ns:None ~lib lexbuf
 
 let parse_with_lexbuf s =
-  let lexbuf = Sedlexing.Utf8.from_string s in
+  let gen =
+    let pos = ref (-1) in
+    let len = String.length s in
+    fun () ->
+      incr pos;
+      if !pos < len then Some s.[!pos] else None
+  in
+  let lexbuf = Sedlexing.Utf8.from_gen gen in
   (mk_expr ~pwd:(Sys.getcwd ()) Parser.program lexbuf, lexbuf)
 
 let parse s = fst (parse_with_lexbuf s)
