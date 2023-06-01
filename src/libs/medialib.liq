@@ -4,6 +4,7 @@
 def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
   id = string.id.default(default="medialib", id)
   refresh_time = refresh
+  directories = ref(directories)
 
   db = ref([])
 
@@ -56,7 +57,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
 
   # Make sure that new files from directories are registered.
   def scan()
-    for d = list.iterator(directories) do
+    for d = list.iterator(directories()) do
       list.iter(add, file.ls(absolute=true, recursive=true, d))
     end
   end
@@ -137,5 +138,10 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
     thread.run(every=null.get(refresh_time), refresh)
   end
 
-  {find = find}
+  def add_directory(d)
+    directories := d :: directories()
+    scan()
+  end
+
+  {find = find, refresh = refresh, add_directory = add_directory}
 end
