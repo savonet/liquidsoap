@@ -1810,7 +1810,7 @@ Bugs fixed:
 - Factorized buffered I/O code. Also added a blocking API, which avoids
   "no available frame" and "reader not ready" messages and audio glitches.
   It enforces that `root.sync` be deactivated for these sources, such that
-  synchronisation is done by the source. (#203)
+  synchronization is done by the source. (#203)
 - Factorized file decoding code.
 - Fixed reversed order when parsing playlists using `playlist.parse()`.
 - Avoid bad crashes when resources lack, e.g. no more memory.

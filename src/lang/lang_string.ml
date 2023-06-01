@@ -69,6 +69,12 @@ let utf8_char_code s pos len =
 
 (* End of Extlib code *)
 
+let is_valid_utf8_code_point s pos len =
+  try
+    ignore (utf8_char_code s pos len);
+    true
+  with _ -> false
+
 let ascii_special_char s pos len =
   match (s.[pos], len) with
     | '\'', 1
@@ -82,7 +88,10 @@ let ascii_special_char s pos len =
     | c, 1 when Char.code c > 0x7E -> true
     | _ -> false
 
-let utf8_special_char s ofs len = len = 1 && ascii_special_char s ofs len
+let utf8_special_char s ofs len =
+  (not (is_valid_utf8_code_point s ofs len))
+  || (len = 1 && ascii_special_char s ofs len)
+
 let ascii_next _ i = i + 1
 
 let escape_char ~escape_fun s pos len =
