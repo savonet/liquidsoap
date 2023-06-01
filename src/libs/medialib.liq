@@ -1,5 +1,16 @@
-def medialib(~persistency=null(), directories=[])
+def medialib(~id=null(), ~persistency=null(), directories=[])
+  id = string.id.default(default="medialib", id)
+
   db = ref([])
+
+  # Read metadata from file
+  def metadata(f)
+    m = file.metadata(f)
+    m = metadata.cover.remove(m)
+    m = ("filename",f) :: m
+    m = ("scan-time",string.float(time())) :: m
+    m
+  end
 
   # Add a file to the database.
   def add(f)
@@ -9,11 +20,7 @@ def medialib(~persistency=null(), directories=[])
     else
       # Not recent enough metadata
       if not list.assoc.mem(f, db()) or (string.to_float(list.assoc("scan-time",list.assoc(f, db()))) > file.mtime(f)) then
-        m = file.metadata(f)
-        m = metadata.cover.remove(m)
-        m = ("filename",f) :: m
-        m = ("scan-time",string.float(time())) :: m
-        db := (f,m) :: list.assoc.remove(f, db())
+        db := (f,metadata(f)) :: list.assoc.remove(f, db())
       end
     end
   end
@@ -39,9 +46,14 @@ def medialib(~persistency=null(), directories=[])
     if null.defined(persistency) then
       f = null.get(persistency)
       if file.exists(f) then
-        let json.parse ( parsed : [(string * [(string * string)])]? ) = file.contents(f)
-        if null.defined(parsed) then
-          db := null.get(parsed)
+        try
+          let json.parse ( parsed : [(string * [(string * string)])]? ) = file.contents(f)
+          if null.defined(parsed) then
+            db := null.get(parsed)
+          end
+        catch e do
+          log.important(label=id,"Failed to parse persistent file #{f}")
+          log.important(label=id,"#{e.kind}: #{e.message}")
         end
       end
     end
@@ -50,8 +62,10 @@ def medialib(~persistency=null(), directories=[])
   # Store the file in a persistent file.
   def store()
     if null.defined(persistency) then
+      f = null.get(persistency)
       data = json.stringify(db())
-      file.write(data=data, null.get(persistency))
+      file.write(data=data, f)
+      log.info(label=id,"Wrote persistent file #{f}")
     end
   end
 
