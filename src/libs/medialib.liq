@@ -31,7 +31,6 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
     else
       # New file or not recent enough metadata
       if not list.assoc.mem(f, db()) or needs_update(f,list.assoc(f,db())) then
-        print("Adding #{f}")
         db := (f,metadata(f)) :: list.assoc.remove(f,db())
       end
     end
@@ -39,17 +38,20 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
 
   # Update database by renewing metadata and removing removed files.
   def update()
+    n = ref(0)
     def u(fm)
       let (f,m) = fm
       if not (file.exists(f)) then
         null()
-      # elsif needs_update(f,m) then
-        # (f,metadata(m))
+      elsif needs_update(f,m) then
+        n := n() + 1
+        (f,metadata(f))
       else
         (f,m)
       end
     end
     db := list.filter_map(u,db())
+    log.debug(label=id, "Updated #{n()} files.")
   end
 
   # Make sure that new files from directories are registered.
@@ -64,7 +66,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), directories=[])
     t = time()
     update()
     scan()
-    log.important(label=id, "Refreshed the library in #{dt(t)}s.")
+    log.info(label=id, "Refreshed the library in #{dt(t)}s.")
   end
 
   # Load from the persistent file.
