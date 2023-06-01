@@ -99,7 +99,7 @@ let rec readdir ?(cur = []) ~location dir =
         readdir ~cur ~location file
       else file :: cur)
     cur
-    (Array.to_list (Sys.readdir (Filename.concat location dir)))
+    (Build_tools.read_files ~location dir)
 
 let () =
   let location = Filename.dirname Sys.executable_name in

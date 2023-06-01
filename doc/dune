@@ -6,7 +6,7 @@
  (name gen_dune)
  (preprocess
   (pps ppx_string))
- (libraries pcre)
+ (libraries pcre liquidsoap_build_tools)
  (modules gen_dune))
 
 (executable

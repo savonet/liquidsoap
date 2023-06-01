@@ -3,7 +3,7 @@ let () =
   let tests =
     List.filter
       (fun f -> Filename.extension f = ".liq")
-      (Array.to_list (Sys.readdir location))
+      (Build_tools.read_files ~location "")
   in
   List.iter
     (fun test ->
