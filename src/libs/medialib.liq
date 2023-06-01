@@ -26,13 +26,13 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~initial_progress
     m = list.assoc.filter(fun (k,_) -> not list.mem(k, ["priv","rva2"]), m)
     # Add more metadata
     m = ("basename",path.basename(f)) :: m
-    m = ("last-scan",string.float(time())) :: m
+    m = ("last scan",string.float(time())) :: m
     m
   end
 
   # Whether an entry needs ot be updated.
   def needs_update(f,m)
-    file.mtime(f) > string.to_float(m["last-scan"])
+    file.mtime(f) > string.to_float(m["last scan"])
   end
 
   # Add a file to the database.
