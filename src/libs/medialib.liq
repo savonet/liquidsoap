@@ -127,29 +127,42 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~standardize=fun(m
   end
 
   # Find all files matching given criteria.
-  def find(~artist=null(), ~artist_contains=null(), ~album=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~predicate=(fun(_)->true))
+  def find(~case_sensitive=true, ~artist=null(), ~artist_contains=null(), ~album=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~predicate=(fun(_)->true))
     def p(m)
-      myear = m["year"]
+      def eq(s,t) = if case_sensitive then s == t else string.case(s) == string.case(t) end end
+      def contains(s, t) = if case_sensitive then string.contains(substring=s, t) else string.contains(substring=string.case(s), string.case(t)) end end
+      def eqf(k,v) = null.defined(v) ? eq(m[k], null.get(v)) : true end
+      def ctf(k,v) = null.defined(v) ? contains(null.get(v), m[k]) : true end
+      def mtf(k,v) = null.defined(v) ? string.match(pattern=null.get(v), m[k]) : true end
 
-      (null.defined(artist) ? m["artist"] == null.get(artist) : true)
+      if null.defined(year) then
+        if string.is_int(m["year"]) then
+          y = string.to_int(m["year"])
+          (null.defined(year) ? y == year : true)
+        else
+          false
+        end
+      else
+        true
+      end
       and
-      (null.defined(artist_contains) ? string.contains(substring=null.get(artist_contains), m["artist"]) : true)
+      eqf("artist", artist)
       and
-      (null.defined(album) ? m["album"] == null.get(album) : true)
+      ctf("artist", artist_contains)
       and
-      (null.defined(genre) ? m["genre"] == null.get(genre) : true)
+      eqf("album", album)
       and
-      (null.defined(title) ? m["title"] == null.get(title) : true)
+      eqf("genre", genre)
       and
-      (null.defined(title_contains) ? string.contains(substring=null.get(title_contains), m["title"]) : true)
+      eqf("title", title)
       and
-      (null.defined(filename) ? m["filename"] == null.get(filename) : true)
+      ctf("title", title_contains)
       and
-      (null.defined(filename_contains) ? string.contains(substring=null.get(filename_contains), m["basename"]) : true)
+      eqf("filename", filename)
       and
-      (null.defined(filename_matches) ? string.match(pattern=null.get(filename_matches), m["basename"]) : true)
+      ctf("basename", filename_contains)
       and
-      (null.defined(year) ? (string.is_int(myear) and string.to_int(myear) == year) : true)
+      mtf("basename", filename_matches)
       and
       predicate(m)
     end
