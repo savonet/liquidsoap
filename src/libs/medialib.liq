@@ -135,6 +135,24 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~standardize=fun(m
       def ctf(k,v) = null.defined(v) ? contains(null.get(v), m[k]) : true end
       def mtf(k,v) = null.defined(v) ? string.match(pattern=null.get(v), m[k]) : true end
 
+      eqf("artist", artist)
+      and
+      ctf("artist", artist_contains)
+      and
+      eqf("album", album)
+      and
+      eqf("genre", genre)
+      and
+      eqf("title", title)
+      and
+      ctf("title", title_contains)
+      and
+      eqf("filename", filename)
+      and
+      ctf("basename", filename_contains)
+      and
+      mtf("basename", filename_matches)
+      and
       if null.defined(year) or null.defined(year_ge) or null.defined(year_lt) then
         if string.is_int(m["year"]) then
           y = string.to_int(m["year"])
@@ -164,24 +182,6 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~standardize=fun(m
       else
         true
       end
-      and
-      eqf("artist", artist)
-      and
-      ctf("artist", artist_contains)
-      and
-      eqf("album", album)
-      and
-      eqf("genre", genre)
-      and
-      eqf("title", title)
-      and
-      ctf("title", title_contains)
-      and
-      eqf("filename", filename)
-      and
-      ctf("basename", filename_contains)
-      and
-      mtf("basename", filename_matches)
       and
       predicate(m)
     end
