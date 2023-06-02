@@ -3,6 +3,7 @@
 # @category File
 # @param ~persistency Store the database in given file, which is reuse to populate the database on next run.
 # @param ~refresh Scan directories for new files every given number of seconds.
+# @param ~standardize Function mapped on metadata when indexing. It can be used to change the field names to standard ones, pretreat data, etc.
 # @param ~initial_progress Show progress of library being indexed at startup.
 # @param ~directories Directories to look for files in.
 # @param dir Directory to look for files in.
@@ -10,7 +11,7 @@
 # @method refresh Update metadatas and look for new files.
 # @method add_directory Add a new directory which should be scanned.
 # @method clear Remove all known metadata.
-def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=true, ~directories=[], dir=null())
+def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~standardize=fun(m)->m, ~initial_progress=true, ~directories=[], dir=null())
   id = string.id.default(default="medialib", id)
   refresh_time = refresh
   directories = ref(directories)
@@ -23,6 +24,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=
   # Read metadata from file.
   def metadata(f)
     m = file.metadata.native(f)
+    m = standardize(m)
     # Sanitize
     m = metadata.cover.remove(m)
     m = list.assoc.filter(fun (k,_) -> not list.mem(k, ["priv","rva2"]), m)
