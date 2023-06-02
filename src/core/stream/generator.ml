@@ -104,15 +104,7 @@ let _truncate gen len =
        (Atomic.get gen.content))
 
 let truncate gen = Tutils.mutexify gen.lock (_truncate gen)
-
-let clear gen =
-  Tutils.mutexify gen.lock
-    (fun () ->
-      Atomic.set gen.content
-        (Frame_base.Fields.map
-           (fun c -> Content.make ~length:0 (Content.format c))
-           (Atomic.get gen.content)))
-    ()
+let clear gen = Atomic.set gen.content (make_content ~length:0 gen.content_type)
 
 let _set_metadata gen =
   Content.Metadata.set_data

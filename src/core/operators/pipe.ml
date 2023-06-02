@@ -155,9 +155,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     method private get_to_write =
       if source#is_ready then (
         Frame.clear self#tmp;
-        source#get self#tmp;
-        self#child_tick;
-        needs_tick <- false;
+        self#child_on_output (fun () -> source#get self#tmp);
         let buf = AFrame.pcm self#tmp in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in

@@ -118,12 +118,10 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
               (Frame.seconds_of_main (seeked_pos + length))
               (Frame.seconds_of_main in_pos);
 
+          (* Fetch the frame to return after seek. *)
           Frame.set_breaks buf breaks;
           let pos = Frame.position buf in
-
-          self#child_tick;
-          source#get buf;
-
+          self#child_on_output (fun () -> source#get buf);
           let new_pos = Frame.position buf in
 
           length + seeked_pos + new_pos - pos)
@@ -147,7 +145,6 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
     method private cue_out ~breaks buf =
       self#log#important "Cueing out...";
       source#abort_track;
-      self#child_tick;
       Frame.set_breaks buf breaks;
       Frame.add_break buf (Frame.position buf);
       on_cue_out ();
@@ -156,12 +153,13 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
     method private get_frame buf =
       let breaks = Frame.breaks buf in
       let pos = Frame.position buf in
-      source#get buf;
+      self#child_on_output (fun () -> source#get buf);
       let new_pos = Frame.position buf in
       let length = new_pos - pos in
       match (Frame.is_partial buf, track_state) with
-        | true, `Cue_out _ ->
-            self#log#important "End of track reached before cue-out point.";
+        | true, `Cue_out (elapsed, cue_out) ->
+            if elapsed + length < cue_out then
+              self#log#important "End of track reached before cue-out point.";
             track_state <- `Idle
         | true, _ -> track_state <- `Idle
         | false, `Idle ->
