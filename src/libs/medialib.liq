@@ -116,6 +116,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~initial_progress=
 
   # Refresh the library.
   def refresh()
+    log.info(label=id, "Refreshing the library...")
     t = time()
     update()
     scan()
