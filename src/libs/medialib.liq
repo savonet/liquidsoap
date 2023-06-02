@@ -127,7 +127,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~standardize=fun(m
   end
 
   # Find all files matching given criteria.
-  def find(~case_sensitive=true, ~artist=null(), ~artist_contains=null(), ~album=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~predicate=(fun(_)->true))
+  def find(~case_sensitive=true, ~artist=null(), ~artist_contains=null(), ~album=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~year_ge=null(), ~year_lt=null(), ~predicate=(fun(_)->true))
     def p(m)
       def eq(s,t) = if case_sensitive then s == t else string.case(s) == string.case(t) end end
       def contains(s, t) = if case_sensitive then string.contains(substring=s, t) else string.contains(substring=string.case(s), string.case(t)) end end
@@ -135,10 +135,14 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=3600., ~standardize=fun(m
       def ctf(k,v) = null.defined(v) ? contains(null.get(v), m[k]) : true end
       def mtf(k,v) = null.defined(v) ? string.match(pattern=null.get(v), m[k]) : true end
 
-      if null.defined(year) then
+      if null.defined(year) or null.defined(year_ge) or null.defined(year_lt) then
         if string.is_int(m["year"]) then
           y = string.to_int(m["year"])
-          (null.defined(year) ? y == year : true)
+          (null.defined(year) ? y == null.get(year) : true)
+          and
+          (null.defined(year_ge) ? y >= null.get(year_ge) : true)
+          and
+          (null.defined(year_lt) ? y < null.get(year_lt) : true)
         else
           false
         end
