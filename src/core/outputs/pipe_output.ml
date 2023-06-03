@@ -81,7 +81,9 @@ class virtual base ~source ~name p =
 
     method virtual write_pipe : string -> int -> int -> unit
     method send b = Strings.iter self#write_pipe b
-    method insert_metadata m = (Option.get encoder).Encoder.insert_metadata m
+
+    method insert_metadata m =
+      ignore (Option.map (fun e -> e.Encoder.insert_metadata m) encoder)
   end
 
 (** url output: discard encoded data, try to restart on encoding error (can be
