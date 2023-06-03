@@ -3,71 +3,6 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  shoutcast-args.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} shoutcast-args.liq liquidsoap %{test_liq} shoutcast-args.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH1159.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH1159.liq liquidsoap %{test_liq} GH1159.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  LS460.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} LS460.liq liquidsoap %{test_liq} LS460.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH2902.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH2902.liq liquidsoap %{test_liq} GH2902.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  LS503.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} LS503.liq liquidsoap %{test_liq} LS503.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
   115-1.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
@@ -76,32 +11,6 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} 115-1.liq liquidsoap %{test_liq} 115-1.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH2867.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH2867.liq liquidsoap %{test_liq} GH2867.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH2872.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH2872.liq liquidsoap %{test_liq} GH2872.liq)))
 
 (rule
  (alias citest)
@@ -120,45 +29,6 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  GH2871.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH2871.liq liquidsoap %{test_liq} GH2871.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  initial_request_queue.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} initial_request_queue.liq liquidsoap %{test_liq} initial_request_queue.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  unified-pcm-types.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} unified-pcm-types.liq liquidsoap %{test_liq} unified-pcm-types.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
   123.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
@@ -172,66 +42,40 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  LS354-2.liq
+  AC5109.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} LS354-2.liq liquidsoap %{test_liq} LS354-2.liq)))
+ (action (run %{run_test} AC5109.liq liquidsoap %{test_liq} AC5109.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  GH2585.liq
+  BUG403.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2585.liq liquidsoap %{test_liq} GH2585.liq)))
+ (action (run %{run_test} BUG403.liq liquidsoap %{test_liq} BUG403.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  init-error.liq
+  GH-action-919422659.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} init-error.liq liquidsoap %{test_liq} init-error.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  LS354-1.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} LS354-1.liq liquidsoap %{test_liq} LS354-1.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  external-encoder.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} external-encoder.liq liquidsoap %{test_liq} external-encoder.liq)))
+ (action (run %{run_test} GH-action-919422659.liq liquidsoap %{test_liq} GH-action-919422659.liq)))
 
 (rule
  (alias citest)
@@ -250,53 +94,40 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  GH2756.liq
+  GH1146.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2756.liq liquidsoap %{test_liq} GH2756.liq)))
+ (action (run %{run_test} GH1146.liq liquidsoap %{test_liq} GH1146.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  metadata_cache.liq
+  GH1151.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} metadata_cache.liq liquidsoap %{test_liq} metadata_cache.liq)))
+ (action (run %{run_test} GH1151.liq liquidsoap %{test_liq} GH1151.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  ffmpeg-copy-encode.liq
+  GH1159.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ffmpeg-copy-encode.liq liquidsoap %{test_liq} ffmpeg-copy-encode.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH2758.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH2758.liq liquidsoap %{test_liq} GH2758.liq)))
+ (action (run %{run_test} GH1159.liq liquidsoap %{test_liq} GH1159.liq)))
 
 (rule
  (alias citest)
@@ -341,40 +172,14 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  BUG403.liq
+  GH2585.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} BUG403.liq liquidsoap %{test_liq} BUG403.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH2756-2.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH2756-2.liq liquidsoap %{test_liq} GH2756-2.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH3093.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH3093.liq liquidsoap %{test_liq} GH3093.liq)))
+ (action (run %{run_test} GH2585.liq liquidsoap %{test_liq} GH2585.liq)))
 
 (rule
  (alias citest)
@@ -393,105 +198,40 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  input_rtmp.liq
+  GH2756-2.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} input_rtmp.liq liquidsoap %{test_liq} input_rtmp.liq)))
+ (action (run %{run_test} GH2756-2.liq liquidsoap %{test_liq} GH2756-2.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  default_format.liq
+  GH2756.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} default_format.liq liquidsoap %{test_liq} default_format.liq)))
+ (action (run %{run_test} GH2756.liq liquidsoap %{test_liq} GH2756.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  replaygain.liq
+  GH2758.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  infallible-shutdown.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} infallible-shutdown.liq liquidsoap %{test_liq} infallible-shutdown.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH-action-919422659.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH-action-919422659.liq liquidsoap %{test_liq} GH-action-919422659.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH2897.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH2897.liq liquidsoap %{test_liq} GH2897.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH1151.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH1151.liq liquidsoap %{test_liq} GH1151.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  playlist-id.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} playlist-id.liq liquidsoap %{test_liq} playlist-id.liq)))
+ (action (run %{run_test} GH2758.liq liquidsoap %{test_liq} GH2758.liq)))
 
 (rule
  (alias citest)
@@ -510,53 +250,79 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  ffmpeg-naming-convention.liq
+  GH2850.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ffmpeg-naming-convention.liq liquidsoap %{test_liq} ffmpeg-naming-convention.liq)))
+ (action (run %{run_test} GH2850.liq liquidsoap %{test_liq} GH2850.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  GH1146.liq
+  GH2867.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH1146.liq liquidsoap %{test_liq} GH1146.liq)))
+ (action (run %{run_test} GH2867.liq liquidsoap %{test_liq} GH2867.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  AC5109.liq
+  GH2871.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} AC5109.liq liquidsoap %{test_liq} AC5109.liq)))
+ (action (run %{run_test} GH2871.liq liquidsoap %{test_liq} GH2871.liq)))
 
 (rule
  (alias citest)
  (package liquidsoap)
  (deps
-  ffmpeg-copy-input-http.liq
+  GH2872.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ffmpeg-copy-input-http.liq liquidsoap %{test_liq} ffmpeg-copy-input-http.liq)))
+ (action (run %{run_test} GH2872.liq liquidsoap %{test_liq} GH2872.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  GH2897.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH2897.liq liquidsoap %{test_liq} GH2897.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  GH2902.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH2902.liq liquidsoap %{test_liq} GH2902.liq)))
 
 (rule
  (alias citest)
@@ -575,14 +341,14 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  video-only.liq
+  GH3093.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} video-only.liq liquidsoap %{test_liq} video-only.liq)))
+ (action (run %{run_test} GH3093.liq liquidsoap %{test_liq} GH3093.liq)))
 
 (rule
  (alias citest)
@@ -601,14 +367,248 @@
  (alias citest)
  (package liquidsoap)
  (deps
-  GH2850.liq
+  LS354-1.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2850.liq liquidsoap %{test_liq} GH2850.liq)))
+ (action (run %{run_test} LS354-1.liq liquidsoap %{test_liq} LS354-1.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  LS354-2.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} LS354-2.liq liquidsoap %{test_liq} LS354-2.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  LS460.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} LS460.liq liquidsoap %{test_liq} LS460.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  LS503.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} LS503.liq liquidsoap %{test_liq} LS503.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  default_format.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} default_format.liq liquidsoap %{test_liq} default_format.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  external-encoder.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} external-encoder.liq liquidsoap %{test_liq} external-encoder.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ffmpeg-copy-encode.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} ffmpeg-copy-encode.liq liquidsoap %{test_liq} ffmpeg-copy-encode.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ffmpeg-copy-input-http.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} ffmpeg-copy-input-http.liq liquidsoap %{test_liq} ffmpeg-copy-input-http.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ffmpeg-naming-convention.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} ffmpeg-naming-convention.liq liquidsoap %{test_liq} ffmpeg-naming-convention.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  infallible-shutdown.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} infallible-shutdown.liq liquidsoap %{test_liq} infallible-shutdown.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  init-error.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} init-error.liq liquidsoap %{test_liq} init-error.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  initial_request_queue.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} initial_request_queue.liq liquidsoap %{test_liq} initial_request_queue.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  input_rtmp.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} input_rtmp.liq liquidsoap %{test_liq} input_rtmp.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  metadata_cache.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} metadata_cache.liq liquidsoap %{test_liq} metadata_cache.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  playlist-id.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} playlist-id.liq liquidsoap %{test_liq} playlist-id.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  replaygain.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  shoutcast-args.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} shoutcast-args.liq liquidsoap %{test_liq} shoutcast-args.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  unified-pcm-types.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} unified-pcm-types.liq liquidsoap %{test_liq} unified-pcm-types.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  video-only.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} video-only.liq liquidsoap %{test_liq} video-only.liq)))
 
 (rule
  (alias citest)

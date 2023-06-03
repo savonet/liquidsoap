@@ -17,7 +17,7 @@ let () =
            if f <> "gen_dune.ml" && Filename.extension f = ".ml" then
              Some (Filename.remove_extension f)
            else None)
-         (Array.to_list (Sys.readdir location)))
+         (Build_tools.read_files ~location ""))
   in
   List.iter
     (fun test ->
