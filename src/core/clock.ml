@@ -303,8 +303,9 @@ module MkClock (Time : Liq_time.T) = struct
             ()
         in
         List.iter (fun (s : active_source) -> leave s) leaving;
-        on_after_output <- [];
-        List.iter (fun fn -> fn ()) on_before_output;
+        let todo = on_before_output in
+        on_before_output <- [];
+        List.iter (fun fn -> fn ()) todo;
         let error =
           List.fold_left
             (fun e s ->
@@ -325,8 +326,9 @@ module MkClock (Time : Liq_time.T) = struct
                       e))
             [] active
         in
-        List.iter (fun fn -> fn ()) on_output;
+        let todo = on_output in
         on_output <- [];
+        List.iter (fun fn -> fn ()) todo;
         if error <> [] then (
           Tutils.mutexify lock
             (fun () ->
@@ -343,8 +345,9 @@ module MkClock (Time : Liq_time.T) = struct
            * be able to leave all sources. *)
           if not allow_streaming_errors#get then Tutils.shutdown 1);
         round <- round + 1;
-        on_before_output <- [];
-        List.iter (fun fn -> fn ()) on_after_output
+        let todo = on_after_output in
+        on_after_output <- [];
+        List.iter (fun fn -> fn ()) todo
 
       method start_outputs f =
         (* Extract the list of outputs to start, mark them as Starting
