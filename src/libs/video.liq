@@ -31,7 +31,24 @@ def image(~id=null(), ~fallible=false, file="")
   s.{set=set}
 end
 
-# Add a static image on the first video channel.
+# Add a static image on the given video track.
+# @category Track / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
+# @param ~file Path to the image file.
+def track.video.add_image(~id=null("track.video.add_image"), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, v)
+  width = width ?? video.frame.width()
+  height = height ?? video.frame.height()
+  image = single(id=id, file)
+  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
+  let {video=image} = source.tracks(image)
+  track.video.add([v, image])
+end
+
+# Add a static image on the source video channel.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~width Scale to width
@@ -39,12 +56,10 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id=null(), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, s)
-  width = width ?? video.frame.width()
-  height = height ?? video.frame.height()
-  image = single(id=id, file)
-  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
-  add([(s:source),image])
+def video.add_image(~id=null("video.add_image"), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, (s:source))
+  let {video, ...tracks} = source.tracks(s)
+  video = track.video.add_image(width=width, height=height, x=x, y=y, file=file, video)
+  source(id=id, tracks.{video=video})
 end
 
 # Generate a video source containing cover-art for current track of input audio
