@@ -43,7 +43,7 @@
    (-> liqmagic.disabled.ml)))
  (foreign_stubs
   (language c)
-  (names unix_c))
+  (names unix_c defer_c))
  (wrapped false)
  (library_flags -linkall)
  (modules
@@ -86,6 +86,7 @@
   debug_sources
   decoder
   decoder_utils
+  defer
   delay
   delay_line
   doc

@@ -22,6 +22,7 @@ New:
 - Added support for unit interactive variables: those call a handler when their
   value is set.
 - Added support for id3v2 `v2.2.0` frames and pictures.
+- Added `track.audio.defer` to be used to buffer large amount of audio data (#3136)
 - Added `source.drop` to animate a source as fast as possible..
 - Added in house replaygain computation:
   - `source.replaygain.compute` to compute replaygain of a source
