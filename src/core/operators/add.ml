@@ -174,20 +174,30 @@ class video_add ~field ~add tracks =
       let pos = self#feed ~offset tracks in
       let vbuf = Content.Video.get_data (Frame.get buf field) in
       let ( ! ) = Frame.video_of_main in
-      List.iter
-        (fun { source; fields } ->
-          let tmp = self#track_frame source in
-          List.iter
-            (fun { position; field; _ } ->
-              let vtmp = Content.Video.get_data (Frame.get tmp field) in
-              for i = !offset to !pos - 1 do
-                let img =
-                  add position (Video.Canvas.get vtmp i)
-                    (Video.Canvas.get vbuf i)
-                in
-                Video.Canvas.set vbuf i img
-              done)
-            fields)
+      let tracks =
+        List.fold_left
+          (fun tracks { source; fields } ->
+            let tmp = self#track_frame source in
+            tracks
+            @ List.map
+                (fun { position; field } -> (position, field, tmp))
+                fields)
+          [] tracks
+      in
+      let tracks =
+        List.sort (fun (p, _, _) (p', _, _) -> Stdlib.compare p p') tracks
+      in
+      List.iteri
+        (fun rank (position, field, tmp) ->
+          let vtmp = Content.Video.get_data (Frame.get tmp field) in
+          for i = !offset to !pos - 1 do
+            let img =
+              if rank = 0 then Video.Canvas.get vtmp i
+              else
+                add position (Video.Canvas.get vtmp i) (Video.Canvas.get vbuf i)
+            in
+            Video.Canvas.set vbuf i img
+          done)
         tracks;
       Frame.add_break buf pos;
       self#set_metadata buf offset pos

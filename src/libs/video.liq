@@ -45,7 +45,7 @@ def track.video.add_image(~id=null("track.video.add_image"), ~width=null(), ~hei
   image = single(id=id, file)
   image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
   let {video=image} = source.tracks(image)
-  track.video.add([image, v])
+  track.video.add([v, image])
 end
 
 # Add a static image on the source video channel.
