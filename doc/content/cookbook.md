@@ -149,7 +149,7 @@ those to generate playlists, you can use the `medialib` operator which takes as
 argument the directory to index. On first run, it will index all the files of
 the given folder, which can take some time (you are advised to use the
 `persistency` parameter in order to specify a file where metadata will be
-stored, in order to avoid reindexing at each run). The resulting object can then
+stored to avoid reindexing at each run). The resulting object can then
 be queried with the `find` method in order to return all files matching given
 conditions and thus generate a playlist:
 
