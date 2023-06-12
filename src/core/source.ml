@@ -390,6 +390,7 @@ class virtual operator ?(name = "src") sources =
       content_type_computation_allowed <- true
 
     val mutable ctype = None
+    method has_content_type = ctype <> None
 
     (* Content type. *)
     method content_type =

@@ -205,7 +205,8 @@ let audio_compress =
       ( "ratio",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 2.),
-        Some "Gain reduction ratio (reduction is ratio:1)." );
+        Some "Gain reduction ratio (reduction is ratio:1). Must be at least 1."
+      );
       ( "window",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 0.),
@@ -239,7 +240,23 @@ let audio_compress =
       let lookahead () = lookahead () /. 1000. in
       let threshold = List.assoc "threshold" p |> Lang.to_float_getter in
       let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
-      let ratio = List.assoc "ratio" p |> Lang.to_float_getter in
+      let ratio =
+        let pos = Lang.pos p in
+        match List.assoc "ratio" p with
+          | Liquidsoap_lang.Value.{ value = Ground (Ground.Float f) } ->
+              if f < 1. then
+                Runtime_error.raise ~pos ~message:"Ratio must be at least 1!"
+                  "eval";
+              fun () -> f
+          | v ->
+              let f = Lang.to_float_getter v in
+              fun () ->
+                let v = f () in
+                if v < 1. then
+                  Runtime_error.raise ~pos ~message:"Ratio must be at least 1!"
+                    "eval";
+                v
+      in
       let knee = List.assoc "knee" p |> Lang.to_float_getter in
       let pre_gain = List.assoc "pre_gain" p |> Lang.to_float_getter in
       let make_up_gain = List.assoc "gain" p |> Lang.to_float_getter in

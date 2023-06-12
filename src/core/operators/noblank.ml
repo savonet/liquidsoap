@@ -147,13 +147,13 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
   end
 
 class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
-  ~threshold source =
+  ~threshold source_val =
+  let source = Lang.to_source source_val in
   object (self)
-    (* Eating blank is trickier than stripping.
-     * TODO It requires control over the time flow of the source; we need
-     * to force our own clock onto it. *)
+    (* Eating blank is trickier than stripping. *)
     inherit operator ~name:"blank.eat" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
+    inherit! Child_support.base ~check_self_sync:true [source_val]
 
     (** We strip when the source is silent,
     * but only at the beginning of tracks if [at_beginning] is passed. *)
@@ -176,7 +176,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
         if not !first then AFrame.set_breaks ab breaks;
         first := false;
         let p0 = AFrame.position ab in
-        source#get ab;
+        self#child_on_output (fun () -> source#get ab);
         if track_sensitive && AFrame.is_partial ab then (
           stripping <- false;
           beginning <- true);
@@ -222,7 +222,7 @@ let proto frame_t =
 
 let extract p =
   let f v = List.assoc v p in
-  let s = Lang.to_source (f "") in
+  let s = f "" in
   let start_blank = Lang.to_bool (f "start_blank") in
   let max_blank =
     let l = Lang.to_float (f "max_blank") in
@@ -275,7 +275,7 @@ let _ =
       in
       new detect
         ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive ~on_blank
-        ~on_noise s)
+        ~on_noise (Lang.to_source s))
 
 let _ =
   let frame_t =
@@ -297,7 +297,9 @@ let _ =
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      new strip ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s)
+      new strip
+        ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
+        (Lang.to_source s))
 
 let _ =
   let frame_t =

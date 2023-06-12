@@ -236,9 +236,10 @@ module Duration = struct
   let flush { packets } = packets
 end
 
-let find_pixel_format codec pixel_format =
+let find_pixel_format codec =
+  let liq_frame_pixel_format = liq_frame_pixel_format () in
   let formats = Avcodec.Video.get_supported_pixel_formats codec in
-  if List.mem pixel_format formats then pixel_format
+  if List.mem liq_frame_pixel_format formats then liq_frame_pixel_format
   else (
     match
       List.filter
@@ -247,11 +248,11 @@ let find_pixel_format codec pixel_format =
         formats
     with
       | p :: _ -> p
-      | [] ->
-          failwith
-            (Printf.sprintf "No suitable pixel format for codec %s!"
-               (Avcodec.name codec)))
+      (* Hardware accelerated codecs list hardware-specific pixel_formats
+         as supported and then accept regular format. So, last resort here,
+         we use the internal pixel_format. *)
+      | [] -> liq_frame_pixel_format)
 
 let pixel_format codec = function
   | Some p -> Avutil.Pixel_format.of_string p
-  | None -> find_pixel_format codec (liq_frame_pixel_format ())
+  | None -> find_pixel_format codec

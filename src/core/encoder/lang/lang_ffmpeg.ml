@@ -352,7 +352,7 @@ let ffmpeg_gen params =
         parse_video_args ~opts
           { options with Ffmpeg_format.height = Lazy.from_val (to_int t) }
           args
-    | ("pixel_format", { value = Ground (String "none"); _ }) :: args ->
+    | ("pixel_format", { value = Ground (String "guess"); _ }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.pixel_format = None }
           args

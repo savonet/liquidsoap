@@ -81,7 +81,9 @@ class virtual base ~source ~name p =
 
     method virtual write_pipe : string -> int -> int -> unit
     method send b = Strings.iter self#write_pipe b
-    method insert_metadata m = (Option.get encoder).Encoder.insert_metadata m
+
+    method insert_metadata m =
+      ignore (Option.map (fun e -> e.Encoder.insert_metadata m) encoder)
   end
 
 (** url output: discard encoded data, try to restart on encoding error (can be
@@ -238,6 +240,22 @@ let pipe_proto frame_t arg_doc =
       ("", Lang.source_t frame_t, None, None);
     ]
 
+let pipe_meth =
+  let meth =
+    List.map
+      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
+      Output.meth
+  in
+  ( "reopen",
+    ([], Lang.fun_t [] Lang.unit_t),
+    "Reopen the output pipe. The actual reopening happens the next time the \
+     output has some data to output.",
+    fun s ->
+      Lang.val_fun [] (fun _ ->
+          s#need_reopen;
+          Lang.unit) )
+  :: meth
+
 class virtual piped_output ~name p =
   let source = Lang.assoc "" 3 p in
   let should_reopen = List.assoc "should_reopen" p in
@@ -256,9 +274,9 @@ class virtual piped_output ~name p =
   let on_reopen () = ignore (Lang.apply on_reopen []) in
   object (self)
     inherit base ~source ~name p as super
-    method reopen_cmd = self#reopen
     val mutable open_date = 0.
-    val mutable need_reopen = false
+    val need_reopen = Atomic.make false
+    method need_reopen = Atomic.set need_reopen true
     method virtual open_pipe : unit
     method virtual close_pipe : unit
     method virtual is_open : bool
@@ -275,7 +293,7 @@ class virtual piped_output ~name p =
     method prepare_pipe =
       self#open_pipe;
       open_date <- Unix.gettimeofday ();
-      need_reopen <- false
+      Atomic.set need_reopen false
 
     method private close_encoder =
       match encoder with
@@ -313,13 +331,13 @@ class virtual piped_output ~name p =
     method! send b =
       (match self#is_open with
         | false when open_date <= Unix.gettimeofday () -> self#prepare_pipe
-        | true when need_reopen ->
+        | true when Atomic.get need_reopen ->
             if open_date <= Unix.gettimeofday () then self#reopen
         | true -> (
             match should_reopen () with
               | 0. -> self#reopen
               | v when 0. < v ->
-                  need_reopen <- true;
+                  Atomic.set need_reopen true;
                   open_date <- Unix.gettimeofday () +. v
               | _ -> ())
         | _ -> ());
@@ -335,7 +353,7 @@ class virtual piped_output ~name p =
             if open_delay > 0. then (
               self#log#info "New metadata received, will re-open in %.02fs"
                 open_delay;
-              need_reopen <- true;
+              Atomic.set need_reopen true;
               open_date <- Unix.gettimeofday () +. open_delay)
   end
 
@@ -524,9 +542,8 @@ let new_file_output p =
 let output_file =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:output "file" (file_proto return_t) ~return_t
-    ~category:`Output ~meth:Output.meth
-    ~descr:"Output the source stream to a file." (fun p ->
-      (new_file_output p :> Output.output))
+    ~category:`Output ~meth:pipe_meth
+    ~descr:"Output the source stream to a file." (fun p -> new_file_output p)
 
 (** External output *)
 
@@ -546,8 +563,7 @@ class external_output p =
       Unix.open_process_out process
 
     method close_chan chan =
-      try ignore (Unix.close_process_out chan)
-      with Sys_error msg when msg = "Broken pipe" -> ()
+      try ignore (Unix.close_process_out chan) with Sys_error _ -> ()
 
     method output_substring = output_substring
     method flush = flush
@@ -566,24 +582,8 @@ let pipe_proto frame_t descr =
 
 let _ =
   let return_t = Lang.univ_t () in
-  let meth =
-    List.map
-      (fun (a, b, c, fn) -> (a, b, c, fun s -> fn (s :> Output.output)))
-      Output.meth
-  in
   Lang.add_operator ~base:output "external"
     (pipe_proto return_t "Process to pipe data to.")
-    ~return_t ~category:`Output
-    ~meth:
-      (meth
-      @ [
-          ( "reopen",
-            ([], Lang.fun_t [] Lang.unit_t),
-            "Reopen the pipe.",
-            fun s ->
-              Lang.val_fun [] (fun _ ->
-                  s#reopen_cmd;
-                  Lang.unit) );
-        ])
-    ~descr:"Send the stream to a process' standard input."
-    (fun p -> new external_output p)
+    ~return_t ~category:`Output ~meth:pipe_meth
+    ~descr:"Send the stream to a process' standard input." (fun p ->
+      (new external_output p :> piped_output))

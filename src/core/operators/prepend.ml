@@ -137,7 +137,11 @@ class prepend ~merge source f =
       end;
       state <- `Idle
 
-    method private register a = a#get_ready activation
+    method private register a =
+      Clock.unify a#clock source#clock;
+      Typing.(a#frame_type <: self#frame_type);
+      a#get_ready activation
+
     method private unregister a = a#leave (self :> source)
   end
 

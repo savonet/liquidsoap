@@ -74,18 +74,18 @@ class accelerate ~ratio ~randomize source_val =
       let pos = ref 1 in
       (* Drop frames if we are late. *)
       (* TODO: we could also duplicate if we are in advance. *)
-      while !pos > 0 && self#must_drop do
+      while !pos > 0 && self#must_drop && source#is_ready do
         Frame.clear null;
-        source#get null;
-        self#child_tick;
+        self#child_on_output (fun () -> source#get null);
         pos := Frame.position null;
         skipped <- skipped + !pos
       done;
-      let before = Frame.position frame in
-      if !pos > 0 then source#get frame;
-      let after = Frame.position frame in
-      filled <- filled + (after - before);
-      self#child_tick
+      if source#is_ready then (
+        let before = Frame.position frame in
+        if !pos > 0 then self#child_on_output (fun () -> source#get frame);
+        let after = Frame.position frame in
+        filled <- filled + (after - before))
+      else Frame.add_break frame (Frame.position frame)
   end
 
 let _ =

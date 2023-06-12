@@ -350,7 +350,7 @@ module AdaptativeBuffer = struct
                           0 slen
                       in
                       if len <> dlen then
-                        self#log#important
+                        self#log#debug
                           "Unexpected length after resampling: %d instead of %d"
                           len dlen;
                       let len = min len dlen in

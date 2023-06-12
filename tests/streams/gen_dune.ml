@@ -13,7 +13,7 @@ let () =
       (fun f ->
         (not (List.mem (Filename.basename f) static_tests))
         && Filename.extension f = ".liq")
-      (Array.to_list (Sys.readdir location))
+      (Build_tools.read_files ~location "")
   in
   List.iter
     (fun test ->

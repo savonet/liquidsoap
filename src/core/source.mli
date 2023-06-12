@@ -150,6 +150,8 @@ class virtual source :
            the typing system during `check_eval` or at `wake_up` *)
        method content_type_computation_allowed : unit
 
+       method has_content_type : bool
+
        (** What type of content does this source produce. *)
        method content_type : Frame.content_type
 

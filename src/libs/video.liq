@@ -31,7 +31,24 @@ def image(~id=null(), ~fallible=false, file="")
   s.{set=set}
 end
 
-# Add a static image on the first video channel.
+# Add a static image on the given video track.
+# @category Track / Video processing
+# @param ~id Force the value of the source ID.
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
+# @param ~file Path to the image file.
+def track.video.add_image(~id=null("track.video.add_image"), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, v)
+  width = width ?? video.frame.width()
+  height = height ?? video.frame.height()
+  image = single(id=id, file)
+  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
+  let {video=image} = source.tracks(image)
+  track.video.add([v, image])
+end
+
+# Add a static image on the source video channel.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~width Scale to width
@@ -39,12 +56,10 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def video.add_image(~id=null(), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, s)
-  width = width ?? video.frame.width()
-  height = height ?? video.frame.height()
-  image = single(id=id, file)
-  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
-  add([(s:source),image])
+def video.add_image(~id=null("video.add_image"), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, (s:source))
+  let {video, ...tracks} = source.tracks(s)
+  video = track.video.add_image(width=width, height=height, x=x, y=y, file=file, video)
+  source(id=id, tracks.{video=video})
 end
 
 # Generate a video source containing cover-art for current track of input audio
@@ -268,7 +283,10 @@ end
 
 # @flag hidden
 def add_text_builder(f) =
-  def at(~id=null(),~duration=null(),~color=getter(0xffffff),~cycle=true,~font=null(),~metadata=null(),~size=getter(18),~speed=0,~x=getter(10),~y=getter(10),~on_cycle={()},text,s)
+  def at(~id=null(),~duration=null(),~color=getter(0xffffff),~cycle=true,
+         ~font=null(),~metadata=null(),~size=getter(18),~speed=0,~x=getter(10),
+         ~y=getter(10),~on_cycle={()}, text, s)
+
     available = s.is_ready
 
     # Handle modifying the text with metadata.
@@ -303,7 +321,11 @@ def add_text_builder(f) =
     t = source.available(t, available)
 
     # Add the text to the original source.
-    add(normalize=false, [(s:source),t])
+    let { video = v, ...tracks } = source.tracks(s)
+    let { video = t } = source.tracks(t)
+    let v = track.video.add([v, t])
+
+    source(tracks.{video=v})
   end
   at
 end
@@ -405,7 +427,7 @@ let settings.video.text = settings.make(
   fst(list.hd(video.text.available()))
 )
 
-thread.run.recurrent((fun () ->
+thread.run((fun () ->
   begin
     text = settings.video.text()
     if list.assoc.mem(text, video.text.available()) then
@@ -413,10 +435,9 @@ thread.run.recurrent((fun () ->
     else
       log.severe(label="video.text", "Cannot find #{text} implementation for `video.text`, using default #{fst(list.hd(video.text.available()))}")
     end
-    (-1.)
   end))
 
-# Display a text.
+# Display a text using the first available operator in: camlimages, SDL, FFmpeg, GStreamer, gd or native.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
@@ -431,7 +452,6 @@ end
 
 # Add a text to a stream. Uses the first available operator in: camlimages, SDL,
 # FFmpeg, GStreamer, gd or native.
-# Display a text using the first available operator in: SDL, GStreamer, gd or native.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
@@ -444,9 +464,13 @@ end
 # @param ~y y offset.
 # @param ~on_cycle Function called when text is cycling.
 # @params d Text to display.
-def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,~cycle=true,~font=null(),~metadata=null(),~size=18,~speed=0,~x=getter(10),~y=getter(10),~on_cycle={()},d,s) =
+def replaces video.add_text(~id=null(),~duration=null(),~color=0xffffff,
+                            ~cycle=true,~font=null(),~metadata=null(),~size=18,
+                            ~speed=0,~x=getter(10),~y=getter(10),~on_cycle={()},
+                            d,s) =
   add_text = add_text_builder(video.text)
-  add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,size=size,color=color,speed=speed,x=x,y=y,on_cycle=on_cycle,d,s)
+  add_text(id=id,duration=duration,cycle=cycle,font=font,metadata=metadata,
+           size=size,color=color,speed=speed,x=x,y=y,on_cycle=on_cycle,d,s)
 end
 
 # Add subtitle from metadata.
@@ -461,13 +485,19 @@ def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=
   x = {(video.frame.width() - t.width())/2}
   y = {video.frame.height() - t.height() - offset}
   t = video.translate(x=x, y=y, t)
+
   def meta(m)
     if list.assoc.mem(override, m) then
       subtitle := list.assoc(override, m)
     end
   end
   s = source.on_metadata(s, meta)
-  add([s,t])
+
+  let { video = v, ...tracks } = source.tracks(s)
+  let { video = t } = source.tracks(t)
+  let v = track.video.add([v, t])
+
+  source(tracks.{video=v})
 end
 
 # Display a slideshow (typically of pictures).

@@ -104,15 +104,7 @@ let _truncate gen len =
        (Atomic.get gen.content))
 
 let truncate gen = Tutils.mutexify gen.lock (_truncate gen)
-
-let clear gen =
-  Tutils.mutexify gen.lock
-    (fun () ->
-      Atomic.set gen.content
-        (Frame_base.Fields.map
-           (fun c -> Content.make ~length:0 (Content.format c))
-           (Atomic.get gen.content)))
-    ()
+let clear gen = Atomic.set gen.content (make_content ~length:0 gen.content_type)
 
 let _set_metadata gen =
   Content.Metadata.set_data
@@ -147,35 +139,48 @@ let _add_track_mark ?pos gen =
 let add_track_mark ?pos gen =
   Tutils.mutexify gen.lock (fun () -> _add_track_mark ?pos gen) ()
 
-let _put gen field content =
-  (match field with
-    | f when f = Frame_base.Fields.track_marks ->
-        List.iter
-          (fun pos -> _add_track_mark ~pos gen)
-          (Content.Track_marks.get_data content)
-    | f when f = Frame_base.Fields.metadata ->
-        List.iter
-          (fun (pos, m) -> _add_metadata ~pos gen m)
-          (Content.Metadata.get_data content)
-    | _ ->
-        Atomic.set gen.content
-          (Frame_base.Fields.add field
-             (Content.append
-                (Frame_base.Fields.find field (Atomic.get gen.content))
-                content)
-             (Atomic.get gen.content)));
-
-  let l = buffered_length gen in
-  match Atomic.get gen.max_length with
-    | Some l' when l' < l ->
-        let drop = l - l' in
-        gen.log
-          (Printf.sprintf
-             "Generator max length exeeded (%d < %d)! Dropping %d ticks of \
-              data.."
-             l' l drop);
-        _truncate gen drop
-    | _ -> ()
+let _put gen field new_content =
+  let max_length = Option.value ~default:(-1) (Atomic.get gen.max_length) in
+  let gen_content = Atomic.get gen.content in
+  if not (Frame_base.Fields.mem field gen_content) then raise Not_found;
+  let gen_content, buffered_length =
+    Frame_base.Fields.fold
+      (fun f current_content (gen_content, buffered_length) ->
+        match f with
+          | f when f = Frame_base.Fields.track_marks ->
+              if f = field then
+                List.iter
+                  (fun pos -> _add_track_mark ~pos gen)
+                  (Content.Track_marks.get_data new_content);
+              (gen_content, buffered_length)
+          | f when f = Frame_base.Fields.metadata ->
+              if f = field then
+                List.iter
+                  (fun (pos, m) -> _add_metadata ~pos gen m)
+                  (Content.Metadata.get_data new_content);
+              (gen_content, buffered_length)
+          | _ ->
+              let content =
+                if f = field then Content.append current_content new_content
+                else current_content
+              in
+              let content_length = Content.length content in
+              let content =
+                if 0 <= max_length && max_length < content_length then
+                  Content.truncate content (content_length - max_length)
+                else content
+              in
+              let gen_content = Frame_base.Fields.add f content gen_content in
+              let buffered_length = max buffered_length content_length in
+              (gen_content, buffered_length))
+      gen_content (gen_content, 0)
+  in
+  if 0 <= max_length && max_length < buffered_length then
+    gen.log
+      (Printf.sprintf
+         "Generator max length exeeded (%d < %d)! Dropping content.." max_length
+         buffered_length);
+  Atomic.set gen.content gen_content
 
 let put gen field =
   Tutils.mutexify gen.lock (fun content -> _put gen field content)

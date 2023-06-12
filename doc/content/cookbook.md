@@ -103,6 +103,23 @@ output.file(%vorbis, output,fallible=true,
                      on_stop=shutdown,source)
 ```
 
+## RTMP server
+
+With our [FFmpeg support](ffmpeg.html), it is possible to create a simple RTMP server with no re-encoding:
+
+```liquidsoap
+s = playlist("...")
+
+enc = %ffmpeg(
+  format="flv",
+  listen=1,
+  %audio.copy,
+  %video.copy
+)
+
+output.url(url="rtmp://host/app/instance", enc, s)
+```
+
 ## Transmitting signal
 
 It is possible to send raw PCM signal between two instances using the [FFmpeg encoder](ffmpeg.html). Here's an example using
