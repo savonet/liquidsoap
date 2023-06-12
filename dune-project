@@ -16,6 +16,21 @@
 (package
   (name liquidsoap)
   (depends
+    (liquidsoap-core (and (>= 2.2) (< 2.3)))
+    (liquidsoap-libs (and (>= 2.2) (< 2.3))))
+  (synopsis "Swiss-army knife for multimedia streaming")
+  (description
+"\| Liquidsoap is a powerful and flexible language for describing your
+"\| streams. It offers a rich collection of operators that you can combine
+"\| at will, giving you more power than you need for creating or
+"\| transforming streams. But liquidsoap is still very light and easy to
+"\| use, in the Unix tradition of simple strong components working
+"\| together.
+  ))
+
+(package
+  (name liquidsoap-core)
+  (depends
     (ocaml (and (>= 4.14.0) (< 5.0.0)))
     (dtools (>= 0.4.5))
     (duppy (>= 0.9.1))
@@ -29,8 +44,7 @@
     menhirLib
     (metadata (>= 0.2.0))
     dune-build-info
-    liquidsoap-lang
-    liquidsoap-libs
+    (liquidsoap-lang (and (>= 2.2) (< 2.3)))
     (ppx_string :build))
   (depopts
     alsa
@@ -97,7 +111,6 @@
     (lame (< 0.3.7))
     (lastfm (< 0.3.0))
     (lo (< 0.2.0))
-    (liquidsoap (< 2.2.0))
     (mad (< 0.5.0))
     (magic (< 0.6))
     (mem_usage (< 0.0.3))
@@ -117,15 +130,7 @@
     (theora (< 0.4.0))
     (vorbis (< 0.8.0))
     (xmlplaylist (< 0.1.3)))
-  (synopsis "Swiss-army knife for multimedia streaming")
-  (description
-"\| Liquidsoap is a powerful and flexible language for describing your
-"\| streams. It offers a rich collection of operators that you can combine
-"\| at will, giving you more power than you need for creating or
-"\| transforming streams. But liquidsoap is still very light and easy to
-"\| use, in the Unix tradition of simple strong components working
-"\| together.
-  ))
+  (synopsis "Liquidsoap core"))
 
 (package
   (name liquidsoap-lang)
@@ -135,8 +140,6 @@
     (ppx_string :build)
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))
-  (conflicts
-    (liquidsoap (<> :version)))
   (sites (share libs) (share bin) (lib_root lib_root))
   (synopsis "Liquidsoap language"))
 
@@ -154,8 +157,6 @@
 (package
    (name liquidsoap-libs)
    (depends (liquidsoap-lang :build))
-   (conflicts
-     (liquidsoap-libs (<> :version)))
    (synopsis "Liquidosap standard library"))
 
 (package

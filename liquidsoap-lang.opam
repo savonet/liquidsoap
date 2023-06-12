@@ -16,9 +16,6 @@ depends: [
   "menhir" {>= "20180703"}
   "odoc" {with-doc}
 ]
-conflicts: [
-  "liquidsoap" {!= version}
-]
 build: [
   ["dune" "subst"] {dev}
   [
