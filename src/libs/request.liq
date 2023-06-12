@@ -1,13 +1,20 @@
 let request.queue = ()
 
+%ifdef native
 let stdlib_native = native
+%endif
 
 # @docof request.dynamic
-# @param ~native Use native implementation.
+# @param ~native Use native implementation, when available.
 def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
+  ignore(native)
+%ifdef native
   if native then
     stdlib_native.request.dynamic(%argsof(request.dynamic), f)
   else
+%else
+  begin
+%endif
     request.dynamic(%argsof(request.dynamic), f)
   end
 end
@@ -17,7 +24,7 @@ end
 # @param ~id Force the value of the source ID.
 # @param ~interactive Should the queue be controllable via telnet?
 # @param ~prefetch How many requests should be queued in advance.
-# @param ~native Use native implementation.
+# @param ~native Use native implementation, when available.
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @method add This method is internal and should not be used. Consider using `push` instead.
@@ -25,6 +32,7 @@ end
 # @method length Length of the queue.
 def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~queue=[], ~timeout=20.)
   id = string.id.default(default="request.queue", id)
+  ignore(native)
   queue = ref(queue)
   fetch = ref(fun () -> true)
   def next() =
@@ -47,9 +55,13 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     push(r)
   end
   s =
+%ifdef native
     if native then
       stdlib_native.request.dynamic(id=id, timeout=timeout, next)
     else
+%else
+    begin
+%endif
       request.dynamic(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(queue())}, next)
     end
   source.set_name(s, "request.queue")

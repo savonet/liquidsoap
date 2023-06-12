@@ -72,6 +72,7 @@ open Parser_helper
 %token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
 %token <Parser_helper.lexer_let_decoration> PP_DEF
 %token PP_ENDL PP_DEFINE
+%token <string> PP_INCLUDE_EXTRA
 %token <string> PP_INCLUDE
 %token <string list> PP_COMMENT
 %token WHILE FOR TO

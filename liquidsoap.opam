@@ -16,9 +16,9 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "3.2"}
-  "liquidsoap-core" {>= "2.2" & < "2.3"}
-  "liquidsoap-libs" {>= "2.2" & < "2.3"}
+  "dune" {>= "3.6"}
+  "liquidsoap-libs" {>= "2.2.0~1" & < "2.2.0"}
+  "liquidsoap-libs-extra" {>= "2.2.0~1" & < "2.2.0"}
   "odoc" {with-doc}
 ]
 build: [

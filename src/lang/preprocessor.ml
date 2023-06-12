@@ -104,6 +104,8 @@ type includer_entry = {
   channel : in_channel;
 }
 
+exception Skip_optional
+
 (** Expand %include statements by inserting the content of files. Filenames are
    understood relatively to the current directory, which can be a relative path
    such as "." or "..". *)
@@ -115,19 +117,27 @@ let includer ~pwd tokenizer =
   let current_dir () = try (Stack.top stack).path with Stack.Empty -> pwd in
   let rec token () =
     match peek () () with
-      | Parser.PP_INCLUDE fname, (_, curp) ->
-          let resolved_fname =
-            Utils.check_readable ~current_dir:(current_dir ())
-              ~pos:[(curp, curp)]
-              fname
-          in
-          let channel = open_in resolved_fname in
-          let lexbuf = Sedlexing.Utf8.from_channel channel in
-          (* We use user-provided filename here to make it more clear
-             to the user. *)
-          let tokenizer = mk_tokenizer ~fname lexbuf in
-          Stack.push { tokenizer; path = Filename.dirname fname; channel } stack;
-          token ()
+      | (Parser.PP_INCLUDE fname as tok), (_, curp)
+      | (Parser.PP_INCLUDE_EXTRA fname as tok), (_, curp) -> (
+          try
+            let resolved_fname =
+              try
+                Utils.check_readable ~current_dir:(current_dir ())
+                  ~pos:[(curp, curp)]
+                  fname
+              with _ when tok = Parser.PP_INCLUDE_EXTRA fname ->
+                raise Skip_optional
+            in
+            let channel = open_in resolved_fname in
+            let lexbuf = Sedlexing.Utf8.from_channel channel in
+            (* We use user-provided filename here to make it more clear
+               to the user. *)
+            let tokenizer = mk_tokenizer ~fname lexbuf in
+            Stack.push
+              { tokenizer; path = Filename.dirname fname; channel }
+              stack;
+            token ()
+          with Skip_optional -> token ())
       | (Parser.EOF, _) as tok ->
           if Stack.is_empty stack then tok
           else (

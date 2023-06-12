@@ -1,23 +1,15 @@
-; Regenerate using dune build @gendune --auto-promote
+(install
+ (section
+  (site
+   (liquidsoap-lang libs)))
+ (package liquidsoap-libs)
+ (files
+  (glob_files *.liq)))
 
-(include dune.inc)
-
-(executable
- (name gen_dune)
- (libraries liquidsoap_build_tools)
- (modules gen_dune))
-
-(rule
- (alias gendune)
- (deps
-  (source_tree .))
- (target dune.inc.gen)
- (action
-  (with-stdout-to
-   dune.inc.gen
-   (run ./gen_dune.exe))))
-
-(rule
- (alias gendune)
- (action
-  (diff dune.inc dune.inc.gen)))
+(install
+ (section
+  (site
+   (liquidsoap-lang libs)))
+ (package liquidsoap-libs-extra)
+ (files
+  (glob_files extra/*.liq)))

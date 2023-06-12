@@ -1,27 +1,7 @@
-; Regenerate using dune build @gendune --auto-promote
-
-(include dune.inc)
-
 (env
  (dev
   (flags
    (:standard -w -7-9 -warn-error -33))))
-
-(executable
- (name gen_dune)
- (libraries pcre liquidsoap_build_tools)
- (modules gen_dune))
-
-(rule
- (alias gendune)
- (target dune.inc.gen)
- (deps
-  (source_tree .)
-  (source_tree ../libs))
- (action
-  (with-stdout-to
-   dune.inc.gen
-   (run ./gen_dune.exe))))
 
 (rule
  (alias gendune)
@@ -51,3 +31,19 @@
  (preprocess
   (pps ppx_string js_of_ocaml-ppx))
  (libraries liquidsoap_lang liquidsoap_js))
+
+(rule
+ (target filesystem.js)
+ (enabled_if
+  (not %{bin-available:js_of_ocaml}))
+ (action
+  (write-file %{target} "console.log(\"no js_of_ocaml available!\")")))
+
+(rule
+ (target filesystem.js)
+ (enabled_if %{bin-available:js_of_ocaml})
+ (deps
+  ./stdlib_js.liq
+  (glob_files ../libs/*.liq))
+ (action
+  (run js_of_ocaml build-fs -I . -I ../libs -o %{target} %{deps})))

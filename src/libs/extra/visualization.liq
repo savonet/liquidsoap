@@ -30,6 +30,7 @@ end
 # VU meter: display the audio volume (RMS in dB). This adds a video track to the
 # source.
 # @category Source / Visualization
+# @flag extra
 # @param ~rms_min Minimal volume (dB).
 # @param ~rms_max Maximal volume (dB).
 # @param ~window Duration in seconds of volume computation.

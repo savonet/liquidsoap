@@ -453,12 +453,14 @@ def input.https(%argsof(input.http), url)
 end
 %endif
 
+%ifdef source.say_metadata
 # Deprecated: use `source.say_metadata` instead
 # @flag deprecated
 def say_metadata(s, ~pattern) =
   def pattern(m) = pattern % m end
   source.say_metadata(pattern=pattern, s)
 end
+%endif
 
 # Deprecated: use `playlist.parse.register` instead
 # @flag deprecated
@@ -714,12 +716,14 @@ def merge_tracks(~id=null(), s) =
   source(id=id, tracks)
 end
 
+%ifdef compress
 # Deprecated: use `compress`
 # @flag deprecated
 def compress.old(~id=null(), s) =
   deprecated("compress.old", "compress")
   compress(id=id, s)
 end
+%endif
 
 # Deprecated: use `thread.pause`
 # @flag deprecated

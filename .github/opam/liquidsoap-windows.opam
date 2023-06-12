@@ -134,7 +134,7 @@ build: [
     "-x"
     "windows"
     "-p"
-    "liquidsoap-lang,liquidsoap-libs,liquidsoap"
+    "liquidsoap-lang,liquidsoap-core,liquidsoap-libs,liquidsoap-libs-extra"
     "@install"
     "-j"
     jobs

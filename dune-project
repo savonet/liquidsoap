@@ -1,4 +1,4 @@
-(lang dune 3.2)
+(lang dune 3.6)
 (using menhir 2.1)
 (using dune_site 0.1)
 (name liquidsoap)
@@ -16,8 +16,8 @@
 (package
   (name liquidsoap)
   (depends
-    (liquidsoap-core (and (>= 2.2) (< 2.3)))
-    (liquidsoap-libs (and (>= 2.2) (< 2.3))))
+    (liquidsoap-libs (and (>= 2.2.0~1) (< 2.2.0)))
+    (liquidsoap-libs-extra (and (>= 2.2.0~1) (< 2.2.0))))
   (synopsis "Swiss-army knife for multimedia streaming")
   (description
 "\| Liquidsoap is a powerful and flexible language for describing your
@@ -27,6 +27,20 @@
 "\| use, in the Unix tradition of simple strong components working
 "\| together.
   ))
+
+(package
+   (name liquidsoap-libs-extra)
+   (version 2.2.0~1)
+   (depends
+      (liquidsoap-libs (= :version))
+      (liquidsoap-lang :build))
+   (synopsis "Liquidosap standard library -- extra functionalities"))
+
+(package
+   (name liquidsoap-libs)
+   (version 2.2.0~1)
+   (depends (liquidsoap-lang :build))
+   (synopsis "Liquidosap standard library"))
 
 (package
   (name liquidsoap-core)
@@ -44,7 +58,7 @@
     menhirLib
     (metadata (>= 0.2.0))
     dune-build-info
-    (liquidsoap-lang (and (>= 2.2) (< 2.3)))
+    (liquidsoap-lang (= :version))
     (ppx_string :build))
   (depopts
     alsa
@@ -130,7 +144,7 @@
     (theora (< 0.4.0))
     (vorbis (< 0.8.0))
     (xmlplaylist (< 0.1.3)))
-  (synopsis "Liquidsoap core"))
+  (synopsis "Liquidsoap core library and binary"))
 
 (package
   (name liquidsoap-lang)
@@ -141,7 +155,7 @@
     (sedlex (>= 2.2))
     (menhir (>= 20180703)))
   (sites (share libs) (share bin) (lib_root lib_root))
-  (synopsis "Liquidsoap language"))
+  (synopsis "Liquidsoap language library"))
 
 (package
   (name liquidsoap-js)
@@ -153,11 +167,6 @@
   (conflicts
     (liquidsoap (<> :version)))
   (synopsis "Liquidsoap language - javascript wrapper"))
-
-(package
-   (name liquidsoap-libs)
-   (depends (liquidsoap-lang :build))
-   (synopsis "Liquidosap standard library"))
 
 (package
    (name liquidsoap-mode)
