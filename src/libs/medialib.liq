@@ -88,6 +88,9 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~standardize=fun(
     list.iter(add, l)
   end
 
+  # Increment when the format of the db changes
+  db_version = 1
+
   # Load from the persistent file.
   def load()
     db := []
@@ -95,8 +98,8 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~standardize=fun(
       f = null.get(persistency)
       if file.exists(f) then
         try
-          let json.parse ( parsed : [(string * [(string * string)])]? ) = file.contents(f)
-          if null.defined(parsed) then
+          let json.parse ((v , parsed) : (int * [(string * [(string * string)])]?)) = file.contents(f)
+          if v == db_version and null.defined(parsed) then
             db := null.get(parsed)
           end
         catch e do
@@ -110,7 +113,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~standardize=fun(
   def store()
     if null.defined(persistency) then
       f = null.get(persistency)
-      data = json.stringify(compact=true,db())
+      data = json.stringify(compact=true, (db_version, db()))
       file.write(data=data, f)
       log.info(label=id,"Wrote persistent file #{f}")
     end
