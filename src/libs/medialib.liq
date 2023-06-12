@@ -127,7 +127,7 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~standardize=fun(
   end
 
   # Find all files matching given criteria.
-  def find(~case_sensitive=true, ~artist=null(), ~artist_contains=null(), ~album=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~year_ge=null(), ~year_lt=null(), ~bpm=null(), ~bpm_ge=null(), bpm_lt=null(), ~predicate=(fun(_)->true))
+  def find(~case_sensitive=true, ~artist=null(), ~artist_contains=null(), ~artist_matches=null(), ~album=null(), ~genre=null(), ~title=null(), ~title_contains=null(), ~filename=null(), ~filename_contains=null(), ~filename_matches=null(), ~year=null(), ~year_ge=null(), ~year_lt=null(), ~bpm=null(), ~bpm_ge=null(), bpm_lt=null(), ~predicate=(fun(_)->true))
     def p(m)
       def eq(s,t) = if case_sensitive then s == t else string.case(s) == string.case(t) end end
       def contains(s, t) = if case_sensitive then string.contains(substring=s, t) else string.contains(substring=string.case(s), string.case(t)) end end
@@ -138,6 +138,8 @@ def medialib(~id=null(), ~persistency=null(), ~refresh=null(), ~standardize=fun(
       eqf("artist", artist)
       and
       ctf("artist", artist_contains)
+      and
+      mtf("artist", artist_matches)
       and
       eqf("album", album)
       and

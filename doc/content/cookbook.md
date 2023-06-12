@@ -160,6 +160,42 @@ l = list.shuffle(l)
 output(playlist.list(l))
 ```
 
+The parameter of the `find` method follow the following convention:
+
+- `artist="XXX"` looks for files where the artist tag is exactly the given one
+- `artist_contains="XXX"` looks for files where the artist tag contains the
+  given string as substring
+- `artist_matches="XXX"` looks for files where the artist tag matches the given
+  regular expression (for instance `artist_matches="(a)+.*(b)+"` looks for files
+  where the artist contains an `a` followed by a `b`).
+
+The tags for which such parameters are provided are: `artist`, `title`, `album`
+and `filename` (feel free to ask if you need more).
+
+Some numeric tags are also supported:
+
+- `year=1999` looks for files where the year is exactly the given one
+- `year_ge=1999` looks for files where the year at least the given one
+- `year_lt=1999` looks for files where the year at most the given one
+
+The following numeric tags are supported: `bpm`, `year`.
+
+If multiple arguments are passed, the function finds files with tags matching
+the conjunction of the corresponding condition.
+
+Finally, if you need more exotic search functions, the argument `predicate` can
+be used. It takes as argument a _predicate_ which is a function taking the
+metadata of a file and returning whether the file should be selected. For
+instance, the following looks for files where the name of the artist is of
+length 5:
+
+```liquidsoap
+def p(m)
+  string.length(m["artist"]) == 5
+end
+l = m.find(predicate=p)
+```
+
 ## Force a file/playlist to be played at least every XX minutes
 
 It can be useful to have a special playlist that is played at least every 20 minutes for instance (3 times per hour).
