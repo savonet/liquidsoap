@@ -33,6 +33,7 @@ liquidsoap.liq
 list.liq
 log.liq
 math.liq
+medialib.liq
 metadata.liq
 native.liq
 null.liq

@@ -98,6 +98,15 @@ let _ =
       with _ -> Lang.int 0)
 
 let _ =
+  Lang.add_builtin ~base:file "mtime" ~category:`File
+    ~descr:"Last modification time."
+    [("", Lang.string_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let fname = List.assoc "" p |> Lang.to_string in
+      try Lang.float (Unix.stat fname).st_mtime with _ -> Lang.float 0.)
+
+let _ =
   Lang.add_builtin ~base:file "mkdir" ~category:`File
     ~descr:"Create a directory."
     [
@@ -492,6 +501,21 @@ let () =
                    List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
                  in
                  Lang.metadata (Frame.metadata_of_list m)))))
+
+let _ =
+  Lang.add_builtin ~base:file_metadata "native" ~category:`File
+    [
+      ( "",
+        Lang.string_t,
+        None,
+        Some "File from which the metadata should be read." );
+    ]
+    Lang.metadata_t ~descr:"Read metadata from a file using the native decoder."
+    (fun p ->
+      let file = List.assoc "" p |> Lang.to_string in
+      let m = try Metadata.parse_file file with _ -> [] in
+      let m = List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m in
+      Lang.metadata (Frame.metadata_of_list m))
 
 let _ =
   Lang.add_builtin ~base:file "which" ~category:`File
