@@ -150,7 +150,7 @@ argument the directory to index. On first run, it will index all the files of
 the given folder, which can take some time (you are advised to use the
 `persistency` parameter in order to specify a file where metadata will be
 stored to avoid reindexing at each run). The resulting object can then
-be queried with the `find` method in order to return all files matching given
+be queried with the `find` method in order to return all files matching the given
 conditions and thus generate a playlist:
 
 ```liquidsoap
