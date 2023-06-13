@@ -182,7 +182,7 @@ let _ =
 
 let _ =
   let return_t = return_t () in
-  Lang.add_operator ~base:Modules.video "rectangle"
+  Lang.add_operator ~base:Modules.video "add_rectangle"
     [
       ( "x",
         Lang.getter_t Lang.int_t,
