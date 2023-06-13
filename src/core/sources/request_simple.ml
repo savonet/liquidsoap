@@ -155,7 +155,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       let retry () =
         let delay = retry_delay () in
         retry_status <- Some (Unix.gettimeofday () +. delay);
-        `Retry (fun () -> delay)
+        `Empty
       in
       if available () then (
         match

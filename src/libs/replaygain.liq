@@ -52,11 +52,18 @@ end
 # @category Liquidsoap
 def enable_replaygain_metadata()
   def replaygain_metadata(~metadata=_, fname)
-    gain = file.replaygain(fname)
-    if null.defined(gain) then
-      [("replaygain_track_gain","#{null.get(gain)} dB")]
+    meta = file.metadata(exclude=["replaygain_track_gain"], fname)
+    replaygain_meta = meta["replaygain_track_gain"]
+    if replaygain_meta != "" then
+      log.info(label="decoder.replaygain.metadata", "Detected replaygain metadata: #{replaygain_meta}")
+      [("replaygain_track_gain", replaygain_meta)]
     else
-      []
+      gain = file.replaygain(id="decoder.replaygain.metadata", fname)
+      if null.defined(gain) then
+        [("replaygain_track_gain","#{null.get(gain)} dB")]
+      else
+        []
+      end
     end
   end
   decoder.metadata.add("replaygain_track_gain", replaygain_metadata)

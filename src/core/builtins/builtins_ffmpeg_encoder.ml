@@ -248,14 +248,14 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
           let hwaccel = format.Ffmpeg_format.hwaccel in
           let hwaccel_device = format.Ffmpeg_format.hwaccel_device in
 
-          let hardware_context, target_pixel_format =
+          let hardware_context, stream_pixel_format =
             Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_device ~opts
               ~target_pixel_format ~target_width ~target_height codec
           in
 
           let encoder =
             Avcodec.Video.create_encoder ?hardware_context ~opts
-              ~frame_rate:target_frame_rate ~pixel_format:target_pixel_format
+              ~frame_rate:target_frame_rate ~pixel_format:stream_pixel_format
               ~width:target_width ~height:target_height ~time_base codec
           in
 

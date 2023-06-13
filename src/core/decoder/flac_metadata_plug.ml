@@ -57,6 +57,6 @@ let get_tags ~metadata:_ parse fname =
         raise Not_found
 
 let () =
-  Plug.register Request.mresolvers "flac-native"
+  Plug.register Request.mresolvers "flac_native"
     ~doc:"Native FLAC metadata resolver."
     (get_tags Metadata.FLAC.parse_file)

@@ -334,14 +334,14 @@ let mk_video ~mode ~codec ~params ~options ~field output =
   let hwaccel = params.Ffmpeg_format.hwaccel in
   let hwaccel_device = params.Ffmpeg_format.hwaccel_device in
 
-  let hardware_context, target_pixel_format =
+  let hardware_context, stream_pixel_format =
     Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_device ~opts
       ~target_pixel_format ~target_width ~target_height codec
   in
 
   let stream =
     Av.new_video_stream ~time_base:target_video_frame_time_base
-      ~pixel_format:target_pixel_format ?hardware_context
+      ~pixel_format:stream_pixel_format ?hardware_context
       ~frame_rate:{ Avutil.num = target_fps; den = 1 }
       ~width:target_width ~height:target_height ~opts ~codec output
   in

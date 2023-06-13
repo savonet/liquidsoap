@@ -85,6 +85,11 @@ class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
       let clock = Source.Clock_variables.get self#clock in
       clock#on_after_output (fun () -> self#child_after_output)
 
+    method private child_on_output fn =
+      let clock = Source.Clock_variables.get self#child_clock in
+      clock#on_output fn;
+      self#child_tick
+
     method private child_after_output =
       if needs_tick then self#child_tick;
       let clock = Source.Clock_variables.get self#clock in

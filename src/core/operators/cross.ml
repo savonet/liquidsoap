@@ -148,9 +148,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     val mutable status = `Idle
 
     method private child_get source frame =
-      let clock = Source.Clock_variables.get self#child_clock in
-      clock#on_output (fun () -> source#get frame);
-      self#child_tick
+      self#child_on_output (fun () -> source#get frame)
 
     method private save_last_metadata mode buf_frame =
       let compare x y = -compare (fst x) (fst y) in
@@ -368,6 +366,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 (new Sequence.sequence [before; after] :> source))
             in
             Clock.unify compound#clock s#clock;
+            Typing.(compound#frame_type <: self#frame_type);
             compound)
       in
       self#cleanup_transition_source;

@@ -57,6 +57,6 @@ let get_tags ~metadata:_ parse fname =
         raise Not_found
 
 let () =
-  Plug.register Request.mresolvers "ogg-native"
+  Plug.register Request.mresolvers "ogg_native"
     ~doc:"Native ogg metadata resolver."
     (get_tags Metadata.OGG.parse_file)

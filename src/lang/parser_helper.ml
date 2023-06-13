@@ -40,13 +40,17 @@ type let_decoration =
 
 type app_list_elem = (string * Term.t) list
 
-type binding =
-  Doc.Value.t option
-  * let_decoration
-  * Term.pattern
-  * arglist option
-  * Term.t
-  * Type.t option
+type binding = {
+  doc : Doc.Value.t option;
+  decoration : let_decoration;
+  pat : Term.pattern;
+  arglist : arglist option;
+  def : Term.t;
+  cast : Type.t option;
+}
+
+let let_args ?doc ~decoration ~pat ?arglist ~def ?cast () =
+  { doc; decoration; pat; arglist; def; cast }
 
 type encoder_param =
   string * [ `Term of Term.t | `Encoder of string * encoder_opt ]
@@ -427,7 +431,7 @@ let mk_eval ~pos (doc, pat, def, body, cast) =
   let def = mk ~pos (Cast (def, ty)) in
   mk ~pos (Let { doc; replace = false; pat; gen = []; def; body })
 
-let mk_let ~pos (doc, decoration, pat, arglist, def, cast) body =
+let mk_let ~pos { doc; decoration; pat; arglist; def; cast } body =
   match (arglist, decoration) with
     | Some arglist, `None | Some arglist, `Replaces ->
         let replace = decoration = `Replaces in

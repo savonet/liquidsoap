@@ -42,7 +42,7 @@ end
 # Create an audio source from the given track, with
 # metadata and track marks from that same track.
 # @category Source / Track processing
-def source.audio(~id=null(), audio) =
+def source.audio(~id=null("source.audio"), audio) =
   source(id=id,{
     audio=audio,
     metadata=track.metadata(audio),
@@ -53,7 +53,7 @@ end
 # Create a video source from the given track, with
 # metadata and track marks from that same track.
 # @category Source / Track processing
-def source.video(~id=null(), video) =
+def source.video(~id=null("source.video"), video) =
   source(id=id,{
     video=video,
     metadata=track.metadata(video),
@@ -63,7 +63,7 @@ end
 
 # Remove duplicate metadata in a track.
 # @category Metadata
-def track.metadata.deduplicate(t) =
+def track.metadata.deduplicate(~id=null("track.metadata.deduplicate"), t) =
   last_meta = ref([])
   def f(m) =
     if m == last_meta() then
@@ -73,10 +73,10 @@ def track.metadata.deduplicate(t) =
       m
     end
   end
-  track.metadata.map(insert_missing=false, update=false, strip=true, f, t)
+  track.metadata.map(id=id,insert_missing=false, update=false, strip=true, f, t)
 end
 
-# Remove duplicate metadata in a track.
+# Remove duplicate metadata in a source.
 # @category Metadata
 # @param ~id Source id
 # @param s source
@@ -90,7 +90,7 @@ end
 # @argsof track.metadata.map
 def metadata.map(~id=null("metadata.map"), %argsof(track.metadata.map[!id]), f, (s:source)) =
   tracks = source.tracks(s)
-  source(tracks.{metadata = track.metadata.map(%argsof(track.metadata.map), f, tracks.metadata)})
+  source(id=id, tracks.{metadata = track.metadata.map(%argsof(track.metadata.map), f, tracks.metadata)})
 end
 
 # Turn a source into an infaillible source by adding blank when the source is
@@ -121,16 +121,17 @@ end
 # Creates a source that plays only one track of the input source.
 # @category Source / Track processing
 # @param s The input source.
-def once(s)
-  sequence([(s:source),source.fail()])
+def once(~id=null("once"), s)
+  sequence(id=id, [(s:source),source.fail()])
 end
 
 # Apply a function to the first track of a source
 # @category Source / Track processing
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param fn The applied function.
 # @param s The input source.
-def map_first_track(~id=null(),fn,s)
+def map_first_track(~id=null("map_first_track"),fn,s)
   fallback(id=id,track_sensitive=true,[fn((once(s):source)),s])
 end
 
@@ -141,7 +142,7 @@ end
 # @param ~max_blank Maximum silence length allowed, in seconds.
 # @param ~min_noise Minimum duration of noise required to end silence, in seconds.
 # @param ~track_sensitive Reset blank counter at each track.
-def blank.skip(~id=null(),~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
+def blank.skip(~id=null("blank.skip"),~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
   blank.detect(id=id,{s.skip()},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
 end
 
@@ -149,11 +150,12 @@ end
 # For instance, `rotate.merge([intro,main,outro])` creates a source
 # that plays a sequence `[intro,main,outro]` as single track and loops back.
 # @category Source / Track processing
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
 # @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
 # @param sources Sequence of sources to be merged
-def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
+def rotate.merge(~id=null("rotate.merge"),~transitions=[],~weights=[],sources)
   ready = ref(true)
   duration = frame.duration()
 
@@ -182,11 +184,12 @@ end
 # Rotate between overlapping sources. Next track starts according
 # to 'liq_start_next' offset metadata.
 # @category Source / Track processing
+# @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~start_next Metadata field indicating when the next track should start, relative to current track's time.
 # @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
 # @param sources Sources to toggle from
-def overlap_sources(~id=null(),~normalize=false,
+def overlap_sources(~id=null("overlap_sources"),~normalize=false,
                     ~start_next="liq_start_next",
                     ~weights=[],sources) =
   position = ref(0)
@@ -261,6 +264,7 @@ end
 
 # Append speech-synthesized tracks reading the metadata.
 # @category Metadata
+# @flag extra
 # @param ~pattern Pattern to use
 # @param s The source to use
 def source.say_metadata =
@@ -275,13 +279,14 @@ def source.say_metadata =
       end
     "say:#{artist_predicate}#{title}"
   end
-  fun (~id=null(), ~pattern=pattern, s) ->
+  fun (~id=null("source.say_metadata"), ~pattern=pattern, s) ->
     append(id=id, s, fun (m) -> once(single(pattern(m))))
 end
 
 # Run a function regularly. This is similar to `thread.run` but based on a
-# source internal time instead of the world's time.
+# source internal time instead of the computer's time.
 # @category Source / Track processing
+# @flag extra
 # @param s Source whose time is taken as reference.
 # @param ~delay Time to wait before the first run (in seconds).
 # @param ~every How often to run the function (in seconds). The function is run once if `null`.
@@ -299,6 +304,7 @@ end
 
 # Regularly insert track boundaries in a stream (useful for testing tracks).
 # @category Source / Track processing
+# @flag extra
 # @param ~every Duration of a track (in seconds).
 # @param ~metadata Metadata for tracks.
 # @param s The stream.
@@ -319,6 +325,7 @@ end
 
 # Regularly skip tracks from a source (useful for testing skipping).
 # @category Source / Track processing
+# @flag extra
 # @param ~every How often to skip tracks.
 # @param s The stream.
 # @flag extra

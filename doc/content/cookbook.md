@@ -103,6 +103,23 @@ output.file(%vorbis, output,fallible=true,
                      on_stop=shutdown,source)
 ```
 
+## RTMP server
+
+With our [FFmpeg support](ffmpeg.html), it is possible to create a simple RTMP server with no re-encoding:
+
+```liquidsoap
+s = playlist("...")
+
+enc = %ffmpeg(
+  format="flv",
+  listen=1,
+  %audio.copy,
+  %video.copy
+)
+
+output.url(url="rtmp://host/app/instance", enc, s)
+```
+
 ## Transmitting signal
 
 It is possible to send raw PCM signal between two instances using the [FFmpeg encoder](ffmpeg.html). Here's an example using
@@ -140,6 +157,60 @@ fallback([playlist("http://my/playlist"),
 # A scheduler,
 # assuming you have defined the night and day sources
 switch([ ({0h-7h}, night), ({7h-24h}, day) ])
+```
+
+## Generating playlists from a media library
+
+In order to store all the metadata of the files in a given directory and use
+those to generate playlists, you can use the `medialib` operator which takes as
+argument the directory to index. On first run, it will index all the files of
+the given folder, which can take some time (you are advised to use the
+`persistency` parameter in order to specify a file where metadata will be
+stored to avoid reindexing at each run). The resulting object can then
+be queried with the `find` method in order to return all files matching the given
+conditions and thus generate a playlist:
+
+```liquidsoap
+m = medialib(persistency="/tmp/medialib.json", "~/Music/")
+l = m.find(artist_contains="Brassens")
+l = list.shuffle(l)
+output(playlist.list(l))
+```
+
+The parameter of the `find` method follow the following convention:
+
+- `artist="XXX"` looks for files where the artist tag is exactly the given one
+- `artist_contains="XXX"` looks for files where the artist tag contains the
+  given string as substring
+- `artist_matches="XXX"` looks for files where the artist tag matches the given
+  regular expression (for instance `artist_matches="(a)+.*(b)+"` looks for files
+  where the artist contains an `a` followed by a `b`).
+
+The tags for which such parameters are provided are: `artist`, `title`, `album`
+and `filename` (feel free to ask if you need more).
+
+Some numeric tags are also supported:
+
+- `year=1999` looks for files where the year is exactly the given one
+- `year_ge=1999` looks for files where the year at least the given one
+- `year_lt=1999` looks for files where the year at most the given one
+
+The following numeric tags are supported: `bpm`, `year`.
+
+If multiple arguments are passed, the function finds files with tags matching
+the conjunction of the corresponding condition.
+
+Finally, if you need more exotic search functions, the argument `predicate` can
+be used. It takes as argument a _predicate_ which is a function taking the
+metadata of a file and returning whether the file should be selected. For
+instance, the following looks for files where the name of the artist is of
+length 5:
+
+```liquidsoap
+def p(m)
+  string.length(m["artist"]) == 5
+end
+l = m.find(predicate=p)
 ```
 
 ## Force a file/playlist to be played at least every XX minutes

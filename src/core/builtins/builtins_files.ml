@@ -98,6 +98,15 @@ let _ =
       with _ -> Lang.int 0)
 
 let _ =
+  Lang.add_builtin ~base:file "mtime" ~category:`File
+    ~descr:"Last modification time."
+    [("", Lang.string_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let fname = List.assoc "" p |> Lang.to_string in
+      try Lang.float (Unix.stat fname).st_mtime with _ -> Lang.float 0.)
+
+let _ =
   Lang.add_builtin ~base:file "mkdir" ~category:`File
     ~descr:"Create a directory."
     [
@@ -303,7 +312,11 @@ let _ =
 let _ =
   Lang.add_builtin ~base:path "basename" ~category:`File
     [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Get the base name of a path."
+    Lang.string_t
+    ~descr:
+      "Get the base name of a path, i.e. the name of the file without the full \
+       path. For instance `file.basename(\"/tmp/folder/bla.mp3\")` returns \
+       `\"bla.mp3\"`."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.basename f))
@@ -442,15 +455,27 @@ let file_metadata =
         Lang.string_t,
         None,
         Some "File from which the metadata should be read." );
+      ( "exclude",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some "Decoders to exclude" );
     ]
     Lang.metadata_t ~descr:"Read metadata from a file."
     (fun p ->
       let uri = Lang.to_string (List.assoc "" p) in
-      let r = Request.create uri in
-      if Request.resolve ~ctype:None r 30. = Request.Resolved then (
-        Request.read_metadata r;
-        Lang.metadata (Request.get_all_metadata r))
-      else Lang.metadata (Hashtbl.create 0))
+      let exclude =
+        List.map Lang.to_string (Lang.to_list (List.assoc "exclude" p))
+      in
+      let metadata = Hashtbl.create 0 in
+      Plug.iter Request.mresolvers (fun name decoder ->
+          try
+            if List.mem name exclude then failwith "excluded!";
+            let m = decoder ~metadata:(Hashtbl.create 0) uri in
+            List.iter
+              (fun (k, v) -> Hashtbl.add metadata (String.lowercase_ascii k) v)
+              m
+          with _ -> ());
+      Lang.metadata metadata)
 
 let () =
   Lifecycle.before_script_parse (fun () ->
@@ -459,12 +484,6 @@ let () =
           ignore
             (Lang.add_builtin ~base:file_metadata name ~category:`File
                [
-                 ( "metadata",
-                   Lang.metadata_t,
-                   Some (Lang.list []),
-                   Some
-                     "Optional metadata used to decode the file, e.g. \
-                      `ffmpeg_options`." );
                  ( "",
                    Lang.string_t,
                    None,
@@ -475,12 +494,28 @@ let () =
                  ("Read metadata from a file using the " ^ name ^ " decoder.")
                (fun p ->
                  let uri = Lang.to_string (List.assoc "" p) in
-                 let metadata = Lang.to_metadata (List.assoc "metadata" p) in
-                 let m = try decoder ~metadata uri with _ -> [] in
+                 let m =
+                   try decoder ~metadata:(Hashtbl.create 0) uri with _ -> []
+                 in
                  let m =
                    List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
                  in
                  Lang.metadata (Frame.metadata_of_list m)))))
+
+let _ =
+  Lang.add_builtin ~base:file_metadata "native" ~category:`File
+    [
+      ( "",
+        Lang.string_t,
+        None,
+        Some "File from which the metadata should be read." );
+    ]
+    Lang.metadata_t ~descr:"Read metadata from a file using the native decoder."
+    (fun p ->
+      let file = List.assoc "" p |> Lang.to_string in
+      let m = try Metadata.parse_file file with _ -> [] in
+      let m = List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m in
+      Lang.metadata (Frame.metadata_of_list m))
 
 let _ =
   Lang.add_builtin ~base:file "which" ~category:`File

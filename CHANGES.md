@@ -40,6 +40,9 @@ New:
   [Pico TTS](https://github.com/naggety/picotts) (#2934).
 - Added `"metadata_url"` to the default list of exported metadata (#2946)
 - Added log colors!
+- Added `list.filter_map` and `list.flatten`.
+- Added `medialib` in order to store metadata of files in a folder and query
+  them (#3115).
 - Added `--unsafe` option (#3113). This makes the startup much faster but
   disables some guarantees (and might even make the script crash...).
 
@@ -60,6 +63,7 @@ Changed:
   - Cleanup, removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
   - Make `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
 - BREAKING: reworked reloading logic in `output.file` (#2924, see migration notes for more details).
+- Added `reopen` method to `output.file`.
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.
@@ -1809,7 +1813,7 @@ Bugs fixed:
 - Factorized buffered I/O code. Also added a blocking API, which avoids
   "no available frame" and "reader not ready" messages and audio glitches.
   It enforces that `root.sync` be deactivated for these sources, such that
-  synchronisation is done by the source. (#203)
+  synchronization is done by the source. (#203)
 - Factorized file decoding code.
 - Fixed reversed order when parsing playlists using `playlist.parse()`.
 - Avoid bad crashes when resources lack, e.g. no more memory.
