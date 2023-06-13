@@ -21,7 +21,7 @@ override_dh_auto_install:
 	export LIQUIDSOAP_BUILD_TARGET=posix
 	dune build @install
 	dune install --relocatable --prefix $(DESTDIR)
-	rm -rf debian/tmp/share/liquidsoap-lang/libs/extra
+	rm -rf $(DESTDIR)/share/liquidsoap-lang/libs/extra
 	mkdir -p $(DESTDIR)/share/liquidsoap
 	cp -rf `opam config var share`/camomile $(DESTDIR)/share/liquidsoap
 	dh_install

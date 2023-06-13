@@ -59,7 +59,7 @@ cp -f debian/control.in debian/control
 
 sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}-minimal#g" -i debian/control
 
-cp -rf debian/rules.minimal debian/rules
+cp -rf debian/rules-minimal debian/rules
 
 dch --create --distribution unstable --package "${LIQ_PACKAGE}-minimal" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
 
