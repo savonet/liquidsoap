@@ -607,7 +607,7 @@ let _ =
         ( "height",
           ([], Lang.fun_t [] Lang.int_t),
           "Height of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.width) );
+          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.height) );
         ( "planes",
           ([], Lang.fun_t [] Lang.int_t),
           "Number of planes in a video frame.",
