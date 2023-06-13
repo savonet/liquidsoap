@@ -10,6 +10,7 @@ DOCKER_TAG="$3"
 PLATFORM="$4"
 IS_ROLLING_RELEASE="$5"
 IS_RELEASE="$6"
+MINIMAL_EXCLUDE_DEPS="$7"
 DEB_RELEASE=1
 
 ARCH=$(dpkg --print-architecture)
@@ -52,6 +53,8 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 fakeroot debian/rules binary
 
 echo "Building ${LIQ_PACKAGE}-minimal.."
+
+opam remove -y $MINIMAL_EXCLUDE_DEPS
 
 rm -rf debian/changelog
 

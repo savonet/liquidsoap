@@ -8,7 +8,7 @@ ARCH="$3"
 ALPINE_ARCH="$4"
 IS_ROLLING_RELEASE="$5"
 IS_RELEASE="$6"
-# COMMIT_SHA="$7"
+MINIMAL_EXCLUDE_DEPS="$7"
 APK_RELEASE=0
 
 cd /tmp/liquidsoap-full/liquidsoap
@@ -44,6 +44,8 @@ mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${D
 rm -f APKBUILD "tmp/${ALPINE_ARCH}"
 
 echo "Building ${APK_PACKAGE}-minimal.."
+
+opam remove -y $MINIMAL_EXCLUDE_DEPS
 
 sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" liquidsoap/.github/alpine/APKBUILD-minimal.in |
   sed -e "s#@APK_VERSION@#${APK_VERSION}#" |

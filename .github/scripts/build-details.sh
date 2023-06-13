@@ -55,6 +55,8 @@ else
   IS_ROLLING_RELEASE=
 fi
 
+MINIMAL_EXCLUDED_DEPS="alsa ao bjack camlimages ctypes-foreign dssi faad fdkaac flac frei0r gd graphics gstreamer imagelib irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt taglib tls theora tsdl vorbis"
+
 {
   echo "branch=${BRANCH}"
   echo "is_release=${IS_RELEASE}"
@@ -66,4 +68,5 @@ fi
   echo "sha=${SHA}"
   echo "s3-artifact-basepath=s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
   echo "is_fork=${IS_FORK}"
+  echo "minimal_exclude_deps=${MINIMAL_EXCLUDED_DEPS}"
 } >> "${GITHUB_OUTPUT}"
