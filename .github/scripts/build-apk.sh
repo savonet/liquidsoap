@@ -45,7 +45,7 @@ rm -f APKBUILD
 
 echo "Building ${APK_PACKAGE}-minimal.."
 
-opam remove -y $MINIMAL_EXCLUDE_DEPS
+eval "opam remove -y $MINIMAL_EXCLUDE_DEPS"
 
 sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" liquidsoap/.github/alpine/APKBUILD-minimal.in |
   sed -e "s#@APK_VERSION@#${APK_VERSION}#" |
