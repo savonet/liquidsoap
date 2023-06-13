@@ -23,6 +23,13 @@
 open Mm
 open Source
 
+let ayuv_of_int c =
+  let a, c = Image.ARGB8.Color.of_int c in
+  (* By default we set alpha to 0xff, so that users don't have to always specify
+     alpha channel... *)
+  let a = if a = 0 then 0xff else a in
+  (a, Image.Pixel.yuv_of_rgb c)
+
 class virtual base ~name (source : source) f =
   object
     inherit operator ~name [source]
@@ -143,12 +150,10 @@ let _ =
       let f v = List.assoc v p in
       let color = Lang.to_int_getter (f "color") in
       let src = Lang.to_source (f "") in
-      let color () =
-        Image.Pixel.yuv_of_rgb (Image.RGB8.Color.of_int (color ()))
-      in
       new effect ~name:"video.fill" src (fun buf ->
-          Image.YUV420.fill buf (color ());
-          Image.YUV420.fill_alpha buf 0xff))
+          let a, c = color () |> ayuv_of_int in
+          Image.YUV420.fill buf c;
+          Image.YUV420.fill_alpha buf a))
 
 let _ =
   let return_t = return_t () in
@@ -205,11 +210,10 @@ let _ =
           let y = y () in
           let width = width () in
           let height = height () in
-          let c =
-            color () |> Image.RGB8.Color.of_int |> Image.Pixel.yuv_of_rgb
-          in
+          let a, c = color () |> ayuv_of_int in
           let r = Image.YUV420.create width height in
           Image.YUV420.fill r c;
+          Image.YUV420.fill_alpha r a;
           let r = Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) r in
           Video.Canvas.Image.add r buf))
 
@@ -475,11 +479,10 @@ let _ =
       let s = Lang.assoc "" 3 param |> Lang.to_source in
       let color = List.assoc "color" param |> Lang.to_int_getter in
       new effect_map ~name:"video.line" s (fun buf ->
-          let r, g, b = color () |> Image.RGB8.Color.of_int in
+          let a, (r, g, b) = color () |> Image.ARGB8.Color.of_int in
+          let a = if a = 0 then 0xff else a in
           (* TODO: we could keep the image if the values did not change *)
-          let line =
-            Video.Canvas.Image.Draw.line (r, g, b, 0xff) (p ()) (q ())
-          in
+          let line = Video.Canvas.Image.Draw.line (r, g, b, a) (p ()) (q ()) in
           Video.Canvas.Image.add line buf))
 
 let _ =
