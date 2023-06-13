@@ -49,6 +49,6 @@ def video.vumeter(~rms_min=-35., ~rms_max=0., ~window=0.1, ~color=0xff0000, ~per
     width := int_of_float(x * float_of_int(video.frame.width()))
   end
   thread.run(fast=true, every=window, update)
-  s = video.rectangle(width=width, height=height, color=color, s)
+  s = video.add_rectangle(width=width, height=height, color=color, s)
   video.persistence(duration=persistence, s)
 end

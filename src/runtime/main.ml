@@ -408,6 +408,9 @@ See <http://liquidsoap.info> for more information.
                 (Builtins_settings.print_settings ());
               exit 0),
           "Display configuration keys in markdown format." );
+        ( ["--unsafe"],
+          Arg.Unit (fun () -> Typing.do_occur_check := false),
+          "Faster startup using unsafe features." );
       ])
 
 let expand_options options =

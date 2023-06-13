@@ -731,3 +731,9 @@ def sleep(s) =
   deprecated("sleep", "thread.pause")
   thread.pause(s)
 end
+
+# Deprecated: use `video.add_rectangle`.
+# @flag deprecated
+def video.rectangle(%argsof(video.add_rectangle), s)
+  video.add_rectangle(%argsof(video.add_rectangle), s)
+end
