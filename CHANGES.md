@@ -43,6 +43,8 @@ New:
 - Added `list.filter_map` and `list.flatten`.
 - Added `medialib` in order to store metadata of files in a folder and query
   them (#3115).
+- Added `--unsafe` option (#3113). This makes the startup much faster but
+  disables some guarantees (and might even make the script crash...).
 
 Changed:
 
