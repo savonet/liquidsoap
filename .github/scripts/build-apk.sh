@@ -39,7 +39,19 @@ cp "liquidsoap/.github/alpine/liquidsoap.pre-install" "${APK_PACKAGE}.pre-instal
 abuild-keygen -a -n
 abuild
 
-mv "/home/opam/packages/tmp/${ALPINE_ARCH}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
-mv "/home/opam/packages/tmp/${ALPINE_ARCH}/${APK_PACKAGE}-dbg-${APK_VERSION}-r${APK_RELEASE}.apk" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
+echo "Building ${APK_PACKAGE}-minimal.."
+
+rm -f APKBUILD
+
+sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" liquidsoap/.github/alpine/APKBUILD-minimal.in |
+  sed -e "s#@APK_VERSION@#${APK_VERSION}#" |
+  sed -e "s#@APK_RELEASE@#${APK_RELEASE}#" \
+    > APKBUILD
+
+abuild-keygen -a -n
+abuild
+
+mv "/home/opam/packages/tmp/${ALPINE_ARCH}/*.apk" "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 
 echo "##[set-output name=basename;]${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
+echo "##[set-output name=basename-minimal;]${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.apk"
