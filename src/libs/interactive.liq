@@ -291,7 +291,9 @@ def interactive.persistent(fname)
   interactive.persistency := {interactive.save(fname)}
 end
 
-# Expose interactive variables through habor http server.
+# Expose interactive variables through habor http server. Once this is called,
+# with default parameters, you can browse <http://localhost:8000/interactive> to
+# change the value of interactive variables using sliders.
 # @category Interaction
 # @param ~port Port of the server.
 # @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
