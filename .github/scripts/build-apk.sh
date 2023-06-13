@@ -36,12 +36,12 @@ sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" liquidsoap/.github/alpine/APKBUILD.in |
 
 cp "liquidsoap/.github/alpine/liquidsoap.pre-install" "${APK_PACKAGE}.pre-install"
 
-abuild-keygen -a -n
+abuild-keygen -i -a -n
 abuild
 
 mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 
-rm -f APKBUILD "tmp/${ALPINE_ARCH}"
+rm -f APKBUILD
 
 echo "Building ${APK_PACKAGE}-minimal.."
 
