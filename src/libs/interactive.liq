@@ -520,11 +520,15 @@ end
 # @param ~id Id of the source. Variable names are prefixed with this.
 # @param ~bands Number of bands.
 # @param s Source to compress.
-def compress.multiband.interactive(~id="compress", ~bands=5, s)
+def compress.multiband.interactive(~id=null(), ~bands=5, s)
+  id = string.id.default(default="compress.multiband.interactive", id)
   prefix = id^"_"
   wet = interactive.float(prefix^"wet", min=0., max=1., 1.)
+  min_freq = 100.
+  max_freq = 15000.
   def band(i)
-    frequency = 100. + 10. * exp(ln(25000.) * float_of_int(i) / float_of_int(bands))
+    frequency = exp((ln(max_freq) - ln(min_freq)) * float_of_int(i) / float_of_int(bands-1) + ln(min_freq))
+    log.important(label=id, "Adding a band at #{frequency} Hz.")
     frequency = interactive.float("#{prefix}frequency#{i}", unit="Hz", min=0., max=20000., step=10., frequency)
     attack = interactive.float("#{prefix}attack#{i}", unit="ms", min=0., max=1000., step=10., 100.)
     release = interactive.float("#{prefix}release#{i}", unit="ms", min=0., max=1000., step=10., 200.)
