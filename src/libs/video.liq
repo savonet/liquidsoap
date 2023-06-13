@@ -41,6 +41,7 @@ end
 # @param ~file Path to the image file.
 def track.video.add_image(~id=null("track.video.add_image"), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, v)
   image = single(id=id, file)
+  image = video.crop(image)
   image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
   let {video=image} = source.tracks(image)
   track.video.add([v, image])
