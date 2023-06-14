@@ -45,7 +45,7 @@ New:
   them (#3115).
 - Added `--unsafe` option (#3113). This makes the startup much faster but
   disables some guarantees (and might even make the script crash...).
-- Added `string.split.first`.
+- Added `string.split.first` (#3146).
 
 Changed:
 
