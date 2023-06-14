@@ -432,12 +432,14 @@ def https.delete(%argsof(http.delete), url)
   http.delete(%argsof(http.delete), url)
 end
 
+%ifdef input.http
 # Deprecated: use `input.http` instead
 # @flag deprecated
 def input.https(%argsof(input.http), url)
   deprecated("input.https", "input.http")
   input.http(%argsof(input.http), url)
 end
+%endif
 
 %ifdef source.say_metadata
 # Deprecated: use `source.say_metadata` instead
