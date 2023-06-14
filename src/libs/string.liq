@@ -38,18 +38,11 @@ end
 # Split a string in two at first "separator".
 # @category String
 def string.split.first(~separator, s)
+  n = string.length(s)
   l = string.length(separator)
-  def rec aux(i)
-    if i+l > string.length(s) then
-      error.raise(error.not_found, "String does not contain the separator.")
-    end
-    if string.sub(s, start=i, length=l) == separator then
-      (string.sub(s, start=0, length=i), string.sub(s, start=i+l, length=string.length(s)-(i+l)))
-    else
-      aux(i+1)
-    end
-  end
-  aux(0)
+  i = string.index(substring=separator, s)
+  if i < 0 then error.raise(error.not_found, "String does not contain the separator.") end
+  (string.sub(s, start=0, length=i), string.sub(s, start=i+l, length=n-(i+l)))
 end
 
 # Test whether a string contains a given prefix, substring or suffix.
