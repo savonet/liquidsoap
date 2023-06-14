@@ -38,7 +38,7 @@ else
   LIQ_PACKAGE="liquidsoap-${TAG}"
 fi
 
-echo "Building ${LIQ_PACKAGE}.."
+echo "::group:: Build ${LIQ_PACKAGE}.."
 
 cp -rf .github/debian .
 
@@ -52,7 +52,15 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
-echo "Building ${LIQ_PACKAGE}-minimal.."
+echo "::endgroup::"
+
+echo "::group:: save build config for ${LIQ_PACKAGE}.."
+
+./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}.config"
+
+echo "::endgroup::"
+
+echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 
 echo "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
 eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
@@ -68,6 +76,14 @@ cp -rf debian/rules-minimal debian/rules
 dch --create --distribution unstable --package "${LIQ_PACKAGE}-minimal" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
 
 fakeroot debian/rules binary
+
+echo "::endgroup::"
+
+echo "::group:: save build config for ${LIQ_PACKAGE}.."
+
+./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal.config"
+
+echo "::endgroup::"
 
 cp /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
 

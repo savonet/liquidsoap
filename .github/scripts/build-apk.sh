@@ -25,7 +25,7 @@ else
   APK_PACKAGE="liquidsoap-${TAG}-${ALPINE_ARCH}"
 fi
 
-echo "Building ${APK_PACKAGE}.."
+echo "::group:: build ${APK_PACKAGE}.."
 
 cd /tmp/liquidsoap-full
 
@@ -41,9 +41,17 @@ abuild
 
 mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
 
+echo "::endgroup::"
+
+echo "::group:: save build config for ${APK_PACKAGE}.."
+
+./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}.config"
+
+echo "::endgroup::"
+
 rm -rf APKBUILD /home/opam/packages/tmp/"${ALPINE_ARCH}"
 
-echo "Building ${APK_PACKAGE}-minimal.."
+echo "::group:: building ${APK_PACKAGE}-minimal.."
 
 eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
 
@@ -56,6 +64,14 @@ cp "liquidsoap/.github/alpine/liquidsoap.pre-install" "${APK_PACKAGE}-minimal.pr
 
 abuild-keygen -a -n
 abuild
+
+echo "::endgroup::"
+
+echo "::group:: save build config for ${APK_PACKAGE}.."
+
+./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal.config"
+
+echo "::endgroup::"
 
 echo "##[set-output name=basename;]${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
 echo "##[set-output name=basename-minimal;]${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.apk"
