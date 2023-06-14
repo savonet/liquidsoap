@@ -53,7 +53,7 @@ jobs:
         run: .github/scripts/build-details.sh
         id: build_details
 
-  build_minimal:
+  build_no_depopts:
     runs-on: ubuntu-latest
     needs: build_details
     container:
@@ -81,7 +81,7 @@ jobs:
           git reset --hard
           git pull
           cp PACKAGES.minimal PACKAGES
-          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app tls tsdl
+          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.output.minimal_exclude_deps }}
           echo "::endgroup::"
           cd liquidsoap
           ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
