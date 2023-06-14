@@ -49,6 +49,7 @@ def f() =
   test.equals(string.index(substring="cd", "abcde"), 2)
   test.equals(string.index(substring="e", "abcde"), 4)
   test.equals(string.index(substring="xx", "abcde"), -1)
+  test.equals(string.split.first(separator="xx", "abcxxdef"), ("abc","def"))
 
   # Test that we revert to ascii on invalid utf8 strings when encoding is not specified:
   invalid_utf8_string = "\xfc\xa1\xa1\xa1\xa1\xa1"
