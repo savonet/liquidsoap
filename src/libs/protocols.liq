@@ -145,7 +145,6 @@ def process.uri(~timeout=null(),~extname,~uri="",cmd) =
   "process:#{timeout}#{extname},#{cmd}#{uri}"
 end
 
-%ifdef http.head
 # Resolve http(s) URLs using curl
 # @flag hidden
 def protocol.http(proto,~rlog,~maxtime,arg) =
@@ -200,7 +199,6 @@ def protocol.add.http(proto) =
   protocol.add(temporary=true,syntax="#{proto}://...",doc="Download http URLs using curl",proto,protocol.http)
 end
 list.iter(protocol.add.http,["http","https"])
-%endif
 
 let settings.protocol.youtube_dl = settings.make.protocol("youtube-dl")
 
