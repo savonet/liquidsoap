@@ -59,6 +59,7 @@ echo "::group:: building ${APK_PACKAGE}-minimal.."
 eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
 
 cd /tmp/liquidsoap-full
+make clean
 cp PACKAGES.minimal PACKAGES
 rm .ocamlpath
 
