@@ -147,15 +147,10 @@ for more information."""
   "✨ Congratulations on installing liquidsoap! ✨" {success}
   """\
 We noticed that you did not install the ffmpeg package. This package is
-highly recommended for most users and provide a lot of useful features,
-including decoding and  encoding multiple media format, sending and
+highly recommended for most users and provides a lot of useful features,
+including decoding and encoding multiple media format, sending and
 receiving from various inputs and outputs and more."""
     {success & !ffmpeg-enabled}
-  """\
-We noticed that you did not install the ocurl package. This package provides
-support for the scripted `http` request operators (`http.get`, `http.put`, etc.)
-which most user would expect to be available."""
-    {success & !curl-enabled}
   """\
 We noticed that you did not install any ssl or tls support. Liquidsoap won't
 be able to use SSL encryption in its input or output operators. You might want

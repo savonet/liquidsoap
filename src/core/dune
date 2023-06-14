@@ -752,7 +752,6 @@
   lastfm_option
   lilv_option
   lo_option
-  ocurl_option
   mad_option
   magic_option
   mem_usage_option
