@@ -95,7 +95,6 @@ let build_config =
  * Additional libraries
    - FFmpeg filters    : %{Ffmpeg_option.detected}
    - FFmpeg devices    : %{Ffmpeg_option.detected}
-   - camomile          : %{Camomile_option.detected}
    - inotify           : %{Inotify_option.detected}
    - irc               : %{Irc_option.detected}
    - lastfm            : %{Lastfm_option.detected}

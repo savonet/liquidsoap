@@ -54,7 +54,7 @@ fakeroot debian/rules binary
 
 echo "Building ${LIQ_PACKAGE}-minimal.."
 
-eval "opam remove -y $MINIMAL_EXCLUDE_DEPS"
+eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
 
 rm -rf debian/changelog
 

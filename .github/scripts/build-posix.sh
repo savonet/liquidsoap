@@ -37,11 +37,6 @@ sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
-git clone https://github.com/savonet/Camomile.git
-cd Camomile && opam install -y .
-
-opam install -y tls ca-certs
-
 echo "::endgroup::"
 
 echo "::group::Checking out CI commit"
