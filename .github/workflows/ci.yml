@@ -603,7 +603,7 @@ jobs:
         run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)"
         id: debian_package
       - name: Get debian bookworm debug package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v mininmal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
+        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
         id: debian_debug_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -629,7 +629,7 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get alpine package
-        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | greap -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})"
+        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})"
         id: alpine_package
       - name: Get alpine debug package
         run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})"
