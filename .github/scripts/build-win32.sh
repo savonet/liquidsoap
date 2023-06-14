@@ -9,7 +9,6 @@ IS_ROLLING_RELEASE="$4"
 IS_RELEASE="$5"
 GITHUB_SHA="$6"
 
-OPAM_PREFIX="$(opam var prefix)"
 VERSION="$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)"
 PWD="$(dirname "$0")"
 BASE_DIR="$(cd "${PWD}/../.." && pwd)"
@@ -55,7 +54,7 @@ echo "::group::Install liquidsoap-windows"
 opam install -y liquidsoap-windows
 echo "::endgroup::"
 
-wine "${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap" --build-config
+wine "${BASE_DIR}/_build/default/src/bin/liquidsoap.exe" --build-config
 
 echo "::group::Bundling executable"
 
@@ -63,7 +62,7 @@ cd ~
 cp -rf "${BASE_DIR}/.github/win32" "liquidsoap-$BUILD"
 cp -rf "${BASE_DIR}/src/libs" "liquidsoap-$BUILD"
 cd "liquidsoap-$BUILD"
-cp "${OPAM_PREFIX}"/windows-sysroot/bin/liquidsoap ./liquidsoap.exe
+cp "${BASE_DIR}/_build/default/src/bin/liquidsoap.exe" ./liquidsoap.exe
 cp -rf "$(ocamlfind -toolchain windows ocamlc -where)/../../share/camomile" .
 cd ..
 zip -r "liquidsoap-$BUILD.zip" "liquidsoap-$BUILD"
