@@ -512,7 +512,7 @@ jobs:
     needs:
       [
         build_details,
-        build_minimal,
+        build_no_depopts,
         build_js,
         run_tests,
         build_posix,
