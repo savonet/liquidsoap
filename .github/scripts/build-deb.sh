@@ -62,7 +62,6 @@ echo "::endgroup::"
 
 echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 
-echo "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
 eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
 
 rm -rf debian/changelog
