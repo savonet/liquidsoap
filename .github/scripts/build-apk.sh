@@ -45,7 +45,8 @@ echo "::endgroup::"
 
 echo "::group:: save build config for ${APK_PACKAGE}.."
 
-cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}.config"
+eval "$(opam config env)"
+cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.config"
 
 echo "::endgroup::"
 
@@ -69,7 +70,8 @@ echo "::endgroup::"
 
 echo "::group:: save build config for ${APK_PACKAGE}.."
 
-cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal.config"
+eval "$(opam config env)"
+cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
 
 echo "::endgroup::"
 

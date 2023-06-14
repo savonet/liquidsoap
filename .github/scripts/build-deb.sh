@@ -56,7 +56,7 @@ echo "::endgroup::"
 
 echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}.config"
+./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
 echo "::endgroup::"
 
@@ -80,7 +80,7 @@ echo "::endgroup::"
 
 echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal.config"
+./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
 echo "::endgroup::"
 
