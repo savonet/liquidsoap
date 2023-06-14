@@ -56,11 +56,11 @@ rm -rf APKBUILD /home/opam/packages/tmp/"${ALPINE_ARCH}"
 
 echo "::group:: building ${APK_PACKAGE}-minimal.."
 
-eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
+eval "opam remove --no-depexts --force -y $MINIMAL_EXCLUDE_DEPS"
 
 cd /tmp/liquidsoap-full
 make clean
-cp PACKAGES.minimal PACKAGES
+cp PACKAGES.minimal-build PACKAGES
 rm .ocamlpath
 
 cd liquidsoap

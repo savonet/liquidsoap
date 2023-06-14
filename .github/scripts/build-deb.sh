@@ -66,12 +66,16 @@ eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
 
 cd /tmp/liquidsoap-full
 make clean
-cp PACKAGES.minimal PACKAGES
+cp PACKAGES.minimal-build PACKAGES
 rm .ocamlpath
 cd liquidsoap
 ./.github/scripts/build-posix.sh 1
 OCAMLPATH="$(cat ../.ocamlpath)"
 export OCAMLPATH
+
+rm -rf debian
+
+cp -rf .github/debian .
 
 rm -rf debian/changelog
 
