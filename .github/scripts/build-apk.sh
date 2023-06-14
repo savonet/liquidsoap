@@ -46,7 +46,7 @@ echo "::endgroup::"
 echo "::group:: save build config for ${APK_PACKAGE}.."
 
 eval "$(opam config env)"
-OCAMLPATH=$(cat ../.ocamlpath)
+OCAMLPATH=$(cat .ocamlpath)
 export OCAMLPATH
 cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.config"
 
@@ -57,6 +57,17 @@ rm -rf APKBUILD /home/opam/packages/tmp/"${ALPINE_ARCH}"
 echo "::group:: building ${APK_PACKAGE}-minimal.."
 
 eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
+
+cd /tmp/liquidsoap-full
+cp PACKAGES.minimal PACKAGES
+
+cd liquidsoap
+./.github/scripts/build-posix.sh 1
+
+OCAMLPATH="$(cat ../.ocamlpath)"
+export OCAMLPATH
+
+cd /tmp/liquidsoap-full
 
 sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" liquidsoap/.github/alpine/APKBUILD-minimal.in |
   sed -e "s#@APK_VERSION@#${APK_VERSION}#" |
@@ -73,7 +84,7 @@ echo "::endgroup::"
 echo "::group:: save build config for ${APK_PACKAGE}.."
 
 eval "$(opam config env)"
-OCAMLPATH=$(cat ../.ocamlpath)
+OCAMLPATH=$(cat .ocamlpath)
 export OCAMLPATH
 cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
 

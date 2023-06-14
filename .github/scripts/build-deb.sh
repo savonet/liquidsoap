@@ -38,7 +38,7 @@ else
   LIQ_PACKAGE="liquidsoap-${TAG}"
 fi
 
-echo "::group:: Build ${LIQ_PACKAGE}.."
+echo "::group:: build ${LIQ_PACKAGE}.."
 
 cp -rf .github/debian .
 
@@ -63,6 +63,13 @@ echo "::endgroup::"
 echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 
 eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
+
+cd /tmp/liquidsoap-full
+cp PACKAGES.minimal PACKAGES
+cd liquidsoap
+./.github/scripts/build-posix.sh 1
+OCAMLPATH="$(cat ../.ocamlpath)"
+export OCAMLPATH
 
 rm -rf debian/changelog
 
