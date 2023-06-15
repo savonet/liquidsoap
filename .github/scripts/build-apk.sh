@@ -58,8 +58,6 @@ echo "::group:: building ${APK_PACKAGE}-minimal.."
 
 eval "opam remove --no-depexts --force -y $MINIMAL_EXCLUDE_DEPS"
 
-apk del sdl2
-
 cd /tmp/liquidsoap-full
 make clean
 cp PACKAGES.minimal-build PACKAGES
