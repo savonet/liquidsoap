@@ -58,6 +58,8 @@ echo "::group:: building ${APK_PACKAGE}-minimal.."
 
 eval "opam remove --no-depexts --force -y $MINIMAL_EXCLUDE_DEPS"
 
+apk del sdl2
+
 cd /tmp/liquidsoap-full
 make clean
 cp PACKAGES.minimal-build PACKAGES
@@ -81,9 +83,11 @@ cp "liquidsoap/.github/alpine/liquidsoap.pre-install" "${APK_PACKAGE}-minimal.pr
 abuild-keygen -a -n
 abuild
 
+mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine"
+
 echo "::endgroup::"
 
-echo "::group:: save build config for ${APK_PACKAGE}.."
+echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
 
 eval "$(opam config env)"
 OCAMLPATH=$(cat .ocamlpath)
