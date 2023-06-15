@@ -205,7 +205,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
       - name: Export potential core dumps
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}
           path: ${{ github.workspace }}/${{ github.run_number }}/core
@@ -305,7 +305,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
       - name: Upload debian packages artifacts
         if: (contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')) && matrix.platform != 'armhf'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
@@ -363,7 +363,7 @@ jobs:
           echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64)" >> "${GITHUB_OUTPUT}"
           echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine amd64 package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: needs.build_details.outputs.is_fork != 'true'
         with:
           name: ${{ steps.apk_amd64.outputs.name }}
@@ -375,7 +375,7 @@ jobs:
           echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64)" >> "${GITHUB_OUTPUT}"
           echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine amd64 debug package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: needs.build_details.outputs.is_fork != 'true'
         with:
           name: ${{ steps.apk_amd64_dbg.outputs.name }}
@@ -389,7 +389,7 @@ jobs:
           echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine arm64 package
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.apk_arm64.outputs.name }}
           path: ${{ steps.apk_arm64.outputs.path }}
@@ -402,7 +402,7 @@ jobs:
           echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine arm64 debug package
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.apk_arm64_dbg.outputs.name }}
           path: ${{ steps.apk_arm64_dbg.outputs.path }}
@@ -415,7 +415,7 @@ jobs:
           echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine armhf package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.apk_armhf.outputs.name }}
           path: ${{ steps.apk_armhf.outputs.path }}
@@ -428,7 +428,7 @@ jobs:
           echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine amrhf debug package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.apk_armhf_dbg.outputs.name }}
           path: ${{ steps.apk_armhf_dbg.outputs.path }}
@@ -441,7 +441,7 @@ jobs:
           echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload debian armhf package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.deb_armhf.outputs.name }}
           path: ${{ steps.deb_armhf.outputs.path }}
@@ -453,7 +453,7 @@ jobs:
           echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload debian armhf debug package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.deb_armhf_dbg.outputs.name }}
           path: ${{ steps.deb_armhf_dbg.outputs.path }}
@@ -499,7 +499,7 @@ jobs:
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
         id: build
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.build.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/win32/dist
