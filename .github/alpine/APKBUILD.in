@@ -20,6 +20,7 @@ package() {
         dune build @install
         dune install --relocatable --prefix "${pkgdir}/usr"
 
+        rm -rf "$pkgdir/usr/lib"
         rm -rf "$pkgdir/usr/share/doc"
         rm -rf "$pkgdir/usr/share/man"
 
