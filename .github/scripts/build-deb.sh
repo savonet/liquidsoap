@@ -58,6 +58,8 @@ echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
 ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
+mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+
 echo "::endgroup::"
 
 echo "::group:: build ${LIQ_PACKAGE}-minimal.."
@@ -97,7 +99,7 @@ echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
 echo "::endgroup::"
 
-cp /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
 
 {
   echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
