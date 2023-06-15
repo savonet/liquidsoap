@@ -13,7 +13,7 @@ rm -rf ~/.docker/config.json
 mkdir -p ~/.docker
 echo "{ \"experimental\": \"enabled\" }" > ~/.docker/config.json
 
-COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
+COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)$(echo "${GITHUB_SHA}" | cut -d'-' -f 2 -s | while read -r i; do echo "-$i"; done)
 
 docker login -u "$USER" -p "$PASSWORD"
 
