@@ -366,6 +366,7 @@ jobs:
         run: |
           mkdir -p /tmp/${{ github.run_number }}/win32/dist
           chown -R opam /tmp/${{ github.run_number }}/win32/dist
+          chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/${{ github.run_number }}/win32/liquidsoap
           gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
         id: build
