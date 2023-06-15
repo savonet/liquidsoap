@@ -98,6 +98,7 @@ echo "::group:: save build config for ${LIQ_PACKAGE}.."
 echo "::endgroup::"
 
 cp /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+
 {
   echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
   echo "basename-minimal=${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"

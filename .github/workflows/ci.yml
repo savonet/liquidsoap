@@ -301,6 +301,7 @@ jobs:
         run: |
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
+          chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/build-deb.sh ${{ github.sha }} ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
       - name: Upload debian packages artifacts
@@ -327,6 +328,7 @@ jobs:
           adduser opam abuild
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
+          chown -R opam "${GITHUB_OUTPUT}"
           sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
       - name: Upload alpine packages artifacts
         if: needs.build_details.outputs.is_fork != 'true' && matrix.os == 'alpine'
