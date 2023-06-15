@@ -360,8 +360,8 @@ jobs:
       - name: Get alpine amd64 package name
         id: apk_amd64
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64 | xargs basename)"
+          echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64)" >> "${GITHUB_OUTPUT}"
+          echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep x86_64 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine amd64 package
         uses: actions/upload-artifact@v2
         if: needs.build_details.outputs.is_fork != 'true'
@@ -372,8 +372,8 @@ jobs:
       - name: Get alpine amd64 debug package name
         id: apk_amd64_dbg
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64 | xargs basename)"
+          echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64)" >> "${GITHUB_OUTPUT}"
+          echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep x86_64 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine amd64 debug package
         uses: actions/upload-artifact@v2
         if: needs.build_details.outputs.is_fork != 'true'
@@ -385,8 +385,8 @@ jobs:
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
         id: apk_arm64
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64 | xargs basename)"
+          echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64)" >> "${GITHUB_OUTPUT}"
+          echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep aarch64 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine arm64 package
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
         uses: actions/upload-artifact@v2
@@ -398,8 +398,8 @@ jobs:
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
         id: apk_arm64_dbg
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64 | xargs basename)"
+          echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64)" >> "${GITHUB_OUTPUT}"
+          echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep aarch64 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine arm64 debug package
         if: contains(needs.build_details.outputs.build_platform, 'arm64')
         uses: actions/upload-artifact@v2
@@ -411,8 +411,8 @@ jobs:
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         id: apk_armhf
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7 | xargs basename)"
+          echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7)" >> "${GITHUB_OUTPUT}"
+          echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep -v dbg | grep armv7 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine armhf package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         uses: actions/upload-artifact@v2
@@ -424,8 +424,8 @@ jobs:
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         id: apk_armhf_dbg
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7 | xargs basename)"
+          echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7)" >> "${GITHUB_OUTPUT}"
+          echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'apk$' | grep dbg | grep armv7 | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload alpine amrhf debug package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         uses: actions/upload-artifact@v2
@@ -437,8 +437,8 @@ jobs:
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         id: deb_armhf
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf | xargs basename)"
+          echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf)" >> "${GITHUB_OUTPUT}"
+          echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep -v dbgsym | grep armhf | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload debian armhf package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         uses: actions/upload-artifact@v2
@@ -449,8 +449,8 @@ jobs:
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         id: deb_armhf_dbg
         run: |
-          echo "##[set-output name=path;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf)"
-          echo "##[set-output name=name;]$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf | xargs basename)"
+          echo "path=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf)" >> "${GITHUB_OUTPUT}"
+          echo "name=$(find ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts -type f | grep 'deb$' | grep dbgsym | grep armhf | xargs basename)" >> "${GITHUB_OUTPUT}"
       - name: Upload debian armhf debug package
         if: contains(needs.build_details.outputs.build_platform, 'armhf')
         uses: actions/upload-artifact@v2
@@ -600,10 +600,12 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian bookworm package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)"
+        run: |
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
       - name: Get debian bookworm debug package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
+        run: |
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -629,10 +631,12 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get alpine package
-        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})"
+        run: |
+          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
       - name: Get alpine debug package
-        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})"
+        run: |
+          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_dbg_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -658,10 +662,12 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get debian bookworm package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)"
+        run: |
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
       - name: Get debian bookworm debug package
-        run: echo "##[set-output name=deb-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)"
+        run: |
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -687,10 +693,12 @@ jobs:
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
       - name: Get alpine package
-        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})"
+        run: |
+          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_package
       - name: Get alpine debug package
-        run: echo "##[set-output name=apk-file;]$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})"
+        run: |
+          echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
         id: alpine_dbg_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

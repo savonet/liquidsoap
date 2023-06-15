@@ -96,5 +96,7 @@ cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCK
 
 echo "::endgroup::"
 
-echo "##[set-output name=basename;]${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
-echo "##[set-output name=basename-minimal;]${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.apk"
+{
+  echo "basename=${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
+  echo "basename-minimal=${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.apk"
+} >> "${GITHUB_OUTPUT}"
