@@ -24,7 +24,7 @@ from source using `dune`, `opam` remains an important tool.
 Generally speaking, compiling from source may require the latest version of the liquidsoap code as well as its
 dependencies. Some of its dependencies are optional and can be ignored at first and some are not.
 
-Be aware that, although `opam` is generally aware of required minimal version for dependencies, `dune` is not.
+Keep in mind that, although `opam` is generally aware of required minimal version for dependencies, `dune` is not.
 If a dependency is outdated, `dune` compilation will simply fail, at which point your may have to figure out if
 you need to update a dependency.
 
@@ -34,7 +34,7 @@ the latest version.
 
 ## `opam` pinning
 
-`opam` pinning is a mechanism to update `opam` with the latest version of a package, even before it published to
+`opam` pinning is a mechanism to update `opam` with the latest version of a package, even before it is published to
 the official opam repository. This is the easiest way to update a dependency to its latest version.
 
 You can pin directly from a local git repository checkout:
@@ -42,7 +42,7 @@ You can pin directly from a local git repository checkout:
 ```shell
 git clone https://github.com/savonet/ocaml-metadata.git
 cd ocaml-metadata
-opam pin -ny
+opam pin -ny .
 ```
 
 You can also pin directly using a git url:
@@ -55,9 +55,9 @@ See `opam pin --help` for more defails about the available options.
 
 ## Dependencies
 
-The best way to figure out what dependencies are required or optional and their version is to use the latest `opam`
+The best way to figure out what dependencies are required or optional and their versions is to use the latest `opam`
 package. Since `liquidsoap` development is using `dune` and `opam`, the dependencies are kept in sync via the
-local liquidsoap opam package(s) and this serves as the de-facto list of dependencies and their version.
+local liquidsoap opam package(s) and this serves as the de-facto list of dependencies and their versions.
 
 First, you should pin the latest liquidsoap code:
 
@@ -65,7 +65,7 @@ First, you should pin the latest liquidsoap code:
 opam pin -ny git+https://github.com/savonet/liquidsoap
 ```
 
-Then, as `opam` to list all the dependencies for `liquidsoap`:
+Then, ask `opam` to list all the dependencies for `liquidsoap`:
 
 ```shell
 opam info liquidsoap
@@ -74,8 +74,8 @@ opam info liquidsoa-lang
 ```
 
 This should give you a (long!) list of all dependencies. Then, you can query `opam` to see
-what each dependency does. This particularly useful for optional dependencies on `liquidsoap-core`
-which provides opt-in features, for instance `opam info soundtouch` will let you know that this
+what each dependency does. This is particularly useful for optional dependencies on `liquidsoap-core`
+which provide opt-in features. For instance `opam info soundtouch` will let you know that this
 package provides functions for changing pitch and timestretching audio data.
 
 Lastly, there are two types of dependencies:
@@ -86,9 +86,9 @@ Lastly, there are two types of dependencies:
 For dependencies not maintained by us, most of the time, we rely on the latest published version. Very rarely should you
 have to fetch/pin the latest version of these dependencies.
 
-For dependencies maintained by us, we may break their API during our development cycle. For these dependencies,
-you maybe have to fetch/pin the latest version when compilign the latest code. You may also have to check out a specific
-branch when compiling `liquidsoap` from a specific development branch when the changes in liquidsoap code are paired with
+For dependencies maintained by us, we may break their API during our development cycle and you maybe have to fetch/pin
+the latest version when compilign the latest `liquidsoap` code. You may also have to check out a specific
+branch when compiling `liquidsoap` from a specific development branch when the changes in the liquidsoap code are paired with
 changes in one of our dependencies. Typically, this happens a lof with the `ffmpeg` binding.
 
 ## Compiling
