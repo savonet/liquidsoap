@@ -55,7 +55,15 @@ echo "::group::Install liquidsoap-windows"
 opam install -y liquidsoap-core-windows
 echo "::endgroup::"
 
-wine "${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap" --build-config
+echo "::group::Save build config"
+
+wine "${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap" --build-config >> "/tmp/${GITHUB_RUN_NUMBER}/win32/dist/liquidsoap-$BUILD.config"
+
+echo "Build config:"
+
+cat "/tmp/${GITHUB_RUN_NUMBER}/win32/dist/liquidsoap-$BUILD.config"
+
+echo "::endgroup::"
 
 echo "::group::Bundling executable"
 
