@@ -16,6 +16,7 @@
 (package
   (name liquidsoap)
   (depends
+    (liquidsoap-core (= :version))
     (liquidsoap-libs (and (>= 2.2.0~1) (< 2.2.0)))
     (liquidsoap-libs-extra (and (>= 2.2.0~1) (< 2.2.0))))
   (synopsis "Swiss-army knife for multimedia streaming")

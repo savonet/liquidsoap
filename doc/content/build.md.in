@@ -13,8 +13,7 @@ package dependencies.
 The `opam` method is described in details in the [documentation](doc/content/install.md).
 We recommend that any interested user head over to this link to install the software via `opam`.
 
-The following of this document describes how to install the software via its `configure` script and is
-intended either for system administrators or package maintainers.
+The following of this document describes how to compile liquidsoap locally for developers.
 
 ## Dependencies
 

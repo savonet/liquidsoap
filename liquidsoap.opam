@@ -17,6 +17,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.6"}
+  "liquidsoap-core" {= version}
   "liquidsoap-libs" {>= "2.2.0~1" & < "2.2.0"}
   "liquidsoap-libs-extra" {>= "2.2.0~1" & < "2.2.0"}
   "odoc" {with-doc}
