@@ -3,11 +3,6 @@
   (flags
    (:standard -w -7-9 -warn-error -33))))
 
-(rule
- (alias gendune)
- (action
-  (diff dune.inc dune.inc.gen)))
-
 (library
  (name liquidsoap_js)
  (public_name liquidsoap-js)
