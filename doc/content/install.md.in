@@ -11,7 +11,18 @@ Binary builds are provided with our releases, either in the form or debian/ubunt
 packages or as docker images (also for debian or alpine). Your favorite distribution may also have
 binary packages.
 
-Binary packages are useful in that they provide a readily available liquidsoap installation. If you
+The binary package and docker images we provide are compiled in two flavors:
+* The main `liquidsoap` packages are compile with all available features and functions. This is a good starting point for general-purpose development
+* Binary packages and docker images labelled `-minimal` are compiled without the `extra` libraries and with a limited set of essential optional features
+
+Minimal builds are useful if you are concerned about size or memory usage. They also reduce the chances of running into issues that could be introduced
+by optional dependencies that you do not use. If your script works with them, they are recommended over the fully featured builds for production.
+
+Each binary build that we provide have a corresponding `*.config` file. This is a text file that lists all the features included in a specific
+binary build. You can consult it to know that features are available. You can also get the same information by calling `liquidsoap --build-config`, for instance
+when using a docker image.
+
+Binary packages and docker images are useful in that they provide a readily available liquidsoap installation. If you
 need more finer-grained build or if your distribution/OS does not have a binary build, you can
 install via OPAM, which is a very convenient package manager that can compile liquidsoap from sources
 and knows how to handle external dependencies for most OS/distributions.
@@ -19,50 +30,45 @@ and knows how to handle external dependencies for most OS/distributions.
 Lastly, compiling from source should be reserved to developers.
 
 * [Debian/Ubuntu](#debianubuntu)
+* [Alpine](#alpine)
 * [Docker](#docker)
 * [Windows](#windows)
 * [Using OPAM](#install-using-opam)
 * [From source](#installing-from-source)
-* [Latest development version](#latest-development-version)
 
 Debian/Ubuntu
 -------------
 
-We generate debian and ubuntu packages automatically as part of our CI workflow.
-Starting with release [1.4.3](https://github.com/savonet/liquidsoap/releases),
-we provide them along with the release. Otherwise, you can visit our
-[github actions](https://github.com/savonet/liquidsoap/actions) to fetch individual
-ones.
+We generate debian and ubuntu packages automatically as part of our [release process](https://github.com/savonet/liquidsoap/releases). Otherwise, you
+can check out the official [debian](https://packages.debian.org/liquidsoap) and [ubuntu](https://packages.ubuntu.com/liquidsoap) packages.
+
+Alpine
+------
+
+Alpine packages are also provided as part of our [release process](https://github.com/savonet/liquidsoap/releases).
 
 Docker
 ------
 
 We provide production-ready docker images via [Docker hub](https://hub.docker.com/r/savonet/liquidsoap).
-These images contain a minimal `debian/testing` image with the liquidsoap debian package installed.
-Installed packages are those generated during our CI process, not the official debian package! Images are tagged
-by the branch that was used to generate them.
+Docker images are tagged with a release tag (e.g. `v2.1.4`) and with the sha of their git commit (e.g. `a24bf49`). Please note
+that images tagged with a release tag may change while images tagged with a commit sha will not.
 
 Windows
 -------
 
-You can download a liquidsoap for windows from our [release
-page](https://github.com/savonet/liquidsoap/releases), starting with version
-`1.3.4`.
-
-Liquidsoap for windows is built using [opam-cross](https://github.com/ocaml-cross/opam-cross-windows). The build process is documented in  our [docker files](https://github.com/savonet/liquidsoap-full/tree/master/docker). `Dockerfile.win32-deps` installs all  the [mxe](https://mxe.cc/) dependencies and `Dockerfile.win32` produces the actual liquidsoap binary.
-
-You might want to refer to each project, [mxe](https://mxe.cc/) and [opam-cross](https://github.com/ocaml-cross/opam-cross-windows) for more details about cross-compiling for windows.
+You can download a liquidsoap for windows from our [release page](https://github.com/savonet/liquidsoap/releases).
 
 Install using OPAM
 ------------------
 
-The recommended method to install liquidsoap is by using the [OCaml Package
+The recommended method to install liquidsoap frim source is by using the [OCaml Package
 Manager](http://opam.ocaml.org/). OPAM is available in all major distributions
 and on windows. We actively support the liquidsoap packages there and its
 dependencies. You can read [here](https://opam.ocaml.org/doc/Usage.html) about
 how to use OPAM. In order to use it:
 
-- [you should have at least OPAM version 2.0](https://opam.ocaml.org/doc/Install.html),
+- [you should have at least OPAM version 2.1](https://opam.ocaml.org/doc/Install.html),
 - you should have at least OCaml version @min_ocaml_version@, which can be achieved by typing
   ```
   opam switch create @min_ocaml_version@
@@ -91,23 +97,6 @@ opam install opus
 
 `opam info liquidsoap` should give you the list of all optional dependencies
 that you may enable in liquidsoap.
-
-If you need to run liquidsoap as daemon, we provide a package named
-`liquidsoap-daemon`.  See
-[savonet/liquidsoap-daemon](https://github.com/savonet/liquidsoap-daemon) for
-more information.
-
-You can also install liquidsoap or any of its dependencies from source using
-OPAM. For instance:
-
-```
-git clone https://github.com/savonet/liquidsoap.git
-cd liquidsoap
-opam pin add liquidsoap .
-```
-
-Most dependencies should be compatible with OPAM pinning. Let us know if you
-find one that isn't.
 
 Installing from source
 ----------------------
