@@ -1,4 +1,4 @@
-# Liquidsoap @LIQUIDSOAP_VERSION@
+# Building Liquidsoap
 
 ## Forewords
 
