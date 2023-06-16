@@ -7,19 +7,19 @@ most likely the latest stable release.
 
 You can install liquidsoap using binary builds, with OPAM or from source.
 
-Binary builds are provided with our releases, either in the form or debian/ubuntu and alpine
+Binary builds are provided with our releases, either in the form of debian/ubuntu and alpine
 packages or as docker images (also for debian or alpine). Your favorite distribution may also have
 binary packages.
 
 The binary package and docker images we provide are compiled in two flavors:
-* The main `liquidsoap` packages are compile with all available features and functions. This is a good starting point for general-purpose development
-* Binary packages and docker images labelled `-minimal` are compiled without the `extra` libraries and with a limited set of essential optional features
+* The main `liquidsoap` packages are compiled with all available features and functions. This is a good starting point for general-purpose development
+* Binary packages and docker images labelled `-minimal` are compiled without the extra libraries and with a limited set of essential optional features
 
 Minimal builds are useful if you are concerned about size or memory usage. They also reduce the chances of running into issues that could be introduced
 by optional dependencies that you do not use. If your script works with them, they are recommended over the fully featured builds for production.
 
 Each binary build that we provide have a corresponding `*.config` file. This is a text file that lists all the features included in a specific
-binary build. You can consult it to know that features are available. You can also get the same information by calling `liquidsoap --build-config`, for instance
+build. You can consult it to know what features are available. You can also get the same information by calling `liquidsoap --build-config`, for instance
 when using a docker image.
 
 Binary packages and docker images are useful in that they provide a readily available liquidsoap installation. If you
@@ -62,7 +62,7 @@ You can download a liquidsoap for windows from our [release page](https://github
 Install using OPAM
 ------------------
 
-The recommended method to install liquidsoap frim source is by using the [OCaml Package
+The recommended method to install liquidsoap from source is by using the [OCaml Package
 Manager](http://opam.ocaml.org/). OPAM is available in all major distributions
 and on windows. We actively support the liquidsoap packages there and its
 dependencies. You can read [here](https://opam.ocaml.org/doc/Usage.html) about
