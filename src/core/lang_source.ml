@@ -283,7 +283,7 @@ let source_methods ~base s =
   meth base (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
 
 let source s = source_methods ~base:(Source_val.to_value s) s
-let track = Track.to_value
+let track = Track.to_value ?pos:None
 let to_source = Source_val.of_value
 let to_source_list l = List.map to_source (to_list l)
 let to_track = Track.of_value

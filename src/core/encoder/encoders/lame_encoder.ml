@@ -75,7 +75,7 @@ let () =
     Lame.init_params enc;
     enc
   in
-  let mp3_encoder mp3 metadata =
+  let mp3_encoder ~pos:_ mp3 metadata =
     let enc = create_encoder mp3 in
     let channels = if mp3.Mp3_format.stereo then 2 else 1 in
     (* Lame accepts data of a fixed length.. *)
@@ -129,5 +129,5 @@ let () =
     }
   in
   Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder." (function
-    | Encoder.MP3 mp3 -> Some (fun _ meta -> mp3_encoder mp3 meta)
+    | Encoder.MP3 mp3 -> Some (fun ~pos _ meta -> mp3_encoder ~pos mp3 meta)
     | _ -> None)

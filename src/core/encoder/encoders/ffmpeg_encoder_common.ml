@@ -112,7 +112,7 @@ let convert_options opts =
     | `String layout -> `Int64 Avutil.Channel_layout.(get_id (find layout))
     | _ -> assert false)
 
-let encoder ~mk_streams ffmpeg meta =
+let encoder ~pos ~mk_streams ffmpeg meta =
   let buf = Strings.Mutable.empty () in
   let make () =
     let options = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
@@ -127,9 +127,9 @@ let encoder ~mk_streams ffmpeg meta =
         | `Stream ->
             if format = None then (
               match ffmpeg.Ffmpeg_format.format with
-                | None -> failwith "Format is required!"
+                | None -> Lang_encoder.raise_error ~pos "Format is required!"
                 | Some fmt ->
-                    failwith
+                    Lang_encoder.raise_error ~pos
                       (Printf.sprintf
                          "No ffmpeg format could be guessed for format=%S" fmt));
             Av.open_output_stream ~opts:options write (Option.get format)
@@ -137,7 +137,7 @@ let encoder ~mk_streams ffmpeg meta =
     in
     let streams = mk_streams output in
     if Hashtbl.length options > 0 then
-      failwith
+      Lang_encoder.raise_error ~pos
         (Printf.sprintf "Unrecognized options: %s"
            (Ffmpeg_format.string_of_options options));
     { output; streams; started = false }

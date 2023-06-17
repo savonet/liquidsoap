@@ -26,7 +26,7 @@ open Mm
 
 open External_encoder_format
 
-let encoder id ext =
+let encoder ~pos:_ id ext =
   let log = Log.make [id] in
   let is_metadata_restart = ref false in
   let is_stop = ref false in
@@ -185,5 +185,5 @@ let encoder id ext =
 let () =
   Plug.register Encoder.plug "external" ~doc:"Encode using external programs."
     (function
-    | Encoder.External m -> Some (fun s _ -> encoder s m)
+    | Encoder.External m -> Some (fun ~pos s _ -> encoder ~pos s m)
     | _ -> None)

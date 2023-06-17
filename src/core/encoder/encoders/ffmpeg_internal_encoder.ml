@@ -72,10 +72,10 @@ let log = Log.make ["ffmpeg"; "encoder"; "internal"]
    delayed until the first packet is passed. This is not needed here. *)
 let mk_stream _ = ()
 
-let get_channel_layout channels =
+let get_channel_layout ~pos channels =
   try Avutil.Channel_layout.get_default channels
   with Not_found ->
-    failwith
+    Lang_encoder.raise_error ~pos
       (Printf.sprintf
          "%%ffmpeg encoder: could not find a default channel configuration for \
           %d channels.."
@@ -130,7 +130,7 @@ let write_audio_frame ~time_base ~sample_rate ~channel_layout ~sample_format
           add_filter_frame_pts frame;
           Avfilter.Utils.convert_audio converter write_frame (`Frame frame)
 
-let mk_audio ~mode ~codec ~params ~options ~field output =
+let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
   let internal_resampler =
     match params.Ffmpeg_format.pcm_kind with
       | pcm_kind when Content_audio.is_kind pcm_kind ->
@@ -156,7 +156,7 @@ let mk_audio ~mode ~codec ~params ~options ~field output =
     { Avutil.num = 1; den = target_samplerate }
   in
   let target_channels = params.Ffmpeg_format.channels in
-  let target_channel_layout = get_channel_layout target_channels in
+  let target_channel_layout = get_channel_layout ~pos target_channels in
   let target_sample_format =
     match params.Ffmpeg_format.sample_format with
       | Some format -> Avutil.Sample_format.find format
@@ -170,7 +170,7 @@ let mk_audio ~mode ~codec ~params ~options ~field output =
     let src_samplerate = Lazy.force Frame.audio_rate in
     (* The typing system ensures that this is the number of channels in the frame. *)
     let src_channels = params.Ffmpeg_format.channels in
-    let src_channel_layout = get_channel_layout src_channels in
+    let src_channel_layout = get_channel_layout ~pos src_channels in
 
     let resampler =
       InternalResampler.create ~out_sample_format:target_sample_format
@@ -265,7 +265,7 @@ let mk_audio ~mode ~codec ~params ~options ~field output =
     options;
 
   if Hashtbl.length options > 0 then
-    failwith
+    Lang_encoder.raise_error ~pos
       (Printf.sprintf "Unrecognized options: %s"
          (Ffmpeg_format.string_of_options options));
 
@@ -304,7 +304,7 @@ let mk_audio ~mode ~codec ~params ~options ~field output =
     video_size;
   }
 
-let mk_video ~mode ~codec ~params ~options ~field output =
+let mk_video ~pos ~mode ~codec ~params ~options ~field output =
   let codec =
     try Avcodec.Video.find_encoder_by_name codec
     with e ->
@@ -326,7 +326,9 @@ let mk_video ~mode ~codec ~params ~options ~field output =
       | "fast_bilinear" -> Swscale.Fast_bilinear
       | "bilinear" -> Swscale.Bilinear
       | "bicubic" -> Swscale.Bicubic
-      | _ -> failwith "Invalid value set for ffmpeg scaling algorithm!"
+      | _ ->
+          Lang_encoder.raise_error ~pos
+            "Invalid value set for ffmpeg scaling algorithm!"
   in
 
   let opts = Hashtbl.copy options in
@@ -352,7 +354,7 @@ let mk_video ~mode ~codec ~params ~options ~field output =
     options;
 
   if Hashtbl.length options > 0 then
-    failwith
+    Lang_encoder.raise_error ~pos
       (Printf.sprintf "Unrecognized options: %s"
          (Ffmpeg_format.string_of_options options));
 

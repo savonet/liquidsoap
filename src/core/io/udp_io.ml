@@ -221,7 +221,7 @@ let _ =
       let hostname = Lang.to_string (List.assoc "host" p) in
       let fmt =
         let fmt = Lang.assoc "" 1 p in
-        try Encoder.get_factory (Lang.to_format fmt)
+        try (Encoder.get_factory (Lang.to_format fmt)) ~pos:fmt.Value.pos
         with Not_found ->
           raise
             (Error.Invalid_value

@@ -22,6 +22,6 @@
 
 type content = Frame.field * Source.source
 
-val to_value : content -> Value.t
+val to_value : ?pos:Pos.t -> content -> Value.t
 val of_value : Value.t -> content
 val is_value : Value.t -> bool

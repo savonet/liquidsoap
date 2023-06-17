@@ -284,7 +284,8 @@ type encoder = {
   stop : unit -> Strings.t;
 }
 
-type factory = string -> Meta_format.export_metadata -> encoder
+type factory =
+  pos:Pos.t option -> string -> Meta_format.export_metadata -> encoder
 
 (** A plugin might or might not accept a given format.
     If it accepts it, it gives a function creating suitable encoders. *)
@@ -302,8 +303,10 @@ let get_factory fmt =
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
   with Found factory ->
-    fun name m ->
-      let { insert_metadata; hls; encode; stop; header } = factory name m in
+    fun ~pos name m ->
+      let { insert_metadata; hls; encode; stop; header } =
+        factory ~pos name m
+      in
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in
       let insert_metadata = Tutils.mutexify m insert_metadata in

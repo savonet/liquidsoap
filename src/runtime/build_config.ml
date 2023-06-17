@@ -49,6 +49,8 @@ let build_config =
    - Ffmpeg            : %{Ffmpeg_option.detected}
    - MP3               : %{Lame_option.detected}
    - MP3 (fixed-point) : %{Shine_option.detected}
+   - Flac (native)     : %{Flac_option.detected}
+   - Flac (ogg)        : %{Ogg_flac_option.detected}
    - Opus              : %{Opus_option.detected}
    - Speex             : %{Speex_option.detected}
    - Theora            : %{Theora_option.detected}

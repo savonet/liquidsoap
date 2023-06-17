@@ -28,7 +28,7 @@ let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"" (function
     | Encoder.Ffmpeg m ->
         Some
-          (fun _ ->
+          (fun ~pos _ ->
             let copy_count =
               List.fold_left
                 (fun cur (_, c) -> match c with `Copy _ -> cur + 1 | _ -> cur)
@@ -41,10 +41,10 @@ let () =
                   Frame.Fields.add field
                     (match stream with
                       | `Copy keyframe_opt ->
-                          Ffmpeg_copy_encoder.mk_stream_copy ~get_stream
+                          Ffmpeg_copy_encoder.mk_stream_copy ~pos ~get_stream
                             ~remove_stream ~keyframe_opt ~field output
                       | `Encode Ffmpeg_format.{ codec = None } ->
-                          Lang_encoder.raise_error ~pos:None
+                          Lang_encoder.raise_error ~pos
                             (Printf.sprintf
                                "Codec unspecified for %%ffmpeg stream %%%s!"
                                (Frame.Fields.string_of_field field))
@@ -56,7 +56,7 @@ let () =
                               options = `Audio params;
                               opts = options;
                             } ->
-                          Ffmpeg_internal_encoder.mk_audio ~mode ~params
+                          Ffmpeg_internal_encoder.mk_audio ~pos ~mode ~params
                             ~options ~codec ~field output
                       | `Encode
                           Ffmpeg_format.
@@ -66,10 +66,10 @@ let () =
                               options = `Video params;
                               opts = options;
                             } ->
-                          Ffmpeg_internal_encoder.mk_video ~mode ~params
+                          Ffmpeg_internal_encoder.mk_video ~pos ~mode ~params
                             ~options ~codec ~field output)
                     streams)
                 Frame.Fields.empty m.streams
             in
-            encoder ~mk_streams m)
+            encoder ~pos ~mk_streams m)
     | _ -> None)

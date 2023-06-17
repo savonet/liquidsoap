@@ -200,6 +200,7 @@
   playlist_parser
   plug
   pool
+  pos
   ppm_decoder
   prepend
   process_handler

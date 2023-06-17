@@ -110,7 +110,8 @@ type encoder = {
   stop : unit -> Strings.t;
 }
 
-type factory = string -> Meta_format.export_metadata -> encoder
+type factory =
+  pos:Pos.t option -> string -> Meta_format.export_metadata -> encoder
 
 (** A plugin might or might not accept a given format.
   * If it accepts it, it gives a function creating suitable encoders. *)

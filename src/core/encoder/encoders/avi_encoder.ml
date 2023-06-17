@@ -91,7 +91,7 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
   in
   Strings.add video audio
 
-let encoder avi =
+let encoder ~pos:_ avi =
   let channels = avi.channels in
   let samplerate = Lazy.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
@@ -131,5 +131,5 @@ let encoder avi =
 
 let () =
   Plug.register Encoder.plug "avi" ~doc:"Native avi encoder." (function
-    | Encoder.AVI avi -> Some (fun _ _ -> encoder avi)
+    | Encoder.AVI avi -> Some (fun ~pos _ _ -> encoder ~pos avi)
     | _ -> None)

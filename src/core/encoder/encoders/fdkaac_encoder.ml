@@ -24,7 +24,7 @@ open Mm
 
 (** FDK-AAC encoder *)
 
-let create_encoder params =
+let create_encoder ~pos params =
   let encoder = Fdkaac.Encoder.create params.Fdkaac_format.channels in
   let bandwidth =
     match params.Fdkaac_format.bandwidth with `Auto -> 0 | `Fixed b -> b
@@ -59,16 +59,18 @@ let create_encoder params =
   let set p =
     try Fdkaac.Encoder.set encoder p with
       | Fdkaac.Encoder.Invalid_config ->
-          failwith ("Invalid configuration: " ^ string_of_param p)
+          Lang_encoder.raise_error ~pos
+            ("Invalid configuration: " ^ string_of_param p)
       | Fdkaac.Encoder.Unsupported_parameter ->
-          failwith ("Unsupported parameter: " ^ string_of_param p)
+          Lang_encoder.raise_error ~pos
+            ("Unsupported parameter: " ^ string_of_param p)
       | e -> raise e
   in
   List.iter set params;
   encoder
 
-let encoder aac =
-  let enc = create_encoder aac in
+let encoder ~pos aac =
+  let enc = create_encoder ~pos aac in
   let channels = aac.Fdkaac_format.channels in
   let samplerate = Lazy.force aac.Fdkaac_format.samplerate in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
@@ -125,5 +127,5 @@ let encoder aac =
 
 let () =
   Plug.register Encoder.plug "fdkaac" ~doc:"" (function
-    | Encoder.FdkAacEnc m -> Some (fun _ _ -> encoder m)
+    | Encoder.FdkAacEnc m -> Some (fun ~pos _ _ -> encoder ~pos m)
     | _ -> None)
