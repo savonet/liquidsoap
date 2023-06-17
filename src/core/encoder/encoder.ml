@@ -188,6 +188,15 @@ let extension = function
   | Ffmpeg { Ffmpeg_format.format = Some "mp3" } -> "mp3"
   | Ffmpeg { Ffmpeg_format.format = Some "matroska" } -> "mkv"
   | Ffmpeg { Ffmpeg_format.format = Some "mpegts" } -> "ts"
+  | Ffmpeg { Ffmpeg_format.format = Some "ac3" } -> "ac3"
+  | Ffmpeg { Ffmpeg_format.format = Some "eac3" } -> "eac3"
+  | Ffmpeg
+      {
+        Ffmpeg_format.format = Some "adts";
+        streams = [(_, `Encode { Ffmpeg_format.codec = Some "aac" })];
+      } ->
+      "aac"
+  | Ffmpeg { Ffmpeg_format.format = Some "adts" } -> "adts"
   | Ffmpeg { Ffmpeg_format.format = Some "mp4" } -> "mp4"
   | Ffmpeg { Ffmpeg_format.format = Some "wav" } -> "wav"
   | _ -> raise Not_found
@@ -203,8 +212,16 @@ let mime = function
   | FdkAacEnc _ -> "audio/aac"
   | Ffmpeg { Ffmpeg_format.format = Some "ogg" } -> "application/ogg"
   | Ffmpeg { Ffmpeg_format.format = Some "opus" } -> "application/ogg"
-  | Ffmpeg { Ffmpeg_format.format = Some "libmp3lame" } -> "audio/mpeg"
+  | Ffmpeg { Ffmpeg_format.format = Some "mp3" } -> "audio/mpeg"
   | Ffmpeg { Ffmpeg_format.format = Some "matroska" } -> "video/x-matroska"
+  | Ffmpeg { Ffmpeg_format.format = Some "ac3" } -> "audio/ac3"
+  | Ffmpeg { Ffmpeg_format.format = Some "eac3" } -> "audio/eac3"
+  | Ffmpeg
+      {
+        Ffmpeg_format.format = Some "adts";
+        streams = [(_, `Encode { Ffmpeg_format.codec = Some "aac" })];
+      } ->
+      "audio/aac"
   | Ffmpeg { Ffmpeg_format.format = Some "mp4" } -> "video/mp4"
   | Ffmpeg { Ffmpeg_format.format = Some "wav" } -> "audio/wav"
   | _ -> "application/octet-stream"
@@ -264,14 +281,32 @@ type split_result =
 exception Not_enough_data
 
 type hls = {
+  (* Returns true if id3 is enabled. *)
+  init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
   (* Returns (init_segment, first_bytes) *)
   init_encode : Frame.t -> int -> int -> Strings.t option * Strings.t;
   split_encode : Frame.t -> int -> int -> split_result;
   codec_attrs : unit -> string option;
+  insert_id3 :
+    frame_position:int ->
+    sample_position:int ->
+    (string * string) list ->
+    string option;
   bitrate : unit -> int option;
   (* width x height *)
   video_size : unit -> (int * int) option;
 }
+
+let dummy_hls encode =
+  {
+    init = (fun ?id3_enabled:_ ?id3_version:_ _ -> false);
+    init_encode = (fun f o l -> (None, encode f o l));
+    split_encode = (fun f o l -> `Ok (Strings.empty, encode f o l));
+    codec_attrs = (fun () -> None);
+    insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
+    bitrate = (fun () -> None);
+    video_size = (fun () -> None);
+  }
 
 type encoder = {
   insert_metadata : Meta_format.export_metadata -> unit;
@@ -310,8 +345,19 @@ let get_factory fmt =
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in
       let insert_metadata = Tutils.mutexify m insert_metadata in
-      let { init_encode; split_encode; codec_attrs; bitrate; video_size } =
+      let {
+        init;
+        init_encode;
+        split_encode;
+        codec_attrs;
+        insert_id3;
+        bitrate;
+        video_size;
+      } =
         hls
+      in
+      let init ?id3_enabled ?id3_version () =
+        Tutils.mutexify m (fun () -> init ?id3_enabled ?id3_version ()) ()
       in
       let init_encode frame ofs len =
         Tutils.mutexify m (fun () -> init_encode frame ofs len) ()
@@ -320,10 +366,23 @@ let get_factory fmt =
         Tutils.mutexify m (fun () -> split_encode frame ofs len) ()
       in
       let codec_attrs = Tutils.mutexify m codec_attrs in
+      let insert_id3 ~frame_position ~sample_position meta =
+        Tutils.mutexify m
+          (fun () -> insert_id3 ~frame_position ~sample_position meta)
+          ()
+      in
       let bitrate = Tutils.mutexify m bitrate in
       let video_size = Tutils.mutexify m video_size in
       let hls =
-        { init_encode; split_encode; codec_attrs; bitrate; video_size }
+        {
+          init;
+          init_encode;
+          split_encode;
+          codec_attrs;
+          insert_id3;
+          bitrate;
+          video_size;
+        }
       in
       let encode frame ofs len =
         Tutils.mutexify m (fun () -> encode frame ofs len) ()

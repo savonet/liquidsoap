@@ -24,6 +24,7 @@
 
 exception Invalid_state
 
+let default_id3_version = 3
 let log = Log.make ["hls"; "output"]
 
 let hls_proto frame_t =
@@ -56,6 +57,18 @@ let hls_proto frame_t =
            ("bandwidth", ([], Lang.int_t), "Bandwidth");
            ("codecs", ([], Lang.string_t), "Codec");
            ("extname", ([], Lang.string_t), "Filename extension");
+           ( "id3",
+             ([], Lang.bool_t),
+             "Set to `false` to disable ID3 tags. Tags are enabled by default \
+              whenever allowed." );
+           ( "id3_version",
+             ([], Lang.int_t),
+             "Version for ID3 tag. Default version: "
+             ^ string_of_int default_id3_version );
+           ( "replay_id3",
+             ([], Lang.bool_t),
+             "Replay ID3 data on each segment to make sure new listeners \
+              always start with fresh value. Enabled by default." );
            ( "video_size",
              ([], Lang.product_t Lang.int_t Lang.int_t),
              "Video size" );
@@ -198,6 +211,13 @@ let remove_segment segments =
 
 type init_state = [ `Todo | `No_init | `Has_init of string ]
 
+type metadata =
+  [ `None
+  | `Sent of Meta_format.export_metadata
+  | `Todo of Meta_format.export_metadata ]
+
+let pending_metadata = function `Todo _ -> true | _ -> false
+
 (** A stream in the HLS (which typically contains many, with different qualities). *)
 type stream = {
   name : string;
@@ -207,6 +227,9 @@ type stream = {
   bandwidth : int Lazy.t;
   codecs : string Lazy.t;  (** codecs (see RFC 6381) *)
   extname : string;
+  id3_enabled : bool;
+  replay_id3 : bool;
+  mutable metadata : metadata;
   mutable init_state : init_state;
   mutable init_position : int;
   mutable position : int;
@@ -249,16 +272,18 @@ class hls_output p =
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let prefix = Lang.to_string (List.assoc "prefix" p) in
-  let directory = Lang.to_string (Lang.assoc "" 1 p) in
+  let directory_val = Lang.assoc "" 1 p in
+  let directory = Lang.to_string directory_val in
   let perm = Lang.to_int (List.assoc "perm" p) in
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   let () =
     if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
     then (
       try Utils.mkdir ~perm:dir_perm directory
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+      with _ ->
+        raise
+          (Error.Invalid_value
+             (directory_val, "Could not create or open output directory!")))
   in
   let persist_at =
     Option.map
@@ -323,71 +348,81 @@ class hls_output p =
       let encoder =
         encoder_factory ~pos:fmt_val.Value.pos name Meta_format.empty_metadata
       in
-      let bandwidth, codecs, extname, video_size =
-        let bandwidth =
-          lazy
-            (try Lang.to_int (List.assoc "bandwidth" stream_info)
-             with Not_found -> (
-               match Encoder.(encoder.hls.bitrate ()) with
-                 | Some b -> b + (b / 10)
-                 | None -> (
-                     try Encoder.bitrate format
-                     with Not_found ->
-                       raise
-                         (Error.Invalid_value
-                            ( fmt,
-                              Printf.sprintf
-                                "Bandwidth for stream %S cannot be inferred \
-                                 from codec, please specify it with: \
-                                 `%%encoder(...).{bandwidth = <number>, ...}`"
-                                name )))))
-        in
-        let codecs =
-          lazy
-            (try Lang.to_string (List.assoc "codecs" stream_info)
-             with Not_found -> (
-               match Encoder.(encoder.hls.codec_attrs ()) with
-                 | Some attrs -> attrs
-                 | None -> (
-                     try Encoder.iso_base_file_media_file_format format
-                     with Not_found ->
-                       raise
-                         (Error.Invalid_value
-                            ( fmt,
-                              Printf.sprintf
-                                "Stream info for stream %S cannot be inferred \
-                                 from codec, please specify it with: \
-                                 `%%encoder(...).{codecs = \"...\", ...}`"
-                                name )))))
-        in
-        let extname =
-          try Lang.to_string (List.assoc "extname" stream_info)
-          with Not_found -> (
-            try Encoder.extension format
-            with Not_found ->
-              raise
-                (Error.Invalid_value
-                   ( fmt,
-                     Printf.sprintf
-                       "File extension for stream %S cannot be inferred from \
-                        codec, please specify it with: \
-                        `%%encoder(...).{extname = \"...\", ...}`"
-                       name )))
-        in
-        let extname = if extname = "mp4" then "m4s" else extname in
-        let video_size =
-          lazy
-            (try
-               let w, h =
-                 Lang.to_product (List.assoc "video_size" stream_info)
-               in
-               Some (Lang.to_int w, Lang.to_int h)
-             with Not_found -> (
-               match Encoder.(encoder.hls.video_size ()) with
-                 | Some s -> Some s
-                 | None -> Encoder.video_size format))
-        in
-        (bandwidth, codecs, extname, video_size)
+      let bandwidth =
+        lazy
+          (try Lang.to_int (List.assoc "bandwidth" stream_info)
+           with Not_found -> (
+             match Encoder.(encoder.hls.bitrate ()) with
+               | Some b -> b + (b / 10)
+               | None -> (
+                   try Encoder.bitrate format
+                   with Not_found ->
+                     raise
+                       (Error.Invalid_value
+                          ( fmt,
+                            Printf.sprintf
+                              "Bandwidth for stream %S cannot be inferred from \
+                               codec, please specify it with: \
+                               `%%encoder(...).{bandwidth = <number>, ...}`"
+                              name )))))
+      in
+      let codecs =
+        lazy
+          (try Lang.to_string (List.assoc "codecs" stream_info)
+           with Not_found -> (
+             match Encoder.(encoder.hls.codec_attrs ()) with
+               | Some attrs -> attrs
+               | None -> (
+                   try Encoder.iso_base_file_media_file_format format
+                   with Not_found ->
+                     raise
+                       (Error.Invalid_value
+                          ( fmt,
+                            Printf.sprintf
+                              "Stream info for stream %S cannot be inferred \
+                               from codec, please specify it with: \
+                               `%%encoder(...).{codecs = \"...\", ...}`"
+                              name )))))
+      in
+      let extname =
+        try Lang.to_string (List.assoc "extname" stream_info)
+        with Not_found -> (
+          try Encoder.extension format
+          with Not_found ->
+            raise
+              (Error.Invalid_value
+                 ( fmt,
+                   Printf.sprintf
+                     "File extension for stream %S cannot be inferred from \
+                      codec, please specify it with: `%%encoder(...).{extname \
+                      = \"...\", ...}`"
+                     name )))
+      in
+      let extname = if extname = "mp4" then "m4s" else extname in
+      let video_size =
+        lazy
+          (try
+             let w, h = Lang.to_product (List.assoc "video_size" stream_info) in
+             Some (Lang.to_int w, Lang.to_int h)
+           with Not_found -> (
+             match Encoder.(encoder.hls.video_size ()) with
+               | Some s -> Some s
+               | None -> Encoder.video_size format))
+      in
+      let id3_enabled =
+        match Lang.to_bool (List.assoc "id3" stream_info) with
+          | id3_enabled ->
+              let id3_version =
+                try Some (Lang.to_int (List.assoc "id3_version" stream_info))
+                with Not_found -> None
+              in
+              encoder.hls.init ~id3_enabled ?id3_version ()
+          | exception Not_found -> encoder.hls.init ()
+      in
+      let replay_id3 =
+        match Lang.to_bool (List.assoc "replay_id3" stream_info) with
+          | b -> b
+          | exception Not_found -> true
       in
       {
         name;
@@ -397,6 +432,9 @@ class hls_output p =
         codecs;
         video_size;
         extname;
+        id3_enabled;
+        replay_id3;
+        metadata = `None;
         init_state = `Todo;
         init_position = 0;
         position = 1;
@@ -437,7 +475,7 @@ class hls_output p =
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
 
     val mutable streams = streams
-    val mutable current_metadata = None
+    val mutable current_position = (0, 0)
     val mutable state : hls_state = `Idle
 
     method private toggle_state event =
@@ -526,6 +564,21 @@ class hls_output p =
       in
       s.current_segment <- Some segment;
       s.position <- s.position + 1;
+      if s.id3_enabled then (
+        let m =
+          match s.metadata with
+            | `Todo m ->
+                s.metadata <- `Sent m;
+                Utils.list_of_metadata (Meta_format.to_metadata m)
+            | `Sent m when s.replay_id3 ->
+                Utils.list_of_metadata (Meta_format.to_metadata m)
+            | `Sent _ | `None -> []
+        in
+        let frame_position, sample_position = current_position in
+        ignore
+          (Option.map
+             (output_string out_channel)
+             (s.encoder.hls.insert_id3 ~frame_position ~sample_position m)));
       if discontinuous then s.discontinuity_count <- s.discontinuity_count + 1
 
     method private cleanup_streams =
@@ -751,6 +804,11 @@ class hls_output p =
         | Some _ -> raise Encoder.Not_enough_data
 
     method encode frame ofs len =
+      let frame_pos, samples_pos = current_position in
+      let frame_size = Lazy.force Frame.size in
+      let samples_pos = samples_pos + len in
+      current_position <-
+        (frame_pos + (samples_pos / frame_size), samples_pos mod frame_size);
       List.map
         (fun s ->
           let segment = Option.get s.current_segment in
@@ -763,7 +821,10 @@ class hls_output p =
                 self#process_init ~init ~segment s;
                 (None, encoded)
               with Encoder.Not_enough_data -> (None, Strings.empty))
-            else if segment.len + len > segment_main_duration then (
+            else if
+              (s.id3_enabled && pending_metadata s.metadata)
+              || segment.len + len > segment_main_duration
+            then (
               match Encoder.(s.encoder.hls.split_encode frame ofs len) with
                 | `Ok (flushed, encoded) -> (Some flushed, encoded)
                 | `Nope encoded -> (None, encoded))
@@ -787,7 +848,9 @@ class hls_output p =
       Strings.iter (output_substring (Option.get out_channel)) data
 
     method send b = List.iter2 self#write_pipe streams b
-    method insert_metadata _ = ()
+
+    method insert_metadata m =
+      List.iter (fun s -> s.metadata <- `Todo m) streams
   end
 
 let _ =

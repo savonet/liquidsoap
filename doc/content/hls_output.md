@@ -69,6 +69,48 @@ Liquidsoap also provides `output.harbor.hls` which allows to serve HLS streams d
 liquidsoap. Their options should be the same as `output.file.hls`, except for harbor-specifc options `port` and `path`. It is
 not recommended for listener-facing setup but can be useful to sync up with a caching system such as cloudfront.
 
+## Metadata
+
+HLS outputs supports metadata in two ways:
+
+- Through a `timed_id3` metadata logical stream with `mpegts` and `mp4` formats
+- Through regular ID3 frames, as requested by the [HLS specifications](https://datatracker.ietf.org/doc/html/rfc8216#section-3.4) for `adts`, `mp3`, `ac3` and `eac3` formats.
+
+Metadata parameters are passed through the record methods of the streams' encoders. Here's an example
+
+```liquidsoap
+output.file.hls(
+  "/path/to/directory",
+  [
+   ("aac",
+      %ffmpeg(format="adts", %audio(codec="aac")).{
+        id3_version = 3
+       }),
+   ("ts-with-meta",
+      %ffmpeg(format="mpegts", %audio(codec="aac")).{
+        id3_version = 4
+     }),
+   ("ts",
+      %ffmpeg(format="mpegts", %audio(codec="aac")).{
+        id3 = false
+      }),
+   ("mp3",
+      %ffmpeg(format="mp3", %audio(codec="libmp3lame")).{
+        replay_id3 = false
+      })
+  ],
+  source
+)
+```
+
+Parameters are:
+
+- `id3`: Set to `false` to deactivate metadata on the streams. Defaults to `true`.
+- `id3_version`: Set the `id3v2` version used to export metadata
+- `replay_id3`: By default, the latest metadata is inserted at the beginning of each segment to make sure new listeners always get the latest metadata. Set to `false` to disable it.
+
+Metadata for these formats are activated by default. If you are experiencing any issues with them, you can disable them by setting `id3` to `false`.
+
 ## Mp4 format
 
 `mp4` container is supported by requires specific parameters. Here's an example that mixes `aac` and `flac` audio, The parameters

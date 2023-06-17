@@ -38,6 +38,9 @@ let to_metadata t =
   List.iter (fun (a, b) -> Hashtbl.add metas a b) t;
   metas
 
+let metadata_list m =
+  list (List.map (fun (k, v) -> product (string k) (string v)) m)
+
 let metadata m =
   list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
 

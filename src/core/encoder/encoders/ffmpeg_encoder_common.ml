@@ -24,6 +24,28 @@
 
 let log = Ffmpeg_utils.log
 
+(* See: https://datatracker.ietf.org/doc/html/rfc8216#section-3.4 *)
+let render_mpeg2_timestamp =
+  let mpeg2_timestamp_unit = 90000. in
+  let frame_len =
+    lazy
+      (Int64.of_float
+         (Frame.seconds_of_main (Lazy.force Frame.size) *. mpeg2_timestamp_unit))
+  in
+  fun ~frame_position ~sample_position () ->
+    let buf = Buffer.create 10 in
+    let frame_position =
+      Int64.mul (Lazy.force frame_len) (Int64.of_int frame_position)
+    in
+    let sample_position =
+      Int64.of_float
+        (Frame.seconds_of_main sample_position *. mpeg2_timestamp_unit)
+    in
+    let position = Int64.add frame_position sample_position in
+    let position = Int64.unsigned_rem position 0x1ffffffffL in
+    Buffer.add_int64_be buf position;
+    Buffer.contents buf
+
 type encoder = {
   mk_stream : Frame.t -> unit;
   encode : Frame.t -> int -> int -> unit;
@@ -37,6 +59,12 @@ type encoder = {
 type handler = {
   output : Avutil.output Avutil.container;
   streams : encoder Frame.Fields.t;
+  format : (Avutil.output, Avutil.media_type) Avutil.format option;
+  mutable insert_id3 :
+    frame_position:int ->
+    sample_position:int ->
+    (string * string) list ->
+    string option;
   mutable started : bool;
 }
 
@@ -131,7 +159,7 @@ let encoder ~pos ~mk_streams ffmpeg meta =
                 | Some fmt ->
                     Lang_encoder.raise_error ~pos
                       (Printf.sprintf
-                         "No ffmpeg format could be guessed for format=%S" fmt));
+                         "No ffmpeg format could be found for format=%S" fmt));
             Av.open_output_stream ~opts:options write (Option.get format)
         | `Url url -> Av.open_output ?format ~opts:options url
     in
@@ -140,7 +168,13 @@ let encoder ~pos ~mk_streams ffmpeg meta =
       Lang_encoder.raise_error ~pos
         (Printf.sprintf "Unrecognized options: %s"
            (Ffmpeg_format.string_of_options options));
-    { output; streams; started = false }
+    {
+      format;
+      output;
+      streams;
+      insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
+      started = false;
+    }
   in
   let encoder = ref (make ()) in
   let codec_attrs () =
@@ -175,6 +209,56 @@ let encoder ~pos ~mk_streams ffmpeg meta =
       | _ -> None
   in
   let sent = Frame.Fields.map (fun _ -> ref false) !encoder.streams in
+  let init ?id3_enabled ?id3_version () =
+    let encoder = !encoder in
+    match Option.map Av.Format.get_output_name encoder.format with
+      | Some "mpegts" | Some "mp4" ->
+          if id3_enabled = Some true then (
+            let id3_version = Option.value ~default:3 id3_version in
+            let time_base = Ffmpeg_utils.liq_audio_sample_time_base () in
+            let stream =
+              Av.new_data_stream ~time_base ~codec:`Timed_id3 encoder.output
+            in
+            encoder.insert_id3 <-
+              (fun ~frame_position ~sample_position m ->
+                let tag = Utils.id3v2_of_metadata ~version:id3_version m in
+                let packet = Avcodec.Packet.create tag in
+                let position =
+                  Int64.of_int
+                    (Frame.audio_of_main
+                       ((frame_position * Lazy.force Frame.size)
+                       + sample_position))
+                in
+                Avcodec.Packet.set_pts packet (Some position);
+                Avcodec.Packet.set_dts packet (Some position);
+                Av.write_packet stream time_base packet;
+                None);
+            true)
+          else false
+      | Some "adts" | Some "mp3" | Some "ac3" | Some "eac3" ->
+          if id3_enabled = Some false then
+            Lang_encoder.raise_error ~pos "Format requires ID3 metadata!";
+          let id3_version = Option.value ~default:3 id3_version in
+          encoder.insert_id3 <-
+            (fun ~frame_position ~sample_position m ->
+              let timestamp =
+                Printf.sprintf
+                  "com.apple.streaming.transportStreamTimestamp\000%s"
+                  (render_mpeg2_timestamp ~frame_position ~sample_position ())
+              in
+              let m = ("PRIV", timestamp) :: m in
+              Some (Utils.id3v2_of_metadata ~version:id3_version m));
+          true
+      | Some _ when id3_enabled = Some true ->
+          Lang_encoder.raise_error ~pos
+            "Format does not support HLS ID3 metadata!"
+      | Some _ -> false
+      | None -> Lang_encoder.raise_error ~pos "Format is required!"
+  in
+  let insert_id3 ~frame_position ~sample_position m =
+    let encoder = !encoder in
+    encoder.insert_id3 ~frame_position ~sample_position m
+  in
   let init_encode frame start len =
     let encoder = !encoder in
     match ffmpeg.Ffmpeg_format.format with
@@ -237,6 +321,14 @@ let encoder ~pos ~mk_streams ffmpeg meta =
     Strings.Mutable.flush buf
   in
   let hls =
-    { Encoder.init_encode; split_encode; codec_attrs; bitrate; video_size }
+    {
+      Encoder.init;
+      init_encode;
+      split_encode;
+      insert_id3;
+      codec_attrs;
+      bitrate;
+      video_size;
+    }
   in
   { Encoder.insert_metadata; header = Strings.empty; hls; encode; stop }
