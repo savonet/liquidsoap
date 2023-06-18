@@ -24,7 +24,7 @@ open Mm
 
 (** FLAC encoder *)
 
-let encoder flac meta =
+let encoder ~pos:_ flac meta =
   let comments = Utils.list_of_metadata (Meta_format.to_metadata meta) in
   let channels = flac.Flac_format.channels in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
@@ -82,5 +82,5 @@ let encoder flac meta =
 
 let () =
   Plug.register Encoder.plug "flac" ~doc:"Flac encoder." (function
-    | Encoder.Flac m -> Some (fun _ -> encoder m)
+    | Encoder.Flac m -> Some (fun ~pos _ -> encoder ~pos m)
     | _ -> None)

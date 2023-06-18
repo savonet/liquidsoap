@@ -311,16 +311,18 @@ class hls_output p =
   in
   let mk_streams, streams =
     let f s =
-      let name, fmt = Lang.to_product s in
-      let stream_info, fmt = Lang.split_meths fmt in
+      let name, fmt_val = Lang.to_product s in
+      let stream_info, fmt = Lang.split_meths fmt_val in
       let name = Lang.to_string name in
       let format = Lang.to_format fmt in
       let encoder_factory =
         try Encoder.get_factory format
         with Not_found ->
-          raise (Error.Invalid_value (fmt, "Unsupported format"))
+          raise (Error.Invalid_value (fmt_val, "Unsupported format"))
       in
-      let encoder = encoder_factory name Meta_format.empty_metadata in
+      let encoder =
+        encoder_factory ~pos:fmt_val.Value.pos name Meta_format.empty_metadata
+      in
       let bandwidth, codecs, extname, video_size =
         let bandwidth =
           lazy

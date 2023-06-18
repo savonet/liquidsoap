@@ -31,7 +31,9 @@ let () =
   let buffer = Decoder.mk_buffer ~ctype generator in
   let mp3_format = Lang_mp3.mp3_base_defaults () in
   let create_encoder = Encoder.get_factory (Encoder.MP3 mp3_format) in
-  let encoder = create_encoder "test stream" Meta_format.empty_metadata in
+  let encoder =
+    create_encoder ~pos:None "test stream" Meta_format.empty_metadata
+  in
   write encoder.Encoder.header;
   try
     while true do

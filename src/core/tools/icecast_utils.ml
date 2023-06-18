@@ -198,5 +198,5 @@ module Icecast_v (M : Icecast_t) = struct
                    ( Lang.assoc "" 1 p,
                      "No format (mime) found, please specify one." )))
     in
-    { factory = encoder_factory; format; info }
+    { factory = encoder_factory ~pos:v.Value.pos; format; info }
 end

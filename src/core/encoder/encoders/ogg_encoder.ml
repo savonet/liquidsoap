@@ -71,21 +71,21 @@ let encoder_name = function
   | Ogg_format.Flac _ -> "flac"
   | Ogg_format.Speex _ -> "speex"
 
-let get_encoder name =
+let get_encoder ~pos name =
   try Hashtbl.find audio_encoders name
   with Not_found ->
-    Ogg_muxer.log#important "Could not find any %s encoder." name;
-    raise Not_found
+    Lang_encoder.raise_error ~pos
+      (Printf.sprintf "Could not find any %s encoder." name)
 
-let encoder { Ogg_format.audio; video } =
-  ignore (Option.map (fun p -> get_encoder (encoder_name p)) audio);
+let encoder ~pos { Ogg_format.audio; video } =
+  ignore (Option.map (fun p -> get_encoder ~pos (encoder_name p)) audio);
   ignore (Option.map (fun _ -> assert (!theora_encoder <> None)) video);
   fun name meta ->
     let tracks = [] in
     let tracks =
       match audio with
         | Some params ->
-            let enc = get_encoder (encoder_name params) in
+            let enc = get_encoder ~pos (encoder_name params) in
             enc params :: tracks
         | None -> tracks
     in

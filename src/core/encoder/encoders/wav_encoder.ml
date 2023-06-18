@@ -26,7 +26,7 @@ open Mm
 
 open Wav_format
 
-let encoder wav =
+let encoder ~pos wav =
   let channels = wav.channels in
   let sample_rate = Lazy.force wav.samplerate in
   let sample_size = wav.samplesize in
@@ -60,7 +60,7 @@ let encoder wav =
         | 24 -> fun buf s off -> Audio.S24LE.of_audio buf s off
         | 16 -> Audio.S16LE.of_audio
         | 8 -> fun buf s off -> Audio.U8.of_audio buf s off
-        | _ -> failwith "unsupported sample size"
+        | _ -> Lang_encoder.raise_error ~pos "Unsupported sample size"
     in
     of_audio b start s 0 len;
     let s = Bytes.unsafe_to_string s in
@@ -88,5 +88,5 @@ let encoder wav =
 
 let () =
   Plug.register Encoder.plug "wav" ~doc:"Native wav encoder." (function
-    | Encoder.WAV w -> Some (fun _ _ -> encoder w)
+    | Encoder.WAV w -> Some (fun ~pos _ _ -> encoder ~pos w)
     | _ -> None)

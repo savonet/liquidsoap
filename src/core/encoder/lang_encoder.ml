@@ -133,7 +133,7 @@ let make_encoder ~pos t ((e, p) : Hooks.encoder) =
   try
     let e = (find_encoder e).make p in
     let (_ : Encoder.factory) = Encoder.get_factory e in
-    V.to_value e
+    V.to_value ?pos e
   with Not_found ->
     raise_error ~pos
       (Printf.sprintf "unsupported format: %s" (Term.to_string t))

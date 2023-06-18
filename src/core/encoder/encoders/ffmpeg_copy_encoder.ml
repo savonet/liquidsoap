@@ -27,7 +27,8 @@ open Ffmpeg_encoder_common
 
 let log = Log.make ["ffmpeg"; "copy"; "encoder"]
 
-let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
+let mk_stream_copy ~pos:_ ~get_stream ~remove_stream ~keyframe_opt ~field output
+    =
   let stream = ref None in
   let video_size_ref = ref None in
   let codec_attr = ref None in

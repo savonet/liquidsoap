@@ -187,7 +187,7 @@ let compare a b =
 module type Abstract = sig
   include Term.Abstract
 
-  val to_value : content -> t
+  val to_value : ?pos:Pos.t -> content -> t
   val of_value : t -> content
   val is_value : t -> bool
 end
@@ -197,8 +197,8 @@ module type AbstractDef = Term.AbstractDef
 module MkAbstractFromTerm (Term : Term.Abstract) = struct
   include Term
 
-  let to_value c =
-    { pos = None; value = Ground (to_ground c); methods = Methods.empty }
+  let to_value ?pos c =
+    { pos; value = Ground (to_ground c); methods = Methods.empty }
 
   let of_value t =
     match t.value with

@@ -28,7 +28,7 @@ let encoder_factory ?format format_val =
   let format =
     match format with Some f -> f | None -> Lang.to_format format_val
   in
-  try Encoder.get_factory format
+  try (Encoder.get_factory format) ~pos:format_val.Value.pos
   with Not_found ->
     raise (Error.Invalid_value (format_val, "Unsupported encoding format"))
 
@@ -53,7 +53,9 @@ class virtual base ~source ~name p =
 
     val mutable encoder = None
     val mutable current_metadata = None
-    method virtual private encoder_factory : Encoder.factory
+
+    method virtual private encoder_factory
+        : string -> Meta_format.export_metadata -> Encoder.encoder
 
     method start =
       let enc = self#encoder_factory self#id in
