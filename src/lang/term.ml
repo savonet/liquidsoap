@@ -28,8 +28,8 @@ exception Internal_error of (Pos.t list * string)
 (** A parsing error. *)
 exception Parse_error of (Pos.t * string)
 
-(** Unsupported format *)
-exception Unsupported_format of (Pos.t option * string)
+(** Unsupported encoder *)
+exception Unsupported_encoder of (Pos.t option * string)
 
 let () =
   Printexc.register_printer (function
@@ -41,9 +41,9 @@ let () =
         Some
           (Printf.sprintf "Lang_values.Parse_error at %s: %s"
              (Pos.to_string pos) e)
-    | Unsupported_format (pos, e) ->
+    | Unsupported_encoder (pos, e) ->
         Some
-          (Printf.sprintf "Lang_values.Unsupported_format at %s: %s"
+          (Printf.sprintf "Lang_values.Unsupported_encoder at %s: %s"
              (Pos.Option.to_string pos) e)
     | _ -> None)
 

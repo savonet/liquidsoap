@@ -196,7 +196,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             with Not_found ->
               let bt = Printexc.get_raw_backtrace () in
               Printexc.raise_with_backtrace
-                (Unsupported_format (pos, Term.to_string e))
+                (Unsupported_encoder (pos, Term.to_string e))
                 bt
           in
           base_type >: t

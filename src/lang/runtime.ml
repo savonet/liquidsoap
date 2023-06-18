@@ -155,15 +155,15 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       Format.fprintf formatter "Cannot unify two nested clocks (%s,@ %s).@]@." a
         b;
       raise Error
-  | Term.Unsupported_format (pos, fmt) ->
+  | Term.Unsupported_encoder (pos, fmt) ->
       error_header ~formatter 12 pos;
       (if Sys.unix then
          Format.fprintf formatter
-           "Unsupported format: %s.@ You must be missing an optional \
+           "Unsupported encoder: %s.@ You must be missing an optional \
             dependency.@]@."
        else
          Format.fprintf formatter
-           "Unsupported format: %s.@ Please note that, on windows, %%mp3, \
+           "Unsupported encoder: %s.@ Please note that, on windows, %%mp3, \
             %%vorbis and many other encoders are not available. Instead, you \
             should use the %%ffmpeg encoder.@]@.")
         fmt;
