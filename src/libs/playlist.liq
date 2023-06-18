@@ -63,7 +63,9 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
   end
 end
 
+%ifdef native
 let stdlib_native = native
+%endif
 
 # Play a list of files.
 # @category Source / Input
@@ -80,7 +82,7 @@ let stdlib_native = native
 #  or shuffle the playlist each time it is loaded, and play it in this order for a \
 #  whole round ("randomize" mode), or pick a random file in the playlist each time \
 #  ("random" mode).
-# @param ~native Use native implementation.
+# @param ~native Use native implementation, when available.
 # @param ~on_loop Function executed when the playlist is about to loop.
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
@@ -92,6 +94,7 @@ let stdlib_native = native
 def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
                   ~mode="normal", ~native=false, ~on_loop={()}, ~on_done={()}, ~max_fail=10, ~on_fail=null(), ~timeout=20., playlist)
   id = string.id.default(default="playlist.list", id)
+  ignore(native)
   mode =
     if not list.mem(mode, ["normal", "random", "randomize"]) then
       log.severe(label=id, "Invalid mode: #{mode}"); "randomize"
@@ -127,9 +130,13 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
 
   # Instantiate the source
   s =
+%ifdef native
     if native then
       stdlib_native.request.dynamic(id=id, next)
     else
+%else
+    begin
+%endif
       request.dynamic(id=id, prefetch=prefetch, timeout=timeout, retry_delay=1., available={not has_stopped()}, next)
     end
   source.set_name(s, "playlist.list.reloadable")

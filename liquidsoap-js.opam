@@ -8,7 +8,7 @@ license: "GPL-2.0-or-later"
 homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
-  "dune" {>= "3.2"}
+  "dune" {>= "3.6"}
   "ocaml" {>= "4.12.0"}
   "liquidsoap-lang"
   "js_of_ocaml-ppx"

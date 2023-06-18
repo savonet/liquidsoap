@@ -9,27 +9,21 @@
 clock.liq
 deprecations.liq
 error.liq
-externals.liq
 fades.liq
 ffmpeg.liq
 file.liq
 getter.liq
-gstreamer.liq
 hls.liq
 http.liq
 http_codes.liq
-http_extra.liq
 icecast.liq
-interactive.liq
 io.liq
-lastfm.liq
 liquidsoap.liq
 list.liq
 log.liq
 math.liq
 medialib.liq
 metadata.liq
-native.liq
 null.liq
 playlist.liq
 predicate.liq
@@ -48,9 +42,26 @@ source.liq
 stdlib.liq
 string.liq
 switches.liq
-telnet.liq
 testing.liq
 thread.liq
 utils.liq
-video.liq
-visualization.liq))
+video.liq))
+
+(install
+ (section
+  (site
+   (liquidsoap-lang libs)))
+ (package liquidsoap-libs-extra)
+ (files
+    extra/audio.liq
+extra/externals.liq
+extra/file.liq
+extra/gstreamer.liq
+extra/http.liq
+extra/interactive.liq
+extra/lastfm.liq
+extra/native.liq
+extra/server.liq
+extra/source.liq
+extra/telnet.liq
+extra/visualization.liq))

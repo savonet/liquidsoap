@@ -10,6 +10,7 @@ DOCKER_TAG="$3"
 PLATFORM="$4"
 IS_ROLLING_RELEASE="$5"
 IS_RELEASE="$6"
+MINIMAL_EXCLUDE_DEPS="$7"
 DEB_RELEASE=1
 
 ARCH=$(dpkg --print-architecture)
@@ -37,7 +38,7 @@ else
   LIQ_PACKAGE="liquidsoap-${TAG}"
 fi
 
-echo "Building ${LIQ_PACKAGE}.."
+echo "::group:: build ${LIQ_PACKAGE}.."
 
 cp -rf .github/debian .
 
@@ -51,6 +52,56 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
-cp /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+echo "::endgroup::"
 
-echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
+echo "::group:: save build config for ${LIQ_PACKAGE}.."
+
+./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+
+mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+
+echo "::endgroup::"
+
+echo "::group:: build ${LIQ_PACKAGE}-minimal.."
+
+eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
+
+cd /tmp/liquidsoap-full
+make clean
+cp PACKAGES.minimal-build PACKAGES
+rm .ocamlpath
+cd liquidsoap
+./.github/scripts/build-posix.sh 1
+OCAMLPATH="$(cat ../.ocamlpath)"
+export OCAMLPATH
+
+rm -rf debian
+
+cp -rf .github/debian .
+
+rm -rf debian/changelog
+
+cp -f debian/control.in debian/control
+
+sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}-minimal#g" -i debian/control
+
+cp -rf debian/rules-minimal debian/rules
+
+dch --create --distribution unstable --package "${LIQ_PACKAGE}-minimal" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
+
+fakeroot debian/rules binary
+
+echo "::endgroup::"
+
+echo "::group:: save build config for ${LIQ_PACKAGE}.."
+
+./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+
+echo "::endgroup::"
+
+mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+
+{
+  echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
+  echo "basename-minimal=${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
+} >> "${GITHUB_OUTPUT}"

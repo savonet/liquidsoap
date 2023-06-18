@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+
+DESTDIR := debian/tmp
+
+%:
+	dh $@
+
+override_dh_autoreconf:
+	/bin/true
+
+override_dh_auto_configure:
+	/bin/true
+
+override_dh_auto_build:
+	/bin/true
+
+override_dh_auto_test:
+	/bin/true
+
+override_dh_auto_install:
+	export LIQUIDSOAP_BUILD_TARGET=posix
+	dune build @install
+	dune install --relocatable --prefix $(DESTDIR)
+	rm -rf $(DESTDIR)/share/liquidsoap-lang/libs/extra
+	mkdir -p $(DESTDIR)/share/liquidsoap
+	cp -rf `opam config var share`/camomile $(DESTDIR)/share/liquidsoap
+	dh_install
+
+override_dh_auto_clean:
+	/bin/true

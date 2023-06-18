@@ -246,6 +246,7 @@ server.register(usage="set <name> = <value>", description="Set the value of a va
 
 # Save the value of all interactive variables in a file.
 # @category Interaction
+# @flag extra
 # @param fname Name of the file.
 def interactive.save(fname)
   data = json.stringify({
@@ -260,6 +261,7 @@ end
 
 # Load the value of interactive variables from a file.
 # @category Interaction
+# @flag extra
 # @param fname Name of the file.
 def interactive.load(fname)
   vars = file.contents(fname)
@@ -281,6 +283,7 @@ end
 # after all interactive variables have been defined (variables not declared yet
 # will not be loaded).
 # @category Interaction
+# @flag extra
 # @param fname Name of the file.
 def interactive.persistent(fname)
   if file.exists(fname) then
@@ -295,6 +298,7 @@ end
 # with default parameters, you can browse <http://localhost:8000/interactive> to
 # change the value of interactive variables using sliders.
 # @category Interaction
+# @flag extra
 # @param ~port Port of the server.
 # @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
 # @param ~uri URI of the server.
@@ -449,6 +453,7 @@ end
 
 # Read a float from an interactive input.
 # @category Interaction
+# @flag extra
 # @param ~min Minimal value.
 # @param ~max Maximal value.
 # @param ~step Typical variation of the value.
@@ -466,6 +471,7 @@ end
 
 # Read an integer from an interactive input.
 # @category Interaction
+# @flag extra
 # @param ~description Description of the variable.
 # @param ~osc OSC address.
 # @param name Name of the variable.
@@ -479,6 +485,7 @@ end
 
 # Read a boolean from an interactive input.
 # @category Interaction
+# @flag extra
 # @param ~description Description of the variable.
 # @param ~osc OSC address.
 # @param name Name of the variable.
@@ -492,6 +499,7 @@ end
 
 # Read a string from an interactive input.
 # @category Interaction
+# @flag extra
 # @param ~description Description of the variable.
 # @param ~osc OSC address.
 # @param name Name of the variable.
@@ -505,6 +513,7 @@ end
 
 # Register a callback when a unit interactive input is set.
 # @category Interaction
+# @flag extra
 # @param ~description Description of the variable.
 # @param ~osc OSC address.
 # @param name Name of the variable.
@@ -517,6 +526,7 @@ end
 
 # Create a multiband compressor whose parameters are interactive variables.
 # @category Interaction
+# @flag extra
 # @param ~id Id of the source. Variable names are prefixed with this.
 # @param ~bands Number of bands.
 # @param s Source to compress.

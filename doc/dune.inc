@@ -68,15 +68,6 @@
   (alias doc)
   (deps
     (:subst_md ./subst_md.exe)
-    (:in_md content/build.md.in))
-  (target build.md)
-  (action
-    (with-stdout-to %{target}
-      (run %{subst_md} %{in_md}))))
-(rule
-  (alias doc)
-  (deps
-    (:subst_md ./subst_md.exe)
     (:in_md content/install.md.in))
   (target install.md)
   (action
@@ -256,11 +247,11 @@
     liquidsoap.xml
     language.dtd
     template.html
-    (:md build.md))
+    (:md content/build.md))
   (target build.html)
   (action
     (ignore-outputs
-      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=build.md --template=template.html -o %{target}))))
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=build --template=template.html -o %{target}))))
 
 (rule
   (alias doc)

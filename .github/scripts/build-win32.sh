@@ -52,10 +52,18 @@ opam upgrade -y $(echo "$OPAM_DEPS" | sed -e 's#,# #g') ffmpeg-windows ffmpeg-av
 echo "::endgroup::"
 
 echo "::group::Install liquidsoap-windows"
-opam install -y liquidsoap-windows
+opam install -y liquidsoap-core-windows
 echo "::endgroup::"
 
-wine "${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap" --build-config
+echo "::group::Save build config"
+
+wine "${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap" --build-config >> "/tmp/${GITHUB_RUN_NUMBER}/win32/dist/liquidsoap-$BUILD.config"
+
+echo "Build config:"
+
+cat "/tmp/${GITHUB_RUN_NUMBER}/win32/dist/liquidsoap-$BUILD.config"
+
+echo "::endgroup::"
 
 echo "::group::Bundling executable"
 
@@ -70,6 +78,6 @@ zip -r "liquidsoap-$BUILD.zip" "liquidsoap-$BUILD"
 
 mv "liquidsoap-$BUILD.zip" "/tmp/${GITHUB_RUN_NUMBER}/win32/dist"
 
-echo "##[set-output name=basename;]liquidsoap-${BUILD}"
+echo "basename=liquidsoap-${BUILD}" >> "${GITHUB_OUTPUT}"
 
 echo "::endgroup::"

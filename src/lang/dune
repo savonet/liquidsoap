@@ -40,6 +40,8 @@
   --unused-token
   PP_IFVERSION
   --unused-token
+  PP_INCLUDE_EXTRA
+  --unused-token
   PP_INCLUDE
   --unused-token
   PP_INT_DOT_LCUR

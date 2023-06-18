@@ -152,18 +152,18 @@ let rec token lexbuf =
         read_comment pos buf lexbuf;
         PP_COMMENT (Regexp.split (Regexp.regexp "\n") (Buffer.contents buf))
     | line_break -> PP_ENDL
-    | "%ifdef", Plus ' ', var, Star ("" | '.', var) ->
+    | "%ifdef", Plus white_space, var, Star ("" | '.', var) ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.indexp_from matched 6 (fun c -> c <> ' ') in
         let r = String.rindexp matched (fun c -> c <> ' ') in
         PP_IFDEF (String.sub matched n (r - n + 1))
-    | "%ifndef", Plus ' ', var, Star ("" | '.', var) ->
+    | "%ifndef", Plus white_space, var, Star ("" | '.', var) ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.indexp_from matched 7 (fun c -> c <> ' ') in
         let r = String.rindexp matched (fun c -> c <> ' ') in
         PP_IFNDEF (String.sub matched n (r - n + 1))
     | ( "%ifversion",
-        Plus ' ',
+        Plus white_space,
         ("==" | ">=" | "<=" | "<" | ">"),
         Plus ' ',
         Plus (decimal_digit | '.') ) ->
@@ -188,6 +188,12 @@ let rec token lexbuf =
     | "%ifnencoder" -> PP_IFNENCODER
     | "%else" -> PP_ELSE
     | "%endif" -> PP_ENDIF
+    | "%include_extra", Star (white_space | '\t'), '"', Star (Compl '"'), '"' ->
+        let matched = Sedlexing.Utf8.lexeme lexbuf in
+        let n = String.index matched '"' in
+        let r = String.rindex matched '"' in
+        let file = String.sub matched (n + 1) (r - n - 1) in
+        PP_INCLUDE_EXTRA file
     | "%include", Star (white_space | '\t'), '"', Star (Compl '"'), '"' ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.index matched '"' in

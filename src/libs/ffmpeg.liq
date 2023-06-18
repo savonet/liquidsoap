@@ -395,23 +395,3 @@ def ffmpeg.filter.audio_video.output(~id=null(), graph, audio, video)
   source(id=id, {audio=audio, video=video})
 end
 %endif
-
-%ifencoder %ffmpeg
-# Output an MPEG-DASH playlist.
-# @category Source / Output
-# @flag extra
-# @param ~id Force the value of the source ID.
-# @param ~codec Codec to use for audio (following FFmpeg's conventions).
-# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
-# @param ~on_start Callback executed when outputting starts.
-# @param ~on_stop Callback executed when outputting stops.
-# @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-# @param ~playlist Playlist name
-# @param ~directory Directory to write to
-def output.file.dash(~id=null(), ~fallible=false,
-                     ~on_start={()}, ~on_stop={()}, ~codec="libmp3lame", ~bitrate=128,
-                     ~start=true, ~playlist="stream.mpd", ~directory, s)
-  enc = %ffmpeg(format="dash", %audio(codec=codec, b="#{bitrate}k"))
-  output.file(id=id, fallible=fallible, on_start=on_start, on_stop=on_stop, start=start, enc, "#{(directory:string)}/#{playlist}", s)
-end
-%endif
