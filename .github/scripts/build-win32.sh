@@ -30,7 +30,7 @@ if [ "${SYSTEM}" = "x64" ]; then
 else
   # shellcheck disable=SC2034
   HOST="i686-w64-mingw32.static"
-  BUILD="${TAG}-${VERSION}-win32"
+  BUILD="${TAG}${VERSION}-win32"
   # shellcheck disable=SC2034
   PKG_CONFIG_PATH="/usr/src/mxe/usr/i686-w64-mingw32.static/lib/pkgconfig/"
 fi

@@ -84,7 +84,7 @@ jobs:
           opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
           cd liquidsoap
-          ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
+          ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
         env:
           LIQ_BUILD_MIN: true
       - name: Build doc
@@ -140,7 +140,7 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
-          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cd /tmp/liquidsoap-full/liquidsoap/
           eval $(opam config env)
           dune build --release src/js
@@ -193,7 +193,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           sudo -u opam -E opam install -y tls ca-certs
-          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Compute stats
         run: |
@@ -289,7 +289,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           sudo -u opam -E opam install -y tls ca-certs
-          sudo -u opam -E ./.github/scripts/build-posix.sh ${{ steps.cpu_cores.outputs.count }} ${{ matrix.platform }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}" ${{ matrix.platform }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         run: |
@@ -393,7 +393,7 @@ jobs:
           chown -R opam /tmp/${{ github.run_number }}/win32/dist
           chown -R opam "${GITHUB_OUTPUT}"
           cd /tmp/${{ github.run_number }}/win32/liquidsoap
-          gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} ${{ steps.cpu_cores.outputs.count }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
+          gosu opam:root ./.github/scripts/build-win32.sh ${{ matrix.system }} ${{ needs.build_details.outputs.branch }} "${{ steps.cpu_cores.outputs.count }}" "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" ${{ github.sha }}
         id: build
       - name: Upload artifact
         uses: actions/upload-artifact@v3
