@@ -42,6 +42,7 @@ jobs:
       build_include: ${{ steps.build_details.outputs.build_include }}
       build_opam: ${{ steps.build_details.outputs.build_opam }}
       docker_release: ${{ steps.build_details.outputs.docker_release }}
+      s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
     steps:
       - name: Checkout code
@@ -322,16 +323,40 @@ jobs:
           chown -R opam "${GITHUB_OUTPUT}"
           sudo -u opam -E ./.github/scripts/build-apk.sh ${{ needs.build_details.outputs.branch }} ${{ matrix.os }} ${{ matrix.platform }} ${{ matrix.alpine-arch }} "${{ needs.build_details.outputs.is_rolling_release }}" "${{ needs.build_details.outputs.is_release }}" "${{ needs.build_details.outputs.minimal_exclude_deps }}"
       - name: Upload alpine packages artifacts
-        if: contains(matrix.os, 'alpine')
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ steps.build_apk.outputs.basename }}
-          path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
-          if-no-files-found: error
+        if: needs.build_details.outputs.is_fork != 'true' && matrix.os == 'alpine'
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/alpine
+          TARGET: ${{ needs.build_details.outputs.s3-artifact-basepath }}
       - name: Cleanup
         if: ${{ always() }}
         run: |
           rm -rf /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}
+
+  fetch_s3_artifacts:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_posix]
+    steps:
+      - name: Prepare directory
+        run: |
+          rm -rf ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
+          mkdir -p ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
+      - name: Fetch S3 artifacts
+        if: needs.build_details.outputs.is_fork != 'true'
+        uses: savonet/aws-s3-docker-action@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SOURCE: ${{ needs.build_details.outputs.s3-artifact-basepath }}
+          TARGET: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
+      - name: Upload S3 artifacts
+        uses: actions/upload-artifact@v3
+        if: needs.build_details.outputs.is_fork != 'true'
+        with:
+          name: alpine-packages
+          path: ${{ github.workspace }}/${{ github.run_number }}/s3-artifacts
 
   build_win32:
     runs-on: ubuntu-latest
@@ -454,7 +479,7 @@ jobs:
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix]
+    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
@@ -516,7 +541,7 @@ jobs:
 
   build_docker_minimal:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix]
+    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false
