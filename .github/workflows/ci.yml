@@ -510,7 +510,7 @@ jobs:
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix]
+    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true'
     strategy:
       fail-fast: false

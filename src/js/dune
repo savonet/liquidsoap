@@ -13,7 +13,7 @@
  (libraries liquidsoap_lang))
 
 (install
- (files filesystem.js)
+ (files filesystem.js index.html)
  (section share)
  (package liquidsoap-js))
 
