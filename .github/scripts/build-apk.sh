@@ -43,14 +43,16 @@ mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${D
 
 echo "::endgroup::"
 
-echo "::group:: save build config for ${APK_PACKAGE}.."
+if [ "${ARCH}" = "amd64" ]; then
+  echo "::group:: save build config for ${APK_PACKAGE}.."
 
-eval "$(opam config env)"
-OCAMLPATH=$(cat .ocamlpath)
-export OCAMLPATH
-cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.config"
+  eval "$(opam config env)"
+  OCAMLPATH=$(cat .ocamlpath)
+  export OCAMLPATH
+  cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.config"
 
-echo "::endgroup::"
+  echo "::endgroup::"
+fi
 
 rm -rf APKBUILD /home/opam/packages/tmp/"${ALPINE_ARCH}"
 

@@ -1,7 +1,5 @@
 #!/bin/sh
 
-dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
-
 set -e
 
 GITHUB_SHA="$1"
@@ -95,11 +93,13 @@ fakeroot debian/rules binary
 
 echo "::endgroup::"
 
-echo "::group:: save build config for ${LIQ_PACKAGE}.."
+if [ "${PLATFORM}" = "amd64" ]; then
+  echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+  ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
-echo "::endgroup::"
+  echo "::endgroup::"
+fi
 
 mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
 
