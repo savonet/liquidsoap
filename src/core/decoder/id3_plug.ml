@@ -28,9 +28,10 @@ module Metadata = Metadata.Make (struct
     | `UTF_16LE -> Charset.utf16le
     | `ISO_8859_1 -> Charset.latin1
 
-  let convert ?source s =
+  let convert ?source ?target s =
     Charset.convert
       ?source:(Option.map (fun source -> to_string source) source)
+      ?target:(Option.map (fun target -> to_string target) target)
       s
 end)
 
