@@ -85,12 +85,14 @@ mv /home/opam/packages/tmp/"${ALPINE_ARCH}"/*.apk "/tmp/${GITHUB_RUN_NUMBER}/${D
 
 echo "::endgroup::"
 
-echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
+if [ "${ARCH}" = "amd64" ]; then
+  echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
 
-eval "$(opam config env)"
-OCAMLPATH=$(cat .ocamlpath)
-export OCAMLPATH
-cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
+  eval "$(opam config env)"
+  OCAMLPATH=$(cat .ocamlpath)
+  export OCAMLPATH
+  cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
+fi
 
 echo "::endgroup::"
 
