@@ -23,12 +23,37 @@
 open Mm
 open Source
 
-let ayuv_of_int c =
-  let a, c = Image.ARGB8.Color.of_int c in
-  (* By default we set alpha to 0xff, so that users don't have to always specify
-     alpha channel... *)
-  let a = if a = 0 then 0xff else a in
-  (a, Image.Pixel.yuv_of_rgb c)
+let proto_color =
+  [
+    ( "color",
+      Lang.getter_t Lang.int_t,
+      Some (Lang.int 0),
+      Some "Color to fill the image with (0xRRGGBB)." );
+    ( "alpha",
+      Lang.getter_t Lang.float_t,
+      Some (Lang.float 1.),
+      Some
+        "Transparency of the color between 0 and 1 (0 is fully transparent and \
+         1 is fully opaque)." );
+  ]
+
+module Getter = struct
+  type 'a t = unit -> 'a
+
+  let map f x () = f (x ())
+end
+
+let color_arg p =
+  let color =
+    List.assoc "color" p |> Lang.to_int_getter
+    |> Getter.map Image.RGB8.Color.of_int
+    |> Getter.map Image.Pixel.yuv_of_rgb
+  in
+  let alpha =
+    List.assoc "alpha" p |> Lang.to_float_getter
+    |> Getter.map (fun x -> int_of_float (x *. 255.))
+  in
+  (color, alpha)
 
 class virtual base ~name (source : source) f =
   object
@@ -138,22 +163,15 @@ let _ =
 let _ =
   let return_t = return_t () in
   Lang.add_operator ~base:Modules.video "fill"
-    [
-      ( "color",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int 0),
-        Some "Color to fill the image with (0xRRGGBB)." );
-      ("", Lang.source_t return_t, None, None);
-    ]
+    ([("", Lang.source_t return_t, None, None)] @ proto_color)
     ~return_t ~category:`Video ~descr:"Fill frame with a color."
     (fun p ->
       let f v = List.assoc v p in
-      let color = Lang.to_int_getter (f "color") in
+      let c, a = color_arg p in
       let src = Lang.to_source (f "") in
       new effect ~name:"video.fill" src (fun buf ->
-          let a, c = color () |> ayuv_of_int in
-          Image.YUV420.fill buf c;
-          Image.YUV420.fill_alpha buf a))
+          Image.YUV420.fill buf (c ());
+          Image.YUV420.fill_alpha buf (a ())))
 
 let _ =
   let return_t = return_t () in
@@ -183,37 +201,36 @@ let _ =
 let _ =
   let return_t = return_t () in
   Lang.add_operator ~base:Modules.video "add_rectangle"
-    [
-      ( "x",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int 0),
-        Some "Horizontal offset." );
-      ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "Vertical offset.");
-      ("width", Lang.getter_t Lang.int_t, None, Some "Width.");
-      ("height", Lang.getter_t Lang.int_t, None, Some "Height.");
-      ( "color",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int 0),
-        Some "Color to fill the image with (0xAARRGGBB)." );
-      ("", Lang.source_t return_t, None, None);
-    ]
+    ([
+       ( "x",
+         Lang.getter_t Lang.int_t,
+         Some (Lang.int 0),
+         Some "Horizontal offset." );
+       ( "y",
+         Lang.getter_t Lang.int_t,
+         Some (Lang.int 0),
+         Some "Vertical offset." );
+       ("width", Lang.getter_t Lang.int_t, None, Some "Width.");
+       ("height", Lang.getter_t Lang.int_t, None, Some "Height.");
+       ("", Lang.source_t return_t, None, None);
+     ]
+    @ proto_color)
     ~return_t ~category:`Video ~descr:"Draw a rectangle."
     (fun p ->
       let x = List.assoc "x" p |> Lang.to_int_getter in
       let y = List.assoc "y" p |> Lang.to_int_getter in
       let width = List.assoc "width" p |> Lang.to_int_getter in
       let height = List.assoc "height" p |> Lang.to_int_getter in
-      let color = List.assoc "color" p |> Lang.to_int_getter in
+      let c, a = color_arg p in
       let src = List.assoc "" p |> Lang.to_source in
-      new effect_map ~name:"video.rectangle" src (fun buf ->
+      new effect_map ~name:"video.add_rectangle" src (fun buf ->
           let x = x () in
           let y = y () in
           let width = width () in
           let height = height () in
-          let a, c = color () |> ayuv_of_int in
           let r = Image.YUV420.create width height in
-          Image.YUV420.fill r c;
-          Image.YUV420.fill_alpha r a;
+          Image.YUV420.fill r (c ());
+          Image.YUV420.fill_alpha r (a ());
           let r = Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) r in
           Video.Canvas.Image.add r buf))
 
@@ -450,22 +467,19 @@ let _ =
 
 let _ =
   let return_t = return_t () in
-  Lang.add_operator ~base:Modules.video "line"
-    [
-      ( "color",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int 0xffffff),
-        Some "Color to fill the image with (0xRRGGBB)." );
-      ( "",
-        Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
-        None,
-        Some "Start point." );
-      ( "",
-        Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
-        None,
-        Some "End point." );
-      ("", Lang.source_t return_t, None, None);
-    ]
+  Lang.add_operator ~base:Modules.video "add_line"
+    ([
+       ( "",
+         Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
+         None,
+         Some "Start point." );
+       ( "",
+         Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
+         None,
+         Some "End point." );
+       ("", Lang.source_t return_t, None, None);
+     ]
+    @ proto_color)
     ~return_t ~category:`Video ~descr:"Draw a line on the video."
     (fun param ->
       let to_point_getter v =
@@ -477,10 +491,10 @@ let _ =
       let p = Lang.assoc "" 1 param |> to_point_getter in
       let q = Lang.assoc "" 2 param |> to_point_getter in
       let s = Lang.assoc "" 3 param |> Lang.to_source in
-      let color = List.assoc "color" param |> Lang.to_int_getter in
-      new effect_map ~name:"video.line" s (fun buf ->
-          let a, (r, g, b) = color () |> Image.ARGB8.Color.of_int in
-          let a = if a = 0 then 0xff else a in
+      let c, a = color_arg param in
+      new effect_map ~name:"video.add_line" s (fun buf ->
+          let r, g, b = c () in
+          let a = a () in
           (* TODO: we could keep the image if the values did not change *)
           let line = Video.Canvas.Image.Draw.line (r, g, b, a) (p ()) (q ()) in
           Video.Canvas.Image.add line buf))

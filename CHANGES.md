@@ -115,7 +115,7 @@ Changed:
 - Reworked remote request file extension resolution (#2947)
 - REMOVED `osx-secure-transport`. Doubt it was ever used, API deprecated
   upstream (#3067)
-- Renamed `rectangle` to `add_rectangle`.
+- Renamed `rectangle` to `add_rectangle`, and similarly for `line`.
 
 Fixed:
 
