@@ -728,6 +728,6 @@ end
 
 # Deprecated: use `video.add_line`.
 # @flag deprecated
-def video.line(%argsof(video.add_line), s)
-  video.add_line(%argsof(video.add_line), s)
+def video.line(%argsof(video.add_line), src, tgt, s)
+  video.add_line(%argsof(video.add_line), src, tgt, s)
 end
