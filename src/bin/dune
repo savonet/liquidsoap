@@ -5,3 +5,11 @@
  (link_flags -cclib %{env:LDFLAGS=})
  (libraries liquidsoap_runtime)
  (modules liquidsoap))
+
+(rule
+ (target liquidsoap-macos-instruments.exe)
+ (deps ./liquidsoap.exe ./instruments.plist)
+ (action
+  (progn
+    (copy ./liquidsoap.exe ./liquidsoap-macos-instruments.exe)
+    (run codesign -s - -v -f --entitlements instruments.plist liquidsoap-macos-instruments.exe))))
