@@ -223,7 +223,7 @@ let _ =
       let height = List.assoc "height" p |> Lang.to_int_getter in
       let c, a = color_arg p in
       let src = List.assoc "" p |> Lang.to_source in
-      new effect_map ~name:"video.rectangle" src (fun buf ->
+      new effect_map ~name:"video.add_rectangle" src (fun buf ->
           let x = x () in
           let y = y () in
           let width = width () in
