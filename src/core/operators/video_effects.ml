@@ -467,7 +467,7 @@ let _ =
 
 let _ =
   let return_t = return_t () in
-  Lang.add_operator ~base:Modules.video "line"
+  Lang.add_operator ~base:Modules.video "add_line"
     ([
        ( "",
          Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
@@ -492,7 +492,7 @@ let _ =
       let q = Lang.assoc "" 2 param |> to_point_getter in
       let s = Lang.assoc "" 3 param |> Lang.to_source in
       let c, a = color_arg param in
-      new effect_map ~name:"video.line" s (fun buf ->
+      new effect_map ~name:"video.add_line" s (fun buf ->
           let r, g, b = c () in
           let a = a () in
           (* TODO: we could keep the image if the values did not change *)

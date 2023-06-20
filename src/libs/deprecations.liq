@@ -725,3 +725,9 @@ end
 def video.rectangle(%argsof(video.add_rectangle), s)
   video.add_rectangle(%argsof(video.add_rectangle), s)
 end
+
+# Deprecated: use `video.add_line`.
+# @flag deprecated
+def video.line(%argsof(video.add_line), s)
+  video.add_line(%argsof(video.add_line), s)
+end
