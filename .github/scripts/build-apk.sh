@@ -68,7 +68,8 @@ rm .ocamlpath
 cd liquidsoap
 ./.github/scripts/build-posix.sh 1
 
-OCAMLPATH="$(cat ../.ocamlpath)"
+eval "$(opam config env)"
+OCAMLPATH=$(cat .ocamlpath)
 export OCAMLPATH
 
 cd /tmp/liquidsoap-full
@@ -90,9 +91,6 @@ echo "::endgroup::"
 if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
 
-  eval "$(opam config env)"
-  OCAMLPATH=$(cat .ocamlpath)
-  export OCAMLPATH
   cd liquidsoap && ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${ARCH}/alpine/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
 fi
 
