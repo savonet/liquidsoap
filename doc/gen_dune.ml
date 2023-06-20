@@ -75,15 +75,13 @@ let mk_generated_rule (file, option, header) =
     {|
 (rule
   (alias doc)
-  (deps
-    %s
-    (:liquidsoap ../src/bin/liquidsoap.exe))
+  (deps %s)
   (target %s)
   (action
     (with-stdout-to %s
       %s
       (setenv PAGER none
-        (run %%{liquidsoap} %s)))))
+        (run %%{bin:liquidsoap} %s)))))
       %s
 |}
     header_deps file file header_action option header_close

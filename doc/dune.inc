@@ -1,67 +1,57 @@
 
 (rule
   (alias doc)
-  (deps
-
-    (:liquidsoap ../src/bin/liquidsoap.exe))
+  (deps )
   (target protocols.md)
   (action
     (with-stdout-to protocols.md
 
       (setenv PAGER none
-        (run %{liquidsoap} --list-protocols-md)))))
+        (run %{bin:liquidsoap} --list-protocols-md)))))
 
 
 (rule
   (alias doc)
-  (deps
-    (:header content/reference-header.md)
-    (:liquidsoap ../src/bin/liquidsoap.exe))
+  (deps (:header content/reference-header.md))
   (target reference.md)
   (action
     (with-stdout-to reference.md
       (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
-        (run %{liquidsoap} --list-functions-md)))))
+        (run %{bin:liquidsoap} --list-functions-md)))))
       )
 
 (rule
   (alias doc)
-  (deps
-    (:header content/reference-header.md)
-    (:liquidsoap ../src/bin/liquidsoap.exe))
+  (deps (:header content/reference-header.md))
   (target reference-extras.md)
   (action
     (with-stdout-to reference-extras.md
       (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
-        (run %{liquidsoap} --list-extra-functions-md)))))
+        (run %{bin:liquidsoap} --list-extra-functions-md)))))
       )
 
 (rule
   (alias doc)
-  (deps
-    (:header content/reference-header.md)
-    (:liquidsoap ../src/bin/liquidsoap.exe))
+  (deps (:header content/reference-header.md))
   (target reference-deprecated.md)
   (action
     (with-stdout-to reference-deprecated.md
       (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
-        (run %{liquidsoap} --list-deprecated-functions-md)))))
+        (run %{bin:liquidsoap} --list-deprecated-functions-md)))))
       )
 
 (rule
   (alias doc)
-  (deps
-
-    (:liquidsoap ../src/bin/liquidsoap.exe))
+  (deps )
   (target settings.md)
   (action
     (with-stdout-to settings.md
 
       (setenv PAGER none
-        (run %{liquidsoap} --list-settings)))))
+        (run %{bin:liquidsoap} --list-settings)))))
 
 
 (rule
