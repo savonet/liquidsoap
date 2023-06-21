@@ -69,10 +69,10 @@ cp PACKAGES.minimal-build PACKAGES
 cd liquidsoap
 ./.github/scripts/build-posix.sh 1
 
+cd /tmp/liquidsoap-full
+
 OCAMLPATH=$(cat .ocamlpath)
 export OCAMLPATH
-
-cd /tmp/liquidsoap-full
 
 sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" liquidsoap/.github/alpine/APKBUILD-minimal.in |
   sed -e "s#@APK_VERSION@#${APK_VERSION}#" |
