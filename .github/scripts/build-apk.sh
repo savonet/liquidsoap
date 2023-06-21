@@ -65,10 +65,11 @@ make clean
 cp PACKAGES.minimal-build PACKAGES
 rm .ocamlpath
 
+eval "$(opam config env)"
+
 cd liquidsoap
 ./.github/scripts/build-posix.sh 1
 
-eval "$(opam config env)"
 OCAMLPATH=$(cat .ocamlpath)
 export OCAMLPATH
 
