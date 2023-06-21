@@ -60,12 +60,12 @@ echo "::group:: building ${APK_PACKAGE}-minimal.."
 
 eval "opam remove --no-depexts --force -y $MINIMAL_EXCLUDE_DEPS"
 
+eval "$(opam config env)"
+
 cd /tmp/liquidsoap-full
 make clean
 cp PACKAGES.minimal-build PACKAGES
 rm .ocamlpath
-
-eval "$(opam config env)"
 
 cd liquidsoap
 ./.github/scripts/build-posix.sh 1
