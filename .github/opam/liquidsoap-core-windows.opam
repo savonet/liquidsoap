@@ -157,7 +157,7 @@ users want. You might need to install the lame or shine package."""
     {success & !lame-enabled & !shine-enabled & !ffmpeg-enabled}
   """\
 We noticed that you did not install the taglib package that provides support
-for reading metatadata in audio files. This is a feature most users want."""
+for reading metadata in audio files. This is a feature most users want."""
     {success & !taglib-enabled}
   """\
 We noticed that you did not install the samplerate package. We strongly

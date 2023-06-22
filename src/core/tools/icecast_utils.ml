@@ -72,7 +72,7 @@ let ffmpeg_mime_of_format = function
   | "avm2" -> Some "application/x-shockwave-flash"
   | "bin" -> Some "application/octet-stream"
   | "bit" -> Some "audio/bit"
-  | "caf" -> Some "audio/x-caf"
+  | "calf" -> Some "audio/x-calf"
   | "dts" -> Some "audio/x-dca"
   | "dvd" -> Some "video/mpeg"
   | "eac3" -> Some "audio/x-eac3"

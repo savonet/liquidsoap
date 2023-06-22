@@ -34,7 +34,7 @@ repos:
         files: \.(md|yml|yaml|json)$
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.1
+    rev: v2.2.5
     hooks:
       - id: codespell
         args: [-w, --ignore-words=.codespellignore]

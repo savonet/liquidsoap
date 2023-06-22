@@ -2,7 +2,7 @@
 (*                                                                     *)
 (*                           Objective Caml                            *)
 (*                                                                     *)
-(*        François Pottier, projet Cristal, INRIA Rocquencourt         *)
+(*        FranÃ§ois Pottier, project Crystal, INRIA Rocquencourt         *)
 (*                                                                     *)
 (*  Copyright 2002 Institut National de Recherche en Informatique et   *)
 (*  en Automatique.  All rights reserved.  This file is distributed    *)
@@ -121,7 +121,7 @@ let remove_pred q f = fst (remove_pred_index q f)
 
 let remove q pos =
   (* This isn't very efficient, but q.length needs to be evaluated
-   * withing the q.lock protection. *)
+   * within the q.lock protection. *)
   remove_pred q (fun i _ -> (i - pos) mod q.length = 0)
 
 let insert q pos x =

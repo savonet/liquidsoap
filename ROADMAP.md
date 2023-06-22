@@ -60,7 +60,7 @@
 - native RTMP support (and ensure that HLS output is easy to use)
 - rewrite switch / sequence / etc. operators based on only one binary operator:
   fallback
-  - note: predicates can ben encoded in availablility
+  - note: predicates can ben encoded in availability
   - transitions might be tricky... we want to make them on the Liquidsoap side
     using cross and a tag system to know from which source we come
 - use row variables for methods, using Garrigue's _Simple Type Inference for

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-(* For some synthetized function (e.g. noise, blank, sine), we can pretend we
+(* For some synthesized function (e.g. noise, blank, sine), we can pretend we
    support seek by doing nothing. However, for other, seek should be
    disabled. Thus, if [seek] is [true], the seek function is [fun x -> x]
    otherwise it is [fun _ -> 0] *)

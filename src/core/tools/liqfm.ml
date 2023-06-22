@@ -116,7 +116,7 @@ let init host =
           match stype with Played -> "submit" | NowPlaying -> "nowplaying"
         in
         let h, p = host in
-        log#info "Submiting %s -- %s with mode: %s to %s:%i" artist track s h p;
+        log#info "Submitting %s -- %s with mode: %s to %s:%i" artist track s h p;
         try
           let duration () =
             try

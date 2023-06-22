@@ -184,7 +184,7 @@ let file_extensions =
         "bmv";
         "brstm";
         "c2";
-        "caf";
+        "calf";
         "cavs";
         "cdata";
         "cdg";
