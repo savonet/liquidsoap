@@ -40,7 +40,7 @@ class text init render_text ttf ttf_size color duration text =
         render_text ~font:cur_ttf ~size:cur_ttf_size cur_text
       in
       let tf = Video.Image.create w h in
-      let tr, tg, tb = Image.RGB8.Color.of_int cur_color in
+      let tr, tg, tb = Video_effects.rgb_of_int cur_color in
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let a = get_pixel_rgba x y in
