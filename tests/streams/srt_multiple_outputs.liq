@@ -1,3 +1,5 @@
+port = random.int(min=8000, max=10000)
+
 def fn() =
   connected = ref(0)
   def on_connect() =
@@ -7,9 +9,9 @@ def fn() =
     end
  end
 
- output.srt(%wav,blank(),mode="listener", on_connect=on_connect)
- output.dummy(fallible=true,input.srt(mode="caller"))
- output.dummy(fallible=true,input.srt(mode="caller"))
+ output.srt(%wav,blank(), port=port, mode="listener", on_connect=on_connect)
+ output.dummy(fallible=true,input.srt(mode="caller", port=port))
+ output.dummy(fallible=true,input.srt(mode="caller", port=port))
 end
 
 test.check(fn)
