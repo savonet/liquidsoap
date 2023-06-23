@@ -28,7 +28,7 @@ let log = Log.make ["video"]
 let rgb_of_int c =
   let c =
     if c < 0 || c > 0xffffff then (
-      log#important "not a valid color: 0x%x" c;
+      log#important "color 0x%x is greater than maximum assignable value 0xffffff" c;
       c land 0xffffff)
     else c
   in
