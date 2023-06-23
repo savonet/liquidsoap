@@ -10,12 +10,14 @@ def deprecated(old, new)
   log.severe(label="lang.deprecated", "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{new}")
 end
 
+%ifdef input.external.rawaudio
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag deprecated
 def replaces input.external(%argsof(input.external.rawaudio), cmd)
   deprecated("input.external", "input.external.rawaudio")
   input.external.rawaudio(%argsof(input.external.rawaudio), cmd)
 end
+%endif
 
 # Deprecated: this function has been replaced by `string.quote`.
 # @flag deprecated
