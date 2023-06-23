@@ -1,5 +1,4 @@
 pkgname=@APK_PACKAGE@
-subpackages="$pkgname-dbg"
 pkgver=@APK_VERSION@
 pkgrel=@APK_RELEASE@
 pkgdesc="Swiss-army knife for multimedia streaming"
@@ -8,7 +7,6 @@ arch="all"
 license="GPL-2.0-only"
 install="@APK_PACKAGE@.pre-install"
 options="!check textrels"
-depends="sdl2 sdl2_image sdl2_ttf"
 
 package() {
         eval "$(opam env)"

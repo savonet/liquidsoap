@@ -1,5 +1,4 @@
 pkgname=@APK_PACKAGE@
-subpackages="$pkgname-dbg"
 pkgver=@APK_VERSION@
 pkgrel=@APK_RELEASE@
 pkgdesc="Swiss-army knife for multimedia streaming"
