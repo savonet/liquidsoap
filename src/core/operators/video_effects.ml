@@ -23,6 +23,19 @@
 open Mm
 open Source
 
+let log = Log.make ["video"]
+
+let rgb_of_int c =
+  let c =
+    if c < 0 || c > 0xffffff then (
+      log#important "color 0x%x is greater than maximum assignable value 0xffffff" c;
+      c land 0xffffff)
+    else c
+  in
+  Image.RGB8.Color.of_int c
+
+let yuv_of_int c = Image.Pixel.yuv_of_rgb (rgb_of_int c)
+
 let proto_color =
   [
     ( "color",
@@ -45,9 +58,7 @@ end
 
 let color_arg p =
   let color =
-    List.assoc "color" p |> Lang.to_int_getter
-    |> Getter.map Image.RGB8.Color.of_int
-    |> Getter.map Image.Pixel.yuv_of_rgb
+    List.assoc "color" p |> Lang.to_int_getter |> Getter.map yuv_of_int
   in
   let alpha =
     List.assoc "alpha" p |> Lang.to_float_getter
@@ -259,7 +270,7 @@ let _ =
           Lang.to_source (f "") )
       in
       let prec = int_of_float (prec *. 255.) in
-      let color = Image.RGB8.Color.of_int color |> Image.Pixel.yuv_of_rgb in
+      let color = yuv_of_int color in
       new effect ~name:"video.alpha.of_color" src (fun buf ->
           Image.YUV420.alpha_of_color buf color prec))
 

@@ -83,10 +83,7 @@ let _ =
     Lang.val_fun
       [("", "", None)]
       (fun p ->
-        let c =
-          List.assoc "" p |> Lang.to_int |> Image.RGB8.Color.of_int
-          |> Image.Pixel.yuv_of_rgb
-        in
+        let c = List.assoc "" p |> Lang.to_int |> Video_effects.yuv_of_int in
         Image.YUV420.fill b#image c;
         Lang.unit)
   in
@@ -99,7 +96,7 @@ let _ =
       ]
       (fun p ->
         let r, g, b =
-          List.assoc "c" p |> Lang.to_int |> Image.RGB8.Color.of_int
+          List.assoc "c" p |> Lang.to_int |> Video_effects.rgb_of_int
         in
         let x = List.assoc "x" p |> Lang.to_int in
         let y = List.assoc "y" p |> Lang.to_int in
@@ -119,7 +116,7 @@ let _ =
             let c = Image.RGB8.Color.to_int (r, g, b) in
             Lang.int c)
           (fun c ->
-            let r, g, b = c |> Lang.to_int |> Image.RGB8.Color.of_int in
+            let r, g, b = c |> Lang.to_int |> Video_effects.rgb_of_int in
             board#set_pixel (x, y) (r, g, b, 0xff)))
   in
   Lang.add_operator ~base:Modules.video "board"
