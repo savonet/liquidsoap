@@ -8,7 +8,6 @@ on_shutdown({file.rmdir(tmp_dir)})
 main_tags = ref(false)
 aac_flags = ref(false)
 mp4_flags = ref(false)
-global_insert_flags = ref(0)
 aac_insert_flags = ref(false)
 
 def on_file_change(~state, p) =
@@ -29,10 +28,6 @@ def on_file_change(~state, p) =
       if string.contains(substring="X-CUSTOM-AAC-INSERT", contents) then
         aac_insert_flags := true
       end
-
-      if string.contains(substring="X-CUSTOM-GLOBAL-INSERT", contents) then
-        global_insert_flags := global_insert_flags() + 1
-      end
     end
 
     if fname == "mp4.m3u8" then
@@ -41,16 +36,11 @@ def on_file_change(~state, p) =
       if string.contains(substring="X-CUSTOM", contents) then
         mp4_flags := true
       end
-
-      if string.contains(substring="X-CUSTOM-GLOBAL-INSERT", contents) then
-        global_insert_flags := global_insert_flags() + 1
-      end
     end
   end
 
   if main_tags() and aac_flags() and
-     mp4_flags() and global_insert_flags() == 2 and
-     aac_insert_flags() then
+     mp4_flags() and aac_insert_flags() then
     test.pass()
   end
 end
@@ -67,8 +57,7 @@ o = output.file.hls(
   s
 )
 
-thread.run(delay=2., {o.insert_tag(stream="aac", "X-CUSTOM-AAC-INSERT")})
-thread.run(delay=3., {o.insert_tag("X-CUSTOM-GLOBAL-INSERT")})
+thread.run(delay=2., {list.hd(o.streams()).insert_tag("X-CUSTOM-AAC-INSERT")})
 
 
 clock.assign_new(sync="none",[s])
