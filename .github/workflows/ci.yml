@@ -443,7 +443,7 @@ jobs:
       - name: List assets to upload
         run: |
           echo "RELEASE_ASSETS<<EOF" >> $GITHUB_ENV
-          find artifacts/${{ needs.build_details.outputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config$' | sort -u >> $GITHUB_ENV
+          find artifacts/${{ needs.build_details.outputs.sha }} -type f | egrep '\.apk$|\.deb$|\.config|\.zip$' | sort -u >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
       - name: Generate release notes
         run: |
