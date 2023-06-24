@@ -2,18 +2,14 @@ FROM alpine:edge
 
 ARG APK_FILE
 
-ARG APK_DBG_FILE
-
 USER root
 
 COPY $APK_FILE /tmp/liquidsoap.apk
 
-COPY $APK_DBG_FILE /tmp/liquidsoap-dbg.apk
-
 RUN apk add --allow-untrusted --no-cache \
       -X http://dl-cdn.alpinelinux.org/alpine/edge/testing \
-      tini /tmp/liquidsoap.apk /tmp/liquidsoap-dbg.apk && \
-      rm -rf /tmp/liquidsoap.apk /tmp/liquidsoap-dbg.apk
+      tini /tmp/liquidsoap.apk && \
+      rm -rf /tmp/liquidsoap.apk
 
 USER liquidsoap
 
