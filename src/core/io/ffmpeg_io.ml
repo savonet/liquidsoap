@@ -22,6 +22,18 @@
 
 exception Not_connected
 
+module Metadata = struct
+  include Map.Make (struct
+    type t = string
+
+    let compare = String.compare
+  end)
+
+  let of_metadata m = List.fold_left (fun m (k, v) -> add k v m) empty m
+  let equal = equal String.equal
+  let to_metadata = bindings
+end
+
 let normalize_metadata =
   List.map (fun (lbl, v) ->
       let lbl =
@@ -44,7 +56,7 @@ type container = {
 
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   ~clock_safe ~max_buffer ~on_error ~on_stop ~on_start ~on_connect
-  ~on_disconnect ~new_track_on_metadata ?format ~opts url =
+  ~metadata_filter ~on_disconnect ~new_track_on_metadata ?format ~opts url =
   let max_length = Some (Frame.main_of_seconds max_buffer) in
   object (self)
     inherit
@@ -130,7 +142,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                    | `Audio_frame (stream, _) -> get_metadata stream
                    | `Audio_packet (stream, _) -> get_metadata stream
                    | `Video_frame (stream, _) -> get_metadata stream
-                   | `Video_packet (stream, _) -> get_metadata stream)
+                   | `Video_packet (stream, _) -> get_metadata stream
+                   | `Data_packet _ -> [])
                streams
                (Av.get_input_metadata input))
         in
@@ -193,8 +206,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       self#disconnect;
       self#connect
 
-    val mutable last_metadata = []
-
     method private get_connected_container =
       match Atomic.get container with
         | None -> raise Not_connected
@@ -209,15 +220,27 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
           self#mutexify (fun () -> decoder buffer) ()
         done;
-        Generator.fill self#buffer frame;
         let { get_metadata } = self#get_connected_container in
-        let m = get_metadata () in
-        if last_metadata <> m then (
-          let meta = Hashtbl.create (List.length m) in
-          List.iter (fun (lbl, v) -> Hashtbl.replace meta lbl v) m;
-          Generator.add_metadata self#buffer meta;
-          if new_track_on_metadata then Generator.add_track_mark self#buffer;
-          last_metadata <- m)
+        let meta = get_metadata () in
+        if meta <> [] then (
+          let m = Hashtbl.create (List.length meta) in
+          List.iter (fun (k, v) -> Hashtbl.add m k v) meta;
+          Generator.add_metadata self#buffer m;
+          if new_track_on_metadata then Generator.add_track_mark self#buffer);
+        Generator.fill self#buffer frame;
+        let stop = Frame.position frame in
+        (* Metadata can be added by the decoder and the demuxer so we filter at the frame level. *)
+        let metadata =
+          List.fold_left
+            (fun metadata (p, m) ->
+              if p < pos || stop < p then (p, m) :: metadata
+              else (
+                let m = metadata_filter m in
+                if 0 < Hashtbl.length m then (p, m) :: metadata else metadata))
+            []
+            (Frame.get_all_metadata frame)
+        in
+        Frame.set_all_metadata frame metadata
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log
@@ -233,7 +256,7 @@ let http_log = Log.make ["input"; "http"]
 
 class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
   ~max_buffer ~on_connect ~on_disconnect ?format ~opts ~user_agent ~timeout
-  ~on_start ~on_stop ~new_track_on_metadata url =
+  ~metadata_filter ~on_start ~on_stop ~new_track_on_metadata url =
   let () =
     Hashtbl.replace opts "icy" (`Int 1);
     Hashtbl.replace opts "user_agent" (`String user_agent);
@@ -280,7 +303,7 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
       input
         ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
           ~max_buffer ~on_stop ~on_start ~on_disconnect ~on_connect ~on_error
-          ?format ~opts ~new_track_on_metadata url
+          ~metadata_filter ?format ~opts ~new_track_on_metadata url
   end
 
 let parse_args ~t name p opts =
@@ -352,6 +375,17 @@ let register_input is_http =
            args ~t:Lang.int_t "int";
            args ~t:Lang.float_t "float";
            args ~t:Lang.string_t "string";
+           ( "metadata_filter",
+             Lang.nullable_t
+               (Lang.fun_t [(false, "", Lang.metadata_t)] Lang.metadata_t),
+             Some Lang.null,
+             Some
+               "Metadata filter function. Returned metadata are set a \
+                metadata. Default: filter `id3v2_priv` metadata." );
+           ( "deduplicate_metadata",
+             Lang.bool_t,
+             Some (Lang.bool true),
+             Some "Prevent duplicated metadata." );
            ( "new_track_on_metadata",
              Lang.bool_t,
              Some (Lang.bool true),
@@ -487,6 +521,38 @@ let register_input is_http =
          let on_disconnect () =
            ignore (Lang.apply (List.assoc "on_disconnect" p) [])
          in
+         let metadata_filter =
+           match Lang.to_option (List.assoc "metadata_filter" p) with
+             | Some fn ->
+                 fun m ->
+                   Lang.to_metadata_list
+                     (Lang.apply fn [("", Lang.metadata_list m)])
+             | None ->
+                 List.filter (fun (k, _) ->
+                     not (Pcre.pmatch ~pat:"^id3v2_priv" k))
+         in
+         let deduplicate_metadata =
+           Lang.to_bool (List.assoc "deduplicate_metadata" p)
+         in
+         let metadata_filter =
+           if not deduplicate_metadata then metadata_filter
+           else (
+             let last_meta = ref Metadata.empty in
+             fun m ->
+               let m = metadata_filter m in
+               let m' = Metadata.of_metadata m in
+               if m = [] || Metadata.equal !last_meta m' then []
+               else (
+                 last_meta := m';
+                 m))
+         in
+         let metadata_filter m =
+           let m = Hashtbl.fold (fun k v m -> (k, v) :: m) m [] in
+           let m = metadata_filter m in
+           let ret = Hashtbl.create (List.length m) in
+           List.iter (fun (k, v) -> Hashtbl.add ret k v) m;
+           ret
+         in
          let new_track_on_metadata =
            Lang.to_bool (List.assoc "new_track_on_metadata" p)
          in
@@ -505,18 +571,19 @@ let register_input is_http =
              ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
            in
            (new http_input
-              ~debug ~autostart ~self_sync ~clock_safe ~poll_delay ~on_connect
-              ~on_disconnect ~user_agent ~new_track_on_metadata ~max_buffer
-              ?format ~opts ~timeout ~on_error ~on_start ~on_stop url
+              ~metadata_filter ~debug ~autostart ~self_sync ~clock_safe
+              ~poll_delay ~on_connect ~on_disconnect ~user_agent
+              ~new_track_on_metadata ~max_buffer ?format ~opts ~timeout
+              ~on_error ~on_start ~on_stop url
              :> input))
          else (
            let on_connect _ =
              ignore (Lang.apply (List.assoc "on_connect" p) [])
            in
            new input
-             ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_error
-             ~on_start ~on_stop ~on_connect ~on_disconnect ~max_buffer ?format
-             ~opts ~new_track_on_metadata url)))
+             ~metadata_filter ~autostart ~debug ~self_sync ~clock_safe
+             ~poll_delay ~on_error ~on_start ~on_stop ~on_connect ~on_disconnect
+             ~max_buffer ?format ~opts ~new_track_on_metadata url)))
 
 let () =
   register_input true;

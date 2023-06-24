@@ -35,6 +35,8 @@ module Fields : sig
   val audio_n : int -> field
   val video : field
   val video_n : int -> field
+  val data : field
+  val data_n : int -> field
   val midi : field
   val register : string -> field
   val make : ?audio:'a -> ?video:'a -> ?midi:'a -> unit -> 'a t

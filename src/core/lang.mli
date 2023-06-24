@@ -308,6 +308,8 @@ val pos : env -> Liquidsoap_lang.Pos.t list
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
 
+val metadata_list : (string * string) list -> value
+
 (** Raise an error. *)
 val raise_error :
   ?bt:Printexc.raw_backtrace ->

@@ -69,18 +69,9 @@ let encoder ~pos wav =
       Strings.of_list [header; s])
     else Strings.of_string s
   in
-  let hls =
-    {
-      Encoder.init_encode = (fun f o l -> (None, encode f o l));
-      split_encode = (fun f o l -> `Ok (Strings.empty, encode f o l));
-      codec_attrs = (fun () -> None);
-      bitrate = (fun () -> None);
-      video_size = (fun () -> None);
-    }
-  in
   {
     Encoder.insert_metadata = (fun _ -> ());
-    hls;
+    hls = Encoder.dummy_hls encode;
     encode;
     header = Strings.of_string header;
     stop = (fun () -> Strings.empty);

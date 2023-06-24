@@ -27,6 +27,20 @@ exception No_stream
 
 let log = Log.make ["decoder"; "ffmpeg"]
 
+(* Workaround for https://trac.ffmpeg.org/ticket/9540. Should be fixed with
+   the next FFMpeg release. *)
+let parse_timed_id3 content =
+  if String.length content < 3 then failwith "Invalid content";
+  if String.sub content 0 3 = "ID3" then
+    Metadata.Reader.with_string Metadata.ID3.parse content
+  else (
+    try
+      let metadata = Printf.sprintf "ID3\003\000%s" content in
+      Metadata.Reader.with_string Metadata.ID3.parse metadata
+    with _ ->
+      let metadata = Printf.sprintf "ID3\004\000%s" content in
+      Metadata.Reader.with_string Metadata.ID3.parse metadata)
+
 module Streams = Map.Make (struct
   type t = int
 
@@ -624,6 +638,23 @@ let get_type ~ctype ~url container =
       ([], descriptions)
       (Av.get_video_streams container)
   in
+  let _, descriptions =
+    List.fold_left
+      (fun (n, descriptions) (_, _, params) ->
+        let field = Frame.Fields.data_n n in
+        let codec_name =
+          Avcodec.Unknown.string_of_id (Avcodec.Unknown.get_params_id params)
+        in
+        ( n + 1,
+          descriptions
+          @ [
+              Printf.sprintf "%s: {codec: %s}"
+                (Frame.Fields.string_of_field field)
+                codec_name;
+            ] ))
+      (0, descriptions)
+      (Av.get_data_streams container)
+  in
   if audio_streams = [] && video_streams = [] then
     failwith "No valid stream found in file.";
   let content_type =
@@ -672,7 +703,7 @@ let get_type ~ctype ~url container =
       content_type video_streams
   in
   log#important "FFmpeg recognizes %s as %s" uri
-    (String.concat ", " (List.rev descriptions));
+    (String.concat ", " descriptions);
   log#important "Decoded content-type for %s: %s" uri
     (Frame.string_of_content_type content_type);
   content_type
@@ -727,41 +758,48 @@ let mk_decoder ~streams ~target_position container =
         match v with `Video_packet (s, _) -> s :: cur | _ -> cur)
       streams []
   in
+  let data_packet =
+    Streams.fold
+      (fun _ v cur -> match v with `Data_packet (s, _) -> s :: cur | _ -> cur)
+      streams []
+  in
   fun buffer ->
     let rec f () =
       try
         let data =
           Av.read_input ~audio_frame ~audio_packet ~video_frame ~video_packet
-            container
+            ~data_packet container
         in
         match data with
           | `Audio_frame (i, frame) -> (
               match Streams.find_opt i streams with
-                | Some (`Audio_frame (_, decode)) ->
-                    if check_pts (List.hd audio_frame) (Avutil.Frame.pts frame)
-                    then decode ~buffer (`Frame frame)
+                | Some (`Audio_frame (s, decode)) ->
+                    if check_pts s (Avutil.Frame.pts frame) then
+                      decode ~buffer (`Frame frame)
                 | _ -> f ())
           | `Audio_packet (i, packet) -> (
               match Streams.find_opt i streams with
-                | Some (`Audio_packet (_, decode)) ->
-                    if
-                      check_pts (List.hd audio_packet)
-                        (Avcodec.Packet.get_pts packet)
-                    then decode ~buffer packet
+                | Some (`Audio_packet (s, decode)) ->
+                    if check_pts s (Avcodec.Packet.get_pts packet) then
+                      decode ~buffer packet
                 | _ -> f ())
           | `Video_frame (i, frame) -> (
               match Streams.find_opt i streams with
-                | Some (`Video_frame (_, decode)) ->
-                    if check_pts (List.hd video_frame) (Avutil.Frame.pts frame)
-                    then decode ~buffer (`Frame frame)
+                | Some (`Video_frame (s, decode)) ->
+                    if check_pts s (Avutil.Frame.pts frame) then
+                      decode ~buffer (`Frame frame)
                 | _ -> f ())
           | `Video_packet (i, packet) -> (
               match Streams.find_opt i streams with
-                | Some (`Video_packet (_, decode)) ->
-                    if
-                      check_pts (List.hd video_packet)
-                        (Avcodec.Packet.get_pts packet)
-                    then decode ~buffer packet
+                | Some (`Video_packet (s, decode)) ->
+                    if check_pts s (Avcodec.Packet.get_pts packet) then
+                      decode ~buffer packet
+                | _ -> f ())
+          | `Data_packet (i, packet) -> (
+              match Streams.find_opt i streams with
+                | Some (`Data_packet (s, decode)) ->
+                    if check_pts s (Avcodec.Packet.get_pts packet) then
+                      decode ~buffer packet
                 | _ -> f ())
           | _ -> ()
       with
@@ -907,6 +945,27 @@ let mk_streams ~ctype ~decode_first_metadata container =
       (streams, 0)
       (Av.get_video_streams container)
   in
+  let streams, _ =
+    List.fold_left
+      (fun (streams, pos) (idx, stream, params) ->
+        if Avcodec.Unknown.get_params_id params = `Timed_id3 then
+          ( Streams.add idx
+              (`Data_packet
+                ( stream,
+                  fun ~buffer p ->
+                    let metadata =
+                      try parse_timed_id3 (Avcodec.Packet.content p)
+                      with _ -> []
+                    in
+                    if metadata <> [] then
+                      Generator.add_metadata buffer.Decoder.generator
+                        (Frame.metadata_of_list metadata) ))
+              streams,
+            pos + 1 )
+        else (streams, pos + 1))
+      (streams, 0)
+      (Av.get_data_streams container)
+  in
   streams
 
 let create_decoder ~ctype ~metadata fname =
@@ -971,7 +1030,8 @@ let create_decoder ~ctype ~metadata fname =
                 | _ -> ());
               decoder ~buffer frame
             in
-            `Video_frame (stream, decoder))
+            `Video_frame (stream, decoder)
+        | `Data_packet (stream, decoder) -> `Data_packet (stream, decoder))
       streams
   in
   let close () = Av.close container in

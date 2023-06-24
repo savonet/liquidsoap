@@ -90,14 +90,23 @@ type split_result =
 exception Not_enough_data
 
 type hls = {
+  (* Returns true if id3 is enabled. *)
+  init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
   (* Returns (init_segment, first_bytes) *)
   init_encode : Frame.t -> int -> int -> Strings.t option * Strings.t;
   split_encode : Frame.t -> int -> int -> split_result;
   codec_attrs : unit -> string option;
+  insert_id3 :
+    frame_position:int ->
+    sample_position:int ->
+    (string * string) list ->
+    string option;
   bitrate : unit -> int option;
   (* width x height *)
   video_size : unit -> (int * int) option;
 }
+
+val dummy_hls : (Generator.t -> int -> int -> Strings.t) -> hls
 
 type encoder = {
   insert_metadata : Meta_format.export_metadata -> unit;

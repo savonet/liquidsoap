@@ -9,8 +9,9 @@ def test.pass()
 end
 
 # End test with a failure.
-def test.fail()
-  print("Test failed!")
+def test.fail(reason = null())
+  reason = if null.defined(reason) then ": #{null.get(reason)}" else "!" end
+  print("Test failed#{reason}")
   exit(1)
 end
 

@@ -59,6 +59,7 @@ module Fields = struct
   let track_marks = register "track_marks"
   let audio = register "audio"
   let video = register "video"
+  let data = register "data"
   let midi = register "midi"
 
   let audio_n = function
@@ -68,6 +69,10 @@ module Fields = struct
   let video_n = function
     | 0 -> video
     | n -> register (Printf.sprintf "video_%d" (n + 1))
+
+  let data_n = function
+    | 0 -> data
+    | n -> register (Printf.sprintf "data_%d" (n + 1))
 
   let make =
     let audio_f = audio in

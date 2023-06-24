@@ -189,16 +189,13 @@ let encoder ext =
       decr_samples ();
       Strings.of_string ans)
   in
-  let hls =
-    {
-      Encoder.init_encode = (fun f o l -> (None, encode f o l));
-      split_encode = (fun f o l -> `Ok (Strings.empty, encode f o l));
-      codec_attrs = (fun () -> None);
-      bitrate = (fun () -> None);
-      video_size = (fun () -> None);
-    }
-  in
-  { Encoder.insert_metadata; header = Strings.empty; hls; encode; stop }
+  {
+    Encoder.insert_metadata;
+    header = Strings.empty;
+    hls = Encoder.dummy_hls encode;
+    encode;
+    stop;
+  }
 
 let () =
   Plug.register Encoder.plug "gstreamer" ~doc:"" (function

@@ -101,7 +101,13 @@ let encoder ~pos { Ogg_format.audio; video } =
     let skeleton = List.length tracks > 1 in
     let ogg_enc = Ogg_muxer.create ~skeleton name in
     let rec enc =
-      { Encoder.insert_metadata; hls; encode; header = Strings.empty; stop }
+      {
+        Encoder.insert_metadata;
+        hls = Encoder.dummy_hls (fun _ _ -> assert false);
+        encode;
+        header = Strings.empty;
+        stop;
+      }
     and streams_start () =
       let f track =
         match track.id with
@@ -122,14 +128,6 @@ let encoder ~pos { Ogg_format.audio; video } =
       in
       List.iter f tracks;
       Ogg_muxer.get_data ogg_enc
-    and hls =
-      {
-        Encoder.init_encode = (fun f o l -> (None, encode f o l));
-        split_encode = (fun f o l -> `Ok (Strings.empty, encode f o l));
-        codec_attrs = (fun () -> None);
-        bitrate = (fun () -> None);
-        video_size = (fun () -> None);
-      }
     and ogg_stop () =
       let f track = track.id <- None in
       List.iter f tracks;
@@ -146,7 +144,7 @@ let encoder ~pos { Ogg_format.audio; video } =
       List.iter f tracks;
       enc.Encoder.header <- Ogg_muxer.get_header ogg_enc
     in
-    enc
+    { enc with hls = Encoder.dummy_hls encode }
 
 let () =
   Plug.register Encoder.plug "ogg" ~doc:"ogg encoder." (function

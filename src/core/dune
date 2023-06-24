@@ -279,6 +279,7 @@
   builtins_files
   builtins_harbor
   builtins_http
+  builtins_metadata
   builtins_process
   builtins_request
   builtins_resolvers
