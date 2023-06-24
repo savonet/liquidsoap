@@ -73,8 +73,9 @@ not recommended for listener-facing setup but can be useful to sync up with a ca
 
 HLS outputs supports metadata in two ways:
 
-- Through a `timed_id3` metadata logical stream with `mpegts` and `mp4` formats
+- Through a `timed_id3` metadata logical stream with the `mpegts` format.
 - Through regular ID3 frames, as requested by the [HLS specifications](https://datatracker.ietf.org/doc/html/rfc8216#section-3.4) for `adts`, `mp3`, `ac3` and `eac3` formats.
+- There is currently no support for in-stream metadata for the `mp4` format.
 
 Metadata parameters are passed through the record methods of the streams' encoders. Here's an example
 

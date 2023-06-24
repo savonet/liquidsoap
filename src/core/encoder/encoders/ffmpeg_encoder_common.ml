@@ -212,8 +212,8 @@ let encoder ~pos ~mk_streams ffmpeg meta =
   let init ?id3_enabled ?id3_version () =
     let encoder = !encoder in
     match Option.map Av.Format.get_output_name encoder.format with
-      | Some "mpegts" | Some "mp4" ->
-          if id3_enabled = Some true then (
+      | Some "mpegts" ->
+          if id3_enabled <> Some false then (
             let id3_version = Option.value ~default:3 id3_version in
             let time_base = Ffmpeg_utils.liq_audio_sample_time_base () in
             let stream =

@@ -17,8 +17,9 @@ output.file.hls(
   tmp_dir,
   [
    ("aac", %ffmpeg(format="adts",%audio(codec="aac")).{id3_version = 3}),
-   ("ts_with_meta", %ffmpeg(format="mpegts",%audio(codec="aac")).{id3 = true, id3_version = 4}),
-   ("ts", %ffmpeg(format="mpegts",%audio(codec="aac")))
+   ("ts_with_meta", %ffmpeg(format="mpegts",%audio(codec="aac")).{id3_version = 4}),
+   ("ts", %ffmpeg(format="mpegts",%audio(codec="aac")).{ id3=false }),
+   ("mp4", %ffmpeg(format="mp4",frag_duration=10,movflags="+dash+skip_sidx+skip_trailer+frag_custom",%audio(codec="aac")))
   ],
   s
 )
@@ -26,19 +27,21 @@ output.file.hls(
 to_check = ref({
   aac = null(),
   ts_with_meta = null(),
-  ts = null()
+  ts = null(),
+  mp4 = null()
 })
 
 def check_done() =
-  let { aac, ts_with_meta, ts } = to_check()
+  let { aac, ts_with_meta, ts, mp4 } = to_check()
 
   if null.defined(ts) then test.fail("ts shouldn't have metadata!") end
+  if null.defined(mp4) then test.fail("mp4 should have metadata but it's not supported by the demuxer yet.") end
 
   if null.defined(aac) and null.defined(ts_with_meta) then
     aac = null.get(aac)
     ts_with_meta = null.get(ts_with_meta)
-    if aac["title"] == "test title" and ts_with_meta["title"] == "test title" and
-       aac["album"] == "foolol" and ts_with_meta["album"] == "foolol" then
+    if aac["title"] == "test title" and aac["album"] == "foolol" and
+       ts_with_meta["title"] == "test title" and ts_with_meta["album"] == "foolol" then
       test.pass()
     end
   end
@@ -77,4 +80,15 @@ end)
 
 output.dummy(fallible=true, ts)
 
-clock.assign_new(sync="none",[s, aac, ts_with_meta, ts])
+mp4 = input.hls("#{tmp_dir}/mp4.m3u8")
+
+mp4 = source.on_metadata(mp4, fun (m) -> begin
+  if m["title"] != "" then
+    to_check := to_check().{ mp4 = m }
+  end
+  check_done()
+end)
+
+output.dummy(fallible=true, mp4)
+
+clock.assign_new(sync="none",[s, aac, ts_with_meta, ts, mp4])
