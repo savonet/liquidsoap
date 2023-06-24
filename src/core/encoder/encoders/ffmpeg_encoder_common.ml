@@ -221,17 +221,18 @@ let encoder ~pos ~mk_streams ffmpeg meta =
             in
             encoder.insert_id3 <-
               (fun ~frame_position ~sample_position m ->
-                let tag = Utils.id3v2_of_metadata ~version:id3_version m in
-                let packet = Avcodec.Packet.create tag in
-                let position =
-                  Int64.of_int
-                    (Frame.audio_of_main
-                       ((frame_position * Lazy.force Frame.size)
-                       + sample_position))
-                in
-                Avcodec.Packet.set_pts packet (Some position);
-                Avcodec.Packet.set_dts packet (Some position);
-                Av.write_packet stream time_base packet;
+                if encoder.started then (
+                  let tag = Utils.id3v2_of_metadata ~version:id3_version m in
+                  let packet = Avcodec.Packet.create tag in
+                  let position =
+                    Int64.of_int
+                      (Frame.audio_of_main
+                         ((frame_position * Lazy.force Frame.size)
+                         + sample_position))
+                  in
+                  Avcodec.Packet.set_pts packet (Some position);
+                  Avcodec.Packet.set_dts packet (Some position);
+                  Av.write_packet stream time_base packet);
                 None);
             true)
           else false
