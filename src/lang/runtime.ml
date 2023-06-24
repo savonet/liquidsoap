@@ -255,7 +255,7 @@ let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
     if error_on_no_stdlib then
       failwith "Could not find default stdlib.liq library!")
   else from_file ?parse_only ~ns:(Some file) ~lib:true file;
-  let file = Filename.concat dir "deprecations.liq" in
+  let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
   if deprecated then
     if Sys.file_exists file then
       from_file ?parse_only ~ns:(Some file) ~lib:true file
