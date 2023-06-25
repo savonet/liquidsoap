@@ -690,6 +690,8 @@ class virtual operator ?(name = "src") sources =
       List.iter (fun fn -> fn ()) on_before_output;
       in_output <- true
 
+    val mutable on_output = []
+    method on_output fn = on_output <- fn :: on_output
     val mutable on_after_output = []
     method on_after_output fn = on_after_output <- fn :: on_after_output
 
@@ -708,7 +710,9 @@ class virtual operator ?(name = "src") sources =
         in_output <- true;
         self#before_output;
         match deref clock with
-          | Known c -> c#on_after_output (fun () -> self#after_output)
+          | Known c ->
+              c#on_output (fun () -> List.iter (fun fn -> fn ()) on_output);
+              c#on_after_output (fun () -> self#after_output)
           | _ -> assert false)
 
     (* [#get buf] completes the frame with the next data in the stream.

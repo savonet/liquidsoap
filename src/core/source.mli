@@ -207,6 +207,9 @@ class virtual source :
        (* Register callback to be executed on #before_output. *)
        method on_before_output : (unit -> unit) -> unit
 
+       (* Register callback to be executed on #output. *)
+       method on_output : (unit -> unit) -> unit
+
        (* Register callback to be executed on #after_output. *)
        method on_after_output : (unit -> unit) -> unit
        method private has_ticked : unit
