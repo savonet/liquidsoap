@@ -471,6 +471,14 @@
  (modules builtins_irc))
 
 (library
+ (name liquidsoap_jemalloc)
+ (libraries jemalloc liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_jemalloc))
+
+(library
  (name liquidsoap_ladspa)
  (libraries ladspa liquidsoap_core)
  (library_flags -linkall)
@@ -748,6 +756,7 @@
   imagelib_option
   inotify_option
   irc_option
+  jemalloc_option
   ladspa_option
   lame_option
   lastfm_option
@@ -862,6 +871,11 @@
    from
    (liquidsoap_irc -> irc_option.enabled.ml)
    (-> irc_option.disabled.ml))
+  (select
+   jemalloc_option.ml
+   from
+   (liquidsoap_jemalloc -> jemalloc_option.enabled.ml)
+   (-> jemalloc_option.disabled.ml))
   (select
    ladspa_option.ml
    from

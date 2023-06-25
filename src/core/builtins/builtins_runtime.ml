@@ -91,13 +91,13 @@ let _ =
       ]
   in
   ignore
-    (Lang.add_builtin ~base:runtime_gc "stat" ~category:`Liquidsoap
+    (Lang.add_builtin ~base:runtime_gc "stat" ~category:`System
        ~descr:
          "Return the current values of the memory management counters. This \
           function examines every heap block to get the statistics." [] stat_t
        (fun _ -> stat (Gc.stat ())));
 
-  Lang.add_builtin ~base:runtime_gc "quick_stat" ~category:`Liquidsoap
+  Lang.add_builtin ~base:runtime_gc "quick_stat" ~category:`System
     ~descr:
       "Same as stat except that `live_words`, `live_blocks`, `free_words`, \
        `free_blocks`, `largest_free`, and `fragments` are set to `0`. This \
@@ -105,7 +105,7 @@ let _ =
        through the heap." [] stat_t (fun _ -> stat (Gc.quick_stat ()))
 
 let _ =
-  Lang.add_builtin ~base:runtime_gc "print_stat" ~category:`Liquidsoap
+  Lang.add_builtin ~base:runtime_gc "print_stat" ~category:`System
     ~descr:
       "Print the current values of the memory management counters in \
        human-readable form." [] Lang.unit_t (fun _ ->
@@ -176,11 +176,11 @@ let _ =
     }
   in
   ignore
-    (Lang.add_builtin ~base:runtime_gc "get" ~category:`Liquidsoap
+    (Lang.add_builtin ~base:runtime_gc "get" ~category:`System
        ~descr:"Return the current values of the GC parameters" [] control_t
        (fun _ -> control (Gc.get ())));
 
-  Lang.add_builtin ~base:runtime_gc "set" ~category:`Liquidsoap
+  Lang.add_builtin ~base:runtime_gc "set" ~category:`System
     ~descr:"Set the GC parameters."
     [("", control_t, None, None)]
     Lang.unit_t
@@ -192,7 +192,7 @@ let _ =
 let runtime_sys = Lang.add_module ~base:runtime "sys"
 
 let _ =
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_base ~category:`System
     ~descr:
       "Size of one word on the machine currently executing the program, in \
        bits. Either `32` or `64`."
