@@ -912,11 +912,8 @@ class hls_output p =
         (Option.map
            (fun b ->
              Strings.iter (output_substring (Option.get out_channel)) b;
-             self#mutexify
-               (fun () ->
-                 self#close_segment s;
-                 self#open_segment s)
-               ())
+             self#close_segment s;
+             self#open_segment s)
            flushed);
       let { out_channel } = Option.get s.current_segment in
       Strings.iter (output_substring (Option.get out_channel)) data
