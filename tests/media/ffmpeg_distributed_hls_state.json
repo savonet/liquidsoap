@@ -3,11 +3,13 @@
     {
       "name": "mp4",
       "position": 7,
+      "pending_extra_tags": [],
       "discontinuity_count": 1
     },
     {
       "name": "mpegts",
       "position": 7,
+      "pending_extra_tags": [],
       "discontinuity_count": 1
     }
   ],
@@ -19,6 +21,7 @@
         "current_discontinuity": 0,
         "filename": "/tmp/mp4_1617977940_1.m4s",
         "init_filename": "/tmp/mp4_1617977940_0.m4s",
+        "extra_tags": [],
         "len": 441000
       },
       {
@@ -27,6 +30,7 @@
         "current_discontinuity": 0,
         "filename": "/tmp/mp4_1617977950_2.m4s",
         "init_filename": "/tmp/mp4_1617977940_0.m4s",
+        "extra_tags": [],
         "len": 439236
       },
       {
@@ -35,6 +39,7 @@
         "current_discontinuity": 0,
         "filename": "/tmp/mp4_1617977960_3.m4s",
         "init_filename": "/tmp/mp4_1617977940_0.m4s",
+        "extra_tags": [],
         "len": 340452
       },
       {
@@ -43,6 +48,7 @@
         "current_discontinuity": 0,
         "filename": "/tmp/mp4_1617977985_5.m4s",
         "init_filename": "/tmp/mp4_1617977985_4.m4s",
+        "extra_tags": [],
         "len": 441000
       },
       {
@@ -51,6 +57,7 @@
         "current_discontinuity": 1,
         "filename": "/tmp/mp4_1617977995_6.m4s",
         "init_filename": "/tmp/mp4_1617977985_4.m4s",
+        "extra_tags": [],
         "len": 386316
       }
     ],
@@ -61,6 +68,7 @@
         "current_discontinuity": 0,
         "filename": "/tmp/mpegts_1617977940_1.ts",
         "init_filename": null,
+        "extra_tags": [],
         "len": 441000
       },
       {
@@ -69,6 +77,7 @@
         "current_discontinuity": 0,
         "filename": "/tmp/mpegts_1617977950_2.ts",
         "init_filename": null,
+        "extra_tags": [],
         "len": 439236
       },
       {
@@ -77,6 +86,7 @@
         "current_discontinuity": 0,
         "filename": "/tmp/mpegts_1617977960_3.ts",
         "init_filename": null,
+        "extra_tags": [],
         "len": 340452
       },
       {
@@ -85,6 +95,7 @@
         "current_discontinuity": 0,
         "filename": "/tmp/mpegts_1617977985_5.ts",
         "init_filename": null,
+        "extra_tags": [],
         "len": 441000
       },
       {
@@ -93,6 +104,7 @@
         "current_discontinuity": 1,
         "filename": "/tmp/mpegts_1617977995_6.ts",
         "init_filename": null,
+        "extra_tags": [],
         "len": 386316
       }
     ]

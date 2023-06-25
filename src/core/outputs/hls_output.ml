@@ -69,6 +69,7 @@ let hls_proto frame_t =
              ([], Lang.bool_t),
              "Replay ID3 data on each segment to make sure new listeners \
               always start with fresh value. Enabled by default." );
+           ("extra_tags", ([], Lang.list_t Lang.string_t), "Extra tags");
            ( "video_size",
              ([], Lang.product_t Lang.int_t Lang.int_t),
              "Video size" );
@@ -80,6 +81,10 @@ let hls_proto frame_t =
         Lang.string_t,
         Some (Lang.string "stream.m3u8"),
         Some "Playlist name (m3u8 extension is recommended)." );
+      ( "extra_tags",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some "Extra tags to insert into the main playlist." );
       ( "prefix",
         Lang.string_t,
         Some (Lang.string ""),
@@ -153,13 +158,22 @@ type segment = {
   discontinuous : bool;
   current_discontinuity : int;
   filename : string;
+  segment_extra_tags : string list;
   mutable init_filename : string option;
   mutable out_channel : out_channel option;
   mutable len : int;
 }
 
 let json_of_segment
-    { id; discontinuous; current_discontinuity; filename; init_filename; len } =
+    {
+      id;
+      discontinuous;
+      current_discontinuity;
+      filename;
+      init_filename;
+      segment_extra_tags;
+      len;
+    } =
   `Assoc
     [
       ("id", `Int id);
@@ -168,6 +182,7 @@ let json_of_segment
       ("filename", `String filename);
       ( "init_filename",
         match init_filename with Some f -> `String f | None -> `Null );
+      ("extra_tags", `Tuple (List.map (fun s -> `String s) segment_extra_tags));
       ("len", `Int len);
     ]
 
@@ -179,8 +194,14 @@ let segment_of_json = function
         ("current_discontinuity", `Int current_discontinuity);
         ("filename", `String filename);
         ("init_filename", init_filename);
+        ("extra_tags", `Tuple segment_extra_tags);
         ("len", `Int len);
       ] ->
+      let segment_extra_tags =
+        List.map
+          (function `String t -> t | _ -> raise Invalid_state)
+          segment_extra_tags
+      in
       let init_filename =
         match init_filename with
           | `String f -> Some f
@@ -194,6 +215,7 @@ let segment_of_json = function
         filename;
         init_filename;
         len;
+        segment_extra_tags;
         out_channel = None;
       }
   | _ -> raise Invalid_state
@@ -229,6 +251,8 @@ type stream = {
   extname : string;
   id3_enabled : bool;
   replay_id3 : bool;
+  stream_extra_tags : string list;
+  mutable pending_extra_tags : string list Atomic.t;
   mutable metadata : metadata;
   mutable init_state : init_state;
   mutable init_position : int;
@@ -424,6 +448,15 @@ class hls_output p =
           | b -> b
           | exception Not_found -> true
       in
+      let stream_extra_tags =
+        match
+          List.map
+            (fun s -> String.trim (Lang.to_string s))
+            (Lang.to_list (List.assoc "extra_tags" stream_info))
+        with
+          | l -> l
+          | exception Not_found -> []
+      in
       {
         name;
         format;
@@ -434,6 +467,8 @@ class hls_output p =
         extname;
         id3_enabled;
         replay_id3;
+        stream_extra_tags;
+        pending_extra_tags = Atomic.make [];
         metadata = `None;
         init_state = `Todo;
         init_position = 0;
@@ -461,6 +496,11 @@ class hls_output p =
   let source = Lang.assoc "" 3 p in
   let main_playlist_filename = Lang.to_string (List.assoc "playlist" p) in
   let main_playlist_filename = directory ^^ main_playlist_filename in
+  let main_playlist_extra_tags =
+    List.map
+      (fun s -> String.trim (Lang.to_string s))
+      (Lang.to_list (List.assoc "extra_tags" p))
+  in
   let segments_per_playlist = Lang.to_int (List.assoc "segments" p) in
   let max_segments =
     segments_per_playlist + Lang.to_int (List.assoc "segments_overhead" p)
@@ -475,6 +515,7 @@ class hls_output p =
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
 
     val mutable streams = streams
+    method streams = streams
     val mutable current_position = (0, 0)
     val mutable state : hls_state = `Idle
 
@@ -557,6 +598,7 @@ class hls_output p =
           current_discontinuity = s.discontinuity_count;
           len = 0;
           filename;
+          segment_extra_tags = Atomic.get s.pending_extra_tags;
           init_filename =
             (match s.init_state with `Has_init f -> Some f | _ -> None);
           out_channel = Some out_channel;
@@ -564,6 +606,7 @@ class hls_output p =
       in
       s.current_segment <- Some segment;
       s.position <- s.position + 1;
+      Atomic.set s.pending_extra_tags [];
       if s.id3_enabled then (
         let m =
           match s.metadata with
@@ -631,6 +674,11 @@ class hls_output p =
       output_string oc
         (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n"
            discontinuity_sequence);
+      List.iter
+        (fun tag ->
+          output_string oc tag;
+          output_string oc "\r\n")
+        s.stream_extra_tags;
       List.iteri
         (fun pos segment ->
           if segment.discontinuous then
@@ -648,6 +696,11 @@ class hls_output p =
           output_string oc
             (Printf.sprintf "#EXTINF:%.03f,\r\n"
                (Frame.seconds_of_main segment.len));
+          List.iter
+            (fun tag ->
+              output_string oc tag;
+              output_string oc "\r\n")
+            segment.segment_extra_tags;
           output_string oc
             (Printf.sprintf "%s%s\r\n" prefix
                (Filename.basename segment.filename)))
@@ -664,6 +717,11 @@ class hls_output p =
         output_string oc "#EXTM3U\r\n";
         output_string oc
           (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (Lazy.force x_version));
+        List.iter
+          (fun tag ->
+            output_string oc tag;
+            output_string oc "\r\n")
+          main_playlist_extra_tags;
         List.iter
           (fun s ->
             let line =
@@ -728,11 +786,16 @@ class hls_output p =
       let streams =
         `Tuple
           (List.map
-             (fun { name; position; discontinuity_count } ->
+             (fun { name; position; discontinuity_count; pending_extra_tags } ->
                `Assoc
                  [
                    ("name", `String name);
                    ("position", `Int position);
+                   ( "pending_extra_tags",
+                     `Tuple
+                       (List.map
+                          (fun s -> `String s)
+                          (Atomic.get pending_extra_tags)) );
                    ("discontinuity_count", `Int discontinuity_count);
                  ])
              streams)
@@ -762,9 +825,15 @@ class hls_output p =
                 [
                   ("name", `String name);
                   ("position", `Int position);
+                  ("pending_extra_tags", `Tuple pending_extra_tags);
                   ("discontinuity_count", `Int discontinuity_count);
                 ] ->
-                (name, position, discontinuity_count)
+                let pending_extra_tags =
+                  List.map
+                    (function `String s -> s | _ -> raise Invalid_state)
+                    pending_extra_tags
+                in
+                (name, position, pending_extra_tags, discontinuity_count)
             | _ -> raise Invalid_state)
           (match saved_streams with `Tuple l -> l | _ -> raise Invalid_state)
       in
@@ -780,8 +849,9 @@ class hls_output p =
           | _ -> raise Invalid_state
       in
       List.iter2
-        (fun stream (name, pos, discontinuity_count) ->
+        (fun stream (name, pos, pending_extra_tags, discontinuity_count) ->
           assert (name = stream.name);
+          Atomic.set stream.pending_extra_tags pending_extra_tags;
           stream.discontinuity_count <- discontinuity_count;
           stream.init_position <- pos;
           stream.position <- pos + 1)
@@ -823,6 +893,7 @@ class hls_output p =
               with Encoder.Not_enough_data -> (None, Strings.empty))
             else if
               (s.id3_enabled && pending_metadata s.metadata)
+              || Atomic.get s.pending_extra_tags <> []
               || segment.len + len > segment_main_duration
             then (
               match Encoder.(s.encoder.hls.split_encode frame ofs len) with
@@ -853,10 +924,78 @@ class hls_output p =
       List.iter (fun s -> s.metadata <- `Todo m) streams
   end
 
+let stream_t kind =
+  Lang.record_t
+    [
+      ("name", Lang.string_t);
+      ("encoder", Lang.format_t kind);
+      ( "video_size",
+        Lang.nullable_t
+          (Lang.record_t [("width", Lang.int_t); ("height", Lang.int_t)]) );
+      ("bandwidth", Lang.int_t);
+      ("codecs", Lang.string_t);
+      ("extname", Lang.string_t);
+      ("id3_enabled", Lang.bool_t);
+      ("replay_id3", Lang.bool_t);
+      ("extra_tags", Lang.list_t Lang.string_t);
+      ("discontinuity_count", Lang.int_t);
+      ("insert_tag", Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t);
+    ]
+
+let value_of_stream
+    {
+      name;
+      format;
+      video_size;
+      bandwidth;
+      codecs;
+      extname;
+      id3_enabled;
+      replay_id3;
+      stream_extra_tags;
+      discontinuity_count;
+      pending_extra_tags;
+    } =
+  Lang.record
+    [
+      ("name", Lang.string name);
+      ("encoder", Lang_encoder.L.format format);
+      ( "video_size",
+        match Lazy.force video_size with
+          | None -> Lang.null
+          | Some (w, h) ->
+              Lang.record [("width", Lang.int w); ("height", Lang.int h)] );
+      ("bandwidth", Lang.int (Lazy.force bandwidth));
+      ("codecs", Lang.string (Lazy.force codecs));
+      ("extname", Lang.string extname);
+      ("id3_enabled", Lang.bool id3_enabled);
+      ("replay_id3", Lang.bool replay_id3);
+      ("extra_tags", Lang.list (List.map Lang.string stream_extra_tags));
+      ("discontinuity_count", Lang.int discontinuity_count);
+      ( "insert_tag",
+        Lang.val_fun
+          [("", "", None)]
+          (fun p ->
+            let tag = String.trim (Lang.to_string (List.assoc "" p)) in
+            Atomic.set pending_extra_tags (tag :: Atomic.get pending_extra_tags);
+            Lang.unit) );
+    ]
+
 let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:Pipe_output.output_file "hls" (hls_proto return_t)
-    ~return_t ~category:`Output ~meth:Output.meth
+    ~return_t ~category:`Output
+    ~meth:
+      ([
+         ( "streams",
+           ([], Lang.fun_t [] (Lang.list_t (stream_t return_t))),
+           "Output streams",
+           fun s ->
+             Lang.val_fun [] (fun _ ->
+                 Lang.list (List.map value_of_stream s#streams)) );
+       ]
+      @ Start_stop.meth ())
     ~descr:
       "Output the source stream to an HTTP live stream served from a local \
-       directory." (fun p -> (new hls_output p :> Output.output))
+       directory."
+    (fun p -> new hls_output p)
