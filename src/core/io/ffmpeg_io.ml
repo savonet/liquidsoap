@@ -147,6 +147,14 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                streams
                (Av.get_input_metadata input))
         in
+        let last_meta = ref [] in
+        let get_metadata () =
+          let m = get_metadata () in
+          if m <> !last_meta then (
+            last_meta := m;
+            m)
+          else []
+        in
         on_connect input;
         Atomic.set container
           (Some { input; decoder; buffer; get_metadata; closed });
