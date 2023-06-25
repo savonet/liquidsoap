@@ -79,6 +79,7 @@
     imagelib
     inotify
     irc-client-unix
+    jemalloc
     ladspa
     lame
     lastfm

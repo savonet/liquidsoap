@@ -99,6 +99,7 @@ let build_config =
    - FFmpeg devices    : %{Ffmpeg_option.detected}
    - inotify           : %{Inotify_option.detected}
    - irc               : %{Irc_option.detected}
+   - jemalloc          : %{Jemalloc_option.detected}
    - lastfm            : %{Lastfm_option.detected}
    - lo                : %{Lo_option.detected}
    - magic             : %{Magic_option.detected}
