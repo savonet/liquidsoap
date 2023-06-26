@@ -228,7 +228,6 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
   in
   match tm.term with
-    | Any -> mk Value.Null
     | Ground g -> mk (Value.Ground g)
     | Encoder (e, p) ->
         let pos = tm.t.Type.pos in

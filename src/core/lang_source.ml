@@ -487,7 +487,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
         | Term.Ground _ | Term.Encoder _ -> ()
         | Term.List l -> List.iter (iter_term env) l
         | Term.Tuple l -> List.iter (iter_term env) l
-        | Term.Any | Term.Null -> ()
+        | Term.Null -> ()
         | Term.Cast (a, _) -> iter_term env a
         | Term.Invoke { Term.invoked = a } -> iter_term env a
         | Term.Open (a, b) ->
