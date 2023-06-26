@@ -134,7 +134,7 @@ let includer ~pwd tokenizer =
                to the user. *)
             let tokenizer = mk_tokenizer ~fname lexbuf in
             Stack.push
-              { tokenizer; path = Filename.dirname fname; channel }
+              { tokenizer; path = Filename.dirname resolved_fname; channel }
               stack;
             token ()
           with Skip_optional -> token ())
