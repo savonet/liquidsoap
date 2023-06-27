@@ -105,8 +105,10 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
                     in
                     f ()
                   with e ->
-                    self#log#severe "Error while reading from client: %s"
-                      (Printexc.to_string e);
+                    let bt = Printexc.get_backtrace () in
+                    Utils.log_exception ~log:self#log ~bt
+                      (Printf.sprintf "Error while reading from client: %s"
+                         (Printexc.to_string e));
                     self#disconnect ~lock:false;
                     0))
             buf len

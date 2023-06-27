@@ -502,9 +502,11 @@ class output p =
                   ~charset:(Charset.to_string out_enc)
                   connection icy_meta
               with e ->
-                self#log#important
-                  "Metadata update may have failed with error: %s"
-                  (Printexc.to_string e))
+                let bt = Printexc.get_backtrace () in
+                Utils.log_exception ~log:self#log ~bt
+                  (Printf.sprintf
+                     "Metadata update may have failed with error: %s"
+                     (Printexc.to_string e)))
           | Cry.Disconnected -> ())
       else (
         (* Encoder is not always present.. *)
