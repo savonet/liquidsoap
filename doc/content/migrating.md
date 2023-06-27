@@ -180,6 +180,7 @@ output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 ### Other breaking changes
 
 - `request.duration` now returns a `nullable` float, `null` being value returned when the request duration could not be computed.
+- `getenv` (resp. `setenv`) has been renamed to `environment.get` (resp. `environment.set`).
 
 ## From 2.0.x to 2.1.x
 
