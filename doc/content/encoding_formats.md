@@ -4,7 +4,7 @@ Encoders are used to define formats into which raw sources should be encoded by
 an output. Syntax for encoder is: `%encoder(parameters...)` or, if you use
 default parameters, `%encoder`.
 
-Please not that not all encoding formats are available at all time. Most of
+Please note that not all encoding formats are available at all time. Most of
 them require optional dependencies. If a format is not available, you should see
 an error like this:
 
