@@ -140,7 +140,9 @@ def source.say_metadata =
       else
         ""
       end
-    "say:#{artist_predicate}#{title}"
+    say_metadata = "#{artist_predicate}#{title}"
+    say_metadata = r/:/g.replace(fun (_) -> '$(colon)', say_metadata)
+    "say:#{say_metadata}"
   end
   fun (~id=null("source.say_metadata"), ~pattern=pattern, s) ->
     append(id=id, s, fun (m) -> once(single(pattern(m))))
