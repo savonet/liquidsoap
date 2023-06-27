@@ -4,6 +4,19 @@ Encoders are used to define formats into which raw sources should be encoded by
 an output. Syntax for encoder is: `%encoder(parameters...)` or, if you use
 default parameters, `%encoder`.
 
+Please not that not all encoding formats are available at all time. Most of
+them require optional dependencies. If a format is not available, you should see
+an error like this:
+
+```shell
+Error 12: Unsupported encoder: %sine().
+You must be missing an optional dependency.
+```
+
+In particular, due to limitations with static linking on windows, only the
+`%ffmpeg` encoder is available with our windows build. However, this encoder provides
+a lot of codecs and formats, and it is quite likely that it can provide what you need.
+
 ## Formats determine the stream content
 
 In most liquidsoap scripts, the encoding format determines what
