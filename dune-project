@@ -46,7 +46,7 @@
 (package
   (name liquidsoap-core)
   (depends
-    (ocaml (and (>= 4.14.0) (< 5.0.0)))
+    (ocaml (>= 4.14.0))
     (dtools (>= 0.4.5))
     (duppy (>= 0.9.1))
     (mm (>= 0.8.4))

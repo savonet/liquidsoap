@@ -647,7 +647,6 @@ let _ =
                   config
               in
               Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
-              init_graph graph;
               List.hd Avfilter.(_abuffer.io.outputs.audio))
          in
 
@@ -782,7 +781,6 @@ let _ =
                   config
               in
               Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
-              init_graph graph;
               List.hd Avfilter.(_buffer.io.outputs.video))
          in
 
@@ -920,6 +918,5 @@ let _ =
                  set_output output)
                filter.outputs.video)))
         graph.init;
-      init_graph graph;
       graph.config <- None;
       ret)
