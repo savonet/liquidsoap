@@ -72,7 +72,7 @@ def enable_replaygain_metadata()
       else
         []
       end
-    #end
+    end
   end
   decoder.metadata.add("replaygain_track_gain", replaygain_metadata)
 end
