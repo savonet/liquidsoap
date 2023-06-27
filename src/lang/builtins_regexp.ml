@@ -141,7 +141,14 @@ let exec_fun regexp =
                        (Lang_core.string value))
                    groups) );
           ]
-      with Not_found -> Lang_core.list [])
+      with
+        | Not_found -> Lang_core.list []
+        | exn ->
+            Runtime_error.raise ~pos:(Lang_core.pos p)
+              ~message:
+                (Printf.sprintf "Error while executing regular exception: %s"
+                   (Printexc.to_string exn))
+              "string")
 
 let replace_t =
   Lang_core.fun_t
@@ -158,9 +165,6 @@ let replace_fun regexp =
     [("", "", None); ("", "", None)]
     (fun p ->
       let subst = Lang_core.assoc "" 1 p in
-      let pos =
-        match subst.Lang_core.pos with Some pos -> [pos] | None -> []
-      in
       let subst s =
         let ret = Lang_core.apply subst [("", Lang_core.string s)] in
         Lang_core.to_string ret
@@ -171,9 +175,9 @@ let replace_fun regexp =
         with exn ->
           Runtime_error.raise
             ~message:
-              (Printf.sprintf "string.replace error: %s"
+              (Printf.sprintf "Error ehile executing regular expression: %s"
                  (Printexc.to_string exn))
-            ~pos "string"
+            ~pos:(Lang_core.pos p) "string"
       in
       Lang_core.string string)
 

@@ -20,9 +20,10 @@
 
  *****************************************************************************)
 
+let id3v2 = Lang.add_module ~base:Modules.metadata "id3v2"
+
 let _ =
-  Lang.add_builtin ~base:Liquidsoap_lang.Builtins_string.string "id3v2"
-    ~category:`String
+  Lang.add_builtin ~base:id3v2 "render" ~category:`String
     ~descr:"Return a string representation of a id3v2 metadata tag"
     [
       ("", Lang.metadata_t, None, None);

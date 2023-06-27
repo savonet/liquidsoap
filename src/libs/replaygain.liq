@@ -6,7 +6,6 @@
 # @param ~ebu_r128 Also amplify according to EBU R128 tags.
 # @param s Source to be amplified.
 def replaygain(~id=null(), ~ebu_r128=true, s)
-  s = insert_metadata(s)
   # Normalize opus gain
   def f(m)
     def f(m)
@@ -31,17 +30,26 @@ end
 # @param fname File name.
 def file.replaygain(~id=null(), fname)
   id = string.id.default(default="file.replaygain", id)
-  r = request.create(resolve_metadata=false, fname)
-  if request.resolve(r) then
-    log.info(label=id, "Computing replay gain for #{fname}.")
-    t = time()
-    s = source.replaygain.compute(request.once(r))
-    source.drop(s)
-    gain = s.gain()
-    log.info(label=id, "Computed replay gain for #{fname}: #{gain} dB (in #{time() - t} s).")
+  try
+    meta = file.metadata(exclude=["replaygain_track_gain"], fname)
+    replaygain_meta = meta["replaygain_track_gain"]
+    match = r/([\+\-\d\.]+)\s*dB/i.exec(replaygain_meta)
+    gain = float_of_string(list.assoc(1, match))
+    log.important(label=id, "Detected track replaygain #{gain} dB for #{string.quote(fname)}")
     gain
-  else
-    null()
+  catch _ do
+    r = request.create(resolve_metadata=false, fname)
+    if request.resolve(r) then
+      log.important(label=id, "Computing replay gain for #{string.quote(fname)}")
+      t = time()
+      s = source.replaygain.compute(request.once(r))
+      source.drop(s)
+      gain = s.gain()
+      log.important(label=id, "Computed replay gain #{gain} dB for #{string.quote(fname)} (time: #{time() - t} s).")
+      gain
+    else
+      null()
+    end
   end
 end
 
@@ -55,16 +63,16 @@ def enable_replaygain_metadata()
     meta = file.metadata(exclude=["replaygain_track_gain"], fname)
     replaygain_meta = meta["replaygain_track_gain"]
     if replaygain_meta != "" then
-      log.info(label="decoder.replaygain.metadata", "Detected replaygain metadata: #{replaygain_meta}")
+      log.important(label="decoder.replaygain.metadata", "Detected replaygain metadata #{replaygain_meta} for #{string.quote(fname)}")
       [("replaygain_track_gain", replaygain_meta)]
     else
-      gain = file.replaygain(id="decoder.replaygain.metadata", fname)
+      gain = file.replaygain(fname)
       if null.defined(gain) then
         [("replaygain_track_gain","#{null.get(gain)} dB")]
       else
         []
       end
-    end
+    #end
   end
   decoder.metadata.add("replaygain_track_gain", replaygain_metadata)
 end
