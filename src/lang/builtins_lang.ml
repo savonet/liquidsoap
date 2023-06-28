@@ -136,7 +136,7 @@ let _ =
 
 let liquidsoap = Modules.liquidsoap
 
-let _ =
+let liquidsoap_version =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"Liquidsoap version string." ~base:liquidsoap "version"
     Lang.(Ground (Ground.String Build_config.version))
@@ -159,8 +159,6 @@ let _ =
     "exe_ext"
     Lang.(Ground (Ground.String Build_config.ext_exe))
     Lang.string_t
-
-let liquidsoap_version = Lang.add_module ~base:liquidsoap "version"
 
 let _ =
   Lang.add_builtin ~category:`Liquidsoap
