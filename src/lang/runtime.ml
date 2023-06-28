@@ -353,7 +353,7 @@ let interactive () =
             false
         | Error -> true
         | e ->
-            let e = Console.colorize [`white; `bold] (Printexc.to_string e) in
+            let e = Console.colorize [`bold] (Printexc.to_string e) in
             Format.printf "Exception: %s!@." e;
             true
     then loop ()
