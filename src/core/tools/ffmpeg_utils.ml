@@ -260,10 +260,13 @@ let mk_hardware_context ~hwaccel ~hwaccel_pixel_format ~hwaccel_device ~opts
               codec_name
         | _ -> ())
       (Avcodec.hw_configs codec);
-    Lang_encoder.raise_error ~pos:None
-      (Printf.sprintf
-         "No suitable hardware acceleration method found for codec %s!"
-         codec_name)
+    if hwaccel <> `Auto && hwaccel <> `Auto then
+      Lang_encoder.raise_error ~pos:None
+        (Printf.sprintf
+           "No suitable hardware acceleration method %S found for codec %s!"
+           (Ffmpeg_format.string_of_hwaccel hwaccel)
+           codec_name);
+    no_hardware_context
   with Found v -> v
 
 module Duration = struct
