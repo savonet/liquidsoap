@@ -280,6 +280,7 @@ let ffmpeg_gen params =
       pixel_format = None;
       hwaccel = `Auto;
       hwaccel_device = None;
+      hwaccel_pixel_format = None;
     }
   in
 
@@ -375,6 +376,18 @@ let ffmpeg_gen params =
     | ("hwaccel_device", t) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel_device = Some (to_string t) }
+          args
+    | ("hwaccel_pixel_format", { value = Ground (String "guess"); _ }) :: args
+      ->
+        parse_video_args ~opts
+          { options with Ffmpeg_format.hwaccel_pixel_format = None }
+          args
+    | ("hwaccel_pixel_format", t) :: args ->
+        parse_video_args ~opts
+          {
+            options with
+            Ffmpeg_format.hwaccel_pixel_format = Some (to_string t);
+          }
           args
     | arg :: args ->
         parse_opts opts arg;

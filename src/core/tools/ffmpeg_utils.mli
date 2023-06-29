@@ -44,6 +44,7 @@ val convert_time_base :
 
 val mk_hardware_context :
   hwaccel:Ffmpeg_format.hwaccel ->
+  hwaccel_pixel_format:Avutil.Pixel_format.t option ->
   hwaccel_device:string option ->
   opts:Avutil.opts ->
   target_pixel_format:Avutil.Pixel_format.t ->

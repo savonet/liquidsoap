@@ -335,10 +335,15 @@ let mk_video ~pos ~mode ~codec ~params ~options ~field output =
 
   let hwaccel = params.Ffmpeg_format.hwaccel in
   let hwaccel_device = params.Ffmpeg_format.hwaccel_device in
+  let hwaccel_pixel_format =
+    Option.map Avutil.Pixel_format.of_string
+      params.Ffmpeg_format.hwaccel_pixel_format
+  in
 
   let hardware_context, stream_pixel_format =
-    Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_device ~opts
-      ~target_pixel_format ~target_width ~target_height codec
+    Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_pixel_format
+      ~hwaccel_device ~opts ~target_pixel_format ~target_width ~target_height
+      codec
   in
 
   let stream =

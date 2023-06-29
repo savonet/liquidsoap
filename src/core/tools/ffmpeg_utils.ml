@@ -123,8 +123,8 @@ let convert_time_base ~src ~dst pts =
 exception
   Found of (Avcodec.Video.hardware_context option * Avutil.Pixel_format.t)
 
-let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
-    ~target_width ~target_height codec =
+let mk_hardware_context ~hwaccel ~hwaccel_pixel_format ~hwaccel_device ~opts
+    ~target_pixel_format ~target_width ~target_height codec =
   let codec_name = Avcodec.name codec in
   let no_hardware_context = (None, target_pixel_format) in
   try
@@ -138,39 +138,61 @@ let mk_hardware_context ~hwaccel ~hwaccel_device ~opts ~target_pixel_format
               hw_configs))
     in
     find `Internal (fun _ ->
-        (* Setting a hwaccel_device explicitly disables this method. *)
-        if hwaccel_device = None && hwaccel <> `None then (
-          log#info
+        (* Setting a hwaccel_device or pixel_format explicitly disables this method. *)
+        if
+          hwaccel_pixel_format = None
+          && hwaccel_device = None && hwaccel <> `None
+        then (
+          log#important
             "Codec %s has internal hardware capabilities that should work \
              without specific settings."
             codec_name;
           raise (Found (None, target_pixel_format))));
     find `Hw_device_ctx (fun { Avcodec.device_type; _ } ->
-        log#info
-          "Codec %s has device context-based hardware capabilities. Enabling \
-           it.."
-          codec_name;
-        let device_context =
-          Avutil.HwContext.create_device_context ?device:hwaccel_device ~opts
-            device_type
-        in
-        raise
-          (Found (Some (`Device_context device_context), target_pixel_format)));
+        (* Setting a hwaccel_pixel_format explicitly disables this method. *)
+        if hwaccel_pixel_format = None then (
+          log#important
+            "Codec %s has device context-based hardware capabilities. Enabling \
+             it.."
+            codec_name;
+          let device_context =
+            Avutil.HwContext.create_device_context ?device:hwaccel_device ~opts
+              device_type
+          in
+          raise
+            (Found (Some (`Device_context device_context), target_pixel_format))));
     find `Hw_frames_ctx (fun { Avcodec.device_type; pixel_format; _ } ->
-        log#info
-          "Codec %s has frame context-based hardware cabilities. Enabling it.."
-          codec_name;
-        let device_context =
-          Avutil.HwContext.create_device_context ?device:hwaccel_device ~opts
-            device_type
-        in
-        let frame_context =
-          Avutil.HwContext.create_frame_context ~width:target_width
-            ~height:target_height ~src_pixel_format:target_pixel_format
-            ~dst_pixel_format:pixel_format device_context
-        in
-        raise (Found (Some (`Frame_context frame_context), pixel_format)));
-    no_hardware_context
+        if
+          hwaccel_pixel_format = None
+          || hwaccel_pixel_format = Some pixel_format
+        then (
+          log#important
+            "Codec %s has frame context-based hardware cabilities for \
+             hwaccel_pixel_format %s. Enabling it.."
+            codec_name
+            Avutil.Pixel_format.((descriptor pixel_format).name);
+          let device_context =
+            Avutil.HwContext.create_device_context ?device:hwaccel_device ~opts
+              device_type
+          in
+          let frame_context =
+            Avutil.HwContext.create_frame_context ~width:target_width
+              ~height:target_height ~src_pixel_format:target_pixel_format
+              ~dst_pixel_format:pixel_format device_context
+          in
+          raise (Found (Some (`Frame_context frame_context), pixel_format)));
+        if hwaccel_pixel_format <> None then
+          log#important
+            "Codec %s has frame context-based hardware cabilities for \
+             hwaccel_pixel_format %s but hwaccel_pixel_format %s is selected."
+            codec_name
+            Avutil.Pixel_format.((descriptor pixel_format).name)
+            Avutil.Pixel_format.(
+              (descriptor (Option.get hwaccel_pixel_format)).name));
+    Lang_encoder.raise_error ~pos:None
+      (Printf.sprintf
+         "No suitable hardware acceleration method found for codec %s!"
+         codec_name)
   with Found v -> v
 
 module Duration = struct

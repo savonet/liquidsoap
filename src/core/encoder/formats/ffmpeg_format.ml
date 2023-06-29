@@ -42,6 +42,7 @@ type video_options = {
   pixel_format : string option;
   hwaccel : hwaccel;
   hwaccel_device : string option;
+  hwaccel_pixel_format : string option;
 }
 
 type options = [ `Audio of audio_options | `Video of video_options ]
