@@ -26,7 +26,14 @@ type opt_val =
 type copy_opt = [ `Wait_for_keyframe | `Ignore_keyframe ]
 type output = [ `Stream | `Url of string ]
 type opts = (string, opt_val) Hashtbl.t
-type hwaccel = [ `None | `Auto ]
+type hwaccel = [ `None | `Auto | `Internal | `Device | `Frame ]
+
+let string_of_hwaccel = function
+  | `None -> "none"
+  | `Auto -> "auto"
+  | `Internal -> "internal"
+  | `Device -> "device"
+  | `Frame -> "frame"
 
 type audio_options = {
   pcm_kind : Content.kind;
@@ -120,10 +127,7 @@ let to_string m =
               Hashtbl.add stream_opts "height"
                 (`Int (Lazy.force options.height));
               Hashtbl.add stream_opts "hwaccel"
-                (`Var
-                  (match options.hwaccel with
-                    | `None -> "none"
-                    | `Auto -> "auto"));
+                (`Var (string_of_hwaccel options.hwaccel));
               Hashtbl.add stream_opts "hwaccel_device"
                 (match options.hwaccel_device with
                   | None -> `Var "none"

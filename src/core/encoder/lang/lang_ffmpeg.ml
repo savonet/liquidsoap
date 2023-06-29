@@ -369,6 +369,18 @@ let ffmpeg_gen params =
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel = `None }
           args
+    | ("hwaccel", { value = Ground (String "internal"); _ }) :: args ->
+        parse_video_args ~opts
+          { options with Ffmpeg_format.hwaccel = `Internal }
+          args
+    | ("hwaccel", { value = Ground (String "device"); _ }) :: args ->
+        parse_video_args ~opts
+          { options with Ffmpeg_format.hwaccel = `Device }
+          args
+    | ("hwaccel", { value = Ground (String "frame"); _ }) :: args ->
+        parse_video_args ~opts
+          { options with Ffmpeg_format.hwaccel = `Frame }
+          args
     | ("hwaccel_device", { value = Ground (String "none"); _ }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel_device = None }
