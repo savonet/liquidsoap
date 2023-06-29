@@ -472,7 +472,8 @@ let file_metadata =
             if List.mem name exclude then failwith "excluded!";
             let m = decoder ~metadata:(Hashtbl.create 0) uri in
             List.iter
-              (fun (k, v) -> Hashtbl.add metadata (String.lowercase_ascii k) v)
+              (fun (k, v) ->
+                Hashtbl.replace metadata (String.lowercase_ascii k) v)
               m
           with _ -> ());
       Lang.metadata metadata)
