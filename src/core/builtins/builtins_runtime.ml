@@ -30,6 +30,42 @@ let _ =
       Lang.unit)
 
 let _ =
+  Lang.add_builtin ~base:runtime_gc "minor" ~category:`Liquidsoap
+    ~descr:"Trigger full minor garbage collection." [] Lang.unit_t (fun _ ->
+      Gc.minor ();
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:runtime_gc "major_slice" ~category:`Liquidsoap
+    ~descr:
+      "Do a minor collection and a slice of major collection. The optional \
+       argument `n` is the size of the slice: the GC will do enough work to \
+       free (on average) `n` words of memory. If `0` (its default), the GC \
+       will try to do enough work to ensure that the next automatic slice has \
+       no work to do."
+    [("", Lang.int_t, Some (Lang.int 0), Some "Size of the slice")]
+    Lang.unit_t
+    (fun p ->
+      ignore (Gc.major_slice (Lang.to_int (List.assoc "" p)));
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:runtime_gc "major" ~category:`Liquidsoap
+    ~descr:
+      "Trigger a minor collection and finish the current major collection \
+       cycle.." [] Lang.unit_t (fun _ ->
+      Gc.major ();
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:runtime_gc "compact" ~category:`Liquidsoap
+    ~descr:
+      "Perform a full major collection and compact the heap. Note that heap \
+       compaction is a lengthy operation." [] Lang.unit_t (fun _ ->
+      Gc.major ();
+      Lang.unit)
+
+let _ =
   let stat_t =
     Lang.record_t
       [
