@@ -62,7 +62,7 @@ let _ =
     ~descr:
       "Perform a full major collection and compact the heap. Note that heap \
        compaction is a lengthy operation." [] Lang.unit_t (fun _ ->
-      Gc.major ();
+      Gc.compact ();
       Lang.unit)
 
 let _ =
