@@ -878,6 +878,26 @@
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
+  (target memory.html)
+  (action (run cp %{no_pandoc} %{target})))
+
+(rule
+  (alias doc)
+  (enabled_if %{bin-available:pandoc})
+  (deps
+    liquidsoap.xml
+    language.dtd
+    template.html
+    (:md content/memory.md))
+  (target memory.html)
+  (action
+    (ignore-outputs
+      (run pandoc --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=memory --template=template.html -o %{target}))))
+
+(rule
+  (alias doc)
+  (enabled_if (not %{bin-available:pandoc}))
+  (deps (:no_pandoc no-pandoc))
   (target metadata.html)
   (action (run cp %{no_pandoc} %{target})))
 
@@ -1600,6 +1620,7 @@
 (json.html as html/json.html)
 (ladspa.html as html/ladspa.html)
 (language.html as html/language.html)
+(memory.html as html/memory.html)
 (metadata.html as html/metadata.html)
 (migrating.html as html/migrating.html)
 (multitrack.html as html/multitrack.html)
