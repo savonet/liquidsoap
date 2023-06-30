@@ -44,6 +44,8 @@ echo "::group::Installing deps"
 eval "$(opam config env)"
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
+git pull
+opam update windows
 # shellcheck disable=SC2046
 opam remove -y ppx_tools_versioned-windows $(echo "$OPAM_DEPS" | sed -e 's#,# #g')
 # shellcheck disable=SC2046

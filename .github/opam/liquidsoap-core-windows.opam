@@ -25,8 +25,8 @@ depends: [
   "mm-windows" {>= "0.8.1"}
   "pcre-windows" {>= "7.5.0"}
   "cry-windows" {>= "1.0.0"}
-  "sedlex"
-  "sedlex-windows"
+  "sedlex" {>= "3.2"}
+  "sedlex-windows" {>= "3.2"}
   "menhir"
   "menhir-windows"
   "menhirLib-windows"
