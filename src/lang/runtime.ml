@@ -65,7 +65,7 @@ let strict = ref false
 let throw ?(formatter = Format.std_formatter) lexbuf =
   let print_error ~formatter idx error =
     flush_all ();
-    let pos = Sedlexing.lexing_positions lexbuf in
+    let pos = Sedlexing.lexing_bytes_positions lexbuf in
     error_header ~formatter idx (Some pos);
     Format.fprintf formatter "%s\n@]@." error
   in

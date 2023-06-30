@@ -4,7 +4,7 @@ include Json_base
 type pos = Lexing.position * Lexing.position
 
 let sedlexing_error ~pos ~message lexbuf =
-  let lexbuf_position = Sedlexing.lexing_positions lexbuf in
+  let lexbuf_position = Sedlexing.lexing_bytes_positions lexbuf in
   let message =
     Printf.sprintf "In json data %s: %s" (Pos.to_string lexbuf_position) message
   in
@@ -28,7 +28,7 @@ let from_string ?(pos = []) ?(json5 = false) s =
       if json5 then Json_lexer.json5_token lexbuf
       else Json_lexer.json_token lexbuf
     in
-    let startp, endp = Sedlexing.lexing_positions lexbuf in
+    let startp, endp = Sedlexing.lexing_bytes_positions lexbuf in
     (token, startp, endp)
   in
   try processor tokenizer with

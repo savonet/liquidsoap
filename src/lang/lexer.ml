@@ -141,13 +141,13 @@ let rec token lexbuf =
     | skipped -> token lexbuf
     | Star white_space, '#', '<' ->
         let buf = Buffer.create 1024 in
-        let pos = Sedlexing.lexing_positions lexbuf in
+        let pos = Sedlexing.lexing_bytes_positions lexbuf in
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_multiline_comment pos buf lexbuf;
         PP_COMMENT (Regexp.split (Regexp.regexp "\n") (Buffer.contents buf))
     | "#", Star white_space ->
         let buf = Buffer.create 1024 in
-        let pos = Sedlexing.lexing_positions lexbuf in
+        let pos = Sedlexing.lexing_bytes_positions lexbuf in
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_comment pos buf lexbuf;
         PP_COMMENT (Regexp.split (Regexp.regexp "\n") (Buffer.contents buf))
@@ -312,25 +312,25 @@ let rec token lexbuf =
         INTERVAL (parse_time t1, parse_time t2)
     | var -> VAR (Sedlexing.Utf8.lexeme lexbuf)
     | '"' ->
-        let startp, _ = Sedlexing.lexing_positions lexbuf in
+        let startp, _ = Sedlexing.lexing_bytes_positions lexbuf in
         let s = read_string '"' startp (Buffer.create 17) lexbuf in
-        let _, endp = Sedlexing.lexing_positions lexbuf in
+        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
         PP_STRING (s, (startp, endp))
     | '\'' ->
-        let startp, _ = Sedlexing.lexing_positions lexbuf in
+        let startp, _ = Sedlexing.lexing_bytes_positions lexbuf in
         let s = read_string '\'' startp (Buffer.create 17) lexbuf in
-        let _, endp = Sedlexing.lexing_positions lexbuf in
+        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
         PP_STRING (s, (startp, endp))
     | "r/" ->
-        let startp, _ = Sedlexing.lexing_positions lexbuf in
+        let startp, _ = Sedlexing.lexing_bytes_positions lexbuf in
         let regexp = read_string '/' startp (Buffer.create 17) lexbuf in
         let flags = read_regexp_flags [] lexbuf in
-        let _, endp = Sedlexing.lexing_positions lexbuf in
+        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
         PP_REGEXP (regexp, flags, (startp, endp))
     | any ->
         raise
           (Term.Parse_error
-             ( Sedlexing.lexing_positions lexbuf,
+             ( Sedlexing.lexing_bytes_positions lexbuf,
                "Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf ))
     | _ -> failwith "Internal error"
 
@@ -450,7 +450,7 @@ and read_string c pos buf lexbuf =
     | '\\', any ->
         if c <> '/' then (
           let pos =
-            Pos.to_string (pos, snd (Sedlexing.lexing_positions lexbuf))
+            Pos.to_string (pos, snd (Sedlexing.lexing_bytes_positions lexbuf))
           in
           Printf.printf
             "Warning at position %s: illegal backslash escape in string.\n" pos);
@@ -472,7 +472,8 @@ and read_string c pos buf lexbuf =
           else "String is not terminated"
         in
         raise
-          (Term.Parse_error ((pos, snd (Sedlexing.lexing_positions lexbuf)), msg))
+          (Term.Parse_error
+             ((pos, snd (Sedlexing.lexing_bytes_positions lexbuf)), msg))
     | _ ->
         let msg =
           if c = '/' then "Illegal regexp character: "
@@ -480,5 +481,5 @@ and read_string c pos buf lexbuf =
         in
         raise
           (Term.Parse_error
-             ( (pos, snd (Sedlexing.lexing_positions lexbuf)),
+             ( (pos, snd (Sedlexing.lexing_bytes_positions lexbuf)),
                msg ^ Sedlexing.Utf8.lexeme lexbuf ))

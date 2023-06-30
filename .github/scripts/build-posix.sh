@@ -31,8 +31,6 @@ cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
-opam pin -y git+https://github.com/ocaml-community/sedlex
-
 cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES

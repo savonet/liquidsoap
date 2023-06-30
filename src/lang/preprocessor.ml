@@ -28,7 +28,7 @@ let mk_tokenizer ?(fname = "") lexbuf =
     match Lexer.token lexbuf with
       | Parser.PP_STRING (s, pos) -> (Parser.STRING s, pos)
       | Parser.PP_REGEXP (r, flags, pos) -> (Parser.REGEXP (r, flags), pos)
-      | token -> (token, Sedlexing.lexing_positions lexbuf)
+      | token -> (token, Sedlexing.lexing_bytes_positions lexbuf)
 
 (* The Lang_lexer is not quite enough for our needs, so we first define
    convenient layers between it and the parser. First a pre-processor which
