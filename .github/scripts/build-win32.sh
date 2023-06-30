@@ -44,6 +44,7 @@ echo "::group::Installing deps"
 eval "$(opam config env)"
 opam repository set-url default https://github.com/ocaml/opam-repository.git
 cd /home/opam/opam-cross-windows/
+git reset --hard origin main
 git pull
 opam update windows
 # shellcheck disable=SC2046
