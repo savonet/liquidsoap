@@ -28,7 +28,6 @@ depends: [
   "sedlex" {>= "3.2"}
   "sedlex-windows" {>= "3.2"}
   "menhir"
-  "menhir-windows"
   "menhirLib-windows"
   "metadata-windows"
   "dune-site-windows"
