@@ -1,5 +1,5 @@
 opam-version: "2.0"
-version: "20210929"
+version: "20210929-1"
 maintainer: "francois.pottier@inria.fr"
 authors: [
   "François Pottier <francois.pottier@inria.fr>"
