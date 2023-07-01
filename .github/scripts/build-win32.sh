@@ -43,7 +43,6 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url default https://github.com/ocaml/opam-repository.git
-opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
 opam pin -ny git+https://github.com/savonet/menhir-backup
 # shellcheck disable=SC2046
 opam remove -y ppx_tools_versioned-windows $(echo "$OPAM_DEPS" | sed -e 's#,# #g')
