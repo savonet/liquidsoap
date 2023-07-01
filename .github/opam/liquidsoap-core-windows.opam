@@ -86,12 +86,11 @@ conflicts: [
   "alsa-windows" {< "0.3.0"}
   "ao-windows" {< "0.2.0"}
   "bjack-windows" {< "0.1.3"}
-  "cry-windows" {< "0.6.5"}
   "dssi-windows" {< "0.1.3"}
   "faad-windows" {< "0.5.0"}
   "fdkaac-windows" {< "0.3.1"}
-  "ffmpeg-windows" {< "1.1.4"}
-  "ffmpeg-avutil-windows" {< "1.1.4"}
+  "ffmpeg-windows" {< "1.1.8"}
+  "ffmpeg-avutil-windows" {< "1.1.8"}
   "flac-windows" {< "0.3.0"}
   "frei0r-windows" {< "0.1.0"}
   "gstreamer-windows" {< "0.3.1"}
