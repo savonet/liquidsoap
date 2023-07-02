@@ -22,9 +22,9 @@ depends: [
   "camomile" {>= "2.0.0"}
   "dtools-windows" {>= "0.4.5"}
   "duppy-windows" {>= "0.9.1"}
-  "mm-windows" {>= "1.0.1"}
+  "mm-windows" {>= "0.8.4"}
   "pcre-windows" {>= "7.5.0"}
-  "cry-windows" {>= "1.0.0"}
+  "cry-windows" {>= "1.0.1"}
   "sedlex" {>= "3.2"}
   "sedlex-windows" {>= "3.2"}
   "menhir"
