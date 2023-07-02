@@ -10,11 +10,8 @@ git config --global user.email "toots@rastageeks.org" && git config --global use
 
 eval "$(opam config env)"
 
-opam repository remove windows --all
-cd /home/opam/
-rm -rf opam-cross-windows
-
-git clone https://github.com/ocaml-cross/opam-cross-windows.git
+cd /home/opam/opam-cross-windows/
+git pull
 
 for i in $(find "${BASE_DIR}/.github/opam" | grep '\.opam$'); do
   PACKAGE=$(basename "$i" | sed -e 's#\.opam$##')
@@ -24,8 +21,8 @@ for i in $(find "${BASE_DIR}/.github/opam" | grep '\.opam$'); do
   sed -e "s#@COMMIT_SHORT@#$RELEASE#g" -i "/home/opam/opam-cross-windows/packages/$PACKAGE/$PACKAGE.$VERSION/opam"
 done
 
-cd /home/opam/opam-cross-windows/
 git add . && git commit -m "Add custom opam files"
-opam repository add windows .
+
+opam update windows
 
 opam list --short --recursive --external --vars os-distribution=mxe,os-family=mingw --required-by="$OPAM_DEPS" > /home/opam/mxe-deps

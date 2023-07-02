@@ -43,12 +43,8 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url default https://github.com/ocaml/opam-repository.git
-opam pin -ny git+https://github.com/savonet/menhir-backup
-opam pin -ny git+https://github.com/ocaml-community/sedlex
 # shellcheck disable=SC2046
-opam remove -y ppx_tools_versioned-windows menhir-windows $(echo "$OPAM_DEPS" | sed -e 's#,# #g')
-# shellcheck disable=SC2046
-opam upgrade -y $(echo "$OPAM_DEPS" | sed -e 's#,# #g' | sed -e 's#menhir-windows##') ffmpeg-windows ffmpeg-avutil-windows
+opam upgrade -y $(echo "$OPAM_DEPS" | sed -e 's#,# #g') ffmpeg-windows ffmpeg-avutil-windows
 
 echo "::endgroup::"
 
