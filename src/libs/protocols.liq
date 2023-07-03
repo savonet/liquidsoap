@@ -528,10 +528,16 @@ let settings.protocol.pico2wave.path = settings.make(
   "pico2wave"
 )
 
+let settings.protocol.pico2wave.lang = settings.make(
+  description="pico2wav language. One of: `\"en-EN\"`, `\"en-GB\"`, `\"es-ES\"`, `\"de-DE\"`, `\"fr-FR\"` or `\"it-IT\"`.",
+  "en-EN"
+)
+
 # @flag hidden
 def protocol.pico2wave(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.pico2wave.path()
-  [process.uri(extname="wav", "#{binary} -w $(output) #{process.quote(arg)}")]
+  lang = settings.protocol.pico2wave.lang()
+  [process.uri(extname="wav", "#{binary} -l #{lang} -w $(output) #{process.quote(arg)}")]
 end
 protocol.add(static=true,"pico2wave",protocol.pico2wave,
              doc="Generate speech synthesis using pico2wave. Result may be mono.",
@@ -546,11 +552,23 @@ let settings.protocol.gtts.path = settings.make(
   "gtts-cli"
 )
 
+let settings.protocol.gtts.lang = settings.make(
+  description="Language to speak in.",
+  "en"
+)
+
+let settings.protocol.gtts.options = settings.make(
+  description="Command line options.",
+  ""
+)
+
 # Register the gtts: protocol using gtts
 # @flag hidden
 def protocol.gtts(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.gtts.path()
-  [process.uri(extname="mp3", "#{binary} -o $(output) #{process.quote(arg)}")]
+  lang = settings.protocol.gtts.lang()
+  options = settings.protocol.gtts.options()
+  [process.uri(extname="mp3", "#{binary} --lang #{lang} #{options} -o $(output) #{process.quote(arg)}")]
 end
 protocol.add(static=true,"gtts",protocol.gtts,
              doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",

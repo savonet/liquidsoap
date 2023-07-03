@@ -42,6 +42,9 @@ New:
 - Added `video.board`, `video.graph`, `video.info` (#2886).
 - Added the `pico2wave` protocol in order to perform speech synthesis using
   [Pico TTS](https://github.com/naggety/picotts) (#2934).
+- Added `settings.protocol.gtts.lang` to be able to select `gtts`' language,
+  added `settings.protocol.gtts.options` to be able to add any other option (#3182)
+- Added `settings.protocol.pico2wave.lang` to be able to select `pico2wav` language (#3182)
 - Added `"metadata_url"` to the default list of exported metadata (#2946)
 - Added log colors!
 - Added `list.filter_map` and `list.flatten`.
