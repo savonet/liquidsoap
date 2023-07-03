@@ -37,8 +37,8 @@ else
 
   echo "Building on amd64 only"
   BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_jammy", "ubuntu_lunar", "alpine"]'
-  BUILD_PLATFORM='["amd64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}]'
+  BUILD_PLATFORM='["amd64", "arm64"]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}, {"platform": "arm64", "runs-on": "self-hosted", "alpine-arch": "aarch64", "docker-platform": "linux/arm64"}]'
 
   echo "Not enabling opam build"
   echo "Branch does not have a docker release"
