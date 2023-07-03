@@ -31,7 +31,7 @@ cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
-opam remove -y jemalloc
+opam remove -y --no-depexts jemalloc
 
 cd /tmp/liquidsoap-full
 
