@@ -262,7 +262,7 @@ jobs:
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
-      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_release }}
+      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_release == "true" }}
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
@@ -378,7 +378,7 @@ jobs:
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,taglib-windows,winsvc-windows,mem_usage-windows,memtrace-windows
-      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_release }}
+      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_release == "true" }}
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
