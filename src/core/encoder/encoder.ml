@@ -226,11 +226,12 @@ let mime = function
   | Ffmpeg { Ffmpeg_format.format = Some "wav" } -> "audio/wav"
   | _ -> "application/octet-stream"
 
-(** Bitrate estimation in bits per second. *)
+(** Bitrate estimation in kbits per second. *)
 let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
+  (* For Ffmpeg we rely on hls.bitrate *)
   | _ -> raise Not_found
 
 (** Encoders that can output to a file. *)

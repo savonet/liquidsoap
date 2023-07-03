@@ -52,7 +52,7 @@ module Icecast = struct
 
   type info = unit
 
-  let info_of_encoder _ = ()
+  let info_of_encoder _ _ = ()
 end
 
 module M = Icecast_utils.Icecast_v (Icecast)

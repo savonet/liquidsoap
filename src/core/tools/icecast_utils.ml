@@ -47,7 +47,7 @@ module type Icecast_t = sig
 
   type info
 
-  val info_of_encoder : Encoder.format -> info
+  val info_of_encoder : Encoder.format -> Encoder.encoder -> info
 end
 
 let ffmpeg_mime_of_format = function
@@ -148,7 +148,7 @@ module Icecast_v (M : Icecast_t) = struct
   type encoder_data = {
     factory : string -> Meta_format.export_metadata -> Encoder.encoder;
     format : M.content;
-    info : M.info;
+    info : Encoder.encoder -> M.info;
   }
 
   let mpeg = M.format_of_content mpeg_mime

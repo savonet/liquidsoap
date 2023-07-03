@@ -48,139 +48,143 @@ module Icecast = struct
 
   type info = icecast_info
 
-  let info_of_encoder = function
-    | Encoder.MP3 m ->
-        let quality, bitrate =
-          match m.Mp3_format.bitrate_control with
-            | Mp3_format.CBR x -> (None, Some x)
-            | Mp3_format.ABR x -> (None, x.Mp3_format.mean_bitrate)
-            | Mp3_format.VBR x ->
-                (Some (string_of_int (Option.get x.Mp3_format.quality)), None)
-        in
-        {
-          quality;
-          bitrate;
-          samplerate = Some (Lazy.force m.Mp3_format.samplerate);
-          channels = Some (if m.Mp3_format.stereo then 2 else 1);
-        }
-    | Encoder.Shine m ->
-        {
-          quality = None;
-          bitrate = Some m.Shine_format.bitrate;
-          samplerate = Some (Lazy.force m.Shine_format.samplerate);
-          channels = Some m.Shine_format.channels;
-        }
-    | Encoder.FdkAacEnc m ->
-        {
-          quality = None;
-          bitrate = Some m.Fdkaac_format.bitrate;
-          samplerate = Some (Lazy.force m.Fdkaac_format.samplerate);
-          channels = Some m.Fdkaac_format.channels;
-        }
-    | Encoder.External m ->
-        {
-          quality = None;
-          bitrate = None;
-          samplerate = Some (Lazy.force m.External_encoder_format.samplerate);
-          channels = Some m.External_encoder_format.channels;
-        }
-    | Encoder.GStreamer gst ->
-        {
-          quality = None;
-          bitrate = None;
-          samplerate = None;
-          channels = Some (Gstreamer_format.audio_channels gst);
-        }
-    | Encoder.Flac m ->
-        {
-          quality = Some (string_of_int m.Flac_format.compression);
-          bitrate = None;
-          samplerate = Some (Lazy.force m.Flac_format.samplerate);
-          channels = Some m.Flac_format.channels;
-        }
-    | Encoder.Ffmpeg m ->
-        let audio_stream =
-          match List.assoc_opt Frame.Fields.audio m.Ffmpeg_format.streams with
-            | Some (`Encode { options = `Audio options }) -> Some options
-            | _ -> None
-        in
-        {
-          quality = None;
-          bitrate = None;
-          samplerate =
-            Option.map
-              (fun stream -> Lazy.force stream.Ffmpeg_format.samplerate)
-              audio_stream;
-          channels =
-            Option.map
-              (fun stream -> stream.Ffmpeg_format.channels)
-              audio_stream;
-        }
-    | Encoder.WAV m ->
-        {
-          quality = None;
-          bitrate = None;
-          samplerate = Some (Lazy.force m.Wav_format.samplerate);
-          channels = Some m.Wav_format.channels;
-        }
-    | Encoder.AVI m ->
-        {
-          quality = None;
-          bitrate = None;
-          samplerate = Some (Lazy.force m.Avi_format.samplerate);
-          channels = Some m.Avi_format.channels;
-        }
-    | Encoder.Ogg { Ogg_format.audio; _ } -> (
-        match audio with
-          | Some
-              (Ogg_format.Vorbis
+  let info_of_encoder format encoder =
+    match format with
+      | Encoder.MP3 m ->
+          let quality, bitrate =
+            match m.Mp3_format.bitrate_control with
+              | Mp3_format.CBR x -> (None, Some x)
+              | Mp3_format.ABR x -> (None, x.Mp3_format.mean_bitrate)
+              | Mp3_format.VBR x ->
+                  (Some (string_of_int (Option.get x.Mp3_format.quality)), None)
+          in
+          {
+            quality;
+            bitrate;
+            samplerate = Some (Lazy.force m.Mp3_format.samplerate);
+            channels = Some (if m.Mp3_format.stereo then 2 else 1);
+          }
+      | Encoder.Shine m ->
+          {
+            quality = None;
+            bitrate = Some m.Shine_format.bitrate;
+            samplerate = Some (Lazy.force m.Shine_format.samplerate);
+            channels = Some m.Shine_format.channels;
+          }
+      | Encoder.FdkAacEnc m ->
+          {
+            quality = None;
+            bitrate = Some m.Fdkaac_format.bitrate;
+            samplerate = Some (Lazy.force m.Fdkaac_format.samplerate);
+            channels = Some m.Fdkaac_format.channels;
+          }
+      | Encoder.External m ->
+          {
+            quality = None;
+            bitrate = None;
+            samplerate = Some (Lazy.force m.External_encoder_format.samplerate);
+            channels = Some m.External_encoder_format.channels;
+          }
+      | Encoder.GStreamer gst ->
+          {
+            quality = None;
+            bitrate = None;
+            samplerate = None;
+            channels = Some (Gstreamer_format.audio_channels gst);
+          }
+      | Encoder.Flac m ->
+          {
+            quality = Some (string_of_int m.Flac_format.compression);
+            bitrate = None;
+            samplerate = Some (Lazy.force m.Flac_format.samplerate);
+            channels = Some m.Flac_format.channels;
+          }
+      | Encoder.Ffmpeg m ->
+          let bitrate =
+            Option.map (fun v -> v / 1000) Encoder.(encoder.hls.bitrate ())
+          in
+          let audio_stream =
+            match List.assoc_opt Frame.Fields.audio m.Ffmpeg_format.streams with
+              | Some (`Encode { options = `Audio options }) -> Some options
+              | _ -> None
+          in
+          {
+            quality = None;
+            bitrate;
+            samplerate =
+              Option.map
+                (fun stream -> Lazy.force stream.Ffmpeg_format.samplerate)
+                audio_stream;
+            channels =
+              Option.map
+                (fun stream -> stream.Ffmpeg_format.channels)
+                audio_stream;
+          }
+      | Encoder.WAV m ->
+          {
+            quality = None;
+            bitrate = None;
+            samplerate = Some (Lazy.force m.Wav_format.samplerate);
+            channels = Some m.Wav_format.channels;
+          }
+      | Encoder.AVI m ->
+          {
+            quality = None;
+            bitrate = None;
+            samplerate = Some (Lazy.force m.Avi_format.samplerate);
+            channels = Some m.Avi_format.channels;
+          }
+      | Encoder.Ogg { Ogg_format.audio; _ } -> (
+          match audio with
+            | Some
+                (Ogg_format.Vorbis
+                  {
+                    Vorbis_format.channels = n;
+                    mode = Vorbis_format.VBR q;
+                    samplerate = s;
+                    _;
+                  }) ->
                 {
-                  Vorbis_format.channels = n;
-                  mode = Vorbis_format.VBR q;
-                  samplerate = s;
-                  _;
-                }) ->
-              {
-                quality = Some (string_of_float q);
-                bitrate = None;
-                samplerate = Some (Lazy.force s);
-                channels = Some n;
-              }
-          | Some
-              (Ogg_format.Vorbis
+                  quality = Some (string_of_float q);
+                  bitrate = None;
+                  samplerate = Some (Lazy.force s);
+                  channels = Some n;
+                }
+            | Some
+                (Ogg_format.Vorbis
+                  {
+                    Vorbis_format.channels = n;
+                    mode = Vorbis_format.ABR (_, b, _);
+                    samplerate = s;
+                    _;
+                  }) ->
                 {
-                  Vorbis_format.channels = n;
-                  mode = Vorbis_format.ABR (_, b, _);
-                  samplerate = s;
-                  _;
-                }) ->
-              {
-                quality = None;
-                bitrate = b;
-                samplerate = Some (Lazy.force s);
-                channels = Some n;
-              }
-          | Some
-              (Ogg_format.Vorbis
+                  quality = None;
+                  bitrate = b;
+                  samplerate = Some (Lazy.force s);
+                  channels = Some n;
+                }
+            | Some
+                (Ogg_format.Vorbis
+                  {
+                    Vorbis_format.channels = n;
+                    mode = Vorbis_format.CBR b;
+                    samplerate = s;
+                    _;
+                  }) ->
                 {
-                  Vorbis_format.channels = n;
-                  mode = Vorbis_format.CBR b;
-                  samplerate = s;
-                  _;
-                }) ->
-              {
-                quality = None;
-                bitrate = Some b;
-                samplerate = Some (Lazy.force s);
-                channels = Some n;
-              }
-          | _ ->
-              {
-                quality = None;
-                bitrate = None;
-                samplerate = None;
-                channels = None;
-              })
+                  quality = None;
+                  bitrate = Some b;
+                  samplerate = Some (Lazy.force s);
+                  channels = Some n;
+                }
+            | _ ->
+                {
+                  quality = None;
+                  bitrate = None;
+                  samplerate = None;
+                  channels = None;
+                })
 end
 
 module M = Icecast_utils.Icecast_v (Icecast)
@@ -547,8 +551,8 @@ class output p =
 
     method icecast_start =
       assert (encoder = None);
-      let enc = data.factory self#id in
-      encoder <- Some (enc Meta_format.empty_metadata);
+      let enc = data.factory self#id Meta_format.empty_metadata in
+      encoder <- Some enc;
       assert (Cry.get_status connection = Cry.Disconnected);
       begin
         match dumpfile with
@@ -566,10 +570,11 @@ class output p =
       let f x y z =
         match x with Some q -> Hashtbl.add audio_info y (z q) | None -> ()
       in
-      f data.info.bitrate "bitrate" string_of_int;
-      f data.info.quality "quality" (fun x -> x);
-      f data.info.samplerate "samplerate" string_of_int;
-      f data.info.channels "channels" string_of_int;
+      let info = data.info enc in
+      f info.bitrate "bitrate" string_of_int;
+      f info.quality "quality" (fun x -> x);
+      f info.samplerate "samplerate" string_of_int;
+      f info.channels "channels" string_of_int;
       let user_agent =
         try List.assoc "User-Agent" headers
         with Not_found -> Printf.sprintf "liquidsoap %s" Configure.version
