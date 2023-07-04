@@ -21,8 +21,9 @@ let () =
       (Term.Fun
          ( Term.Vars.empty,
            [],
-           Term.{ x with methods = Methods.add "foo" (_false ()) Methods.empty }
-         ))
+           Term.make ~t:x.Term.t
+             ~methods:(Term.Methods.add "foo" (_false ()) Term.Methods.empty)
+             x.Term.term ))
   in
   let _else = Term.make (Term.Fun (Term.Vars.empty, [], x)) in
   let f =
