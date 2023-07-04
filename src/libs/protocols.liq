@@ -161,6 +161,13 @@ def protocol.http(proto,~rlog,~maxtime,arg) =
   code = ret.status_code ?? 999
   extname = 200 <= code and code < 300 ? http.headers.extname(ret.headers) : null()
 
+  # Try to guess the extension from the url
+  extname =
+    if null.defined(extname) then extname else
+      ext = file.extension(uri)
+      if ext == "" then null() else ext end
+    end
+
   extname =
     if null.defined(extname) then null.get(extname) else
       log(level=3, "Failed to find a file extension for #{uri}.")
