@@ -173,6 +173,10 @@
 (rule
  (alias citest)
  (target playlist)
+ (deps
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3)
  (action
   (with-stdout-to
    %{target}
@@ -181,6 +185,7 @@
 (rule
  (alias citest)
  (target huge_playlist)
+ (deps ./file1.mp3)
  (action
   (with-stdout-to
    %{target}

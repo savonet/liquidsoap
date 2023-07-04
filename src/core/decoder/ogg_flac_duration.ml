@@ -44,8 +44,8 @@ let duration ~metadata:_ file =
           let page = Ogg.Sync.read sync in
           if Ogg.Page.serialno page = serial then Ogg.Stream.put_page os page
         in
-        let callbacks = Flac_ogg.Decoder.get_callbacks (fun _ -> ()) in
-        let dec = Flac_ogg.Decoder.create packet os in
+        let callbacks = Flac_ogg.Decoder.get_callbacks os (fun _ -> ()) in
+        let dec = Flac.Decoder.create callbacks in
         let rec info () =
           try Flac.Decoder.init dec callbacks
           with Ogg.Not_enough_data ->
