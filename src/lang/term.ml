@@ -190,7 +190,7 @@ module Methods = Map.Make (struct
   let compare (x : string) (y : string) = Stdlib.compare x y [@@inline always]
 end)
 
-type t = { mutable t : Type.t; term : in_term; methods : t Methods.t }
+type t = { t : Type.t; term : in_term; methods : t Methods.t }
 
 (** Documentation for declarations: general documentation, parameters, methods. *)
 and doc = Doc.Value.t
@@ -334,14 +334,14 @@ let rec to_string v =
     ^ "}")
 
 (** Create a new value. *)
-let make ?pos ?t e =
+let make ?pos ?t ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
       (Pos.Option.to_string t.Type.pos)
-      (try to_string { t; term = e; methods = Methods.empty } with _ -> "<?>")
+      (try to_string { t; term = e; methods } with _ -> "<?>")
       (Repr.string_of_type t);
-  { t; term = e; methods = Methods.empty }
+  { t; term = e; methods }
 
 let rec free_vars_pat = function
   | PVar [] -> assert false

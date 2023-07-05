@@ -164,11 +164,7 @@ let args_of, app_of =
       args
   and get_app ~pos _ args =
     List.map
-      (fun (n, _, _) ->
-        ( n,
-          Term.
-            { t = Type.var ~pos (); term = Var n; methods = Term.Methods.empty }
-        ))
+      (fun (n, _, _) -> (n, Term.make ~t:(Type.var ~pos ()) (Var n)))
       args
   and term_of_value_base ~pos t v =
     let get_list_type () =
@@ -182,14 +178,7 @@ let args_of, app_of =
         | _ -> assert false
     in
     let process_value ~t v =
-      let mk_tm term =
-        Term.
-          {
-            t = Type.make ~pos t.Type.descr;
-            term;
-            methods = Term.Methods.empty;
-          }
-      in
+      let mk_tm term = Term.make ~t:(Type.make ~pos t.Type.descr) term in
       match v.Value.value with
         | Value.Ground g -> mk_tm (Term.Ground g)
         | Value.List l ->
@@ -208,23 +197,25 @@ let args_of, app_of =
            so we have to trust that devs using it via %argsof now that they are doing. *)
         | Value.Fun (args, _, body) ->
             let body =
-              Term.{ body with t = Type.make ~pos body.t.Type.descr }
+              Term.make
+                ~t:(Type.make ~pos body.t.Type.descr)
+                ~methods:body.Term.methods body.Term.term
             in
             mk_tm (Term.Fun (Term.free_vars body, get_args ~pos t args, body))
         | _ -> assert false
     in
     let meths, _ = Type.split_meths t in
-    {
-      (process_value ~t v) with
-      methods =
-        Methods.mapi
-          (fun key meth ->
-            let { Type.scheme = _, t } =
-              List.find (fun { Type.meth } -> meth = key) meths
-            in
-            process_value ~t meth)
-          v.Value.methods;
-    }
+    let tm = process_value ~t v in
+    Term.make ~t:tm.Term.t
+      ~methods:
+        (Methods.mapi
+           (fun key meth ->
+             let { Type.scheme = _, t } =
+               List.find (fun { Type.meth } -> meth = key) meths
+             in
+             process_value ~t meth)
+           v.Value.methods)
+      tm.Term.term
   and term_of_value ~pos ~name t v =
     try term_of_value_base ~pos t v
     with _ ->
@@ -301,13 +292,11 @@ let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
   let t =
     Type.meth ~pos ~optional name ([], Type.var ~pos ()) (Type.var ~pos ())
   in
+  let tm = mk_any ~pos () in
   let value =
-    Term.
-      {
-        (mk_any ~pos ()) with
-        t;
-        methods = Methods.add name value Term.Methods.empty;
-      }
+    Term.make ~t
+      ~methods:(Methods.add name value Term.Methods.empty)
+      tm.Term.term
   in
   ( value,
     update_invoke_default ~pos ~optional:(default <> None) invoked meth value )
@@ -318,12 +307,9 @@ and update_invoke_default ~pos ~optional expr name value =
         let value, invoked =
           mk_invoke_default ~pos ~name ~optional value invoked
         in
-        {
-          expr with
-          term =
-            Invoke
-              { invoked; meth; default = Option.map (fun _ -> value) default };
-        }
+        Term.make ~t:expr.Term.t ~methods:expr.Term.methods
+          (Invoke
+             { invoked; meth; default = Option.map (fun _ -> value) default })
     | App ({ term = Invoke ({ meth; default } as invoked) }, args) ->
         let value, invoked =
           let default =
@@ -334,22 +320,19 @@ and update_invoke_default ~pos ~optional expr name value =
           in
           mk_invoke_default ~pos ~name ~optional value { invoked with default }
         in
-        {
-          expr with
-          term =
-            App
-              ( mk ~pos
-                  (Invoke
-                     {
-                       invoked;
-                       meth;
-                       default =
-                         Option.map
-                           (fun _ -> mk_app_invoke_default ~pos ~args value)
-                           default;
-                     }),
-                args );
-        }
+        Term.make ~t:expr.Term.t ~methods:expr.Term.methods
+          (App
+             ( mk ~pos
+                 (Invoke
+                    {
+                      invoked;
+                      meth;
+                      default =
+                        Option.map
+                          (fun _ -> mk_app_invoke_default ~pos ~args value)
+                          default;
+                    }),
+               args ))
     | _ -> expr
 
 let mk_invoke ?default ~pos expr v =

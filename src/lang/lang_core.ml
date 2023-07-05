@@ -107,7 +107,8 @@ let term_fun p tm = mk (Fun (p, [], tm))
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
   let f t tm =
-    mk (Fun (p, [], { Term.t; term = tm; methods = Term.Methods.empty }))
+    let tm = Term.make ~t tm in
+    mk (Fun (p, [], tm))
   in
   let mkg g = Type.make g in
   (* Convert the value into a term if possible, to enable introspection, mostly

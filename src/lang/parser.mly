@@ -556,12 +556,12 @@ plain_encoder_params:
 
 record:
   | VAR GETS expr {
-      fun ~pos:_ e -> Term.{ e with methods = Methods.add $1 $3 e.methods }
+      fun ~pos:_ e -> Term.make ~t:e.Term.t ~methods:(Methods.add $1 $3 e.methods) e.Term.term
   }
   | record COMMA VAR GETS expr {
       fun ~pos e ->
         let tm = $1 ~pos e in
-        Term.{ tm with methods = Methods.add $3 $5 tm.methods }
+        Term.make ~t:tm.Term.t ~methods:(Methods.add $3 $5 tm.methods) tm.Term.term
   }
 
 annotate:
