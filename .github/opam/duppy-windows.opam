@@ -1,0 +1,29 @@
+opam-version: "2.0"
+version: "0.9.3"
+synopsis: "Library providing monadic threads"
+maintainer: ["The Savonet Team <savonet-users@lists.sourceforge.net>"]
+authors: ["Romain Beauxis <toots@rastageeks.org>"]
+license: "GPL-2.0"
+homepage: "https://github.com/savonet/ocaml-duppy"
+bug-reports: "https://github.com/savonet/ocaml-duppy/issues"
+depends: [
+  "dune" {>= "2.7"}
+  "pcre-windows"
+]
+build: [
+  [
+    "dune"
+    "build"
+    "-p"
+    "duppy"
+    "-j"
+    jobs
+    "-x"
+    "windows"
+    "@install"
+  ]
+]
+dev-repo: "git+https://github.com/savonet/ocaml-duppy.git"
+url {
+  src: "https://github.com/savonet/ocaml-duppy/archive/main.tar.gz"
+}
