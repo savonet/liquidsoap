@@ -190,7 +190,7 @@ module Methods = Map.Make (struct
   let compare (x : string) (y : string) = Stdlib.compare x y [@@inline always]
 end)
 
-type t = { t : Type.t; term : in_term; methods : t Methods.t }
+type t = { mutable t : Type.t; term : in_term; methods : t Methods.t }
 
 (** Documentation for declarations: general documentation, parameters, methods. *)
 and doc = Doc.Value.t
@@ -333,6 +333,19 @@ let rec to_string v =
         (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
     ^ "}")
 
+module ActiveTerm = Weak.Make (struct
+  type typ = t
+  type t = typ
+
+  let equal t t' = t == t'
+  let hash = Hashtbl.hash
+end)
+
+let active_terms = ActiveTerm.create 1024
+
+let trim_runtime_types () =
+  ActiveTerm.iter (fun term -> term.t <- Type.deep_demeth term.t) active_terms
+
 (** Create a new value. *)
 let make ?pos ?t ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
@@ -341,7 +354,9 @@ let make ?pos ?t ?(methods = Methods.empty) e =
       (Pos.Option.to_string t.Type.pos)
       (try to_string { t; term = e; methods } with _ -> "<?>")
       (Repr.string_of_type t);
-  { t; term = e; methods }
+  let term = { t; term = e; methods } in
+  ActiveTerm.add active_terms term;
+  term
 
 let rec free_vars_pat = function
   | PVar [] -> assert false

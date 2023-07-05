@@ -221,6 +221,30 @@ let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, t) -> demeth t | _ -> t
 
+(* This should preserve pos *)
+let rec deep_demeth t =
+  let t' =
+    match deref t with
+      | { descr = Getter t' } as t -> { t with descr = Getter (deep_demeth t') }
+      | { descr = List repr } as t ->
+          { t with descr = List { repr with t = deep_demeth repr.t } }
+      | { descr = Tuple l } as t ->
+          { t with descr = Tuple (List.map deep_demeth l) }
+      | { descr = Nullable t' } as t ->
+          { t with descr = Nullable (deep_demeth t') }
+      | { descr = Meth (_, t) } -> t
+      | { descr = Arrow (l, t') } as t ->
+          {
+            t with
+            descr =
+              Arrow
+                ( List.map (fun (x, y, t) -> (x, y, deep_demeth t)) l,
+                  deep_demeth t' );
+          }
+      | t -> t
+  in
+  { t' with pos = t.pos }
+
 let rec filter_meths t fn =
   let t = deref t in
   match t.descr with

@@ -46,6 +46,20 @@ let () =
 let log = Lang.log
 let encoder = Modules.encoder
 
+let conf_runtime =
+  Dtools.Conf.void ~p:(Configure.conf#plug "runtime") "Runtime configuration."
+
+let conf_strip_types_types =
+  Dtools.Conf.bool
+    ~p:(conf_runtime#plug "strip_types")
+    ~d:true "Strip runtime types whenever possible to optimize memory usage."
+
+let () =
+  Lifecycle.before_start (fun () ->
+      if conf_strip_types_types#get then (
+        Liquidsoap_lang.Term.trim_runtime_types ();
+        Gc.full_major ()))
+
 let _ =
   let kind = Lang.univ_t () in
   Lang.add_builtin ~category:`Liquidsoap ~base:encoder "content_type"

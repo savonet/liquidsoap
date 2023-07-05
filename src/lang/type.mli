@@ -107,6 +107,7 @@ module Vars = Type_base.Vars
 val make : ?pos:Pos.t -> descr -> t
 val deref : t -> t
 val demeth : t -> t
+val deep_demeth : t -> t
 val remeth : t -> t -> t
 val invoke : t -> string -> scheme
 val has_meth : t -> string -> bool
