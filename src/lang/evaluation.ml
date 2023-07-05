@@ -269,7 +269,6 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         in
         eval ~eval_check env u
     | Let { pat; replace; def = v; body = b; _ } ->
-        Printf.printf "Eval tm: %s\n%!" (Term.to_string tm);
         let v = eval ~eval_check env v in
         let penv =
           List.map
