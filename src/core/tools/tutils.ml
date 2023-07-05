@@ -207,8 +207,6 @@ let error_handlers = Stack.create ()
 exception Error_processed
 
 let rec error_handler ~bt exn =
-  Printf.printf "Error: %s\n%s\n%!" (Printexc.to_string exn) bt;
-  Printf.printf "Got %d handlers\n%!" (Stack.length error_handlers);
   try
     Stack.iter
       (fun handler -> if handler ~bt exn then raise Error_processed)
