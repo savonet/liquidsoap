@@ -22,6 +22,9 @@
 
 (** Multithreading utilities *)
 
+val error_handler : bt:string -> exn -> bool
+val error_handlers : (bt:string -> exn -> bool) Stack.t
+
 (** {1 Thread wrapper}
   Give names to threads, and forbid them to raise an exception;
   if that happens, the thread dies anyway but it is logged and [main]

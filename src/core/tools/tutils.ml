@@ -165,11 +165,13 @@ let create ~queue f x s =
                     log#important "Thread %S failed: %s!" s e;
                     Printexc.raise_with_backtrace exn raw_bt
                 | e when queue ->
-                    log#severe "Queue %s crashed with exception %s\n%s" s
+                    Printf.printf "Queue %s crashed with exception %s\n%s" s
                       (Printexc.to_string e) bt;
-                    log#critical
+                    Printf.printf
                       "PANIC: Liquidsoap has crashed, exiting.,\n\
-                       Please report at: savonet-users@lists.sf.net";
+                       Please report at: https://github.com/savonet/liquidsoap";
+                    Printf.printf "Queue %s crashed with exception %s\n%s" s
+                      (Printexc.to_string e) bt;
                     flush_all ();
                     exit 1
                 | e ->
@@ -200,7 +202,32 @@ type priority =
   | `Maybe_blocking  (** Request resolutions vary a lot. *)
   | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
-let scheduler : priority Duppy.scheduler = Duppy.create ()
+let error_handlers = Stack.create ()
+
+exception Error_processed
+
+let rec error_handler ~bt exn =
+  Printf.printf "Error: %s\n%s\n%!" (Printexc.to_string exn) bt;
+  Printf.printf "Got %d handlers\n%!" (Stack.length error_handlers);
+  try
+    Stack.iter
+      (fun handler -> if handler ~bt exn then raise Error_processed)
+      error_handlers;
+    false
+  with
+    | Error_processed -> true
+    | exn ->
+        let bt = Printexc.get_backtrace () in
+        error_handler ~bt exn
+
+let scheduler : priority Duppy.scheduler =
+  Duppy.create
+    ~on_error:(fun exn raw_bt ->
+      let bt = Printexc.raw_backtrace_to_string raw_bt in
+      if not (error_handler ~bt exn) then
+        Printexc.raise_with_backtrace exn raw_bt)
+    ()
+
 let started = ref false
 let started_m = Mutex.create ()
 let has_started = mutexify started_m (fun () -> !started)

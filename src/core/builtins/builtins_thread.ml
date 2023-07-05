@@ -22,21 +22,6 @@
 
 let thread = Modules.thread
 let thread_run = Lang.add_module ~base:thread "run"
-let error_handlers = Stack.create ()
-
-exception Error_processed
-
-let rec error_handler ~bt exn =
-  try
-    Stack.iter
-      (fun handler -> if handler ~bt exn then raise Error_processed)
-      error_handlers;
-    false
-  with
-    | Error_processed -> true
-    | exn ->
-        let bt = Printexc.get_backtrace () in
-        error_handler ~bt exn
 
 let _ =
   Lang.add_builtin ~base:thread_run "recurrent" ~category:`Programming
@@ -73,11 +58,9 @@ let _ =
       in
       let f () =
         try Lang.to_float (Lang.apply f [])
-        with e ->
-          let raw_bt = Printexc.get_raw_backtrace () in
-          let bt = Printexc.get_backtrace () in
-          if error_handler ~bt e then -1.
-          else Printexc.raise_with_backtrace e raw_bt
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Lang.raise_as_runtime ~bt ~kind:"eval" exn
       in
       let rec task delay =
         {
@@ -122,7 +105,7 @@ let _ =
               true
           | _ -> false
       in
-      Stack.push handler error_handlers;
+      Stack.push handler Tutils.error_handlers;
       Lang.unit)
 
 let _ =
