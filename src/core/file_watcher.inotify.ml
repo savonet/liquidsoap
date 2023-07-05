@@ -45,8 +45,9 @@ let rec watchdog () =
         let events = Inotify.read fd in
         List.iter
           (fun (wd, _, _, _) ->
-            let f = List.assoc wd !handlers in
-            f ())
+            match List.assoc wd !handlers with
+              | f -> f ()
+              | exception Not_found -> ())
           events;
         [watchdog ()])
   in

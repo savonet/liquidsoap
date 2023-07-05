@@ -438,7 +438,12 @@ let _ =
       let fname = Lang.to_string (Extralib.List.assoc_nth "" 0 p) in
       let fname = Lang_string.home_unrelate fname in
       let f = Extralib.List.assoc_nth "" 1 p in
-      let f () = ignore (Lang.apply f []) in
+      let f () =
+        try ignore (Lang.apply f [])
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Lang.raise_as_runtime ~bt ~kind:"file" exn
+      in
       let unwatch = File_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f in
       Lang.meth Lang.unit
         [
