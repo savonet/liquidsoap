@@ -165,7 +165,7 @@ module Methods : sig
   val of_seq : (key * 'a) Seq.t -> 'a t
 end
 
-type t = private { t : Type.t; term : in_term; methods : t Methods.t }
+type t = private { mutable t : Type.t; term : in_term; methods : t Methods.t }
 and doc = Doc.Value.t
 
 and let_t = {
@@ -210,6 +210,7 @@ val is_ground : t -> bool
 val string_of_pat : pattern -> string
 val to_string : t -> string
 val make : ?pos:Pos.t -> ?t:Type.t -> ?methods:term Methods.t -> in_term -> t
+val trim_runtime_types : unit -> unit
 val free_vars_pat : pattern -> Vars.t
 val bound_vars_pat : pattern -> Vars.t
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
