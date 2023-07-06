@@ -117,11 +117,11 @@ let () =
 
 let fail ~pos message = Lang.raise_error ~pos ~message "http"
 let interrupt = Atomic.make false
-let () = Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true)
+let () = Lifecycle.before_core_shutdown (fun () -> Atomic.set interrupt true)
 
 let mk_read =
   let interrupt = Atomic.make false in
-  Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true);
+  Lifecycle.before_core_shutdown (fun () -> Atomic.set interrupt true);
   fun fn len ->
     if Atomic.get interrupt then Curl.Abort
     else (try Proceed (fn len) with _ -> Curl.Abort)

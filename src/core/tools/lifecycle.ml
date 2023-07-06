@@ -32,16 +32,28 @@ let make_action ?(before = []) ?(after = []) name =
           log#debug "At stage: %S" name);
       ]
   in
-  let on_action () = List.iter (fun fn -> fn ()) !on_actions in
-  let atom = Dtools.Init.make ~before ~after ~name on_action in
-  let before_action f =
-    if !is_done then f () else ignore (Dtools.Init.make ~before:[atom] f)
-  in
   let on_action fn =
-    if !is_done then fn () else on_actions := !on_actions @ [fn]
+    if !is_done then fn () else on_actions := fn :: !on_actions
   in
-  let after_action f =
-    if !is_done then f () else ignore (Dtools.Init.make ~after:[atom] f)
+  let atom =
+    Dtools.Init.make ~before ~after ~name (fun () ->
+        List.iter (fun fn -> fn ()) !on_actions)
+  in
+  let before_actions = ref [] in
+  let _ =
+    Dtools.Init.make ~before:[atom] (fun () ->
+        List.iter (fun fn -> fn ()) !before_actions)
+  in
+  let before_action fn =
+    if !is_done then fn () else before_actions := fn :: !before_actions
+  in
+  let after_actions = ref [] in
+  let _ =
+    Dtools.Init.make ~after:[atom] (fun () ->
+        List.iter (fun fn -> fn ()) !after_actions)
+  in
+  let after_action fn =
+    if !is_done then fn () else after_actions := fn :: !after_actions
   in
   (atom, before_action, on_action, after_action)
 

@@ -488,7 +488,7 @@ We hope you enjoy this snapshot build of Liquidsoap!
         Dtools.Log.conf_file_path#set_d (Some default_log);
         Dtools.Log.conf_file#set true;
         Dtools.Log.conf_stdout#set false;
-        Lifecycle.on_core_shutdown (fun _ -> Sys.remove default_log));
+        Lifecycle.after_core_shutdown (fun _ -> Sys.remove default_log));
 
       (* Allow frame settings to be evaluated here: *)
       Frame_settings.lazy_config_eval := true;

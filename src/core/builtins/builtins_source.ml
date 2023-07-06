@@ -22,7 +22,7 @@
 
 let source = Muxer.source
 let should_stop = Atomic.make false
-let () = Lifecycle.on_core_shutdown (fun () -> Atomic.set should_stop true)
+let () = Lifecycle.before_core_shutdown (fun () -> Atomic.set should_stop true)
 
 let _ =
   Lang.add_builtin ~base:source "set_name" ~category:(`Source `Liquidsoap)

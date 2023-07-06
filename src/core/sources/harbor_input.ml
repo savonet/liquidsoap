@@ -32,6 +32,11 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   object (self)
     inherit Source.active_source ~name:"input.harbor" () as super
     inherit Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
+    val should_shutdown = Atomic.make false
+
+    initializer
+      Lifecycle.before_core_shutdown (fun () -> Atomic.set should_shutdown true)
+
     val mutable relay_socket = None
 
     (** Function to read on socket. *)
@@ -136,6 +141,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
           Tutils.mutexify relay_m
             (fun () -> if relay_socket = None then failwith "relaying stopped")
             ();
+          if Atomic.get should_shutdown then failwith "shutdown called";
           decoder.Decoder.decode buffer
         done
       with e ->
