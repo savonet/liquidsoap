@@ -86,6 +86,8 @@ Changed:
   `"liq_fade_in"`, `"liq_cross_duration"` and `"liq_fade_type"` now all reset on
   new tracks. Use `persist_overrides` to revert to previous behavior
   (`persist_override` for `cross`/`crossfade`) (#2488).
+- Allow running as root by default when docker container can be detected using
+  the presence of a `/.dockerenv` file.
 - Moved HLS outputs stream info as optional methods on their respective encoder.
 - Changed `self_sync` in `input.ffmpeg` to be a boolean getter, changed `self_sync`
   in `input.http` to be a nullable boolean getter. Set `self_sync` to `true` in

@@ -56,37 +56,13 @@ let script_parse_atom, before_script_parse, on_script_parse, after_script_parse
 let start_atom, before_start, on_start, after_start =
   make_action ~after:[script_parse_atom] "Liquidsoap application start"
 
-(* Should we allow to run as root? *)
-let allow_root =
-  Dtools.Conf.bool
-    ~p:(Dtools.Init.conf#plug "allow_root")
-    ~d:false "Allow liquidsoap to run as root"
-    ~comments:
-      [
-        "This should be reserved for advanced dynamic uses of liquidsoap ";
-        "such as running inside an isolated environment like docker.";
-      ]
-
 let main_loop_ref = ref (fun () -> assert false)
 let main_loop fn = main_loop_ref := fn
 
 let _ =
   Dtools.Init.make ~after:[start_atom] (fun () ->
       let fn = !main_loop_ref in
-      let msg_of_err = function
-        | `User -> "root euid (user)"
-        | `Group -> "root guid (group)"
-        | `Both -> "root euid & guid (user & group)"
-      in
-      let on_error e =
-        Printf.eprintf
-          "init: security exit, %s. Override with \
-           settings.init.allow_root.set(true)\n"
-          (msg_of_err e);
-        exit (-1)
-      in
-      try Dtools.Init.init ~prohibit_root:(not allow_root#get) fn
-      with Dtools.Init.Root_prohibited e -> on_error e)
+      fn ())
 
 let ( final_cleanup_atom,
       before_final_cleanup,
