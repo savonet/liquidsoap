@@ -58,8 +58,7 @@ let force_start =
 let allow_root =
   Dtools.Conf.bool
     ~p:(Dtools.Init.conf#plug "allow_root")
-    ~d:(try Sys.file_exists "/.dockerenv" with _ -> false)
-    "Allow liquidsoap to run as root"
+    ~d:false "Allow liquidsoap to run as root"
     ~comments:
       [
         "This should be reserved for advanced dynamic uses of liquidsoap ";
@@ -560,6 +559,7 @@ To change it, add the following to your script:
     check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
 
 let () =
+  Lifecycle.on_start Tutils.start;
   Lifecycle.main_loop (fun () ->
       let main () =
         (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
@@ -582,7 +582,6 @@ let () =
            default at least). *)
         Server.start ();
         Clock.start ();
-        Tutils.start ();
         Tutils.main ()
       in
       if !run_streams then
