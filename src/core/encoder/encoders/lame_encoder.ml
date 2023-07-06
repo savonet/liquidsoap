@@ -87,9 +87,13 @@ let () =
            ())
     in
     let encoded = Strings.Mutable.empty () in
-    (match mp3.id3v2 with
-      | Some f -> Strings.Mutable.add encoded (f metadata)
-      | None -> ());
+    ignore
+      (Option.map
+         (fun version ->
+           Strings.Mutable.add encoded
+             (Utils.id3v2_of_metadata ~version
+                (Frame.list_of_metadata (Meta_format.to_metadata metadata))))
+         mp3.id3v2);
     let encode frame start len =
       let b = AFrame.pcm frame in
       Generator.put pending_data Frame.Fields.audio

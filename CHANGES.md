@@ -88,6 +88,10 @@ Changed:
   (`persist_override` for `cross`/`crossfade`) (#2488).
 - Allow running as root by default when docker container can be detected using
   the presence of a `/.dockerenv` file.
+- `id3v2` argument of `%mp3` encoder changed to `"none"` or version number to allow
+  to choose the metadata version. `true` is still accepted and defaults to version
+  `3`. Switched to our internal implementation so that it does not require `taglib`
+  anymore.
 - Moved HLS outputs stream info as optional methods on their respective encoder.
 - Changed `self_sync` in `input.ffmpeg` to be a boolean getter, changed `self_sync`
   in `input.http` to be a nullable boolean getter. Set `self_sync` to `true` in

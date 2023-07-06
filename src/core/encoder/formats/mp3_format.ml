@@ -59,18 +59,14 @@ let string_of_bitrate_control = function
   | ABR c | VBR c -> string_of_bitrate_constraints c
   | CBR br -> Printf.sprintf "bitrate=%d" br
 
-type id3v2_export = Meta_format.export_metadata -> string
-
 type t = {
   stereo : bool;
   stereo_mode : stereo_mode;
   bitrate_control : bitrate_control;
   internal_quality : int;
   samplerate : int Lazy.t;
-  id3v2 : id3v2_export option;
+  id3v2 : int option;
 }
-
-let id3v2_export : id3v2_export option ref = ref None
 
 let to_string m =
   let name =
@@ -79,10 +75,11 @@ let to_string m =
       | ABR _ -> "%mp3.abr"
       | CBR _ -> "%mp3"
   in
-  Printf.sprintf "%s(%s,%s,samplerate=%d,id3v2=%b)" name
+  Printf.sprintf "%s(%s,%s,samplerate=%d,id3v2=%s)" name
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_bitrate_control m.bitrate_control)
-    (Lazy.force m.samplerate) (m.id3v2 <> None)
+    (Lazy.force m.samplerate)
+    (match m.id3v2 with None -> "none" | Some v -> string_of_int v)
 
 let bitrate m =
   match m.bitrate_control with

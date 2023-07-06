@@ -56,5 +56,3 @@ let render m =
   in
   let t = List.fold_left f t tags in
   Taglib.Inline.Id3v2.render t
-
-let () = Mp3_format.id3v2_export := Some render

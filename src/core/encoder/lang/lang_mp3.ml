@@ -73,13 +73,13 @@ let mp3_base f = function
       { f with Mp3_format.internal_quality = q }
   | "samplerate", `Value { value = Ground (Int i); pos } ->
       { f with Mp3_format.samplerate = check_samplerate ~pos (Lazy.from_val i) }
-  | "id3v2", `Value { value = Ground (Bool true); pos } -> (
-      match !Mp3_format.id3v2_export with
-        | None ->
-            Lang_encoder.raise_error ~pos
-              "no id3v2 support available for the mp3 encoder"
-        | Some g -> { f with Mp3_format.id3v2 = Some g })
+  | "id3v2", `Value { value = Ground (Bool true); _ } ->
+      { f with Mp3_format.id3v2 = Some 3 }
   | "id3v2", `Value { value = Ground (Bool false); _ } ->
+      { f with Mp3_format.id3v2 = None }
+  | "id3v2", `Value { value = Ground (Int v); _ } ->
+      { f with Mp3_format.id3v2 = Some v }
+  | "id3v2", `Value { value = Ground (String "none"); _ } ->
       { f with Mp3_format.id3v2 = None }
   | "", `Value { value = Ground (String s); _ }
     when String.lowercase_ascii s = "mono" ->
