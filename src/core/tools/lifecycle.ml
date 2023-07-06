@@ -23,12 +23,26 @@
 let log = Log.make ["lifecycle"]
 
 let make_action ?(before = []) ?(after = []) name =
-  let on_actions = ref [(fun () -> log#debug "At stage: %S" name)] in
+  let is_done = ref false in
+  let on_actions =
+    ref
+      [
+        (fun () ->
+          is_done := true;
+          log#debug "At stage: %S" name);
+      ]
+  in
   let on_action () = List.iter (fun fn -> fn ()) !on_actions in
   let atom = Dtools.Init.make ~before ~after ~name on_action in
-  let before_action f = ignore (Dtools.Init.make ~before:[atom] f) in
-  let on_action fn = on_actions := !on_actions @ [fn] in
-  let after_action f = ignore (Dtools.Init.make ~after:[atom] f) in
+  let before_action f =
+    if !is_done then f () else ignore (Dtools.Init.make ~before:[atom] f)
+  in
+  let on_action fn =
+    if !is_done then fn () else on_actions := !on_actions @ [fn]
+  in
+  let after_action f =
+    if !is_done then f () else ignore (Dtools.Init.make ~after:[atom] f)
+  in
   (atom, before_action, on_action, after_action)
 
 (* This atom is explicitly triggered in [Main] *)
@@ -39,8 +53,16 @@ let script_parse_atom, before_script_parse, on_script_parse, after_script_parse
     =
   make_action ~after:[init_atom] "Liquidsoap script parse"
 
-let _, before_start, on_start, after_start =
+let start_atom, before_start, on_start, after_start =
   make_action ~after:[script_parse_atom] "Liquidsoap application start"
+
+let main_loop_ref = ref (fun () -> assert false)
+let main_loop fn = main_loop_ref := fn
+
+let _ =
+  Dtools.Init.make ~after:[start_atom] (fun () ->
+      let fn = !main_loop_ref in
+      fn ())
 
 let ( final_cleanup_atom,
       before_final_cleanup,

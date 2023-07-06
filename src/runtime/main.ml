@@ -559,7 +559,8 @@ To change it, add the following to your script:
     check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start Tutils.start;
+  Lifecycle.main_loop (fun () ->
       let main () =
         (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
            this: we want Unix EPIPE error and not SIGPIPE, which crashes the
@@ -581,7 +582,6 @@ let () =
            default at least). *)
         Server.start ();
         Clock.start ();
-        Tutils.start ();
         Tutils.main ()
       in
       if !run_streams then
