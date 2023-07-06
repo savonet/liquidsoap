@@ -232,7 +232,7 @@ let rec deep_demeth t =
           { t with descr = Tuple (List.map deep_demeth l) }
       | { descr = Nullable t' } as t ->
           { t with descr = Nullable (deep_demeth t') }
-      | { descr = Meth (_, t) } -> t
+      | { descr = Meth (_, t) } -> deep_demeth t
       | { descr = Arrow (l, t') } as t ->
           {
             t with
