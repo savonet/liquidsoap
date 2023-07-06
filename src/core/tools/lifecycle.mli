@@ -49,6 +49,9 @@ val before_start : (unit -> unit) -> unit
 val on_start : (unit -> unit) -> unit
 val after_start : (unit -> unit) -> unit
 
+(** {2 Set application main loop} *)
+val main_loop : (unit -> unit) -> unit
+
 (** {1 Shutdown} *)
 
 (** Shutdown proceeds in 3 phases:

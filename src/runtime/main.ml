@@ -54,17 +54,6 @@ let force_start =
     ~comments:
       ["This should be reserved for advanced dynamic uses of liquidsoap."]
 
-(* Should we allow to run as root? *)
-let allow_root =
-  Dtools.Conf.bool
-    ~p:(Dtools.Init.conf#plug "allow_root")
-    ~d:false "Allow liquidsoap to run as root"
-    ~comments:
-      [
-        "This should be reserved for advanced dynamic uses of liquidsoap ";
-        "such as running inside an isolated environment like docker.";
-      ]
-
 (* Do not run, don't even check the scripts. *)
 let parse_only = ref false
 
@@ -511,10 +500,6 @@ let final_cleanup () =
   Gc.full_major ();
   Gc.full_major ()
 
-let sync_cleanup () =
-  initial_cleanup ();
-  final_cleanup ()
-
 let () =
   (* Shutdown *)
   Lifecycle.before_core_shutdown (fun () -> log#important "Shutdown started!");
@@ -559,7 +544,7 @@ To change it, add the following to your script:
     check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.main_loop (fun () ->
       let main () =
         (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
            this: we want Unix EPIPE error and not SIGPIPE, which crashes the
@@ -594,24 +579,10 @@ let () =
                  Runtime.interactive ();
                  Tutils.shutdown 0)
                ());
-          Dtools.Init.init main)
+          main ())
         else if Source.has_outputs () || force_start#get then (
           check_directories ();
-          let msg_of_err = function
-            | `User -> "root euid (user)"
-            | `Group -> "root guid (group)"
-            | `Both -> "root euid & guid (user & group)"
-          in
-          let on_error e =
-            Printf.eprintf
-              "init: security exit, %s. Override with \
-               settings.init.allow_root.set(true)\n"
-              (msg_of_err e);
-            sync_cleanup ();
-            exit (-1)
-          in
-          try Dtools.Init.init ~prohibit_root:(not allow_root#get) main
-          with Dtools.Init.Root_prohibited e -> on_error e)
+          main ())
         else (
           final_cleanup ();
           Printf.printf "No output defined, nothing to do.\n";
