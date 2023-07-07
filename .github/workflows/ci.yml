@@ -203,16 +203,19 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
-          mkdir -p /tmp/${{ github.run_number }}/traces/${{ matrix.target }}
-          find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
       - name: Save traces
-        if: ${{ needs.build_details.outputs.save_traces == 'true' }}
+        if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
+        run: |
+          mkdir -p /tmp/${{ github.run_number }}/traces/${{ matrix.target }}
+          cd /tmp/liquidsoap-full/liquidsoap
+          find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
+      - name: Upload traces
+        if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
         uses: actions/upload-artifact@v3
         with:
           name: traces-${{ matrix.target }}
           path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
       - name: Export potential core dumps
-        if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}-${{ matrix.target }}
