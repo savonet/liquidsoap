@@ -20,46 +20,21 @@
 
  *****************************************************************************)
 
-(* Immutable fast hash using hashtbl. *)
+(* Immutable fast hash *)
 
-type ('a, 'b) t = ('a, 'b) Hashtbl.t
+type ('a, 'b) t = ('a * 'b) list
 
-let is_empty h = Hashtbl.length h = 0
-let bindings h = Hashtbl.fold (fun k v l -> (k, v) :: l) h []
-let empty = Obj.magic (Hashtbl.create 0)
-let fold = Hashtbl.fold
-let find k h = Hashtbl.find h k
-let find_opt k h = Hashtbl.find_opt h k
-let mem k h = Hashtbl.mem h k
-
-let mapi fn h =
-  let h' = Hashtbl.create (Hashtbl.length h) in
-  Hashtbl.iter (fun k v -> Hashtbl.replace h' k (fn k v)) h;
-  h'
-
-let map fn h =
-  let h' = Hashtbl.create (Hashtbl.length h) in
-  Hashtbl.iter (fun k v -> Hashtbl.replace h' k (fn v)) h;
-  h'
-
-let filter fn h =
-  let h' = Hashtbl.create (Hashtbl.length h) in
-  Hashtbl.iter (fun k v -> if fn k v then Hashtbl.replace h' k v) h;
-  h'
-
-let add k v h =
-  let h = Hashtbl.copy h in
-  Hashtbl.replace h k v;
-  h
-
-let iter = Hashtbl.iter
-
-exception Terminate
-
-let for_all fn h =
-  try
-    Hashtbl.iter (fun k v -> if not (fn k v) then raise Terminate) h;
-    true
-  with Terminate -> false
-
-let exists fn h = not (for_all (fun k v -> not (fn k v)) h)
+let is_empty h = h = []
+let bindings h = h
+let empty = []
+let fold fn h r = List.fold_left (fun r (k, v) -> fn k v r) r h
+let find = List.assoc
+let find_opt = List.assoc_opt
+let mem = List.mem_assoc
+let mapi fn = List.map (fun (k, v) -> (k, fn k v))
+let map fn = List.map (fun (k, v) -> (k, fn v))
+let filter fn = List.filter (fun (k, v) -> fn k v)
+let add k v h = (k, v) :: List.remove_assoc k h
+let iter fn = List.iter (fun (k, v) -> fn k v)
+let for_all fn = List.for_all (fun (k, v) -> fn k v)
+let exists fn = List.exists (fun (k, v) -> fn k v)

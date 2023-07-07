@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-(* Immutable fast hash using hashtbl. *)
+(* Immutable fast hash *)
 
 type ('a, 'b) t
 
