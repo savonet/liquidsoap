@@ -592,7 +592,11 @@ let settings.http.mime.extnames = settings.make(
   ("audio/vnd.wave", ".wav"),
   ("audio/wav", ".wav"),
   ("audio/wave", ".wav"),
-  ("audio/x-wav", ".wav")
+  ("audio/x-wav", ".wav"),
+  ("image/jpeg", ".jpg"),
+  ("image/png", ".png"),
+  ("application/pdf", ".pdf"),
+  ("image/bmp", ".bmp")
 ])
 
 let http.headers = ()

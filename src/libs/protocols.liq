@@ -162,9 +162,18 @@ def protocol.http(proto,~rlog,~maxtime,arg) =
   extname = 200 <= code and code < 300 ? http.headers.extname(ret.headers) : null()
 
   extname =
-    if null.defined(extname) then null.get(extname) else
-      log(level=3, "Failed to find a file extension for #{uri}.")
+    if null.defined(extname) then null.get(extname) else begin
+      content_type = http.headers.content_type(ret.headers)
+      extra_log =
+        if null.defined(content_type) and null.get(content_type).mime != "" then begin
+          content_type = null.get(content_type).mime
+          " Response has unknown mime-type: #{string.quote(content_type)} you may want to add it to `settings.http.mime.extnames` and report to us if it is a common one."
+        end else
+          ""
+        end
+      log(level=3, "Failed to find a file extension for #{uri}.#{extra_log}")
       ".osb"
+    end
   end
 
   output = file.temp("liq-process", extname)
