@@ -43,6 +43,11 @@ let path () =
   let s = try Sys.getenv "PATH" with Not_found -> "" in
   bin_dir () :: Str.split (Str.regexp_string ":") s
 
+let () = conf#plug "log" Dtools.Log.conf
+
+let conf_init =
+  Dtools.Conf.void ~p:(conf#plug "init") "Initialization configuration"
+
 let conf_console =
   Dtools.Conf.void ~p:(conf#plug "console") "Console configuration"
 

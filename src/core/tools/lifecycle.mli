@@ -32,7 +32,7 @@
 
 (** {2 Init start} *)
 
-val init_atom : Dtools.Init.t
+val init : unit -> unit
 val before_init : (unit -> unit) -> unit
 val on_init : (unit -> unit) -> unit
 val after_init : (unit -> unit) -> unit
@@ -49,8 +49,11 @@ val before_start : (unit -> unit) -> unit
 val on_start : (unit -> unit) -> unit
 val after_start : (unit -> unit) -> unit
 
-(** {2 Set application main loop} *)
-val main_loop : (unit -> unit) -> unit
+(** {2 Application main loop} *)
+val before_main_loop : (unit -> unit) -> unit
+
+val on_main_loop : (unit -> unit) -> unit
+val after_main_loop : (unit -> unit) -> unit
 
 (** {1 Shutdown} *)
 
@@ -77,9 +80,3 @@ val after_scheduler_shutdown : (unit -> unit) -> unit
 val before_final_cleanup : (unit -> unit) -> unit
 val on_final_cleanup : (unit -> unit) -> unit
 val after_final_cleanup : (unit -> unit) -> unit
-
-(** {2 Stop} *)
-
-val before_stop : (unit -> unit) -> unit
-val on_stop : (unit -> unit) -> unit
-val after_stop : (unit -> unit) -> unit
