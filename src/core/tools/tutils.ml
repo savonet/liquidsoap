@@ -386,7 +386,8 @@ let run = Atomic.make running
 
 let main () =
   wait no_problem lock (fun () ->
-      Atomic.get run <> running || Atomic.get uncaught <> None)
+      Atomic.get run <> running || Atomic.get uncaught <> None);
+  log#important "Main loop exited"
 
 let shutdown code =
   if Atomic.compare_and_set run running (`Exit code) then
