@@ -203,8 +203,8 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
-          mkdir -p ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
-          find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}; done
+          mkdir -p /tmp/${{ github.run_number }}/traces/${{ matrix.target }}
+          find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
       - name: Save traces
         if: ${{ needs.build_details.outputs.save_traces == 'true' }}
         uses: actions/upload-artifact@v3
