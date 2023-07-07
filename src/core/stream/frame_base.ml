@@ -34,13 +34,11 @@ module FieldNames = Hashtbl.Make (struct
 end)
 
 module Fields = struct
-  include Map.Make (struct
-    type t = int
+  include Liquidsoap_lang.Methods
 
-    let compare (x : int) (y : int) = x - y [@@inline always]
-  end)
-
-  type field = key
+  type field = int
+  type 'a typ = (field, 'a) t
+  type 'a t = 'a typ
 
   let field_names = FieldNames.create 0
   let name_fields = Hashtbl.create 0

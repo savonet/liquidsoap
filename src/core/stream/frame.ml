@@ -42,7 +42,7 @@ let string_of_fields fn fields =
 let string_of_content_type = string_of_fields string_of_format
 
 module S = Set.Make (struct
-  type t = Fields.key
+  type t = Fields.field
 
   let compare = Stdlib.compare
 end)

@@ -41,7 +41,7 @@ def f() =
      a = null({a=1}),
      b = null(b)
   })
-  test.equals(s, "{ \"a\": { \"a\": 1 }, \"b\": { \"b\": 1 } }")
+  test.equals(s, '{ "b": { "b": 1 }, "a": { "a": 1 } }')
 
   data = "123"
   let json.parse ( x : int ) = data
@@ -252,7 +252,7 @@ def f() =
   j.remove("foo")
   j = json.stringify(j)
   test.equals(j, '{
-  "record": { "a": 1, "b": "ert" },
+  "record": { "b": "ert", "a": 1 },
   "key_with_methods": "value",
   "bla": "bar",
   "baz": 3.14

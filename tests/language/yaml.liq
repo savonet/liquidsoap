@@ -8,8 +8,8 @@ def f () =
   j.remove("foo")
   j = yaml.stringify(j)
   test.equals(j, 'record:
-  a: 1
   b: ert
+  a: 1
 key_with_methods: value
 bla: bar
 baz: 3.14
