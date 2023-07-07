@@ -27,6 +27,7 @@ type ('a, 'b) t = ('a * 'b) list
 let is_empty h = h = []
 let bindings h = h
 let empty = []
+let cardinal = List.length
 let fold fn h r = List.fold_left (fun r (k, v) -> fn k v r) r h
 let find = List.assoc
 let find_opt = List.assoc_opt

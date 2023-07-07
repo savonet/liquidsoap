@@ -26,6 +26,7 @@ type ('a, 'b) t
 
 val is_empty : ('a, 'b) t -> bool
 val empty : ('a, 'b) t
+val cardinal : ('a, 'b) t -> int
 val fold : ('a -> 'b -> 'c -> 'c) -> ('a, 'b) t -> 'c -> 'c
 val bindings : ('a, 'b) t -> ('a * 'b) list
 val find : 'a -> ('a, 'b) t -> 'b
