@@ -351,8 +351,8 @@ module Poll = struct
 end
 
 let () =
-  Srt.startup ();
   Lifecycle.before_start (fun () ->
+      Srt.startup ();
       if conf_log#get then (
         let level =
           match conf_verbosity#get with
@@ -367,7 +367,7 @@ let () =
         in
         Srt.Log.setloglevel level;
         Srt.Log.set_handler log_handler));
-  Lifecycle.after_scheduler_shutdown (fun () ->
+  Lifecycle.on_final_cleanup (fun () ->
       Srt.Poll.release Poll.t.Poll.p;
       Srt.cleanup ())
 
@@ -393,6 +393,9 @@ class virtual base =
     val mutable should_stop = false
     method private should_stop = self#mutexify (fun () -> should_stop) ()
     method private set_should_stop = self#mutexify (fun b -> should_stop <- b)
+
+    initializer
+      Lifecycle.before_core_shutdown (fun () -> self#set_should_stop true)
   end
 
 class virtual networking_agent =
@@ -427,6 +430,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
     val mutable connect_task = None
     val mutable task_should_stop = false
     val mutable socket = None
+    initializer Lifecycle.on_core_shutdown (fun () -> self#disconnect)
 
     method private get_socket =
       self#mutexify
@@ -527,6 +531,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
     method virtual should_stop : bool
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     val listening_socket = Atomic.make None
+    initializer Lifecycle.on_core_shutdown (fun () -> self#disconnect)
 
     method private is_connected =
       self#mutexify (fun () -> client_sockets <> []) ()
