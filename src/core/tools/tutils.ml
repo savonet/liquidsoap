@@ -110,7 +110,7 @@ let log = Log.make ["threads"]
   * i.e. not by raising an exception. *)
 
 let lock = Mutex.create ()
-let uncaught = ref None
+let uncaught = Atomic.make None
 
 module Set = Set.Make (struct
   type t = string * Condition.t
@@ -184,7 +184,7 @@ let create ~queue f x s =
               mutexify lock
                 (fun () ->
                   set := Set.remove (s, c) !set;
-                  uncaught := Some e;
+                  Atomic.set uncaught (Some e);
                   Condition.signal no_problem;
                   Condition.signal c)
                 ();
@@ -380,17 +380,19 @@ let wait_for ?(log = fun _ -> ()) event timeout =
   wait (min 1. timeout)
 
 (** Wait for some thread to crash *)
-let run = ref `Run
+let running = `Run
+
+let run = Atomic.make running
 
 let main () =
-  wait no_problem lock (fun () -> not (!run = `Run && !uncaught = None))
+  wait no_problem lock (fun () ->
+      Atomic.get run <> running || Atomic.get uncaught <> None)
 
 let shutdown code =
-  if !run = `Run then (
-    run := `Exit code;
-    Condition.signal no_problem)
+  if Atomic.compare_and_set run running (`Exit code) then
+    Condition.signal no_problem
 
-let exit_code () = match !run with `Exit code -> code | _ -> 0
+let exit_code () = match Atomic.get run with `Exit code -> code | _ -> 0
 
 (** Thread-safe lazy cell. *)
 let lazy_cell f =
