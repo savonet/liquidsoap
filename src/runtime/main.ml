@@ -590,11 +590,9 @@ let () =
         Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
         ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]));
 
-      (* On Windows we need to initiate shutdown ourselves by catching INT
-         since dtools doesn't do it. *)
-      if Sys.win32 then
-        Sys.set_signal Sys.sigint
-          (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
+      Sys.set_signal Sys.sigterm
+        (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
+      Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
 
       Dtools.Init.exec Dtools.Log.start;
 
