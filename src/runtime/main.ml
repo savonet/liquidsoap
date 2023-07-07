@@ -283,6 +283,7 @@ let options =
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
      ]
+    @ (if Sys.win32 then [] else Dtools.Init.args)
     @ Extra_args.args ()
     @ [
         ( ["-t"; "--enable-telnet"],
@@ -449,6 +450,10 @@ let () =
 
       (* Set the default values. *)
       Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
+      if not Sys.win32 then (
+        Dtools.Init.conf_daemon_pidfile#set_d (Some true);
+        Dtools.Init.conf_daemon_pidfile_path#set_d
+          (Some "<sysrundir>/<script>.pid"));
 
       log#important "Liquidsoap %s" Configure.version;
       log#important "Using: %s" (Configure.libs_versions ());
@@ -537,6 +542,7 @@ let () =
 let check_directories () =
   (* Now that the paths have their definitive value, expand <shortcuts>. *)
   let subst conf = conf#set (Utils.subst_vars conf#get) in
+  subst Dtools.Init.conf_daemon_pidfile_path;
   let check_dir conf_path kind =
     let path = conf_path#get in
     let dir = Filename.dirname path in
@@ -553,7 +559,75 @@ To change it, add the following to your script:
   in
   if Dtools.Log.conf_file#get then (
     subst Dtools.Log.conf_file_path;
-    check_dir Dtools.Log.conf_file_path "Log")
+    check_dir Dtools.Log.conf_file_path "Log");
+  if Dtools.Init.conf_daemon#get && Dtools.Init.conf_daemon_pidfile#get then
+    check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
+
+(** A function to reopen a file descriptor
+    * Thanks to Xavier Leroy!
+    * Ref: http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/
+    *      a7e3bbdfaab33603320d75dbdcd40c37.en.html
+    *)
+let reopen_out outchan filename =
+  flush outchan;
+  let fd1 = Unix.descr_of_out_channel outchan in
+  let fd2 = Unix.openfile filename [Unix.O_WRONLY] 0o666 in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
+(** The same for inchan *)
+let reopen_in inchan filename =
+  let fd1 = Unix.descr_of_in_channel inchan in
+  let fd2 = Unix.openfile filename [Unix.O_RDONLY] 0o666 in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
+let daemonize () =
+  Dtools.Log.conf_stdout#set false;
+  (* Change user.. *)
+  let conf_daemon_change_user =
+    Dtools.Conf.as_bool (Dtools.Init.conf_daemon#path ["change_user"])
+  in
+  let conf_daemon_user =
+    Dtools.Conf.as_string (conf_daemon_change_user#path ["user"])
+  in
+  let conf_daemon_group =
+    Dtools.Conf.as_string (conf_daemon_change_user#path ["group"])
+  in
+  if conf_daemon_change_user#get then begin
+    let grd = Unix.getgrnam conf_daemon_group#get in
+    let gid = grd.Unix.gr_gid in
+    if Unix.getegid () <> gid then Unix.setgid gid;
+    let pwd = Unix.getpwnam conf_daemon_user#get in
+    let uid = pwd.Unix.pw_uid in
+    if Unix.geteuid () <> uid then Unix.setuid uid
+  end;
+  if Unix.fork () <> 0 then exit 0;
+  (* Detach from the console *)
+  if Unix.setsid () < 0 then exit 1;
+  (* Refork.. *)
+  if Unix.fork () <> 0 then exit 0;
+  (* Change umask to 0 *)
+  ignore (Unix.umask 0);
+  (* chdir to / *)
+  Unix.chdir "/";
+  if Dtools.Init.conf_daemon_pidfile#get then begin
+    (* Write PID to file *)
+    let filename = Dtools.Init.conf_daemon_pidfile_path#get in
+    let f =
+      open_out_gen
+        [Open_wronly; Open_creat; Open_trunc]
+        Dtools.Init.conf_daemon_pidfile_perms#get filename
+    in
+    let pid = Unix.getpid () in
+    output_string f (string_of_int pid);
+    output_char f '\n';
+    close_out f
+  end;
+  (* Reopen usual file descriptor *)
+  reopen_in stdin "/dev/null";
+  reopen_out stdout "/dev/null";
+  reopen_out stderr "/dev/null"
 
 let () =
   Lifecycle.before_start (fun () ->
@@ -561,6 +635,8 @@ let () =
         final_cleanup ();
         flush_all ();
         exit 0);
+
+      if Dtools.Init.conf_daemon#get then daemonize ();
 
       (match root_error () with
         | None -> ()

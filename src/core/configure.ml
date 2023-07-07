@@ -46,7 +46,10 @@ let path () =
 let () = conf#plug "log" Dtools.Log.conf
 
 let conf_init =
-  Dtools.Conf.void ~p:(conf#plug "init") "Initialization configuration"
+  if not Sys.win32 then (
+    conf#plug "init" Dtools.Init.conf;
+    Dtools.Init.conf)
+  else Dtools.Conf.void ~p:(conf#plug "init") "Initialization configuration"
 
 let conf_console =
   Dtools.Conf.void ~p:(conf#plug "console") "Console configuration"
