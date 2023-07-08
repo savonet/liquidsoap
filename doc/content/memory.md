@@ -29,8 +29,12 @@ Inside liquidsoap scripts, the operations that the OCaml compiler provides to co
 Typically, to change the garbage collector parameters, one can do:
 
 ```liquidsoap
-runtime.gc.set(gc.runtime.get().{
-  max_overhead = 200
+# Optimize for memory usage over CPU
+# This results in a slightly increased
+# CPU usage and reduced memory usage.
+runtime.gc.set(runtime.gc.get().{
+  space_overhead = 20,
+  allocation_policy = 2
 })
 ```
 
