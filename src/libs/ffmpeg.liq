@@ -164,7 +164,7 @@ end
 
 # A test video source, which generates various patterns.
 # @category Source / Video processing
-# @param ~pattern Pattern drawn in the video: `"testsrc"`, `"testsrc2"`, `"smptebars"` or `"rgbtestsrc"`.
+# @param ~pattern Pattern drawn in the video: `"testsrc"`, `"testsrc2"`, `"smptebars"`, `"pal75bars"`, `"pal100bars"`, `"smptehdbars"`, `"yuvtestsrc"` or `"rgbtestsrc"` and more. Support any of the patterns supported by `ffmpeg`.
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~duration Duration of the source.
 def video.testsrc.ffmpeg(~id=null(), ~pattern="testsrc", ~max_buffer=0.5, ~duration=null())
