@@ -117,6 +117,7 @@
   lang_regexp
   lang_string
   lexer
+  methods
   modules
   parser
   parser_helper

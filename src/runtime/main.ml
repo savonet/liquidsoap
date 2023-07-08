@@ -31,10 +31,6 @@ let usage =
  - EXPR   for evaluating a scripting expression,
  - OPTION is one of the options listed below:|}
 
-let () =
-  Configure.conf#plug "init" Dtools.Init.conf;
-  Configure.conf#plug "log" Dtools.Log.conf
-
 (* Set log to stdout by default. *)
 let () =
   Dtools.Log.conf_stdout#set_d (Some true);
@@ -57,13 +53,20 @@ let force_start =
 (* Should we allow to run as root? *)
 let allow_root =
   Dtools.Conf.bool
-    ~p:(Dtools.Init.conf#plug "allow_root")
+    ~p:(Configure.conf_init#plug "allow_root")
     ~d:false "Allow liquidsoap to run as root"
     ~comments:
       [
         "This should be reserved for advanced dynamic uses of liquidsoap ";
         "such as running inside an isolated environment like docker.";
       ]
+
+let root_error () =
+  match (allow_root#get, Unix.geteuid (), Unix.getegid ()) with
+    | false, 0, 0 -> Some "root euid & guid (user & group)"
+    | false, 0, _ -> Some "root euid (user)"
+    | false, _, 0 -> Some "root guid (group)"
+    | _ -> None
 
 (* Do not run, don't even check the scripts. *)
 let parse_only = ref false
@@ -280,7 +283,8 @@ let options =
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
      ]
-    @ Dtools.Init.args @ Extra_args.args ()
+    @ (if Sys.win32 then [] else Dtools.Init.args)
+    @ Extra_args.args ()
     @ [
         ( ["-t"; "--enable-telnet"],
           Arg.Unit (fun _ -> Server.conf_telnet#set true),
@@ -446,9 +450,10 @@ let () =
 
       (* Set the default values. *)
       Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
-      Dtools.Init.conf_daemon_pidfile#set_d (Some true);
-      Dtools.Init.conf_daemon_pidfile_path#set_d
-        (Some "<sysrundir>/<script>.pid");
+      if not Sys.win32 then (
+        Dtools.Init.conf_daemon_pidfile#set_d (Some true);
+        Dtools.Init.conf_daemon_pidfile_path#set_d
+          (Some "<sysrundir>/<script>.pid"));
 
       log#important "Liquidsoap %s" Configure.version;
       log#important "Using: %s" (Configure.libs_versions ());
@@ -523,7 +528,7 @@ let () =
 
   Lifecycle.on_final_cleanup final_cleanup;
 
-  Lifecycle.after_stop (fun () ->
+  Lifecycle.after_final_cleanup (fun () ->
       let code = Tutils.exit_code () in
       if code <> 0 then exit code;
       if !Configure.restart then (
@@ -558,65 +563,142 @@ To change it, add the following to your script:
   if Dtools.Init.conf_daemon#get && Dtools.Init.conf_daemon_pidfile#get then
     check_dir Dtools.Init.conf_daemon_pidfile_path "PID"
 
+(** A function to reopen a file descriptor
+    * Thanks to Xavier Leroy!
+    * Ref: http://caml.inria.fr/pub/ml-archives/caml-list/2000/01/
+    *      a7e3bbdfaab33603320d75dbdcd40c37.en.html
+    *)
+let reopen_out outchan filename =
+  flush outchan;
+  let fd1 = Unix.descr_of_out_channel outchan in
+  let fd2 = Unix.openfile filename [Unix.O_WRONLY] 0o666 in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
+(** The same for inchan *)
+let reopen_in inchan filename =
+  let fd1 = Unix.descr_of_in_channel inchan in
+  let fd2 = Unix.openfile filename [Unix.O_RDONLY] 0o666 in
+  Unix.dup2 fd2 fd1;
+  Unix.close fd2
+
 let () =
-  Lifecycle.on_start Tutils.start;
-  Lifecycle.main_loop (fun () ->
-      let main () =
-        (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
-           this: we want Unix EPIPE error and not SIGPIPE, which crashes the
-           program... *)
-        if not Sys.win32 then (
-          Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
-          ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]));
+  Dtools.Init.conf_daemon#on_change (fun v ->
+      if v then
+        log#important
+          "Script-base daemonization is DEPRECATED! Please use a modern \
+           daemonization facility such as `systemd` or `launchd` instead.")
 
-        (* On Windows we need to initiate shutdown ourselves by catching INT
-           since dtools doesn't do it. *)
-        if Sys.win32 then
-          Sys.set_signal Sys.sigint
-            (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
+let daemonize () =
+  Dtools.Log.conf_stdout#set false;
+  (* Change user.. *)
+  let conf_daemon_change_user =
+    Dtools.Conf.as_bool (Dtools.Init.conf_daemon#path ["change_user"])
+  in
+  let conf_daemon_user =
+    Dtools.Conf.as_string (conf_daemon_change_user#path ["user"])
+  in
+  let conf_daemon_group =
+    Dtools.Conf.as_string (conf_daemon_change_user#path ["group"])
+  in
+  if conf_daemon_change_user#get then begin
+    let grd = Unix.getgrnam conf_daemon_group#get in
+    let gid = grd.Unix.gr_gid in
+    if Unix.getegid () <> gid then Unix.setgid gid;
+    let pwd = Unix.getpwnam conf_daemon_user#get in
+    let uid = pwd.Unix.pw_uid in
+    if Unix.geteuid () <> uid then Unix.setuid uid
+  end;
+  if Unix.fork () <> 0 then exit 0;
+  (* Detach from the console *)
+  if Unix.setsid () < 0 then exit 1;
+  (* Refork.. *)
+  if Unix.fork () <> 0 then exit 0;
+  (* Change umask to 0 *)
+  ignore (Unix.umask 0);
+  (* chdir to / *)
+  Unix.chdir "/";
+  if Dtools.Init.conf_daemon_pidfile#get then begin
+    (* Write PID to file *)
+    let filename = Dtools.Init.conf_daemon_pidfile_path#get in
+    let f =
+      open_out_gen
+        [Open_wronly; Open_creat; Open_trunc]
+        Dtools.Init.conf_daemon_pidfile_perms#get filename
+    in
+    let pid = Unix.getpid () in
+    output_string f (string_of_int pid);
+    output_char f '\n';
+    close_out f
+  end;
+  (* Reopen usual file descriptor *)
+  reopen_in stdin "/dev/null";
+  reopen_out stdout "/dev/null";
+  reopen_out stderr "/dev/null"
 
-        Dtools.Init.exec Dtools.Log.start;
+let () =
+  Lifecycle.before_start (fun () ->
+      if not !run_streams then (
+        final_cleanup ();
+        flush_all ();
+        exit 0);
 
-        (* TODO: if start fails (e.g. invalid password or mountpoint) it raises
-           an exception and dtools catches it so we don't get a backtrace (by
-           default at least). *)
-        Server.start ();
-        Clock.start ();
-        Tutils.main ()
-      in
-      if !run_streams then
-        if !interactive then (
-          load_libs ();
-          check_directories ();
-          ignore
-            (Thread.create
-               (fun () ->
-                 Runtime.interactive ();
-                 Tutils.shutdown 0)
-               ());
-          Dtools.Init.init main)
-        else if Source.has_outputs () || force_start#get then (
-          check_directories ();
-          let msg_of_err = function
-            | `User -> "root euid (user)"
-            | `Group -> "root guid (group)"
-            | `Both -> "root euid & guid (user & group)"
-          in
-          let on_error e =
+      if Dtools.Init.conf_daemon#get then daemonize ();
+
+      (match root_error () with
+        | None -> ()
+        | Some err ->
             Printf.eprintf
               "init: security exit, %s. Override with \
                settings.init.allow_root.set(true)\n"
-              (msg_of_err e);
+              err;
             sync_cleanup ();
-            exit (-1)
-          in
-          try Dtools.Init.init ~prohibit_root:(not allow_root#get) main
-          with Dtools.Init.Root_prohibited e -> on_error e)
-        else (
-          final_cleanup ();
-          Printf.printf "No output defined, nothing to do.\n";
-          flush_all ();
-          exit 1))
+            exit (-1));
+
+      if
+        (not !interactive)
+        && (not (Source.has_outputs ()))
+        && not force_start#get
+      then (
+        final_cleanup ();
+        Printf.printf "No output defined, nothing to do.\n";
+        flush_all ();
+        exit 1));
+
+  Lifecycle.on_start (fun () ->
+      (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
+         this: we want Unix EPIPE error and not SIGPIPE, which crashes the
+         program... *)
+      if not Sys.win32 then (
+        Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
+        ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]));
+
+      Sys.set_signal Sys.sigterm
+        (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
+      Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
+
+      Dtools.Init.exec Dtools.Log.start;
+
+      (* TODO: if start fails (e.g. invalid password or mountpoint) it raises
+         an exception and dtools catches it so we don't get a backtrace (by
+         default at least). *)
+      Server.start ();
+      Clock.start ();
+      Tutils.start ();
+
+      if !interactive then (
+        load_libs ();
+        check_directories ();
+        ignore
+          (Thread.create
+             (fun () ->
+               Runtime.interactive ();
+               Tutils.shutdown 0)
+             ())));
+
+  Lifecycle.on_main_loop Tutils.main;
+
+  Lifecycle.after_final_cleanup (fun () -> Dtools.Init.exec Dtools.Log.stop)
 
 (* Here we go! *)
-let start () = Dtools.Init.exec Lifecycle.init_atom
+let start = Lifecycle.init

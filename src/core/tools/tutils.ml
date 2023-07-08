@@ -110,7 +110,7 @@ let log = Log.make ["threads"]
   * i.e. not by raising an exception. *)
 
 let lock = Mutex.create ()
-let uncaught = ref None
+let uncaught = Atomic.make None
 
 module Set = Set.Make (struct
   type t = string * Condition.t
@@ -184,7 +184,7 @@ let create ~queue f x s =
               mutexify lock
                 (fun () ->
                   set := Set.remove (s, c) !set;
-                  uncaught := Some e;
+                  Atomic.set uncaught (Some e);
                   Condition.signal no_problem;
                   Condition.signal c)
                 ();
@@ -269,67 +269,6 @@ let start () =
   done;
   mutexify started_m (fun () -> started := true) ()
 
-(** Replace stdout/err by a pipe, and install a Duppy task that pulls data
-  * out of that pipe and logs it.
-  * Never use that when logging to stdout: it would just loop! *)
-let start_forwarding () =
-  let reopen fd =
-    let i, o = Unix.pipe ~cloexec:true () in
-    Unix.dup2 ~cloexec:true o fd;
-    Unix.close o;
-    Unix.set_close_on_exec i;
-    i
-  in
-  let in_stdout = reopen Unix.stdout in
-  let in_stderr = reopen Unix.stderr in
-  (* Without the eta-expansion, the timestamp is computed once for all. *)
-  let log_stdout =
-    let log = Log.make ["stdout"] in
-    fun s -> log#important "%s" s
-  in
-  let log_stderr =
-    let log = Log.make ["stderr"] in
-    fun s -> log#important "%s" s
-  in
-  let forward fd log =
-    let task ~priority f =
-      { Duppy.Task.priority; events = [`Read fd]; handler = f }
-    in
-    let len = Utils.pagesize in
-    let buffer = Bytes.create len in
-    let rec f (acc : string list) _ =
-      let n = Unix.read fd buffer 0 len in
-      let buffer = Bytes.unsafe_to_string buffer in
-      let rec split acc i =
-        match
-          try Some (String.index_from buffer i '\n') with Not_found -> None
-        with
-          | Some j when j < n ->
-              let line =
-                List.fold_left
-                  (fun s l -> l ^ s)
-                  (String.sub buffer i (j - i))
-                  acc
-              in
-              (* This _could_ be blocking! *)
-              log line;
-              split [] (j + 1)
-          | _ -> String.sub buffer i (n - i) :: acc
-      in
-      [task ~priority:`Non_blocking (f (split acc 0))]
-    in
-    Duppy.Task.add scheduler (task ~priority:`Maybe_blocking (f []))
-  in
-  forward in_stdout log_stdout;
-  forward in_stderr log_stderr
-
-let () =
-  ignore
-    (Dtools.Init.at_start (fun () ->
-         if Dtools.Init.conf_daemon#get then (
-           Dtools.Log.conf_stdout#set false;
-           start_forwarding ())))
-
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
   mutexify m
@@ -380,17 +319,20 @@ let wait_for ?(log = fun _ -> ()) event timeout =
   wait (min 1. timeout)
 
 (** Wait for some thread to crash *)
-let run = ref `Run
+let running = `Run
+
+let run = Atomic.make running
 
 let main () =
-  wait no_problem lock (fun () -> not (!run = `Run && !uncaught = None))
+  wait no_problem lock (fun () ->
+      Atomic.get run <> running || Atomic.get uncaught <> None);
+  log#important "Main loop exited"
 
 let shutdown code =
-  if !run = `Run then (
-    run := `Exit code;
-    Condition.signal no_problem)
+  if Atomic.compare_and_set run running (`Exit code) then
+    Condition.signal no_problem
 
-let exit_code () = match !run with `Exit code -> code | _ -> 0
+let exit_code () = match Atomic.get run with `Exit code -> code | _ -> 0
 
 (** Thread-safe lazy cell. *)
 let lazy_cell f =

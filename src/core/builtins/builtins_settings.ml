@@ -117,17 +117,7 @@ let settings_module =
              Printf.sprintf "Entry for configuration key %s" label ))
          conf#subs
      in
-     let log_t = get_type Dtools.Log.conf in
-     let init_t = get_type Dtools.Init.conf in
-     let settings_t =
-       get_type
-         ~sub:
-           [
-             ("init", ([], init_t), "Daemon settings");
-             ("log", ([], log_t), "Logging settings");
-           ]
-         Configure.conf
-     in
+     let settings_t = get_type Configure.conf in
      let get_v fn conv_to conv_from conf =
        let get =
          Lang.val_fun [] (fun _ ->
@@ -178,9 +168,7 @@ let settings_module =
            (Utils.normalize_parameter_string label, v))
          conf#subs
      in
-     let init = get_value Dtools.Init.conf in
-     let log = get_value Dtools.Log.conf in
-     settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
+     settings := get_value Configure.conf;
      ignore
        (Lang.add_builtin_value ~category:`Settings "settings"
           ~descr:"All settings." ~flags:[`Hidden] !settings settings_t))

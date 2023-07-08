@@ -184,11 +184,12 @@ module MkGround (D : GroundDef) = struct
       { Ground.typ = D.typ; to_json; compare; descr }
 end
 
-module Methods = Map.Make (struct
-  type t = string
+module Methods = struct
+  include Methods
 
-  let compare (x : string) (y : string) = Stdlib.compare x y [@@inline always]
-end)
+  type 'a typ = (string, 'a) t
+  type 'a t = 'a typ
+end
 
 type t = { mutable t : Type.t; term : in_term; methods : t Methods.t }
 
