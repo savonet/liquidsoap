@@ -582,6 +582,13 @@ let reopen_in inchan filename =
   Unix.dup2 fd2 fd1;
   Unix.close fd2
 
+let () =
+  Dtools.Init.conf_daemon#on_change (fun v ->
+      if v then
+        log#important
+          "Script-base daemonization is DEPRECATED! Please use a modern \
+           daemonization facility such as `systemd` or `launchd` instead.")
+
 let daemonize () =
   Dtools.Log.conf_stdout#set false;
   (* Change user.. *)
