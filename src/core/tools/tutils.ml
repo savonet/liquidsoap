@@ -306,7 +306,7 @@ let wait_for ?(log = fun _ -> ()) event timeout =
   in
   let rec wait t =
     let r, w, _ =
-      try Unix.select r w [] t
+      try Duppy.poll r w [] t
       with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
     in
     if r = [] && w = [] then (

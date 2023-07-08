@@ -157,7 +157,7 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
       (* Wait until there's something to read or we must stop. *)
       let rec wait () =
         if should_stop () then failwith "stop";
-        let l, _, _ = Unix.select [socket] [] [] 1. in
+        let l, _, _ = Duppy.poll [socket] [] [] 1. in
         if l = [] then wait ()
       in
       (* Read data from the network. *)
