@@ -40,7 +40,21 @@ end
 # @param ~y y position.
 # @param ~file Path to the image file.
 def track.video.add_image(~id=null("track.video.add_image"), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, v)
-  image = single(id=id, file)
+  image =
+     if getter.is_constant(file) then
+       single(id=id, getter.get(file))
+     else
+       current_file = ref(getter.get(file))
+       get_next = fun () -> request.create(current_file())
+       s = request.dynamic(id=id, get_next)
+       source.on_frame(s, fun () -> begin
+         new_file = getter.get(file)
+         if new_file != current_file() then
+           current_file.set(new_file)
+           s.skip()
+         end
+       end)
+     end
   image = video.crop(image)
   image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
   let {video=image} = source.tracks(image)
