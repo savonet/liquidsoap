@@ -62,6 +62,13 @@ else
   SAVE_TRACES=
 fi
 
+if [ "${IS_RELEASE}" != "true" ] || [ "${IS_ROLLING_RELEASE}"  == "true" ]; then
+  echo "Build is a snapshot"
+  IS_SNAPSHOT=true
+else
+  IS_SNAPSHOT=
+fi
+
 MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd graphics gstreamer imagelib irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt taglib tls theora tsdl vorbis"
 
 {
@@ -77,4 +84,5 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
   echo "is_fork=${IS_FORK}"
   echo "minimal_exclude_deps=${MINIMAL_EXCLUDE_DEPS}"
   echo "save_traces=${SAVE_TRACES}"
+  echo "is_snapshot=${IS_SNAPSHOT}"
 } >> "${GITHUB_OUTPUT}"

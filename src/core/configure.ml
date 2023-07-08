@@ -4,8 +4,7 @@ open Liquidsoap_lang
 include Build_config
 include Liquidsoap_paths
 
-(* See: https://github.com/ocaml/dune/issues/4453 *)
-let git_snapshot = false
+let git_snapshot = git_sha <> None
 let requests_max_id = 50
 let requests_table_size = 50
 let default_font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"

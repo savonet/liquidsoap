@@ -45,6 +45,7 @@ jobs:
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
+      is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -274,7 +275,7 @@ jobs:
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
-      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_release == 'true' }}
+      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
