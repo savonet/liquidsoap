@@ -78,11 +78,17 @@ Where:
 
 - Generic options are passed to audio, video and format (container) setup. Unused options will raise an exception. Any option supported by `ffmpeg` can be passed here.
 
+### HLS output
+
 The `%ffmpeg` encoder is the prime encoder for HLS output as it is the only one of our collection of encoder which can produce Mpeg-ts muxed data, which is required by most HLS clients.
+
+### File output
 
 Some encoding formats, for instance `mp4` require to rewing their stream and write a header after the fact, when encoding of the current track has finished. For historical reasons, such formats
 cannot be used with `output.file`. To remedy that, we have introduced the `output.url` operator. When using this operator, the encoder is fully in charge of the output file and can thus write headers
 after the fact. The `%ffmpeg` encoder is one such encoder that can be used with this operator.
+
+### Copy options
 
 The `%audio.copy` and `%video.copy` encoders have two mutually exclusive options to handle keyframes:
 
@@ -96,3 +102,35 @@ With option `wait_for_keyframe`, the encoder discards any new packet at the begi
 With option `ignore_keyframe`, the encoder starts passing encoded data right away. Content is immediately added but playback might get stuck until a new keyframe is passed.
 
 It is worth noting that some audio encoders may also have keyframes.
+
+### Hardware acceleration
+
+The `%ffmpeg` encoder supports multiple hardware acceleration provided by `ffmpeg`.
+
+If you are lucky and the encoder you are using provides support for hardware acceleration without any specific configuration, all you might have to do is
+select `codec="..."` (for instance on macos, `codec="h264_videotoolbox"`) and it should work immediately.
+
+The type of hardware acceleration provided by ffmpeg are:
+
+1. Internal hardware acceleration that works without any specific configuration. This is the happy path described above!
+2. Device-based hardware acceleration that works with a specific device.
+3. Frame-based hardware acceleration that work with a specific pixel format.
+
+The type of hardware acceleration to use for a given stream can be specified using the `hwaccel` option. Its value is one of: `"auto"`, `"none"`, `"internal"`, `"device"` or `"frame"`.
+
+For device-based hardware acceleration, the device to use can be specified using `hwaccel_device`. For frame-based hardware acceleration, the pixel format can be specified using `hwaccel_pixel_format`. In most cases, liquidsoap should be able to guess these values from the codec.
+
+Here's an example:
+
+```liquidsoap
+enc = %ffmpeg(
+  format="mpegts",
+  %video(
+    hwaccel="device",
+    hwaccel_devic="/dev/...",
+    ...
+  )
+)
+```
+
+Hardware acceleration support is, of course, very hardware dependent so we might not have tested all possible combinations. If you are having issues setting it up, do not hesitate to get in touch with us to see if your use-case is properly covered.
