@@ -34,8 +34,6 @@ Typically, to change the garbage collector parameters, one can do:
 # - less memory: space_overhead = 20
 # - less cpu: space_overhead = 140
 # - balanced: space_overhead = 80
-# - disabled: space_overhead = 0
-
 
 # Optimize for memory usage over CPU
 # This results in a slightly increased
