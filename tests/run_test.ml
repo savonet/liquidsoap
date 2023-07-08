@@ -67,6 +67,7 @@ let run () =
          on_timeout ())
        ());
 
+  Unix.putenv "MEMTRACE" (Printf.sprintf "%s.trace" test);
   let pid = Unix.create_process cmd args stdin stdout stdout in
 
   match Unix.waitpid [] pid with

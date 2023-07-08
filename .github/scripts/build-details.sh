@@ -54,6 +54,14 @@ else
   IS_ROLLING_RELEASE=
 fi
 
+if [ "${IS_FORK}" != "true" ] && [ "${IS_RELEASE}" != "true" ] && [ "${IS_ROLLING_RELEASE}" != "true" ]; then
+  echo "Save tests traces"
+  SAVE_TRACES=true
+else
+  echo "Disable tests traces upload"
+  SAVE_TRACES=
+fi
+
 MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd graphics gstreamer imagelib irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt taglib tls theora tsdl vorbis"
 
 {
@@ -68,4 +76,5 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
   echo "s3-artifact-basepath=s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
   echo "is_fork=${IS_FORK}"
   echo "minimal_exclude_deps=${MINIMAL_EXCLUDE_DEPS}"
+  echo "save_traces=${SAVE_TRACES}"
 } >> "${GITHUB_OUTPUT}"

@@ -25,9 +25,11 @@
 (** {2 Frame definitions} *)
 
 module Fields : sig
-  type field = Frame_base.Fields.field
+  include module type of Liquidsoap_lang.Methods
 
-  include Map.S with type key := field and type 'a t = 'a Frame_base.Fields.t
+  type field = Frame_base.Fields.field
+  type 'a typ = (field, 'a) t
+  type 'a t = 'a typ
 
   val metadata : field
   val track_marks : field
