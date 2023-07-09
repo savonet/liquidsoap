@@ -275,7 +275,7 @@ jobs:
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
-      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
+      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_snapshot != 'true' }}
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
