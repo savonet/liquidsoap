@@ -6,23 +6,12 @@ PWD=$(dirname "$0")
 BASE_DIR=$(cd "${PWD}/../.." && pwd)
 RELEASE=$GITHUB_SHA
 
-git config --global user.email "toots@rastageeks.org" && git config --global user.name "Romain Beauxis"
-
 eval "$(opam config env)"
 
-cd /home/opam/opam-cross-windows/
-git pull
+cd "${BASE_DIR}"
 
-for i in $(find "${BASE_DIR}/.github/opam" | grep '\.opam$'); do
-  PACKAGE=$(basename "$i" | sed -e 's#\.opam$##')
-  VERSION=$(grep '^version' "$i" | cut -d'"' -f 2)
-  mkdir -p "/home/opam/opam-cross-windows/packages/$PACKAGE/$PACKAGE.$VERSION"
-  cp "$i" "/home/opam/opam-cross-windows/packages/$PACKAGE/$PACKAGE.$VERSION/opam"
-  sed -e "s#@COMMIT_SHORT@#$RELEASE#g" -i "/home/opam/opam-cross-windows/packages/$PACKAGE/$PACKAGE.$VERSION/opam"
-done
+mkdir -p "./.github/opam/packages/liquidsoap-core-windows/liquidsoap-core-windows.${RELEASE}"
+mv ./.github/opam/liquidsoap-core-windows.opam "./.github/opam/packages/liquidsoap-core-windows/liquidsoap-core-windows.${RELEASE}/opam"
+sed -e "s#@COMMIT_SHORT@#$RELEASE#g" -i "./.github/opam/packages/liquidsoap-core-windows/liquidsoap-core-windows.${RELEASE}/opam"
 
-git add . && git commit -m "Add custom opam files"
-
-opam update windows
-
-opam list --short --recursive --external --vars os-distribution=mxe,os-family=mingw --required-by="$OPAM_DEPS" > /home/opam/mxe-deps
+opam remote add liquidsoap-devel ./.github/opam
