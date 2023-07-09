@@ -114,7 +114,7 @@ encoder = %ogg(%vorbis(pcm_f32))
 encoder = %ffmpeg(format="mp4",%audio(pcm_s16, codec="aac"))
 ```
 
-For both `pcm_*` and ffmpeg raw formats, you can use also conversion functions (`ffmpeg.raw.decode.*`, `ffmpeg.raw.encode.*`, `audio.decode.pcm_*`, `audio.encode.pcm_*` to convert
+For both `pcm_*` and ffmpeg raw formats, you can use also conversion functions (`ffmpeg.raw.decode.*`, `ffmpeg.raw.encode.*`, `audio.decode.pcm_*`, `audio.encode.pcm_*`) to convert
 content back and forth.
 
 In general, working with the `pcm_*` formats is easier. If you know what you are doing, though, working with raw FFmpeg frames can also have some advantages. In both cases,
