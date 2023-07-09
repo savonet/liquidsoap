@@ -40,7 +40,7 @@ class stereotool ~field ~preset ~load_type ~handler source =
     method private load_type load_type =
       try load_type_of_string load_type
       with Not_found ->
-        self#log#important "Invalid load type: %s" load_type;
+        self#log#severe "Invalid load type: %s" load_type;
         `Totalinit
 
     method load_preset ~load_type filename =
@@ -70,20 +70,11 @@ class stereotool ~field ~preset ~load_type ~handler source =
 
     method! wake_up l =
       super#wake_up l;
-      (match preset with
+      match preset with
         | None -> ()
         | Some filename ->
             if not (self#load_preset ~load_type filename) then
-              self#log#important "Preset load failed!");
-      let valid_license = self#valid_license in
-      let level = if valid_license then 4 else 3 in
-      self#log#f level
-        "Stereotool initialized! Valid license: %b, latency: %.02fs, \
-         API/software version: %d/%d"
-        self#valid_license self#latency self#api_version self#software_version;
-      match self#unlincensed_used_features with
-        | None -> ()
-        | Some s -> self#log#f level "Using unlicensed features: %s" s
+              self#log#severe "Preset load failed!"
 
     method stype = source#stype
     method remaining = source#remaining
@@ -91,6 +82,7 @@ class stereotool ~field ~preset ~load_type ~handler source =
     method is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
+    val mutable first_frame = true
 
     method private get_frame buf =
       let offset = AFrame.position buf in
@@ -99,7 +91,19 @@ class stereotool ~field ~preset ~load_type ~handler source =
       let b = Content.Audio.get_data (Frame.get buf field) in
       Stereotool.process
         ~samplerate:(Lazy.force Frame.audio_rate)
-        handler b offset (position - offset)
+        handler b offset (position - offset);
+      if first_frame then (
+        first_frame <- false;
+        let valid_license = self#valid_license in
+        let level = if valid_license then 3 else 2 in
+        self#log#f level
+          "Stereotool initialized! Load type: %s, valid license: %b, latency: \
+           %.02fs, API/software version: %d/%d"
+          load_type valid_license self#latency self#api_version
+          self#software_version;
+        match self#unlincensed_used_features with
+          | None -> ()
+          | Some s -> self#log#f level "Using unlicensed features: %s" s)
   end
 
 let _ =

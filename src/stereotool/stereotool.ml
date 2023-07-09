@@ -24,8 +24,7 @@ module C (Conf : Config) = struct
     foreign "stereoTool_GetSoftwareVersion" (void @-> returning int)
 
   let api_version = foreign "stereoTool_GetApiVersion" (void @-> returning int)
-  let create_ptr = foreign "stereoTool_Create" (ptr void @-> returning handler)
-  let create = foreign "stereoTool_Create" (string @-> returning handler)
+  let create = foreign "stereoTool_Create" (string_opt @-> returning handler)
   let delete = foreign "stereoTool_Delete" (handler @-> returning void)
 
   let valid_license =
@@ -84,11 +83,7 @@ let init ?license_key ~filename () =
     let module C = C (struct
       let filename = filename
     end) in
-    let handler =
-      match license_key with
-        | None -> C.create_ptr null
-        | Some license_key -> C.create license_key
-    in
+    let handler = C.create license_key in
     Gc.finalise C.delete handler;
     { handler; _module = (module C : C) }
   with _ -> raise Library_not_found
