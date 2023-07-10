@@ -43,6 +43,7 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url default https://github.com/ocaml/opam-repository.git
+opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
 opam update windows
 # shellcheck disable=SC2046
 opam upgrade -y $(echo "$OPAM_DEPS" | sed -e 's#,# #g') ffmpeg-windows ffmpeg-avutil-windows
