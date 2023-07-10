@@ -3,17 +3,17 @@
 ## Forewords
 
 Installing liquidsoap can be a difficult task. The software relies on a up-to date
-`OCaml` compiler, as well as a bunch of `OCaml` modules and, for most of them, corresponding
+OCaml compiler, as well as a bunch of OCaml modules and, for most of them, corresponding
 C library dependencies.
 
 Our recommended way of installing liquidsoap is via [opam](http://opam.ocaml.org/). `opam` can take
-care of install the correct `OCaml` compiler, optional and required dependencies as well as system-specific
+care of installing the correct OCaml compiler, optional and required dependencies as well as system-specific
 package dependencies.
 
 The `opam` method is described in details in the [documentation](doc/content/install.md).
 We recommend that any interested user head over to this link to install the software via `opam`.
 
-The following of this document describes how to compile liquidsoap locally for developers.
+The remainder of this document describes how to compile liquidsoap locally for developers.
 
 ## Overview
 
