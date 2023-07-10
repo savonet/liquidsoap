@@ -71,23 +71,28 @@ opam switch create <ocaml version>
 A typical installation with most expected features is done by executing:
 
 ```
-opam depext taglib mad lame ffmpeg liquidsoap
-opam install taglib mad lame ffmpeg liquidsoap
+opam install ffmpeg liquidsoap
 ```
 
-- `opam depext ...` takes care of installing the required external
-  dependencies. In some cases external dependencies might be missing for your
-  system. If that is the case, please report it to us!
-- Finally `opam install ...` installs the packages themselves.
+This will install `liquidsoap` along with the optional `ffmpeg` package, which provides most
+of the expected functionalities (encoding, decoding, metadata support etc) out of the box.
 
-Most of liquidsoap's dependencies are only optionally installed by OPAM. For
+The `opam` installer also handles external dependencies that is, dependencies from your operating system
+that are required for your install. Typically, this would be the `ffmpeg` shared libraries here, as well
+as `libcurl`, which is required for `liquidsoap` to install.
+
+In most cases, `opam` will simply ask for your permission to install these dependencies on your behalf. In
+some cases, however, you will have install them yourself.
+
+Most of liquidsoap's dependencies are only optional. For
 instance, if you want to enable opus encoding and decoding after you've already
 installed liquidsoap, you should execute the following:
 
 ```
-opam depext opus
 opam install opus
 ```
+
+This will install `opus` and its dependencies and recompile `liquidsoap` to take advantage of it.
 
 `opam info liquidsoap` should give you the list of all optional dependencies
 that you may enable in liquidsoap.
