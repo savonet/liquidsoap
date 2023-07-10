@@ -33,7 +33,7 @@ let load_image filename =
   img
 
 let () =
-  Plug.register Decoder.image_file_decoders "sdl/image"
+  Plug.register Decoder.image_file_decoders "sdl"
     ~doc:"Use SDL to decode images." (fun filename ->
       let img = load_image filename in
       Some img)
