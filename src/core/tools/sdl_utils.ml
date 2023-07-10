@@ -52,7 +52,7 @@ let () =
 module Surface = struct
   let to_img surface =
     let width, height = Sdl.get_surface_size surface in
-    let finalize = ref (fun () -> ()) in
+    let finally = ref (fun () -> ()) in
     let surface =
       let fmt = Sdl.get_surface_format_enum surface in
       (* It seems that we cannot decode those properly (see #3194),
@@ -61,93 +61,88 @@ module Surface = struct
         let fmt = Sdl.alloc_format Sdl.Pixel.format_rgb24 |> Result.get_ok in
         let surface' = Sdl.convert_surface surface fmt |> Result.get_ok in
         Sdl.free_format fmt;
-        (finalize := fun () -> Sdl.free_surface surface');
+        (finally := fun () -> Sdl.free_surface surface');
         surface')
       else surface
     in
     let pitch = Sdl.get_surface_pitch surface in
     let fmt = Sdl.get_surface_format_enum surface in
     let img = Video.Image.create width height in
-    let finalize = !finalize in
-    (match fmt with
-      | fmt when fmt = Sdl.Pixel.format_rgb888 ->
-          assert (Sdl.lock_surface surface = Ok ());
-          let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
-          for j = 0 to height - 1 do
-            for i = 0 to width - 1 do
-              let r, g, b, a =
-                if Sys.big_endian then
-                  ( pix.{(j * pitch) + (4 * i) + 0},
-                    pix.{(j * pitch) + (4 * i) + 1},
-                    pix.{(j * pitch) + (4 * i) + 2},
-                    0xff )
-                else
-                  ( pix.{(j * pitch) + (4 * i) + 2},
-                    pix.{(j * pitch) + (4 * i) + 1},
-                    pix.{(j * pitch) + (4 * i) + 0},
-                    0xff )
-              in
-              Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
-            done
-          done;
-          Sdl.unlock_surface surface;
-          finalize ()
-      | fmt when fmt = Sdl.Pixel.format_argb8888 ->
-          assert (Sdl.lock_surface surface = Ok ());
-          let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
-          for j = 0 to height - 1 do
-            for i = 0 to width - 1 do
-              let r, g, b, a =
-                if Sys.big_endian then
-                  ( pix.{(j * pitch) + (4 * i) + 1},
-                    pix.{(j * pitch) + (4 * i) + 2},
-                    pix.{(j * pitch) + (4 * i) + 3},
-                    pix.{(j * pitch) + (4 * i) + 0} )
-                else
-                  ( pix.{(j * pitch) + (4 * i) + 2},
-                    pix.{(j * pitch) + (4 * i) + 1},
-                    pix.{(j * pitch) + (4 * i) + 0},
-                    pix.{(j * pitch) + (4 * i) + 3} )
-              in
-              Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
-            done
-          done;
-          Sdl.unlock_surface surface;
-          finalize ()
-      | fmt when fmt = Sdl.Pixel.format_rgb24 ->
-          assert (Sdl.lock_surface surface = Ok ());
-          let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
-          for j = 0 to height - 1 do
-            for i = 0 to width - 1 do
-              let r, g, b =
-                ( pix.{(j * pitch) + (3 * i) + 0},
-                  pix.{(j * pitch) + (3 * i) + 1},
-                  pix.{(j * pitch) + (3 * i) + 2} )
-              in
-              let a = 0xff in
-              Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
-            done
-          done;
-          Sdl.unlock_surface surface;
-          finalize ()
-      | fmt when fmt = Sdl.Pixel.format_index8 ->
-          assert (Sdl.lock_surface surface = Ok ());
-          let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
-          for j = 0 to height - 1 do
-            for i = 0 to width - 1 do
-              let p = pix.{i + (j * pitch)} in
-              let a = 0xff in
-              Image.YUV420.set_pixel_rgba img i j (p, p, p, a)
-            done
-          done;
-          Sdl.unlock_surface surface;
-          finalize ()
-      | _ ->
-          finalize ();
-          failwith
-            ("img_of_surface: unhandled format "
-            ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt))));
-    img
+    Fun.protect ~finally:!finally (fun () ->
+        (match fmt with
+          | fmt when fmt = Sdl.Pixel.format_rgb888 ->
+              assert (Sdl.lock_surface surface = Ok ());
+              let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
+              for j = 0 to height - 1 do
+                for i = 0 to width - 1 do
+                  let r, g, b, a =
+                    if Sys.big_endian then
+                      ( pix.{(j * pitch) + (4 * i) + 0},
+                        pix.{(j * pitch) + (4 * i) + 1},
+                        pix.{(j * pitch) + (4 * i) + 2},
+                        0xff )
+                    else
+                      ( pix.{(j * pitch) + (4 * i) + 2},
+                        pix.{(j * pitch) + (4 * i) + 1},
+                        pix.{(j * pitch) + (4 * i) + 0},
+                        0xff )
+                  in
+                  Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
+                done
+              done;
+              Sdl.unlock_surface surface
+          | fmt when fmt = Sdl.Pixel.format_argb8888 ->
+              assert (Sdl.lock_surface surface = Ok ());
+              let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
+              for j = 0 to height - 1 do
+                for i = 0 to width - 1 do
+                  let r, g, b, a =
+                    if Sys.big_endian then
+                      ( pix.{(j * pitch) + (4 * i) + 1},
+                        pix.{(j * pitch) + (4 * i) + 2},
+                        pix.{(j * pitch) + (4 * i) + 3},
+                        pix.{(j * pitch) + (4 * i) + 0} )
+                    else
+                      ( pix.{(j * pitch) + (4 * i) + 2},
+                        pix.{(j * pitch) + (4 * i) + 1},
+                        pix.{(j * pitch) + (4 * i) + 0},
+                        pix.{(j * pitch) + (4 * i) + 3} )
+                  in
+                  Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
+                done
+              done;
+              Sdl.unlock_surface surface
+          | fmt when fmt = Sdl.Pixel.format_rgb24 ->
+              assert (Sdl.lock_surface surface = Ok ());
+              let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
+              for j = 0 to height - 1 do
+                for i = 0 to width - 1 do
+                  let r, g, b =
+                    ( pix.{(j * pitch) + (3 * i) + 0},
+                      pix.{(j * pitch) + (3 * i) + 1},
+                      pix.{(j * pitch) + (3 * i) + 2} )
+                  in
+                  let a = 0xff in
+                  Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
+                done
+              done;
+              Sdl.unlock_surface surface
+          | fmt when fmt = Sdl.Pixel.format_index8 ->
+              assert (Sdl.lock_surface surface = Ok ());
+              let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
+              for j = 0 to height - 1 do
+                for i = 0 to width - 1 do
+                  let p = pix.{i + (j * pitch)} in
+                  let a = 0xff in
+                  Image.YUV420.set_pixel_rgba img i j (p, p, p, a)
+                done
+              done;
+              Sdl.unlock_surface surface
+          | _ ->
+              failwith
+                ("img_of_surface: unhandled format "
+                ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt))));
+        img)
 
   let of_img surface img =
     let width, height = Sdl.get_surface_size surface in
