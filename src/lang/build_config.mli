@@ -1,4 +1,4 @@
-val is_release : bool
+val is_snapshot : bool
 val git_sha : string option
 val version : string
 val ext_exe : string

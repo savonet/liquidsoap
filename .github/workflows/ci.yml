@@ -40,7 +40,6 @@ jobs:
       build_os: ${{ steps.build_details.outputs.build_os }}
       build_platform: ${{ steps.build_details.outputs.build_platform }}
       build_include: ${{ steps.build_details.outputs.build_include }}
-      build_opam: ${{ steps.build_details.outputs.build_opam }}
       docker_release: ${{ steps.build_details.outputs.docker_release }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
@@ -229,7 +228,6 @@ jobs:
   build_opam:
     runs-on: ubuntu-latest
     needs: build_details
-    if: false # needs.build_details.outputs.build_opam
     strategy:
       fail-fast: false
       matrix:
@@ -248,10 +246,11 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-pin: false
           opam-depext: false
+      - name: Add local packages
+        run: |
+          ./.github/scripts/add-local-opam-packages.sh
       - name: Install liquidsoap
         run: |
-          git clone https://github.com/savonet/ocaml-metadata
-          cd ocaml-metadata && opam pin -n . && cd ..
           opam install --cli=2.1 --confirm-level=unsafe-yes .
 
   build_posix:
@@ -275,7 +274,7 @@ jobs:
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
-      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_snapshot != 'true' }}
+      IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot != 'true' }}
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
@@ -391,7 +390,7 @@ jobs:
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,taglib-windows,winsvc-windows,mem_usage-windows,memtrace-windows
-      LIQUIDSOAP_RELEASE_BUILD: ${{ needs.build_details.outputs.is_release == 'true' }}
+      IS_SNAPSHOT: ${{ needs.build_details.outputs.is_release == 'true' }}
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1

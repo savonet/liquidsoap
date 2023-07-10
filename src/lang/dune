@@ -60,15 +60,22 @@
   (with-stdout-to
    %{target}
    (progn
-    (echo "let is_release = %{env:LIQUIDSOAP_RELEASE_BUILD=false}\n")
-    (echo "let git_sha = match String.trim \"")
+    (echo "let is_snapshot = %{env:IS_SNAPSHOT=true}\n")
+    (echo "let version = \"%{version:liquidsoap-lang}\"\n")
+    (echo "let version_len = String.length version\n")
+    (echo "let parsed_sha = String.trim \"")
     (with-accepted-exit-codes
      (or 0 128)
      (run git rev-parse --short HEAD))
-    (echo "\" with \"\" -> None | s -> Some s\n")
-    (echo "let version = \"%{version:liquidsoap-lang}\"\n")
+    (echo "\"\n")
+    (echo "let parsed_sha_len = String.length parsed_sha\n")
+    (echo "let dune_sha_len = 7\n")
+    (echo "let git_sha = match is_snapshot, parsed_sha with \n")
+    (echo "  | false, _ | _, \"\" -> None\n")
+    (echo "  | _, _ when dune_sha_len <= version_len && dune_sha_len <= parsed_sha_len && String.sub parsed_sha 0 dune_sha_len = String.sub version (version_len - dune_sha_len) dune_sha_len -> None\n")
+    (echo "  |  _, s -> Some s\n")
     (echo
-     "let version = version ^ (if is_release then \"\" else (match git_sha with None -> \"+dev\" | Some sha -> \"+git@\" ^ sha))\n")
+     "let version = version ^ (if not is_snapshot then \"\" else (match git_sha with None -> \"+dev\" | Some sha -> \"+git@\" ^ sha))\n")
     (echo "let ext_exe = \"%{ocaml-config:ext_exe}\"\n")
     (echo "let architecture = \"%{ocaml-config:architecture}\"\n")
     (echo "let host = \"%{ocaml-config:host}\"\n")

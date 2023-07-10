@@ -194,9 +194,16 @@ let _ =
 
 let _ =
   Lang.add_builtin_base ~category:`Configuration
+    ~descr:"Is this build a development snapshot?" ~base:liquidsoap_build_config
+    "is_snapshot"
+    Lang.(Ground (Ground.Bool Build_config.is_snapshot))
+    Lang.bool_t
+
+let _ =
+  Lang.add_builtin_base ~category:`Configuration
     ~descr:"Is this build a release build?" ~base:liquidsoap_build_config
     "is_release"
-    Lang.(Ground (Ground.Bool Build_config.is_release))
+    Lang.(Ground (Ground.Bool (not Build_config.is_snapshot)))
     Lang.bool_t
 
 let () =
