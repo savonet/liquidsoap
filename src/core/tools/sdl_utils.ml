@@ -52,9 +52,23 @@ let () =
 module Surface = struct
   let to_img surface =
     let width, height = Sdl.get_surface_size surface in
+    let finalize = ref (fun () -> ()) in
+    let surface =
+      let fmt = Sdl.get_surface_format_enum surface in
+      (* It seems that we cannot decode those properly (see #3194),
+         converting. *)
+      if fmt = Sdl.Pixel.format_index8 then (
+        let fmt = Sdl.alloc_format Sdl.Pixel.format_rgb24 |> Result.get_ok in
+        let surface' = Sdl.convert_surface surface fmt |> Result.get_ok in
+        Sdl.free_format fmt;
+        (finalize := fun () -> Sdl.free_surface surface');
+        surface')
+      else surface
+    in
     let pitch = Sdl.get_surface_pitch surface in
     let fmt = Sdl.get_surface_format_enum surface in
     let img = Video.Image.create width height in
+    let finalize = !finalize in
     (match fmt with
       | fmt when fmt = Sdl.Pixel.format_rgb888 ->
           assert (Sdl.lock_surface surface = Ok ());
@@ -76,7 +90,8 @@ module Surface = struct
               Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
             done
           done;
-          Sdl.unlock_surface surface
+          Sdl.unlock_surface surface;
+          finalize ()
       | fmt when fmt = Sdl.Pixel.format_argb8888 ->
           assert (Sdl.lock_surface surface = Ok ());
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
@@ -97,7 +112,8 @@ module Surface = struct
               Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
             done
           done;
-          Sdl.unlock_surface surface
+          Sdl.unlock_surface surface;
+          finalize ()
       | fmt when fmt = Sdl.Pixel.format_rgb24 ->
           assert (Sdl.lock_surface surface = Ok ());
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
@@ -112,7 +128,8 @@ module Surface = struct
               Image.YUV420.set_pixel_rgba img i j (r, g, b, a)
             done
           done;
-          Sdl.unlock_surface surface
+          Sdl.unlock_surface surface;
+          finalize ()
       | fmt when fmt = Sdl.Pixel.format_index8 ->
           assert (Sdl.lock_surface surface = Ok ());
           let pix = Sdl.get_surface_pixels surface Bigarray.Int8_unsigned in
@@ -123,8 +140,10 @@ module Surface = struct
               Image.YUV420.set_pixel_rgba img i j (p, p, p, a)
             done
           done;
-          Sdl.unlock_surface surface
+          Sdl.unlock_surface surface;
+          finalize ()
       | _ ->
+          finalize ();
           failwith
             ("img_of_surface: unhandled format "
             ^ string_of_int (Int32.to_int (Sdl.Pixel.to_uint32 fmt))));
