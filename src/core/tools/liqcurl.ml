@@ -145,85 +145,81 @@ let should_stop =
 let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     ~request ~on_body_data ~pos () =
   let connection = new Curl.handle in
-  try
-    (* Check url correctness, fix fixable mistakes.
-     * See: https://github.com/savonet/liquidsoap/issues/2551 *)
-    let url = Uri.(to_string (of_string url)) in
-    connection#set_url url;
-    connection#set_useragent Http.user_agent;
-    connection#set_httpversion
-      (match http_version with
-        | None -> Curl.HTTP_VERSION_NONE
-        | Some "1.0" -> Curl.HTTP_VERSION_1_0
-        | Some "1.1" -> Curl.HTTP_VERSION_1_1
-        | Some "2.0" -> Curl.HTTP_VERSION_2
-        | Some v -> fail ~pos (Printf.sprintf "Unsupported http version %s" v));
-    ignore (Option.map connection#set_timeoutms timeout);
-    (match request with
-      | `Get -> connection#set_httpget true
-      | `Post (len, get_data) ->
-          connection#set_post true;
-          (match len with
-            | Some len -> connection#set_postfieldsizelarge len
-            | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
-          connection#set_readfunction2 (mk_read get_data)
-      | `Put (len, get_data) ->
-          connection#set_put true;
-          (match len with
-            | Some len -> connection#set_postfieldsizelarge len
-            | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
-          connection#set_readfunction2 (mk_read get_data)
-      | `Head -> connection#set_nobody true
-      | `Delete -> connection#set_customrequest "DELETE");
-    ignore
-      (Option.map
-         (fun headers ->
-           connection#set_httpheader
-             (List.map (fun (k, v) -> Printf.sprintf "%s: %s" k v) headers))
-         headers);
-    let accepted = Atomic.make false in
-    let response_headers = Buffer.create 1024 in
-    connection#set_headerfunction (fun s ->
-        if not (Atomic.get accepted) then (
-          let code = connection#get_httpcode in
-          Atomic.set accepted (code < 300 || 400 <= code));
-        Buffer.add_string response_headers s;
-        String.length s);
-    connection#set_xferinfofunction should_stop;
-    connection#set_writefunction (fun s ->
-        if Atomic.get accepted then on_body_data s;
-        String.length s);
-    connection#set_noprogress false;
-    connection#perform;
-    match connection#get_redirecturl with
-      | url when url <> "" && follow_redirect ->
-          connection#cleanup;
-          http_request ?headers ?http_version ~follow_redirect ~timeout ~url
-            ~request ~on_body_data ~pos ()
-      | _ ->
-          let response_headers =
-            Pcre.split ~rex:(Pcre.regexp "[\r]?\n")
-              (Buffer.contents response_headers)
-          in
-          let http_version, status_code, status_message =
-            parse_http_answer ~pos (List.hd response_headers)
-          in
-          let response_headers =
-            List.fold_left
-              (fun ret header ->
-                if header <> "" then (
-                  try
-                    let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
-                    ( String.lowercase_ascii (Pcre.get_substring res 1),
-                      Pcre.get_substring res 2 )
-                    :: ret
-                  with Not_found -> ret)
-                else ret)
-              [] (List.tl response_headers)
-          in
-          connection#cleanup;
-          (http_version, status_code, status_message, response_headers)
-  with exn ->
-    let bt = Printexc.get_raw_backtrace () in
-    connection#cleanup;
-    Printexc.raise_with_backtrace exn bt
+  Fun.protect
+    ~finally:(fun () -> connection#cleanup)
+    (fun () ->
+      (* Check url correctness, fix fixable mistakes.
+       * See: https://github.com/savonet/liquidsoap/issues/2551 *)
+      let url = Uri.(to_string (of_string url)) in
+      connection#set_url url;
+      connection#set_useragent Http.user_agent;
+      connection#set_httpversion
+        (match http_version with
+          | None -> Curl.HTTP_VERSION_NONE
+          | Some "1.0" -> Curl.HTTP_VERSION_1_0
+          | Some "1.1" -> Curl.HTTP_VERSION_1_1
+          | Some "2.0" -> Curl.HTTP_VERSION_2
+          | Some v -> fail ~pos (Printf.sprintf "Unsupported http version %s" v));
+      ignore (Option.map connection#set_timeoutms timeout);
+      (match request with
+        | `Get -> connection#set_httpget true
+        | `Post (len, get_data) ->
+            connection#set_post true;
+            (match len with
+              | Some len -> connection#set_postfieldsizelarge len
+              | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
+            connection#set_readfunction2 (mk_read get_data)
+        | `Put (len, get_data) ->
+            connection#set_put true;
+            (match len with
+              | Some len -> connection#set_postfieldsizelarge len
+              | None -> connection#set_httpheader ["Transfer-Encoding: chunked"]);
+            connection#set_readfunction2 (mk_read get_data)
+        | `Head -> connection#set_nobody true
+        | `Delete -> connection#set_customrequest "DELETE");
+      ignore
+        (Option.map
+           (fun headers ->
+             connection#set_httpheader
+               (List.map (fun (k, v) -> Printf.sprintf "%s: %s" k v) headers))
+           headers);
+      let accepted = Atomic.make false in
+      let response_headers = Buffer.create 1024 in
+      connection#set_headerfunction (fun s ->
+          if not (Atomic.get accepted) then (
+            let code = connection#get_httpcode in
+            Atomic.set accepted (code < 300 || 400 <= code));
+          Buffer.add_string response_headers s;
+          String.length s);
+      connection#set_xferinfofunction should_stop;
+      connection#set_writefunction (fun s ->
+          if Atomic.get accepted then on_body_data s;
+          String.length s);
+      connection#set_noprogress false;
+      connection#perform;
+      match connection#get_redirecturl with
+        | url when url <> "" && follow_redirect ->
+            http_request ?headers ?http_version ~follow_redirect ~timeout ~url
+              ~request ~on_body_data ~pos ()
+        | _ ->
+            let response_headers =
+              Pcre.split ~rex:(Pcre.regexp "[\r]?\n")
+                (Buffer.contents response_headers)
+            in
+            let http_version, status_code, status_message =
+              parse_http_answer ~pos (List.hd response_headers)
+            in
+            let response_headers =
+              List.fold_left
+                (fun ret header ->
+                  if header <> "" then (
+                    try
+                      let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
+                      ( String.lowercase_ascii (Pcre.get_substring res 1),
+                        Pcre.get_substring res 2 )
+                      :: ret
+                    with Not_found -> ret)
+                  else ret)
+                [] (List.tl response_headers)
+            in
+            (http_version, status_code, status_message, response_headers))
