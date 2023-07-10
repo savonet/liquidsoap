@@ -52,8 +52,7 @@ let () =
 module Surface = struct
   let to_img surface =
     let width, height = Sdl.get_surface_size surface in
-    let finally = ref (fun () -> ()) in
-    let surface =
+    let finally, surface =
       let fmt = Sdl.get_surface_format_enum surface in
       (* It seems that we cannot decode those properly (see #3194),
          converting. *)
@@ -61,14 +60,13 @@ module Surface = struct
         let fmt = Sdl.alloc_format Sdl.Pixel.format_rgb24 |> Result.get_ok in
         let surface' = Sdl.convert_surface surface fmt |> Result.get_ok in
         Sdl.free_format fmt;
-        (finally := fun () -> Sdl.free_surface surface');
-        surface')
-      else surface
+        ((fun () -> Sdl.free_surface surface'), surface'))
+      else ((fun () -> ()), surface)
     in
     let pitch = Sdl.get_surface_pitch surface in
     let fmt = Sdl.get_surface_format_enum surface in
     let img = Video.Image.create width height in
-    Fun.protect ~finally:!finally (fun () ->
+    Fun.protect ~finally (fun () ->
         (match fmt with
           | fmt when fmt = Sdl.Pixel.format_rgb888 ->
               assert (Sdl.lock_surface surface = Ok ());
