@@ -513,6 +513,7 @@ let final_cleanup () =
   log#important "Cleaning downloaded files...";
   Request.clean ();
   log#important "Freeing memory...";
+  Dtools.Init.exec Dtools.Log.stop;
   Gc.full_major ();
   Gc.full_major ()
 
@@ -643,6 +644,16 @@ let () =
         flush_all ();
         exit 0);
 
+      if
+        (not !interactive)
+        && (not (Source.has_outputs ()))
+        && not force_start#get
+      then (
+        final_cleanup ();
+        Printf.printf "No output defined, nothing to do.\n";
+        flush_all ();
+        exit 1);
+
       if Dtools.Init.conf_daemon#get then daemonize ();
 
       (match root_error () with
@@ -655,15 +666,8 @@ let () =
             sync_cleanup ();
             exit (-1));
 
-      if
-        (not !interactive)
-        && (not (Source.has_outputs ()))
-        && not force_start#get
-      then (
-        final_cleanup ();
-        Printf.printf "No output defined, nothing to do.\n";
-        flush_all ();
-        exit 1));
+      check_directories ();
+      Dtools.Init.exec Dtools.Log.start);
 
   Lifecycle.on_start (fun () ->
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
@@ -677,8 +681,6 @@ let () =
         (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
       Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
 
-      Dtools.Init.exec Dtools.Log.start;
-
       (* TODO: if start fails (e.g. invalid password or mountpoint) it raises
          an exception and dtools catches it so we don't get a backtrace (by
          default at least). *)
@@ -688,7 +690,6 @@ let () =
 
       if !interactive then (
         load_libs ();
-        check_directories ();
         ignore
           (Thread.create
              (fun () ->
@@ -696,9 +697,7 @@ let () =
                Tutils.shutdown 0)
              ())));
 
-  Lifecycle.on_main_loop Tutils.main;
-
-  Lifecycle.after_final_cleanup (fun () -> Dtools.Init.exec Dtools.Log.stop)
+  Lifecycle.on_main_loop Tutils.main
 
 (* Here we go! *)
 let start = Lifecycle.init
