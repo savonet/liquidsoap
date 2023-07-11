@@ -210,9 +210,8 @@ let _ =
        encoder, e.g. `%ffmpeg` with `rtmp` output." (fun p ->
       (new url_output p :> Output.output))
 
-(** Piped virtual class: open/close pipe,
-  * implements metadata interpolation and
-  * takes care of the various reload mechanisms. *)
+(** Piped virtual class: open/close pipe, implements metadata interpolation and
+    takes care of the various reload mechanisms. *)
 
 let pipe_proto frame_t arg_doc =
   let reopen_t =
@@ -229,10 +228,15 @@ let pipe_proto frame_t arg_doc =
         reopen_t,
         Some (Lang.val_cst_fun [("error", None); ("metadata", None)] Lang.null),
         Some
-          "Callback called on error and metadata. If returned value is not \
-           `null` (and positive), the output is reopened after this delay has \
-           expired, if negative the output is not reopened and an error is \
-           raised if the `error` argument was present." );
+          "Callback called at each frame, when there is an error (in which \
+           case the `error` argument is not `null`) and when there is metadata \
+           on the stream (in which case the `metadata` argument is not \
+           `null`). If returned value is a non-negative float, the output is \
+           reopened after this delay has expired. If the returned value is \
+           `null` or a negative float, the output is not reopened and an error \
+           is raised if the `error` argument was present. In case a reopening \
+           is scheduled while there is already a reopening scheduled, the \
+           second one is ignored." );
       ( "on_reopen",
         Lang.fun_t [] Lang.unit_t,
         Some (Lang.val_cst_fun [] Lang.unit),
@@ -352,11 +356,14 @@ class virtual piped_output ~name p =
             super#insert_metadata metadata
         | open_delay ->
             super#insert_metadata metadata;
-            if open_delay > 0. then (
-              self#log#info "New metadata received, will re-open in %.02fs"
-                open_delay;
-              Atomic.set need_reopen true;
-              open_date <- Unix.gettimeofday () +. open_delay)
+            if open_delay > 0. then
+              if Atomic.get need_reopen then
+                self#log#info "New metadata received, re-open already scheduled"
+              else (
+                self#log#info "New metadata received, will re-open in %.02fs"
+                  open_delay;
+                Atomic.set need_reopen true;
+                open_date <- Unix.gettimeofday () +. open_delay)
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to
