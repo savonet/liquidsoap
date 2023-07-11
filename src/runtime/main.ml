@@ -677,8 +677,6 @@ let () =
         Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
         ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]));
 
-      ignore (Thread.sigmask Unix.SIG_BLOCK [Sys.sigterm; Sys.sigint]);
-
       Sys.set_signal Sys.sigterm
         (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
       Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
@@ -699,9 +697,7 @@ let () =
                Tutils.shutdown 0)
              ())));
 
-  Lifecycle.on_main_loop (fun () ->
-      ignore (Thread.sigmask Unix.SIG_UNBLOCK [Sys.sigterm; Sys.sigint]);
-      Tutils.main ())
+  Lifecycle.on_main_loop Tutils.main
 
 (* Here we go! *)
 let start = Lifecycle.init
