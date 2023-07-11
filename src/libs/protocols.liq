@@ -538,8 +538,8 @@ let settings.protocol.pico2wave.path = settings.make(
 )
 
 let settings.protocol.pico2wave.lang = settings.make(
-  description="pico2wav language. One of: `\"en-EN\"`, `\"en-GB\"`, `\"es-ES\"`, `\"de-DE\"`, `\"fr-FR\"` or `\"it-IT\"`.",
-  "en-EN"
+  description="pico2wav language. One of: `\"en-US\"`, `\"en-GB\"`, `\"es-ES\"`, `\"de-DE\"`, `\"fr-FR\"` or `\"it-IT\"`.",
+  "en-US"
 )
 
 # @flag hidden
