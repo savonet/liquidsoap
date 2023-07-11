@@ -586,9 +586,15 @@ let get_tags ~metadata file =
 let () = Plug.register Request.mresolvers "ffmpeg" ~doc:"" get_tags
 
 (* Get the type of an input container. *)
-let get_type ~ctype ~url container =
+let get_type ~ctype ~format ~url container =
   let uri = Lang_string.quote_string url in
-  log#important "Requested content-type for %s: %s" uri
+  log#important "Requested content-type for %s%s: %s"
+    (match format with
+      | Some f ->
+          Printf.sprintf "format: %s, uri: "
+            (Lang_string.quote_string (Av.Format.get_input_name f))
+      | None -> "")
+    uri
     (Frame.string_of_content_type ctype);
   let audio_streams, descriptions =
     List.fold_left
@@ -656,7 +662,7 @@ let get_type ~ctype ~url container =
       (Av.get_data_streams container)
   in
   if audio_streams = [] && video_streams = [] then
-    failwith "No valid stream found in file.";
+    failwith "No valid stream found in container.";
   let content_type =
     List.fold_left
       (fun content_type (field, params) ->
@@ -1109,7 +1115,7 @@ let get_file_type ~metadata ~ctype filename =
         let container = Av.open_input ?format ~opts filename in
         Fun.protect
           ~finally:(fun () -> Av.close container)
-          (fun () -> get_type ~ctype ~url:filename container)
+          (fun () -> get_type ~format ~ctype ~url:filename container)
 
 let () =
   Plug.register Decoder.decoders "ffmpeg"
