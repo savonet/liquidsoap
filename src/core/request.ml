@@ -594,6 +594,9 @@ type resolve_flag = Resolved | Failed | Timeout
 
 exception ExnTimeout
 
+let should_fail = Atomic.make false
+let () = Lifecycle.before_core_shutdown (fun () -> Atomic.set should_fail true)
+
 let resolve ~ctype t timeout =
   assert (
     t.ctype = None || Frame.compatible (Option.get t.ctype) (Option.get ctype));
@@ -644,6 +647,7 @@ let resolve ~ctype t timeout =
   let result =
     try
       while not (resolved t) do
+        if Atomic.get should_fail then raise No_indicator;
         let timeleft = maxtime -. Unix.time () in
         if timeleft > 0. then resolve_step ()
         else (

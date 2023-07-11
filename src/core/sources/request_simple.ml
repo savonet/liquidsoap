@@ -137,6 +137,11 @@ let _ =
       (new unqueued ~timeout:60. request :> source))
 
 class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
+  let should_fail = Atomic.make false in
+  let () =
+    Lifecycle.before_core_shutdown (fun () -> Atomic.set should_fail true)
+  in
+  let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
     inherit
       Request_source.queued ~name:"request.dynamic" ~prefetch ~timeout () as super

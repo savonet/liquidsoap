@@ -101,6 +101,13 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
     else mode end
   check_next = check_next ?? fun(_) -> true
 
+  should_stop = ref(false)
+  on_shutdown({should_stop.set(true)})
+
+  on_fail = null.map(fun (on_fail) -> {
+    if not should_stop() then on_fail() else [] end
+  }, on_fail)
+
   # Original playlist when loaded
   playlist_orig = ref(playlist)
 
