@@ -92,7 +92,6 @@ open Parser_helper
 %left DOT
 %nonassoc COLON
 
-
 (* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg *)
 %nonassoc no_app
 %nonassoc LPAR
@@ -132,7 +131,7 @@ open Parser_helper
 %type <Parser_helper.encoder_param list> encoder_params
 %type <Term.t> expr
 %type <Term.t> exprs
-%type <Term.t> exprss
+%type <Term.t> simple_fun_body
 %type <unit> g
 %type <Term.t> if_elsif
 %type <string list> in_subfield
@@ -177,6 +176,7 @@ program:
   | error { raise (Parse_error ($loc, "Syntax error!")) }
   | EOF { mk ~pos:$loc unit }
   | exprs EOF { $1 }
+
 interactive:
   | error { raise (Parse_error ($loc, "Syntax error!")) }
   | exprs SEQSEQ { $1 }
@@ -192,10 +192,14 @@ exprs:
   | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
   | binding s exprs          { mk_let ~pos:$loc($1) $1 $3 }
 
-(* Sequences of expressions without bindings *)
-exprss:
-  | expr { $1 }
-  | expr SEQ exprss { mk ~pos:$loc (Seq ($1,$3)) }
+(* Simple fun body, syntax: { ... }. Same as expressions except initial x = 1
+   which conflcits with record declaration: { x = 1 } *)
+simple_fun_body:
+  | OPEN expr s exprs        { mk ~pos:$loc (Open ($2,$4)) }
+  | expr s                   { $1 }
+  | expr s exprs             { mk ~pos:$loc (Seq ($1,$3)) }
+  | explicit_binding s       { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
+  | explicit_binding s exprs { mk_let ~pos:$loc($1) $1 $3 }
 
 (* General expressions. *)
 expr:
@@ -230,7 +234,7 @@ expr:
   | expr DOT VARLBRA expr RBRA       { mk ~pos:$loc (App (mk ~pos:$loc (Var "_[_]"), ["", mk ~pos:($startpos($1),$endpos($3)) (Invoke ({invoked = $1; default = None; meth =  $3})); "", $4])) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
-  | LCUR exprss RCUR                 { mk_fun ~pos:$loc [] $2 }
+  | LCUR simple_fun_body RCUR        { mk_fun ~pos:$loc [] $2 }
   | WHILE expr DO exprs END          { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "while"), ["", mk_fun ~pos:$loc($2) [] $2; "", mk_fun ~pos:$loc($4) [] $4])) }
   | FOR optvar GETS expr DO exprs END
                                      { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "for"), ["", $4; "", mk_fun ~pos:$loc($6) ["", $2, Type.var ~pos:$loc($2) (), None] $6])) }
@@ -479,8 +483,7 @@ _let:
         | `Json_parse     -> `Json_parse (Parser_helper.args_of_json_parse ~pos:$loc $2)
         | _ -> raise (Parse_error ($loc, "Invalid let constructor")) }
 
-binding:
-  | optvar GETS expr         { Parser_helper.let_args ~decoration:`None ~pat:(PVar [$1]) ~def:$3 () }
+explicit_binding:
   | _let pattern GETS expr   { Parser_helper.let_args ~decoration:$1 ~pat:$2 ~def:$4 () }
   | _let LPAR pattern COLON ty RPAR GETS expr
                              { Parser_helper.let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 () }
@@ -491,6 +494,10 @@ binding:
   | DEF subfield g exprs END { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(PVar $2) ~def:$4 () }
   | DEF varlpar arglist RPAR g exprs END
                              { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(PVar $2) ~arglist:$3 ~def:$6 () }
+
+binding:
+  | optvar GETS expr         { Parser_helper.let_args ~decoration:`None ~pat:(PVar [$1]) ~def:$3 () }
+  | explicit_binding         { $1 }
 
 varlpar:
   | VARLPAR         { [$1] }
