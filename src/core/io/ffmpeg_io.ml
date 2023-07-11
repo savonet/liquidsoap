@@ -169,7 +169,9 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             -1.
         | e ->
             let bt = Printexc.get_raw_backtrace () in
-            self#log#info "Connection failed: %s" (Printexc.to_string e);
+            Utils.log_exception ~log:self#log
+              ~bt:(Printexc.raw_backtrace_to_string bt)
+              (Printf.sprintf "Decoding failed: %s" (Printexc.to_string e));
             on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" e);
             if debug then Printexc.raise_with_backtrace e bt;
             Atomic.set source_status `Starting;

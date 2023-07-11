@@ -612,7 +612,13 @@ let get_type ~ctype ~format ~url container =
               codec_name samplerate channels
           in
           ((field, params) :: audio_streams, description :: descriptions)
-        with Avutil.Error _ -> (audio_streams, descriptions))
+        with Avutil.Error _ as exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Failed to get video stream info: %s"
+               (Printexc.to_string exn));
+          (audio_streams, descriptions))
       ([], [])
       (Av.get_audio_streams container)
   in
@@ -640,7 +646,13 @@ let get_type ~ctype ~format ~url container =
               codec_name width height pixel_format
           in
           (video_streams @ [(field, params)], descriptions @ [description])
-        with Avutil.Error _ -> (video_streams, descriptions))
+        with Avutil.Error _ as exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Failed to get video stream info: %s"
+               (Printexc.to_string exn));
+          (video_streams, descriptions))
       ([], descriptions)
       (Av.get_video_streams container)
   in

@@ -168,7 +168,6 @@ end
 # @param ~max_buffer Maximum data buffer in seconds
 # @param ~duration Duration of the source.
 def video.testsrc.ffmpeg(~id=null(), ~pattern="testsrc", ~max_buffer=0.5, ~duration=null())
-  if not list.mem(pattern, ["testsrc", "testsrc2", "smptebars", "rgbtestsrc"]) then failwith("invalid pattern for video.testsrc.ffmpeg") end
   size = "size=#{settings.frame.video.width()}x#{settings.frame.video.height()}"
   rate = "rate=#{settings.frame.video.framerate()}"
   duration = if null.defined(duration) then ":duration=#{duration}" else "" end
