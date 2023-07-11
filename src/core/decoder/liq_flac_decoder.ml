@@ -139,8 +139,7 @@ let () =
       "Use libflac to decode any file or stream if its MIME type or file \
        extension is appropriate."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority#get);
+      Decoder.priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
       file_type = (fun ~metadata:_ ~ctype:_ filename -> file_type filename);

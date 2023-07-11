@@ -173,8 +173,7 @@ let () =
     ~doc:
       "Use libfaad to decode AAC if MIME type or file extension is appropriate."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> aac_priority#get);
+      Decoder.priority = (fun () -> aac_priority#get);
       file_extensions = (fun () -> Some aac_file_extensions#get);
       mime_types = (fun () -> Some aac_mime_types#get);
       file_type;
@@ -266,8 +265,7 @@ let () =
     ~doc:
       "Use libfaad to decode MP4 if MIME type or file extension is appropriate."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> mp4_priority#get);
+      Decoder.priority = (fun () -> mp4_priority#get);
       file_extensions = (fun () -> Some mp4_file_extensions#get);
       mime_types = (fun () -> Some mp4_mime_types#get);
       file_type;

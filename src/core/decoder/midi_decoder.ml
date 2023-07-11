@@ -62,8 +62,7 @@ let decoder file =
 let () =
   Plug.register Decoder.decoders "midi" ~doc:"Decode midi files."
     {
-      Decoder.media_type = `Midi;
-      priority = (fun () -> 1);
+      Decoder.priority = (fun () -> 1);
       file_extensions = (fun () -> Some ["mid"]);
       mime_types = (fun () -> Some ["audio/midi"]);
       file_type =

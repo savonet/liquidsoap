@@ -289,8 +289,7 @@ let () =
   Plug.register Decoder.decoders "ogg"
     ~doc:"Decode a file as OGG provided that libogg accepts it."
     {
-      Decoder.media_type = `Audio_video;
-      priority = (fun () -> priority#get);
+      Decoder.priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
       file_type;

@@ -110,8 +110,7 @@ let test_ctype f filename =
 let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =
   Plug.register Decoder.decoders name ~doc
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority);
+      Decoder.priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
       file_type =
@@ -183,8 +182,7 @@ let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
     ~process prebuf =
   Plug.register Decoder.decoders name ~doc
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority);
+      Decoder.priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
       file_type =

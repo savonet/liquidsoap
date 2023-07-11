@@ -110,7 +110,6 @@ type image_decoder = file -> Video.Image.t
 
 (** Decoder description. *)
 type decoder_specs = {
-  media_type : [ `Audio | `Video | `Audio_video | `Midi ];
   priority : unit -> int;
   file_extensions : unit -> string list option;
   mime_types : unit -> string list option;
@@ -271,28 +270,15 @@ let can_decode_type decoded_type target_type =
   in
   Frame.compatible decoded_type target_type
 
-let decoder_modes ctype =
-  let has field = Frame.Fields.exists (fun k _ -> k = field) ctype in
-  match
-    (has Frame.Fields.audio, has Frame.Fields.video, has Frame.Fields.midi)
-  with
-    | true, true, false -> [`Audio_video]
-    | true, false, false -> [`Audio; `Audio_video]
-    | false, true, false -> [`Video; `Audio_video]
-    | false, false, true -> [`Midi]
-    | _ -> []
-
 exception Found of (string * Frame.content_type * decoder_specs)
 
 (** Get a valid decoder creator for [filename]. *)
 let get_file_decoder ~metadata ~ctype filename =
-  let modes = decoder_modes ctype in
   let decoders =
     List.filter
       (fun (name, specs) ->
         let log = Log.make ["decoder"; String.lowercase_ascii name] in
         specs.file_decoder <> None
-        && List.mem specs.media_type modes
         && test_file ~log ?mimes:(specs.mime_types ())
              ?extensions:(specs.file_extensions ()) filename)
       (get_decoders ())
@@ -379,12 +365,10 @@ let get_image_file_decoder filename =
   with Exit -> !ans
 
 let get_stream_decoder ~ctype mime =
-  let modes = decoder_modes ctype in
   let decoders =
     List.filter
       (fun (_, specs) ->
         specs.stream_decoder <> None
-        && List.mem specs.media_type modes
         &&
         match specs.mime_types () with
           | None -> false

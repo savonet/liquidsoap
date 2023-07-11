@@ -293,8 +293,7 @@ let () =
   Plug.register Decoder.decoders "gstreamer"
     ~doc:"Decode a file or stream using GStreamer."
     {
-      Decoder.media_type = `Audio_video;
-      priority = (fun () -> priority#get);
+      Decoder.priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
       file_type =

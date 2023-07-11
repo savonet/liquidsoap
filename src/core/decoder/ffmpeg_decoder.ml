@@ -1135,8 +1135,7 @@ let () =
       "Use FFmpeg to decode any file or stream if its MIME type or file \
        extension is appropriate."
     {
-      Decoder.media_type = `Audio_video;
-      priority = (fun () -> priority#get);
+      Decoder.priority = (fun () -> priority#get);
       file_extensions =
         (fun () -> Some (file_extensions#get @ image_file_extensions#get));
       mime_types = (fun () -> Some (mime_types#get @ image_mime_types#get));

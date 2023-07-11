@@ -77,7 +77,6 @@ type file_decoder =
   file_decoder_ops
 
 type decoder_specs = {
-  media_type : [ `Audio | `Video | `Audio_video | `Midi ];
   priority : unit -> int;
   (* None means accept all file extensions. *)
   file_extensions : unit -> string list option;

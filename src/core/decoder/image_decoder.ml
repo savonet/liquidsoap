@@ -149,8 +149,7 @@ let is_video_compatible ctype =
 let () =
   Plug.register Decoder.decoders "image" ~doc:"Decoder for static images."
     {
-      Decoder.media_type = `Audio_video;
-      priority = (fun () -> 1);
+      Decoder.priority = (fun () -> 1);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> None);
       file_type =
