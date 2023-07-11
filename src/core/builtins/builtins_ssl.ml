@@ -44,8 +44,10 @@ let ssl_socket transport ssl =
     method write = Ssl.write ssl
 
     method close =
-      ignore (Ssl.close_notify ssl);
-      Unix.close (Ssl.file_descr_of_socket ssl)
+      let fd = Ssl.file_descr_of_socket ssl in
+      Fun.protect
+        ~finally:(fun () -> Unix.close fd)
+        (fun () -> ignore (Ssl.close_notify ssl))
   end
 
 let server ~read_timeout ~write_timeout ~password ~certificate ~key transport =
@@ -62,8 +64,8 @@ let server ~read_timeout ~write_timeout ~password ~certificate ~key transport =
 
     method accept sock =
       let s, caller = Unix.accept ~cloexec:true sock in
-      set_socket_default ~read_timeout ~write_timeout s;
       try
+        set_socket_default ~read_timeout ~write_timeout s;
         let ssl_s = Ssl.embed_socket s context in
         Ssl.accept ssl_s;
         (ssl_socket transport ssl_s, caller)
@@ -92,37 +94,22 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
         Ssl.set_verify_depth ctx 3;
         ignore (Ssl.set_default_verify_paths ctx);
         let unix_socket = Http.connect ?bind_address ?timeout host port in
-        let socket =
-          try
-            let socket = Ssl.embed_socket unix_socket ctx in
-            (try Ssl.set_client_SNI_hostname socket host with _ -> ());
-            Ssl.connect socket;
-            let err = Ssl.get_verify_result socket in
-            if err <> 0 then
-              Runtime_error.raise ~pos:[]
-                ~message:
-                  (Printf.sprintf "SSL verification error: %s"
-                     (Ssl.get_verify_error_string err))
-                "ssl";
-            socket
-          with exn ->
-            let bt = Printexc.get_raw_backtrace () in
-            Unix.close unix_socket;
-            Printexc.raise_with_backtrace exn bt
-        in
-        begin
-          match bind_address with
-            | None -> ()
-            | Some s ->
-                let unix_socket = Ssl.file_descr_of_socket socket in
-                let bind_addr_inet =
-                  (Unix.gethostbyname s).Unix.h_addr_list.(0)
-                in
-                (* Seems like you need to bind on port 0 *)
-                let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
-                Unix.bind unix_socket bind_addr
-        end;
-        ssl_socket self socket
+        try
+          let socket = Ssl.embed_socket unix_socket ctx in
+          (try Ssl.set_client_SNI_hostname socket host with _ -> ());
+          Ssl.connect socket;
+          let err = Ssl.get_verify_result socket in
+          if err <> 0 then
+            Runtime_error.raise ~pos:[]
+              ~message:
+                (Printf.sprintf "SSL verification error: %s"
+                   (Ssl.get_verify_error_string err))
+              "ssl";
+          ssl_socket self socket
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Unix.close unix_socket;
+          Printexc.raise_with_backtrace exn bt
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"ssl" exn

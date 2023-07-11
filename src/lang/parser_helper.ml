@@ -274,7 +274,7 @@ let mk_fun ~pos args body =
     in:
       `x?.foo.gni.bla(123)?.gno.gni`,
     the default for `x.foo` becomes:
-      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null() }}}}}`
+      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null() }}}}`
     we also need to keep track of which methods are optional in the default value's type
     to make sure it doesn't force optional methods to be mandatory during type checking. *)
 let mk_app_invoke_default ~pos ~args body =
