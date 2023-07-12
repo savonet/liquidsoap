@@ -415,6 +415,9 @@ See <http://liquidsoap.info> for more information.
         ( ["--unsafe"],
           Arg.Unit (fun () -> Typing.do_occur_check := false),
           "Faster startup using unsafe features." );
+        ( ["--safe"],
+          Arg.Unit (fun () -> Typing.do_occur_check := true),
+          "Disable the effects of --unsafe." );
       ])
 
 let expand_options options =
