@@ -543,6 +543,7 @@ let mk_ty ~pos name =
   match name with
     | "_" -> Type.var ()
     | "unit" -> Type.make Type.unit
+    | "never" -> Type.make Type.Ground.never
     | "bool" -> Type.make Type.Ground.bool
     | "int" -> Type.make Type.Ground.int
     | "float" -> Type.make Type.Ground.float
