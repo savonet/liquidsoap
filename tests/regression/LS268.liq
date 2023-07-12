@@ -5,7 +5,7 @@
 p = input.http("http://localhost:8000/nonexistent")
 o = output.dummy(fallible=true,p)
 
-on_shutdown(test.pass)
+on_cleanup(test.pass)
 
 thread.run(delay=2., { o.shutdown() })
 thread.run(delay=3., { ignore(output.dummy(fallible=true,p)) })

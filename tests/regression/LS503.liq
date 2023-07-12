@@ -7,7 +7,7 @@
 # disable printing expected exception
 #reopen.stderr("/dev/null")
 
-on_shutdown(test.pass)
+on_cleanup(test.pass)
 
 def on_error(_) =
   shutdown()

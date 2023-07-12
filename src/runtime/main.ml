@@ -507,16 +507,14 @@ let initial_cleanup () =
   if !Term.profile then
     log#important "Profiler stats:\n\n%s" (Profiler.stats ());
   Clock.stop ();
-  if Tutils.has_started () then (
-    log#important "Waiting for main threads to terminate...";
-    Tutils.join_all ();
-    log#important "Main threads terminated.")
+  Tutils.cleanup ()
 
 let final_cleanup () =
   log#important "Cleaning downloaded files...";
   Request.clean ();
   log#important "Freeing memory...";
   Dtools.Init.exec Dtools.Log.stop;
+  flush_all ();
   Gc.full_major ();
   Gc.full_major ()
 
@@ -533,11 +531,13 @@ let () =
   Lifecycle.on_final_cleanup final_cleanup;
 
   Lifecycle.after_final_cleanup (fun () ->
-      let code = Tutils.exit_code () in
-      if code <> 0 then exit code;
-      if !Configure.restart then (
-        log#important "Restarting...";
-        Unix.execv Sys.executable_name Sys.argv))
+      match (Tutils.exit_code (), !Configure.restart) with
+        | 0, true ->
+            log#important "Restarting...";
+            Unix.execv Sys.executable_name Sys.argv
+        | _ ->
+            flush_all ();
+            Tutils.exit ())
 
 (** Main procedure *)
 
@@ -680,9 +680,24 @@ let () =
         Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
         ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]));
 
-      Sys.set_signal Sys.sigterm
-        (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
-      Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
+      let sigcount = Atomic.make 0 in
+      let sigterm_handler _ =
+        Tutils.shutdown 0;
+        match Atomic.fetch_and_add sigcount 1 with
+          | 0 -> log#important "Shutdown signal received."
+          | 1 ->
+              log#severe
+                "Shutdown signal received. Send another time for a hard \
+                 shutdown."
+          | 2 ->
+              Printf.eprintf
+                "\nShutdown signal received 3 times, shutting down..\n%!";
+              exit 128
+          | _ -> ()
+      in
+
+      Sys.set_signal Sys.sigterm (Sys.Signal_handle sigterm_handler);
+      Sys.set_signal Sys.sigint (Sys.Signal_handle sigterm_handler);
 
       (* TODO: if start fails (e.g. invalid password or mountpoint) it raises
          an exception and dtools catches it so we don't get a backtrace (by

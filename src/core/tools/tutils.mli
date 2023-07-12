@@ -36,9 +36,11 @@ val create : ('a -> unit) -> 'a -> string -> Thread.t
 
 val main : unit -> unit
 val start : unit -> unit
-val has_started : unit -> bool
+val running : unit -> bool
 val shutdown : int -> unit
+val cleanup : unit -> unit
 val exit_code : unit -> int
+val exit : unit -> unit
 
 (** Special exception allowed for "clean" termination of Tutils threads.
   * All other exceptions are reported as bugs. *)

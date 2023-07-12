@@ -259,19 +259,17 @@ let _ =
             in
             (timed_out, !status))
       in
-      let tutils_started = Tutils.has_started () in
-      if 0. <= timeout && not tutils_started then
+      let sync_run = 0. <= timeout && Tutils.running () in
+      if sync_run then
         log#important
           "Command %s cannot be executed with timeout %.02f because the \
-           internal scheduler has not yet started. Most likely, this call is \
-           made at the beginning of your script. We suggest that you wrap this \
-           call in an asynchronous task using `thread.run`. If you really need \
-           this value immediately as your script is starting, you should \
-           implement the timeout within the process call itself."
+           internal scheduler is not running. Most likely, this call is made \
+           at the beginning of your script. We suggest that you wrap this call \
+           in an asynchronous task using `thread.run`. If you really need this \
+           value immediately as your script is starting, you should implement \
+           the timeout within the process call itself."
           cmd_value timeout;
-      on_done
-        (if 0. <= timeout && tutils_started then asynchronous ()
-         else synchronous ()))
+      on_done (if sync_run then asynchronous () else synchronous ()))
 
 let process_quote =
   Lang.add_builtin ~base:process "quote" ~category:`System

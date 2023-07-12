@@ -1,5 +1,5 @@
 tmp = file.temp("foo", "flv")
-on_shutdown({file.remove(tmp)})
+on_cleanup({file.remove(tmp)})
 
 encoder = %external(process="cat")
 

@@ -3,7 +3,7 @@ s = sine()
 close_count = ref(0)
 
 tmp_dir = file.temp_dir("tmp")
-on_shutdown({file.rmdir(tmp_dir)})
+on_cleanup({file.rmdir(tmp_dir)})
 
 output_file =  {"#{tmp_dir}/bla-#{close_count()}.mp3"}
 

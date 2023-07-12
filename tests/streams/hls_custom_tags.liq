@@ -3,7 +3,7 @@ s = sine()
 s = mksafe(s)
 
 tmp_dir = file.temp_dir("tmp")
-on_shutdown({file.rmdir(tmp_dir)})
+on_cleanup({file.rmdir(tmp_dir)})
 
 main_tags = ref(false)
 aac_flags = ref(false)

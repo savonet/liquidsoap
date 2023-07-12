@@ -6,7 +6,7 @@ def cleanup() =
   file.remove(fname)
 end
 
-on_shutdown(cleanup)
+on_cleanup(cleanup)
 
 file.write(data="abc", fname)
 file.watch(fname, {success := true})

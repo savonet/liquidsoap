@@ -237,7 +237,7 @@ module MkClock (Time : Liq_time.T) = struct
         in
         log#important "Streaming loop starts in %s mode" (sync_descr sync);
         let rec loop () =
-          (* Stop running if there is no output. *)
+          (* Stop running if there is no output or we're shutting down. *)
           if outputs = [] then ()
           else (
             let self_sync = self#self_sync in
@@ -350,6 +350,7 @@ module MkClock (Time : Liq_time.T) = struct
         List.iter (fun fn -> fn ()) todo
 
       method start_outputs f =
+        if not (Tutils.running ()) then outputs <- [];
         (* Extract the list of outputs to start, mark them as Starting
          * so they are not managed by a nested call of start_outputs
          * (triggered by collect, which can be triggered by the
