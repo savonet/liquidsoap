@@ -403,8 +403,8 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
       basepath
     end
   basepath =
-    if string.sub(basepath,start=string.length(basepath)-1,length=1) == "/" then
-      string.sub(basepath,start=0,length=string.length(basepath)-1)
+    if string.sub(basepath,start=string.length(basepath)-1,length=1) != "/" then
+      basepath^"/"
     else
       basepath
     end
@@ -455,7 +455,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
     end
   end
 
-  basepath = "#{basepath}/.*"
+  basepath = "#{basepath}.*"
   directory = path.home.unrelate(directory)
   def register(method)
     serve(method=method, basepath, handler)
