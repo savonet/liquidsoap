@@ -42,6 +42,20 @@ let conf_scheduler =
         "but affect mostly the order in which tasks are processed.";
       ]
 
+type exit_status = [ `None | `Exit of int | `Error of exn ]
+type state = [ `Idle | `Starting | `Running | `Done of exit_status ]
+
+let internal_error_code = 128
+let state : state Atomic.t = Atomic.make `Idle
+let running () = Atomic.get state = `Running
+
+let exit_code () =
+  match Atomic.get state with
+    | `Done (`Exit code) -> code
+    | `Done (`Error _) -> 1
+    | `Idle -> 0
+    | _ -> internal_error_code
+
 let generic_queues =
   Dtools.Conf.int
     ~p:(conf_scheduler#plug "generic_queues")
@@ -110,7 +124,6 @@ let log = Log.make ["threads"]
   * i.e. not by raising an exception. *)
 
 let lock = Mutex.create ()
-let uncaught = Atomic.make None
 
 module Set = Set.Make (struct
   type t = string * Condition.t
@@ -135,7 +148,20 @@ let join_all ~set () =
   in
   f ()
 
-let no_problem = Condition.create ()
+let set_done, wait_done =
+  let read_done, write_done = Unix.pipe ~cloexec:true () in
+  let set_done () = ignore (Unix.write write_done (Bytes.create 1) 0 1) in
+  let wait_done () =
+    let rec wait_for_done () =
+      try Duppy.poll [read_done] [] [] (-1.)
+      with Unix.Unix_error (Unix.EINTR, _, _) -> wait_for_done ()
+    in
+    let r, _, _ = wait_for_done () in
+    assert (r = [read_done]);
+    let b = Bytes.create 1 in
+    ignore (Unix.read read_done b 0 1)
+  in
+  (set_done, wait_done)
 
 exception Exit
 
@@ -185,8 +211,8 @@ let create ~queue f x s =
               mutexify lock
                 (fun () ->
                   set := Set.remove (s, c) !set;
-                  Atomic.set uncaught (Some e);
-                  Condition.signal no_problem;
+                  if Atomic.compare_and_set state `Running (`Done (`Error e))
+                  then set_done ();
                   Condition.signal c)
                 ();
               Printexc.raise_with_backtrace e raw_bt)
@@ -227,10 +253,6 @@ let scheduler : priority Duppy.scheduler =
         Printexc.raise_with_backtrace exn raw_bt)
     ()
 
-let started = ref false
-let started_m = Mutex.create ()
-let has_started = mutexify started_m (fun () -> !started)
-
 let () =
   Lifecycle.on_scheduler_shutdown (fun () ->
       log#important "Shutting down scheduler...";
@@ -256,19 +278,19 @@ let create f x name = create ~queue:false f x name
 let join_all () = join_all ~set:all ()
 
 let start () =
-  for i = 1 to generic_queues#get do
-    let name = Printf.sprintf "generic queue #%d" i in
-    new_queue ~name ()
-  done;
-  for i = 1 to fast_queues#get do
-    let name = Printf.sprintf "fast queue #%d" i in
-    new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
-  done;
-  for i = 1 to non_blocking_queues#get do
-    let name = Printf.sprintf "non-blocking queue #%d" i in
-    new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
-  done;
-  mutexify started_m (fun () -> started := true) ()
+  if Atomic.compare_and_set state `Idle `Starting then (
+    for i = 1 to generic_queues#get do
+      let name = Printf.sprintf "generic queue #%d" i in
+      new_queue ~name ()
+    done;
+    for i = 1 to fast_queues#get do
+      let name = Printf.sprintf "fast queue #%d" i in
+      new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
+    done;
+    for i = 1 to non_blocking_queues#get do
+      let name = Printf.sprintf "non-blocking queue #%d" i in
+      new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
+    done)
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
@@ -319,21 +341,25 @@ let wait_for ?(log = fun _ -> ()) event timeout =
   in
   wait (min 1. timeout)
 
-(** Wait for some thread to crash *)
-let running = `Run
-
-let run = Atomic.make running
-
 let main () =
-  wait no_problem lock (fun () ->
-      Atomic.get run <> running || Atomic.get uncaught <> None);
-  log#important "Main loop exited"
+  if Atomic.compare_and_set state `Starting `Running then wait_done ();
+  log#important "Main loop exited";
+  match Atomic.get state with `Done _ -> () | _ -> exit internal_error_code
 
 let shutdown code =
-  if Atomic.compare_and_set run running (`Exit code) then
-    Condition.signal no_problem
+  match Atomic.exchange state (`Done (`Exit code)) with
+    | `Running -> set_done ()
+    | `Done v when v <> `Exit code ->
+        log#critical
+          "Shutdown called twice with different exit conditions! Last call \
+           will take precedence."
+    | `Starting | `Done _ -> ()
+    | `Idle -> exit code
 
-let exit_code () = match Atomic.get run with `Exit code -> code | _ -> 0
+let cleanup () =
+  log#important "Waiting for main threads to terminate...";
+  join_all ();
+  log#important "Main threads terminated."
 
 (** Thread-safe lazy cell. *)
 let lazy_cell f =
