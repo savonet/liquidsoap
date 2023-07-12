@@ -8,6 +8,7 @@
 
 (rule
  (target liquidsoap-macos-instruments.exe)
+ (enabled_if %{bin-available:codesign})
  (deps ./liquidsoap.exe ./instruments.plist)
  (action
   (progn
