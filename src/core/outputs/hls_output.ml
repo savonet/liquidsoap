@@ -571,8 +571,9 @@ class hls_output p =
                     segment.init_filename)))
            s.current_segment);
       s.current_segment <- None;
-      self#write_playlist s;
-      self#write_main_playlist
+      if state <> `Stopped then (
+        self#write_playlist s;
+        self#write_main_playlist)
 
     method private open_segment s =
       self#log#debug "Opening segment %d for stream %s." s.position s.name;
