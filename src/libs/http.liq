@@ -437,7 +437,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
             list.iter(add_file, file.ls(sorted=true, fname))
             add("</ul></body>")
             response.content_type("text/html; charset=UTF-8")
-            response.data(page)
+            response.data(string.getter.single(page()))
           end
         else
           mime = content_type(fname)
