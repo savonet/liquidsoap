@@ -431,7 +431,7 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
               page := page() ^ s ^ "\n"
             end
             def add_file(f)
-              add("<li><a href=\"#{request.path}/#{url.encode(f)}\">#{f}</a></li>")
+              add("<li><a href=\"#{request.path}#{url.encode(f)}\">#{f}</a></li>")
             end
             add("<html><body><ul>")
             list.iter(add_file, file.ls(sorted=true, fname))
