@@ -129,8 +129,12 @@ let descr descr =
   in
   Type.Custom (kind_handler k)
 
+exception Never_type
+
 let rec content_type ?kind ty =
   match ((Type.demeth ty).Type.descr, kind) with
+    | Type.Custom { Type.typ = Type.Ground.Never.Type }, None ->
+        raise Never_type
     | Type.Custom { Type.typ = Kind (kind, ty) }, None -> content_type ~kind ty
     | Type.Custom { Type.typ = Format f }, Some k -> denormalize_format k f
     | Type.Var _, Some kind -> Content_base.default_format kind

@@ -22,6 +22,8 @@
 
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
+exception Never_type
+
 val descr : descr -> Type.descr
 val pcm_audio : Type.constr
 val track : Type.constr
