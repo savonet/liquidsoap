@@ -18,6 +18,7 @@
 %include "metadata.liq"
 %include "playlist.liq"
 %include "source.liq"
+%include "tracks.liq"
 %include "request.liq"
 %include "audio.liq"
 %include "fades.liq"

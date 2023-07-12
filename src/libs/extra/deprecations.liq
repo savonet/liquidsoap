@@ -638,49 +638,53 @@ def add_oblivious_decoder(%argsof(decoder.oblivious.add),process) =
   decoder.oblivious.add(%argsof(decoder.oblivious.add),process)
 end
 
-# Deprecated: use `source`
+# Deprecated: use `source.mux.audio`.
 # @flag deprecated
-def mux_audio(~id=null(), ~(audio:source), s) =
-  deprecated("mux_audio", "source")
-  source(id=id, source.tracks(s).{audio=source.tracks(audio).audio})
+def mux_audio(%argsof(source.mux.audio), s)
+  deprecated("mux_audio", "source.mux.audio")
+  source.mux.audio(%argsof(source.mux.audio), s)
 end
 
-# Deprecated: use `source`
+# Deprecated: use `source.mux.video`.
 # @flag deprecated
-def mux_video(~id=null(), ~(video:source), s) =
-  deprecated("mux_video", "source")
-  source(id=id, source.tracks(s).{video=source.tracks(video).video})
+def mux_video(%argsof(source.mux.video), s)
+  deprecated("mux_video", "source.mux.video")
+  source.mux.video(%argsof(source.mux.video), s)
 end
 
-# Deprecated: use `source`
+# Deprecated: use `source.mux.midi`
 # @flag deprecated
-def mux_midi(~id=null(), ~(midi:source), s) =
-  deprecated("mux_midi", "source")
-  source(id=id, source.tracks(s).{midi=source.tracks(midi).midi})
+def mux_midi(%argsof(source.mux.midi), s)
+  deprecated("mux_midi", "source.mux.midi")
+  source.mux.midi(%argsof(source.mux.midi), s)
 end
 
-# Deprecated: use `source.tracks` and `source`
+# Deprecated: use `source.drop.audio`
 # @flag deprecated
-def drop_audio(~id=null(), s) =
-  deprecated("drop_audio", "source")
-  let tracks.{audio=_} = source.tracks(s)
-  source(id=id, tracks)
+def drop_audio(%argsof(source.drop.audio), s)
+  deprecated("drop_audio", "source.drop.audio")
+  source.drop.audio(%argsof(source.drop.audio), s)
 end
 
-# Deprecated: use `source.tracks` and `source`
+# Deprecated: use `source.drop.video`
 # @flag deprecated
-def drop_video(~id=null(), s) =
-  deprecated("drop_video", "source")
-  let tracks.{video=_} = source.tracks(s)
-  source(id=id, tracks)
+def drop_video(%argsof(source.drop.video), s)
+  deprecated("drop_video", "source.drop.video")
+  source.drop.video(%argsof(source.drop.video), s)
 end
 
-# Deprecated: use `source.tracks` and `source`
+# Deprecated: use `source.drop.midi`
 # @flag deprecated
-def drop_midi(~id=null(), s) =
-  deprecated("drop_midi", "source")
-  let tracks.{midi=_} = source.tracks(s)
-  source(id=id, tracks)
+def drop_midi(%argsof(source.drop.midi), s)
+  deprecated("drop_midi", "source.drop.midi")
+  source.drop.midi(%argsof(source.drop.midi), s)
+end
+
+# Deprecated: use `source.drop.metadata`
+# @flag deprecated
+def drop_metadata(%argsof(source.drop.metadata), s)
+  deprecated("drop_metadata", "source.drop.metadata")
+  source.drop.metadata(%argsof(source.drop.metadata), s)
 end
 
 # Deprecated: use `source.stereo`
@@ -688,14 +692,6 @@ end
 def audio_to_stereo(~id=null(), s) =
   deprecated("audio_to_sterep", "stereo")
   stereo(id=id, s)
-end
-
-# Deprecated: use `source.tracks` and `source`
-# @flag deprecated
-def drop_metadata(~id=null(), s)
-  deprecated("drop_metadata", "source")
-  let {metadata=_, ...tracks} = source.tracks(s)
-  source(id=id, tracks)
 end
 
 # Deprecated: use `source.tracks` and `source`
