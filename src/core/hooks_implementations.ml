@@ -75,27 +75,34 @@ let eval_check ~env:_ ~tm v =
             Typing.(source#frame_type <: frame_t)))
 
 let mk_field_t ~pos (kind, params) =
-  if kind = "any" then Type.var ~pos ()
-  else (
-    try
-      let k = Content.kind_of_string kind in
-      match params with
-        | [] -> Type.make (Format_type.descr (`Kind k))
-        | [("", "any")] -> Type.var ()
-        | [("", "internal")] ->
-            Type.var ~constraints:[Format_type.internal_tracks] ()
-        | param :: params ->
-            let mk_format (label, value) = Content.parse_param k label value in
-            let f = mk_format param in
-            List.iter (fun param -> Content.merge f (mk_format param)) params;
-            assert (k = Content.kind f);
-            Type.make (Format_type.descr (`Format f))
-    with _ ->
-      let params =
-        params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
-      in
-      let t = kind ^ "(" ^ params ^ ")" in
-      raise (Term.Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")))
+  match kind with
+    | "any" -> Type.var ~pos ()
+    | "none" | "never" -> Type.make Type.Ground.never
+    | _ -> (
+        try
+          let k = Content.kind_of_string kind in
+          match params with
+            | [] -> Type.make (Format_type.descr (`Kind k))
+            | [("", "any")] -> Type.var ()
+            | [("", "internal")] ->
+                Type.var ~constraints:[Format_type.internal_tracks] ()
+            | param :: params ->
+                let mk_format (label, value) =
+                  Content.parse_param k label value
+                in
+                let f = mk_format param in
+                List.iter
+                  (fun param -> Content.merge f (mk_format param))
+                  params;
+                assert (k = Content.kind f);
+                Type.make (Format_type.descr (`Format f))
+        with _ ->
+          let params =
+            params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
+          in
+          let t = kind ^ "(" ^ params ^ ")" in
+          raise (Term.Parse_error (pos, "Unknown type constructor: " ^ t ^ "."))
+        )
 
 let mk_source_ty ~pos name args =
   if name <> "source" then
