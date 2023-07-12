@@ -142,7 +142,8 @@ let exec_fun regexp =
                    groups) );
           ]
       with
-        | Not_found -> Lang_core.list []
+        | Not_found ->
+            Lang_core.meth (Lang_core.list []) [("groups", Lang_core.list [])]
         | exn ->
             Runtime_error.raise ~pos:(Lang_core.pos p)
               ~message:
