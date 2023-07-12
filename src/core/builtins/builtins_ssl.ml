@@ -140,8 +140,8 @@ let _ =
         Some Lang.null,
         Some "SSL certificate password" );
       ( "protocol",
-        Lang.nullable_t Lang.string_t,
-        Some Lang.null,
+        Lang.string_t,
+        Some (Lang.string "tls.1.3"),
         Some
           {|Accepted SSL protocol. One of: `"ssl.2.3"`, `"ssl.3"`, `"tls.1"`, `"tls.1.1"`, `"tls.1.2"` or `"tls.1.3"`|}
       );
