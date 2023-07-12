@@ -51,7 +51,7 @@ let ssl_socket transport ssl =
   end
 
 let server ~read_timeout ~write_timeout ~password ~certificate ~key transport =
-  let context = Ssl.create_context Ssl.SSLv23 Ssl.Server_context in
+  let context = Ssl.create_context Ssl.TLSv1_3 Ssl.Server_context in
   let () =
     ignore
       (Option.map
@@ -83,7 +83,7 @@ let transport ~read_timeout ~write_timeout ~password ~certificate ~key () =
 
     method connect ?bind_address ?timeout host port =
       try
-        let ctx = Ssl.create_context Ssl.SSLv23 Ssl.Client_context in
+        let ctx = Ssl.create_context Ssl.TLSv1_3 Ssl.Client_context in
         (* TODO: add option.. *)
         Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
         (* Add certificate from transport if passed. *)
