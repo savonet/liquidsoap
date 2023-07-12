@@ -374,62 +374,67 @@ module MkClock (Time : Liq_time.T) = struct
             ()
         in
         fun () ->
-          let to_start =
-            if to_start <> [] then
-              log#info "Starting %d source(s)..." (List.length to_start);
-            List.map
-              (fun (s : active_source) ->
-                try
-                  s#get_ready [(s :> source)];
-                  `Started s
-                with e ->
-                  let bt = Printexc.get_backtrace () in
-                  log#severe "Source %s failed while starting: %s!\n%s" s#id
-                    (Printexc.to_string e) bt;
-                  leave ~failed_to_start:true s;
-                  `Error s)
-              to_start
-          in
-          (* Now mark the started sources as `Active,
-           * unless they have been deactivating in the meantime (`Aborted)
-           * in which case they have to be cleanly stopped. *)
-          let leaving, errors =
-            Tutils.mutexify lock
-              (fun () ->
-                let new_outputs, leaving, errors =
-                  List.fold_left
-                    (fun (outputs, leaving, errors) (flag, s) ->
-                      if List.mem (`Started s) to_start then (
-                        match flag with
-                          | `Starting ->
-                              ((`Active, s) :: outputs, leaving, errors)
-                          | `Aborted -> (outputs, s :: leaving, errors)
-                          | `New | `Active | `Old -> assert false)
-                      else if List.mem (`Error s) to_start then (
-                        match flag with
-                          | `Starting -> (outputs, leaving, s :: errors)
-                          | `Aborted -> (outputs, leaving, s :: errors)
-                          | `New | `Active | `Old -> assert false)
-                      else ((flag, s) :: outputs, leaving, errors))
-                    ([], [], []) outputs
-                in
-                outputs <- new_outputs;
-                (leaving, errors))
-              ()
-          in
-          if Atomic.get started <> `Yes && errors <> [] then Tutils.shutdown 1;
-          if leaving <> [] then (
-            log#info "Stopping %d sources..." (List.length leaving);
-            List.iter (fun (s : active_source) -> leave s) leaving);
-          if
-            self#start
-            && List.exists (function `Active, _ -> true | _ -> false) outputs
-          then
-            do_running (fun () ->
-                if not running then (
-                  running <- true;
-                  ignore (Tutils.create (fun () -> self#run) () thread_name)));
-          errors
+          if Tutils.running () then (
+            let to_start =
+              if to_start <> [] then
+                log#info "Starting %d source(s)..." (List.length to_start);
+              List.map
+                (fun (s : active_source) ->
+                  try
+                    s#get_ready [(s :> source)];
+                    `Started s
+                  with e ->
+                    let bt = Printexc.get_backtrace () in
+                    log#severe "Source %s failed while starting: %s!\n%s" s#id
+                      (Printexc.to_string e) bt;
+                    leave ~failed_to_start:true s;
+                    `Error s)
+                to_start
+            in
+            (* Now mark the started sources as `Active,
+             * unless they have been deactivating in the meantime (`Aborted)
+             * in which case they have to be cleanly stopped. *)
+            let leaving, errors =
+              Tutils.mutexify lock
+                (fun () ->
+                  let new_outputs, leaving, errors =
+                    List.fold_left
+                      (fun (outputs, leaving, errors) (flag, s) ->
+                        if List.mem (`Started s) to_start then (
+                          match flag with
+                            | `Starting ->
+                                ((`Active, s) :: outputs, leaving, errors)
+                            | `Aborted -> (outputs, s :: leaving, errors)
+                            | `New | `Active | `Old -> assert false)
+                        else if List.mem (`Error s) to_start then (
+                          match flag with
+                            | `Starting -> (outputs, leaving, s :: errors)
+                            | `Aborted -> (outputs, leaving, s :: errors)
+                            | `New | `Active | `Old -> assert false)
+                        else ((flag, s) :: outputs, leaving, errors))
+                      ([], [], []) outputs
+                  in
+                  outputs <- new_outputs;
+                  (leaving, errors))
+                ()
+            in
+            if Tutils.running () && Atomic.get started <> `Yes && errors <> []
+            then Tutils.shutdown 1;
+            if leaving <> [] then (
+              log#info "Stopping %d sources..." (List.length leaving);
+              List.iter (fun (s : active_source) -> leave s) leaving);
+            if
+              self#start
+              && List.exists
+                   (function `Active, _ -> true | _ -> false)
+                   outputs
+            then
+              do_running (fun () ->
+                  if not running then (
+                    running <- true;
+                    ignore (Tutils.create (fun () -> self#run) () thread_name)));
+            errors)
+          else []
     end
 end
 
@@ -530,7 +535,7 @@ let collect ~must_lock =
       Clocks.fold (fun s l -> s#start_outputs filter :: l) clocks []
     in
     let start =
-      if Atomic.get started <> `No then ignore
+      if (not (Tutils.running ())) || Atomic.get started <> `No then ignore
       else (
         (* Avoid that some other collection takes up the task
          * to set started := true. Typically they would be

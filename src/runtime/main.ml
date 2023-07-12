@@ -530,11 +530,11 @@ let () =
   Lifecycle.on_final_cleanup final_cleanup;
 
   Lifecycle.after_final_cleanup (fun () ->
-      let code = Tutils.exit_code () in
-      if code <> 0 then exit code;
-      if !Configure.restart then (
-        log#important "Restarting...";
-        Unix.execv Sys.executable_name Sys.argv))
+      match (Tutils.exit_code (), !Configure.restart) with
+        | 0, true ->
+            log#important "Restarting...";
+            Unix.execv Sys.executable_name Sys.argv
+        | _ -> Tutils.exit ())
 
 (** Main procedure *)
 
