@@ -514,6 +514,7 @@ let final_cleanup () =
   Request.clean ();
   log#important "Freeing memory...";
   Dtools.Init.exec Dtools.Log.stop;
+  flush_all ();
   Gc.full_major ();
   Gc.full_major ()
 
@@ -534,7 +535,9 @@ let () =
         | 0, true ->
             log#important "Restarting...";
             Unix.execv Sys.executable_name Sys.argv
-        | _ -> Tutils.exit ())
+        | _ ->
+            flush_all ();
+            Tutils.exit ())
 
 (** Main procedure *)
 
