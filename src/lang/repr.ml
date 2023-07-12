@@ -233,7 +233,7 @@ let print f t =
             | `Tuple [], _ -> fields
             | v, _ -> fields @ [(None, (false, v))]
         in
-        let _ =
+        let _, vars =
           List.fold_left
             (fun (first, vars) (lbl, (optional, t)) ->
               if not first then Format.fprintf f ",@ ";
@@ -250,13 +250,6 @@ let print f t =
         vars
     | `Constr (name, []) ->
         Format.fprintf f "%s" name;
-        vars
-    | `Constr (name, [(_, `Constr ("alias", [(_, a)]))]) ->
-        Format.open_box (1 + String.length name);
-        Format.fprintf f "%s (alias of: " name;
-        let vars = print ~par:true vars a in
-        Format.fprintf f ")";
-        Format.close_box ();
         vars
     | `Constr ("none", _) ->
         Format.fprintf f "none";
