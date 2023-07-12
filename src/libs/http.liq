@@ -396,6 +396,7 @@ let harbor.http.static = ()
 
 # @flag hidden
 def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,directory) =
+  directory = path.home.unrelate(directory)
   basepath =
     if string.sub(basepath,start=0,length=1) != "/" then
       "/#{basepath}"
@@ -455,7 +456,6 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
   end
 
   basepath = "#{basepath}.*"
-  directory = path.home.unrelate(directory)
   def register(method)
     serve(method=method, basepath, handler)
   end
