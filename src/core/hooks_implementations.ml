@@ -104,7 +104,7 @@ let mk_field_t ~pos (kind, params) =
           raise (Term.Parse_error (pos, "Unknown type constructor: " ^ t ^ "."))
         )
 
-let mk_source_ty ~pos name args =
+let mk_source_ty ~pos ~extensible name args =
   if name <> "source" then
     raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
 
@@ -121,8 +121,9 @@ let mk_source_ty ~pos name args =
                 (mk_field_t ~pos k) fields)
             Frame.Fields.empty args
         in
+        let base = if extensible then Lang.univ_t () else Lang.unit_t in
 
-        Lang_source.source_t (Frame_type.make Lang.unit_t fields)
+        Lang_source.source_t (Frame_type.make base fields)
 
 let register () =
   Hooks.liq_libs_dir := Configure.liq_libs_dir;

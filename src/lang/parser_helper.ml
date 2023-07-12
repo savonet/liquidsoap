@@ -549,7 +549,7 @@ let mk_ty ~pos name =
     | "float" -> Type.make Type.Ground.float
     | "string" -> Type.make Type.Ground.string
     | "ref" -> Type.reference (Type.var ())
-    | "source" -> mk_source_ty ~pos "source" []
+    | "source" -> mk_source_ty ~pos ~extensible:true "source" []
     | "source_methods" -> !Hooks.source_methods_t ()
     | name -> (
         match Type.find_type_opt name with

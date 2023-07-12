@@ -324,8 +324,8 @@ meth_ty:
          | _ -> raise (Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
-  | VARLPAR RPAR                  { mk_source_ty ~pos:$loc $1 [] }
-  | VARLPAR ty_source_params RPAR { mk_source_ty ~pos:$loc $1 $2 }
+  | VARLPAR RPAR                  { mk_source_ty ~pos:$loc ~extensible:true $1 [] }
+  | VARLPAR ty_source_params RPAR { mk_source_ty ~pos:$loc ~extensible:true $1 $2 }
 
 ty_source_params:
   | VAR GETS ty_content { [$1,$3] }
