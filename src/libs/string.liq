@@ -235,6 +235,21 @@ end
 
 let string.getter = ()
 
+# Create a string getter which will return once the given string and then the
+# empty string.
+# @category String
+def string.getter.single(s)
+  first = ref(true)
+  fun () -> begin
+    if first() then
+      first := false
+      s
+    else
+      ""
+    end
+  end
+end
+
 # Flush all values from a string getter and return
 # the concatenated result. If the getter is constant,
 # return the constant string. Otherwise, call the getter
