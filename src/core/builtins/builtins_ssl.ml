@@ -178,7 +178,7 @@ let _ =
               Ssl.SSLv23 [@alert "-deprecated"]
           | "ssl.3" ->
               log#severe
-                "ssl.3 protocol was deprecated in June 2015 by RFC 7568";
+                "ssl.3 protocol was deprecated in June 2015 by RFC 7568.";
               Ssl.SSLv3 [@alert "-deprecated"]
           | "tls.1" ->
               log#severe
