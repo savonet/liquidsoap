@@ -188,6 +188,11 @@ def f() =
   ([({}:{foo?:int}), (), {foo = 123}]:[{foo?:int}])
   ([(), {foo = 123}]:[{foo?:int}])
 
+  # This one is more subtle than it seems because we have no field video on the
+  # left and a video:never field on the right when testing for the subtyping,
+  # see #3210.
+  s = (sine():source(video=none))
+
   test.pass()
 end
 

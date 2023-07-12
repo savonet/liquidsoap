@@ -595,7 +595,8 @@ and ( <: ) a b =
                           },
                           var () ));
                 a <: b
-            | _ when optional -> a <: hide_meth l c
+            | _ when optional || Ground_type.Never.is_descr (deref t2).descr ->
+                a <: hide_meth l c
             | _ ->
                 raise
                   (Error
