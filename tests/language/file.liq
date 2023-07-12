@@ -7,7 +7,7 @@ def f() =
   end
 
   tmpdir = file.temp_dir("testfile")
-  on_shutdown({file.rmdir(tmpdir)})
+  on_cleanup({file.rmdir(tmpdir)})
 
   src_file = path.concat(tmpdir, "test-src-file")
   file.write(data="blablo", src_file)
@@ -18,7 +18,7 @@ def f() =
   test.equals(file.exists(dst_file), true)
 
   tmpdir2 = file.temp_dir("testfile")
-  on_shutdown({file.rmdir(tmpdir2)})
+  on_cleanup({file.rmdir(tmpdir2)})
 
   file.copy(recursive=true, tmpdir, tmpdir2)
   targetdir = path.concat(tmpdir2, path.basename(tmpdir))

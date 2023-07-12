@@ -52,7 +52,7 @@ def cleanup() =
   file.rmdir(output_dir)
 end
 
-on_shutdown(cleanup)
+on_cleanup(cleanup)
 
 is_done = ref(false)
 

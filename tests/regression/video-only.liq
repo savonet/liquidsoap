@@ -10,7 +10,7 @@ s = source(
 s = source.on_track(s, fun (_) -> test.pass())
 
 tmp = file.temp("foo", "flv")
-on_shutdown({file.remove(tmp)})
+on_cleanup({file.remove(tmp)})
 
 output.file(
   %ffmpeg(format="flv",%video(codec="libx264")),

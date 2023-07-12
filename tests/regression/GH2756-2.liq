@@ -1,6 +1,6 @@
 def f() =
   tmp = file.temp("foo", "bla")
-  on_shutdown({file.remove(tmp)})
+  on_cleanup({file.remove(tmp)})
 
   s = insert_metadata(sine())
   insert_metadata = s.insert_metadata

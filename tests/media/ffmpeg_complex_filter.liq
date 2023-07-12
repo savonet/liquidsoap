@@ -37,6 +37,6 @@ enc = %ffmpeg(%audio.raw(codec="aac"))
 
 filename = file.temp("tmp",".aac")
 
-on_shutdown({file.remove(filename)})
+on_cleanup({file.remove(filename)})
 
 output.file(fallible=true, enc, filename, s)

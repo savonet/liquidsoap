@@ -15,7 +15,7 @@ def f() =
 
   playlist = file.temp("foo", "bar")
 
-  on_shutdown({file.remove(playlist)})
+  on_cleanup({file.remove(playlist)})
 
   s.reload(uri=playlist)
 
