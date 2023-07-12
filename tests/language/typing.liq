@@ -192,6 +192,7 @@ def f() =
   # left and a video:never field on the right when testing for the subtyping,
   # see #3210.
   s = (sine():source(video=none))
+  s = (sine():source(video=none,...))
 
   test.pass()
 end

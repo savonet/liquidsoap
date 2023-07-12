@@ -164,7 +164,7 @@ open Parser_helper
 %type <Parser_helper.ty_content_arg> ty_content_arg
 %type <Parser_helper.ty_content_args> ty_content_args
 %type <Type.t> ty_source
-%type <(string * Parser_helper.ty_content) list> ty_source_params
+%type <bool * (string * Parser_helper.ty_content) list> ty_source_params
 %type <Type.t list> ty_tuple
 %type <Term.pattern> var_pattern
 %type <Parser_helper.varlist> varlist
@@ -324,12 +324,13 @@ meth_ty:
          | _ -> raise (Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
-  | VARLPAR RPAR                  { mk_source_ty ~pos:$loc ~extensible:true $1 [] }
-  | VARLPAR ty_source_params RPAR { mk_source_ty ~pos:$loc ~extensible:true $1 $2 }
+  | VARLPAR RPAR                  { mk_source_ty ~pos:$loc ~extensible:false $1 [] }
+  | VARLPAR ty_source_params RPAR { mk_source_ty ~pos:$loc ~extensible:(fst $2) $1 (snd $2) }
 
 ty_source_params:
-  | VAR GETS ty_content { [$1,$3] }
-  | VAR GETS ty_content COMMA ty_source_params { ($1,$3)::$5 }
+  | VAR GETS ty_content { false, [$1,$3] }
+  | DOTDOTDOT { true, [] }
+  | VAR GETS ty_content COMMA ty_source_params { fst $5, (($1,$3)::(snd $5)) }
 
 ty_content:
   | VAR                           { $1, [] }
