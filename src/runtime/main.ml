@@ -680,9 +680,24 @@ let () =
         Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
         ignore (Unix.sigprocmask Unix.SIG_BLOCK [Sys.sigpipe]));
 
-      Sys.set_signal Sys.sigterm
-        (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
-      Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> Tutils.shutdown 0));
+      let sigcount = Atomic.make 0 in
+      let sigterm_handler s =
+        Tutils.shutdown 0;
+        match Atomic.fetch_and_add sigcount 1 with
+          | 0 -> log#important "Shutdown signal received."
+          | 1 ->
+              log#severe
+                "Shutdown signal received. Send another time for a hard \
+                 shutdown."
+          | 2 ->
+              Printf.eprintf
+                "\nShutdown signal received 3 times, shutting down..\n%!";
+              exit 128
+          | _ -> ()
+      in
+
+      Sys.set_signal Sys.sigterm (Sys.Signal_handle sigterm_handler);
+      Sys.set_signal Sys.sigint (Sys.Signal_handle sigterm_handler);
 
       (* TODO: if start fails (e.g. invalid password or mountpoint) it raises
          an exception and dtools catches it so we don't get a backtrace (by
