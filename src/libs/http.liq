@@ -417,7 +417,6 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
       response.status_code(404)
     else
       rpath = null.get(rpath)
-      rpath = (rpath == "") ? "/" : rpath
       fname = path.concat(directory, rpath)
       log.debug("Serving static file: #{fname}")
       if not file.exists(fname) then
