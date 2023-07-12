@@ -403,53 +403,60 @@ def harbor.http.static.base(serve,~content_type,~basepath,~headers,~browse,direc
       basepath
     end
   basepath =
-    if string.sub(basepath,start=string.length(basepath)-1,length=1) != "/" then
-      basepath^"/"
+    if string.sub(basepath,start=string.length(basepath)-1,length=1) == "/" then
+      string.sub(basepath,start=0,length=string.length(basepath)-1)
     else
       basepath
     end
-  basepath = "#{basepath}.*"
-  directory = path.home.unrelate(directory)
 
   def handler(request, response)
     response.headers(headers)
 
-    fname = path.concat(directory, request.path)
-    log.debug("Serving static file: #{fname}")
-    if not file.exists(fname) then
+    rpath = string.residual(prefix=basepath, request.path)
+    if not null.defined(rpath) then
       response.status_code(404)
     else
-      if file.is_directory(fname) then
-        if not browse then
-          response.status_code(403)
-        else
-          page = ref("")
-          def add(s)
-            page := page() ^ s ^ "\n"
-          end
-          def add_file(f)
-            add("<li><a href=\"#{request.path}/#{url.encode(f)}\">#{f}</a></li>")
-          end
-          add("<html><body><ul>")
-          list.iter(add_file, file.ls(sorted=true, fname))
-          add("</ul></body>")
-          response.content_type("text/html; charset=UTF-8")
-          response.data(page)
-        end
+      rpath = null.get(rpath)
+      rpath = (rpath == "") ? "/" : rpath
+      fname = path.concat(directory, rpath)
+      log.debug("Serving static file: #{fname}")
+      if not file.exists(fname) then
+        response.status_code(404)
       else
-        mime = content_type(fname)
+        if file.is_directory(fname) then
+          if not browse then
+            response.status_code(403)
+          else
+            page = ref("")
+            def add(s)
+              page := page() ^ s ^ "\n"
+            end
+            def add_file(f)
+              add("<li><a href=\"#{request.path}/#{url.encode(f)}\">#{f}</a></li>")
+            end
+            add("<html><body><ul>")
+            list.iter(add_file, file.ls(sorted=true, fname))
+            add("</ul></body>")
+            response.content_type("text/html; charset=UTF-8")
+            response.data(page)
+          end
+        else
+          mime = content_type(fname)
 
-        if null.defined(mime) then
-          response.content_type(null.get(mime))
-        end
+          if null.defined(mime) then
+            response.content_type(null.get(mime))
+          end
 
-        if request.method == "GET" then
-          response.data(file.read(fname))
+          if request.method == "GET" then
+            response.data(file.read(fname))
+          end
         end
       end
     end
   end
 
+  basepath = "#{basepath}/.*"
+  directory = path.home.unrelate(directory)
   def register(method)
     serve(method=method, basepath, handler)
   end
