@@ -28,6 +28,7 @@ let num_constr =
   {
     t = Num;
     constr_descr = "a number type";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies:_ b ->
         let b = demeth b in
@@ -43,6 +44,7 @@ let ord_constr =
   {
     t = Ord;
     constr_descr = "an orderable type";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let m, b = split_meths b in
