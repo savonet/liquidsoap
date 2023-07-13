@@ -24,8 +24,17 @@ open Value
 open Ground
 
 let type_of_encoder p =
-  Encoder.audio_type ~pcm_kind:Content.Audio.kind
-    (Lang_encoder.channels_of_params p)
+  let channels = Lang_encoder.channels_of_params p in
+  match List.assoc_opt "video" p with
+    | Some (`Term { Term.term = Term.Ground (Bool true) }) ->
+        Encoder.audio_video_type ~pcm_kind:Content.Audio.kind channels
+    | Some (`Term ({ t = { Type.pos } } as tm)) ->
+        Lang_encoder.raise_error ~pos
+          (Printf.sprintf
+             "Invalid value %s for value mode. Only `true` or `false is \
+              allowed."
+             (Term.to_string tm))
+    | _ -> Encoder.audio_type ~pcm_kind:Content.Audio.kind channels
 
 let make params =
   let defaults =
