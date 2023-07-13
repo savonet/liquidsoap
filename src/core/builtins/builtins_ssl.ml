@@ -27,6 +27,16 @@ let set_socket_default ~read_timeout ~write_timeout fd =
 
 let log = Log.make ["ssl"]
 
+let protocol_of_value protocol_val =
+  match Lang.to_string protocol_val with
+    | "ssl.2.3" -> Ssl.SSLv23 [@alert "-deprecated"]
+    | "ssl.3" -> Ssl.SSLv3 [@alert "-deprecated"]
+    | "tls.1" -> Ssl.TLSv1 [@alert "-deprecated"]
+    | "tls.1.1" -> Ssl.TLSv1_1 [@alert "-deprecated"]
+    | "tls.1.2" -> Ssl.TLSv1_2
+    | "tls.1.3" -> Ssl.TLSv1_3
+    | _ -> raise (Error.Invalid_value (protocol_val, "Invalid SSL protocol"))
+
 let ssl_socket transport ssl =
   object
     method typ = "ssl"
@@ -52,9 +62,11 @@ let ssl_socket transport ssl =
         (fun () -> ignore (Ssl.close_notify ssl))
   end
 
-let server ~protocol ~read_timeout ~write_timeout ~password ~certificate ~key
-    transport =
-  let context = Ssl.create_context protocol Ssl.Server_context in
+let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
+    ~certificate ~key transport =
+  let context = Ssl.create_context min_protocol Ssl.Server_context in
+  let () = Ssl.set_min_protocol_version context min_protocol in
+  let () = Ssl.set_max_protocol_version context max_protocol in
   let () =
     ignore
       (Option.map
@@ -78,8 +90,8 @@ let server ~protocol ~read_timeout ~write_timeout ~password ~certificate ~key
         Printexc.raise_with_backtrace exn bt
   end
 
-let transport ~protocol ~read_timeout ~write_timeout ~password ~certificate ~key
-    () =
+let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
+    ~certificate ~key () =
   object (self)
     method name = "ssl"
     method protocol = "https"
@@ -87,7 +99,9 @@ let transport ~protocol ~read_timeout ~write_timeout ~password ~certificate ~key
 
     method connect ?bind_address ?timeout host port =
       try
-        let ctx = Ssl.create_context protocol Ssl.Client_context in
+        let ctx = Ssl.create_context min_protocol Ssl.Client_context in
+        let () = Ssl.set_min_protocol_version ctx min_protocol in
+        let () = Ssl.set_max_protocol_version ctx max_protocol in
         (* TODO: add option.. *)
         Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
         (* Add certificate from transport if passed. *)
@@ -119,8 +133,8 @@ let transport ~protocol ~read_timeout ~write_timeout ~password ~certificate ~key
         Lang.raise_as_runtime ~bt ~kind:"ssl" exn
 
     method server =
-      server ~protocol ~read_timeout ~write_timeout ~password ~certificate ~key
-        self
+      server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
+        ~certificate ~key self
   end
 
 let _ =
@@ -139,12 +153,27 @@ let _ =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "SSL certificate password" );
-      ( "protocol",
+      ( "min_protocol",
+        Lang.string_t,
+        Some (Lang.string "ssl.2.3"),
+        Some
+          "Minimal accepted SSL protocol. One of, from least recent to most \
+           recent: `\"ssl.2.3\"`, `\"ssl.3\"`, `\"tls.1\"`, `\"tls.1.1\"`, \
+           `\"tls.1.2\"` or `\"tls.1.3\"`. The most recent available protocol \
+           between client and server is negotiated when initiating \
+           communication between minimal and maximal protocol version. All \
+           protocols up to `\"tls.1.2\"` and above are now deprecated so you \
+           might want to set this value to one of those two." );
+      ( "max_protocol",
         Lang.string_t,
         Some (Lang.string "tls.1.3"),
         Some
-          {|Accepted SSL protocol. One of: `"ssl.2.3"`, `"ssl.3"`, `"tls.1"`, `"tls.1.1"`, `"tls.1.2"` or `"tls.1.3"`|}
-      );
+          "Maximal accepted SSL protocol. One of, from least recent to most \
+           recent: `\"ssl.2.3\"`, `\"ssl.3\"`, `\"tls.1\"`, `\"tls.1.1\"`, \
+           `\"tls.1.2\"` or `\"tls.1.3\"`. The most rec\n\
+           ent available protocol between client and server is negotiated when \
+           initiating communication between minimal and maximal protocol \
+           version." );
       ( "certificate",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
@@ -170,29 +199,8 @@ let _ =
       let password =
         Lang.to_valued_option Lang.to_string (List.assoc "password" p)
       in
-      let protocol_val = List.assoc "protocol" p in
-      let protocol =
-        match Lang.to_string protocol_val with
-          | "ssl.2.3" ->
-              log#severe "ssl.2.3 protocol was deprecated in 2011 by RFC 6176.";
-              Ssl.SSLv23 [@alert "-deprecated"]
-          | "ssl.3" ->
-              log#severe
-                "ssl.3 protocol was deprecated in June 2015 by RFC 7568.";
-              Ssl.SSLv3 [@alert "-deprecated"]
-          | "tls.1" ->
-              log#severe
-                "tls.1 protocol was deprecated in RFC8996 in March 2021.";
-              Ssl.TLSv1 [@alert "-deprecated"]
-          | "tls.1.1" ->
-              log#severe
-                "tls.1.1 protocol was deprecated in RFC8996 in March 2021.";
-              Ssl.TLSv1_1 [@alert "-deprecated"]
-          | "tls.1.2" -> Ssl.TLSv1_2
-          | "tls.1.3" -> Ssl.TLSv1_3
-          | _ ->
-              raise (Error.Invalid_value (protocol_val, "Invalid SSL protocol"))
-      in
+      let min_protocol = protocol_of_value (List.assoc "min_protocol" p) in
+      let max_protocol = protocol_of_value (List.assoc "max_protocol" p) in
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
           | None ->
@@ -203,5 +211,5 @@ let _ =
       let certificate = find "certificate" in
       let key = find "key" in
       Lang.http_transport
-        (transport ~protocol ~read_timeout ~write_timeout ~password ~certificate
-           ~key ()))
+        (transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
+           ~password ~certificate ~key ()))
