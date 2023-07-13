@@ -35,6 +35,7 @@ type constr_t += Num | Ord
 type constr = Type_base.constr = {
   t : constr_t;
   constr_descr : string;
+  univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
 
