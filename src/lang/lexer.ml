@@ -409,6 +409,9 @@ and read_string c pos buf lexbuf =
         read_string c pos buf lexbuf
     | '\\', ('"' | '\'' | '/' | '\\') ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
+        (* For regexp, we want to make sure these are kept as-is
+           and does not need any further escaping. *)
+        if c = '/' && matched.[1] <> '/' then Buffer.add_char buf matched.[0];
         Buffer.add_char buf matched.[1];
         read_string c pos buf lexbuf
     | '\\', '?' ->

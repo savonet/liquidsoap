@@ -176,7 +176,7 @@ let replace_fun regexp =
         with exn ->
           Runtime_error.raise
             ~message:
-              (Printf.sprintf "Error ehile executing regular expression: %s"
+              (Printf.sprintf "Error while executing regular expression: %s"
                  (Printexc.to_string exn))
             ~pos:(Lang_core.pos p) "string"
       in
@@ -232,7 +232,16 @@ let _ =
           (Lang_core.to_list (List.assoc "flags" p))
       in
       let descr = Lang_core.to_string (List.assoc "" p) in
-      let regexp = Regexp.regexp ~flags descr in
+      let regexp =
+        match Regexp.regexp ~flags descr with
+          | v -> v
+          | exception exn ->
+              Runtime_error.raise
+                ~message:
+                  (Printf.sprintf "Error while creating regular expression: %s"
+                     (Printexc.to_string exn))
+                ~pos:(Lang_core.pos p) "string"
+      in
       let v = RegExp.to_value { descr; flags; regexp } in
       let meth = List.map (fun (name, _, _, fn) -> (name, fn regexp)) meth in
       Lang_core.meth v meth)
