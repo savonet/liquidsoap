@@ -377,6 +377,12 @@ let print f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
+    | (`EVar (_, c) | `UVar (_, c))
+      when Constraints.cardinal c = 1
+           && (Constraints.choose c).univ_descr <> None ->
+        let constr = Constraints.choose c in
+        Format.fprintf f "%s" (Option.get constr.univ_descr);
+        vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;
         if not (Constraints.is_empty c) then DS.add (name, c) vars else vars

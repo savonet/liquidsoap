@@ -32,6 +32,7 @@ let dtools_constr =
   {
     t = Dtools;
     constr_descr = "unit, bool, int, float, string or [string]";
+    univ_descr = None;
     satisfied =
       (fun ~subtype ~satisfies:_ b ->
         let b = demeth b in

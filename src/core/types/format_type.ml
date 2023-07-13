@@ -197,13 +197,14 @@ let is_format f m =
   let module Content = (val m : Content) in
   Content.is_format f
 
-let check_track ~t modules =
+let check_track ?univ_descr ~t modules =
   {
     Type.t;
     constr_descr =
       Printf.sprintf "a track of type: %s"
         (Utils.concat_with_last ~last:"or" ", "
            (List.map string_of_kind modules));
+    univ_descr;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let b = Type.demeth b in
@@ -219,13 +220,14 @@ let check_track ~t modules =
           | _ -> raise Type.Unsatisfied_constraint);
   }
 
-let pcm_audio = check_track ~t:PcmAudio pcm_modules
+let pcm_audio = check_track ~univ_descr:"pcm*" ~t:PcmAudio pcm_modules
 let internal_track = check_track ~t:InternalTrack internal_modules
 
 let internal_tracks =
   {
     Type.t = InternalTracks;
     constr_descr = "a set of internal tracks";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let meths, base_type = Type.split_meths b in
@@ -253,7 +255,8 @@ let internal_tracks =
 let track =
   {
     Type.t = Track;
-    constr_descr = "a source track";
+    constr_descr = "a track";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let b = Type.demeth b in
@@ -270,6 +273,7 @@ let muxed_tracks =
   {
     Type.t = MuxedTracks;
     constr_descr = "a set of tracks to be muxed into a source";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let meths, base_type = Type.split_meths b in
