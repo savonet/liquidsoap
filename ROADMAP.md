@@ -22,6 +22,7 @@
   one track [or more])
   - Precise scheduling with queue.push, etc.: we could make the track available
     at some precise time if requests were sources...
+  - this may allow stuff like `append` more easily
 - use naive (as in native.liq) implementation of switch (based on
   source.dynamic)
 - rework buffer.adaptative
