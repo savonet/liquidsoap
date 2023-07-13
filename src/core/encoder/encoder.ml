@@ -107,7 +107,7 @@ let type_of_format f =
               ctype)
           Frame.Fields.empty m.streams
     | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
-    | Ogg { Ogg_format.audio; video } ->
+    | Ogg { Ogg_format.audio; video } -> (
         let channels =
           match audio with
             | Some (Ogg_format.Vorbis { Vorbis_format.channels = n; _ })
@@ -118,7 +118,10 @@ let type_of_format f =
                 if stereo then 2 else 1
             | None -> 0
         in
-        if video = None then audio_type channels else audio_video_type channels
+        match (channels, video) with
+          | 0, Some _ -> video_type ()
+          | n, Some _ -> audio_video_type n
+          | n, None -> audio_type n)
     | External e ->
         let channels = e.External_encoder_format.channels in
         if e.External_encoder_format.video <> None then

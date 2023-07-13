@@ -325,8 +325,10 @@ class virtual piped_output ~name p =
       try super#output
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
-        self#close_encoder;
-        self#close_pipe;
+        (try
+           self#close_encoder;
+           self#close_pipe
+         with _ -> ());
         let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
         let open_delay = should_reopen ~error () in
         if open_delay < 0. then Printexc.raise_with_backtrace exn bt;
