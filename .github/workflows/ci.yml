@@ -82,7 +82,9 @@ jobs:
           git reset --hard
           git pull
           cp PACKAGES.minimal PACKAGES
-          opam info -f "depopts:" liquidsoap | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          eval $(opam env)
+          opam pin -yn .
+          opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
           cd liquidsoap
           ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
