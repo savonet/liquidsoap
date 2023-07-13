@@ -220,6 +220,7 @@ jobs:
           path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
       - name: Export potential core dumps
         uses: actions/upload-artifact@v3
+        if: failure()
         with:
           name: core-dump-${{ matrix.os }}-${{ matrix.platform }}-${{ matrix.target }}
           path: ${{ github.workspace }}/${{ github.run_number }}/core
