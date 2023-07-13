@@ -182,11 +182,11 @@ let _ =
         Some Lang.null,
         Some
           "Maximal accepted SSL protocol. One of, from least recent to most \
-           recent: `\"ssl.2.3\"`, `\"ssl.3\"`, `\"tls.1\"`, `\"tls.1.1\"`, \
-           `\"tls.1.2\"` or `\"tls.1.3\"`. The most rec\n\
-           ent available protocol between client and server is negotiated when \
-           initiating communication between minimal and maximal protocol \
-           version. Defaults to highest protocol supported if not set." );
+           recent: `\"ssl.3\"`, `\"tls.1\"`, `\"tls.1.1\"`, `\"tls.1.2\"` or \
+           `\"tls.1.3\"`. The most recent available protocol between client \
+           and server is negotiated when initiating communication between \
+           minimal and maximal protocol version. Defaults to highest protocol \
+           supported if not set." );
       ( "certificate",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
