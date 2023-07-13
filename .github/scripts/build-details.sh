@@ -8,6 +8,8 @@ else
   BRANCH="${GITHUB_REF#refs/heads/}"
 fi
 
+BRANCH="${BRANCH//\//_}"
+
 echo "Detected branch: ${BRANCH}"
 
 if [ "${IS_FORK}" == "true" ]; then

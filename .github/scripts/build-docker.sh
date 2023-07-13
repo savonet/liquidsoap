@@ -9,10 +9,15 @@ USER="$4"
 PASSWORD="$5"
 ARCHITECTURE="$6"
 DOCKER_PLATFORM="$7"
+PUSH_IMAGE="$8"
 
 cp "$DEB_FILE" "$DEB_DEBUG_FILE" .
 
 docker login -u "$USER" -p "$PASSWORD"
+
+if [ "${PUSH_IMAGE}" = "true" ]; then
+  PUSH_ARG="--push"
+fi
 
 docker buildx build \
   --pull \
@@ -22,13 +27,15 @@ docker buildx build \
   --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" \
   --file .github/docker/Dockerfile.production \
   --tag "savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}" \
-  --push \
+  "${PUSH_ARG}" \
   .
 
-docker pull "savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}"
+if [ "${PUSH_IMAGE}" = "true" ]; then
+  docker pull "savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}"
 
-docker tag \
-  "savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}" \
-  "ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}"
+  docker tag \
+    "savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}" \
+    "ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}"
 
-docker push "ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}"
+  docker push "ghcr.io/savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}"
+fi
