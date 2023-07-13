@@ -1,10 +1,6 @@
-s = (single("file1.png"):source(video=canvas))
+#!../../liquidsoap ../test.liq
 
+s = (single("file1.png"):source(video=canvas))
 output.dummy(fallible=true, s)
 
-def on_done () =
-  test.pass()
-  shutdown()
-end
-
-thread.run(delay=3., on_done)
+thread.run(delay=3., test.pass)
