@@ -29,7 +29,6 @@ let log = Log.make ["ssl"]
 
 let protocol_of_value protocol_val =
   match Lang.to_string protocol_val with
-    | "ssl.2.3" -> Ssl.SSLv23 [@alert "-deprecated"]
     | "ssl.3" -> Ssl.SSLv3 [@alert "-deprecated"]
     | "tls.1" -> Ssl.TLSv1 [@alert "-deprecated"]
     | "tls.1.1" -> Ssl.TLSv1_1 [@alert "-deprecated"]
@@ -155,15 +154,15 @@ let _ =
         Some "SSL certificate password" );
       ( "min_protocol",
         Lang.string_t,
-        Some (Lang.string "ssl.2.3"),
+        Some (Lang.string "ssl.3"),
         Some
           "Minimal accepted SSL protocol. One of, from least recent to most \
-           recent: `\"ssl.2.3\"`, `\"ssl.3\"`, `\"tls.1\"`, `\"tls.1.1\"`, \
-           `\"tls.1.2\"` or `\"tls.1.3\"`. The most recent available protocol \
-           between client and server is negotiated when initiating \
-           communication between minimal and maximal protocol version. All \
-           protocols up to `\"tls.1.2\"` and above are now deprecated so you \
-           might want to set this value to one of those two." );
+           recent: `\"ssl.3\"`, `\"tls.1\"`, `\"tls.1.1\"`, `\"tls.1.2\"` or \
+           `\"tls.1.3\"`. The most recent available protocol between client \
+           and server is negotiated when initiating communication between \
+           minimal and maximal protocol version. All protocols up to \
+           `\"tls.1.2\"` and above are now deprecated so you might want to set \
+           this value to one of those two." );
       ( "max_protocol",
         Lang.string_t,
         Some (Lang.string "tls.1.3"),
