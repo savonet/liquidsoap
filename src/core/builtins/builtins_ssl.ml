@@ -63,9 +63,15 @@ let ssl_socket transport ssl =
 
 let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
     ~certificate ~key transport =
-  let context = Ssl.create_context min_protocol Ssl.Server_context in
-  let () = Ssl.set_min_protocol_version context min_protocol in
-  let () = Ssl.set_max_protocol_version context max_protocol in
+  let context =
+    Ssl.create_context (Ssl.SSLv23 [@alert "-deprecated"]) Ssl.Server_context
+  in
+  let () =
+    ignore (Option.map (Ssl.set_min_protocol_version context) min_protocol)
+  in
+  let () =
+    ignore (Option.map (Ssl.set_max_protocol_version context) max_protocol)
+  in
   let () =
     ignore
       (Option.map
@@ -98,9 +104,16 @@ let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
 
     method connect ?bind_address ?timeout host port =
       try
-        let ctx = Ssl.create_context min_protocol Ssl.Client_context in
-        let () = Ssl.set_min_protocol_version ctx min_protocol in
-        let () = Ssl.set_max_protocol_version ctx max_protocol in
+        let ctx =
+          Ssl.create_context (Ssl.SSLv23 [@alert "-deprecated"])
+            Ssl.Client_context
+        in
+        let () =
+          ignore (Option.map (Ssl.set_min_protocol_version ctx) min_protocol)
+        in
+        let () =
+          ignore (Option.map (Ssl.set_max_protocol_version ctx) max_protocol)
+        in
         (* TODO: add option.. *)
         Ssl.set_verify ctx [] (Some Ssl.client_verify_callback);
         (* Add certificate from transport if passed. *)
@@ -153,8 +166,8 @@ let _ =
         Some Lang.null,
         Some "SSL certificate password" );
       ( "min_protocol",
-        Lang.string_t,
-        Some (Lang.string "ssl.3"),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some
           "Minimal accepted SSL protocol. One of, from least recent to most \
            recent: `\"ssl.3\"`, `\"tls.1\"`, `\"tls.1.1\"`, `\"tls.1.2\"` or \
@@ -162,17 +175,18 @@ let _ =
            and server is negotiated when initiating communication between \
            minimal and maximal protocol version. All protocols up to \
            `\"tls.1.2\"` and above are now deprecated so you might want to set \
-           this value to one of those two." );
+           this value to one of those two. Default to lowest support protocol \
+           if not set." );
       ( "max_protocol",
-        Lang.string_t,
-        Some (Lang.string "tls.1.3"),
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
         Some
           "Maximal accepted SSL protocol. One of, from least recent to most \
            recent: `\"ssl.2.3\"`, `\"ssl.3\"`, `\"tls.1\"`, `\"tls.1.1\"`, \
            `\"tls.1.2\"` or `\"tls.1.3\"`. The most rec\n\
            ent available protocol between client and server is negotiated when \
            initiating communication between minimal and maximal protocol \
-           version." );
+           version. Defaults to highest protocol supported if not set." );
       ( "certificate",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
@@ -198,8 +212,14 @@ let _ =
       let password =
         Lang.to_valued_option Lang.to_string (List.assoc "password" p)
       in
-      let min_protocol = protocol_of_value (List.assoc "min_protocol" p) in
-      let max_protocol = protocol_of_value (List.assoc "max_protocol" p) in
+      let min_protocol =
+        Option.map protocol_of_value
+          (Lang.to_option (List.assoc "min_protocol" p))
+      in
+      let max_protocol =
+        Option.map protocol_of_value
+          (Lang.to_option (List.assoc "max_protocol" p))
+      in
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
           | None ->
