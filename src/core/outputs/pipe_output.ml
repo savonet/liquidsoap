@@ -213,30 +213,40 @@ let _ =
 (** Piped virtual class: open/close pipe, implements metadata interpolation and
     takes care of the various reload mechanisms. *)
 
+let default_reopen =
+  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+    "fun (_) -> null()"
+
 let pipe_proto frame_t arg_doc =
-  let reopen_t =
-    Lang.fun_t
-      [
-        (false, "error", Lang.nullable_t Lang.error_t);
-        (false, "metadata", Lang.nullable_t Lang.metadata_t);
-      ]
-      (Lang.nullable_t Lang.float_t)
-  in
   Output.proto
   @ [
-      ( "should_reopen",
-        reopen_t,
-        Some (Lang.val_cst_fun [("error", None); ("metadata", None)] Lang.null),
+      ( "reopen_on_error",
+        Lang.fun_t
+          [(false, "", Lang.nullable_t Lang.error_t)]
+          (Lang.nullable_t Lang.float_t),
+        Some default_reopen,
         Some
-          "Callback called at each frame, when there is an error (in which \
-           case the `error` argument is not `null`) and when there is metadata \
-           on the stream (in which case the `metadata` argument is not \
-           `null`). If returned value is a non-negative float, the output is \
-           reopened after this delay has expired. If the returned value is \
-           `null` or a negative float, the output is not reopened and an error \
-           is raised if the `error` argument was present. In case a reopening \
-           is scheduled while there is already a reopening scheduled, the \
-           second one is ignored." );
+          "Callback called when there is an error. Error is raised when \
+           returning `null`. Otherwise, the file is reopened after the \
+           returned value, in seconds." );
+      ( "reopen_on_metadata",
+        Lang.fun_t [(false, "", Lang.metadata_t)] (Lang.nullable_t Lang.float_t),
+        Some default_reopen,
+        Some
+          "Callback called on metadata. If returned value is not `null`, the \
+           file is reopened after the returned value, in seconds." );
+      ( "reopen_when",
+        Lang.fun_t [] (Lang.nullable_t Lang.float_t),
+        Some (Lang.val_cst_fun [] Lang.null),
+        Some
+          "Callback called on each frame. If returned value is not `null`, the \
+           file is reopened after the returned value, in seconds." );
+      ( "reopen_delay",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 120.),
+        Some
+          "Prevent re-opening within that delay, in seconds. Only applies to \
+           `reopen_when`." );
       ( "on_reopen",
         Lang.fun_t [] Lang.unit_t,
         Some (Lang.val_cst_fun [] Lang.unit),
@@ -264,18 +274,33 @@ let pipe_meth =
 
 class virtual piped_output ~name p =
   let source = Lang.assoc "" 3 p in
-  let should_reopen = List.assoc "should_reopen" p in
-  let should_reopen ?error ?metadata () =
-    let map fn = function None -> Lang.null | Some v -> fn v in
-    let error = map Lang.error error in
-    let metadata = map Lang.metadata metadata in
+  let reopen_on_error = List.assoc "reopen_on_error" p in
+  let reopen_on_error error =
+    let error = Lang.error error in
     match
       Lang.to_valued_option Lang.to_float
-        (Lang.apply should_reopen [("error", error); ("metadata", metadata)])
+        (Lang.apply reopen_on_error [("", error)])
     with
       | Some v when 0. <= v -> v
       | _ -> -1.
   in
+  let reopen_on_metadata = List.assoc "reopen_on_metadata" p in
+  let reopen_on_metadata m =
+    let m = Lang.metadata m in
+    match
+      Lang.to_valued_option Lang.to_float
+        (Lang.apply reopen_on_metadata [("", m)])
+    with
+      | Some v when 0. <= v -> v
+      | _ -> -1.
+  in
+  let reopen_when = List.assoc "reopen_when" p in
+  let reopen_when () =
+    match Lang.to_valued_option Lang.to_float (Lang.apply reopen_when []) with
+      | Some v when 0. <= v -> v
+      | _ -> -1.
+  in
+  let reopen_delay = Lang.to_float_getter (List.assoc "reopen_delay" p) in
   let on_reopen = List.assoc "on_reopen" p in
   let on_reopen () = ignore (Lang.apply on_reopen []) in
   object (self)
@@ -321,6 +346,17 @@ class virtual piped_output ~name p =
       self#prepare_pipe;
       on_reopen ()
 
+    method private reopen_on_error ~bt exn =
+      let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
+      match reopen_on_error error with
+        | reopen_delay when reopen_delay < 0. ->
+            Printexc.raise_with_backtrace exn bt
+        | reopen_delay ->
+            open_date <- Unix.gettimeofday () +. reopen_delay;
+            self#log#important
+              "Error while streaming: %s, will re-open in %.02fs"
+              (Printexc.to_string exn) reopen_delay
+
     method! output =
       try super#output
       with exn ->
@@ -329,20 +365,15 @@ class virtual piped_output ~name p =
            self#close_encoder;
            self#close_pipe
          with _ -> ());
-        let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
-        let open_delay = should_reopen ~error () in
-        if open_delay < 0. then Printexc.raise_with_backtrace exn bt;
-        open_date <- Unix.gettimeofday () +. open_delay;
-        self#log#important "Error while streaming: %s, will re-open in %.02fs"
-          (Printexc.to_string exn) open_delay
+        self#reopen_on_error ~bt exn
 
     method! send b =
       (match self#is_open with
         | false when open_date <= Unix.gettimeofday () -> self#prepare_pipe
         | true when Atomic.get need_reopen ->
             if open_date <= Unix.gettimeofday () then self#reopen
-        | true -> (
-            match should_reopen () with
+        | true when open_date +. reopen_delay () <= Unix.gettimeofday () -> (
+            match reopen_when () with
               | 0. -> self#reopen
               | v when 0. < v ->
                   Atomic.set need_reopen true;
@@ -352,7 +383,7 @@ class virtual piped_output ~name p =
       if self#is_open then super#send b
 
     method! insert_metadata metadata =
-      match should_reopen ~metadata:(Meta_format.to_metadata metadata) () with
+      match reopen_on_metadata (Meta_format.to_metadata metadata) with
         | 0. ->
             self#reopen;
             super#insert_metadata metadata

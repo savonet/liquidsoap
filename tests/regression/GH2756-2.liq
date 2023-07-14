@@ -14,22 +14,17 @@ def f() =
   end
   s = source.on_frame(s, on_frame)
 
-  can_be_called_after = ref(0.)
   callstack = ref([])
 
-  def should_reopen(~error, ~metadata) =
-    if time() < can_be_called_after() then
-      test.fail()
-    end
+  def reopen_on_metadata(_) =
+    print("Got metadata!")
+    callstack := [...(callstack()), "metadata"]
+    (-1.)
+  end
 
-    if null.defined(metadata) then
-      print("Got metadata!")
-      callstack := [...(callstack()), "metadata"]
-    elsif null.defined(error) then
-      print("Got error!")
-      callstack := [...(callstack()), "error"]
-    end
-
+  def reopen_on_error(_) =
+    print("Got error!")
+    callstack := [...(callstack()), "error"]
     (-1.)
   end
 
@@ -37,13 +32,15 @@ def f() =
     callstack := [...(callstack()), "streaming error"]
   end, [s])
 
-  output.file(should_reopen=should_reopen,%wav,tmp,s)
+  output.file(reopen_on_metadata=reopen_on_metadata,
+              reopen_on_error=reopen_on_error,
+              %wav,tmp,s)
 
   thread.run(delay=1., {insert_metadata([("foo", "bla")])})
   thread.run(delay=5., {err := error.failure})
-  thread.run(delay=6., {begin
+  thread.run(delay=6., {
     if callstack() == ["metadata","error","streaming error"] then test.pass() else test.fail() end
-  end})
+  })
 end
 
 test.check(f)

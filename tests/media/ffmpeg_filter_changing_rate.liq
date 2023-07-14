@@ -73,8 +73,7 @@ def on_done (_) =
   end
 end
 
-def should_reopen(~error=_, ~metadata) =
-  metadata = metadata ?? []
+def reopen_on_metadata(metadata) =
   if metadata["title"] == "done" then begin
     done := true
     0.
@@ -83,7 +82,7 @@ end
 
 output.file(
   fallible=true,
-  should_reopen=should_reopen,
+  reopen_on_metadata=reopen_on_metadata,
   on_close=on_done,
   %ffmpeg(
     format="mp4",
