@@ -32,15 +32,15 @@ let log_exception ~(log : Log.t) ~bt msg =
   log#severe "%s" msg;
   if log#active 4 (* info *) then log#info "%s" bt
 
-(* Force locale to C *)
-external force_locale : unit -> unit = "liquidsoap_set_locale" [@@noalloc]
+(* Force locale *)
+external force_locale : string -> unit = "liquidsoap_set_locale"
 
 (** Get page size. *)
 external pagesize : unit -> int = "liquidsoap_get_pagesize"
   [@@noalloc]
 
 let pagesize = pagesize ()
-let () = force_locale ()
+let () = force_locale "C"
 
 (* Several list utilities *)
 

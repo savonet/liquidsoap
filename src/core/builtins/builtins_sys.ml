@@ -230,6 +230,22 @@ let _ =
   Lang.add_builtin ~base:Modules.server "execute" ~category ~descr params
     return_t execute
 
+let locale = Lang.add_module ~base:Modules.runtime "locale"
+
+let _ =
+  Lang.add_builtin ~base:locale "set" ~category:`System
+    ~descr:
+      "Set the system's locale. This sets `LANG` and `LC_ALL` environment \
+       variables to the given value and then calls `setlocale`. This is set to \
+       `\"C\"` on startup, which defaults to the system's default locale. Keep \
+       in mind that changing this can potentially impact some functions such a \
+       `float_of_string`."
+    [("", Lang.string_t, None, None)]
+    Lang.unit_t
+    (fun p ->
+      Utils.force_locale (Lang.to_string (List.assoc "" p));
+      Lang.unit)
+
 let _ =
   Lang.add_builtin "shutdown" ~category:`System
     ~descr:"Shutdown the application."
