@@ -34,7 +34,7 @@ dev-repo: "git+https://github.com/melange-re/melange.git"
 url {
   src: "https://github.com/savonet/ocaml-ssl/archive/refs/tags/v0.7.0.tar.gz"
   checksum: [
-    "md5=73597f24c0bf088d2fae782b5b62e6d1"
-    "sha512=3fefa4a00f33b52b3601636c21ef79c586d31c92083deba1136d058ce94cd0601ac034d9bae01209f5f8effdfc78204770df869e3f3701700a22b4e61049c646"
+    "md5=0ced13c2beef2135cd9d3a3743ea0e37"
+    "sha512=969c4d64828449a49bdef26ca5f8faa72d2fe2a2304ccbf589a3ff097c2bf8ae9eb83ae1c90216f6b4d6f359e462ea47e0106a7386e26848d14910138fcb07f8"
   ]
 }
