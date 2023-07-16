@@ -54,61 +54,6 @@ In most cases, your script will not execute until you have updated your custom `
 values but you should also review all of them to make sure that they follow the new
 convention.
 
-### `reopen_*` arguments in `output.file` and similar
-
-The `reopen_*` arguments have been unified in `output.file`, `output.pipe` and similar operators. Instead
-of 3 different arguments for metadata, errors and regular reloads, which was making the logic pretty hard to
-understand, now a single `should_reload` callback is given.
-
-The callback receives two optional arguments, `metadata` and `error` and is called in 3 different conditions:
-
-- When a new metadata comes up, in which case the `metadata` argument is present
-- When an error occurs, in which case the `error` argument is present
-- As the stream is playing unless a reopen is already scheduled, in which case both `metadata` and `error` arguments are `null`
-
-Each time that the callback is executed, if it returns a positive `float` number, then a reload is scheduled
-after that value (in seconds) has passed.
-
-For instance, to reload after `2.` seconds on errors and immediately on `metadata` but never otherwise, you can do:
-
-```liquidsoap
-def should_reload(~metadata, ~error) =
-  if null.defined(error) then
-    print("Reloading on error: #{error}")
-    2.
-  elsif null.defined(metadata) then
-    print("Reloading on metadata")
-    0.
-  else
-    null()
-  end
-end
-```
-
-Another use-case is to reload on top of each hour and do nothing on `metadata` or `error`. This can be a little more tricky because the callback
-is called on every audio frame so several times per seconds. To prevent multiple reloads in a row, we block
-all reloads after the first one until minute `00` has passed:
-
-```liquidsoap
-# Use a ref to reload only once on minute 00:
-has_reloaded = ref(false)
-
-def should_reload(~metadata, ~restart) =
-  if null.defined(metadata) or null.defined(restart) then
-    null()
-  elsif 00m and not has_reloaded() then
-    has_reloaded := true
-    0.
-  else
-    if not 00m then
-      # Reset has_reloaded
-      has_reloaded := false
-    end
-    null()
-  end
-end
-```
-
 ### Metadata overrides
 
 Some metadata overrides have been made to reset on track boundaries. Previously, those were permanent even though they
@@ -179,6 +124,7 @@ output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 
 ### Other breaking changes
 
+- `reopen_on_error` and `reopen_on_metadata` in `output.file` an related outputs are now callbacks that can return nullable `float` to delay reload by the given time.
 - `request.duration` now returns a `nullable` float, `null` being value returned when the request duration could not be computed.
 - `getenv` (resp. `setenv`) has been renamed to `environment.get` (resp. `environment.set`).
 

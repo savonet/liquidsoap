@@ -421,14 +421,14 @@ end
 # @param ~on_start Callback executed when outputting starts.
 # @param ~on_stop Callback executed when outputting stops.
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
-# @argsof output.external[should_reopen,on_reopen]
+# @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.external.ffmpeg(~id=null(), ~show_command=false, ~flush=false, ~fallible=false,
-                           ~on_start={()}, ~on_stop={()}, %argsof(output.external[should_reopen,on_reopen]),
+                           ~on_start={()}, ~on_stop={()}, %argsof(output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]),
                            ~start=true, outputopts, s)
   outputopts = (outputopts : string)
   cmd = "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le -i pipe:0 #{outputopts}"
   if show_command then log.important(label="output.external.ffmpeg", "command: #{cmd}") end
-  output.external(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, %argsof(output.external[should_reopen,on_reopen]),
+  output.external(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, %argsof(output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]),
                   start=start, %avi, cmd, s)
 end
 
@@ -443,15 +443,15 @@ end
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
-# @argsof output.external[should_reopen,on_reopen]
+# @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.file.hls.ffmpeg(~id=null(), ~flush=false, ~fallible=false,
-                           ~on_start={()}, ~on_stop={()}, %argsof(output.external[should_reopen,on_reopen]),
+                           ~on_start={()}, ~on_stop={()}, %argsof(output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]),
                            ~start=true, ~playlist="stream.m3u8", ~directory, s)
   width = video.frame.width()
   height = video.frame.height()
   directory = (directory : string)
   cmd = "-profile:v baseline -pix_fmt yuv420p -level 3.0 -s #{width}x#{height} -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{directory}/#{playlist}"
-  output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, %argsof(output.external[should_reopen,on_reopen]),
+  output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop, %argsof(output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]),
                          start=start, cmd, s)
 end
 
@@ -468,14 +468,14 @@ let output.file.dash = ()
 # @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
 # @param ~playlist Playlist name
 # @param ~directory Directory to write to
-# @argsof output.external[should_reopen,on_reopen]
+# @argsof output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]
 def output.file.dash.ffmpeg(~id=null(), ~flush=false, ~fallible=false,
-                           ~on_start={()}, ~on_stop={()},  %argsof(output.external[should_reopen,on_reopen]),
+                           ~on_start={()}, ~on_stop={()},  %argsof(output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]),
                            ~start=true, ~playlist="stream.mpd", ~directory, s)
   width = video.frame.width()
   height = video.frame.height()
   samplerate = audio.samplerate()
   cmd = "-map 0 -map 0 -c:a libfdk_aac -c:v libx264 -b:v:0 800k -b:v:1 300k -s:v:1 #{width}x#{height} -profile:v:1 baseline -profile:v:0 main -bf 1 -keyint_min 120 -g 120 -sc_threshold 0 -b_strategy 0 -ar:a:1 #{samplerate} -use_timeline 1 -use_template 1 -window_size 5 -adaptation_sets \"id=0,streams=v id=1,streams=a\" -f dash #{(directory:string)}/#{playlist}"
-  output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop,  %argsof(output.external[should_reopen,on_reopen]),
+  output.external.ffmpeg(id=id, flush=flush, fallible=fallible, on_start=on_start, on_stop=on_stop,  %argsof(output.external[reopen_on_metadata,reopen_on_error,reopen_when,reopen_delay,on_reopen]),
                          start=start, show_command=true, cmd, s)
 end
