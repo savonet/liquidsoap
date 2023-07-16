@@ -162,7 +162,7 @@ let set_done, wait_done =
   let set_done () = ignore (Unix.write write_done (Bytes.create 1) 0 1) in
   let wait_done () =
     let rec wait_for_done () =
-      try Duppy.poll [read_done] [] [] (-1.)
+      try Utils.select [read_done] [] [] (-1.)
       with Unix.Unix_error (Unix.EINTR, _, _) -> wait_for_done ()
     in
     let r, _, _ = wait_for_done () in
@@ -337,7 +337,7 @@ let wait_for ?(log = fun _ -> ()) event timeout =
   in
   let rec wait t =
     let r, w, _ =
-      try Duppy.poll r w [] t
+      try Utils.select r w [] t
       with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
     in
     if r = [] && w = [] then (
