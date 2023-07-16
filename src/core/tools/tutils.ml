@@ -179,7 +179,6 @@ let create ~queue f x s =
     (fun () ->
       let id =
         let process x =
-          ignore (Thread.sigmask Unix.SIG_BLOCK [Sys.sigterm; Sys.sigint]);
           try
             f x;
             mutexify lock
