@@ -283,8 +283,7 @@ let options =
           warnings in some cases. Currently: unused variables and ignored \
           expressions. " );
      ]
-    @ (if Sys.win32 then [] else Dtools.Init.args)
-    @ Extra_args.args ()
+    @ Dtools.Init.args @ Extra_args.args ()
     @ [
         ( ["-t"; "--enable-telnet"],
           Arg.Unit (fun _ -> Server.conf_telnet#set true),
@@ -695,7 +694,8 @@ let () =
           | _ -> ()
       in
 
-      Sys.set_signal Sys.sigterm (Sys.Signal_handle sigterm_handler);
+      if not Sys.win32 then
+        Sys.set_signal Sys.sigterm (Sys.Signal_handle sigterm_handler);
       Sys.set_signal Sys.sigint (Sys.Signal_handle sigterm_handler);
 
       (* TODO: if start fails (e.g. invalid password or mountpoint) it raises
