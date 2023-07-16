@@ -453,10 +453,9 @@ let () =
 
       (* Set the default values. *)
       Dtools.Log.conf_file_path#set_d (Some "<syslogdir>/<script>.log");
-      if not Sys.win32 then (
-        Dtools.Init.conf_daemon_pidfile#set_d (Some true);
-        Dtools.Init.conf_daemon_pidfile_path#set_d
-          (Some "<sysrundir>/<script>.pid"));
+      Dtools.Init.conf_daemon_pidfile#set_d (Some true);
+      Dtools.Init.conf_daemon_pidfile_path#set_d
+        (Some "<sysrundir>/<script>.pid");
 
       log#important "Liquidsoap %s" Configure.version;
       log#important "Using: %s" (Configure.libs_versions ());
