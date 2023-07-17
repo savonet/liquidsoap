@@ -71,8 +71,8 @@ Changed:
     `null`, meaning don't add the metadata.
   - Cleanup, removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
   - Make `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
-- `reopen_on_error` and `reopen_on_metadata` in `output.file` and related operators now returns a nullable `float`
-  to allow dynamic handling.
+- `reopen_on_error` and `reopen_on_metadata` in `output.file` and related operators are now callbacks to
+  allow dynamic handling.
 - Added `reopen` method to `output.file`.
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual

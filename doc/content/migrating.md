@@ -124,7 +124,7 @@ output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 
 ### Other breaking changes
 
-- `reopen_on_error` and `reopen_on_metadata` in `output.file` an related outputs are now callbacks that can return nullable `float` to delay reload by the given time.
+- `reopen_on_error` and `reopen_on_metadata` in `output.file` an related outputs are now callbacks.
 - `request.duration` now returns a `nullable` float, `null` being value returned when the request duration could not be computed.
 - `getenv` (resp. `setenv`) has been renamed to `environment.get` (resp. `environment.set`).
 
