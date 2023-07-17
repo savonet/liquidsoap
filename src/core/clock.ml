@@ -151,12 +151,17 @@ module MkClock (Time : Liq_time.T) = struct
        * The list needs to be accessed within critical section of [lock]. *)
       val mutable outputs = []
       val lock = Mutex.create ()
+      val mutable can_attach = true
+
+      method stop =
+        Tutils.mutexify lock (fun () -> can_attach <- false) ();
+        self#detach (fun _ -> true)
 
       method attach s =
         Tutils.mutexify lock
           (fun () ->
-            if not (List.exists (fun (_, s') -> s = s') outputs) then
-              outputs <- (`New, s) :: outputs)
+            if can_attach && not (List.exists (fun (_, s') -> s = s') outputs)
+            then outputs <- (`New, s) :: outputs)
           ()
 
       method detach test =
@@ -350,7 +355,7 @@ module MkClock (Time : Liq_time.T) = struct
         List.iter (fun fn -> fn ()) todo
 
       method start_outputs f =
-        if not (Tutils.running ()) then outputs <- [];
+        let f s = Tutils.running () && f s in
         (* Extract the list of outputs to start, mark them as Starting
          * so they are not managed by a nested call of start_outputs
          * (triggered by collect, which can be triggered by the
@@ -576,8 +581,5 @@ let start () =
   after_collect_tasks := !after_collect_tasks - 1;
   collect ~must_lock:false
 
-(** To stop, simply detach everything and the clocks will stop running.
-  * No need to collect, stopping is done by itself. *)
-let stop () = Clocks.iter (fun s -> s#detach (fun _ -> true)) clocks
-
+let stop () = Clocks.iter (fun s -> s#stop) clocks
 let fold f x = Clocks.fold f clocks x

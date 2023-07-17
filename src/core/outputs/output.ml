@@ -117,6 +117,13 @@ class virtual output ~output_kind ?(name = "") ~infallible
       self#log#important "Content type is %s."
         (Frame.string_of_content_type self#content_type);
 
+      if Frame.Fields.is_empty self#content_type then
+        failwith
+          (Printf.sprintf
+             "Empty content-type detected for output %s. You might want to use \
+              an expliciy type annotation!"
+             self#id);
+
       (* Get our source ready. This can take a while (preparing playlists,
          etc). *)
       source#get_ready ((self :> operator) :: activation);
