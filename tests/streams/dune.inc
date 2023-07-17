@@ -223,6 +223,28 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  dtmf_pcm_s16.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} dtmf_pcm_s16.liq liquidsoap %{test_liq} dtmf_pcm_s16.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   fades-overrides.liq
   ./file1.mp3
   ./file2.mp3

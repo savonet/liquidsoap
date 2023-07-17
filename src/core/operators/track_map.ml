@@ -63,6 +63,9 @@ class track_map ~name ~field ~fn s =
     initializer self#on_after_output (fun () -> Frame.clear self#tmp_frame)
   end
 
+let to_pcm_s16 c =
+  Content_pcm_s16.(lift_data (from_audio (Content.Audio.get_data c)))
+
 let _ =
   let content_t = Lang.univ_t () in
   let input_t =
@@ -80,10 +83,12 @@ let _ =
     ~return_t:output_t
     (fun p ->
       let field, s = Lang.to_track (Lang.assoc "" 1 p) in
-      let fn c =
-        Content_pcm_s16.(lift_data (from_audio (Content.Audio.get_data c)))
-      in
-      (field, new track_map ~name:"track.encode.audio.pcm_s16" ~field ~fn s))
+      ( field,
+        new track_map ~name:"track.encode.audio.pcm_s16" ~field ~fn:to_pcm_s16 s
+      ))
+
+let from_pcm_s16 c =
+  Content.Audio.lift_data Content_pcm_s16.(to_audio (get_data c))
 
 let _ =
   let content_t = Lang.univ_t () in
@@ -102,10 +107,12 @@ let _ =
     ~return_t:output_t
     (fun p ->
       let field, s = Lang.to_track (Lang.assoc "" 1 p) in
-      let fn c =
-        Content.Audio.lift_data Content_pcm_s16.(to_audio (get_data c))
-      in
-      (field, new track_map ~name:"track.decode.audio.pcm_s16" ~field ~fn s))
+      ( field,
+        new track_map
+          ~name:"track.decode.audio.pcm_s16" ~field ~fn:from_pcm_s16 s ))
+
+let to_pcm_f32 c =
+  Content_pcm_f32.(lift_data (from_audio (Content.Audio.get_data c)))
 
 let _ =
   let content_t = Lang.univ_t () in
@@ -124,10 +131,12 @@ let _ =
     ~return_t:output_t
     (fun p ->
       let field, s = Lang.to_track (Lang.assoc "" 1 p) in
-      let fn c =
-        Content_pcm_f32.(lift_data (from_audio (Content.Audio.get_data c)))
-      in
-      (field, new track_map ~name:"track.encode.audio.pcm_f32" ~field ~fn s))
+      ( field,
+        new track_map ~name:"track.encode.audio.pcm_f32" ~field ~fn:to_pcm_f32 s
+      ))
+
+let from_pcm_f32 c =
+  Content.Audio.lift_data Content_pcm_f32.(to_audio (get_data c))
 
 let _ =
   let content_t = Lang.univ_t () in
@@ -146,7 +155,6 @@ let _ =
     ~return_t:output_t
     (fun p ->
       let field, s = Lang.to_track (Lang.assoc "" 1 p) in
-      let fn c =
-        Content.Audio.lift_data Content_pcm_f32.(to_audio (get_data c))
-      in
-      (field, new track_map ~name:"track.decode.audio.pcm_f32" ~field ~fn s))
+      ( field,
+        new track_map
+          ~name:"track.decode.audio.pcm_f32" ~field ~fn:from_pcm_f32 s ))

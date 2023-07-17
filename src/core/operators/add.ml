@@ -220,6 +220,33 @@ let get_tracks ~mk_weight p =
       (track, position + 1))
     ([], 0) track_values
 
+let add_proto =
+  [
+    ( "normalize",
+      Lang.getter_t Lang.bool_t,
+      Some (Lang.bool true),
+      Some
+        "Divide by the sum of weights of ready sources (or by the number of \
+         ready sources if weights are not specified)." );
+    ( "power",
+      Lang.getter_t Lang.bool_t,
+      Some (Lang.bool false),
+      Some "Perform constant-power normalization." );
+  ]
+
+let add_audio_tracks p =
+  let tracks, _ =
+    get_tracks
+      ~mk_weight:(fun v ->
+        try Lang.to_float_getter (Liquidsoap_lang.Value.invoke v "weight")
+        with _ -> fun () -> 1.)
+      p
+  in
+  let renorm = Lang.to_bool_getter (List.assoc "normalize" p) in
+  let power = List.assoc "power" p |> Lang.to_bool_getter in
+  let field = Frame.Fields.audio in
+  (field, new audio_add ~renorm ~power ~field tracks)
+
 let _ =
   let frame_t = Format_type.audio () in
   let track_t =
@@ -227,44 +254,21 @@ let _ =
   in
   Lang.add_track_operator ~base:Modules.track_audio "add" ~category:`Audio
     ~descr:"Mix audio tracks with optional normalization."
-    [
-      ( "normalize",
-        Lang.getter_t Lang.bool_t,
-        Some (Lang.bool true),
-        Some
-          "Divide by the sum of weights of ready sources (or by the number of \
-           ready sources if weights are not specified)." );
-      ( "power",
-        Lang.getter_t Lang.bool_t,
-        Some (Lang.bool false),
-        Some "Perform constant-power normalization." );
-      ("", Lang.list_t track_t, None, None);
-    ]
-    ~return_t:frame_t
-    (fun p ->
-      let tracks, _ =
-        get_tracks
-          ~mk_weight:(fun v ->
-            try Lang.to_float_getter (Liquidsoap_lang.Value.invoke v "weight")
-            with _ -> fun () -> 1.)
-          p
-      in
-      let renorm = Lang.to_bool_getter (List.assoc "normalize" p) in
-      let power = List.assoc "power" p |> Lang.to_bool_getter in
-      let field = Frame.Fields.audio in
-      (field, new audio_add ~renorm ~power ~field tracks))
+    (("", Lang.list_t track_t, None, None) :: add_proto)
+    ~return_t:frame_t add_audio_tracks
+
+let add_video_tracks p =
+  let tracks, _ = get_tracks ~mk_weight:(fun _ -> ()) p in
+  let add _ = Video.Canvas.Image.add in
+  let field = Frame.Fields.video in
+  (field, new video_add ~add ~field tracks)
 
 let _ =
   let frame_t = Format_type.video () in
   Lang.add_track_operator ~base:Modules.track_video "add" ~category:`Video
     ~descr:"Merge video tracks."
     [("", Lang.list_t frame_t, None, None)]
-    ~return_t:frame_t
-    (fun p ->
-      let tracks, _ = get_tracks ~mk_weight:(fun _ -> ()) p in
-      let add _ = Video.Canvas.Image.add in
-      let field = Frame.Fields.video in
-      (field, new video_add ~add ~field tracks))
+    ~return_t:frame_t add_video_tracks
 
 let tile_pos n =
   let vert l x y x' y' =
@@ -325,3 +329,125 @@ let _ =
       in
       let field = Frame.Fields.video in
       (field, new video_add ~field ~add tracks))
+
+let _ =
+  let frame_t = Lang.internal_tracks_t () in
+  Lang.add_operator "add" ~category:`Audio
+    (("", Lang.list_t (Lang.source_t frame_t), None, None)
+    :: ( "weights",
+         Lang.(list_t (getter_t float_t)),
+         Some (Lang.list []),
+         Some
+           "Relative weight of the sources in the sum. The empty list stands \
+            for the homogeneous distribution. These are used as amplification \
+            coefficients if we are not normalizing." )
+    :: add_proto)
+    ~descr:
+      "Mix sources, with optional normalization. Only relay metadata from the \
+       first available source. Track marks are dropped from all sources."
+    ~return_t:frame_t
+    (fun p ->
+      let sources_val = List.assoc "" p in
+      let sources = List.map Lang.to_source (Lang.to_list sources_val) in
+      if sources = [] then (new Debug_sources.fail "add" :> Source.source)
+      else (
+        let weights = Lang.to_list (List.assoc "weights" p) in
+        let content_type =
+          Frame.Fields.bindings (List.hd sources)#content_type
+        in
+        let audio_tracks, video_tracks =
+          List.fold_left
+            (fun (audio_tracks, video_tracks) (field, format) ->
+              if Content_audio.is_format format then (
+                let tracks = List.mapi (fun pos s -> (pos, s)) sources in
+                ((field, tracks, fun s -> s) :: audio_tracks, video_tracks))
+              else if Content_pcm_s16.is_format format then (
+                let from_s s =
+                  (Track_map.(
+                     new track_map
+                       ~name:"track.decode.audio.pcm_s16" ~field
+                       ~fn:from_pcm_s16 s)
+                    :> Source.source)
+                in
+                let to_s s =
+                  (Track_map.(
+                     new track_map
+                       ~name:"track.encode.audio.pcm_s16" ~field ~fn:to_pcm_s16
+                       s)
+                    :> Source.source)
+                in
+                let tracks = List.mapi (fun pos s -> (pos, from_s s)) sources in
+                ((field, tracks, to_s) :: audio_tracks, video_tracks))
+              else if Content_pcm_f32.is_format format then (
+                let from_s s =
+                  (Track_map.(
+                     new track_map
+                       ~name:"track.decode.audio.pcm_s16" ~field
+                       ~fn:from_pcm_f32 s)
+                    :> Source.source)
+                in
+                let to_s s =
+                  (Track_map.(
+                     new track_map
+                       ~name:"track.encode.audio.pcm_s16" ~field ~fn:to_pcm_f32
+                       s)
+                    :> Source.source)
+                in
+                let tracks = List.mapi (fun pos s -> (pos, from_s s)) sources in
+                ((field, tracks, to_s) :: audio_tracks, video_tracks))
+              else if Content_video.is_format format then
+                (audio_tracks, (field, sources) :: video_tracks)
+              else if
+                Content_timed.Metadata.is_format format
+                || Content_timed.Track_marks.is_format format
+              then (audio_tracks, video_tracks)
+              else
+                raise (Error.Invalid_value (sources_val, "Invalid source type")))
+            ([], []) content_type
+        in
+        let audio_tracks =
+          List.map
+            (fun (field, sources, to_source) ->
+              let tracks =
+                List.map
+                  (fun (pos, s) ->
+                    let track = Lang.track (field, s) in
+                    try
+                      let weight = List.nth weights pos in
+                      Lang.meth track [("weight", weight)]
+                    with _ -> track)
+                  sources
+              in
+              let p =
+                [
+                  ("normalize", List.assoc "normalize" p);
+                  ("power", List.assoc "power" p);
+                  ("", Lang.list tracks);
+                ]
+              in
+              let _, track = add_audio_tracks p in
+              (field, to_source track))
+            audio_tracks
+        in
+        let video_tracks =
+          List.map
+            (fun (field, sources) ->
+              let tracks =
+                Lang.list (List.map (fun s -> Lang.track (field, s)) sources)
+              in
+              let p = [("", tracks)] in
+              let _, track = add_video_tracks p in
+              (field, track))
+            video_tracks
+        in
+        let tracks = audio_tracks @ video_tracks in
+        let tracks = (Frame.Fields.metadata, snd (List.hd tracks)) :: tracks in
+        let tracks =
+          List.map
+            (fun (field, track) ->
+              let track = Lang.track (field, track) in
+              (Frame.Fields.string_of_field field, track))
+            tracks
+        in
+        let p = [("", Lang.meth Lang.unit tracks)] in
+        (Muxer.muxer_operator p :> Source.source)))
