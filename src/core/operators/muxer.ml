@@ -138,6 +138,66 @@ class muxer tracks =
           Frame.clear self#buffer)
   end
 
+let muxer_operator p =
+  let tracks = List.assoc "" p in
+  let processor c = c in
+  let tracks =
+    List.fold_left
+      (fun tracks (label, t) ->
+        let source_field, s = Lang.to_track t in
+        let target_field = Frame.Fields.register label in
+        let field = { source_field; target_field; processor } in
+        match List.find_opt (fun { source } -> source == s) tracks with
+          | Some track ->
+              track.fields <- field :: track.fields;
+              tracks
+          | None -> { source = s; fields = [field] } :: tracks)
+      []
+      (fst (Lang.split_meths tracks))
+  in
+  if
+    List.for_all
+      (fun { fields } ->
+        List.for_all
+          (fun { target_field } ->
+            target_field = Frame.Fields.metadata
+            || target_field = Frame.Fields.track_marks)
+          fields)
+      tracks
+  then
+    Runtime_error.raise ~pos:(Lang.pos p)
+      ~message:
+        "source muxer needs at least one track with content that is not \
+         metadata or track_marks!"
+      "invalid";
+  let s = new muxer tracks in
+  let target_fields =
+    List.fold_left
+      (fun target_fields { source; fields } ->
+        let source_fields, target_fields =
+          List.fold_left
+            (fun (source_fields, target_fields) { source_field; target_field } ->
+              match source_field with
+                | f when f = Frame.Fields.metadata ->
+                    (source_fields, target_fields)
+                | f when f = Frame.Fields.track_marks ->
+                    (source_fields, target_fields)
+                | _ ->
+                    let source_field_t = Lang.univ_t () in
+                    ( Frame.Fields.add source_field source_field_t source_fields,
+                      Frame.Fields.add target_field source_field_t target_fields
+                    ))
+            (Frame.Fields.empty, target_fields)
+            fields
+        in
+        let source_frame_t = Lang.frame_t (Lang.univ_t ()) source_fields in
+        Typing.(source#frame_type <: source_frame_t);
+        target_fields)
+      Frame.Fields.empty tracks
+  in
+  Typing.(s#frame_type <: Lang.frame_t (Lang.univ_t ()) target_fields);
+  s
+
 let source =
   let frame_t = Lang.univ_t ~constraints:[Format_type.muxed_tracks] () in
   let tracks_t =
@@ -148,67 +208,7 @@ let source =
   Lang.add_operator "source" ~category:`Input
     ~descr:"Create a source that muxes the given tracks." ~return_t:frame_t
     [("", tracks_t, None, Some "Tracks to mux")]
-    (fun p ->
-      let tracks = List.assoc "" p in
-      let processor c = c in
-      let tracks =
-        List.fold_left
-          (fun tracks (label, t) ->
-            let source_field, s = Lang.to_track t in
-            let target_field = Frame.Fields.register label in
-            let field = { source_field; target_field; processor } in
-            match List.find_opt (fun { source } -> source == s) tracks with
-              | Some track ->
-                  track.fields <- field :: track.fields;
-                  tracks
-              | None -> { source = s; fields = [field] } :: tracks)
-          []
-          (fst (Lang.split_meths tracks))
-      in
-      if
-        List.for_all
-          (fun { fields } ->
-            List.for_all
-              (fun { target_field } ->
-                target_field = Frame.Fields.metadata
-                || target_field = Frame.Fields.track_marks)
-              fields)
-          tracks
-      then
-        Runtime_error.raise ~pos:(Lang.pos p)
-          ~message:
-            "source muxer needs at least one track with content that is not \
-             metadata or track_marks!"
-          "invalid";
-      let s = new muxer tracks in
-      let target_fields =
-        List.fold_left
-          (fun target_fields { source; fields } ->
-            let source_fields, target_fields =
-              List.fold_left
-                (fun (source_fields, target_fields)
-                     { source_field; target_field } ->
-                  match source_field with
-                    | f when f = Frame.Fields.metadata ->
-                        (source_fields, target_fields)
-                    | f when f = Frame.Fields.track_marks ->
-                        (source_fields, target_fields)
-                    | _ ->
-                        let source_field_t = Lang.univ_t () in
-                        ( Frame.Fields.add source_field source_field_t
-                            source_fields,
-                          Frame.Fields.add target_field source_field_t
-                            target_fields ))
-                (Frame.Fields.empty, target_fields)
-                fields
-            in
-            let source_frame_t = Lang.frame_t (Lang.univ_t ()) source_fields in
-            Typing.(source#frame_type <: source_frame_t);
-            target_fields)
-          Frame.Fields.empty tracks
-      in
-      Typing.(s#frame_type <: Lang.frame_t (Lang.univ_t ()) target_fields);
-      s)
+    muxer_operator
 
 let _ =
   let track_t = Lang.univ_t ~constraints:[Format_type.track] () in
