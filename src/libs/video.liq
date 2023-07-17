@@ -20,43 +20,47 @@ end
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
+# @param ~width Scale to width
+# @param ~height Scale to height
+# @param ~x x position.
+# @param ~y y position.
 # @param file Path to the image.
 # @method set Change the image.
-def image(~id=null(), ~fallible=false, file="")
+def image(~id=null(), ~fallible=false, ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), file)
   s = source.dynamic()
+
   def set(file)
-    s.set(single(id=id, fallible=fallible, file))
+    image = single(id=id, fallible=fallible, file)
+    image = video.crop(image)
+    image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
+    s.set(image)
   end
-  set(file)
+
+  current_file = ref(getter.get(file))
+
+  set(current_file())
+  s = source.on_frame(s, fun () -> begin
+    new_file = getter.get(file)
+    if new_file != current_file() then
+      set(new_file)
+      current_file.set(new_file)
+    end
+  end)
+
   s.{set=set}
 end
 
 # Add a static image on the given video track.
 # @category Track / Video processing
 # @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def track.video.add_image(~id=null("track.video.add_image"), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, v)
-  image =
-     if getter.is_constant(file) then
-       single(id=id, getter.get(file))
-     else
-       current_file = ref(getter.get(file))
-       get_next = fun () -> request.create(current_file())
-       s = request.dynamic(id=id, get_next)
-       source.on_frame(s, fun () -> begin
-         new_file = getter.get(file)
-         if new_file != current_file() then
-           current_file.set(new_file)
-           s.skip()
-         end
-       end)
-     end
-  image = video.crop(image)
-  image = video.resize(id=id, x=x, y=y, width=width, height=height, image)
+def track.video.add_image(~id=null("track.video.add_image"), ~fallible=false, ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, v)
+  image = image(id=id, fallible=fallible, x=x, y=y, width=width, height=height, file)
   let {video=image} = source.tracks(image)
   track.video.add([v, image])
 end
