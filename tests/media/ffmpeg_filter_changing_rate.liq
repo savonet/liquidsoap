@@ -76,8 +76,8 @@ end
 def reopen_on_metadata(metadata) =
   if metadata["title"] == "done" then begin
     done := true
-    0.
-  end else null () end
+    true
+  end else false end
 end
 
 output.file(

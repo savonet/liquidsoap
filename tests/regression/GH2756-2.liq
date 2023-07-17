@@ -19,13 +19,13 @@ def f() =
   def reopen_on_metadata(_) =
     print("Got metadata!")
     callstack := [...(callstack()), "metadata"]
-    (-1.)
+    false
   end
 
   def reopen_on_error(_) =
     print("Got error!")
     callstack := [...(callstack()), "error"]
-    (-1.)
+    null()
   end
 
   clock.assign_new(on_error=fun (_) -> begin
