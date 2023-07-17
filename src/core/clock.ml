@@ -350,7 +350,7 @@ module MkClock (Time : Liq_time.T) = struct
         List.iter (fun fn -> fn ()) todo
 
       method start_outputs f =
-        if not (Tutils.running ()) then outputs <- [];
+        let f s = Tutils.running () && f s in
         (* Extract the list of outputs to start, mark them as Starting
          * so they are not managed by a nested call of start_outputs
          * (triggered by collect, which can be triggered by the
