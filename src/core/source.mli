@@ -273,6 +273,7 @@ class type clock =
 
     method sync_mode : sync
     method start : bool
+    method stop : unit
 
     (** Attach an active source to the clock. *)
     method attach : active_source -> unit

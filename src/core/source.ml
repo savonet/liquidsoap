@@ -85,6 +85,7 @@ class type ['a, 'b] proto_clock =
     method id : string
     method sync_mode : sync
     method start : bool
+    method stop : unit
 
     (** Attach an active source, detach active sources by filter. *)
 
@@ -833,6 +834,7 @@ class type clock =
   object
     method id : string
     method start : bool
+    method stop : unit
     method sync_mode : sync
     method attach : active_source -> unit
     method detach : (active_source -> bool) -> unit
