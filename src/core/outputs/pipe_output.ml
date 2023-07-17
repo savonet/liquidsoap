@@ -213,9 +213,17 @@ let _ =
 (** Piped virtual class: open/close pipe, implements metadata interpolation and
     takes care of the various reload mechanisms. *)
 
-let default_reopen =
+let default_reopen_on_error =
   Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
     "fun (_) -> null()"
+
+let default_reopen_on_metadata =
+  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+    "fun (_) -> false"
+
+let default_reopen_when =
+  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+    "fun () -> false"
 
 let pipe_proto frame_t arg_doc =
   Output.proto
@@ -224,23 +232,23 @@ let pipe_proto frame_t arg_doc =
         Lang.fun_t
           [(false, "", Lang.nullable_t Lang.error_t)]
           (Lang.nullable_t Lang.float_t),
-        Some default_reopen,
+        Some default_reopen_on_error,
         Some
           "Callback called when there is an error. Error is raised when \
            returning `null`. Otherwise, the file is reopened after the \
            returned value, in seconds." );
       ( "reopen_on_metadata",
-        Lang.fun_t [(false, "", Lang.metadata_t)] (Lang.nullable_t Lang.float_t),
-        Some default_reopen,
+        Lang.fun_t [(false, "", Lang.metadata_t)] Lang.bool_t,
+        Some default_reopen_on_metadata,
         Some
-          "Callback called on metadata. If returned value is not `null`, the \
-           file is reopened after the returned value, in seconds." );
+          "Callback called on metadata. If returned value is `true`, the file \
+           is reopened." );
       ( "reopen_when",
-        Lang.fun_t [] (Lang.nullable_t Lang.float_t),
-        Some (Lang.val_cst_fun [] Lang.null),
+        Lang.fun_t [] Lang.bool_t,
+        Some default_reopen_when,
         Some
-          "Callback called on each frame. If returned value is not `null`, the \
-           file is reopened after the returned value, in seconds." );
+          "Callback called on each frame. If returned value is `true`, the \
+           file is reopened." );
       ( "reopen_delay",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 120.),
@@ -287,19 +295,10 @@ class virtual piped_output ~name p =
   let reopen_on_metadata = List.assoc "reopen_on_metadata" p in
   let reopen_on_metadata m =
     let m = Lang.metadata m in
-    match
-      Lang.to_valued_option Lang.to_float
-        (Lang.apply reopen_on_metadata [("", m)])
-    with
-      | Some v when 0. <= v -> v
-      | _ -> -1.
+    Lang.to_bool (Lang.apply reopen_on_metadata [("", m)])
   in
   let reopen_when = List.assoc "reopen_when" p in
-  let reopen_when () =
-    match Lang.to_valued_option Lang.to_float (Lang.apply reopen_when []) with
-      | Some v when 0. <= v -> v
-      | _ -> -1.
-  in
+  let reopen_when () = Lang.to_bool (Lang.apply reopen_when []) in
   let reopen_delay = Lang.to_float_getter (List.assoc "reopen_delay" p) in
   let on_reopen = List.assoc "on_reopen" p in
   let on_reopen () = ignore (Lang.apply on_reopen []) in
@@ -372,31 +371,17 @@ class virtual piped_output ~name p =
         | false when open_date <= Unix.gettimeofday () -> self#prepare_pipe
         | true when Atomic.get need_reopen ->
             if open_date <= Unix.gettimeofday () then self#reopen
-        | true when open_date +. reopen_delay () <= Unix.gettimeofday () -> (
-            match reopen_when () with
-              | 0. -> self#reopen
-              | v when 0. < v ->
-                  Atomic.set need_reopen true;
-                  open_date <- Unix.gettimeofday () +. v
-              | _ -> ())
+        | true
+          when open_date +. reopen_delay () <= Unix.gettimeofday ()
+               && reopen_when () ->
+            Atomic.set need_reopen true;
+            open_date <- Unix.gettimeofday ()
         | _ -> ());
       if self#is_open then super#send b
 
     method! insert_metadata metadata =
-      match reopen_on_metadata (Meta_format.to_metadata metadata) with
-        | 0. ->
-            self#reopen;
-            super#insert_metadata metadata
-        | open_delay ->
-            super#insert_metadata metadata;
-            if open_delay > 0. then
-              if Atomic.get need_reopen then
-                self#log#info "New metadata received, re-open already scheduled"
-              else (
-                self#log#info "New metadata received, will re-open in %.02fs"
-                  open_delay;
-                Atomic.set need_reopen true;
-                open_date <- Unix.gettimeofday () +. open_delay)
+      if reopen_on_metadata (Meta_format.to_metadata metadata) then self#reopen;
+      super#insert_metadata metadata
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to

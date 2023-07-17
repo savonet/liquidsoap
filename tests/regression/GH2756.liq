@@ -14,14 +14,14 @@ def f() =
   end
   s = source.on_frame(s, on_frame)
 
-  reload_in = ref(-1.)
+  reopen_when_ref = ref(true)
   reopen_delay = ref(120.)
   callstack = ref([])
 
   def reopen_on_metadata(_) =
     print("Got metadata!")
     callstack := [...(callstack()), "metadata"]
-    3.
+    true
   end
 
   def reopen_on_error(_) =
@@ -31,12 +31,12 @@ def f() =
   end
 
   def reopen_when() =
-    r = reload_in()
+    r = reopen_when_ref()
 
-    if 0. <= r then
+    if r then
       print("Got reopen!")
       callstack := [...(callstack()), "reload"]
-      reload_in := -1.
+      reopen_when_ref := false
     end
 
     r
@@ -52,7 +52,7 @@ def f() =
   thread.run(delay=5., {err := error.failure})
   thread.run(delay=8., {
     reopen_delay := 1.
-    reload_in := 1.
+    reopen_when_ref := true
   })
   thread.run(delay=10., {
     if callstack() == ["metadata","error","reload"] then test.pass() else test.fail() end
