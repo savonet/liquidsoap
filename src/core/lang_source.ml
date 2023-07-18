@@ -309,6 +309,17 @@ let check_content v t =
         | _ when Source_val.is_value v ->
             let source_t = source_t (Source_val.of_value v)#frame_type in
             check source_t t
+        | _ when Track.is_value v ->
+            let field, s = Track.of_value v in
+            if
+              field <> Frame.Fields.track_marks
+              && field <> Frame.Fields.metadata
+            then (
+              let t =
+                Frame_type.make (Type.var ())
+                  (Frame.Fields.add field t Frame.Fields.empty)
+              in
+              check s#frame_type t)
         | _ when Lang_encoder.V.is_value v ->
             let content_t =
               Encoder.type_of_format (Lang_encoder.V.of_value v)

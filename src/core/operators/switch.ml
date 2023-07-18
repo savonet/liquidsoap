@@ -155,11 +155,10 @@ class virtual switch ~name ~override_meta ~transition_length
                        * transition in between. *)
                       match c.source#last_metadata with
                         | Some m when replay_meta ->
-                            let s = new Insert_metadata.replay m c.source in
-                            Typing.(s#frame_type <: self#frame_type);
-                            s
+                            new Insert_metadata.replay m c.source
                         | _ -> c.source
                     in
+                    Typing.(new_source#frame_type <: self#frame_type);
                     new_source#get_ready activation;
                     selected <-
                       Some { child = c; effective_source = new_source }
@@ -184,11 +183,11 @@ class virtual switch ~name ~override_meta ~transition_length
                            * transition in between. *)
                           match c.source#last_metadata with
                             | Some m when replay_meta ->
-                                let s = new Insert_metadata.replay m c.source in
-                                Typing.(s#frame_type <: self#frame_type);
-                                s
+                                new Insert_metadata.replay m c.source
                             | _ -> c.source
                         in
+                        Typing.(old_source#frame_type <: self#frame_type);
+                        Typing.(new_source#frame_type <: self#frame_type);
                         let s =
                           Lang.to_source
                             (Lang.apply c.transition
@@ -197,6 +196,7 @@ class virtual switch ~name ~override_meta ~transition_length
                                  ("", Lang.source new_source);
                                ])
                         in
+                        Typing.(s#frame_type <: self#frame_type);
                         let s =
                           match s#id with
                             | id when id = new_source#id -> s
@@ -205,9 +205,11 @@ class virtual switch ~name ~override_meta ~transition_length
                                   new Max_duration.max_duration
                                     ~override_meta ~duration:transition_length s
                                 in
+                                Typing.(s#frame_type <: self#frame_type);
                                 new Sequence.sequence
                                   ~merge:true [s; new_source]
                         in
+                        Typing.(s#frame_type <: self#frame_type);
                         Clock.unify s#clock self#clock;
                         s#get_ready activation;
                         selected <- Some { child = c; effective_source = s })
