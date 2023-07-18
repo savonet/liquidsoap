@@ -23,6 +23,7 @@ New:
   value is set.
 - Added support for id3v2 `v2.2.0` frames and pictures.
 - Added `track.audio.defer` to be used to buffer large amount of audio data (#3136)
+- Added `runtime.locale.force` to force the system's locale (#3231)
 - Added support for customizable, optimized `jemalloc` memory allocator (#3170)
 - Added `source.drop` to animate a source as fast as possible..
 - Added in house replaygain computation:
