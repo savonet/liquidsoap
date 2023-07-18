@@ -741,6 +741,8 @@ Changed:
   (#1084).
 - Added `path.home.unrelate`.
 - Use getters for arguments of `video.add_image` (#1176).
+- Add `x`, `y`, `width` and `height` argument to `image`, unify with
+  `video.add_image`.
 - Generalize `audio_to_stereo` to video frames and those without audio.
 - Allow crossfading for video (#1132, #1135).
 - Use getters for parameters of synthesizer sources (#1036).
