@@ -318,7 +318,7 @@ let encoder ~pos ~mk_streams ffmpeg meta =
   insert_metadata meta;
   let stop () =
     flush ();
-    Av.close !encoder.output;
+    (try Av.close !encoder.output with _ -> ());
     Strings.Mutable.flush buf
   in
   let hls =

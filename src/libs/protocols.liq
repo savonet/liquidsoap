@@ -171,7 +171,7 @@ def protocol.http(proto,~rlog,~maxtime,arg) =
         end else
           ""
         end
-      log(level=3, "Failed to find a file extension for #{uri}.#{extra_log}")
+      log(level=3, "Failed to find a file extension for #{string.quote(uri)}.#{extra_log}")
       ".osb"
     end
   end

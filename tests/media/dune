@@ -249,4 +249,4 @@
    ./ffmpeg_filter_changing_rate.liq
    --
    ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
-   ./@ffmpeg\[format='mp4',@audio[codec='aac\',channels=2],@video[codec='libx264',r=12]].mp4)))
+   ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4)))

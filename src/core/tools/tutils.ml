@@ -365,10 +365,11 @@ let shutdown code =
     log#critical "Shutdown called while starting!";
     set_done ())
   else if Atomic.compare_and_set state `Running new_state then set_done ()
-  else
+  else (
     log#critical
-      "Shutdown called twice with different exit conditions! First call takes \
-       precedence."
+      "Shutdown called twice with different exit conditions! Last call takes \
+       precedence.";
+    Atomic.set state new_state)
 
 let cleanup () =
   log#important "Waiting for main threads to terminate...";
