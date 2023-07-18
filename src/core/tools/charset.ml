@@ -20,50 +20,9 @@
 
   *****************************************************************************)
 
-let conf_camomile =
-  Dtools.Conf.void
-    ~p:(Configure.conf#plug "camomile")
-    "Settings related to camomile library (for charset conversion)."
+include Charset_base
 
-let conf_path =
-  Dtools.Conf.string
-    ~p:(conf_camomile#plug "path")
-    ~d:(Liquidsoap_paths.camomile_dir ())
-    "Directory where camomile files are to be found."
-
-let conf_encoding =
-  Dtools.Conf.list
-    ~p:(conf_camomile#plug "encodings")
-    ~d:["UTF-8"; "ISO-8859-1"; "UTF-16"]
-    "List of encodings to try for automatic encoding detection."
-
-module C = CamomileLib.CharEncoding.Configure (struct
-  let basedir = conf_path#get
-  let datadir = Filename.concat basedir "database"
-  let localedir = Filename.concat basedir "locales"
-  let charmapdir = Filename.concat basedir "charmaps"
-  let unimapdir = Filename.concat basedir "mappings"
-end)
-
-include C
-
-exception Unknown_encoding of string
-exception Unsupported_encoding of t
-
-let of_string s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
-let to_string = C.name_of
-let custom_encoding = ref None
-
-let automatic_encoding () =
-  match !custom_encoding with
-    | Some e -> e
-    | None ->
-        let encs = conf_encoding#get in
-        let e = C.automatic "auto" (List.map of_string encs) C.utf8 in
-        custom_encoding := Some e;
-        e
-
-let log = Log.make ["camomile"]
+let log = Log.make ["charset"]
 
 let recode_string ~fail ~in_enc ~out_enc s =
   try

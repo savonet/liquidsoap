@@ -61,6 +61,7 @@
   avi_format
   biquad_filter
   blank
+  charset_base
   charset
   child_support
   chord

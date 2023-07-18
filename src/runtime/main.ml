@@ -456,6 +456,9 @@ let () =
       Dtools.Init.conf_daemon_pidfile_path#set_d
         (Some "<sysrundir>/<script>.pid");
 
+      Utils.add_subst "<sysrundir>" (Liquidsoap_paths.rundir ());
+      Utils.add_subst "<syslogdir>" (Liquidsoap_paths.logdir ());
+
       log#important "Liquidsoap %s" Configure.version;
       log#important "Using: %s" (Configure.libs_versions ());
       if Configure.git_snapshot then
