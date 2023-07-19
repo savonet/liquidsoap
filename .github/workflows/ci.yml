@@ -167,7 +167,7 @@ jobs:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: build_details
     container:
       image: savonet/liquidsoap-ci:debian_bookworm_amd64
