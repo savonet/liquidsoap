@@ -273,6 +273,12 @@ jobs:
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
         include: ${{ fromJson(needs.build_details.outputs.build_include) }}
         exclude:
+          - os: debian_bullseye
+            platform: arm64
+          - os: debian_bullseye
+            platform: amd64
+          - os: debian_bookworm
+            platform: armhf
           - os: debian_trixie
             platform: armhf
           - os: ubuntu_jammy
@@ -530,13 +536,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
-      - name: Get debian bookworm package
+      - name: Get debian package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
-      - name: Get debian bookworm debug package
+      - name: Get debian debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -588,13 +594,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
-      - name: Get debian bookworm package
+      - name: Get debian package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_package
-      - name: Get debian bookworm debug package
+      - name: Get debian debug package
         run: |
-          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep debian-bookworm | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
+          echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
         id: debian_debug_package
       - name: Log in to the github registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
