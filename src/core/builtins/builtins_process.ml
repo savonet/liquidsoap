@@ -259,8 +259,8 @@ let _ =
             in
             (timed_out, !status))
       in
-      let sync_run = 0. <= timeout && not (Tutils.running ()) in
-      if sync_run then
+      let sync_run = not (Tutils.running ()) in
+      if sync_run && 0. < timeout then
         log#important
           "Command %s cannot be executed with timeout %.02f because the \
            internal scheduler is not running. Most likely, this call is made \
@@ -269,7 +269,7 @@ let _ =
            value immediately as your script is starting, you should implement \
            the timeout within the process call itself."
           cmd_value timeout;
-      on_done (if sync_run then asynchronous () else synchronous ()))
+      on_done (if sync_run then synchronous () else asynchronous ()))
 
 let process_quote =
   Lang.add_builtin ~base:process "quote" ~category:`System
