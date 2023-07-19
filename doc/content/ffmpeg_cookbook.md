@@ -141,7 +141,7 @@ video = ffmpeg.encode.video(
   video)
 
 # Mux it with the audio
-stream = mux_video(video=video, audio)
+stream = source.mux.video(video=video, audio)
 
 # Copy encoder for the rtmp stream
 enc = %ffmpeg(

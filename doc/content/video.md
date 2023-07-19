@@ -195,7 +195,7 @@ mic = input.pulseaudio(clock_safe=false)
 # Transpose sound to generate a funny voice
 mic = soundtouch(pitch=1.5,mic)
 # Add sound to video
-s = mux_audio(audio=mic,s)
+s = source.mux.audio(audio=mic,s)
 
 # Let's hear the sound
 output.pulseaudio(fallible=true,s)

@@ -75,7 +75,7 @@ clock(id="video", output.sdl(fallible=true,images))
 # Play the result in VLC rather than mplayer (or even liquidsoap)
 # as it is a sequentialized ogg stream.
 # output.file(%ogg(%vorbis,%theora),"slideshow.ogg",
-#   mksafe(mux_video(video=images,sound)))
+#   mksafe(source.mux.video(video=images,sound)))
 ```
 
 If you experience transparency problems... it's a known bug
@@ -250,7 +250,7 @@ So, a MIDI file named `file.mid` can be played using the following script
 ```liquidsoap
 s = single("file.mid")
 s = midi.remove([9],s)
-s = mux_audio(audio=blank(),s)
+s = source.mux.audio(audio=blank(),s)
 s = synth.all.saw(s)
 s = drop_midi(s)
 out(s)
@@ -289,7 +289,7 @@ script:
 ```liquidsoap
 s = single("chord.txt")
 s = midi.chord(s)
-s = mux_audio(audio=blank(),s)
+s = source.mux.audio(audio=blank(),s)
 s = synth.saw(s)
 s = drop_midi(s)
 out(s)

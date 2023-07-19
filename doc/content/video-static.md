@@ -18,7 +18,7 @@ audio = once(single("/tmp/bla.mp3"))
 video = single("/tmp/bla.jpg")
 
 # Mux audio and video
-source = mux_video(video=video,audio)
+source = source.mux.video(video=video,audio)
 
 # Disable real-time processing, to process with the maximum speed
 clock.assign_new(sync='none',[source])

@@ -204,7 +204,7 @@ This is a global setting for now and could be refined per-stream in the future i
 audio_source = single(audio_url)
 video_source = single(image)
 
-stream = mux_video(video=video_source, audio_source)
+stream = source.mux.video(video=video_source, audio_source)
 
 stream = ffmpeg.encode.audio_video(
     %ffmpeg(
@@ -280,7 +280,7 @@ use the _bitstream filter_ `ffmpeg.filter.bitstream.extract_extradata` to extrac
 audio_source = single(audio_url)
 video_source = single(image)
 
-stream = mux_video(video=video_source, audio_source)
+stream = source.mux.video(video=video_source, audio_source)
 
 stream = ffmpeg.encode.audio_video(
     %ffmpeg(
