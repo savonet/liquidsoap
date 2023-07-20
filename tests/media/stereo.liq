@@ -11,27 +11,29 @@ end
 
 s = single(fname)
 
-s = once(s)
+s = sequence([s, s, once(s)])
 
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+  thread.run(delay=0.2, fun () -> begin
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
-  let json.parse ( parsed: {
-    streams: [{
-      channels: int,
-      sample_rate: string
-    }]
-  }) = j
+    let json.parse ( parsed: {
+      streams: [{
+        channels: int,
+        sample_rate: string
+      }]
+    }) = j
 
-  let [stream] = parsed.streams
+    let [stream] = parsed.streams
 
-  if stream.channels == 2 and stream.sample_rate == "48000" then
-    test.pass()
-  else
-    test.fail()
-  end
+    if stream.channels == 2 and stream.sample_rate == "48000" then
+      test.pass()
+    else
+      test.fail()
+    end
+  end)
 end
 
 output.file(fallible=true, on_stop=on_done, %wav(stereo), out, s)
