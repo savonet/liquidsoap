@@ -294,6 +294,11 @@ let conf_duration =
      not recommended: the proper way is to have a script precompute the \
      \"duration\" metadata."
 
+let conf_recode =
+  Dtools.Conf.bool
+    ~p:(conf_metadata_decoders#plug "recode")
+    ~d:true "Re-encode metadata strings in UTF-8"
+
 (** Sys.file_exists doesn't make a difference between existing files and files
     without enough permissions to list their attributes, for example when they
     are in a directory without x permission.  The two following functions allow a
@@ -323,14 +328,18 @@ let read_metadata t =
     else if not (file_is_readable name) then
       log#important "Read permission denied for %s!"
         (Lang_string.quote_string name)
-    else
+    else (
+      let convert =
+        if conf_recode#get then fun x -> Charset.convert x else fun x -> x
+      in
       List.iter
         (fun (_, resolver) ->
           try
             let ans = resolver ~metadata:indicator.metadata name in
             List.iter
               (fun (k, v) ->
-                let k = String.lowercase_ascii k in
+                let k = String.lowercase_ascii (convert k) in
+                let v = convert v in
                 if conf_override_metadata#get || get_metadata t k = None then
                   Hashtbl.replace indicator.metadata k v)
               ans;
@@ -340,7 +349,7 @@ let read_metadata t =
                   (string_of_float (duration ~metadata:indicator.metadata name))
               with Not_found -> ())
           with _ -> ())
-        (get_decoders conf_metadata_decoders mresolvers))
+        (get_decoders conf_metadata_decoders mresolvers)))
 
 let local_check t =
   let check_decodable ctype =
