@@ -7,14 +7,17 @@ transport = http.transport.tls(
 
 port = random.int(min=8000, max=10000)
 
-s = sine()
+thread.run(delay=1., fun () -> begin
+  s = sine()
 
-output.icecast(
-  port=port,
-  mount="tls_test",
-  transport=transport,
-  %vorbis,
-  s)
+  output.icecast(
+    port=port,
+    mount="tls_test",
+    transport=transport,
+    %vorbis,
+    s
+  )
+end)
 
 i = input.harbor(
   buffer=2.,

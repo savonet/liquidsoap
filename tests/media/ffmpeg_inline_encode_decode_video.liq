@@ -12,36 +12,40 @@ if file.exists(out_encode) then
   file.remove(out_encode)
 end
 
-s = once(blank(duration=10.))
+v = video.fill(color=0xff0000, blank())
+a = sine(duration=10.)
+s = source.mux.video(video=v, a)
 
 todo = ref(2)
 
 def on_done () =
-  def check(out) =
-    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+  thread.run(delay=1., fun () -> begin
+    def check(out) =
+      j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
-    let json.parse ( parsed : {
-      streams: [{
-        codec_name: string,
-        pix_fmt: string
-      }]
-    }) = j
+      let json.parse ( parsed : {
+        streams: [{
+          codec_name: string,
+          pix_fmt: string
+        }]
+      }) = j
 
-   let [stream] = parsed.streams
+      let [stream] = parsed.streams
 
-    stream.codec_name == "h264" and
-    stream.pix_fmt == "yuv420p"
-  end
-
-  todo := !todo - 1
-
-  if !todo == 0 then
-    if check(out_copy) and check(out_encode) then
-      test.pass()
-    else
-      test.fail()
+      stream.codec_name == "h264" and
+      stream.pix_fmt == "yuv420p"
     end
-  end
+
+    todo := !todo - 1
+
+    if !todo == 0 then
+      if check(out_copy) and check(out_encode) then
+        test.pass()
+      else
+        test.fail()
+      end
+    end
+  end)
 end
 
 s = ffmpeg.encode.video(
