@@ -121,7 +121,6 @@ Changed:
   by an explicit call to `time.string` (#2593)
 - Added nullable default to `{int,float,bool}_of_string` conversion functions, raise
   an exception if conversion fails and no default is given.
-- The camomile library for charset conversion is now optional (#2696).
 - Deprecated `string_of` in favor of `string` (#2700).
 - Deprecated `string_of_float` in favor of `string.float` (#2700).
 - Added `settings.protocol.youtube_dl.timeout` to specify timeout when using
