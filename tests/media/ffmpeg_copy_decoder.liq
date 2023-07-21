@@ -15,45 +15,47 @@ s = once(s)
 clock.assign_new(sync='none',[s])
 
 def on_done () =
-  ijson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(fname)}")
-  ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+  thread.run(delay=1., fun () -> begin
+    ijson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(fname)}")
+    ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
-  let json.parse ( iparsed : {
-    streams: [{
-      index: int,
-      channel_layout: string?,
-      sample_rate: string?,
-      sample_fmt: string?,
-      codec_type: string,
-      pix_fmt: string?
-    }]
-  }) = ijson
+    let json.parse ( iparsed : {
+      streams: [{
+        index: int,
+        channel_layout: string?,
+        sample_rate: string?,
+        sample_fmt: string?,
+        codec_type: string,
+        pix_fmt: string?
+      }]
+    }) = ijson
 
-  let json.parse ( oparsed : {
-    streams: [{
-      index: int,
-      channel_layout: string?,
-      sample_rate: string?,
-      sample_fmt: string?,
-      codec_type: string,
-      pix_fmt: string?
-    }]
-  }) = ojson
+    let json.parse ( oparsed : {
+      streams: [{
+        index: int,
+        channel_layout: string?,
+        sample_rate: string?,
+        sample_fmt: string?,
+        codec_type: string,
+        pix_fmt: string?
+      }]
+    }) = ojson
 
-  filter = fun(type, l) -> list.filter(fun (s) -> s.codec_type == type, l)
-  sort = fun (l) -> list.sort(fun (s1, s2) -> if s1.index < s2.index then -1 else 1 end, l)
+    filter = fun(type, l) -> list.filter(fun (s) -> s.codec_type == type, l)
+    sort = fun (l) -> list.sort(fun (s1, s2) -> if s1.index < s2.index then -1 else 1 end, l)
 
-  let [{index, ...iaudio}] = sort(filter("audio", iparsed.streams))
-  let [{index, ...ivideo}] = sort(filter("video", iparsed.streams))
+    let [{index, ...iaudio}] = sort(filter("audio", iparsed.streams))
+    let [{index, ...ivideo}] = sort(filter("video", iparsed.streams))
 
-  let [{index, ...oaudio}] = sort(filter("audio", oparsed.streams))
-  let [{index, ...ovideo}] = sort(filter("video", oparsed.streams))
+    let [{index, ...oaudio}] = sort(filter("audio", oparsed.streams))
+    let [{index, ...ovideo}] = sort(filter("video", oparsed.streams))
 
-  if iaudio == oaudio and ivideo == ovideo then
-    test.pass()
-  else
-    test.fail()
-  end
+    if iaudio == oaudio and ivideo == ovideo then
+      test.pass()
+    else
+      test.fail()
+    end
+  end)
 end
 
 output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio.copy,%video.copy), out, s)
