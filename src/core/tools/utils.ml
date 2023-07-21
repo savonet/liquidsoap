@@ -57,7 +57,7 @@ let hashtbl_of_list l =
 
 let list_of_metadata m =
   let f x y l = (x, y) :: l in
-  Hashtbl.fold f m []
+  List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (Hashtbl.fold f m [])
 
 let hashtbl_get : ('a, 'b) Hashtbl.t -> 'a -> 'b option =
  fun h k -> try Some (Hashtbl.find h k) with Not_found -> None

@@ -874,6 +874,25 @@ class hls_output p =
             s.init_state <- `Has_init init_filename
         | Some _ -> raise Encoder.Not_enough_data
 
+    method private should_reopen ~segment ~len s =
+      if s.id3_enabled && pending_metadata s.metadata then (
+        self#log#info
+          "Terminating current segment on stream %s to insert new metadata"
+          s.name;
+        true)
+      else if Atomic.get s.pending_extra_tags <> [] then (
+        self#log#info
+          "Terminating current segment on stream %s to insert pending extra \
+           tags"
+          s.name;
+        true)
+      else if segment.len + len > segment_main_duration then (
+        self#log#debug
+          "Terminating current segment on stream %s to make expected length"
+          s.name;
+        true)
+      else false
+
     method encode frame ofs len =
       let frame_pos, samples_pos = current_position in
       let frame_size = Lazy.force Frame.size in
@@ -892,11 +911,7 @@ class hls_output p =
                 self#process_init ~init ~segment s;
                 (None, encoded)
               with Encoder.Not_enough_data -> (None, Strings.empty))
-            else if
-              (s.id3_enabled && pending_metadata s.metadata)
-              || Atomic.get s.pending_extra_tags <> []
-              || segment.len + len > segment_main_duration
-            then (
+            else if self#should_reopen ~segment ~len s then (
               match Encoder.(s.encoder.hls.split_encode frame ofs len) with
                 | `Ok (flushed, encoded) -> (Some flushed, encoded)
                 | `Nope encoded -> (None, encoded))
@@ -922,7 +937,15 @@ class hls_output p =
     method send b = List.iter2 self#write_pipe streams b
 
     method insert_metadata m =
-      List.iter (fun s -> s.metadata <- `Todo m) streams
+      List.iter
+        (fun s ->
+          match s.metadata with
+            | `Sent m'
+              when Meta_format.to_metadata_list m
+                   = Meta_format.to_metadata_list m' ->
+                ()
+            | _ -> s.metadata <- `Todo m)
+        streams
   end
 
 let stream_t kind =

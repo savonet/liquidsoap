@@ -32,6 +32,7 @@ let export_metadata m =
   ret
 
 let to_metadata m = m
+let to_metadata_list m = Utils.list_of_metadata m
 let empty_metadata = Hashtbl.create 0
 let is_empty m = Hashtbl.length m == 0
 
