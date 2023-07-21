@@ -33,7 +33,7 @@ streams = [("aac_lofi",aac_lofi),
            ("aac_hifi", aac_hifi)]
 
 def segment_name(~position,~extname,stream_name) =
-  timestamp = int_of_float(gettimeofday())
+  timestamp = int_of_float(time())
   duration = 2
   "#{stream_name}_#{duration}_#{timestamp}_#{position}.#{extname}"
 end
