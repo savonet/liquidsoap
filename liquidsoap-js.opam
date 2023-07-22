@@ -10,7 +10,7 @@ bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.6"}
   "ocaml" {>= "4.12.0"}
-  "liquidsoap-lang"
+  "liquidsoap-lang" {= version}
   "js_of_ocaml-ppx"
   "js_of_ocaml"
   "odoc" {with-doc}

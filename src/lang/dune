@@ -72,7 +72,8 @@
     (echo "let dune_sha_len = 7\n")
     (echo "let git_sha = match is_snapshot, parsed_sha with \n")
     (echo "  | false, _ | _, \"\" -> None\n")
-    (echo "  | _, _ when dune_sha_len <= version_len && dune_sha_len <= parsed_sha_len && String.sub parsed_sha 0 dune_sha_len = String.sub version (version_len - dune_sha_len) dune_sha_len -> None\n")
+    (echo
+     "  | _, _ when dune_sha_len <= version_len && dune_sha_len <= parsed_sha_len && String.sub parsed_sha 0 dune_sha_len = String.sub version (version_len - dune_sha_len) dune_sha_len -> None\n")
     (echo "  |  _, s -> Some s\n")
     (echo
      "let version = version ^ (if not is_snapshot then \"\" else (match git_sha with None -> \"+dev\" | Some sha -> \"+git@\" ^ sha))\n")

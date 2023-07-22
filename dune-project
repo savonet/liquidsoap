@@ -163,7 +163,7 @@
   (name liquidsoap-js)
   (depends
     (ocaml (>= 4.12.0))
-    liquidsoap-lang
+    (liquidsoap-lang (= :version))
     js_of_ocaml-ppx
     js_of_ocaml)
   (conflicts
@@ -172,9 +172,7 @@
 
 (package
    (name liquidsoap-mode)
-   (depends liquidsoap)
-   (conflicts
-     (liquidsoap-lang (<> :version)))
+   (depends (liquidsoap (= :version)))
    (synopsis "Liquidosap emacs mode")
 )
 

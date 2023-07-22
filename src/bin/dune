@@ -12,5 +12,13 @@
  (deps ./liquidsoap.exe ./instruments.plist)
  (action
   (progn
-    (copy ./liquidsoap.exe ./liquidsoap-macos-instruments.exe)
-    (run codesign -s - -v -f --entitlements instruments.plist liquidsoap-macos-instruments.exe))))
+   (copy ./liquidsoap.exe ./liquidsoap-macos-instruments.exe)
+   (run
+    codesign
+    -s
+    -
+    -v
+    -f
+    --entitlements
+    instruments.plist
+    liquidsoap-macos-instruments.exe))))
