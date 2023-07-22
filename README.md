@@ -41,11 +41,6 @@ Current release status by version:
 | `2.0.x` | [2.0.7](https://github.com/savonet/liquidsoap/releases/tag/v2.0.7) | ❌ | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
 | `1.4.x` | [1.4.4](https://github.com/savonet/liquidsoap/releases/tag/v1.4.4) | ❌ | ❌ |
 
-### Notes
-
-- Development branch `2.2.x` is being prepared for its first stable release. We do encourage new projects to start with it and users to report issues. We will prioritize these issues over other ones.
-- Development branch `2.1.x` is nearing the end of its development cycle and will only be updated on a best effort basis or in case of a major issue.
-
 ### Versions
 
 Liquidsoap releases follow a semantic versioning as follows:
