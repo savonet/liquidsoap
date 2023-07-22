@@ -36,8 +36,8 @@ See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.ht
 Current release status by version:
 | Branch | Latest release | Supported | Rolling Release |
 | --------|----------------|-----------|-----------------|
-| `2.2.x` | In development | ✅ | [2.2.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.2.x) (docker: [savonet/liquidsoap:rolling-release-v2.2.x](https://hub.docker.com/r/savonet/liquidsoap)) |
-| `2.1.x` | [2.1.4](https://github.com/savonet/liquidsoap/releases/tag/v2.1.4) (docker: [savonet/liquidsoap:v2.1.4](https://hub.docker.com/r/savonet/liquidsoap)| 🌅 | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) (docker: [savonet/liquidsoap:rolling-release-v2.1.x](https://hub.docker.com/r/savonet/liquidsoap)) |
+| `2.2.x` | [2.2,0](https://github.com/savonet/liquidsoap/releases/tag/v2.2.0) (docker: [savonet/liquidsoap:v2.2.0](https://hub.docker.com/r/savonet/liquidsoap)| ✅ | [2.2.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.2.x) (docker: [savonet/liquidsoap:rolling-release-v2.2.x](https://hub.docker.com/r/savonet/liquidsoap)) |
+| `2.1.x` | [2.1.4](https://github.com/savonet/liquidsoap/releases/tag/v2.1.4) (docker: [savonet/liquidsoap:v2.1.4](https://hub.docker.com/r/savonet/liquidsoap)| ❌ | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) (docker: [savonet/liquidsoap:rolling-release-v2.1.x](https://hub.docker.com/r/savonet/liquidsoap)) |
 | `2.0.x` | [2.0.7](https://github.com/savonet/liquidsoap/releases/tag/v2.0.7) | ❌ | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
 | `1.4.x` | [1.4.4](https://github.com/savonet/liquidsoap/releases/tag/v1.4.4) | ❌ | ❌ |
 
@@ -92,36 +92,7 @@ code with
 git checkout git@github.com:savonet/liquidsoap.git
 ```
 
-To build the code, you will need all the required `opam` packages installed. You can do it this way:
-
-```sh
-cd liquidsoap/
-opam pin git+https://github.com/savonet/ocaml-dtools
-opam pin git+https://github.com/savonet/ocaml-cry
-opam pin git+https://github.com/savonet/ocaml-metadata
-opam pin git+https://github.com/savonet/ocaml-ffmpeg # optional
-opam pin -ny .
-opam install --deps-only liquidsoap
-```
-
-You might also need to pin a local version of the OCaml modules that we maintain in relation to `liquidsoap`. This can be
-done by pinning that module locally using `opam`.
-
-Assuming that all dendencies are installed, you can now build with
-
-```sh
-dune build
-```
-
-In order to ensure the quality of your commits, you are recommended to install
-the pre-commit hooks with
-
-```
-pre-commit install
-```
-
-Those will automatically check before each commit that those meet some of our
-quality requirements.
+Please see [our documentation page](https://www.liquidsoap.info/doc-dev/build.html) about how to build the code.
 
 ## License
 
