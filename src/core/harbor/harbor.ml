@@ -101,6 +101,7 @@ module type T = sig
   exception Unknown_codec
   exception Mount_taken
   exception Websocket_closed
+  exception Protocol_not_supported of string
 
   (* Generic *)
 
@@ -383,6 +384,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
          log#info "ICY error: invalid password";
          simple_reply "Invalid password\r\n\r\n"))
 
+  exception Protocol_not_supported of string
+
   let parse_http_request_line r =
     try
       let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") r in
@@ -395,10 +398,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             | "HTTP/1.1" -> `Http_11
             | "ICE/1.0" -> `Ice_10
             | s when protocol = `Source -> `Xaudiocast_uri s
-            | _ -> raise Not_found )
-    with e ->
-      log#info "Invalid request line %s: %s" r (Printexc.to_string e);
-      simple_reply "HTTP 500 Invalid request\r\n\r\n"
+            | s -> raise (Protocol_not_supported s) )
+    with
+      | Protocol_not_supported p ->
+          log#info "Protocol not supported for request %s: %s" r p;
+          simple_reply "HTTP 505 Protocol Not Supported\r\n\r\n"
+      | e ->
+          log#info "Invalid request line %s: %s" r (Printexc.to_string e);
+          simple_reply "HTTP 500 Invalid request\r\n\r\n"
 
   let parse_headers headers =
     let split_header h l =
