@@ -4,6 +4,8 @@ Fixed:
 
 - Fixed HTTP response status in `output.harbor` (#3255)
 
+---
+
 # 2.2.0 (2023-07-21)
 
 New:
