@@ -31,14 +31,14 @@ let debug = ref false
 let value_restriction t =
   let rec value_restriction t =
     match t.term with
-      | Var _ -> true
-      | Fun _ -> true
-      | RFun _ -> true
-      | Null -> true
-      | List l | Tuple l -> List.for_all value_restriction l
-      | Ground _ -> true
-      | Let l -> value_restriction l.def && value_restriction l.body
-      | Cast (t, _) -> value_restriction t
+      | `Var _ -> true
+      | `Fun _ -> true
+      | `RFun _ -> true
+      | `Null -> true
+      | `List l | `Tuple l -> List.for_all value_restriction l
+      | `Ground _ -> true
+      | `Let l -> value_restriction l.def && value_restriction l.body
+      | `Cast (t, _) -> value_restriction t
       (* | Invoke (t, _) -> value_restriction t *)
       | _ -> false
   in
@@ -59,10 +59,10 @@ let add_task, pop_tasks =
 
 (** Generate a type with fresh variables for a pattern. *)
 let rec type_of_pat ~level ~pos = function
-  | PVar x ->
+  | `PVar x ->
       let a = Type.var ~level ?pos () in
       ([(x, a)], a)
-  | PTuple l ->
+  | `PTuple l ->
       let env, l =
         List.fold_left
           (fun (env, l) p ->
@@ -72,7 +72,7 @@ let rec type_of_pat ~level ~pos = function
       in
       let l = List.rev l in
       (env, Type.make ?pos (Type.Tuple l))
-  | PList (l, spread, l') ->
+  | `PList (l, spread, l') ->
       let fold_env l ty =
         List.fold_left
           (fun (env, ty, ety) p ->
@@ -93,7 +93,7 @@ let rec type_of_pat ~level ~pos = function
       List.iter (fun ety -> Typing.(ety <: ty)) (ety @ ety');
       ( env' @ spread_env @ env,
         Type.make ?pos Type.(List { t = ty; json_repr = `Tuple }) )
-  | PMeth (pat, l) ->
+  | `PMeth (pat, l) ->
       let env, ty =
         match pat with
           | None -> ([], Type.make ?pos (Type.Tuple []))
@@ -148,20 +148,22 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
      to loose it. *)
   let pos = e.t.Type.pos in
   let mk t = Type.make ?pos t in
-  let check_fun ~proto ~env e body =
+  let check_fun ~env e { arguments; body } =
     let base_check = check ~level ~env in
     let proto_t, env =
       List.fold_left
         (fun (p, env) -> function
-          | lbl, var, kind, None ->
-              update_level level kind;
-              ((false, lbl, kind) :: p, (var, ([], kind)) :: env)
-          | lbl, var, kind, Some v ->
-              update_level level kind;
+          | { label; as_variable; typ; default = None } ->
+              update_level level typ;
+              ( (false, label, typ) :: p,
+                (Option.value ~default:label as_variable, ([], typ)) :: env )
+          | { label; as_variable; typ; default = Some v } ->
+              update_level level typ;
               base_check v;
-              v.t <: kind;
-              ((true, lbl, kind) :: p, (var, ([], kind)) :: env))
-        ([], env) proto
+              v.t <: typ;
+              ( (true, label, typ) :: p,
+                (Option.value ~default:label as_variable, ([], typ)) :: env ))
+        ([], env) arguments
     in
     let proto_t = List.rev proto_t in
     (* Ensure that we don't have the same label twice. *)
@@ -179,8 +181,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let base_type = Type.var () in
   let () =
     match e.term with
-      | Ground g -> base_type >: mk (Ground.to_descr g)
-      | Encoder f ->
+      | `Ground g -> base_type >: mk (Ground.to_descr g)
+      | `Encoder f ->
           (* Ensure that we only use well-formed terms. *)
           let rec check_enc (_, p) =
             List.iter
@@ -199,20 +201,20 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 bt
           in
           base_type >: t
-      | List l ->
+      | `List l ->
           List.iter (fun x -> check ~level ~env x) l;
           let t = Type.var ~level ?pos () in
           List.iter (fun e -> e.t <: t) l;
           base_type >: mk Type.(List { t; json_repr = `Tuple })
-      | Tuple l ->
+      | `Tuple l ->
           List.iter (fun a -> check ~level ~env a) l;
           base_type >: mk (Type.Tuple (List.map (fun a -> a.t) l))
-      | Null -> base_type >: mk (Type.Nullable (Type.var ~level ?pos ()))
-      | Cast (a, t) ->
+      | `Null -> base_type >: mk (Type.Nullable (Type.var ~level ?pos ()))
+      | `Cast (a, t) ->
           check ~level ~env a;
           a.t <: t;
           base_type >: t
-      | Invoke { invoked = a; default; meth = l } ->
+      | `Invoke { invoked = a; default; meth = l } ->
           check ~level ~env a;
           let rec aux t =
             match (Type.deref t).Type.descr with
@@ -255,7 +257,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                   typ
           in
           base_type >: typ
-      | Open (a, b) ->
+      | `Open (a, b) ->
           check ~level ~env a;
           a.t <: mk Type.unit;
           let rec aux env t =
@@ -267,12 +269,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           let env = aux env a.t in
           check ~level ~env b;
           base_type >: b.t
-      | Seq (a, b) ->
+      | `Seq (a, b) ->
           check ~env ~level a;
           if not (can_ignore a.t) then throw (Ignored a);
           check ~print_toplevel ~level ~env b;
           base_type >: b.t
-      | App (a, l) -> (
+      | `App (a, l) -> (
           check ~level ~env a;
           List.iter (fun (_, b) -> check ~env ~level b) l;
 
@@ -304,7 +306,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                             raise (No_label (a, lbl, first, v))
                         | Some (_, t, ap') ->
                             (match (a.term, lbl) with
-                              | Var "if", "then" | Var "if", "else" -> (
+                              | `Var "if", "then" | `Var "if", "else" -> (
                                   match
                                     ( (Type.deref v.t).descr,
                                       (Type.deref t).descr )
@@ -328,11 +330,11 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             | _ ->
                 let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
                 a.t <: Type.make (Type.Arrow (p, base_type)))
-      | Fun (_, proto, body) -> check_fun ~proto ~env e body
-      | RFun (x, _, proto, body) ->
+      | `Fun p -> check_fun ~env e p
+      | `RFun (x, p) ->
           let env = (x, ([], base_type)) :: env in
-          check_fun ~proto ~env e body
-      | Var var ->
+          check_fun ~env e p
+      | `Var var ->
           let s =
             try List.assoc var env
             with Not_found -> raise (Unbound (pos, var))
@@ -341,7 +343,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           if Lazy.force Term.debug then
             Printf.eprintf "Instantiate %s : %s becomes %s\n" var
               (Type.string_of_scheme s) (Type.to_string base_type)
-      | Let ({ pat; replace; def; body; _ } as l) ->
+      | `Let ({ pat; replace; def; body; _ } as l) ->
           check ~level:(level + 1) ~env def;
           let generalized =
             (* Printf.printf "generalize at %d: %B\n\n!" level (value_restriction def); *)

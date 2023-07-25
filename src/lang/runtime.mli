@@ -43,7 +43,7 @@ val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
 val mk_expr :
   ?fname:string ->
   pwd:string ->
-  (Parser.token, Term.t) MenhirLib.Convert.traditional ->
+  (Parser.token, Parsed_term.t) MenhirLib.Convert.traditional ->
   Sedlexing.lexbuf ->
   Term.t
 

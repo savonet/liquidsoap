@@ -101,12 +101,15 @@ let mk_field_t ~pos (kind, params) =
             params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
           in
           let t = kind ^ "(" ^ params ^ ")" in
-          raise (Term.Parse_error (pos, "Unknown type constructor: " ^ t ^ "."))
-        )
+          raise
+            (Liquidsoap_lang.Term_base.Parse_error
+               (pos, "Unknown type constructor: " ^ t ^ ".")))
 
 let mk_source_ty ~pos ~extensible name args =
   if name <> "source" then
-    raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
+    raise
+      (Liquidsoap_lang.Term_base.Parse_error
+         (pos, "Unknown type constructor: " ^ name ^ "."));
 
   match args with
     | [] ->

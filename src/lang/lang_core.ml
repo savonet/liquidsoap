@@ -114,16 +114,14 @@ let val_cst_fun p c =
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
   match c.value with
-    | Null -> f (Type.var ()) Term.Null
+    | Null -> f (Type.var ()) `Null
     | Tuple [] -> f (Type.make Type.unit) Term.unit
-    | Ground (Int i) ->
-        f (mkg Type.Ground.int) (Term.Ground (Term.Ground.Int i))
-    | Ground (Bool i) ->
-        f (mkg Type.Ground.bool) (Term.Ground (Term.Ground.Bool i))
+    | Ground (Int i) -> f (mkg Type.Ground.int) (`Ground (Term.Ground.Int i))
+    | Ground (Bool i) -> f (mkg Type.Ground.bool) (`Ground (Term.Ground.Bool i))
     | Ground (Float i) ->
-        f (mkg Type.Ground.float) (Term.Ground (Term.Ground.Float i))
+        f (mkg Type.Ground.float) (`Ground (Term.Ground.Float i))
     | Ground (String i) ->
-        f (mkg Type.Ground.string) (Term.Ground (Term.Ground.String i))
+        f (mkg Type.Ground.string) (`Ground (Term.Ground.String i))
     | _ -> mk (FFI (p, fun _ -> c))
 
 let reference get set =

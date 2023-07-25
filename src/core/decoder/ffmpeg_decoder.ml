@@ -515,22 +515,22 @@ let parse_encoder_params s =
       Liquidsoap_lang.Parser.plain_encoder_params
   in
   let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
-  processor tokenizer
+  Liquidsoap_lang.Term_reducer.to_encoder_params (processor tokenizer)
 
 let parse_input_args args =
   try
     let args = parse_encoder_params args in
     List.fold_left
       (fun (args, format) -> function
-        | "f", `Term Term.{ term = Var format; _ }
-        | "format", `Term Term.{ term = Var format; _ } ->
+        | "f", `Term Term.{ term = `Var format; _ }
+        | "format", `Term Term.{ term = `Var format; _ } ->
             (args, Av.Format.find_input_format format)
-        | k, `Term Term.{ term = Var v; _ } -> ((k, `String v) :: args, format)
-        | k, `Term Term.{ term = Ground (Ground.String s); _ } ->
+        | k, `Term Term.{ term = `Var v; _ } -> ((k, `String v) :: args, format)
+        | k, `Term Term.{ term = `Ground (Ground.String s); _ } ->
             ((k, `String s) :: args, format)
-        | k, `Term Term.{ term = Ground (Ground.Int i); _ } ->
+        | k, `Term Term.{ term = `Ground (Ground.Int i); _ } ->
             ((k, `Int i) :: args, format)
-        | k, `Term Term.{ term = Ground (Ground.Float f); _ } ->
+        | k, `Term Term.{ term = `Ground (Ground.Float f); _ } ->
             ((k, `Float f) :: args, format)
         | _ -> assert false)
       ([], None) args

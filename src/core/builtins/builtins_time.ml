@@ -159,7 +159,9 @@ let _ =
         let tokenizer =
           Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf
         in
-        let predicate = processor tokenizer in
+        let predicate =
+          Liquidsoap_lang.Term_reducer.to_term (processor tokenizer)
+        in
         Lang.val_fun [] (fun _ -> Liquidsoap_lang.Evaluation.eval predicate)
       with _ ->
         Lang.raise_error

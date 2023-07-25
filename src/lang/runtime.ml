@@ -103,7 +103,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
   | Parser.Error | Parsing.Parse_error ->
       print_error ~formatter 2 "Parse error";
       raise Error
-  | Term.Parse_error (pos, s) ->
+  | Term_base.Parse_error (pos, s) ->
       error_header ~formatter 3 (Some pos);
       Format.fprintf formatter "%s@]@." s;
       raise Error
@@ -219,7 +219,7 @@ let report lexbuf f =
 let mk_expr ?fname ~pwd processor lexbuf =
   let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
   let tokenizer = Preprocessor.mk_tokenizer ?fname ~pwd lexbuf in
-  processor tokenizer
+  Term_reducer.to_term (processor tokenizer)
 
 let from_lexbuf ?fname ?(dir = Sys.getcwd ()) ?(parse_only = false) ~ns ~lib
     lexbuf =
@@ -287,7 +287,7 @@ let parse s = fst (parse_with_lexbuf s)
 
 let eval ~ignored ~ty s =
   let expr, lexbuf = parse_with_lexbuf s in
-  let expr = Term.(make (Cast (expr, ty))) in
+  let expr = Term.(make (`Cast (expr, ty))) in
   !Hooks.collect_after (fun () ->
       report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
       Evaluation.eval expr)

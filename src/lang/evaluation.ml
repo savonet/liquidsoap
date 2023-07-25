@@ -38,13 +38,13 @@ let remove_first filter =
 let rec eval_pat pat v =
   let rec aux env pat v =
     match (pat, v) with
-      | PVar x, v -> (x, v) :: env
-      | PTuple pl, { Value.value = Value.Tuple l } ->
+      | `PVar x, v -> (x, v) :: env
+      | `PTuple pl, { Value.value = Value.Tuple l } ->
           List.fold_left2 aux env pl l
       (* The parser parses [x,y,z] as PList ([], None, l) *)
-      | ( PList (([] as l'), (None as spread), l),
+      | ( `PList (([] as l'), (None as spread), l),
           { Value.value = Value.List lv; pos } )
-      | PList (l, spread, l'), { Value.value = Value.List lv; pos } ->
+      | `PList (l, spread, l'), { Value.value = Value.List lv; pos } ->
           let ln = List.length l in
           let ln' = List.length l' in
           let lvn = List.length lv in
@@ -82,7 +82,7 @@ let rec eval_pat pat v =
           @ spread_env @ env
           @ List.fold_left2 aux [] l ll
           @ env
-      | PMeth (pat, l), _ ->
+      | `PMeth (pat, l), _ ->
           let m, v = Value.split_meths v in
           let fields = List.map fst l in
           let v =
@@ -149,8 +149,12 @@ let rec prepare_fun fv ~eval_check p env =
   let p =
     List.map
       (function
-        | lbl, var, _, Some v -> (lbl, var, Some (eval ~eval_check env v))
-        | lbl, var, _, None -> (lbl, var, None))
+        | { label; as_variable; default = Some v } ->
+            ( label,
+              Option.value ~default:label as_variable,
+              Some (eval ~eval_check env v) )
+        | { label; as_variable; default = None } ->
+            (label, Option.value ~default:label as_variable, None))
       p
   in
   (* Keep only once the variables we might use in the environment. *)
@@ -228,8 +232,8 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
   in
   match tm.term with
-    | Ground g -> mk (Value.Ground g)
-    | Encoder (e, p) ->
+    | `Ground g -> mk (Value.Ground g)
+    | `Encoder (e, p) ->
         let pos = tm.t.Type.pos in
         let rec eval_param p =
           List.map
@@ -242,11 +246,12 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         in
         let p = eval_param p in
         !Hooks.make_encoder ~pos tm (e, p)
-    | List l -> mk (Value.List (List.map (eval ~eval_check env) l))
-    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
-    | Null -> mk Value.Null
-    | Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
-    | Invoke { invoked = t; default; meth } -> (
+    | `List l -> mk (Value.List (List.map (eval ~eval_check env) l))
+    | `Tuple l ->
+        mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
+    | `Null -> mk Value.Null
+    | `Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
+    | `Invoke { invoked = t; default; meth } -> (
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, default) with
           (* If method returns `null` and a default is provided, pick default. *)
@@ -260,7 +265,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                 (Internal_error
                    ( Option.to_list tm.t.Type.pos,
                      "invoked method `" ^ meth ^ "` not found" )))
-    | Open (t, u) ->
+    | `Open (t, u) ->
         let t = eval ~eval_check env t in
         let env =
           Methods.fold
@@ -268,7 +273,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
             t.Value.methods env
         in
         eval ~eval_check env u
-    | Let { pat; replace; def = v; body = b; _ } ->
+    | `Let { pat; replace; def = v; body = b; _ } ->
         let v = eval ~eval_check env v in
         let penv =
           List.map
@@ -311,21 +316,23 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         in
         let env = Env.adds_lazy env penv in
         eval ~eval_check env b
-    | Fun (fv, p, body) ->
-        let p, env = prepare_fun ~eval_check fv p env in
+    | `Fun ({ arguments; body } as p) ->
+        let fv = Term.free_fun_vars p in
+        let p, env = prepare_fun ~eval_check fv arguments env in
         mk (Value.Fun (p, env, body))
-    | RFun (x, fv, p, body) ->
-        let p, env = prepare_fun ~eval_check fv p env in
+    | `RFun (x, ({ arguments; body } as p)) ->
+        let fv = Term.free_fun_vars p in
+        let p, env = prepare_fun ~eval_check fv arguments env in
         let rec v () =
           let env = Env.add_lazy env x (Lazy.from_fun v) in
           mk (Value.Fun (p, env, body))
         in
         v ()
-    | Var var -> Env.lookup env var
-    | Seq (a, b) ->
+    | `Var var -> Env.lookup env var
+    | `Seq (a, b) ->
         ignore (eval ~eval_check env a);
         eval ~eval_check env b
-    | App (f, l) ->
+    | `App (f, l) ->
         let ans () =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
@@ -333,7 +340,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         in
         if !profile then (
           match f.term with
-            | Var fname -> Profiler.time fname ans ()
+            | `Var fname -> Profiler.time fname ans ()
             | _ -> ans ())
         else ans ()
 
@@ -483,13 +490,13 @@ let toplevel_add ?doc pat ~t v =
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
-    | Let { doc; gen = generalized; replace; pat; def; body } ->
+    | `Let { doc; gen = generalized; replace; pat; def; body } ->
         let def_t, def =
           if not replace then (def.t, eval def)
           else (
             match pat with
-              | PVar [] -> assert false
-              | PVar (x :: l) ->
+              | `PVar [] -> assert false
+              | `PVar (x :: l) ->
                   let old_t, old =
                     ( List.assoc x (Environment.default_typing_environment ()),
                       List.assoc x (Environment.default_environment ()) )
@@ -498,7 +505,7 @@ let rec eval_toplevel ?(interactive = false) t =
                   let old_t = snd (Type.invokes old_t l) in
                   let old = Value.invokes old l in
                   (Type.remeth old_t def.t, Value.remeth old (eval def))
-              | PMeth _ | PList _ | PTuple _ ->
+              | `PMeth _ | `PList _ | `PTuple _ ->
                   failwith "TODO: cannot replace toplevel patterns for now")
         in
         toplevel_add ?doc pat ~t:(generalized, def_t) def;
@@ -511,7 +518,7 @@ let rec eval_toplevel ?(interactive = false) t =
             (fun f t -> Repr.print_scheme f (generalized, t))
             def_t (Value.to_string def);
         eval_toplevel ~interactive body
-    | Seq (a, b) ->
+    | `Seq (a, b) ->
         ignore
           (let v = eval_toplevel a in
            if v.Value.pos = None then { v with Value.pos = a.t.Type.pos } else v);

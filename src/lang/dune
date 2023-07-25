@@ -127,6 +127,7 @@
   lexer
   methods
   modules
+  parsed_term
   parser
   parser_helper
   pos
@@ -141,6 +142,8 @@
   sites
   startup
   term
+  term_base
+  term_reducer
   type
   type_base
   typechecking

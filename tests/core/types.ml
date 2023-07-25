@@ -301,7 +301,7 @@ let () =
       [(false, "", Lang.format_t a); (false, "", Lang.source_t a)]
       Lang.unit_t
   in
-  let fn = Term.make (Var "fn") in
+  let fn = Term.make (`Var "fn") in
 
   (* format(audio: pcm(stereo)) *)
   let x_t =
@@ -309,7 +309,7 @@ let () =
       (Lang.frame_t Lang.unit_t
          (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ()))
   in
-  let x_var = Term.make (Var "x") in
+  let x_var = Term.make (`Var "x") in
 
   (* source(audio: pcm(mono)) *)
   let y_t =
@@ -317,9 +317,9 @@ let () =
       (Lang.frame_t Lang.unit_t
          (Frame.Fields.make ~audio:(Format_type.audio_mono ()) ()))
   in
-  let y_var = Term.make (Var "y") in
+  let y_var = Term.make (`Var "y") in
 
-  let app = Term.make (App (fn, [("", x_var); ("", y_var)])) in
+  let app = Term.make (`App (fn, [("", x_var); ("", y_var)])) in
 
   let throw exn = raise exn in
   let env = [("fn", ([], fn_t)); ("x", ([], x_t)); ("y", ([], y_t))] in
