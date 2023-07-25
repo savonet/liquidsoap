@@ -20,11 +20,12 @@
 
  *****************************************************************************)
 
-type export_metadata
+type metadata
 
-val export_metadata : Frame.metadata -> export_metadata
-val to_metadata : export_metadata -> Frame.metadata
-val to_metadata_list : export_metadata -> (string * string) list
-val empty_metadata : export_metadata
-val is_empty : export_metadata -> bool
-val to_string : export_metadata -> string
+val metadata : Frame.metadata -> metadata
+val to_metadata : metadata -> Frame.metadata
+val to_list : metadata -> (string * string) list
+val equal : metadata -> metadata -> bool
+val empty_metadata : metadata
+val is_empty : metadata -> bool
+val to_string : metadata -> string

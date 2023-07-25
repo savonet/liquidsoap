@@ -158,7 +158,7 @@ let create speex ~metadata () =
 let create_speex = function
   | Ogg_format.Speex speex ->
       let reset ogg_enc m =
-        let m = Utils.list_of_metadata (Meta_format.to_metadata m) in
+        let m = Utils.list_of_metadata (Export_metadata.to_metadata m) in
         let title =
           try List.assoc "title" m
           with Not_found -> (

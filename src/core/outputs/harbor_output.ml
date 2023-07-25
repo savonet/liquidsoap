@@ -426,13 +426,12 @@ class output p =
       (Option.get encoder).Encoder.encode frame ofs len
 
     method insert_metadata m =
-      let m = Meta_format.to_metadata m in
+      let m = Export_metadata.to_metadata m in
       let m = recode m in
       Tutils.mutexify metadata.metadata_m
         (fun () -> metadata.metadata <- Some m)
         ();
-      (Option.get encoder).Encoder.insert_metadata
-        (Meta_format.export_metadata m)
+      (Option.get encoder).Encoder.insert_metadata (Export_metadata.metadata m)
 
     method add_client ~protocol ~headers ~uri ~query s =
       let ip =
@@ -588,7 +587,7 @@ class output p =
     method start =
       assert (encoder = None);
       let enc = data.factory self#id in
-      encoder <- Some (enc Meta_format.empty_metadata);
+      encoder <- Some (enc Export_metadata.empty_metadata);
       let handler ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri =
         self#add_client ~protocol ~headers ~uri ~query socket
       in

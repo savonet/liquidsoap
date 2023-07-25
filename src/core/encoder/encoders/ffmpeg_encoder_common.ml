@@ -304,7 +304,10 @@ let encoder ~pos ~mk_streams ffmpeg meta =
   in
   let insert_metadata m =
     let m =
-      Hashtbl.fold (fun lbl v l -> (lbl, v) :: l) (Meta_format.to_metadata m) []
+      Hashtbl.fold
+        (fun lbl v l -> (lbl, v) :: l)
+        (Export_metadata.to_metadata m)
+        []
     in
     match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
       | _ when not !encoder.started -> Av.set_output_metadata !encoder.output m

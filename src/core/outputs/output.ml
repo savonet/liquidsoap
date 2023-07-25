@@ -227,7 +227,7 @@ class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
     inherit
       output ~infallible ~on_start ~on_stop ~output_kind ~name source autostart
 
-    method virtual private insert_metadata : Meta_format.export_metadata -> unit
+    method virtual private insert_metadata : Export_metadata.metadata -> unit
     method virtual private encode : Frame.t -> int -> int -> 'a
     method virtual private send : 'a -> unit
 
@@ -238,7 +238,7 @@ class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
           self#send data;
           match Frame.get_metadata frame start with
             | None -> ()
-            | Some m -> self#insert_metadata (Meta_format.export_metadata m)
+            | Some m -> self#insert_metadata (Export_metadata.metadata m)
         in
         function
         | [] -> assert false

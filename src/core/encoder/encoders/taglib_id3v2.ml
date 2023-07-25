@@ -25,7 +25,7 @@
 exception Found of string
 
 let render m =
-  let m = Meta_format.to_metadata m in
+  let m = Export_metadata.to_metadata m in
   let t = Taglib.Inline.Id3v2.init () in
   let t =
     Taglib.Inline.Id3v2.attach_frame t "TSSE"

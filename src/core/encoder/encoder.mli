@@ -109,7 +109,7 @@ type hls = {
 val dummy_hls : (Generator.t -> int -> int -> Strings.t) -> hls
 
 type encoder = {
-  insert_metadata : Meta_format.export_metadata -> unit;
+  insert_metadata : Export_metadata.metadata -> unit;
   (* Encoder are all called from the main
    * thread so there's no need to protect this
    * value with a mutex so far.. *)
@@ -119,8 +119,7 @@ type encoder = {
   stop : unit -> Strings.t;
 }
 
-type factory =
-  pos:Pos.t option -> string -> Meta_format.export_metadata -> encoder
+type factory = pos:Pos.t option -> string -> Export_metadata.metadata -> encoder
 
 (** A plugin might or might not accept a given format.
   * If it accepts it, it gives a function creating suitable encoders. *)

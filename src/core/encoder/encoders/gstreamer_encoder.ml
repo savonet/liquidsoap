@@ -128,7 +128,7 @@ let encoder ext =
     Strings.Mutable.to_strings ret
   in
   let insert_metadata m =
-    let m = Meta_format.to_metadata m in
+    let m = Export_metadata.to_metadata m in
     try
       let meta =
         Gstreamer.Tag_setter.of_element

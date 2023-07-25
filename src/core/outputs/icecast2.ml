@@ -489,7 +489,7 @@ class output p =
       if send_icy_metadata then (
         let f = Charset.convert ~target:out_enc in
         let icy_meta = Hashtbl.create 10 in
-        let m = Meta_format.to_metadata m in
+        let m = Export_metadata.to_metadata m in
         Hashtbl.iter
           (fun lbl v ->
             if List.mem lbl icy_metadata then Hashtbl.replace icy_meta lbl (f v))
@@ -551,7 +551,7 @@ class output p =
 
     method icecast_start =
       assert (encoder = None);
-      let enc = data.factory self#id Meta_format.empty_metadata in
+      let enc = data.factory self#id Export_metadata.empty_metadata in
       encoder <- Some enc;
       assert (Cry.get_status connection = Cry.Disconnected);
       begin

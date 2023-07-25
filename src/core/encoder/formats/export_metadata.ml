@@ -20,9 +20,9 @@
 
  *****************************************************************************)
 
-type export_metadata = Frame.metadata
+type metadata = Frame.metadata
 
-let export_metadata m =
+let metadata m =
   let ret = Hashtbl.create 10 in
   let l = Encoder_formats.conf_export_metadata#get in
   Hashtbl.iter
@@ -32,7 +32,14 @@ let export_metadata m =
   ret
 
 let to_metadata m = m
-let to_metadata_list m = Utils.list_of_metadata m
+let to_list m = Utils.list_of_metadata m
+
+let equal m m' =
+  let normalize m =
+    List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (to_list m)
+  in
+  normalize m = normalize m'
+
 let empty_metadata = Hashtbl.create 0
 let is_empty m = Hashtbl.length m == 0
 

@@ -935,7 +935,9 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
           match encoder with
             | Some enc -> enc
             | None ->
-                let enc = encoder_factory self#id Meta_format.empty_metadata in
+                let enc =
+                  encoder_factory self#id Export_metadata.empty_metadata
+                in
                 encoder <- Some enc;
                 enc)
         ()

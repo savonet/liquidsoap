@@ -83,7 +83,7 @@ class output ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
                 f (pos + len))
             in
             f 0);
-      encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
+      encoder <- Some (encoder_factory self#id Export_metadata.empty_metadata)
 
     method! private reset =
       self#start;

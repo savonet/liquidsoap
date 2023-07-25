@@ -97,6 +97,7 @@
   encoder
   encoder_formats
   error
+  export_metadata
   external_decoder
   external_encoder
   external_encoder_format
@@ -170,7 +171,6 @@
   map_op
   max_duration
   mean
-  meta_format
   merge_metadata
   midi_decoder
   midi_routing
