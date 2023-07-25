@@ -452,7 +452,7 @@ class output p =
              extra_headers)
       in
       let reply =
-        Printf.sprintf "%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" protocol
+        Printf.sprintf "HTTP/%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" protocol
           data.format icyheader extra_headers
       in
       let buffer =
