@@ -22,20 +22,44 @@
 
 (* Immutable fast hash *)
 
-type ('a, 'b) t = ('a * 'b) list
+type ('a, 'b) t = ('a * 'b) array
 
-let is_empty h = h = []
-let bindings h = h
-let empty = []
-let cardinal = List.length
-let fold fn h r = List.fold_left (fun r (k, v) -> fn k v r) r h
-let find = List.assoc
-let find_opt = List.assoc_opt
-let mem = List.mem_assoc
-let mapi fn = List.map (fun (k, v) -> (k, fn k v))
-let map fn = List.map (fun (k, v) -> (k, fn v))
-let filter fn = List.filter (fun (k, v) -> fn k v)
-let add k v h = (k, v) :: List.remove_assoc k h
-let iter fn = List.iter (fun (k, v) -> fn k v)
-let for_all fn = List.for_all (fun (k, v) -> fn k v)
-let exists fn = List.exists (fun (k, v) -> fn k v)
+let is_empty h = Array.length h = 0
+let bindings = Array.to_list
+let empty = [||]
+let cardinal = Array.length
+let fold fn h r = Array.fold_left (fun r (k, v) -> fn k v r) r h
+
+exception Found of int
+
+let find k h =
+  try
+    Array.iteri (fun pos (k', _) -> if k = k' then raise (Found pos)) h;
+    raise Not_found
+  with Found pos -> snd h.(pos)
+
+let find_opt k h = try Some (find k h) with Not_found -> None
+
+let mem k h =
+  try
+    ignore (find k h);
+    true
+  with Not_found -> false
+
+let mapi fn = Array.map (fun (k, v) -> (k, fn k v))
+let map fn = Array.map (fun (k, v) -> (k, fn v))
+
+let filter fn h =
+  Array.of_list
+    (Array.fold_left (fun h (k, v) -> if fn k v then (k, v) :: h else h) [] h)
+
+let add k v h =
+  Array.of_list
+    (Array.fold_left
+       (fun h (k', v) -> if k = k' then h else (k', v) :: h)
+       [(k, v)]
+       h)
+
+let iter fn = Array.iter (fun (k, v) -> fn k v)
+let for_all fn = Array.for_all (fun (k, v) -> fn k v)
+let exists fn = Array.exists (fun (k, v) -> fn k v)
