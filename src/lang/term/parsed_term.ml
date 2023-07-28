@@ -61,6 +61,7 @@ type 'a _try = {
 (* These terms are reduced at runtime *)
 type 'a reduced_ast =
   [ `If of 'a _if
+  | `Inline_if of 'a _if
   | `While of 'a _while
   | `For of 'a _for
   | `Iterable_for of 'a iterable_for

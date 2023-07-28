@@ -260,12 +260,7 @@ expr:
                                          try_handler = $6 }) }
   | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
-  | expr QUESTION expr COLON expr    { let cond = $1 in
-                                       let then_b = mk_fun ~pos:$loc($3) [] $3 in
-                                       let else_b = mk_fun ~pos:$loc($5) [] $5 in
-                                       let op = mk ~pos:$loc($1) (`Var "if") in
-                                       mk ~pos:$loc (`App (op, ["", cond; "then", then_b; "else", else_b])) }
-
+  | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_else = $5}) }
   | expr BINB expr                 { let left = mk_fun ~pos:$loc($1) [] $1 in
                                      let right= mk_fun ~pos:$loc($3) [] $3 in
                                      mk ~pos:$loc (`App (mk ~pos:$loc($2) (`Var $2), ["",left;"",right])) }
@@ -528,13 +523,9 @@ in_subfield_lbra:
   | VAR DOT in_subfield_lbra { $1::$3 }
 
 if_elsif:
-  | ELSIF exprs THEN exprs if_elsif { let cond = $2 in
-                                      let then_b = mk_fun ~pos:($startpos($3), $endpos($4)) [] $4 in
-                                      let else_b = $5 in
-                                      let op = mk ~pos:$loc($1) (`Var "if") in
-                                      mk_fun ~pos:$loc [] (mk ~pos:$loc (`App (op,["",cond; "then",then_b; "else",else_b]))) }
-  | ELSE exprs                      { mk_fun ~pos:$loc($2) [] $2 }
-  |                                 { mk_fun ~pos:$loc [] (mk ~pos:$loc unit) }
+  | ELSIF exprs THEN exprs if_elsif { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
+  | ELSE exprs                      { $2 }
+  |                                 { mk ~pos:$loc unit }
 
 encoder_opt:
   | %prec no_app { [] }

@@ -26,11 +26,12 @@ let mk_fun ?pos arguments body =
   Term.make ?pos (`Fun Term.{ free_vars = None; arguments; body })
 
 let if_reducer ?pos ~to_term = function
+  | `Inline_if { if_condition; if_then; if_else }
   | `If { if_condition; if_then; if_else } ->
       let op = Term_base.make ?pos (`Var "if") in
       let if_condition = to_term if_condition in
       let if_then = mk_fun ?pos [] (to_term if_then) in
-      let if_else = to_term if_else in
+      let if_else = mk_fun ?pos [] (to_term if_else) in
       `App (op, [("", if_condition); ("then", if_then); ("else", if_else)])
 
 let while_reducer ?pos ~to_term = function
@@ -136,6 +137,7 @@ let try_reducer ?pos ~to_term = function
       `App (op, [("errors", try_errors_list); ("", try_body); ("", handler)])
 
 let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
+  | `Inline_if _ as ast -> if_reducer ?pos ~to_term ast
   | `If _ as ast -> if_reducer ?pos ~to_term ast
   | `While _ as ast -> while_reducer ?pos ~to_term ast
   | `For _ as ast -> for_reducer ?pos ~to_term ast
