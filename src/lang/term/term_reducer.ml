@@ -22,6 +22,8 @@
 
 open Parsed_term
 
+let mk = Term_base.make
+
 let mk_fun ?pos arguments body =
   Term.make ?pos (`Fun Term.{ free_vars = None; arguments; body })
 
@@ -39,7 +41,7 @@ let get_reducer ?pos ~to_term = function
 let set_reducer ?pos ~to_term = function
   | `Set (tm, v) ->
       let op =
-        Term_base.make ?pos
+        mk ?pos
           (`Invoke
             { Term_base.invoked = to_term tm; default = None; meth = "set" })
       in
@@ -48,7 +50,7 @@ let set_reducer ?pos ~to_term = function
 let if_reducer ?pos ~to_term = function
   | `Inline_if { if_condition; if_then; if_else }
   | `If { if_condition; if_then; if_else } ->
-      let op = Term_base.make ?pos (`Var "if") in
+      let op = mk ?pos (`Var "if") in
       let if_condition = to_term if_condition in
       let if_then = mk_fun ?pos [] (to_term if_then) in
       let if_else = mk_fun ?pos [] (to_term if_else) in
@@ -56,14 +58,14 @@ let if_reducer ?pos ~to_term = function
 
 let while_reducer ?pos ~to_term = function
   | `While { while_condition; while_loop } ->
-      let op = Term_base.make ?pos (`Var "while") in
+      let op = mk ?pos (`Var "while") in
       let while_condition = mk_fun ?pos [] (to_term while_condition) in
       let while_loop = mk_fun ?pos [] (to_term while_loop) in
       `App (op, [("", while_condition); ("", while_loop)])
 
 let base_for_reducer ?pos for_variable for_variable_position for_iterator
     for_loop =
-  let for_op = Term_base.make ?pos (`Var "for") in
+  let for_op = mk ?pos (`Var "for") in
   let for_loop =
     mk_fun ?pos
       [
@@ -92,14 +94,13 @@ let iterable_for_reducer ?pos ~to_term = function
 
 let for_reducer ?pos ~to_term = function
   | `For { for_variable; for_variable_position; for_from; for_to; for_loop } ->
-      let to_op = Term_base.make ?pos (`Var "iterator") in
+      let to_op = mk ?pos (`Var "iterator") in
       let to_op =
-        Term_base.make ?pos
+        mk ?pos
           (`Invoke { Term_base.invoked = to_op; default = None; meth = "int" })
       in
       let for_condition =
-        Term_base.make ?pos
-          (`App (to_op, [("", to_term for_from); ("", to_term for_to)]))
+        mk ?pos (`App (to_op, [("", to_term for_from); ("", to_term for_to)]))
       in
       base_for_reducer ?pos for_variable for_variable_position for_condition
         (to_term for_loop)
@@ -108,24 +109,25 @@ let simple_fun_reducer ?pos:_ ~to_term = function
   | `Simple_fun tm ->
       `Fun { Term_base.arguments = []; body = to_term tm; free_vars = None }
 
+let negative_reducer ?pos ~to_term = function
+  | `Negative tm ->
+      let op = mk ?pos (`Var "~-") in
+      `App (op, [("", to_term tm)])
+
 let not_reducer ?pos ~to_term = function
   | `Not tm ->
-      let op = Term_base.make ?pos (`Var "not") in
+      let op = mk ?pos (`Var "not") in
       `App (op, [("", to_term tm)])
 
 let regexp_reducer ?pos ~to_term:_ = function
   | `Regexp (regexp, flags) ->
-      let regexp =
-        Term_base.make ?pos (`Ground (Term_base.Ground.String regexp))
-      in
+      let regexp = mk ?pos (`Ground (Term_base.Ground.String regexp)) in
       let flags = List.map Char.escaped flags in
       let flags =
-        List.map
-          (fun s -> Term_base.make ?pos (`Ground (Term_base.Ground.String s)))
-          flags
+        List.map (fun s -> mk ?pos (`Ground (Term_base.Ground.String s))) flags
       in
-      let flags = Term_base.make ?pos (`List flags) in
-      let op = Term_base.make ?pos (`Var "regexp") in
+      let flags = mk ?pos (`List flags) in
+      let op = mk ?pos (`Var "regexp") in
       `App (op, [("", regexp); ("flags", flags)])
 
 let try_reducer ?pos ~to_term = function
@@ -152,10 +154,10 @@ let try_reducer ?pos ~to_term = function
       let handler =
         mk_fun ?pos:try_handler.t.pos err_arg (to_term try_handler)
       in
-      let error_module = Term_base.make ?pos (`Var "error") in
+      let error_module = mk ?pos (`Var "error") in
       let try_errors_list = to_term try_errors_list in
       let op =
-        Term_base.make ?pos
+        mk ?pos
           (`Invoke
             { Term_base.invoked = error_module; default = None; meth = "catch" })
       in
@@ -170,6 +172,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `For _ as ast -> for_reducer ?pos ~to_term ast
   | `Iterable_for _ as ast -> iterable_for_reducer ?pos ~to_term ast
   | `Not _ as ast -> not_reducer ?pos ~to_term ast
+  | `Negative _ as ast -> negative_reducer ?pos ~to_term ast
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
   | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast

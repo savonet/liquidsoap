@@ -72,6 +72,7 @@ type 'a reduced_ast =
   | `Not of 'a
   | `Get of 'a
   | `Set of 'a * 'a
+  | `Negative of 'a
   | `Simple_fun of 'a ]
 
 type t = parsed_ast Term.term

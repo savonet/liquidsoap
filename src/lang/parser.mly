@@ -205,7 +205,7 @@ expr:
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }
-  | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var "~-"), ["", $3])) }
+  | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`Negative $3) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk ~pos:$loc (`Ground (Int $1)) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
