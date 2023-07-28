@@ -41,6 +41,7 @@ val load_libs :
 val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
 
 val mk_expr :
+  ?print_ast:bool ->
   ?fname:string ->
   pwd:string ->
   (Parser.token, Parsed_term.t) MenhirLib.Convert.traditional ->
@@ -48,13 +49,16 @@ val mk_expr :
   Term.t
 
 (** Evaluate a script from an [in_channel]. *)
-val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
+val from_in_channel :
+  ?print_ast:bool -> ?parse_only:bool -> lib:bool -> in_channel -> unit
 
 (** Evaluate a script from a file. *)
-val from_file : ?parse_only:bool -> lib:bool -> string -> unit
+val from_file :
+  ?print_ast:bool -> ?parse_only:bool -> lib:bool -> string -> unit
 
 (** Evaluate a script from a string. *)
-val from_string : ?parse_only:bool -> lib:bool -> string -> unit
+val from_string :
+  ?print_ast:bool -> ?parse_only:bool -> lib:bool -> string -> unit
 
 (** Interactive loop: read from command line, eval, print and loop. *)
 val interactive : unit -> unit

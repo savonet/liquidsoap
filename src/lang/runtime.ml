@@ -216,25 +216,29 @@ let report lexbuf f =
 
 (** {1 Parsing} *)
 
-let mk_expr ?fname ~pwd processor lexbuf =
+let mk_expr ?(print_ast = false) ?fname ~pwd processor lexbuf =
   let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
   let tokenizer = Preprocessor.mk_tokenizer ?fname ~pwd lexbuf in
-  Term_reducer.to_term (processor tokenizer)
+  let parsed_term = processor tokenizer in
+  if print_ast then
+    Printf.printf "%s\n%!"
+      (Json.to_string ~compact:false (Parsed_json.to_json parsed_term));
+  Term_reducer.to_term parsed_term
 
-let from_lexbuf ?fname ?(dir = Sys.getcwd ()) ?(parse_only = false) ~ns ~lib
-    lexbuf =
+let from_lexbuf ?fname ?(dir = Sys.getcwd ()) ?print_ast ?(parse_only = false)
+    ~ns ~lib lexbuf =
   begin
     match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
   end;
   report lexbuf (fun ~throw () ->
-      let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
+      let expr = mk_expr ?print_ast ?fname ~pwd:dir Parser.program lexbuf in
       if not parse_only then type_and_run ~throw ~lib expr)
 
-let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
+let from_in_channel ?fname ?dir ?print_ast ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
-  from_lexbuf ?fname ?dir ?parse_only ~ns ~lib lexbuf
+  from_lexbuf ?fname ?dir ?print_ast ?parse_only ~ns ~lib lexbuf
 
-let from_file ?parse_only ~ns ~lib filename =
+let from_file ?print_ast ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
   let fname = Lang_string.home_unrelate filename in
   (* Don't show inferred types for standard library *)
@@ -243,7 +247,7 @@ let from_file ?parse_only ~ns ~lib filename =
     Typechecking.display_types := false;
   from_in_channel ~fname
     ~dir:(Filename.dirname filename)
-    ?parse_only ~ns ~lib ic;
+    ?print_ast ?parse_only ~ns ~lib ic;
   Typechecking.display_types := display_types;
   close_in ic
 
@@ -261,7 +265,7 @@ let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
 
 let from_file = from_file ~ns:None
 
-let from_string ?parse_only ~lib expr =
+let from_string ?print_ast ?parse_only ~lib expr =
   let gen =
     let pos = ref (-1) in
     let len = String.length expr in
@@ -270,7 +274,7 @@ let from_string ?parse_only ~lib expr =
       if !pos < len then Some expr.[!pos] else None
   in
   let lexbuf = Sedlexing.Utf8.from_gen gen in
-  from_lexbuf ?parse_only ~ns:None ~lib lexbuf
+  from_lexbuf ?print_ast ?parse_only ~ns:None ~lib lexbuf
 
 let parse_with_lexbuf s =
   let gen =
@@ -292,8 +296,8 @@ let eval ~ignored ~ty s =
       report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
       Evaluation.eval expr)
 
-let from_in_channel ?parse_only ~lib x =
-  from_in_channel ?parse_only ~ns:None ~lib x
+let from_in_channel ?print_ast ?parse_only ~lib x =
+  from_in_channel ?print_ast ?parse_only ~ns:None ~lib x
 
 let interactive () =
   Format.printf

@@ -127,6 +127,7 @@
   lexer
   methods
   modules
+  parsed_json
   parsed_term
   parser
   parser_helper

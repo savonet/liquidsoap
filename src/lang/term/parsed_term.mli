@@ -60,6 +60,8 @@ type 'a _try = {
   try_handler : 'a;
 }
 
+type 'a _meth = { base : 'a; meth : string; value : 'a }
+
 (* These terms are reduced at runtime *)
 type 'a reduced_ast =
   [ `If of 'a _if
