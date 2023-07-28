@@ -67,6 +67,7 @@ type 'a reduced_ast =
   | `Iterable_for of 'a iterable_for
   | `Try of 'a _try
   | `Regexp of string * char list
+  | `Not of 'a
   | `Simple_fun of 'a ]
 
 type t = parsed_ast Term_base.term

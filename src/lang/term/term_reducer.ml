@@ -88,6 +88,11 @@ let simple_fun_reducer ?pos:_ ~to_term = function
   | `Simple_fun tm ->
       `Fun { Term_base.arguments = []; body = to_term tm; free_vars = None }
 
+let not_reducer ?pos ~to_term = function
+  | `Not tm ->
+      let op = Term_base.make ?pos (`Var "not") in
+      `App (op, [("", to_term tm)])
+
 let regexp_reducer ?pos ~to_term:_ = function
   | `Regexp (regexp, flags) ->
       let regexp =
@@ -142,6 +147,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `While _ as ast -> while_reducer ?pos ~to_term ast
   | `For _ as ast -> for_reducer ?pos ~to_term ast
   | `Iterable_for _ as ast -> iterable_for_reducer ?pos ~to_term ast
+  | `Not _ as ast -> not_reducer ?pos ~to_term ast
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
   | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast

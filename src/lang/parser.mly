@@ -208,7 +208,7 @@ expr:
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var "~-"), ["", $3])) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk ~pos:$loc (`Ground (Int $1)) }
-  | NOT expr                         { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var "not"), ["", $2])) }
+  | NOT expr                         { mk ~pos:$loc (`Not $2) }
   | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
   | FLOAT                            { mk ~pos:$loc (`Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (`Ground (String $1)) }
