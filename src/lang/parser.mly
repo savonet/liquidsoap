@@ -228,9 +228,10 @@ expr:
   | expr QUESTION DOT invoke         { mk_invoke ~pos:$loc ~default:(mk ~pos:$loc `Null) $1 $4 }
   | expr DOT invoke                  { mk_invoke ~pos:$loc $1 $3 }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var $1), $2)) }
-  | expr COLONCOLON expr             { mk ~pos:$loc (`App (mk ~pos:$loc($2) (`Var "_::_"), ["", $1; "", $3])) }
-  | VARLBRA expr RBRA                { mk ~pos:$loc (`App (mk ~pos:$loc (`Var "_[_]"), ["", mk ~pos:$loc($1) (`Var $1); "", $2])) }
-  | expr DOT VARLBRA expr RBRA       { mk ~pos:$loc (`App (mk ~pos:$loc (`Var "_[_]"), ["", mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; default = None; meth =  $3})); "", $4])) }
+  | expr COLONCOLON expr             { mk ~pos:$loc (`Append ($1, $3)) }
+  | VARLBRA expr RBRA                { mk ~pos:$loc (`Assoc (mk ~pos:$loc($1) (`Var $1), $2)) }
+  | expr DOT VARLBRA expr RBRA       { let src = mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; default = None; meth =  $3})) in
+                                       mk ~pos:$loc (`Assoc (src, $4)) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR simple_fun_body RCUR        { mk ~pos:$loc (`Simple_fun $2) }

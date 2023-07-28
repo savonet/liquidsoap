@@ -119,6 +119,16 @@ let not_reducer ?pos ~to_term = function
       let op = mk ?pos (`Var "not") in
       `App (op, [("", to_term tm)])
 
+let append_reducer ?pos ~to_term = function
+  | `Append (tm, tm') ->
+      let op = mk ?pos (`Var "_::_") in
+      `App (op, [("", to_term tm); ("", to_term tm')])
+
+let assoc_reducer ?pos ~to_term = function
+  | `Assoc (tm, tm') ->
+      let op = mk ?pos (`Var "_[_]") in
+      `App (op, [("", to_term tm); ("", to_term tm')])
+
 let regexp_reducer ?pos ~to_term:_ = function
   | `Regexp (regexp, flags) ->
       let regexp = mk ?pos (`Ground (Term_base.Ground.String regexp)) in
@@ -173,6 +183,8 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Iterable_for _ as ast -> iterable_for_reducer ?pos ~to_term ast
   | `Not _ as ast -> not_reducer ?pos ~to_term ast
   | `Negative _ as ast -> negative_reducer ?pos ~to_term ast
+  | `Append _ as ast -> append_reducer ?pos ~to_term ast
+  | `Assoc _ as ast -> assoc_reducer ?pos ~to_term ast
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
   | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast
