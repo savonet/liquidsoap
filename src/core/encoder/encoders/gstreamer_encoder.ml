@@ -191,7 +191,7 @@ let encoder ext =
   in
   {
     Encoder.insert_metadata;
-    header = Strings.empty;
+    header = (fun () -> Strings.empty);
     hls = Encoder.dummy_hls encode;
     encode;
     stop;

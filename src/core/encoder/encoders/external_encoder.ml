@@ -164,10 +164,7 @@ let encoder ~pos:_ id ext =
   in
   {
     Encoder.insert_metadata;
-    (* External encoders do not support
-     * headers for now. They will probably
-     * never do.. *)
-    header = Strings.empty;
+    header = (fun () -> Strings.empty);
     hls = Encoder.dummy_hls encode;
     encode;
     stop;

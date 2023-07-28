@@ -591,7 +591,7 @@ class hls_output p =
             Lang.raise_as_runtime ~bt ~kind:"file" exn)
       in
       let out_channel = self#open_out filename in
-      Strings.iter (output_substring out_channel) s.encoder.Encoder.header;
+      Strings.iter (output_substring out_channel) (s.encoder.Encoder.header ());
       let discontinuous = state = `Restarted in
       let segment =
         {

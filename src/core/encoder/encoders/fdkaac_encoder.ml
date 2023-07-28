@@ -110,7 +110,7 @@ let encoder ~pos aac =
   in
   {
     Encoder.insert_metadata = (fun _ -> ());
-    header = Strings.empty;
+    header = (fun () -> Strings.empty);
     hls = Encoder.dummy_hls encode;
     encode;
     stop;
