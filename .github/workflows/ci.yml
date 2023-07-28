@@ -214,6 +214,7 @@ jobs:
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
       - name: Finalize metrics
         run: |
+          git config --global --add safe.directory '*'
           cd /tmp/liquidsoap-full/liquidsoap
           echo "- commit: `git rev-parse HEAD`" >> /tmp/metrics.yaml
           echo "  branch: `git rev-parse --abbrev-ref HEAD`" >> /tmp/metrics.yaml
