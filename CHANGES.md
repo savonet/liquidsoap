@@ -1,3 +1,11 @@
+# 2.2.1 (unreleased)
+
+New:
+
+Changed:
+
+- Mute SDL startup messages (#2913).
+
 # 2.2.0 (2023-07-21)
 
 New:
