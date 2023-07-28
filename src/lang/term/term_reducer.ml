@@ -87,6 +87,21 @@ let simple_fun_reducer ?pos:_ ~to_term = function
   | `Simple_fun tm ->
       `Fun { Term_base.arguments = []; body = to_term tm; free_vars = None }
 
+let regexp_reducer ?pos ~to_term:_ = function
+  | `Regexp (regexp, flags) ->
+      let regexp =
+        Term_base.make ?pos (`Ground (Term_base.Ground.String regexp))
+      in
+      let flags = List.map Char.escaped flags in
+      let flags =
+        List.map
+          (fun s -> Term_base.make ?pos (`Ground (Term_base.Ground.String s)))
+          flags
+      in
+      let flags = Term_base.make ?pos (`List flags) in
+      let op = Term_base.make ?pos (`Var "regexp") in
+      `App (op, [("", regexp); ("flags", flags)])
+
 let try_reducer ?pos ~to_term = function
   | `Try
       {
@@ -126,6 +141,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `For _ as ast -> for_reducer ?pos ~to_term ast
   | `Iterable_for _ as ast -> iterable_for_reducer ?pos ~to_term ast
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
+  | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast
   | `Ground g -> `Ground g
   | `Encoder e -> `Encoder (to_encoder e)

@@ -259,13 +259,7 @@ expr:
                                          try_errors_list =  mk ~pos:$loc `Null;
                                          try_handler = $6 }) }
   | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
-  | REGEXP                          {  let regexp, flags = $1 in
-                                       let regexp =  mk ~pos:$loc (`Ground (String regexp)) in
-                                       let flags = List.map Char.escaped flags in
-                                       let flags = List.map (fun s -> mk ~pos:$loc (`Ground (String s))) flags in
-                                       let flags = mk ~pos:$loc (`List flags) in
-                                       let op = mk ~pos:$loc($1) (`Var "regexp") in
-                                       mk ~pos:$loc (`App (op, ["", regexp; "flags", flags])) }
+  | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
   | expr QUESTION expr COLON expr    { let cond = $1 in
                                        let then_b = mk_fun ~pos:$loc($3) [] $3 in
                                        let else_b = mk_fun ~pos:$loc($5) [] $5 in
