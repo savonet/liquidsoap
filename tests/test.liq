@@ -82,7 +82,7 @@ end
 # Add a metric
 def test.metric(~category, ~name, ~value, ~unit)
   data = "- name: \"#{(name:string)}\"\n  category: \"#{(category:string)}\"\n  value: #{(value:float)}\n  unit: \"#{(unit:string)}\"\n  time: #{(time():float)}\n\n"
-  file.write(append=true, data=data, "../../metrics.yaml")
+  file.write(append=true, data=data, "/tmp/metrics.yaml")
 end
 
 def on_error(~backtrace, error) =
