@@ -83,7 +83,6 @@ let options : Sdl.Init.t option ref = ref None
 let check f x =
   match f x with Error (`Msg err) -> failwith err | Ok ans -> ans
 
-let initialized = ref false
 let () = Sdl.log_set_all_priority Sdl.Log.priority_warn
 
 let init l =
