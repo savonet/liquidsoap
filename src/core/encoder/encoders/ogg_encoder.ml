@@ -105,7 +105,7 @@ let encoder ~pos { Ogg_format.audio; video } =
         Encoder.insert_metadata;
         hls = Encoder.dummy_hls (fun _ _ -> assert false);
         encode;
-        header = Strings.empty;
+        header = (fun () -> Ogg_muxer.get_header ogg_enc);
         stop;
       }
     and streams_start () =
@@ -115,14 +115,11 @@ let encoder ~pos { Ogg_format.audio; video } =
           | None -> track.id <- Some (track.reset ogg_enc meta)
       in
       List.iter f tracks;
-      Ogg_muxer.streams_start ogg_enc;
-      enc.Encoder.header <- Ogg_muxer.get_header ogg_enc
+      Ogg_muxer.streams_start ogg_enc
     and encode frame start len =
       (* We do a lazy start, to
        * avoid empty streams at beginning.. *)
-      if Ogg_muxer.state ogg_enc <> Ogg_muxer.Streaming then (
-        streams_start ();
-        enc.Encoder.header <- Ogg_muxer.get_header ogg_enc);
+      if Ogg_muxer.state ogg_enc <> Ogg_muxer.Streaming then streams_start ();
       let f track =
         track.encode ogg_enc (Option.get track.id) frame start len
       in
@@ -131,18 +128,15 @@ let encoder ~pos { Ogg_format.audio; video } =
     and ogg_stop () =
       let f track = track.id <- None in
       List.iter f tracks;
-      if Ogg_muxer.state ogg_enc = Ogg_muxer.Streaming then (
-        Ogg_muxer.end_of_stream ogg_enc;
-        enc.Encoder.header <- Strings.empty)
+      if Ogg_muxer.state ogg_enc = Ogg_muxer.Streaming then
+        Ogg_muxer.end_of_stream ogg_enc
     and stop () =
       ogg_stop ();
-      enc.Encoder.header <- Strings.empty;
       Ogg_muxer.get_data ogg_enc
     and insert_metadata m =
       ogg_stop ();
       let f track = track.id <- Some (track.reset ogg_enc m) in
-      List.iter f tracks;
-      enc.Encoder.header <- Ogg_muxer.get_header ogg_enc
+      List.iter f tracks
     in
     { enc with hls = Encoder.dummy_hls encode }
 

@@ -65,7 +65,7 @@ let encoder ~pos:_ flac meta =
     Encoder.insert_metadata = (fun _ -> ());
     (* Flac encoder do not support header
      * for now. It will probably never do.. *)
-    header = Strings.empty;
+    header = (fun () -> Strings.empty);
     hls = Encoder.dummy_hls encode;
     encode;
     stop;

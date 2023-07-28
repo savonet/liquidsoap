@@ -34,7 +34,7 @@ let () =
   let encoder =
     create_encoder ~pos:None "test stream" Export_metadata.empty_metadata
   in
-  write encoder.Encoder.header;
+  write (encoder.Encoder.header ());
   try
     while true do
       try

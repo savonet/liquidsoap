@@ -119,7 +119,7 @@ let () =
       insert_metadata = (fun _ -> ());
       hls = Encoder.dummy_hls encode;
       encode;
-      header = Strings.empty;
+      header = (fun () -> Strings.empty);
       stop;
     }
   in
