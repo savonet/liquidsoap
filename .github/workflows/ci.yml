@@ -217,6 +217,18 @@ jobs:
         with:
           name: metrics
           path: /tmp/metrics.yaml
+      - name: Prepare metrics
+        run: |
+          mkdir -p metrics
+          cp /tmp/metrics.yaml metrics/`date +%s`.yaml
+      - name: Upload metrics
+        uses: s0/git-publish-subdir-action@develop
+        with:
+          REPO: self
+          BRANCH: metrics
+          FOLDER: metrics
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLEAR_GLOBS_FILE: .clear-metrics
       - name: Save traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
         run: |
