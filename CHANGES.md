@@ -3,6 +3,8 @@
 Fixed:
 
 - Fixed HTTP response status in `output.harbor` (#3255)
+- Make sure main HLS playlist is regenerated after being
+  unlinked (#3275)
 
 ---
 

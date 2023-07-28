@@ -741,7 +741,8 @@ class hls_output p =
 
     method private cleanup_playlists =
       List.iter (fun s -> self#unlink (self#playlist_name s)) streams;
-      self#unlink main_playlist_filename
+      self#unlink main_playlist_filename;
+      main_playlist_written <- false
 
     method start =
       (match persist_at with
