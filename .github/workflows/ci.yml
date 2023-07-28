@@ -212,15 +212,18 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
+      - name: Prepare metrics
+        run: |
+          echo "- commit: `git rev-parse HEAD`" >> /tmp/metrics
+          echo "  branch: `git rev-parse --abbrev-ref HEAD`" >> /tmp/metrics
+          echo "  time: `date +%s` >> /tmp/metrics
+          mkdir -p metrics
+          cp /tmp/metrics.yaml metrics/`date +%s`.yaml
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v3
         with:
           name: metrics
           path: /tmp/metrics.yaml
-      - name: Prepare metrics
-        run: |
-          mkdir -p metrics
-          cp /tmp/metrics.yaml metrics/`date +%s`.yaml
       - name: Upload metrics
         uses: s0/git-publish-subdir-action@develop
         env:
