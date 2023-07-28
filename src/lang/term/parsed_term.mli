@@ -70,6 +70,8 @@ type 'a reduced_ast =
   | `Try of 'a _try
   | `Regexp of string * char list
   | `Not of 'a
+  | `Get of 'a
+  | `Set of 'a * 'a
   | `Simple_fun of 'a ]
 
 type t = parsed_ast Term.term

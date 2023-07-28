@@ -25,6 +25,26 @@ open Parsed_term
 let mk_fun ?pos arguments body =
   Term.make ?pos (`Fun Term.{ free_vars = None; arguments; body })
 
+let get_reducer ?pos ~to_term = function
+  | `Get tm ->
+      Printf.eprintf
+        "Warning, %s: the notation !x for references is deprecated, please use \
+         x() instead.\n\
+         %!"
+        (match pos with
+          | None -> "at unknown position"
+          | Some pos -> Pos.to_string pos);
+      `App (to_term tm, [])
+
+let set_reducer ?pos ~to_term = function
+  | `Set (tm, v) ->
+      let op =
+        Term_base.make ?pos
+          (`Invoke
+            { Term_base.invoked = to_term tm; default = None; meth = "set" })
+      in
+      `App (op, [("", to_term v)])
+
 let if_reducer ?pos ~to_term = function
   | `Inline_if { if_condition; if_then; if_else }
   | `If { if_condition; if_then; if_else } ->
@@ -142,6 +162,8 @@ let try_reducer ?pos ~to_term = function
       `App (op, [("errors", try_errors_list); ("", try_body); ("", handler)])
 
 let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
+  | `Get _ as ast -> get_reducer ?pos ~to_term ast
+  | `Set _ as ast -> set_reducer ?pos ~to_term ast
   | `Inline_if _ as ast -> if_reducer ?pos ~to_term ast
   | `If _ as ast -> if_reducer ?pos ~to_term ast
   | `While _ as ast -> while_reducer ?pos ~to_term ast
