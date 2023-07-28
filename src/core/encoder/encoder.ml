@@ -314,10 +314,7 @@ let dummy_hls encode =
 
 type encoder = {
   insert_metadata : Export_metadata.metadata -> unit;
-  (* Encoder are all called from the main
-     thread so there's no need to protect this
-     value with a mutex so far.. *)
-  mutable header : Strings.t;
+  header : unit -> Strings.t;
   hls : hls;
   encode : Frame.t -> int -> int -> Strings.t;
   stop : unit -> Strings.t;
@@ -348,6 +345,7 @@ let get_factory fmt =
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in
       let insert_metadata = Tutils.mutexify m insert_metadata in
+      let header = Tutils.mutexify m header in
       let {
         init;
         init_encode;

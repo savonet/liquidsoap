@@ -335,4 +335,10 @@ let encoder ~pos ~mk_streams ffmpeg meta =
       video_size;
     }
   in
-  { Encoder.insert_metadata; header = Strings.empty; hls; encode; stop }
+  {
+    Encoder.insert_metadata;
+    header = (fun () -> Strings.empty);
+    hls;
+    encode;
+    stop;
+  }

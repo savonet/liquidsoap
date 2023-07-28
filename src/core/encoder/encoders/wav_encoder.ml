@@ -73,7 +73,7 @@ let encoder ~pos wav =
     Encoder.insert_metadata = (fun _ -> ());
     hls = Encoder.dummy_hls encode;
     encode;
-    header = Strings.of_string header;
+    header = (fun () -> Strings.of_string header);
     stop = (fun () -> Strings.empty);
   }
 
