@@ -223,7 +223,7 @@ jobs:
           cp /tmp/metrics.yaml metrics/`date +%s`.yaml
       - name: Upload metrics
         uses: s0/git-publish-subdir-action@develop
-        with:
+        env:
           REPO: self
           BRANCH: metrics
           FOLDER: metrics
