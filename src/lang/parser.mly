@@ -262,14 +262,12 @@ expr:
   | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
   | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_else = $5}) }
-  | expr BINB expr                 { let left = mk_fun ~pos:$loc($1) [] $1 in
-                                     let right= mk_fun ~pos:$loc($3) [] $3 in
-                                     mk ~pos:$loc (`App (mk ~pos:$loc($2) (`Var $2), ["",left;"",right])) }
-  | expr BIN1 expr                 { mk ~pos:$loc (`App (mk ~pos:$loc($2) (`Var $2), ["",$1;"",$3])) }
-  | expr BIN2 expr                 { mk ~pos:$loc (`App (mk ~pos:$loc($2) (`Var $2), ["",$1;"",$3])) }
-  | expr BIN3 expr                 { mk ~pos:$loc (`App (mk ~pos:$loc($2) (`Var $2), ["",$1;"",$3])) }
-  | expr TIMES expr                { mk ~pos:$loc (`App (mk ~pos:$loc($2) (`Var "*"), ["",$1;"",$3])) }
-  | expr MINUS expr                { mk ~pos:$loc (`App (mk ~pos:$loc($2) (`Var "-"), ["",$1;"",$3])) }
+  | expr BINB expr                 { mk ~pos:$loc (`Bool ($1, $2, $3)) }
+  | expr BIN1 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
+  | expr BIN2 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
+  | expr BIN3 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
+  | expr TIMES expr                { mk ~pos:$loc (`Infix ($1, "*", $3)) }
+  | expr MINUS expr                { mk ~pos:$loc (`Infix ($1, "-", $3)) }
   | time_predicate                 { $1 }
 
 invoke:

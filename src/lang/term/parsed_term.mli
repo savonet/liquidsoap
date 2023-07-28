@@ -75,6 +75,8 @@ type 'a reduced_ast =
   | `Negative of 'a
   | `Append of 'a * 'a
   | `Assoc of 'a * 'a
+  | `Infix of 'a * string * 'a
+  | `Bool of 'a * string * 'a
   | `Simple_fun of 'a ]
 
 type t = parsed_ast Term.term

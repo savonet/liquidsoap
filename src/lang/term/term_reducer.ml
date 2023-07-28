@@ -105,6 +105,18 @@ let for_reducer ?pos ~to_term = function
       base_for_reducer ?pos for_variable for_variable_position for_condition
         (to_term for_loop)
 
+let infix_reducer ?pos ~to_term = function
+  | `Infix (tm, op, tm') ->
+      let op = mk ?pos (`Var op) in
+      `App (op, [("", to_term tm); ("", to_term tm')])
+
+let bool_reducer ?pos ~to_term = function
+  | `Bool (tm, op, tm') ->
+      let op = mk ?pos (`Var op) in
+      let tm = mk_fun ?pos [] (to_term tm) in
+      let tm' = mk_fun ?pos [] (to_term tm') in
+      `App (op, [("", tm); ("", tm')])
+
 let simple_fun_reducer ?pos:_ ~to_term = function
   | `Simple_fun tm ->
       `Fun { Term_base.arguments = []; body = to_term tm; free_vars = None }
@@ -185,6 +197,8 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Negative _ as ast -> negative_reducer ?pos ~to_term ast
   | `Append _ as ast -> append_reducer ?pos ~to_term ast
   | `Assoc _ as ast -> assoc_reducer ?pos ~to_term ast
+  | `Infix _ as ast -> infix_reducer ?pos ~to_term ast
+  | `Bool _ as ast -> bool_reducer ?pos ~to_term ast
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
   | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast
