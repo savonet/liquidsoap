@@ -614,8 +614,16 @@
  (modules libsamplerate_converter))
 
 (library
+ (name liquidsoap_sdl_log_level)
+ (libraries tsdl)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules sdl_log_level))
+
+(library
  (name liquidsoap_sdl)
- (libraries tsdl-image tsdl-ttf liquidsoap_core)
+ (libraries liquidsoap_sdl_log_level tsdl-image tsdl-ttf liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
  (optional)
