@@ -214,9 +214,9 @@ jobs:
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
       - name: Prepare metrics
         run: |
-          echo "- commit: `git rev-parse HEAD`" >> /tmp/metrics
-          echo "  branch: `git rev-parse --abbrev-ref HEAD`" >> /tmp/metrics
-          echo "  time: `date +%s` >> /tmp/metrics
+          echo "- commit: `git rev-parse HEAD`" >> /tmp/metrics.yaml
+          echo "  branch: `git rev-parse --abbrev-ref HEAD`" >> /tmp/metrics.yaml
+          echo "  time: `date +%s` >> /tmp/metrics.yaml
           mkdir -p metrics
           cp /tmp/metrics.yaml metrics/`date +%s`.yaml
       - name: Upload metrics artifact
