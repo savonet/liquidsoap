@@ -214,11 +214,11 @@ jobs:
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
       - name: Finalize metrics
         run: |
-          git config --global --add safe.directory '*'
+          sudo -u opam -E git config --global --add safe.directory '*'
           cd /tmp/liquidsoap-full/liquidsoap
-          echo "- commit: `git rev-parse HEAD`" >> /tmp/metrics.yaml
-          echo "  branch: `git rev-parse --abbrev-ref HEAD`" >> /tmp/metrics.yaml
-          echo "  time: `date +%s`" >> /tmp/metrics.yaml
+          sudo -u opam -E echo "- commit: `git rev-parse HEAD`" >> /tmp/metrics.yaml
+          sudo -u opam -E echo "  branch: `git rev-parse --abbrev-ref HEAD`" >> /tmp/metrics.yaml
+          sudo -u opam -E echo "  time: `date +%s`" >> /tmp/metrics.yaml
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v3
         with:
