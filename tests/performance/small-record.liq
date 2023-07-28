@@ -1,4 +1,4 @@
-#!../../liquidsoap ../test.liq performance.liq
+#!/usr/bin/env -S ../../liquidsoap ../test.liq performance.liq
 
 def r2()
   r = {a0 = 0, a1 = 1}
