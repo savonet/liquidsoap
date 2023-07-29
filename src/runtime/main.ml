@@ -42,9 +42,6 @@ let () =
 (* Are we streaming? *)
 let run_streams = ref true
 
-(* Print AST? *)
-let print_ast = ref false
-
 (* Should we start even without active sources? *)
 let force_start =
   Dtools.Conf.bool
@@ -126,12 +123,9 @@ let do_eval, eval =
     try
       load_libs ();
       match src with
-        | `StdIn ->
-            Runtime.from_in_channel ~lib ~print_ast:!print_ast
-              ~parse_only:!parse_only stdin
+        | `StdIn -> Runtime.from_in_channel ~lib ~parse_only:!parse_only stdin
         | `Expr_or_File expr when not (Sys.file_exists expr) ->
-            Runtime.from_string ~lib ~print_ast:!print_ast
-              ~parse_only:!parse_only expr
+            Runtime.from_string ~lib ~parse_only:!parse_only expr
         | `Expr_or_File f ->
             let basename = Filename.basename f in
             let basename =
@@ -139,8 +133,7 @@ let do_eval, eval =
             in
             Utils.var_script := basename;
             Startup.time ("Loaded " ^ f) (fun () ->
-                Runtime.from_file ~lib ~print_ast:!print_ast
-                  ~parse_only:!parse_only f)
+                Runtime.from_file ~lib ~parse_only:!parse_only f)
     with Liquidsoap_lang.Runtime.Error ->
       flush_all ();
       exit 1
@@ -237,14 +230,6 @@ let options =
          Arg.String lang_doc,
          "Get help about a scripting value: source, operator, builtin or \
           library function, etc." );
-       ( ["--print-ast"],
-         Arg.Unit
-           (fun () ->
-             stdlib := false;
-             run_streams := false;
-             print_ast := true;
-             parse_only := true),
-         "Print the AST in json format." );
        ( ["-c"; "--check"],
          Arg.Unit (fun () -> run_streams := false),
          "Check and evaluate scripts but do not perform any streaming." );

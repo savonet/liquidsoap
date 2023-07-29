@@ -1,0 +1,11 @@
+(env
+ (release
+  (ocamlopt_flags
+   (:standard -O2)))
+ (dev
+  (flags
+   (:standard -w -9))))
+
+(library
+ (name liquidsoap_tooling)
+ (libraries liquidsoap_lang))
