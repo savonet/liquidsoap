@@ -37,6 +37,8 @@ sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
+opam pin -y https://github.com/tobil4sk/pcre2-ocaml.git
+
 echo "::endgroup::"
 
 echo "::group::Checking out CI commit"

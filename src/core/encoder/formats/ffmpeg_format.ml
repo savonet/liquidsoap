@@ -133,7 +133,7 @@ let to_string m =
                   | None -> `Var "none"
                   | Some d -> `String d);
               Printf.sprintf "%%%s(%s%s)" name
-                (if Pcre.pmatch ~pat:"video" name then "" else "video_content,")
+                (if Pcre2.pmatch ~pat:"video" name then "" else "video_content,")
                 (string_of_options stream_opts)
               :: opts
           | `Encode { codec; options = `Audio options; opts = stream_opts } ->
@@ -147,7 +147,7 @@ let to_string m =
               Hashtbl.add stream_opts "samplerate"
                 (`Int (Lazy.force options.samplerate));
               Printf.sprintf "%s(%s%s)" name
-                (if Pcre.pmatch ~pat:"audio" name then "" else "audio_content,")
+                (if Pcre2.pmatch ~pat:"audio" name then "" else "audio_content,")
                 (string_of_options stream_opts)
               :: opts)
       opts m.streams

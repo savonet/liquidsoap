@@ -291,13 +291,15 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
           Avutil.Options.get_string ~search_children:true
             ~name:"icy_metadata_headers" (Av.input_obj input)
         in
-        let icy_headers = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") icy_headers in
+        let icy_headers =
+          Pcre2.split ~rex:(Pcre2.regexp "[\r]?\n") icy_headers
+        in
         List.fold_left
           (fun ret header ->
             if header <> "" then (
               try
-                let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
-                (Pcre.get_substring res 1, Pcre.get_substring res 2) :: ret
+                let res = Pcre2.exec ~pat:"([^:]*):\\s*(.*)" header in
+                (Pcre2.get_substring res 1, Pcre2.get_substring res 2) :: ret
               with Not_found -> ret)
             else ret)
           [] icy_headers
@@ -553,7 +555,7 @@ let register_input is_http =
                      (Lang.apply fn [("", Lang.metadata_list m)])
              | None ->
                  List.filter (fun (k, _) ->
-                     not (Pcre.pmatch ~pat:"^id3v2_priv" k))
+                     not (Pcre2.pmatch ~pat:"^id3v2_priv" k))
          in
          let deduplicate_metadata =
            Lang.to_bool (List.assoc "deduplicate_metadata" p)

@@ -333,7 +333,7 @@ class virtual operator ?pos ?(name = "src") sources =
     method id = id
 
     method set_id ?(definitive = true) s =
-      let s = Pcre.substitute ~pat:"[ \t\n.]" ~subst:(fun _ -> "_") s in
+      let s = Pcre2.substitute ~pat:"[ \t\n.]" ~subst:(fun _ -> "_") s in
       if not definitive_id then (
         id <- Lang_string.generate_id s;
         definitive_id <- definitive);

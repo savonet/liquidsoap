@@ -175,8 +175,8 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     method register_decoder mime =
       let mime =
         try
-          let sub = Pcre.exec ~pat:"^([^;]+);.*$" mime in
-          Pcre.get_substring sub 1
+          let sub = Pcre2.exec ~pat:"^([^;]+);.*$" mime in
+          Pcre2.get_substring sub 1
         with Not_found -> mime
       in
       match Decoder.get_stream_decoder ~ctype:self#content_type mime with

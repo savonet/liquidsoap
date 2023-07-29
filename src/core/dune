@@ -31,6 +31,7 @@
   cry
   uri
   metadata
+  pcre2
   (select
    file_watcher.ml
    from

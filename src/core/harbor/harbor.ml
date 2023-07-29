@@ -362,7 +362,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let websocket_error n msg = Websocket.to_string (`Close (Some (n, msg)))
 
   let parse_icy_request_line ~port h r =
-    let auth_data = Pcre.split ~pat:":" r in
+    let auth_data = Pcre2.split ~pat:":" r in
     let requested_user, password =
       match auth_data with
         | user :: password :: _ -> (user, password)
@@ -388,7 +388,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let parse_http_request_line r =
     try
-      let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") r in
+      let data = Pcre2.split ~rex:(Pcre2.regexp "[ \t]+") r in
       let protocol = verb_or_source_of_string (List.nth data 0) in
       Duppy.Monad.return
         ( protocol,
@@ -410,9 +410,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let parse_headers headers =
     let split_header h l =
       try
-        let rex = Pcre.regexp "([^:\\r\\n]+):\\s*([^\\r\\n]+)" in
-        let sub = Pcre.exec ~rex h in
-        (Pcre.get_substring sub 1, Pcre.get_substring sub 2) :: l
+        let rex = Pcre2.regexp "([^:\\r\\n]+):\\s*([^\\r\\n]+)" in
+        let sub = Pcre2.exec ~rex h in
+        (Pcre2.get_substring sub 1, Pcre2.get_substring sub 2) :: l
       with Not_found -> l
     in
     let f x = String.uppercase_ascii x in
@@ -450,10 +450,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         try
           (* HTTP authentication *)
           let auth = assoc_uppercase "AUTHORIZATION" headers in
-          let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") auth in
+          let data = Pcre2.split ~rex:(Pcre2.regexp "[ \t]+") auth in
           match data with
             | "Basic" :: x :: _ -> (
-                let auth_data = Pcre.split ~pat:":" (Lang_string.decode64 x) in
+                let auth_data = Pcre2.split ~pat:":" (Lang_string.decode64 x) in
                 match auth_data with
                   | x :: y :: _ -> (x, y)
                   | _ -> raise Not_found)
@@ -766,11 +766,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | _ -> ans_500 uri
 
   let handle_http_request ~hmethod ~hprotocol ~port h uri headers =
-    let rex = Pcre.regexp "^(.+)\\?(.+)$" in
+    let rex = Pcre2.regexp "^(.+)\\?(.+)$" in
     let base_uri, args =
       try
-        let sub = Pcre.exec ~rex uri in
-        (Pcre.get_substring sub 1, Pcre.get_substring sub 2)
+        let sub = Pcre2.exec ~rex uri in
+        (Pcre2.get_substring sub 1, Pcre2.get_substring sub 2)
       with Not_found -> (uri, "")
     in
     let smethod = string_of_verb hmethod in
@@ -905,7 +905,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             | false -> Duppy.Io.Split "[\r]?\n[\r]?\n")
         h
     in
-    let lines = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s in
+    let lines = Pcre2.split ~rex:(Pcre2.regexp "[\r]?\n") s in
     let* hmethod, huri, hprotocol =
       let s = List.hd lines in
       if icy then parse_icy_request_line ~port h s
@@ -987,7 +987,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               ~priority:`Non_blocking ~marker:(Duppy.Io.Split "[\r]?\n[\r]?\n")
               h
           in
-          let lines = Pcre.split ~rex:(Pcre.regexp "[\r]?\n") s in
+          let lines = Pcre2.split ~rex:(Pcre2.regexp "[\r]?\n") s in
           let headers = parse_headers lines in
           handle_source_request ~port ~auth:true ~smethod:`Shout hprotocol h
             huri headers

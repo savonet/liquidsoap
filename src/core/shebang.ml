@@ -56,7 +56,7 @@ let argv =
                 [| Sys.argv.(1) |],
                 Array.sub Sys.argv 2 (Array.length Sys.argv - 2) )
             else
-              ( Array.of_list (Pcre.split ~pat:"\\s+" Sys.argv.(1)),
+              ( Array.of_list (Pcre2.split ~pat:"\\s+" Sys.argv.(1)),
                 [| Sys.argv.(2) |],
                 Array.sub Sys.argv 3 (Array.length Sys.argv - 3) )
           in

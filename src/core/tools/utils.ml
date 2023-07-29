@@ -284,10 +284,10 @@ let strftime ?time str : string =
     ]
   in
   let subst sub =
-    let key = Pcre.get_substring sub 1 in
+    let key = Pcre2.get_substring sub 1 in
     try List.assoc key assoc with _ -> "%" ^ key
   in
-  Pcre.substitute_substrings ~pat:"%(.)" ~subst str
+  Pcre2.substitute_substrings ~pat:"%(.)" ~subst str
 
 (** Check if a directory exists. *)
 let is_dir d =
@@ -320,9 +320,9 @@ let get_tempdir () =
 (** Get a file/uri extension. *)
 let get_ext s =
   try
-    let rex = Pcre.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
-    let ret = Pcre.exec ~rex s in
-    String.lowercase_ascii (Pcre.get_substring ret 1)
+    let rex = Pcre2.regexp "\\.([a-zA-Z0-9]+)[^.]*$" in
+    let ret = Pcre2.exec ~rex s in
+    String.lowercase_ascii (Pcre2.get_substring ret 1)
   with _ -> raise Not_found
 
 let get_ext_opt s = try Some (get_ext s) with Not_found -> None
@@ -347,17 +347,17 @@ let uptime =
 (** Generate a string which can be used as a parameter name. *)
 let normalize_parameter_string s =
   let s =
-    Pcre.substitute ~pat:"( *\\([^\\)]*\\)| *\\[[^\\]]*\\])"
+    Pcre2.substitute ~pat:"( *\\([^\\)]*\\)| *\\[[^\\]]*\\])"
       ~subst:(fun _ -> "")
       s
   in
-  let s = Pcre.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
-  let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
+  let s = Pcre2.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
+  let s = Pcre2.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
+  let s = Pcre2.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
+  let s = Pcre2.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
   let s = String.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
-  let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_" ^ s else s in
+  let s = if Pcre2.pmatch ~pat:"^[0-9]" s then "_" ^ s else s in
   s
 
 (** A function to reopen a file descriptor
@@ -437,21 +437,15 @@ let self_sync_type sources =
           (`Static, None) sources))
 
 let string_of_pcre_error =
-  Pcre.(
+  Pcre2.(
     function
     | Partial -> "String only matched the pattern partially"
-    | BadPartial ->
-        "Pattern contains items that cannot be used together with partial \
-         matching."
     | BadPattern (msg, pos) ->
         Printf.sprintf "Malformed regular expression. Error: %s, position: %i"
           msg pos
-    | BadUTF8 -> "UTF8 string being matched is invalid"
-    | BadUTF8Offset -> "A UTF8 string being matched with offset is invalid."
     | MatchLimit ->
         "Maximum allowed number of match attempts with backtracking or \
          recursion is reached during matching."
-    | RecursionLimit -> "Maximum allowed number of recursion reached"
     | InternalError msg -> Printf.sprintf "Internal error: %s" msg
     (* This is a hack to be extensible here and enable warning 11 *)
     | exn ->
@@ -460,9 +454,10 @@ let string_of_pcre_error =
 
 let () =
   Printexc.register_printer
-    Pcre.(
+    Pcre2.(
       function
-      | Error err -> Some (Printf.sprintf "Pcre(%s)" (string_of_pcre_error err))
+      | Error err ->
+          Some (Printf.sprintf "Pcre2.%s)" (string_of_pcre_error err))
       | _ -> None)
 
 let var_script = ref "default"

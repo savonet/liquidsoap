@@ -6,7 +6,7 @@
 (executable
  (name check_output)
  (modules check_output)
- (libraries unix pcre liquidsoap-lang))
+ (libraries unix pcre2 liquidsoap-lang))
 
 (executable
  (name run_test)

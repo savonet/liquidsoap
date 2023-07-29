@@ -205,7 +205,7 @@ let format_doc s =
   let prefix = "\t  " in
   let indent = 8 + 2 in
   let max_width = 80 in
-  let s = Pcre.split ~pat:" " s in
+  let s = Pcre2.split ~pat:" " s in
   let s =
     let rec join line width = function
       | [] -> [line]

@@ -13,29 +13,29 @@ let cflags_of_flags (flags : Liquidsoap_lang.Regexp.flag list) =
     [] flags
 
 let regexp ?(flags = []) s =
-  let iflags = Pcre.cflags (cflags_of_flags flags) in
-  let rex = Pcre.regexp ~iflags s in
+  let iflags = Pcre2.cflags (cflags_of_flags flags) in
+  let rex = Pcre2.regexp ~iflags s in
   object
-    method split s = Pcre.split ~rex s
+    method split s = Pcre2.split ~rex s
 
     method exec s =
-      let sub = Pcre.exec ~rex s in
-      let matches = Array.to_list (Pcre.get_opt_substrings sub) in
+      let sub = Pcre2.exec ~rex s in
+      let matches = Array.to_list (Pcre2.get_opt_substrings sub) in
       let groups =
         List.fold_left
           (fun groups name ->
-            try (name, Pcre.get_named_substring rex name sub) :: groups
+            try (name, Pcre2.get_named_substring rex name sub) :: groups
             with _ -> groups)
           []
-          (Array.to_list (Pcre.names rex))
+          (Array.to_list (Pcre2.names rex))
       in
       { Lang.Regexp.matches; groups }
 
-    method test s = Pcre.pmatch ~rex s
+    method test s = Pcre2.pmatch ~rex s
 
     method substitute ~subst s =
       let substitute =
-        if List.mem `g flags then Pcre.substitute else Pcre.substitute_first
+        if List.mem `g flags then Pcre2.substitute else Pcre2.substitute_first
       in
       substitute ~rex ~subst s
   end

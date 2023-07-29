@@ -11,18 +11,18 @@ let generated_md =
     ("settings.md", "--list-settings", None);
   ]
 
-let mk_html f = Pcre.substitute ~pat:"md(?:\\.in)?$" ~subst:(fun _ -> "html") f
+let mk_html f = Pcre2.substitute ~pat:"md(?:\\.in)?$" ~subst:(fun _ -> "html") f
 
 let mk_md ?(content = true) f =
-  if Pcre.pmatch ~pat:"md\\.in$" f then
-    Pcre.substitute ~pat:"\\.in$" ~subst:(fun _ -> "") (Filename.basename f)
+  if Pcre2.pmatch ~pat:"md\\.in$" f then
+    Pcre2.substitute ~pat:"\\.in$" ~subst:(fun _ -> "") (Filename.basename f)
   else if content then "content/" ^ f
   else f
 
 let mk_title = Filename.remove_extension
 
 let mk_subst_rule f =
-  if Pcre.pmatch ~pat:"md\\.in$" f then (
+  if Pcre2.pmatch ~pat:"md\\.in$" f then (
     let target = mk_md f in
     Printf.printf
       {|

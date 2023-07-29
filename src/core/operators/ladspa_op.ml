@@ -323,7 +323,7 @@ let register_descr plugin_name descr_n d inputs outputs =
     @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
   in
   let maker = Descriptor.maker d in
-  let maker = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
+  let maker = Pcre2.substitute ~pat:"@" ~subst:(fun _ -> "(at)") maker in
   let descr = Printf.sprintf "%s by %s." (Descriptor.name d) maker in
   let return_t =
     if mono then input_t

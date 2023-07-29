@@ -245,21 +245,23 @@ let _ =
       let pattern =
         pattern
         |> Option.map (fun s ->
-               Pcre.substitute ~rex:(Pcre.regexp "\\.")
+               Pcre2.substitute ~rex:(Pcre2.regexp "\\.")
                  ~subst:(fun _ -> "\\.")
                  s)
         |> Option.map (fun s ->
-               Pcre.substitute ~rex:(Pcre.regexp "\\*") ~subst:(fun _ -> ".*") s)
+               Pcre2.substitute ~rex:(Pcre2.regexp "\\*")
+                 ~subst:(fun _ -> ".*")
+                 s)
         |> Option.map (fun s -> "^" ^ s ^ "$")
         |> Option.value ~default:""
       in
       let sorted = List.assoc "sorted" p |> Lang.to_bool in
-      let rex = Pcre.regexp pattern in
+      let rex = Pcre2.regexp pattern in
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Lang_string.home_unrelate dir in
       let readdir dir =
         Array.to_list (Sys.readdir dir)
-        |> List.filter (fun s -> Pcre.pmatch ~rex s)
+        |> List.filter (fun s -> Pcre2.pmatch ~rex s)
       in
       let files =
         if not recursive then readdir dir

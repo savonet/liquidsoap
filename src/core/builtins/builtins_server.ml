@@ -64,6 +64,6 @@ let _ =
       in
       let f = Lang.assoc "" 2 p in
       let f x = Lang.to_string (Lang.apply f [("", Lang.string x)]) in
-      let ns = Pcre.split ~pat:"\\." namespace in
+      let ns = Pcre2.split ~pat:"\\." namespace in
       Server.add ~ns ~usage ~descr command f;
       Lang.unit)
