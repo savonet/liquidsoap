@@ -249,9 +249,9 @@ let set_global_quality q opts =
       | Some _ -> assert false
       | None -> 0
   in
-  let flags = flags lor !flag_qscale in
+  let flags = flags lor Avcodec.flag_qscale in
   Hashtbl.replace opts "flags" (`Int flags);
-  Hashtbl.replace opts "global_quality" (`Float (float !qp2lambda *. q))
+  Hashtbl.replace opts "global_quality" (`Float (float Avutil.qp2lambda *. q))
 
 let ffmpeg_gen params =
   let defaults =
