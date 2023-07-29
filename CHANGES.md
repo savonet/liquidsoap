@@ -7,6 +7,7 @@ Fixed:
   unlinked (#3275)
 - Fix `output.harbor` encoder header when encoding with
   `%ogg`, `%vorbis` and etc. (#3276)
+- Fixed quality argument parsing in ffmpeg encoders (#3267)
 
 ---
 
