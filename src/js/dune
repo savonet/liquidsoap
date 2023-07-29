@@ -7,7 +7,7 @@
  (name liquidsoap_js)
  (public_name liquidsoap-js)
  (optional)
- (modules init_js regexp_js)
+ (modules init_js)
  (preprocess
   (pps js_of_ocaml-ppx))
  (libraries liquidsoap_lang liquidsoap_tooling))

@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Pcre = Re.Pcre
+
 let () = Curl.global_init Curl.CURLINIT_GLOBALALL
 
 let string_of_curl_code = function
@@ -205,7 +207,9 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
               (fun ret header ->
                 if header <> "" then (
                   try
-                    let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
+                    let res =
+                      Pcre.exec ~rex:(Pcre.regexp "([^:]*):\\s*(.*)") header
+                    in
                     ( String.lowercase_ascii (Pcre.get_substring res 1),
                       Pcre.get_substring res 2 )
                     :: ret

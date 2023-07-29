@@ -29,6 +29,7 @@
   camomile.lib
   curl
   cry
+  re
   uri
   metadata
   (select

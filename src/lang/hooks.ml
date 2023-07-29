@@ -14,7 +14,6 @@ let has_encoder = ref (fun _ -> false)
 let liq_libs_dir = ref (fun () -> raise Not_found)
 let log_path = ref None
 let collect_after = ref (fun fn -> fn ())
-let regexp = Regexp.regexp_ref
 
 type log =
   < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a

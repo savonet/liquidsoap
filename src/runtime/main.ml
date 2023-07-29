@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+module Pcre = Re.Pcre
 module Runtime = Liquidsoap_lang.Runtime
 module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
@@ -205,7 +206,7 @@ let format_doc s =
   let prefix = "\t  " in
   let indent = 8 + 2 in
   let max_width = 80 in
-  let s = Pcre.split ~pat:" " s in
+  let s = Pcre.split ~rex:(Pcre.regexp " ") s in
   let s =
     let rec join line width = function
       | [] -> [line]

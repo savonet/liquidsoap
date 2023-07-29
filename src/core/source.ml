@@ -40,6 +40,8 @@ open Liquidsoap_lang.Error
     sources owned by those active sources, and controls access to their
     streams. *)
 
+module Pcre = Re.Pcre
+
 (** Fallibility type MUST be defined BEFORE clocks.
     Otherwise the module cannot be well-typed since the list of all
     clock variables refers to active sources and hence to #stype : source_t.
@@ -333,7 +335,9 @@ class virtual operator ?pos ?(name = "src") sources =
     method id = id
 
     method set_id ?(definitive = true) s =
-      let s = Pcre.substitute ~pat:"[ \t\n.]" ~subst:(fun _ -> "_") s in
+      let s =
+        Pcre.substitute ~rex:(Pcre.regexp "[ \t\n.]") ~subst:(fun _ -> "_") s
+      in
       if not definitive_id then (
         id <- Lang_string.generate_id s;
         definitive_id <- definitive);

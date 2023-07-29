@@ -118,6 +118,8 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           eval "$(opam config env)"
+          opam update
+          opam install -y re.1.11.0
           dune build --profile release ./src/js/interactive_js.bc.js
 
   tree_sitter_parse:

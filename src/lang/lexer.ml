@@ -53,24 +53,23 @@ let parse_time t =
     (function
       | None | Some "" -> None
       | Some s -> Some (int_of_string (String.sub s 0 (String.length s - 1))))
-      (List.nth sub.Regexp.matches n)
+      (try Some (Re.Pcre.get_substring sub n) with _ -> None)
   in
   try
     let rex =
-      Regexp.regexp "^((?:\\d+w)?)((?:\\d+h)?)((?:\\d+m)?)((?:\\d+s)?)$"
+      Re.Pcre.regexp "^((?:\\d+w)?)((?:\\d+h)?)((?:\\d+m)?)((?:\\d+s)?)$"
     in
-    let sub = Regexp.exec rex t in
+    let sub = Re.Pcre.exec ~rex t in
     let g = g sub in
     { Parsed_term.week = g 1; hours = g 2; minutes = g 3; seconds = g 4 }
   with Not_found ->
-    let rex = Regexp.regexp "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
-    let sub = Regexp.exec rex t in
+    let rex = Re.Pcre.regexp "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
+    let sub = Re.Pcre.exec ~rex t in
     let g = g sub in
     {
       Parsed_term.week = g 1;
       hours = g 2;
-      minutes =
-        Some (int_of_string (Option.get (List.nth sub.Regexp.matches 3)));
+      minutes = Some (int_of_string (Re.Pcre.get_substring sub 3));
       seconds = None;
     }
 

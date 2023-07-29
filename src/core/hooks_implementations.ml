@@ -1,45 +1,6 @@
 module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
 
-let cflags_of_flags (flags : Liquidsoap_lang.Regexp.flag list) =
-  List.fold_left
-    (fun l f ->
-      match f with
-        | `i -> `CASELESS :: l
-        (* `g is handled at the call level. *)
-        | `g -> l
-        | `s -> `DOTALL :: l
-        | `m -> `MULTILINE :: l)
-    [] flags
-
-let regexp ?(flags = []) s =
-  let iflags = Pcre.cflags (cflags_of_flags flags) in
-  let rex = Pcre.regexp ~iflags s in
-  object
-    method split s = Pcre.split ~rex s
-
-    method exec s =
-      let sub = Pcre.exec ~rex s in
-      let matches = Array.to_list (Pcre.get_opt_substrings sub) in
-      let groups =
-        List.fold_left
-          (fun groups name ->
-            try (name, Pcre.get_named_substring rex name sub) :: groups
-            with _ -> groups)
-          []
-          (Array.to_list (Pcre.names rex))
-      in
-      { Lang.Regexp.matches; groups }
-
-    method test s = Pcre.pmatch ~rex s
-
-    method substitute ~subst s =
-      let substitute =
-        if List.mem `g flags then Pcre.substitute else Pcre.substitute_first
-      in
-      substitute ~rex ~subst s
-  end
-
 (* For source eval check there are cases of:
      source('a) <: (source('a).{ source methods })?
    b/c of source.dynamic so we want to dig deeper
@@ -153,7 +114,6 @@ let register () =
   Dtools.Log.conf_file#on_change on_change;
   ignore (Option.map on_change Dtools.Log.conf_file#get_d);
   Hooks.collect_after := Clock.collect_after;
-  Hooks.regexp := regexp;
   (Hooks.make_log := fun name -> (Log.make name :> Hooks.log));
   Hooks.type_of_encoder := Lang_encoder.type_of_encoder;
   Hooks.make_encoder := Lang_encoder.make_encoder;

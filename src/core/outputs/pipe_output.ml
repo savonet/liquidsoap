@@ -22,6 +22,8 @@
 
 (** base class *)
 
+module Pcre = Re.Pcre
+
 let output = Modules.output
 
 let encoder_factory ?format format_val =
@@ -436,7 +438,9 @@ class virtual ['a] file_output_base p =
       let filename = filename () in
       let filename = Lang_string.home_unrelate filename in
       (* Avoid / in metas for filename.. *)
-      let subst m = Pcre.substitute ~pat:"/" ~subst:(fun _ -> "-") m in
+      let subst m =
+        Pcre.substitute ~rex:(Pcre.regexp "/") ~subst:(fun _ -> "-") m
+      in
       self#interpolate ~subst filename
 
     method virtual open_out_gen : open_flag list -> int -> string -> 'a
