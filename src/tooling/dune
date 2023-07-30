@@ -8,4 +8,10 @@
 
 (library
  (name liquidsoap_tooling)
+ (modules parsed_json)
  (libraries liquidsoap_lang))
+
+(executable
+ (name json_dump)
+ (modules json_dump)
+ (libraries liquidsoap_tooling liquidsoap_lang liquidsoap_core))

@@ -6,7 +6,7 @@ let execute expr =
   let throw = Runtime.throw ~formatter:Format.str_formatter lexbuf in
   (try
      try
-       let expr = Runtime.mk_expr ~pwd:"/static" Parser.program lexbuf in
+       let expr = Runtime.mk_expr ~pwd:"/static" Runtime.program lexbuf in
        Typechecking.check ~throw ~ignored:false expr;
        Term.check_unused ~throw ~lib:true expr;
        let v = !Hooks.collect_after (fun () -> Evaluation.eval_toplevel expr) in

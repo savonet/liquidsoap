@@ -63,8 +63,7 @@ let while_reducer ?pos ~to_term = function
       let while_loop = mk_fun ?pos [] (to_term while_loop) in
       `App (op, [("", while_condition); ("", while_loop)])
 
-let base_for_reducer ?pos for_variable for_variable_position for_iterator
-    for_loop =
+let base_for_reducer ?pos for_variable for_iterator for_loop =
   let for_op = mk ?pos (`Var "for") in
   let for_loop =
     mk_fun ?pos
@@ -72,7 +71,7 @@ let base_for_reducer ?pos for_variable for_variable_position for_iterator
         {
           label = "";
           as_variable = Some for_variable;
-          typ = Type.var ~pos:for_variable_position ();
+          typ = Type.var ();
           default = None;
         };
       ]
@@ -82,18 +81,13 @@ let base_for_reducer ?pos for_variable for_variable_position for_iterator
 
 let iterable_for_reducer ?pos ~to_term = function
   | `Iterable_for
-      {
-        iterable_for_variable;
-        iterable_for_variable_position;
-        iterable_for_iterator;
-        iterable_for_loop;
-      } ->
-      base_for_reducer ?pos iterable_for_variable iterable_for_variable_position
+      { iterable_for_variable; iterable_for_iterator; iterable_for_loop } ->
+      base_for_reducer ?pos iterable_for_variable
         (to_term iterable_for_iterator)
         (to_term iterable_for_loop)
 
 let for_reducer ?pos ~to_term = function
-  | `For { for_variable; for_variable_position; for_from; for_to; for_loop } ->
+  | `For { for_variable; for_from; for_to; for_loop } ->
       let to_op = mk ?pos (`Var "iterator") in
       let to_op =
         mk ?pos
@@ -102,8 +96,7 @@ let for_reducer ?pos ~to_term = function
       let for_condition =
         mk ?pos (`App (to_op, [("", to_term for_from); ("", to_term for_to)]))
       in
-      base_for_reducer ?pos for_variable for_variable_position for_condition
-        (to_term for_loop)
+      base_for_reducer ?pos for_variable for_condition (to_term for_loop)
 
 let infix_reducer ?pos ~to_term = function
   | `Infix (tm, op, tm') ->
@@ -153,14 +146,7 @@ let regexp_reducer ?pos ~to_term:_ = function
       `App (op, [("", regexp); ("flags", flags)])
 
 let try_reducer ?pos ~to_term = function
-  | `Try
-      {
-        try_body;
-        try_variable;
-        try_variable_position;
-        try_errors_list;
-        try_handler;
-      } ->
+  | `Try { try_body; try_variable; try_errors_list; try_handler } ->
       let try_body = mk_fun ?pos [] (to_term try_body) in
       let err_arg =
         [
@@ -168,7 +154,7 @@ let try_reducer ?pos ~to_term = function
             {
               label = "";
               as_variable = Some try_variable;
-              typ = Type.var ~pos:try_variable_position ();
+              typ = Type.var ();
               default = None;
             };
         ]
@@ -184,6 +170,30 @@ let try_reducer ?pos ~to_term = function
             { Term_base.invoked = error_module; default = None; meth = "catch" })
       in
       `App (op, [("errors", try_errors_list); ("", try_body); ("", handler)])
+
+let fun_arg_reducer ?pos ~to_term arg =
+  {
+    arg with
+    typ = Parser_helper.mk_ty ?pos arg.typ;
+    default = Option.map to_term arg.default;
+  }
+
+let fun_reducer ?pos ~to_term = function
+  | `Parsed_fun p ->
+      `Fun
+        {
+          p with
+          arguments = List.map (fun_arg_reducer ?pos ~to_term) p.arguments;
+          body = to_term p.body;
+        }
+  | `Parsed_rfun (n, p) ->
+      `RFun
+        ( n,
+          {
+            p with
+            arguments = List.map (fun_arg_reducer ?pos ~to_term) p.arguments;
+            body = to_term p.body;
+          } )
 
 let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Get _ as ast -> get_reducer ?pos ~to_term ast
@@ -202,6 +212,9 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
   | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast
+  | `Parsed_fun _ as ast -> fun_reducer ?pos ~to_term ast
+  | `Parsed_rfun _ as ast -> fun_reducer ?pos ~to_term ast
+  | `Parsed_cast (tm, t) -> `Cast (to_term tm, Parser_helper.mk_ty ?pos t)
   | `Ground g -> `Ground g
   | `Encoder e -> `Encoder (to_encoder e)
   | `List l -> `List (List.map to_term l)

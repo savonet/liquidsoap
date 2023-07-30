@@ -83,18 +83,17 @@ type 'a invoke = 'a Term_base.invoke = {
   meth : string;
 }
 
-(* ~l1:x1 .. ?li:(xi=defi) .. *)
-type 'a func_argument = 'a Term_base.func_argument = {
+type ('a, 'b) func_argument = ('a, 'b) Term_base.func_argument = {
   label : string;
   as_variable : string option;
-  typ : Type.t;
-  default : 'a option;
+  typ : 'a;
+  default : 'b option;
 }
 
-type 'a func = 'a Term_base.func = {
+type ('a, 'b) func = ('a, 'b) Term_base.func = {
   mutable free_vars : Vars.t option;
-  arguments : 'a func_argument list;
-  body : 'a;
+  arguments : ('a, 'b) func_argument list;
+  body : 'b;
 }
 
 type 'a ast =
@@ -110,11 +109,11 @@ type 'a ast =
   | `Var of string
   | `Seq of 'a * 'a
   | `App of 'a * (string * 'a) list
-  | `Fun of 'a func
+  | `Fun of (Type.t, 'a) func
   | (* A recursive function, the first string is the name of the recursive
         variable. *)
     `RFun of
-    string * 'a func ]
+    string * (Type.t, 'a) func ]
 
 type t = runtime_ast term
 and runtime_ast = t ast
@@ -131,7 +130,7 @@ val trim_runtime_types : unit -> unit
 val free_vars_pat : pattern -> Vars.t
 val bound_vars_pat : pattern -> Vars.t
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
-val free_fun_vars : t func -> Vars.t
+val free_fun_vars : (Type.t, t) func -> Vars.t
 val can_ignore : Type.t -> bool
 
 exception Unbound of Pos.Option.t * string

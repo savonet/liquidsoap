@@ -40,12 +40,17 @@ val load_libs :
    after printing language errors. *)
 val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
 
+val program :
+  (unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t
+
 val mk_expr :
   ?fname:string ->
   pwd:string ->
-  (Parser.token, Parsed_term.t) MenhirLib.Convert.traditional ->
+  ((unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t) ->
   Sedlexing.lexbuf ->
   Term.t
+
+val parse_file : string -> Parsed_term.t
 
 (** Evaluate a script from an [in_channel]. *)
 val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit

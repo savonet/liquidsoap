@@ -220,17 +220,17 @@ and 'a ast_encoder = string * 'a ast_encoder_params
 type 'a invoke = { invoked : 'a; default : 'a option; meth : string }
 
 (* ~l1:x1 .. ?li:(xi=defi) .. *)
-type 'a func_argument = {
+type ('a, 'b) func_argument = {
   label : string;
   as_variable : string option;
-  typ : Type.t;
-  default : 'a option;
+  typ : 'a;
+  default : 'b option;
 }
 
-type 'a func = {
+type ('a, 'b) func = {
   mutable free_vars : Vars.t option;
-  arguments : 'a func_argument list;
-  body : 'a;
+  arguments : ('a, 'b) func_argument list;
+  body : 'b;
 }
 
 type 'a ast =
@@ -246,11 +246,11 @@ type 'a ast =
   | `Var of string
   | `Seq of 'a * 'a
   | `App of 'a * (string * 'a) list
-  | `Fun of 'a func
+  | `Fun of (Type.t, 'a) func
   | (* A recursive function, the first string is the name of the recursive
         variable. *)
     `RFun of
-    string * 'a func ]
+    string * (Type.t, 'a) func ]
 
 type t = runtime_ast term
 and runtime_ast = t ast
@@ -291,6 +291,7 @@ let rec string_of_pat = function
 
 (** String representation of terms, (almost) assuming they are in normal
     form. *)
+
 let rec to_string (v : t) =
   let to_base_string (v : t) =
     match v.term with
@@ -311,7 +312,7 @@ let rec to_string (v : t) =
       | `List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | `Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | `Null -> "null"
-      | `Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Repr.string_of_type t ^ ")"
+      | `Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Type.to_string t ^ ")"
       | `Invoke { invoked = e; meth = l; default } -> (
           match default with
             | None -> to_string e ^ "." ^ l

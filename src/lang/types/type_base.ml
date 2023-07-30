@@ -133,6 +133,8 @@ module Subst = struct
   let is_identity (s : t) = M.is_empty s
 end
 
+type 'a argument = bool * string * 'a
+
 module R = struct
   type meth = {
     name : string;
@@ -147,7 +149,7 @@ module R = struct
     | `Tuple of t list
     | `Nullable of t
     | `Meth of meth * t (* label, type scheme, JSON name, base type *)
-    | `Arrow of (bool * string * t) list * t
+    | `Arrow of t argument list * t
     | `Getter of t
     | `EVar of var (* existential variable *)
     | `UVar of var (* universal variable *)
@@ -181,7 +183,7 @@ type descr +=
   | Tuple of t list
   | Nullable of t  (** something that is either t or null *)
   | Meth of meth * t  (** t with a method added *)
-  | Arrow of (bool * string * t) list * t  (** a function *)
+  | Arrow of t argument list * t  (** a function *)
   | Var of invar ref  (** a type variable *)
 
 exception NotImplemented

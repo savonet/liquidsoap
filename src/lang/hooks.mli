@@ -31,12 +31,7 @@ val has_encoder : (Value.t -> bool) ref
 val collect_after : ((unit -> Value.t) -> Value.t) ref
 
 val mk_source_ty :
-  (pos:Pos.t ->
-  extensible:bool ->
-  string ->
-  (string * (string * (string * string) list)) list ->
-  Type.t)
-  ref
+  (?pos:Pos.t -> string -> Parsed_term.source_annotation -> Type.t) ref
 
 val source_methods_t : (unit -> Type.t) ref
 val getpwnam : (string -> Unix.passwd_entry) ref

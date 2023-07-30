@@ -48,49 +48,100 @@ let json_of_if ~to_json { if_condition; if_then; if_else } : Json.t =
 let json_of_while ~to_json { while_condition; while_loop } : Json.t =
   `Assoc [("condition", to_json while_condition); ("loop", to_json while_loop)]
 
-let json_of_for ~to_json
-    { for_variable; for_variable_position; for_from; for_to; for_loop } : Json.t
-    =
+let json_of_for ~to_json { for_variable; for_from; for_to; for_loop } : Json.t =
   `Assoc
     [
       ("variable", `String for_variable);
-      ("variable_position", json_of_positions (Some for_variable_position));
       ("from", to_json for_from);
       ("to", to_json for_to);
       ("loop", to_json for_loop);
     ]
 
 let json_of_iterable_for ~to_json
-    {
-      iterable_for_variable;
-      iterable_for_variable_position;
-      iterable_for_iterator;
-      iterable_for_loop;
-    } : Json.t =
+    { iterable_for_variable; iterable_for_iterator; iterable_for_loop } : Json.t
+    =
   `Assoc
     [
       ("variable", `String iterable_for_variable);
-      ( "variable_position",
-        json_of_positions (Some iterable_for_variable_position) );
       ("iterator", to_json iterable_for_iterator);
       ("loop", to_json iterable_for_loop);
     ]
 
 let json_of_try ~to_json
-    {
-      try_body;
-      try_variable;
-      try_variable_position;
-      try_errors_list;
-      try_handler;
-    } : Json.t =
+    { try_body; try_variable; try_errors_list; try_handler } : Json.t =
   `Assoc
     [
       ("body", to_json try_body);
       ("variable", `String try_variable);
-      ("variable_position", json_of_positions (Some try_variable_position));
       ("errors_list", to_json try_errors_list);
       ("handler", to_json try_handler);
+    ]
+
+let type_node ~typ value =
+  `Assoc
+    [
+      ("type", `String "type_annotation");
+      ("subtype", `String typ);
+      ("value", value);
+    ]
+
+let rec json_of_type_annotation = function
+  | `Named n -> type_node ~typ:"named" (`String n)
+  | `Nullable t -> type_node ~typ:"nullable" (json_of_type_annotation t)
+  | `List t -> type_node ~typ:"list" (json_of_type_annotation t)
+  | `Json_object t -> type_node ~typ:"json_object" (json_of_type_annotation t)
+  | `Tuple l ->
+      type_node ~typ:"tuple" (`Tuple (List.map json_of_type_annotation l))
+  | `Arrow (args, t) ->
+      type_node ~typ:"arrow"
+        (`Tuple
+          [
+            `Tuple
+              (List.map
+                 (fun (b, s, t) ->
+                   `Tuple [`Bool b; `String s; json_of_type_annotation t])
+                 args);
+            json_of_type_annotation t;
+          ])
+  | `Record l ->
+      type_node ~typ:"record" (`Tuple (List.map json_of_meth_annotation l))
+  | `Method (t, l) ->
+      type_node ~typ:"method"
+        (`Tuple
+          [
+            json_of_type_annotation t;
+            `Tuple (List.map json_of_meth_annotation l);
+          ])
+  | `Invoke (t, s) ->
+      type_node ~typ:"invoke" (`Tuple [json_of_type_annotation t; `String s])
+  | `Source (n, t) ->
+      type_node ~typ:"source" (`Tuple [`String n; json_of_source_annotation t])
+
+and json_of_meth_annotation { optional; name; typ; json_name } =
+  `Assoc
+    [
+      ("optional", `Bool optional);
+      ("name", `String name);
+      ("type", json_of_type_annotation typ);
+      ("json_name", match json_name with None -> `Null | Some n -> `String n);
+    ]
+
+and json_of_source_annotation { extensible; tracks } =
+  `Assoc
+    [
+      ("extensible", `Bool extensible);
+      ("tracks", `Tuple (List.map json_of_source_track_annotation tracks));
+    ]
+
+and json_of_source_track_annotation { track_name; track_type; track_params } =
+  `Assoc
+    [
+      ("name", `String track_name);
+      ("type", `String track_type);
+      ( "params",
+        `Tuple
+          (List.map (fun (l, v) -> `Tuple [`String l; `String v]) track_params)
+      );
     ]
 
 let ast_node ~typ value = `Assoc [("type", `String typ); ("value", value)]
@@ -137,7 +188,7 @@ let json_of_func_argument ~to_json
       ("label", `String label);
       ( "as_variable",
         match as_variable with None -> `Null | Some v -> `String v );
-      ("typ", `String (Type.to_string typ));
+      ("typ", json_of_type_annotation typ);
       ("default", match default with None -> `Null | Some d -> to_json d);
     ]
 
@@ -180,8 +231,8 @@ let rec to_ast_json : parsed_ast -> Json.t = function
   | `List l -> ast_node ~typ:"list" (`Tuple (List.map to_json l))
   | `Tuple l -> ast_node ~typ:"tuple" (`Tuple (List.map to_json l))
   | `Null -> ast_node ~typ:"null" `Null
-  | `Cast (t, typ) ->
-      ast_node ~typ:"cast" (`Tuple [to_json t; `String (Type.to_string typ)])
+  | `Parsed_cast (t, typ) ->
+      ast_node ~typ:"cast" (`Tuple [to_json t; json_of_type_annotation typ])
   | `Invoke { Term_base.invoked; default; meth } ->
       ast_node ~typ:"invoke"
         (`Assoc
@@ -203,9 +254,10 @@ let rec to_ast_json : parsed_ast -> Json.t = function
               `Tuple (List.map (fun (v, t) -> `Tuple [`String v; to_json t]) l)
             );
           ])
-  | `Fun p -> ast_node ~typ:"fun" (json_of_func ~to_json p)
-  | `RFun (lbl, p) ->
+  | `Parsed_fun p -> ast_node ~typ:"fun" (json_of_func ~to_json p)
+  | `Parsed_rfun (lbl, p) ->
       ast_node ~typ:"rfun" (`Tuple [`String lbl; json_of_func ~to_json p])
+  | `Cast _ | `Fun _ | `RFun _ -> assert false
 
 and to_encoder_json (lbl, params) =
   `Tuple [`String lbl; `Tuple (List.map to_encoder_param_json params)]

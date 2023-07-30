@@ -216,8 +216,12 @@ let report lexbuf f =
 
 (** {1 Parsing} *)
 
+let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
+
+let interactive =
+  MenhirLib.Convert.Simplified.traditional2revised Parser.interactive
+
 let mk_expr ?fname ~pwd processor lexbuf =
-  let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
   let tokenizer = Preprocessor.mk_tokenizer ?fname ~pwd lexbuf in
   let parsed_term = processor tokenizer in
   Term_reducer.to_term parsed_term
@@ -228,12 +232,22 @@ let from_lexbuf ?fname ?(dir = Sys.getcwd ()) ?(parse_only = false) ~ns ~lib
     match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
   end;
   report lexbuf (fun ~throw () ->
-      let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
+      let expr = mk_expr ?fname ~pwd:dir program lexbuf in
       if not parse_only then type_and_run ~throw ~lib expr)
 
 let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
   from_lexbuf ?fname ?dir ?parse_only ~ns ~lib lexbuf
+
+let parse_file filename =
+  let ic = open_in filename in
+  let fname = Lang_string.home_unrelate filename in
+  let lexbuf = Sedlexing.Utf8.from_channel ic in
+  Sedlexing.set_filename lexbuf filename;
+  let tokenizer =
+    Preprocessor.mk_tokenizer ~fname ~pwd:(Sys.getcwd ()) lexbuf
+  in
+  Fun.protect ~finally:(fun () -> close_in ic) (fun () -> program tokenizer)
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
@@ -282,7 +296,7 @@ let parse_with_lexbuf s =
       if !pos < len then Some s.[!pos] else None
   in
   let lexbuf = Sedlexing.Utf8.from_gen gen in
-  (mk_expr ~pwd:(Sys.getcwd ()) Parser.program lexbuf, lexbuf)
+  (mk_expr ~pwd:(Sys.getcwd ()) program lexbuf, lexbuf)
 
 let parse s = fst (parse_with_lexbuf s)
 
@@ -339,7 +353,7 @@ let interactive () =
     if
       try
         report lexbuf (fun ~throw () ->
-            let expr = mk_expr ~pwd:(Sys.getcwd ()) Parser.interactive lexbuf in
+            let expr = mk_expr ~pwd:(Sys.getcwd ()) interactive lexbuf in
             Typechecking.check ~throw ~ignored:false expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore

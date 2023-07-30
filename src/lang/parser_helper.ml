@@ -28,7 +28,7 @@ open Parsed_term
 module Term = Parsed_term
 module Vars = Term_base.Vars
 
-type arglist = Term.t func_argument list
+type arglist = (Type.t, Term.t) func_argument list
 
 type lexer_let_decoration =
   [ `None | `Recursive | `Replaces | `Eval | `Json_parse | `Yaml_parse ]
@@ -52,8 +52,71 @@ type binding = {
   cast : Type.t option;
 }
 
+let mk_source_ty ?pos name args =
+  let fn = !Hooks.mk_source_ty in
+  fn ?pos name args
+
+let mk_named_ty ?pos = function
+  | "_" -> Type.var ?pos ()
+  | "unit" -> Type.make Type.unit
+  | "never" -> Type.make Type.Ground.never
+  | "bool" -> Type.make Type.Ground.bool
+  | "int" -> Type.make Type.Ground.int
+  | "float" -> Type.make Type.Ground.float
+  | "string" -> Type.make Type.Ground.string
+  | "ref" -> Type.reference (Type.var ())
+  | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
+  | "source_methods" -> !Hooks.source_methods_t ()
+  | name -> (
+      match Type.find_type_opt name with
+        | Some c -> c ()
+        | None ->
+            let pos =
+              Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos
+            in
+            raise
+              (Term_base.Parse_error
+                 (pos, "Unknown type constructor: " ^ name ^ ".")))
+
+let rec mk_ty ?pos = function
+  | `Named s -> mk_named_ty ?pos s
+  | `Nullable t -> Type.(make (Nullable (mk_ty ?pos t)))
+  | `List t -> Type.(make (List { t = mk_ty ?pos t; json_repr = `Tuple }))
+  | `Json_object t ->
+      Type.(make (List { t = mk_ty ?pos t; json_repr = `Object }))
+  | `Tuple l -> Type.(make (Tuple (List.map (mk_ty ?pos) l)))
+  | `Arrow (args, t) ->
+      Type.(
+        make
+          (Arrow
+             ( List.map
+                 (fun (optional, name, t) -> (optional, name, mk_ty ?pos t))
+                 args,
+               mk_ty ?pos t )))
+  | `Record l -> List.fold_left (mk_meth_ty ?pos) Type.(make (Tuple [])) l
+  | `Method (t, l) -> List.fold_left (mk_meth_ty ?pos) (mk_ty ?pos t) l
+  | `Invoke (t, s) -> snd (Type.invoke (mk_ty ?pos t) s)
+  | `Source (s, p) -> mk_source_ty ?pos s p
+
+and mk_meth_ty ?pos base { Term.name; optional; typ; json_name } =
+  Type.(
+    make
+      (Meth
+         ( {
+             meth = name;
+             optional;
+             scheme = ([], mk_ty ?pos typ);
+             doc = "";
+             json_name;
+           },
+           base )))
+
 let let_args ?doc ~decoration ~pat ?arglist ~def ?cast () =
-  { doc; decoration; pat; arglist; def; cast }
+  { doc; decoration; pat; arglist; def; cast = Option.map mk_ty cast }
+
+let mk_json_assoc_object_ty ~pos = function
+  | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty
+  | _ -> raise (Term_base.Parse_error (pos, "Invalid type constructor"))
 
 type encoder_param =
   string * [ `Term of Term.t | `Encoder of string * encoder_opt ]
@@ -69,13 +132,6 @@ type ty_content_args = ty_content_arg list
 type ty_content = string * ty_content_args
 type varlist = [ `List of Term.t list | `App of Term.t ]
 type meth_pattern_el = string * Term.pattern option
-
-type meth_ty_opt = {
-  meth_ty_name : string;
-  meth_ty_typ : Type.t;
-  meth_ty_optional : bool;
-  meth_ty_json_name : string option;
-}
 
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
@@ -526,55 +582,3 @@ let during ~pos d =
 let mk_time_pred ~pos (a, b, c) =
   let args = List.map (fun x -> ("", mk ~pos (`Ground (Int x)))) [a; b; c] in
   mk ~pos (`App (mk ~pos (`Var "time_in_mod"), args))
-
-let mk_source_ty ~pos name args =
-  let fn = !Hooks.mk_source_ty in
-  fn ~pos name args
-
-let mk_json_assoc_object_ty ~pos = function
-  | ( {
-        Type.descr =
-          Type.Tuple
-            [
-              { Type.descr = Type.Custom { Type.typ = Type.Ground.String.Type } };
-              ty;
-            ];
-      },
-      "as",
-      "json",
-      "object" ) ->
-      Type.(
-        make ~pos
-          (List
-             {
-               t = make ~pos (Tuple [make Type.Ground.string; ty]);
-               json_repr = `Object;
-             }))
-  | _ -> raise (Term_base.Parse_error (pos, "Invalid type constructor"))
-
-let mk_ty ~pos name =
-  match name with
-    | "_" -> Type.var ()
-    | "unit" -> Type.make Type.unit
-    | "never" -> Type.make Type.Ground.never
-    | "bool" -> Type.make Type.Ground.bool
-    | "int" -> Type.make Type.Ground.int
-    | "float" -> Type.make Type.Ground.float
-    | "string" -> Type.make Type.Ground.string
-    | "ref" -> Type.reference (Type.var ())
-    | "source" -> mk_source_ty ~pos ~extensible:true "source" []
-    | "source_methods" -> !Hooks.source_methods_t ()
-    | name -> (
-        match Type.find_type_opt name with
-          | Some c -> c ()
-          | None ->
-              raise
-                (Term_base.Parse_error
-                   (pos, "Unknown type constructor: " ^ name ^ ".")))
-
-let mk_invoke_ty ~pos ty name =
-  try snd (Type.invoke ty name)
-  with Not_found ->
-    raise
-      (Term_base.Parse_error
-         (pos, "Unknown type: " ^ Type.to_string ty ^ "." ^ name ^ "."))

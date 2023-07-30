@@ -508,14 +508,15 @@ let priority =
     ~p:(Decoder.conf_priorities#plug "ffmpeg")
     "Priority for the ffmpeg decoder" ~d:10
 
-let parse_encoder_params s =
-  let lexbuf = Sedlexing.Utf8.from_string ("(" ^ s ^ ")") in
+let parse_encoder_params =
   let processor =
     MenhirLib.Convert.Simplified.traditional2revised
       Liquidsoap_lang.Parser.plain_encoder_params
   in
-  let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
-  Liquidsoap_lang.Term_reducer.to_encoder_params (processor tokenizer)
+  fun s ->
+    let lexbuf = Sedlexing.Utf8.from_string ("(" ^ s ^ ")") in
+    let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
+    Liquidsoap_lang.Term_reducer.to_encoder_params (processor tokenizer)
 
 let parse_input_args args =
   try

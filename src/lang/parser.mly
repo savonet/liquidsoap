@@ -122,8 +122,8 @@ open Parser_helper
 %type <Parser_helper.arglist> arg
 %type <Parser_helper.arglist> arglist
 %type <string list * string list> args_of_params
-%type <(bool * string * Type.t) list> argsty
-%type <bool * string * Type.t> argty
+%type <Term.type_annotation Type.argument list> argsty
+%type <Term.type_annotation Type.argument> argty
 %type <Parser_helper.binding> binding
 %type <Parser_helper.encoder_opt> encoder_opt
 %type <Parser_helper.encoder_param> encoder_param
@@ -144,7 +144,7 @@ open Parser_helper
 %type <Term.pattern> meth_pattern
 %type <Parser_helper.meth_pattern_el> meth_pattern_el
 %type <Parser_helper.meth_pattern_el list> meth_pattern_list
-%type <Parser_helper.meth_ty_opt> meth_ty
+%type <Term.meth_annotation> meth_ty
 %type <Term.t option> opt
 %type <string> optvar
 %type <Term.pattern> pattern
@@ -152,19 +152,19 @@ open Parser_helper
 %type <Term.pattern list * string option * Term.pattern list> pattern_list_with_spread
 %type <Parser_helper.record> record
 %type <Parser_helper.meth_pattern_el list> record_pattern
-%type <Type.t> record_ty
+%type <Term.meth_annotation list> record_ty
 %type <unit> s
 %type <string> spread
 %type <string list> subfield
 %type <string list> subfield_lbra
 %type <Term.pattern> tuple_pattern
-%type <Type.t> ty
+%type <Term.type_annotation> ty
 %type <Parser_helper.ty_content> ty_content
 %type <Parser_helper.ty_content_arg> ty_content_arg
 %type <Parser_helper.ty_content_args> ty_content_args
-%type <Type.t> ty_source
-%type <bool * (string * Parser_helper.ty_content) list> ty_source_params
-%type <Type.t list> ty_tuple
+%type <string * Term.source_annotation> ty_source
+%type <Term.source_annotation> ty_source_tracks
+%type <Term.type_annotation list> ty_tuple
 %type <Term.pattern> var_pattern
 %type <Parser_helper.varlist> varlist
 %type <string list> varlpar
@@ -202,7 +202,7 @@ simple_fun_body:
 
 (* General expressions. *)
 expr:
-  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
+  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Parsed_cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`Negative $3) }
@@ -237,11 +237,10 @@ expr:
   | LCUR simple_fun_body RCUR        { mk ~pos:$loc (`Simple_fun $2) }
   | WHILE expr DO exprs END          { mk ~pos:$loc (`While {while_condition = $2; while_loop = $4 }) }
   | FOR optvar GETS expr TO expr DO exprs END
-                                     { mk ~pos:$loc (`For { for_variable = $2; for_variable_position = $loc($2); for_from = $4; for_to = $6; for_loop = $8 }) }
+                                     { mk ~pos:$loc (`For { for_variable = $2; for_from = $4; for_to = $6; for_loop = $8 }) }
   | FOR optvar GETS expr DO exprs END
                                      { mk ~pos:$loc (`Iterable_for {
                                          iterable_for_variable = $2;
-                                         iterable_for_variable_position = $loc($2);
                                          iterable_for_iterator = $4;
                                          iterable_for_loop = $6
                                        } ) }
@@ -250,13 +249,11 @@ expr:
                                      { mk~pos:$loc (`Try {
                                          Term.try_body = $2;
                                          try_variable = $4;
-                                         try_variable_position = $loc($4);
                                          try_errors_list = mk_list ~pos:$loc($6) $6;
                                          try_handler = $8 }) }
   | TRY exprs CATCH optvar DO exprs END { mk~pos:$loc (`Try {
                                          Term.try_body = $2;
                                          try_variable = $4;
-                                         try_variable_position = $loc($4);
                                          try_errors_list =  mk ~pos:$loc `Null;
                                          try_handler = $6 }) }
   | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
@@ -279,45 +276,43 @@ time_predicate:
   | TIME     { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
 
 ty:
-  | UNDERSCORE                   { Type.var ~pos:$loc () }
-  | VAR                          { mk_ty ~pos:$loc $1 }
-  | ty QUESTION                  { Type.make ~pos:$loc (Type.Nullable $1) }
-  | LBRA ty RBRA                 { Type.make ~pos:$loc (Type.(List {t = $2; json_repr = `Tuple})) }
+  | UNDERSCORE                   { `Named "_" }
+  | VAR                          { `Named $1 }
+  | ty QUESTION                  { `Nullable $1 }
+  | LBRA ty RBRA                 { `List $2 }
   | LBRA ty RBRA VAR VAR DOT VAR { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$5,$7) }
-  | LPAR ty_tuple RPAR           { Type.make ~pos:$loc (Type.Tuple $2) }
-  | LPAR argsty RPAR YIELDS ty   { Type.make ~pos:$loc (Type.Arrow ($2,$5)) }
-  | LCUR record_ty RCUR          { $2 }
-  | ty DOT VAR                   { mk_invoke_ty ~pos:$loc $1 $3 }
-  | ty DOT LCUR record_ty RCUR   { Type.remeth $4 $1 }
-  | ty_source                    { $1 }
+  | LPAR ty_tuple RPAR           { `Tuple $2 }
+  | LPAR argsty RPAR YIELDS ty   { `Arrow ($2,$5) }
+  | LCUR record_ty RCUR          { `Record $2 }
+  | ty DOT VAR                   { `Invoke ($1, $3) }
+  | ty DOT LCUR record_ty RCUR   { `Method ($1, $4) }
+  | ty_source                    { `Source $1 }
 
 record_ty:
-  |                         { Type.make ~pos:$loc (Type.Tuple []) }
-  | meth_ty                 { let {meth_ty_name = name; meth_ty_typ = ty; meth_ty_optional = optional; meth_ty_json_name = json_name} = $1 in
-                              Type.meth ~pos:$loc ?json_name ~optional name ([], ty) (Type.make ~pos:$loc (Type.Tuple [])) }
-  | meth_ty COMMA record_ty { let {meth_ty_name = name; meth_ty_typ = ty; meth_ty_optional = optional; meth_ty_json_name = json_name} = $1 in
-                              Type.meth ~pos:$loc ?json_name ~optional name ([], ty) $3 }
+  |                         { [] }
+  | meth_ty                 { [$1] }
+  | meth_ty COMMA record_ty { $1::$3 }
 
 meth_ty:
-  | VAR COLON ty            { {meth_ty_name = $1; meth_ty_typ = $3; meth_ty_optional = false; meth_ty_json_name = None } }
-  | VAR QUESTION COLON ty   { {meth_ty_name = $1; meth_ty_typ = $4; meth_ty_optional = true; meth_ty_json_name = None } }
+  | VAR COLON ty            { { optional = false; name = $1; typ = $3; json_name = None } }
+  | VAR QUESTION COLON ty   { { optional = true; name = $1; typ = $4; json_name = None } }
   | STRING VAR VAR COLON ty {
        match $2 with
-         |"as" ->             {meth_ty_name = $3; meth_ty_typ = $5; meth_ty_optional = false; meth_ty_json_name = Some $1}
+         |"as" ->             { optional = false; name = $1; typ = $5; json_name = Some $3 }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
   | STRING VAR VAR QUESTION COLON ty {
        match $2 with
-         |"as" ->             {meth_ty_name =$3; meth_ty_typ = $6; meth_ty_optional = true; meth_ty_json_name = Some $1}
+         |"as" ->             { optional = true; name = $1; typ = $6; json_name = Some $3 }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
-  | VARLPAR RPAR                  { mk_source_ty ~pos:$loc ~extensible:false $1 [] }
-  | VARLPAR ty_source_params RPAR { mk_source_ty ~pos:$loc ~extensible:(fst $2) $1 (snd $2) }
+  | VARLPAR RPAR                  { $1, { extensible = false; tracks = [] } }
+  | VARLPAR ty_source_tracks RPAR { $1, $2 }
 
-ty_source_params:
-  | VAR GETS ty_content { false, [$1,$3] }
-  | DOTDOTDOT { true, [] }
-  | VAR GETS ty_content COMMA ty_source_params { fst $5, (($1,$3)::(snd $5)) }
+ty_source_tracks:
+  | VAR GETS ty_content { { extensible = false; tracks = [{track_name = $1; track_type = fst $3; track_params = snd $3}] } }
+  | DOTDOTDOT { { extensible = true; tracks = [] } }
+  | VAR GETS ty_content COMMA ty_source_tracks { { $5 with tracks = { track_name = $1; track_type = fst $3; track_params = snd $3}::$5.tracks } }
 
 ty_content:
   | VAR                           { $1, [] }
@@ -496,11 +491,11 @@ arglist:
   | arg                   { $1 }
   | arg COMMA arglist     { $1@$3 }
 arg:
-  | TILD VAR opt { [{label = $2; as_variable = None; typ = Type.var ~pos:$loc($2) (); default = $3}] }
-  | TILD LPAR VAR COLON ty RPAR opt { [{label = $3; as_variable = None; typ =  $5; default = $7} ] }
-  | TILD VAR GETS UNDERSCORE opt { [{label = $2; as_variable = Some "_"; typ = Type.var ~pos:$loc($2) (); default = $5}] }
-  | optvar opt  { [{label = ""; as_variable = Some $1; typ = Type.var ~pos:$loc($1) (); default = $2}] }
-  | LPAR optvar COLON ty RPAR opt { [{label = ""; as_variable =  Some $2; typ = $4; default =  $6}] }
+  | TILD VAR opt { [{label = $2; as_variable = None; typ = Type.var (); default = $3}] }
+  | TILD LPAR VAR COLON ty RPAR opt { [{label = $3; as_variable = None; typ =  Parser_helper.mk_ty ~pos:$loc($5) $5; default = $7} ] }
+  | TILD VAR GETS UNDERSCORE opt { [{label = $2; as_variable = Some "_"; typ = Type.var (); default = $5}] }
+  | optvar opt  { [{label = ""; as_variable = Some $1; typ = Type.var (); default = $2}] }
+  | LPAR optvar COLON ty RPAR opt { [{label = ""; as_variable =  Some $2; typ = Parser_helper.mk_ty ~pos:$loc($4) $4; default =  $6}] }
   | ARGS_OF LPAR VAR RPAR { args_of ~only:[] ~except:[] ~pos:$loc $3 }
   | ARGS_OF LPAR subfield RPAR
                           { args_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }

@@ -28,10 +28,53 @@ module Ground = Term.Ground
 
 type pattern = Term.pattern
 
-type 'a term = 'a Term_base.term = {
+type meth_annotation = {
+  optional : bool;
+  name : string;
+  typ : type_annotation;
+  json_name : string option;
+}
+
+and source_track_annotation = {
+  track_name : string;
+  track_type : string;
+  track_params : (string * string) list;
+}
+
+and source_annotation = {
+  extensible : bool;
+  tracks : source_track_annotation list;
+}
+
+and type_annotation =
+  [ `Named of string
+  | `Nullable of type_annotation
+  | `List of type_annotation
+  | `Json_object of type_annotation
+  | `Tuple of type_annotation list
+  | `Arrow of type_annotation Type.argument list * type_annotation
+  | `Record of meth_annotation list
+  | `Method of type_annotation * meth_annotation list
+  | `Invoke of type_annotation * string
+  | `Source of string * source_annotation ]
+
+type 'a term = 'a Term.term = {
   mutable t : Type.t;
   term : 'a;
   methods : 'a term Methods.t;
+}
+
+type ('a, 'b) func_argument = ('a, 'b) Term_base.func_argument = {
+  label : string;
+  as_variable : string option;
+  typ : 'a;
+  default : 'b option;
+}
+
+type ('a, 'b) func = ('a, 'b) Term_base.func = {
+  mutable free_vars : Vars.t option;
+  arguments : ('a, 'b) func_argument list;
+  body : 'b;
 }
 
 type 'a _if = { if_condition : 'a; if_then : 'a; if_else : 'a }
@@ -39,7 +82,6 @@ type 'a _while = { while_condition : 'a; while_loop : 'a }
 
 type 'a _for = {
   for_variable : string;
-  for_variable_position : Pos.t;
   for_from : 'a;
   for_to : 'a;
   for_loop : 'a;
@@ -47,7 +89,6 @@ type 'a _for = {
 
 type 'a iterable_for = {
   iterable_for_variable : string;
-  iterable_for_variable_position : Pos.t;
   iterable_for_iterator : 'a;
   iterable_for_loop : 'a;
 }
@@ -55,7 +96,6 @@ type 'a iterable_for = {
 type 'a _try = {
   try_body : 'a;
   try_variable : string;
-  try_variable_position : Pos.t;
   try_errors_list : 'a;
   try_handler : 'a;
 }
@@ -79,7 +119,10 @@ type 'a reduced_ast =
   | `Assoc of 'a * 'a
   | `Infix of 'a * string * 'a
   | `Bool of 'a * string * 'a
-  | `Simple_fun of 'a ]
+  | `Simple_fun of 'a
+  | `Parsed_cast of 'a * type_annotation
+  | `Parsed_fun of (type_annotation, 'a) func
+  | `Parsed_rfun of string * (type_annotation, 'a) func ]
 
 type t = parsed_ast Term.term
 and parsed_ast = [ t reduced_ast | t Term.ast ]
