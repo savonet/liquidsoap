@@ -172,32 +172,90 @@ let rec json_of_pat : pattern -> Json.t = function
                  l);
           ])
 
-let json_of_let ~to_json { Term_base.replace; pat; def; body } =
+let json_of_of { only; except; source } =
   `Assoc
     [
-      ("replace", `Bool replace);
+      ("only", `Tuple (List.map (fun s -> `String s) only));
+      ("except", `Tuple (List.map (fun s -> `String s) except));
+      ("source", `String source);
+    ]
+
+let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> Json.t = function
+  | `Argsof _of ->
+      `Assoc [("type", `String "argsof"); ("value", json_of_of _of)]
+  | `Term { Term_base.label; as_variable; typ; default } ->
+      `Assoc
+        [
+          ("type", `String "term");
+          ( "value",
+            `Assoc
+              [
+                ("label", `String label);
+                ( "as_variable",
+                  match as_variable with None -> `Null | Some v -> `String v );
+                ("typ", json_of_type_annotation typ);
+                ( "default",
+                  match default with None -> `Null | Some d -> to_json d );
+              ] );
+        ]
+
+let json_of_fun ~to_json arguments body =
+  `Assoc
+    [
+      ("arguments", `Tuple (List.map (json_of_fun_arg ~to_json) arguments));
+      ("body", to_json body);
+    ]
+
+let json_of_let_decoration ~to_json : Parsed_term.let_decoration -> Json.t =
+  function
+  | `None -> `Null
+  | `Recursive -> `Assoc [("type", `String "rec")]
+  | `Replaces -> `Assoc [("type", `String "replaces")]
+  | `Eval -> `Assoc [("type", `String "eval")]
+  | `Yaml_parse -> `Assoc [("type", `String "yaml.parse")]
+  | `Json_parse args ->
+      `Assoc
+        [
+          ("type", `String "json.parse");
+          ( "arguments",
+            `Tuple (List.map (fun (l, v) -> `Tuple [`String l; to_json v]) args)
+          );
+        ]
+
+let json_of_let ~to_json { decoration; pat; arglist; cast; def } body =
+  `Assoc
+    [
+      ("decoration", json_of_let_decoration ~to_json decoration);
       ("pat", json_of_pat pat);
+      ( "arglist",
+        match arglist with
+          | None -> `Null
+          | Some arglist -> `Tuple (List.map (json_of_fun_arg ~to_json) arglist)
+      );
+      ( "cast",
+        match cast with None -> `Null | Some t -> json_of_type_annotation t );
       ("definition", to_json def);
       ("body", to_json body);
     ]
 
-let json_of_func_argument ~to_json
-    { Term_base.label; as_variable; typ; default } =
-  `Assoc
-    [
-      ("label", `String label);
-      ( "as_variable",
-        match as_variable with None -> `Null | Some v -> `String v );
-      ("typ", json_of_type_annotation typ);
-      ("default", match default with None -> `Null | Some d -> to_json d);
-    ]
+let json_of_app_arg ~to_json = function
+  | `Term (l, v) ->
+      `Assoc
+        [("type", `String "term"); ("value", `Tuple [`String l; to_json v])]
+  | `Argsof _of ->
+      `Assoc [("type", `String "argsof"); ("value", json_of_of _of)]
 
-let json_of_func ~to_json { Term_base.arguments; body } =
-  `Assoc
-    [
-      ("arguments", `Tuple (List.map (json_of_func_argument ~to_json) arguments));
-      ("body", to_json body);
-    ]
+let json_of_app_args ~to_json args =
+  `Tuple (List.map (json_of_app_arg ~to_json) args)
+
+let json_of_invoke_meth ~to_json = function
+  | `String s -> `Assoc [("type", `String "meth"); ("value", `String s)]
+  | `App (s, args) ->
+      `Assoc
+        [
+          ("type", `String "app");
+          ("value", `Tuple [`String s; json_of_app_args ~to_json args]);
+        ]
 
 let rec to_ast_json : parsed_ast -> Json.t = function
   | `Get t -> ast_node ~typ:"get" (to_json t)
@@ -231,7 +289,7 @@ let rec to_ast_json : parsed_ast -> Json.t = function
   | `List l -> ast_node ~typ:"list" (`Tuple (List.map to_json l))
   | `Tuple l -> ast_node ~typ:"tuple" (`Tuple (List.map to_json l))
   | `Null -> ast_node ~typ:"null" `Null
-  | `Parsed_cast (t, typ) ->
+  | `Cast (t, typ) ->
       ast_node ~typ:"cast" (`Tuple [to_json t; json_of_type_annotation typ])
   | `Invoke { Term_base.invoked; default; meth } ->
       ast_node ~typ:"invoke"
@@ -239,25 +297,23 @@ let rec to_ast_json : parsed_ast -> Json.t = function
           [
             ("invoked", to_json invoked);
             ("default", match default with None -> `Null | Some d -> to_json d);
-            ("meth", `String meth);
+            ("meth", json_of_invoke_meth ~to_json meth);
           ])
   | `Open (t, t') -> ast_node ~typ:"open" (`Tuple [to_json t; to_json t'])
-  | `Let p -> ast_node ~typ:"let" (json_of_let ~to_json p)
+  | `Let (p, body) -> ast_node ~typ:"let" (json_of_let ~to_json p body)
+  | `Def (p, body) -> ast_node ~typ:"def" (json_of_let ~to_json p body)
+  | `Binding (p, body) -> ast_node ~typ:"binding" (json_of_let ~to_json p body)
+  | `Coalesce (t, t') ->
+      ast_node ~typ:"coalesce" (`Tuple [to_json t; to_json t'])
   | `Var s -> ast_node ~typ:"var" (`String s)
   | `Seq (t, t') -> ast_node ~typ:"seq" (`Tuple [to_json t; to_json t'])
-  | `App (t, l) ->
+  | `App (t, args) ->
       ast_node ~typ:"app"
-        (`Assoc
-          [
-            ("op", to_json t);
-            ( "args",
-              `Tuple (List.map (fun (v, t) -> `Tuple [`String v; to_json t]) l)
-            );
-          ])
-  | `Parsed_fun p -> ast_node ~typ:"fun" (json_of_func ~to_json p)
-  | `Parsed_rfun (lbl, p) ->
-      ast_node ~typ:"rfun" (`Tuple [`String lbl; json_of_func ~to_json p])
-  | `Cast _ | `Fun _ | `RFun _ -> assert false
+        (`Assoc [("op", to_json t); ("args", json_of_app_args ~to_json args)])
+  | `Fun (args, body) -> ast_node ~typ:"fun" (json_of_fun ~to_json args body)
+  | `RFun (lbl, args, body) ->
+      ast_node ~typ:"rfun"
+        (`Tuple [`String lbl; json_of_fun ~to_json args body])
 
 and to_encoder_json (lbl, params) =
   `Tuple [`String lbl; `Tuple (List.map to_encoder_param_json params)]
