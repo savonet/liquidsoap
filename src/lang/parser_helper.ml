@@ -67,7 +67,13 @@ let rec mk_ty ?pos = function
   | `Nullable t -> Type.(make (Nullable (mk_ty ?pos t)))
   | `List t -> Type.(make (List { t = mk_ty ?pos t; json_repr = `Tuple }))
   | `Json_object t ->
-      Type.(make (List { t = mk_ty ?pos t; json_repr = `Object }))
+      Type.(
+        make
+          (List
+             {
+               t = mk_ty ?pos (`Tuple [`Named "string"; t]);
+               json_repr = `Object;
+             }))
   | `Tuple l -> Type.(make (Tuple (List.map (mk_ty ?pos) l)))
   | `Arrow (args, t) ->
       Type.(

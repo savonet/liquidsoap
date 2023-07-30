@@ -298,11 +298,11 @@ meth_ty:
   | VAR QUESTION COLON ty   { { optional = true; name = $1; typ = $4; json_name = None } }
   | STRING VAR VAR COLON ty {
        match $2 with
-         |"as" ->             { optional = false; name = $1; typ = $5; json_name = Some $3 }
+         |"as" ->             { optional = false; name = $3; typ = $5; json_name = Some $1 }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
   | STRING VAR VAR QUESTION COLON ty {
        match $2 with
-         |"as" ->             { optional = true; name = $1; typ = $6; json_name = Some $3 }
+         |"as" ->             { optional = true; name = $3; typ = $6; json_name = Some $1 }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
