@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+include module type of Term_types
+
 exception Internal_error of (Pos.t list * string)
 exception Unsupported_encoder of (Pos.t option * string)
 
@@ -29,7 +31,6 @@ val debug : bool Lazy.t
 val profile : bool ref
 val ref_t : ?pos:Pos.t -> Type.t -> Type.t
 
-module Vars = Term_base.Vars
 module Ground = Term_base.Ground
 
 module type GroundDef = sig
@@ -45,79 +46,6 @@ module MkGround : functor (D : GroundDef) -> sig
   type Ground.t += Ground of D.content
 end
 
-module Methods = Term_base.Methods
-
-type pattern =
-  [ `PVar of string list  (** a field *)
-  | `PTuple of pattern list  (** a tuple *)
-  | `PList of pattern list * string option * pattern list  (** a list *)
-  | `PMeth of pattern option * (string * pattern option) list
-    (** a value with methods *) ]
-
-(** Documentation for declarations: general documentation, parameters, methods. *)
-type doc = Doc.Value.t
-
-type 'a term = 'a Term_base.term = {
-  mutable t : Type.t;
-  term : 'a;
-  methods : 'a term Methods.t;
-}
-
-type 'a let_t = 'a Term_base.let_t = {
-  doc : doc option;
-  replace : bool;
-  pat : pattern;
-  mutable gen : Type.var list;
-  def : 'a;
-  body : 'a;
-}
-
-type 'a ast_encoder_params =
-  (string * [ `Encoder of 'a ast_encoder | `Term of 'a ]) list
-
-and 'a ast_encoder = string * 'a ast_encoder_params
-
-type 'a invoke = 'a Term_base.invoke = {
-  invoked : 'a;
-  default : 'a option;
-  meth : string;
-}
-
-type ('a, 'b) func_argument = ('a, 'b) Term_base.func_argument = {
-  label : string;
-  as_variable : string option;
-  typ : 'a;
-  default : 'b option;
-}
-
-type ('a, 'b) func = ('a, 'b) Term_base.func = {
-  mutable free_vars : Vars.t option;
-  arguments : ('a, 'b) func_argument list;
-  body : 'b;
-}
-
-type 'a ast =
-  [ `Ground of Ground.t
-  | `Encoder of 'a ast_encoder
-  | `List of 'a list
-  | `Tuple of 'a list
-  | `Null
-  | `Cast of 'a * Type.t
-  | `Invoke of 'a invoke
-  | `Open of 'a * 'a
-  | `Let of 'a let_t
-  | `Var of string
-  | `Seq of 'a * 'a
-  | `App of 'a * (string * 'a) list
-  | `Fun of (Type.t, 'a) func
-  | (* A recursive function, the first string is the name of the recursive
-        variable. *)
-    `RFun of
-    string * (Type.t, 'a) func ]
-
-type t = runtime_ast term
-and runtime_ast = t ast
-
 type encoder_params = t ast_encoder_params
 type encoder = t ast_encoder
 
@@ -130,7 +58,7 @@ val trim_runtime_types : unit -> unit
 val free_vars_pat : pattern -> Vars.t
 val bound_vars_pat : pattern -> Vars.t
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
-val free_fun_vars : (Type.t, t) func -> Vars.t
+val free_fun_vars : (t, Type.t) func -> Vars.t
 val can_ignore : Type.t -> bool
 
 exception Unbound of Pos.Option.t * string

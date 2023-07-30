@@ -25,29 +25,13 @@
 module Term = Parsed_term
 module Vars = Term_base.Vars
 
-type arglist = (Type.t, Term.t) Term_base.func_argument list
+type arglist = Term.fun_arg list
 
 type lexer_let_decoration =
   [ `Eval | `Json_parse | `None | `Recursive | `Replaces | `Yaml_parse ]
 
-type let_decoration =
-  [ `Eval
-  | `Json_parse of (string * Term.t) list
-  | `None
-  | `Recursive
-  | `Replaces
-  | `Yaml_parse ]
-
-type app_list_elem = (string * Term.t) list
-
-type binding = {
-  doc : Doc.Value.t option;
-  decoration : let_decoration;
-  pat : Term.pattern;
-  arglist : arglist option;
-  def : Term.t;
-  cast : Type.t option;
-}
+type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
+type binding = [ explicit_binding | `Binding of Term._let ]
 
 type encoder_param =
   string * [ `Term of Term.t | `Encoder of string * encoder_opt ]
@@ -66,24 +50,24 @@ type meth_pattern_el = string * Term.pattern option
 
 val mk_ty : ?pos:Pos.t -> Parsed_term.type_annotation -> Type.t
 
+val mk_let :
+  pos:Pos.t ->
+  [< `Binding of Term._let | `Def of Term._let | `Let of Term._let ] ->
+  Term.t ->
+  Term.t
+
 val let_args :
   ?doc:Doc.Value.t ->
-  decoration:let_decoration ->
+  decoration:Term.let_decoration ->
   pat:Term.pattern ->
   ?arglist:arglist ->
   def:Term.t ->
-  ?cast:Parsed_term.type_annotation ->
+  ?cast:Term.type_annotation ->
   unit ->
-  binding
+  Term._let
 
 val let_decoration_of_lexer_let_decoration :
-  [< `Eval | `Json_parse | `None | `Recursive | `Replaces | `Yaml_parse ] ->
-  [> `Eval
-  | `Json_parse of 'a list
-  | `None
-  | `Recursive
-  | `Replaces
-  | `Yaml_parse ]
+  lexer_let_decoration -> Term.let_decoration
 
 val mk_json_assoc_object_ty :
   pos:Pos.t ->
@@ -93,7 +77,6 @@ val mk_json_assoc_object_ty :
 val mk_time_pred : pos:Pos.t -> int * int * int -> Term.t
 val during : pos:Pos.t -> int option list -> int * int * int
 val between : pos:Pos.t -> int option list -> int option list -> int * int * int
-val mk_let : pos:Pos.t -> binding -> Term.t -> Term.t
 
 val mk :
   ?pos:Pos.t ->
@@ -109,35 +92,9 @@ val append_list :
   [> `App of Term.t | `List of Term.t list ]
 
 val mk_list : pos:Pos.t -> [< `App of Term.t | `List of Term.t list ] -> Term.t
-
-val mk_coalesce :
-  pos:Pos.t -> default:Term.t -> Term.parsed_ast Term.term -> Term.t
-
-val mk_fun :
-  pos:Pos.t -> (Type.t, Term.t) Term.func_argument list -> Term.t -> Term.t
-
-val mk_invoke :
-  ?default:Term.t ->
-  pos:Pos.t ->
-  Term.parsed_ast Term.term ->
-  [< `App of string * (string * Term.t) list | `String of string ] ->
-  Term.t
+val mk_fun : pos:Pos.t -> arglist -> Term.t -> Term.t
 
 val mk_encoder :
   pos:Pos.t -> string -> Term.t Term_base.ast_encoder_params -> Term.t
-
-val args_of :
-  only:string list ->
-  except:string list ->
-  pos:Pos.t ->
-  string ->
-  (Type_base.t, Term.t) Term.func_argument list
-
-val app_of :
-  only:string list ->
-  except:string list ->
-  pos:Pos.t ->
-  string ->
-  (string * Term.t) list
 
 val args_of_json_parse : pos:Pos.t -> (string * 'a) list -> (string * 'a) list

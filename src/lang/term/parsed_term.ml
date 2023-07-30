@@ -20,11 +20,8 @@
 
  *****************************************************************************)
 
-module Methods = Term_base.Methods
-module Vars = Term_base.Vars
+include Term_types
 module Ground = Term_base.Ground
-
-type pattern = Term_base.pattern
 
 type meth_annotation = {
   optional : bool;
@@ -56,123 +53,78 @@ and type_annotation =
   | `Invoke of type_annotation * string
   | `Source of string * source_annotation ]
 
-type 'a term = 'a Term_base.term = {
-  mutable t : Type.t;
-  term : 'a;
-  methods : 'a term Methods.t;
-}
+type _of = { only : string list; except : string list; source : string }
 
-type ('a, 'b) func_argument = ('a, 'b) Term_base.func_argument = {
-  label : string;
-  as_variable : string option;
-  typ : 'a;
-  default : 'b option;
-}
+type _if = { if_condition : t; if_then : t; if_else : t }
+and _while = { while_condition : t; while_loop : t }
+and _for = { for_variable : string; for_from : t; for_to : t; for_loop : t }
 
-type ('a, 'b) func = ('a, 'b) Term_base.func = {
-  mutable free_vars : Vars.t option;
-  arguments : ('a, 'b) func_argument list;
-  body : 'b;
-}
-
-type 'a _if = { if_condition : 'a; if_then : 'a; if_else : 'a }
-type 'a _while = { while_condition : 'a; while_loop : 'a }
-
-type 'a _for = {
-  for_variable : string;
-  for_from : 'a;
-  for_to : 'a;
-  for_loop : 'a;
-}
-
-type 'a iterable_for = {
+and iterable_for = {
   iterable_for_variable : string;
-  iterable_for_iterator : 'a;
-  iterable_for_loop : 'a;
+  iterable_for_iterator : t;
+  iterable_for_loop : t;
 }
 
-type 'a _try = {
-  try_body : 'a;
+and _try = {
+  try_body : t;
   try_variable : string;
-  try_errors_list : 'a;
-  try_handler : 'a;
+  try_errors_list : t;
+  try_handler : t;
 }
 
-type 'a _meth = { base : 'a; meth : string; value : 'a }
+and let_decoration =
+  [ `None
+  | `Recursive
+  | `Replaces
+  | `Eval
+  | `Yaml_parse
+  | `Json_parse of (string * t) list ]
+
+and _let = {
+  doc : Doc.Value.t option;
+  decoration : let_decoration;
+  pat : pattern;
+  arglist : fun_arg list option;
+  cast : type_annotation option;
+  def : t;
+}
+
+and invoke_meth = [ `String of string | `App of string * app_arg list ]
+and app_arg = [ `Term of string * t | `Argsof of _of ]
+and fun_arg = [ `Term of (t, type_annotation) func_argument | `Argsof of _of ]
 
 (* These terms are reduced at runtime *)
-type 'a reduced_ast =
-  [ `If of 'a _if
-  | `Inline_if of 'a _if
-  | `While of 'a _while
-  | `For of 'a _for
-  | `Iterable_for of 'a iterable_for
-  | `Try of 'a _try
+and parsed_ast =
+  [ `If of _if
+  | `Inline_if of _if
+  | `While of _while
+  | `For of _for
+  | `Iterable_for of iterable_for
+  | `Try of _try
   | `Regexp of string * char list
-  | `Not of 'a
-  | `Get of 'a
-  | `Set of 'a * 'a
-  | `Negative of 'a
-  | `Append of 'a * 'a
-  | `Assoc of 'a * 'a
-  | `Infix of 'a * string * 'a
-  | `Bool of 'a * string * 'a
-  | `Simple_fun of 'a
-  | `Parsed_cast of 'a * type_annotation
-  | `Parsed_fun of (type_annotation, 'a) func
-  | `Parsed_rfun of string * (type_annotation, 'a) func ]
+  | `Def of _let * t
+  | `Let of _let * t
+  | `Binding of _let * t
+  | `Cast of t * type_annotation
+  | `App of t * app_arg list
+  | `Invoke of (t, invoke_meth) invoke
+  | `Fun of fun_arg list * t
+  | `RFun of string * fun_arg list * t
+  | `Not of t
+  | `Get of t
+  | `Set of t * t
+  | `Negative of t
+  | `Append of t * t
+  | `Assoc of t * t
+  | `Infix of t * string * t
+  | `Bool of t * string * t
+  | `Coalesce of t * t
+  | `Simple_fun of t
+  | t ast ]
 
-type t = parsed_ast Term_base.term
-and parsed_ast = [ t reduced_ast | t Term_base.ast ]
+and t = parsed_ast term
 
-type encoder_params = t Term.ast_encoder_params
-
-let rec of_ast : Term_base.runtime_ast -> parsed_ast = function
-  | `Ground g -> `Ground g
-  | `Encoder e -> `Encoder (of_encoder e)
-  | `List l -> `List (List.map of_term l)
-  | `Tuple l -> `Tuple (List.map of_term l)
-  | `Null -> `Null
-  | `Cast (t, typ) -> `Cast (of_term t, typ)
-  | `Invoke { Term_base.invoked; default; meth } ->
-      `Invoke
-        {
-          Term_base.invoked = of_term invoked;
-          default = Option.map of_term default;
-          meth;
-        }
-  | `Open (t, t') -> `Open (of_term t, of_term t')
-  | `Let _let ->
-      `Let
-        Term_base.{ _let with def = of_term _let.def; body = of_term _let.body }
-  | `Var s -> `Var s
-  | `Seq (t, t') -> `Seq (of_term t, of_term t')
-  | `App (t, l) -> `App (of_term t, List.map (fun (v, t) -> (v, of_term t)) l)
-  | `Fun p -> `Fun (of_func p)
-  | `RFun (lbl, p) -> `RFun (lbl, of_func p)
-
-and of_func { Term_base.arguments; body } =
-  {
-    Term_base.arguments =
-      List.map
-        (fun arg ->
-          Term_base.{ arg with default = Option.map of_term arg.default })
-        arguments;
-    body = of_term body;
-    free_vars = None;
-  }
-
-and of_encoder_params l =
-  List.map
-    (function
-      | lbl, `Term t -> (lbl, `Term (of_term t))
-      | lbl, `Encoder e -> (lbl, `Encoder (of_encoder e)))
-    l
-
-and of_encoder (lbl, params) = (lbl, of_encoder_params params)
-
-and of_term (tm : Term.t) : t =
-  { tm with methods = Methods.map of_term tm.methods; term = of_ast tm.term }
+type encoder_params = t ast_encoder_params
 
 let make = Term_base.make
 let unit = `Tuple []

@@ -28,29 +28,13 @@ open Parsed_term
 module Term = Parsed_term
 module Vars = Term_base.Vars
 
-type arglist = (Type.t, Term.t) func_argument list
+type arglist = Parsed_term.fun_arg list
 
 type lexer_let_decoration =
   [ `None | `Recursive | `Replaces | `Eval | `Json_parse | `Yaml_parse ]
 
-type let_decoration =
-  [ `None
-  | `Recursive
-  | `Replaces
-  | `Eval
-  | `Yaml_parse
-  | `Json_parse of (string * Term.t) list ]
-
-type app_list_elem = (string * Term.t) list
-
-type binding = {
-  doc : Doc.Value.t option;
-  decoration : let_decoration;
-  pat : Term.pattern;
-  arglist : arglist option;
-  def : Term.t;
-  cast : Type.t option;
-}
+type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
+type binding = [ explicit_binding | `Binding of Term._let ]
 
 let mk_source_ty ?pos name args =
   let fn = !Hooks.mk_source_ty in
@@ -112,7 +96,7 @@ and mk_meth_ty ?pos base { Term.name; optional; typ; json_name } =
            base )))
 
 let let_args ?doc ~decoration ~pat ?arglist ~def ?cast () =
-  { doc; decoration; pat; arglist; def; cast = Option.map mk_ty cast }
+  { Parsed_term.doc; decoration; pat; arglist; def; cast }
 
 let mk_json_assoc_object_ty ~pos = function
   | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty
@@ -141,14 +125,6 @@ let let_decoration_of_lexer_let_decoration = function
   | `None -> `None
   | `Replaces -> `Replaces
 
-let string_of_let_decoration = function
-  | `None -> ""
-  | `Recursive -> "rec"
-  | `Replaces -> "replaces"
-  | `Eval -> "eval"
-  | `Yaml_parse -> "yaml.parse"
-  | `Json_parse _ -> "json.parse"
-
 let args_of_json_parse ~pos = function
   | [] -> []
   | [("json5", v)] -> [("json5", v)]
@@ -156,151 +132,6 @@ let args_of_json_parse ~pos = function
       raise
         (Term_base.Parse_error
            (pos, "Invalid argument " ^ lbl ^ " for json.parse let constructor"))
-
-let gen_args_of ~only ~except ~pos get_args name =
-  match Environment.get_builtin name with
-    | Some ((_, t), Value.{ value = Fun (args, _, _) })
-    | Some ((_, t), Value.{ value = FFI (args, _) }) ->
-        let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
-        let filtered_args =
-          if only <> [] then
-            List.map
-              (fun n ->
-                try List.find (fun (n', _, _) -> n = n') filtered_args
-                with Not_found ->
-                  raise
-                    (Term_base.Parse_error
-                       ( pos,
-                         Printf.sprintf
-                           "Builtin %s does not have an argument named %s" name
-                           n )))
-              only
-          else filtered_args
-        in
-        List.iter
-          (fun n ->
-            match List.find_opt (fun (n', _, _) -> n = n') args with
-              | Some _ -> ()
-              | None ->
-                  raise
-                    (Term_base.Parse_error
-                       ( pos,
-                         Printf.sprintf
-                           "Builtin %s does not have an argument named %s" name
-                           n )))
-          except;
-        let filtered_args =
-          List.filter (fun (n, _, _) -> not (List.mem n except)) filtered_args
-        in
-        get_args ~pos t filtered_args
-    | Some _ ->
-        raise
-          (Term_base.Parse_error
-             (pos, Printf.sprintf "Builtin %s is not a function!" name))
-    | None ->
-        raise
-          (Term_base.Parse_error
-             (pos, Printf.sprintf "Builtin %s is not registered!" name))
-
-let args_of, app_of =
-  let rec get_args ~pos t args =
-    let get_arg_type t name =
-      match (Type.deref t).Type.descr with
-        | Type.Arrow (l, _) ->
-            let _, _, t = List.find (fun (_, n, _) -> n = name) l in
-            t
-        | _ ->
-            raise
-              (Term_base.Parse_error
-                 ( pos,
-                   Printf.sprintf
-                     "Cannot get argument type of %s, this is not a function, \
-                      it has type: %s."
-                     name (Type.to_string t) ))
-    in
-    List.map
-      (fun (n, n', v) ->
-        let t = Type.make ~pos (get_arg_type t n).Type.descr in
-        let as_variable = if n = n' then None else Some n' in
-        {
-          label = n;
-          as_variable;
-          typ = t;
-          default = Option.map (term_of_value ~pos ~name:n t) v;
-        })
-      args
-  and get_app ~pos _ args =
-    List.map
-      (fun (n, _, _) -> (n, Term.make ~t:(Type.var ~pos ()) (`Var n)))
-      args
-  and term_of_value_base ~pos t v =
-    let get_list_type () =
-      match (Type.deref t).Type.descr with
-        | Type.(List { t }) -> t
-        | _ -> assert false
-    in
-    let get_tuple_type pos =
-      match (Type.deref t).Type.descr with
-        | Type.Tuple t -> List.nth t pos
-        | _ -> assert false
-    in
-    let process_value ~t v =
-      let mk_tm term = Term.make ~t:(Type.make ~pos t.Type.descr) term in
-      match v.Value.value with
-        | Value.Ground g -> mk_tm (`Ground g)
-        | Value.List l ->
-            mk_tm
-              (`List (List.map (term_of_value_base ~pos (get_list_type ())) l))
-        | Value.Tuple l ->
-            mk_tm
-              (`Tuple
-                (List.mapi
-                   (fun idx v -> term_of_value_base ~pos (get_tuple_type idx) v)
-                   l))
-        | Value.Null -> mk_tm `Null
-        (* Ignoring env is not correct here but this is an internal operator
-           so we have to trust that devs using it via %argsof now that they are doing. *)
-        | Value.Fun (args, _, body) ->
-            let body = of_term body in
-            let body =
-              Term.make
-                ~t:(Type.make ~pos body.t.Type.descr)
-                ~methods:body.Term.methods body.Term.term
-            in
-            mk_tm
-              (`Fun
-                {
-                  Term_base.arguments = get_args ~pos t args;
-                  body;
-                  free_vars = None;
-                })
-        | _ -> assert false
-    in
-    let meths, _ = Type.split_meths t in
-    let tm = process_value ~t v in
-    Term.make ~t:tm.Term.t
-      ~methods:
-        (Methods.mapi
-           (fun key meth ->
-             let { Type.scheme = _, t } =
-               List.find (fun { Type.meth } -> meth = key) meths
-             in
-             process_value ~t meth)
-           v.Value.methods)
-      tm.Term.term
-  and term_of_value ~pos ~name t v =
-    try term_of_value_base ~pos t v
-    with _ ->
-      raise
-        (Term_base.Parse_error
-           ( pos,
-             Printf.sprintf
-               "Argument %s: value %s cannot be represented as a term" name
-               (Value.to_string v) ))
-  in
-  let args_of = gen_args_of get_args in
-  let app_of = gen_args_of get_app in
-  (args_of, app_of)
 
 let mk = Term.make
 
@@ -310,217 +141,39 @@ let append_list ~pos x v =
     | `Expr x, `App v ->
         let list = mk ~pos (`Var "list") in
         let op =
-          mk ~pos (`Invoke { invoked = list; default = None; meth = "add" })
+          mk ~pos
+            (`Invoke { invoked = list; default = None; meth = `String "add" })
         in
-        `App (mk ~pos (`App (op, [("", x); ("", v)])))
+        `App (mk ~pos (`App (op, [`Term ("", x); `Term ("", v)])))
     | `Ellipsis x, `App v ->
         let list = mk ~pos (`Var "list") in
         let op =
-          mk ~pos (`Invoke { invoked = list; default = None; meth = "append" })
+          mk ~pos
+            (`Invoke
+              { invoked = list; default = None; meth = `String "append" })
         in
-        `App (mk ~pos (`App (op, [("", x); ("", v)])))
+        `App (mk ~pos (`App (op, [`Term ("", x); `Term ("", v)])))
     | `Ellipsis x, `List l ->
         let list = mk ~pos (`Var "list") in
         let op =
-          mk ~pos (`Invoke { invoked = list; default = None; meth = "append" })
+          mk ~pos
+            (`Invoke
+              { invoked = list; default = None; meth = `String "append" })
         in
         let l = mk ~pos (`List l) in
-        `App (mk ~pos (`App (op, [("", x); ("", l)])))
+        `App (mk ~pos (`App (op, [`Term ("", x); `Term ("", l)])))
 
 let mk_list ~pos = function `List l -> mk ~pos (`List l) | `App a -> a
+let mk_fun ~pos arguments body = mk ~pos (`Fun (arguments, body))
 
-let mk_fun ~pos arguments body =
-  mk ~pos (`Fun { Term_base.arguments; body; free_vars = None })
-
-(** When doing chained calls, we want to update all nested defaults so that, e.g.
-    in:
-      `x?.foo.gni.bla(123)?.gno.gni`,
-    the default for `x.foo` becomes:
-      `any.{gni = any.{ bla = fun (_) -> any.{ gno = any.{ gni = null() }}}}`
-    we also need to keep track of which methods are optional in the default value's type
-    to make sure it doesn't force optional methods to be mandatory during type checking. *)
-let mk_app_invoke_default ~pos ~args body =
-  let app_args =
-    List.map
-      (fun (label, _) ->
-        {
-          Term_base.label;
-          as_variable = None;
-          typ = Type.var ();
-          default = None;
-        })
-      args
+let mk_let ~pos _let body =
+  let ast =
+    match _let with
+      | `Let v -> `Let (v, body)
+      | `Def v -> `Def (v, body)
+      | `Binding v -> `Binding (v, body)
   in
-  mk_fun ~pos app_args body
-
-let mk_any ~pos () =
-  let op = mk ~pos (`Var "💣") in
-  mk ~pos (`App (op, []))
-
-let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
-    =
-  let t =
-    Type.meth ~pos ~optional name ([], Type.var ~pos ()) (Type.var ~pos ())
-  in
-  let tm = mk_any ~pos () in
-  let value =
-    Term.make ~t
-      ~methods:(Methods.add name value Term.Methods.empty)
-      tm.Term.term
-  in
-  ( value,
-    update_invoke_default ~pos ~optional:(default <> None) invoked meth value )
-
-and update_invoke_default ~pos ~optional expr name value =
-  match expr.term with
-    | `Invoke ({ meth; default } as invoked) ->
-        let value, invoked =
-          mk_invoke_default ~pos ~name ~optional value invoked
-        in
-        Term.make ~t:expr.Term.t ~methods:expr.Term.methods
-          (`Invoke
-            { invoked; meth; default = Option.map (fun _ -> value) default })
-    | `App ({ term = `Invoke ({ meth; default } as invoked) }, args) ->
-        let value, invoked =
-          let default =
-            match default with
-              | Some { term = `Fun { Term_base.body } } -> Some body
-              | None -> Some (mk_any ~pos ())
-              | _ -> assert false
-          in
-          mk_invoke_default ~pos ~name ~optional value { invoked with default }
-        in
-        Term.make ~t:expr.Term.t ~methods:expr.Term.methods
-          (`App
-            ( mk ~pos
-                (`Invoke
-                  {
-                    invoked;
-                    meth;
-                    default =
-                      Option.map
-                        (fun _ -> mk_app_invoke_default ~pos ~args value)
-                        default;
-                  }),
-              args ))
-    | _ -> expr
-
-let mk_invoke ?default ~pos expr v =
-  let optional, value =
-    match default with Some v -> (true, v) | None -> (false, mk ~pos `Null)
-  in
-  match v with
-    | `String meth ->
-        let expr = update_invoke_default ~pos ~optional expr meth value in
-        mk ~pos
-          (`Invoke
-            {
-              invoked = expr;
-              default = Option.map (fun _ -> value) default;
-              meth;
-            })
-    | `App (meth, args) ->
-        let value = mk_app_invoke_default ~pos ~args value in
-        let expr = update_invoke_default ~pos ~optional expr meth value in
-        mk ~pos
-          (`App
-            ( mk ~pos
-                (`Invoke
-                  {
-                    invoked = expr;
-                    default = Option.map (fun _ -> value) default;
-                    meth;
-                  }),
-              args ))
-
-let mk_coalesce ~pos ~default computed =
-  match computed.term with
-    | `Invoke { invoked; meth } ->
-        mk_invoke ~pos ~default invoked (`String meth)
-    | _ ->
-        let null = mk ~pos (`Var "null") in
-        let op =
-          mk ~pos (`Invoke { invoked = null; default = None; meth = "default" })
-        in
-        let handler = mk_fun ~pos [] default in
-        mk ~pos (`App (op, [("", computed); ("", handler)]))
-
-let mk_let_json_parse ~pos (args, pat, def, cast) body =
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
-  let tty = of_term (Value.RuntimeType.to_term ty) in
-  let json5 =
-    match List.assoc_opt "json5" args with
-      | Some v -> v
-      | None -> Term.(make (`Ground (Ground.Bool false)))
-  in
-  let parser = mk ~pos (`Var "_internal_json_parser_") in
-  let def =
-    mk ~pos (`App (parser, [("json5", json5); ("type", tty); ("", def)]))
-  in
-  let def = mk ~pos (`Cast (def, ty)) in
-  mk ~pos (`Let { doc = None; replace = false; pat; gen = []; def; body })
-
-let mk_let_yaml_parse ~pos (pat, def, cast) body =
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
-  let tty = of_term (Value.RuntimeType.to_term ty) in
-  let parser = mk ~pos (`Var "_internal_yaml_parser_") in
-  let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
-  let def = mk ~pos (`Cast (def, ty)) in
-  mk ~pos (`Let { doc = None; replace = false; pat; gen = []; def; body })
-
-let mk_rec_fun ~pos pat arguments body =
-  let name =
-    match pat with
-      | `PVar l when l <> [] -> List.hd (List.rev l)
-      | _ -> assert false
-  in
-  mk ~pos (`RFun (name, { Term_base.arguments; body; free_vars = None }))
-
-let mk_eval ~pos (doc, pat, def, body, cast) =
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
-  let tty = of_term (Value.RuntimeType.to_term ty) in
-  let eval = mk ~pos (`Var "_eval_") in
-  let def = mk ~pos (`App (eval, [("type", tty); ("", def)])) in
-  let def = mk ~pos (`Cast (def, ty)) in
-  mk ~pos (`Let { doc; replace = false; pat; gen = []; def; body })
-
-let mk_let ~pos { doc; decoration; pat; arglist; def; cast } body =
-  match (arglist, decoration) with
-    | Some arglist, `None | Some arglist, `Replaces ->
-        let replace = decoration = `Replaces in
-        let def = mk_fun ~pos arglist def in
-        let def =
-          match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
-        in
-        mk ~pos (`Let { doc; replace; pat; gen = []; def; body })
-    | Some arglist, `Recursive ->
-        let def = mk_rec_fun ~pos pat arglist def in
-        let def =
-          match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
-        in
-        mk ~pos (`Let { doc; replace = false; pat; gen = []; def; body })
-    | None, `None | None, `Replaces ->
-        let replace = decoration = `Replaces in
-        let def =
-          match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
-        in
-        mk ~pos (`Let { doc; replace; pat; gen = []; def; body })
-    | None, `Eval -> mk_eval ~pos (doc, pat, def, body, cast)
-    | None, `Json_parse args ->
-        mk_let_json_parse ~pos (args, pat, def, cast) body
-    | None, `Yaml_parse -> mk_let_yaml_parse ~pos (pat, def, cast) body
-    | Some _, v ->
-        raise
-          (Term_base.Parse_error
-             ( pos,
-               string_of_let_decoration v
-               ^ " does not apply to function assignments" ))
-    | None, v ->
-        raise
-          (Term_base.Parse_error
-             ( pos,
-               string_of_let_decoration v
-               ^ " only applies to function assignments" ))
+  mk ~pos ast
 
 let mk_encoder ~pos e p = mk ~pos (`Encoder (e, p))
 
@@ -580,5 +233,7 @@ let during ~pos d =
   (t, t + d, p)
 
 let mk_time_pred ~pos (a, b, c) =
-  let args = List.map (fun x -> ("", mk ~pos (`Ground (Int x)))) [a; b; c] in
+  let args =
+    List.map (fun x -> `Term ("", mk ~pos (`Ground (Int x)))) [a; b; c]
+  in
   mk ~pos (`App (mk ~pos (`Var "time_in_mod"), args))

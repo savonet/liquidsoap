@@ -45,7 +45,7 @@ open Parser_helper
 %token <Parser_helper.lexer_let_decoration> LETLBRA
 %token BEGIN END GETS TILD QUESTION
 (* name, arguments, methods *)
-%token <Doc.Value.t option*Parser_helper.let_decoration> DEF
+%token <Doc.Value.t option*Parsed_term.let_decoration> DEF
 %token REPLACES
 %token COALESCE
 %token TRY CATCH DO
@@ -113,17 +113,17 @@ open Parser_helper
 %start plain_encoder_params
 %type <Parser_helper.encoder_param list> plain_encoder_params
 
-%type <Parser_helper.let_decoration> _let
+%type <Parsed_term.let_decoration> _let
 %type <string> annotate_key
 %type <(string * string) list> annotate_metadata
 %type <string> annotate_value
-%type <Parser_helper.app_list_elem> app_list
-%type <Parser_helper.app_list_elem> app_list_elem
-%type <Parser_helper.arglist> arg
+%type <Parsed_term.app_arg list> app_list
+%type <Parsed_term.app_arg> app_list_elem
 %type <Parser_helper.arglist> arglist
 %type <string list * string list> args_of_params
 %type <Term.type_annotation Type.argument list> argsty
 %type <Term.type_annotation Type.argument> argty
+%type <Parser_helper.explicit_binding> explicit_binding
 %type <Parser_helper.binding> binding
 %type <Parser_helper.encoder_opt> encoder_opt
 %type <Parser_helper.encoder_param> encoder_param
@@ -202,7 +202,7 @@ simple_fun_body:
 
 (* General expressions. *)
 expr:
-  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Parsed_cast ($2, $4)) }
+  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`Negative $3) }
@@ -225,12 +225,12 @@ expr:
                                      { $2 ~pos:$loc $5 }
   | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (`Tuple [])) }
   | LCUR RCUR                        { mk ~pos:$loc (`Tuple []) }
-  | expr QUESTION DOT invoke         { mk_invoke ~pos:$loc ~default:(mk ~pos:$loc `Null) $1 $4 }
-  | expr DOT invoke                  { mk_invoke ~pos:$loc $1 $3 }
+  | expr QUESTION DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $4; default = Some (mk ~pos:$loc `Null) }) }
+  | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; default = None }) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var $1), $2)) }
   | expr COLONCOLON expr             { mk ~pos:$loc (`Append ($1, $3)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (`Assoc (mk ~pos:$loc($1) (`Var $1), $2)) }
-  | expr DOT VARLBRA expr RBRA       { let src = mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; default = None; meth =  $3})) in
+  | expr DOT VARLBRA expr RBRA       { let src = mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; default = None; meth = `String $3})) in
                                        mk ~pos:$loc (`Assoc (src, $4)) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
@@ -244,7 +244,7 @@ expr:
                                          iterable_for_iterator = $4;
                                          iterable_for_loop = $6
                                        } ) }
-  | expr COALESCE expr               { Parser_helper.mk_coalesce ~pos:$loc ~default:$3 $1 }
+  | expr COALESCE expr               { mk ~pos:$loc (`Coalesce ($1, $3)) }
   | TRY exprs CATCH optvar COLON varlist DO exprs END
                                      { mk~pos:$loc (`Try {
                                          Term.try_body = $2;
@@ -353,6 +353,7 @@ argsty:
 
 varlist:
   | LBRA inner_list RBRA { $2 }
+
 inner_list:
   | inner_list_item COMMA inner_list
                           { append_list ~pos:$loc $1 $3 }
@@ -368,18 +369,21 @@ inner_tuple:
   | expr COMMA inner_tuple { $1::$3 }
 
 app_list_elem:
-  | VAR GETS expr { [$1,$3] }
-  | expr          { ["",$1] }
-  | ARGS_OF LPAR VAR RPAR        { app_of ~only:[] ~except:[] ~pos:$loc $3 }
+  | VAR GETS expr { `Term ($1,$3) }
+  | expr          { `Term ("",$1) }
+  | ARGS_OF LPAR VAR RPAR        { `Argsof {only = []; except = []; source = $3 } }
   | ARGS_OF LPAR subfield RPAR
-                                 { app_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }
-  | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR { app_of ~pos:$loc ~only:(fst $4) ~except:(snd $4) $3 }
+                                 { `Argsof {only = []; except = []; source = String.concat "." $3 } }
+  | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR {
+                                   `Argsof {only = fst $4; except = snd $4; source = $3 }
+                                 }
   | ARGS_OF LPAR subfield_lbra args_of_params RBRA RPAR
-                                 { app_of ~pos:$loc (String.concat "." $3) ~only:(fst $4) ~except:(snd $4) }
+                                 { `Argsof {only = fst $4; except = snd $4; source = String.concat "." $3} }
+
 app_list:
   |                              { [] }
-  | app_list_elem                { $1 }
-  | app_list_elem COMMA app_list { $1@$3 }
+  | app_list_elem                { [$1] }
+  | app_list_elem COMMA app_list { $1::$3 }
 
 optvar:
   | VAR        { $1 }
@@ -467,20 +471,20 @@ _let:
         | _ -> raise (Term_base.Parse_error ($loc, "Invalid let constructor")) }
 
 explicit_binding:
-  | _let pattern GETS expr   { Parser_helper.let_args ~decoration:$1 ~pat:$2 ~def:$4 () }
+  | _let pattern GETS expr   { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$2 ~def:$4 ()) }
   | _let LPAR pattern COLON ty RPAR GETS expr
-                             { Parser_helper.let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 () }
-  | _let subfield GETS expr  { Parser_helper.let_args ~decoration:$1 ~pat:(`PVar $2) ~def:$4 () }
-  | DEF pattern g exprs END  { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:$2 ~def:$4 () }
+                             { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 ()) }
+  | _let subfield GETS expr  { `Let Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~def:$4 ()) }
+  | DEF pattern g exprs END  { `Def Parser_helper.(let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:$2 ~def:$4 ()) }
   | DEF LPAR pattern COLON ty RPAR g exprs END
-                             { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:$3 ~def:$8 ~cast:$5 () }
-  | DEF subfield g exprs END { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(`PVar $2) ~def:$4 () }
+                             { `Def Parser_helper.(let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:$3 ~def:$8 ~cast:$5 ()) }
+  | DEF subfield g exprs END { `Def Parser_helper.(let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(`PVar $2) ~def:$4 ()) }
   | DEF varlpar arglist RPAR g exprs END
-                             { Parser_helper.let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(`PVar $2) ~arglist:$3 ~def:$6 () }
+                             { `Def Parser_helper.(let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(`PVar $2) ~arglist:$3 ~def:$6 ()) }
 
 binding:
-  | optvar GETS expr         { Parser_helper.let_args ~decoration:`None ~pat:(`PVar [$1]) ~def:$3 () }
-  | explicit_binding         { $1 }
+  | optvar GETS expr         { `Binding Parser_helper.(let_args ~decoration:`None ~pat:(`PVar [$1]) ~def:$3 ()) }
+  | explicit_binding         { ($1 :> binding) }
 
 varlpar:
   | VARLPAR         { [$1] }
@@ -488,20 +492,33 @@ varlpar:
 
 arglist:
   |                       { [] }
-  | arg                   { $1 }
-  | arg COMMA arglist     { $1@$3 }
+  | arg                   { [$1] }
+  | arg COMMA arglist     { $1::$3 }
 arg:
-  | TILD VAR opt { [{label = $2; as_variable = None; typ = Type.var (); default = $3}] }
-  | TILD LPAR VAR COLON ty RPAR opt { [{label = $3; as_variable = None; typ =  Parser_helper.mk_ty ~pos:$loc($5) $5; default = $7} ] }
-  | TILD VAR GETS UNDERSCORE opt { [{label = $2; as_variable = Some "_"; typ = Type.var (); default = $5}] }
-  | optvar opt  { [{label = ""; as_variable = Some $1; typ = Type.var (); default = $2}] }
-  | LPAR optvar COLON ty RPAR opt { [{label = ""; as_variable =  Some $2; typ = Parser_helper.mk_ty ~pos:$loc($4) $4; default =  $6}] }
-  | ARGS_OF LPAR VAR RPAR { args_of ~only:[] ~except:[] ~pos:$loc $3 }
-  | ARGS_OF LPAR subfield RPAR
-                          { args_of ~only:[] ~except:[] ~pos:$loc (String.concat "." $3) }
-  | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR { args_of ~pos:$loc ~only:(fst $4) ~except:(snd $4) $3 }
-  | ARGS_OF LPAR subfield_lbra args_of_params RBRA RPAR
-                          { args_of ~pos:$loc (String.concat "." $3) ~only:(fst $4) ~except:(snd $4) }
+  | TILD VAR opt { `Term {label = $2; as_variable = None; typ = `Named "_"; default = $3} }
+  | TILD LPAR VAR COLON ty RPAR opt {
+                   `Term {label = $3; as_variable = None; typ =  $5; default = $7}
+                 }
+  | TILD VAR GETS UNDERSCORE opt {
+                   `Term {label = $2; as_variable = Some "_"; typ = `Named "_"; default = $5}
+                 }
+  | optvar opt   { `Term {label = ""; as_variable = Some $1; typ = `Named "_"; default = $2} }
+  | LPAR optvar COLON ty RPAR opt {
+                   `Term {label = ""; as_variable =  Some $2; typ = $4; default =  $6}
+                 }
+  | ARGS_OF LPAR VAR RPAR {
+                   `Argsof {only = []; except = []; source = $3 }
+                 }
+  | ARGS_OF LPAR subfield RPAR {
+                   `Argsof {only = []; except = []; source = String.concat "." $3 }
+                 }
+  | ARGS_OF LPAR VARLBRA args_of_params RBRA RPAR {
+                   `Argsof {only = fst $4; except = snd $4; source = $3 }
+                }
+  | ARGS_OF LPAR subfield_lbra args_of_params RBRA RPAR {
+                   `Argsof {only = fst $4; except = snd $4; source = String.concat "." $3 }
+                }
+
 opt:
   | GETS expr { Some $2 }
   |           { None }

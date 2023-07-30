@@ -22,6 +22,8 @@
 
 (** Terms and values in the Liquidsoap language. *)
 
+include Term_types
+
 (** An internal error. Those should not happen in theory... *)
 exception Internal_error of (Pos.t list * string)
 
@@ -69,11 +71,8 @@ let ref_t ?pos t =
 
 (** {2 Terms} *)
 
-(** Sets of variables. *)
-module Vars = Set.Make (String)
-
 module Ground = struct
-  type t = ..
+  type t = ground = ..
 
   type content = {
     descr : t -> string;
@@ -183,77 +182,6 @@ module MkGround (D : GroundDef) = struct
       (function Ground _ -> true | _ -> false)
       { Ground.typ = D.typ; to_json; compare; descr }
 end
-
-module Methods = struct
-  include Methods
-
-  type 'a typ = (string, 'a) t
-  type 'a t = 'a typ
-end
-
-type pattern =
-  [ `PVar of string list  (** a field *)
-  | `PTuple of pattern list  (** a tuple *)
-  | `PList of pattern list * string option * pattern list  (** a list *)
-  | `PMeth of pattern option * (string * pattern option) list
-    (** a value with methods *) ]
-
-(** Documentation for declarations: general documentation, parameters, methods. *)
-type doc = Doc.Value.t
-
-type 'a term = { mutable t : Type.t; term : 'a; methods : 'a term Methods.t }
-
-type 'a let_t = {
-  doc : doc option;
-  replace : bool;
-  pat : pattern;
-  mutable gen : Type.var list;
-  def : 'a;
-  body : 'a;
-}
-
-type 'a ast_encoder_params =
-  (string * [ `Encoder of 'a ast_encoder | `Term of 'a ]) list
-
-and 'a ast_encoder = string * 'a ast_encoder_params
-
-type 'a invoke = { invoked : 'a; default : 'a option; meth : string }
-
-(* ~l1:x1 .. ?li:(xi=defi) .. *)
-type ('a, 'b) func_argument = {
-  label : string;
-  as_variable : string option;
-  typ : 'a;
-  default : 'b option;
-}
-
-type ('a, 'b) func = {
-  mutable free_vars : Vars.t option;
-  arguments : ('a, 'b) func_argument list;
-  body : 'b;
-}
-
-type 'a ast =
-  [ `Ground of Ground.t
-  | `Encoder of 'a ast_encoder
-  | `List of 'a list
-  | `Tuple of 'a list
-  | `Null
-  | `Cast of 'a * Type.t
-  | `Invoke of 'a invoke
-  | `Open of 'a * 'a
-  | `Let of 'a let_t
-  | `Var of string
-  | `Seq of 'a * 'a
-  | `App of 'a * (string * 'a) list
-  | `Fun of (Type.t, 'a) func
-  | (* A recursive function, the first string is the name of the recursive
-        variable. *)
-    `RFun of
-    string * (Type.t, 'a) func ]
-
-type t = runtime_ast term
-and runtime_ast = t ast
 
 type encoder_params = t ast_encoder_params
 type encoder = t ast_encoder

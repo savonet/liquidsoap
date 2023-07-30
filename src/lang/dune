@@ -144,6 +144,7 @@
   term
   term_base
   term_reducer
+  term_types
   type
   type_base
   typechecking
