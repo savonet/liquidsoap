@@ -214,26 +214,18 @@ jobs:
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
       - name: Finalize metrics
         run: |
-          sudo -u opam -E git config --global --add safe.directory '*'
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E echo "- commit: `git rev-parse HEAD`" >> /tmp/metrics.yaml
-          sudo -u opam -E echo "  branch: `git rev-parse --abbrev-ref HEAD`" >> /tmp/metrics.yaml
-          sudo -u opam -E echo "  time: `date +%s`" >> /tmp/metrics.yaml
+          sudo -u opam -E ./.github/scripts/export-metrics.sh "/tmp/${{ github.run_number }}/metrics"
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v3
         with:
           name: metrics
-          path: /tmp/metrics.yaml
-      - name: Prepare metrics
-        run: |
-          mkdir -p metrics
-          cp /tmp/metrics.yaml metrics/`date +%s`.yaml
+          path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Upload metrics
         uses: s0/git-publish-subdir-action@develop
         env:
           REPO: self
           BRANCH: metrics
-          FOLDER: metrics
+          FOLDER: ${{ github.workspace }}/${{ github.run_number }}/metrics
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CLEAR_GLOBS_FILE: .clear-metrics
       - name: Save traces
