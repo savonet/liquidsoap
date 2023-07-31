@@ -72,13 +72,14 @@ let json_of_try ~to_json
     ("handler", to_json try_handler);
   ]
 
-let type_node ~typ value =
+let type_node ~typ ?(extra = []) value =
   `Assoc
-    [
-      ("type", `String "type_annotation");
-      ("subtype", `String typ);
-      ("value", value);
-    ]
+    ([
+       ("type", `String "type_annotation");
+       ("subtype", `String typ);
+       ("value", value);
+     ]
+    @ extra)
 
 let rec json_of_type_annotation = function
   | `Named n -> type_node ~typ:"named" (`String n)
@@ -89,55 +90,55 @@ let rec json_of_type_annotation = function
       type_node ~typ:"tuple" (`Tuple (List.map json_of_type_annotation l))
   | `Arrow (args, t) ->
       type_node ~typ:"arrow"
-        (`Tuple
-          [
-            `Tuple
-              (List.map
-                 (fun (b, s, t) ->
-                   `Tuple [`Bool b; `String s; json_of_type_annotation t])
-                 args);
-            json_of_type_annotation t;
-          ])
+        ~extra:[("args", `Tuple (List.map json_of_type_fun_arg args))]
+        (json_of_type_annotation t)
   | `Record l ->
       type_node ~typ:"record" (`Tuple (List.map json_of_meth_annotation l))
   | `Method (t, l) ->
       type_node ~typ:"method"
-        (`Tuple
-          [
-            json_of_type_annotation t;
-            `Tuple (List.map json_of_meth_annotation l);
-          ])
+        ~extra:[("base", json_of_type_annotation t)]
+        (`Tuple (List.map json_of_meth_annotation l))
   | `Invoke (t, s) ->
-      type_node ~typ:"invoke" (`Tuple [json_of_type_annotation t; `String s])
+      type_node ~typ:"invoke"
+        ~extra:[("method", `String s)]
+        (json_of_type_annotation t)
   | `Source (n, t) ->
-      type_node ~typ:"source" (`Tuple [`String n; json_of_source_annotation t])
+      type_node ~typ:"source"
+        ~extra:[("base", `String n)]
+        (json_of_source_annotation t)
+
+and json_of_type_fun_arg (b, s, t) =
+  type_node ~typ:"fun_arg"
+    ~extra:[("optional", `Bool b); ("label", `String s)]
+    (json_of_type_annotation t)
 
 and json_of_meth_annotation { optional; name; typ; json_name } =
-  `Assoc
-    [
-      ("optional", `Bool optional);
-      ("name", `String name);
-      ("type", json_of_type_annotation typ);
-      ("json_name", match json_name with None -> `Null | Some n -> `String n);
-    ]
+  type_node ~typ:"method_annotation"
+    ~extra:
+      [
+        ("optional", `Bool optional);
+        ("name", `String name);
+        ("json_name", match json_name with None -> `Null | Some n -> `String n);
+      ]
+    (json_of_type_annotation typ)
 
 and json_of_source_annotation { extensible; tracks } =
-  `Assoc
-    [
-      ("extensible", `Bool extensible);
-      ("tracks", `Tuple (List.map json_of_source_track_annotation tracks));
-    ]
+  type_node ~typ:"source_annotation"
+    ~extra:[("extensible", `Bool extensible)]
+    (`Tuple (List.map json_of_source_track_annotation tracks))
 
 and json_of_source_track_annotation { track_name; track_type; track_params } =
-  `Assoc
-    [
-      ("name", `String track_name);
-      ("type", `String track_type);
-      ( "params",
-        `Tuple
-          (List.map (fun (l, v) -> `Tuple [`String l; `String v]) track_params)
-      );
-    ]
+  type_node ~typ:"source_track_annotation"
+    ~extra:
+      [
+        ("name", `String track_name);
+        ( "params",
+          `Tuple
+            (List.map
+               (fun (l, v) -> `Tuple [`String l; `String v])
+               track_params) );
+      ]
+    (`String track_type)
 
 let ast_node ~typ value = ("type", `String typ) :: value
 
@@ -171,35 +172,42 @@ let rec base_json_of_pat = function
 and json_of_pat p = `Assoc (base_json_of_pat p)
 
 let json_of_of { only; except; source } =
-  `Assoc
-    [
-      ("only", `Tuple (List.map (fun s -> `String s) only));
-      ("except", `Tuple (List.map (fun s -> `String s) except));
-      ("source", `String source);
-    ]
+  [
+    ("only", `Tuple (List.map (fun s -> `String s) only));
+    ("except", `Tuple (List.map (fun s -> `String s) except));
+    ("source", `String source);
+  ]
 
-let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> Json.t = function
-  | `Argsof _of ->
-      `Assoc [("type", `String "argsof"); ("value", json_of_of _of)]
+let json_of_fun_arg ~to_json : Parsed_term.fun_arg -> (string * Json.t) list =
+  function
+  | `Argsof _of -> ast_node ~typ:"argsof" (json_of_of _of)
   | `Term { Term_base.label; as_variable; typ; default } ->
-      `Assoc
+      ast_node ~typ:"term"
         [
-          ("type", `String "term");
           ( "value",
             `Assoc
-              [
-                ("label", `String label);
-                ( "as_variable",
-                  match as_variable with None -> `Null | Some v -> `String v );
-                ("typ", json_of_type_annotation typ);
-                ( "default",
-                  match default with None -> `Null | Some d -> to_json d );
-              ] );
+              (ast_node ~typ:"fun_arg"
+                 [
+                   ("label", `String label);
+                   ( "as_variable",
+                     match as_variable with
+                       | None -> `Null
+                       | Some v -> `String v );
+                   ( "typ",
+                     match typ with
+                       | None -> `Null
+                       | Some typ -> json_of_type_annotation typ );
+                   ( "default",
+                     match default with None -> `Null | Some d -> to_json d );
+                 ]) );
         ]
 
 let json_of_fun ~to_json arguments body =
   [
-    ("arguments", `Tuple (List.map (json_of_fun_arg ~to_json) arguments));
+    ( "arguments",
+      `Tuple
+        (List.map (fun arg -> `Assoc (json_of_fun_arg ~to_json arg)) arguments)
+    );
     ("body", to_json body);
   ]
 
@@ -226,8 +234,11 @@ let json_of_let ~to_json { decoration; pat; arglist; cast; def } body =
     ( "arglist",
       match arglist with
         | None -> `Null
-        | Some arglist -> `Tuple (List.map (json_of_fun_arg ~to_json) arglist)
-    );
+        | Some arglist ->
+            `Tuple
+              (List.map
+                 (fun arg -> `Assoc (json_of_fun_arg ~to_json arg))
+                 arglist) );
     ( "cast",
       match cast with None -> `Null | Some t -> json_of_type_annotation t );
     ("definition", to_json def);
@@ -236,26 +247,30 @@ let json_of_let ~to_json { decoration; pat; arglist; cast; def } body =
 
 let json_of_app_arg ~to_json = function
   | `Term (l, v) ->
-      `Assoc
-        [("type", `String "term"); ("label", `String l); ("value", to_json v)]
-  | `Argsof _of ->
-      `Assoc [("type", `String "argsof"); ("value", json_of_of _of)]
+      ast_node ~typ:"term"
+        [
+          ( "value",
+            `Assoc
+              (ast_node ~typ:"app_arg"
+                 [("label", `String l); ("value", to_json v)]) );
+        ]
+  | `Argsof _of -> ast_node ~typ:"argsof" (json_of_of _of)
 
 let json_of_app_args ~to_json args =
-  `Tuple (List.map (json_of_app_arg ~to_json) args)
+  `Tuple (List.map (fun arg -> `Assoc (json_of_app_arg ~to_json arg)) args)
 
 let json_of_invoke_meth ~to_json = function
-  | `String s -> `Assoc [("type", `String "meth"); ("value", `String s)]
+  | `String s -> ast_node ~typ:"var" [("value", `String s)]
   | `App (s, args) ->
-      `Assoc
+      ast_node ~typ:"app"
         [
-          ("type", `String "app");
-          ("value", `Tuple [`String s; json_of_app_args ~to_json args]);
+          ("op", `Assoc (ast_node ~typ:"var" [("value", `String s)]));
+          ("args", json_of_app_args ~to_json args);
         ]
 
 let json_of_list_el ~to_json = function
-  | `Term t -> type_node ~typ:"term" (to_json t)
-  | `Ellipsis t -> type_node ~typ:"ellipsis" (to_json t)
+  | `Term t -> ast_node ~typ:"term" [("value", to_json t)]
+  | `Ellipsis t -> ast_node ~typ:"ellipsis" [("value", to_json t)]
 
 let json_of_time_el { week; hours; minutes; seconds } =
   let to_int = function None -> `Null | Some i -> `Int i in
@@ -297,7 +312,7 @@ let rec to_ast_json = function
           ("right", `Assoc (json_of_time_el t'));
         ]
   | `Regexp (name, flags) ->
-      ast_node ~typ:"refexp"
+      ast_node ~typ:"regexp"
         [
           ("name", `String name);
           ("flags", `Tuple (List.map (fun c -> `String (Char.escaped c)) flags));
@@ -312,18 +327,22 @@ let rec to_ast_json = function
   | `Encoder e -> ast_node ~typ:"encoder" (to_encoder_json e)
   | `List l ->
       ast_node ~typ:"list"
-        [("value", `Tuple (List.map (json_of_list_el ~to_json) l))]
+        [
+          ( "value",
+            `Tuple (List.map (fun p -> `Assoc (json_of_list_el ~to_json p)) l)
+          );
+        ]
   | `Tuple l -> ast_node ~typ:"tuple" [("value", `Tuple (List.map to_json l))]
   | `Null -> ast_node ~typ:"null" []
   | `Cast (t, typ) ->
       ast_node ~typ:"cast"
-        [("term", to_json t); ("type", json_of_type_annotation typ)]
+        [("left", to_json t); ("right", json_of_type_annotation typ)]
   | `Invoke { Term_base.invoked; default; meth } ->
       ast_node ~typ:"invoke"
         [
           ("invoked", to_json invoked);
           ("default", match default with None -> `Null | Some d -> to_json d);
-          ("meth", json_of_invoke_meth ~to_json meth);
+          ("meth", `Assoc (json_of_invoke_meth ~to_json meth));
         ]
   | `Open (t, t') ->
       ast_node ~typ:"open" [("left", to_json t); ("right", to_json t')]
@@ -363,9 +382,12 @@ and to_json { t; methods; term } : Json.t =
     ([
        ("position", json_of_positions t.pos);
        ( "methods",
-         `Assoc
+         `Tuple
            (List.map
-              (fun (lbl, tm) -> (lbl, to_json tm))
+              (fun (lbl, tm) ->
+                `Assoc
+                  (ast_node ~typ:"method"
+                     [("label", `String lbl); ("value", to_json tm)]))
               (Methods.bindings methods)) );
      ]
     @ to_ast_json term)

@@ -91,7 +91,10 @@ and _let = {
 
 and invoke_meth = [ `String of string | `App of string * app_arg list ]
 and app_arg = [ `Term of string * t | `Argsof of _of ]
-and fun_arg = [ `Term of (t, type_annotation) func_argument | `Argsof of _of ]
+
+and fun_arg =
+  [ `Term of (t, type_annotation option) func_argument | `Argsof of _of ]
+
 and list_el = [ `Term of t | `Ellipsis of t ]
 
 and time_el = {

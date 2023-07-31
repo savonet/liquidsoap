@@ -495,16 +495,16 @@ arglist:
   | arg                   { [$1] }
   | arg COMMA arglist     { $1::$3 }
 arg:
-  | TILD VAR opt { `Term {label = $2; as_variable = None; typ = `Named "_"; default = $3} }
+  | TILD VAR opt { `Term {label = $2; as_variable = None; typ = None; default = $3} }
   | TILD LPAR VAR COLON ty RPAR opt {
-                   `Term {label = $3; as_variable = None; typ =  $5; default = $7}
+                   `Term {label = $3; as_variable = None; typ =  Some $5; default = $7}
                  }
   | TILD VAR GETS UNDERSCORE opt {
-                   `Term {label = $2; as_variable = Some "_"; typ = `Named "_"; default = $5}
+                   `Term {label = $2; as_variable = Some "_"; typ = None; default = $5}
                  }
-  | optvar opt   { `Term {label = ""; as_variable = Some $1; typ = `Named "_"; default = $2} }
+  | optvar opt   { `Term {label = ""; as_variable = Some $1; typ = None; default = $2} }
   | LPAR optvar COLON ty RPAR opt {
-                   `Term {label = ""; as_variable =  Some $2; typ = $4; default =  $6}
+                   `Term {label = ""; as_variable =  Some $2; typ = Some $4; default =  $6}
                  }
   | ARGS_OF LPAR VAR RPAR {
                    `Argsof {only = []; except = []; source = $3 }

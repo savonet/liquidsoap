@@ -241,7 +241,10 @@ let expand_argsof ?pos ~to_term args =
          | `Term arg ->
              {
                arg with
-               typ = Parser_helper.mk_ty arg.typ;
+               typ =
+                 (match arg.typ with
+                   | None -> Type.var ()
+                   | Some typ -> Parser_helper.mk_ty typ);
                default = Option.map to_term arg.default;
              }
              :: args)
