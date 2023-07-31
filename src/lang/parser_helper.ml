@@ -113,14 +113,11 @@ type encoder_param =
 
 and encoder_opt = encoder_param list
 
-type inner_list_item = [ `Ellipsis of Term.t | `Expr of Term.t ]
-type inner_list = [ `App of Term.t | `List of Term.t list ]
 type let_opt_el = string * Term.t
 type record = pos:Lexing.position * Lexing.position -> Term.t -> Term.t
 type ty_content_arg = string * string
 type ty_content_args = ty_content_arg list
 type ty_content = string * ty_content_args
-type varlist = [ `List of Term.t list | `App of Term.t ]
 type meth_pattern_el = string * Term.pattern option
 
 let let_decoration_of_lexer_let_decoration = function
@@ -140,36 +137,6 @@ let args_of_json_parse ~pos = function
            (pos, "Invalid argument " ^ lbl ^ " for json.parse let constructor"))
 
 let mk = Term.make
-
-let append_list ~pos x v =
-  match (x, v) with
-    | `Expr x, `List l -> `List (x :: l)
-    | `Expr x, `App v ->
-        let list = mk ~pos (`Var "list") in
-        let op =
-          mk ~pos
-            (`Invoke { invoked = list; default = None; meth = `String "add" })
-        in
-        `App (mk ~pos (`App (op, [`Term ("", x); `Term ("", v)])))
-    | `Ellipsis x, `App v ->
-        let list = mk ~pos (`Var "list") in
-        let op =
-          mk ~pos
-            (`Invoke
-              { invoked = list; default = None; meth = `String "append" })
-        in
-        `App (mk ~pos (`App (op, [`Term ("", x); `Term ("", v)])))
-    | `Ellipsis x, `List l ->
-        let list = mk ~pos (`Var "list") in
-        let op =
-          mk ~pos
-            (`Invoke
-              { invoked = list; default = None; meth = `String "append" })
-        in
-        let l = mk ~pos (`List l) in
-        `App (mk ~pos (`App (op, [`Term ("", x); `Term ("", l)])))
-
-let mk_list ~pos = function `List l -> mk ~pos (`List l) | `App a -> a
 let mk_fun ~pos arguments body = mk ~pos (`Fun (arguments, body))
 
 let mk_let ~pos _let body =

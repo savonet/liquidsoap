@@ -46,7 +46,6 @@ type 'a app = 'a * (string * 'a) list
 type 'a ast =
   [ `Ground of ground
   | `Encoder of 'a ast_encoder
-  | `List of 'a list
   | `Tuple of 'a list
   | `Null
   | `Open of 'a * 'a
@@ -57,6 +56,7 @@ type t = runtime_ast term
 
 and runtime_ast =
   [ `Let of let_t
+  | `List of t list
   | `Cast of t * Type.t
   | `App of t * (string * t) list
   | `Invoke of (t, string) invoke

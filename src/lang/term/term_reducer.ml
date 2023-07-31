@@ -408,10 +408,28 @@ let not_reducer ?pos ~to_term = function
       let op = mk ?pos (`Var "not") in
       `App (op, [("", to_term tm)])
 
+let append_term ?pos a b =
+  let op = mk ?pos (`Var "_::_") in
+  `App (op, [("", a); ("", b)])
+
 let append_reducer ?pos ~to_term = function
-  | `Append (tm, tm') ->
-      let op = mk ?pos (`Var "_::_") in
-      `App (op, [("", to_term tm); ("", to_term tm')])
+  | `Append (tm, tm') -> append_term ?pos (to_term tm) (to_term tm')
+
+let rec list_reducer ?pos ?(cur = `List []) ~to_term l =
+  match (l, cur) with
+    | [], cur -> cur
+    | `Term v :: rem, `List cur ->
+        list_reducer ~cur:(`List (to_term v :: cur)) ?pos ~to_term rem
+    | `Term v :: rem, cur ->
+        let cur = append_term ?pos (to_term v) (mk ?pos cur) in
+        list_reducer ?pos ~cur ~to_term rem
+    | `Ellipsis v :: rem, cur ->
+        let list = mk ?pos (`Var "list") in
+        let op =
+          mk ?pos (`Invoke { invoked = list; default = None; meth = "append" })
+        in
+        let cur = `App (op, [("", to_term v); ("", mk ?pos cur)]) in
+        list_reducer ?pos ~cur ~to_term rem
 
 let assoc_reducer ?pos ~to_term = function
   | `Assoc (tm, tm') ->
@@ -570,7 +588,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Coalesce (t, default) -> mk_coalesce ?pos ~to_term ~default t
   | `Ground g -> `Ground g
   | `Encoder e -> `Encoder (to_encoder e)
-  | `List l -> `List (List.map to_term l)
+  | `List l -> list_reducer ?pos ~to_term (List.rev l)
   | `Tuple l -> `Tuple (List.map to_term l)
   | `Null -> `Null
   | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ?pos typ)

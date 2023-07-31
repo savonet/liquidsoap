@@ -38,14 +38,11 @@ type encoder_param =
 
 and encoder_opt = encoder_param list
 
-type inner_list_item = [ `Ellipsis of Term.t | `Expr of Term.t ]
-type inner_list = [ `App of Term.t | `List of Term.t list ]
 type let_opt_el = string * Term.t
 type record = pos:Lexing.position * Lexing.position -> Term.t -> Term.t
 type ty_content_arg = string * string
 type ty_content_args = ty_content_arg list
 type ty_content = string * ty_content_args
-type varlist = [ `List of Term.t list | `App of Term.t ]
 type meth_pattern_el = string * Term.pattern option
 
 val mk_ty : ?pos:Pos.t -> Parsed_term.type_annotation -> Type.t
@@ -85,13 +82,6 @@ val mk :
   Term.parsed_ast ->
   Term.t
 
-val append_list :
-  pos:Pos.t ->
-  [< `Ellipsis of Term.t | `Expr of Term.t ] ->
-  [< `App of Term.t | `List of Term.t list ] ->
-  [> `App of Term.t | `List of Term.t list ]
-
-val mk_list : pos:Pos.t -> [< `App of Term.t | `List of Term.t list ] -> Term.t
 val mk_fun : pos:Pos.t -> arglist -> Term.t -> Term.t
 
 val mk_encoder :

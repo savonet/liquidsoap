@@ -135,8 +135,8 @@ open Parser_helper
 %type <Term.t> if_elsif
 %type <string list> in_subfield
 %type <string list> in_subfield_lbra
-%type <Parser_helper.inner_list> inner_list
-%type <Parser_helper.inner_list_item> inner_list_item
+%type <Parsed_term.list_el list> inner_list
+%type <Parsed_term.list_el> inner_list_item
 %type <Term.t list> inner_tuple
 %type <Parser_helper.let_opt_el list> let_opt
 %type <Parser_helper.let_opt_el> let_opt_el
@@ -166,7 +166,7 @@ open Parser_helper
 %type <Term.source_annotation> ty_source_tracks
 %type <Term.type_annotation list> ty_tuple
 %type <Term.pattern> var_pattern
-%type <Parser_helper.varlist> varlist
+%type <Parsed_term.list_el list> varlist
 %type <string list> varlpar
 
 %%
@@ -213,7 +213,7 @@ expr:
   | FLOAT                            { mk ~pos:$loc (`Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (`Ground (String $1)) }
   | VAR                              { mk ~pos:$loc (`Var $1) }
-  | varlist                          { mk_list ~pos:$loc $1 }
+  | varlist                          { mk ~pos:$loc (`List $1) }
   | GET expr                         { mk ~pos:$loc (`Get $2) }
   | expr SET expr                    { mk ~pos:$loc (`Set ($1, $3)) }
   | ENCODER encoder_opt              { mk_encoder ~pos:$loc $1 $2 }
@@ -249,7 +249,7 @@ expr:
                                      { mk~pos:$loc (`Try {
                                          Term.try_body = $2;
                                          try_variable = $4;
-                                         try_errors_list = mk_list ~pos:$loc($6) $6;
+                                         try_errors_list = mk ~pos:$loc($6) (`List $6);
                                          try_handler = $8 }) }
   | TRY exprs CATCH optvar DO exprs END { mk~pos:$loc (`Try {
                                          Term.try_body = $2;
@@ -356,13 +356,13 @@ varlist:
 
 inner_list:
   | inner_list_item COMMA inner_list
-                          { append_list ~pos:$loc $1 $3 }
-  | inner_list_item       { append_list ~pos:$loc $1 (`List []) }
-  |                       { `List [] }
+                          { $1::$3 }
+  | inner_list_item       { [$1] }
+  |                       { [] }
 
 inner_list_item:
   | DOTDOTDOT expr { `Ellipsis $2 }
-  | expr           { `Expr $1 }
+  | expr           { `Term $1 }
 
 inner_tuple:
   | expr COMMA expr { [$1;$3] }

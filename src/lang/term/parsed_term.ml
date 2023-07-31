@@ -92,6 +92,7 @@ and _let = {
 and invoke_meth = [ `String of string | `App of string * app_arg list ]
 and app_arg = [ `Term of string * t | `Argsof of _of ]
 and fun_arg = [ `Term of (t, type_annotation) func_argument | `Argsof of _of ]
+and list_el = [ `Term of t | `Ellipsis of t ]
 
 (* These terms are reduced at runtime *)
 and parsed_ast =
@@ -100,6 +101,7 @@ and parsed_ast =
   | `While of _while
   | `For of _for
   | `Iterable_for of iterable_for
+  | `List of list_el list
   | `Try of _try
   | `Regexp of string * char list
   | `Def of _let * t
