@@ -50,8 +50,6 @@ val mk_expr :
   Sedlexing.lexbuf ->
   Term.t
 
-val parse_file : string -> Parsed_term.t
-
 (** Evaluate a script from an [in_channel]. *)
 val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
 

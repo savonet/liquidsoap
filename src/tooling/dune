@@ -9,7 +9,7 @@
 (library
  (name liquidsoap_tooling)
  (modules parsed_json)
- (libraries liquidsoap_lang))
+ (libraries sedlex liquidsoap_lang))
 
 (executable
  (name json_dump)

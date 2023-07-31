@@ -239,16 +239,6 @@ let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
   from_lexbuf ?fname ?dir ?parse_only ~ns ~lib lexbuf
 
-let parse_file filename =
-  let ic = open_in filename in
-  let fname = Lang_string.home_unrelate filename in
-  let lexbuf = Sedlexing.Utf8.from_channel ic in
-  Sedlexing.set_filename lexbuf filename;
-  let tokenizer =
-    Preprocessor.mk_tokenizer ~fname ~pwd:(Sys.getcwd ()) lexbuf
-  in
-  Fun.protect ~finally:(fun () -> close_in ic) (fun () -> program tokenizer)
-
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
   let fname = Lang_string.home_unrelate filename in
