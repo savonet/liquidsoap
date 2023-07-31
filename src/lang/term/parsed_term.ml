@@ -94,6 +94,13 @@ and app_arg = [ `Term of string * t | `Argsof of _of ]
 and fun_arg = [ `Term of (t, type_annotation) func_argument | `Argsof of _of ]
 and list_el = [ `Term of t | `Ellipsis of t ]
 
+and time_el = {
+  week : int option;
+  hours : int option;
+  minutes : int option;
+  seconds : int option;
+}
+
 (* These terms are reduced at runtime *)
 and parsed_ast =
   [ `If of _if
@@ -104,6 +111,8 @@ and parsed_ast =
   | `List of list_el list
   | `Try of _try
   | `Regexp of string * char list
+  | `Time_interval of time_el * time_el
+  | `Time of time_el
   | `Def of _let * t
   | `Let of _let * t
   | `Binding of _let * t

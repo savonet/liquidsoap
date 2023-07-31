@@ -61,17 +61,18 @@ let parse_time t =
     in
     let sub = Regexp.exec rex t in
     let g = g sub in
-    List.map g [1; 2; 3; 4]
+    { Parsed_term.week = g 1; hours = g 2; minutes = g 3; seconds = g 4 }
   with Not_found ->
     let rex = Regexp.regexp "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
     let sub = Regexp.exec rex t in
     let g = g sub in
-    [
-      g 1;
-      g 2;
-      Some (int_of_string (Option.get (List.nth sub.Regexp.matches 3)));
-      None;
-    ]
+    {
+      Parsed_term.week = g 1;
+      hours = g 2;
+      minutes =
+        Some (int_of_string (Option.get (List.nth sub.Regexp.matches 3)));
+      seconds = None;
+    }
 
 (* See: https://en.wikipedia.org/wiki/Whitespace_character *)
 let line_break =

@@ -257,6 +257,20 @@ let json_of_invoke_meth ~to_json = function
           ("value", `Tuple [`String s; json_of_app_args ~to_json args]);
         ]
 
+let json_of_list_el ~to_json = function
+  | `Term t -> type_node ~typ:"term" (to_json t)
+  | `Ellipsis t -> type_node ~typ:"ellipsis" (to_json t)
+
+let json_of_time_el { week; hours; minutes; seconds } =
+  let to_int = function None -> `Null | Some i -> `Int i in
+  `Assoc
+    [
+      ("week", to_int week);
+      ("hours", to_int hours);
+      ("minutes", to_int minutes);
+      ("seconds", to_int seconds);
+    ]
+
 let rec to_ast_json : parsed_ast -> Json.t = function
   | `Get t -> ast_node ~typ:"get" (to_json t)
   | `Set (t, t') -> ast_node ~typ:"set" (`Tuple [to_json t; to_json t'])
@@ -275,6 +289,10 @@ let rec to_ast_json : parsed_ast -> Json.t = function
   | `Bool (t, op, t') ->
       ast_node ~typ:"bool" (`Tuple [to_json t; `String op; to_json t'])
   | `Simple_fun t -> ast_node ~typ:"simple_fun" (to_json t)
+  | `Time t -> ast_node ~typ:"time" (json_of_time_el t)
+  | `Time_interval (t, t') ->
+      ast_node ~typ:"time_interval"
+        (`Tuple [json_of_time_el t; json_of_time_el t'])
   | `Regexp (name, flags) ->
       ast_node ~typ:"refexp"
         (`Assoc
@@ -286,7 +304,8 @@ let rec to_ast_json : parsed_ast -> Json.t = function
   | `Try p -> ast_node ~typ:"try" (json_of_try ~to_json p)
   | `Ground g -> ast_node ~typ:"ground" (Term_base.Ground.to_json ~pos:[] g)
   | `Encoder e -> ast_node ~typ:"encoder" (to_encoder_json e)
-  | `List l -> ast_node ~typ:"list" (`Tuple (List.map to_json l))
+  | `List l ->
+      ast_node ~typ:"list" (`Tuple (List.map (json_of_list_el ~to_json) l))
   | `Tuple l -> ast_node ~typ:"tuple" (`Tuple (List.map to_json l))
   | `Null -> ast_node ~typ:"null" `Null
   | `Cast (t, typ) ->

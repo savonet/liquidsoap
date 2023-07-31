@@ -71,10 +71,6 @@ val mk_json_assoc_object_ty :
   Parsed_term.type_annotation * string * string * string ->
   Term.type_annotation
 
-val mk_time_pred : pos:Pos.t -> int * int * int -> Term.t
-val during : pos:Pos.t -> int option list -> int * int * int
-val between : pos:Pos.t -> int option list -> int option list -> int * int * int
-
 val mk :
   ?pos:Pos.t ->
   ?t:Type_base.t ->

@@ -37,8 +37,8 @@ open Parser_helper
 %token <int> INT PP_INT_DOT_LCUR
 %token <float> FLOAT
 %token <bool> BOOL
-%token <int option list> TIME
-%token <int option list * int option list> INTERVAL
+%token <Parsed_term.time_el> TIME
+%token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
 %token <string> ENCODER
 %token EOF
 %token <Parser_helper.lexer_let_decoration> LET
@@ -272,8 +272,8 @@ invoke:
   | VARLPAR app_list RPAR { `App ($1, $2) }
 
 time_predicate:
-  | INTERVAL { mk_time_pred ~pos:$loc (between ~pos:$loc (fst $1) (snd $1)) }
-  | TIME     { mk_time_pred ~pos:$loc (during ~pos:$loc $1) }
+  | INTERVAL { mk ~pos:$loc (`Time_interval $1) }
+  | TIME     { mk ~pos:$loc (`Time $1) }
 
 ty:
   | UNDERSCORE                   { `Named "_" }

@@ -21,14 +21,79 @@
  *****************************************************************************)
 
 open Parsed_term
+open Term.Ground
 include Term_types
+
+let parse_error ?pos msg =
+  let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
+  raise (Term_base.Parse_error (pos, msg))
 
 let mk = Term_base.make
 
 let mk_fun ?pos arguments body =
   Term.make ?pos (`Fun Term.{ free_vars = None; arguments; body })
 
-let gen_args_of ~only ~except ~pos get_args name =
+(** Time intervals *)
+
+let time_units = [| 7 * 24 * 60 * 60; 24 * 60 * 60; 60 * 60; 60; 1 |]
+
+(** Given a date specified as a list of four values (whms), return a date in
+    seconds from the beginning of the week. *)
+let date ?pos =
+  let to_int = function None -> 0 | Some i -> i in
+  let rec aux = function
+    | None :: tl -> aux tl
+    | [] -> parse_error ?pos "Invalid time."
+    | l ->
+        let a = Array.of_list l in
+        let n = Array.length a in
+        let tu = time_units and tn = Array.length time_units in
+        Array.fold_left ( + ) 0
+          (Array.mapi
+             (fun i s ->
+               let s = if n = 4 && i = 0 then to_int s mod 7 else to_int s in
+               tu.(tn - 1 + i - n + 1) * s)
+             a)
+  in
+  aux
+
+(** Give the index of the first non-None value in the list. *)
+let last_index l =
+  let rec last_index n = function
+    | x :: tl -> if x = None then last_index (n + 1) tl else n
+    | [] -> n
+  in
+  last_index 0 l
+
+(** Give the precision of a date-as-list.
+    For example, the precision of Xs is 1, XmYs is 60, XhYmZs 3600, etc. *)
+let precision d = time_units.(last_index d)
+
+(** Give the duration of a data-as-list.
+    For example, the duration of Xs is 1, Xm 60, XhYm 60, etc. *)
+let duration d =
+  time_units.(Array.length time_units - 1 - last_index (List.rev d))
+
+let between ?pos d1 d2 =
+  let d1 = [d1.week; d1.hours; d1.minutes; d1.seconds] in
+  let d2 = [d2.week; d2.hours; d2.minutes; d2.seconds] in
+  let p1 = precision d1 in
+  let p2 = precision d2 in
+  let t1 = date ?pos d1 in
+  let t2 = date ?pos d2 in
+  if p1 <> p2 then parse_error ?pos "Invalid time interval: precisions differ.";
+  (t1, t2, p1)
+
+let during ?pos d =
+  let d = [d.week; d.hours; d.minutes; d.seconds] in
+  let t, d, p = (date ?pos d, duration d, precision d) in
+  (t, t + d, p)
+
+let mk_time_pred ?pos (a, b, c) =
+  let args = List.map (fun x -> ("", mk ?pos (`Ground (Int x)))) [a; b; c] in
+  `App (mk ?pos (`Var "time_in_mod"), args)
+
+let gen_args_of ~only ~except ?pos get_args name =
   match Environment.get_builtin name with
     | Some ((_, t), Value.{ value = Fun (args, _, _) })
     | Some ((_, t), Value.{ value = FFI (args, _) }) ->
@@ -39,12 +104,9 @@ let gen_args_of ~only ~except ~pos get_args name =
               (fun n ->
                 try List.find (fun (n', _, _) -> n = n') filtered_args
                 with Not_found ->
-                  raise
-                    (Term_base.Parse_error
-                       ( pos,
-                         Printf.sprintf
-                           "Builtin %s does not have an argument named %s" name
-                           n )))
+                  parse_error ?pos
+                    (Printf.sprintf
+                       "Builtin %s does not have an argument named %s" name n))
               only
           else filtered_args
         in
@@ -53,58 +115,49 @@ let gen_args_of ~only ~except ~pos get_args name =
             match List.find_opt (fun (n', _, _) -> n = n') args with
               | Some _ -> ()
               | None ->
-                  raise
-                    (Term_base.Parse_error
-                       ( pos,
-                         Printf.sprintf
-                           "Builtin %s does not have an argument named %s" name
-                           n )))
+                  parse_error ?pos
+                    (Printf.sprintf
+                       "Builtin %s does not have an argument named %s" name n))
           except;
         let filtered_args =
           List.filter (fun (n, _, _) -> not (List.mem n except)) filtered_args
         in
-        get_args ~pos t filtered_args
+        get_args ?pos t filtered_args
     | Some _ ->
-        raise
-          (Term_base.Parse_error
-             (pos, Printf.sprintf "Builtin %s is not a function!" name))
+        parse_error ?pos (Printf.sprintf "Builtin %s is not a function!" name)
     | None ->
-        raise
-          (Term_base.Parse_error
-             (pos, Printf.sprintf "Builtin %s is not registered!" name))
+        parse_error ?pos (Printf.sprintf "Builtin %s is not registered!" name)
 
 let args_of, app_of =
-  let rec get_args ~pos t args =
+  let rec get_args ?pos t args =
     let get_arg_type t name =
       match (Type.deref t).Type.descr with
         | Type.Arrow (l, _) ->
             let _, _, t = List.find (fun (_, n, _) -> n = name) l in
             t
         | _ ->
-            raise
-              (Term_base.Parse_error
-                 ( pos,
-                   Printf.sprintf
-                     "Cannot get argument type of %s, this is not a function, \
-                      it has type: %s."
-                     name (Type.to_string t) ))
+            parse_error ?pos
+              (Printf.sprintf
+                 "Cannot get argument type of %s, this is not a function, it \
+                  has type: %s."
+                 name (Type.to_string t))
     in
     List.map
       (fun (n, n', v) ->
-        let t = Type.make ~pos (get_arg_type t n).Type.descr in
+        let t = Type.make ?pos (get_arg_type t n).Type.descr in
         let as_variable = if n = n' then None else Some n' in
         {
           label = n;
           as_variable;
           typ = t;
-          default = Option.map (term_of_value ~pos ~name:n t) v;
+          default = Option.map (term_of_value ?pos ~name:n t) v;
         })
       args
-  and get_app ~pos _ args =
+  and get_app ?pos _ args =
     List.map
-      (fun (n, _, _) -> (n, Term.make ~t:(Type.var ~pos ()) (`Var n)))
+      (fun (n, _, _) -> (n, Term.make ~t:(Type.var ?pos ()) (`Var n)))
       args
-  and term_of_value_base ~pos t v =
+  and term_of_value_base ?pos t v =
     let get_list_type () =
       match (Type.deref t).Type.descr with
         | Type.(List { t }) -> t
@@ -116,17 +169,17 @@ let args_of, app_of =
         | _ -> assert false
     in
     let process_value ~t v =
-      let mk_tm term = Term.make ~t:(Type.make ~pos t.Type.descr) term in
+      let mk_tm term = Term.make ~t:(Type.make ?pos t.Type.descr) term in
       match v.Value.value with
         | Value.Ground g -> mk_tm (`Ground g)
         | Value.List l ->
             mk_tm
-              (`List (List.map (term_of_value_base ~pos (get_list_type ())) l))
+              (`List (List.map (term_of_value_base ?pos (get_list_type ())) l))
         | Value.Tuple l ->
             mk_tm
               (`Tuple
                 (List.mapi
-                   (fun idx v -> term_of_value_base ~pos (get_tuple_type idx) v)
+                   (fun idx v -> term_of_value_base ?pos (get_tuple_type idx) v)
                    l))
         | Value.Null -> mk_tm `Null
         (* Ignoring env is not correct here but this is an internal operator
@@ -134,13 +187,13 @@ let args_of, app_of =
         | Value.Fun (args, _, body) ->
             let body =
               Term.make
-                ~t:(Type.make ~pos body.t.Type.descr)
+                ~t:(Type.make ?pos body.t.Type.descr)
                 ~methods:body.Term.methods body.Term.term
             in
             mk_tm
               (`Fun
                 {
-                  Term_base.arguments = get_args ~pos t args;
+                  Term_base.arguments = get_args ?pos t args;
                   body;
                   free_vars = None;
                 })
@@ -158,27 +211,23 @@ let args_of, app_of =
              process_value ~t meth)
            v.Value.methods)
       tm.Term.term
-  and term_of_value ~pos ~name t v =
-    try term_of_value_base ~pos t v
+  and term_of_value ?pos ~name t v =
+    try term_of_value_base ?pos t v
     with _ ->
-      raise
-        (Term_base.Parse_error
-           ( pos,
-             Printf.sprintf
-               "Argument %s: value %s cannot be represented as a term" name
-               (Value.to_string v) ))
+      parse_error ?pos
+        (Printf.sprintf "Argument %s: value %s cannot be represented as a term"
+           name (Value.to_string v))
   in
-  let args_of = gen_args_of get_args in
-  let app_of = gen_args_of get_app in
+  let args_of ?pos = gen_args_of ?pos get_args in
+  let app_of ?pos = gen_args_of ?pos get_app in
   (args_of, app_of)
 
 let expand_appof ?pos ~to_term (args : Parsed_term.app_arg list) =
-  let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
   List.rev
     (List.fold_left
        (fun args -> function
          | `Argsof { only; except; source } ->
-             List.rev (app_of ~pos ~only ~except source) @ args
+             List.rev (app_of ?pos ~only ~except source) @ args
          | `Term (l, v) -> (l, to_term v) :: args)
        [] args)
 
@@ -549,23 +598,12 @@ let mk_let ?pos ~to_term ({ doc; decoration; pat; arglist; def; cast }, body) =
         mk_let_json_parse ?pos (args, pat, def, cast) body
     | None, `Yaml_parse -> mk_let_yaml_parse ?pos (pat, def, cast) body
     | Some _, v ->
-        let pos =
-          Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos
-        in
-        raise
-          (Term_base.Parse_error
-             ( pos,
-               string_of_let_decoration v
-               ^ " does not apply to function assignments" ))
+        parse_error ?pos
+          (string_of_let_decoration v
+         ^ " does not apply to function assignments")
     | None, v ->
-        let pos =
-          Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos
-        in
-        raise
-          (Term_base.Parse_error
-             ( pos,
-               string_of_let_decoration v
-               ^ " only applies to function assignments" ))
+        parse_error ?pos
+          (string_of_let_decoration v ^ " only applies to function assignments")
 
 let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Get _ as ast -> get_reducer ?pos ~to_term ast
@@ -586,6 +624,8 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Try _ as ast -> try_reducer ?pos ~to_term ast
   | `Def p | `Let p | `Binding p -> mk_let ?pos ~to_term p
   | `Coalesce (t, default) -> mk_coalesce ?pos ~to_term ~default t
+  | `Time t -> mk_time_pred ?pos (during ?pos t)
+  | `Time_interval (t, t') -> mk_time_pred ?pos (between ?pos t t')
   | `Ground g -> `Ground g
   | `Encoder e -> `Encoder (to_encoder e)
   | `List l -> list_reducer ?pos ~to_term (List.rev l)
