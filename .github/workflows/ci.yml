@@ -215,6 +215,7 @@ jobs:
       - name: Finalize metrics
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
+          mkdir -p "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "/tmp/${{ github.run_number }}/metrics"
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v3
