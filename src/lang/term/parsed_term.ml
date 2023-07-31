@@ -23,6 +23,14 @@
 include Term_types
 module Ground = Term_base.Ground
 
+type inc_type = [ `Lib | `Extra | `Default ]
+
+type inc = {
+  inc_type : inc_type;
+  inc_name : string;
+  inc_pos : Lexing.position * Lexing.position;
+}
+
 type meth_annotation = {
   optional : bool;
   name : string;
@@ -134,6 +142,7 @@ and parsed_ast =
   | `Bool of t * string * t
   | `Coalesce of t * t
   | `Simple_fun of t
+  | `Include of inc
   | t ast ]
 
 and t = parsed_ast term

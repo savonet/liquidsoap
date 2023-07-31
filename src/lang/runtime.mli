@@ -45,7 +45,6 @@ val program :
 
 val mk_expr :
   ?fname:string ->
-  pwd:string ->
   ((unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t) ->
   Sedlexing.lexbuf ->
   Term.t

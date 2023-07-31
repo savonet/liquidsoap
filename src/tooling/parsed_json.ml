@@ -349,6 +349,12 @@ let rec to_ast_json = function
   | `Let (p, body) -> ast_node ~typ:"let" (json_of_let ~to_json p body)
   | `Def (p, body) -> ast_node ~typ:"def" (json_of_let ~to_json p body)
   | `Binding (p, body) -> ast_node ~typ:"binding" (json_of_let ~to_json p body)
+  | `Include { inc_type = `Lib; inc_name } ->
+      ast_node ~typ:"include_lib" [("value", `String inc_name)]
+  | `Include { inc_type = `Default; inc_name } ->
+      ast_node ~typ:"include" [("value", `String inc_name)]
+  | `Include { inc_type = `Extra; inc_name } ->
+      ast_node ~typ:"include_extra" [("value", `String inc_name)]
   | `Coalesce (t, t') ->
       ast_node ~typ:"coalesce" [("left", to_json t); ("right", to_json t')]
   | `Var s -> ast_node ~typ:"var" [("value", `String s)]

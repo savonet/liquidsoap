@@ -608,7 +608,45 @@ let mk_let ?pos ~to_term ({ doc; decoration; pat; arglist; def; cast }, body) =
         parse_error ?pos
           (string_of_let_decoration v ^ " only applies to function assignments")
 
+let rec concat_term t t' =
+  match t with
+    | { term = `Let p } as t ->
+        { t with term = `Let { p with body = concat_term p.body t' } }
+    | { term = `Seq (s, s') } -> { t with term = `Seq (s, concat_term s' t') }
+    | _ -> Term.make ?pos:t.t.Type.pos (`Seq (t, t'))
+
+exception No_extra
+
+let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
+
+let includer_reducer ~to_term = function
+  | `Include { inc_type; inc_name; inc_pos } -> (
+      try
+        let fname =
+          match inc_type with
+            | `Lib -> Filename.concat (!Hooks.liq_libs_dir ()) inc_name
+            | v -> (
+                try
+                  let current_dir =
+                    Filename.dirname (fst inc_pos).Lexing.pos_fname
+                  in
+                  Utils.check_readable ~current_dir ~pos:[inc_pos] inc_name
+                with _ when v = `Extra -> raise No_extra)
+        in
+        let ic = open_in fname in
+        let term =
+          Fun.protect
+            ~finally:(fun () -> close_in ic)
+            (fun () ->
+              let lexbuf = Sedlexing.Utf8.from_channel ic in
+              let tokenizer = Preprocessor.mk_tokenizer ~fname lexbuf in
+              program tokenizer)
+        in
+        (to_term term).term
+      with No_extra -> `Tuple [])
+
 let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
+  | `Include _ as ast -> includer_reducer ~to_term ast
   | `Get _ as ast -> get_reducer ?pos ~to_term ast
   | `Set _ as ast -> set_reducer ?pos ~to_term ast
   | `Inline_if _ as ast -> if_reducer ?pos ~to_term ast
@@ -639,6 +677,8 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
       mk_invoke ?pos ?default ~to_term invoked meth
   | `Open (t, t') -> `Open (to_term t, to_term t')
   | `Var s -> `Var s
+  | `Seq (({ term = `Include _ } as t), t') ->
+      (concat_term (to_term t) (to_term t')).term
   | `Seq (t, t') -> `Seq (to_term t, to_term t')
   | `App (t, args) ->
       let args = expand_appof ?pos ~to_term args in

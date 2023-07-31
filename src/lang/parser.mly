@@ -72,8 +72,7 @@ open Parser_helper
 %token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
 %token <Parser_helper.lexer_let_decoration> PP_DEF
 %token PP_ENDL PP_DEFINE
-%token <string> PP_INCLUDE_EXTRA
-%token <string> PP_INCLUDE
+%token <Parsed_term.inc> INCLUDE
 %token <string list> PP_COMMENT
 %token WHILE FOR TO
 
@@ -202,6 +201,7 @@ simple_fun_body:
 
 (* General expressions. *)
 expr:
+  | INCLUDE                          { mk ~pos:$loc (`Include $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }

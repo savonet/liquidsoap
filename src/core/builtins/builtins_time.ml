@@ -156,9 +156,7 @@ let _ =
       let predicate = Lang.to_string v in
       let lexbuf = Sedlexing.Utf8.from_string predicate in
       try
-        let tokenizer =
-          Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf
-        in
+        let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
         let predicate =
           Liquidsoap_lang.Term_reducer.to_term (processor tokenizer)
         in

@@ -194,19 +194,34 @@ let rec token lexbuf =
         let n = String.index matched '"' in
         let r = String.rindex matched '"' in
         let file = String.sub matched (n + 1) (r - n - 1) in
-        PP_INCLUDE_EXTRA file
+        INCLUDE
+          {
+            inc_type = `Extra;
+            inc_name = file;
+            inc_pos = Sedlexing.lexing_positions lexbuf;
+          }
     | "%include", Star (white_space | '\t'), '"', Star (Compl '"'), '"' ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.index matched '"' in
         let r = String.rindex matched '"' in
         let file = String.sub matched (n + 1) (r - n - 1) in
-        PP_INCLUDE file
+        INCLUDE
+          {
+            inc_type = `Default;
+            inc_name = file;
+            inc_pos = Sedlexing.lexing_positions lexbuf;
+          }
     | "%include", Star (white_space | '\t'), '<', Star (Compl '>'), '>' ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.index matched '<' in
         let r = String.rindex matched '>' in
         let file = String.sub matched (n + 1) (r - n - 1) in
-        PP_INCLUDE (Filename.concat (!Hooks.liq_libs_dir ()) file)
+        INCLUDE
+          {
+            inc_type = `Lib;
+            inc_name = file;
+            inc_pos = Sedlexing.lexing_positions lexbuf;
+          }
     | "%argsof" -> ARGS_OF
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF

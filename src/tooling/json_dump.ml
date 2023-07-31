@@ -6,7 +6,7 @@ let rec read_stdin ?(content = []) () =
 
 let parse_content content =
   let lexbuf = Sedlexing.Utf8.from_string content in
-  let tokenizer = Preprocessor.mk_tokenizer ~pwd:(Sys.getcwd ()) lexbuf in
+  let tokenizer = Preprocessor.mk_tokenizer lexbuf in
   Runtime.program tokenizer
 
 let () =
