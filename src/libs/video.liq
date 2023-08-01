@@ -160,7 +160,7 @@ def output.youtube.live.hls(~id=null(), ~fallible=false, ~on_start={()}, ~on_sto
   end
 
   def on_file_change(~state, fname) =
-    if state == "closed" and path.basename(fname) != "main.m3u8" then
+    if (state == "created" or state == "updated") and path.basename(fname) != "main.m3u8" then
       thread.run(file_upload(fname))
     end
   end
