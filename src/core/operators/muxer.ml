@@ -29,7 +29,12 @@ type field = {
 type track = { mutable fields : field list; source : Source.source }
 
 class muxer tracks =
-  let sources = List.map (fun { source } -> source) tracks in
+  let sources =
+    List.fold_left
+      (fun sources { source } ->
+        if List.memq source sources then sources else source :: sources)
+      [] tracks
+  in
   let stype =
     if List.for_all (fun s -> s#stype = `Infallible) sources then `Infallible
     else `Fallible
