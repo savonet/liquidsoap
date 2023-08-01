@@ -12,7 +12,7 @@ aac_insert_flags = ref(false)
 
 def on_file_change(~state, p) =
   fname = path.basename(p)
-  if state == "closed" then
+  if state == "created" or state == "updated" then
     if fname == "main.m3u8" and
        string.contains(substring="X-CUSTOM", file.contents(p)) then
       main_tags := true
