@@ -12,7 +12,7 @@ s = single(fname)
 
 s = once(s)
 
-clock.assign_new(sync='none',[s])
+#clock.assign_new(sync='none',[s])
 
 def on_done () =
   j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
