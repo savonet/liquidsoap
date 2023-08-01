@@ -87,6 +87,8 @@ class producer ?create_known_clock ~check_self_sync ~consumers ~name () =
       Generator.truncate self#buffer len;
       len
 
+    method seek_source = (self :> Source.source)
+
     method remaining =
       match
         ( Generator.remaining self#buffer,

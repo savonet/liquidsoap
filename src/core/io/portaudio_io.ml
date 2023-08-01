@@ -214,6 +214,7 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
     method self_sync = (`Dynamic, stream <> None)
     method abort_track = ()
     method remaining = -1
+    method seek_source = (self :> Source.source)
 
     method private open_device =
       self#handle "open_device" (fun () ->

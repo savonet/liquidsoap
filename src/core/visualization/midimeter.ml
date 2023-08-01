@@ -32,6 +32,7 @@ class midimeter source =
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     method seek = source#seek
+    method seek_source = source
 
     method get_frame buf =
       source#get buf;

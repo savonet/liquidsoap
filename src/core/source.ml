@@ -588,6 +588,12 @@ class virtual operator ?(name = "src") sources =
        By default it always returns 0, refusing to seek at all. *)
     method virtual seek : int -> int
 
+    (** Return the source effectively used to seek, used
+           by the muxer to determine if there is a unique seeking
+           source. Should return [self] if there isn't a unique
+           source. *)
+    method virtual seek_source : source
+
     (* Is there some data available for the next [get]?
        Must always be true while playing a track, i.e. all tracks
        must be properly ended. *)
@@ -807,7 +813,7 @@ and virtual active_operator ?name sources =
 
 (** Shortcuts for defining sources with no children *)
 
-class virtual source ?name () =
+and virtual source ?name () =
   object
     inherit operator ?name []
   end

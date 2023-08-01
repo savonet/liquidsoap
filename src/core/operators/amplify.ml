@@ -32,6 +32,7 @@ class amplify ~field (source : source) override_field coeff =
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek = source#seek
+    method seek_source = source
     method self_sync = source#self_sync
 
     method private get_frame buf =

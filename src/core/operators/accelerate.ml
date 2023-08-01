@@ -30,6 +30,7 @@ class accelerate ~ratio ~randomize source_val =
     method self_sync = source#self_sync
     method stype = source#stype
     method seek = source#seek
+    method seek_source = source
 
     method remaining =
       let rem = source#remaining in

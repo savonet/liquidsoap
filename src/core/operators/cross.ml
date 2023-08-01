@@ -387,6 +387,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Limit -> -1
         | `After -> (Option.get transition_source)#seek len
 
+    method seek_source =
+      match status with
+        | `Before | `Idle -> source
+        | `After -> Option.get transition_source
+        | _ -> (self :> Source.source)
+
     method is_ready =
       match status with
         | `Idle | `Before -> source#is_ready

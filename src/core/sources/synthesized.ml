@@ -32,6 +32,7 @@ class virtual source ?name ~seek duration =
     val mutable remaining = track_size
     method is_ready = remaining <> Some 0
     method seek x = if seek then x else 0
+    method seek_source = (self :> Source.source)
     method self_sync = (`Static, false)
 
     method remaining =

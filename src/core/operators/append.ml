@@ -119,6 +119,9 @@ class append ~insert_missing ~merge source f =
         | `Replay (Some _) -> source#seek n
         | `Append s -> s#seek n
 
+    method seek_source =
+      match Atomic.get state with `Append s -> s | _ -> source
+
     method self_sync =
       ( Lazy.force self_sync_type,
         match Atomic.get state with

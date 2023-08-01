@@ -32,6 +32,7 @@ class replaygain (source : source) =
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek = source#seek
+    method seek_source = source
     method self_sync = source#self_sync
     val mutable state = None
 

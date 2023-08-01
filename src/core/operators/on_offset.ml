@@ -37,6 +37,7 @@ class on_offset ~force ~offset ~override f s =
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek n = s#seek n
+    method seek_source = s
     method self_sync = s#self_sync
     val mutable elapsed = 0L
     val mutable offset = ticks_of_offset offset

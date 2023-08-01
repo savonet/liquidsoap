@@ -71,6 +71,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     initializer
       Lifecycle.before_core_shutdown (fun () -> Atomic.set shutdown true)
 
+    method seek_source = (self :> Source.source)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
     method private is_connected = Atomic.get container <> None

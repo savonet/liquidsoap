@@ -58,21 +58,22 @@ let port_t d p =
   else Float
 
 class virtual base source =
-  object
+  object (self)
     inherit operator ~name:"ladspa" [source]
-    inherit Source.no_seek
     method stype = source#stype
     method remaining = source#remaining
-    method! seek = source#seek
+    method seek = source#seek
+    method seek_source = (self :> Source.source)
     method is_ready = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
   end
 
 class virtual base_nosource =
-  object
+  object (self)
     inherit source ~name:"ladspa" ()
     inherit Source.no_seek
+    method seek_source = (self :> Source.source)
     method stype = `Infallible
     method is_ready = true
     method self_sync = (`Static, false)

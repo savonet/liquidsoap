@@ -44,6 +44,7 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
     inherit! [Content.Audio.data] IoRing.input ~nb_blocks as ioring
     val mutable initialized = false
     method self_sync = (`Static, true)
+    method seek_source = (self :> Source.source)
 
     method! private wake_up l =
       active_source#wake_up l;

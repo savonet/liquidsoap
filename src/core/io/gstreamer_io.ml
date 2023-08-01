@@ -482,6 +482,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     method restart_cmd = self#restart
     method stype = `Fallible
     method remaining = -1
+    method seek_source = (self :> Source.source)
 
     (* Source is ready when ready = true and gst has some audio or some video. *)
     val mutable ready = true

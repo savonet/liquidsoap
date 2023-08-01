@@ -43,6 +43,7 @@ class soundtouch source_val rate tempo pitch =
     method self_sync = source#self_sync
     method is_ready = source#is_ready
     method seek = source#seek
+    method seek_source = source
     method remaining = -1
 
     method abort_track =
