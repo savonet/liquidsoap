@@ -157,7 +157,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
 class frei0r_source ~name bgra instance params =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
-  object
+  object (self)
     inherit source ~name:("frei0r." ^ name) ()
     inherit Source.no_seek
     method stype = `Infallible
