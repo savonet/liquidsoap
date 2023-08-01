@@ -19,7 +19,8 @@ let () =
     Term.make
       (`Fun
         {
-          Term.arguments = [];
+          Term.name = None;
+          arguments = [];
           body =
             Term.make ~t:x.Term.t
               ~methods:(Term.Methods.add "foo" (_false ()) Term.Methods.empty)
@@ -28,13 +29,15 @@ let () =
         })
   in
   let _else =
-    Term.make (`Fun { Term.arguments = []; body = x; free_vars = None })
+    Term.make
+      (`Fun { Term.name = None; arguments = []; body = x; free_vars = None })
   in
   let f =
     Term.make
       (`Fun
         {
           Term.free_vars = None;
+          name = None;
           arguments =
             [
               {

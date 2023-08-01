@@ -247,9 +247,9 @@ let rec to_string (v : t) =
             | Some v -> "(" ^ to_string e ^ "." ^ l ^ " ?? " ^ to_string v ^ ")"
           )
       | `Open (m, e) -> "open " ^ to_string m ^ " " ^ to_string e
-      | `Fun { arguments = []; body = v } when is_ground v ->
+      | `Fun { name = None; arguments = []; body = v } when is_ground v ->
           "{" ^ to_string v ^ "}"
-      | `Fun _ | `RFun _ -> "<fun>"
+      | `Fun _ -> "<fun>"
       | `Var s -> s
       | `App (hd, tl) ->
           let tl =
@@ -350,7 +350,7 @@ let rec free_term_vars tm =
         List.fold_left
           (fun v (_, t) -> Vars.union v (free_vars t))
           (free_vars hd) l
-    | `RFun (_, p) | `Fun p -> free_fun_vars p
+    | `Fun p -> free_fun_vars p
     | `Let l ->
         Vars.union (free_vars l.def)
           (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
@@ -443,7 +443,6 @@ let check_unused ~throw ~lib tm =
       | `App (hd, l) ->
           let v = check v hd in
           List.fold_left (fun v (_, t) -> check v t) v l
-      | `RFun (_, p) -> check v { tm with term = `Fun p }
       | `Fun { arguments; body } ->
           let v =
             List.fold_left

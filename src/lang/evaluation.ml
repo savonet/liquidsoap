@@ -316,15 +316,15 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         in
         let env = Env.adds_lazy env penv in
         eval ~eval_check env b
-    | `Fun ({ arguments; body } as p) ->
-        let fv = Term.free_fun_vars p in
-        let p, env = prepare_fun ~eval_check fv arguments env in
-        mk (Value.Fun (p, env, body))
-    | `RFun (x, ({ arguments; body } as p)) ->
+    | `Fun ({ name; arguments; body } as p) ->
         let fv = Term.free_fun_vars p in
         let p, env = prepare_fun ~eval_check fv arguments env in
         let rec v () =
-          let env = Env.add_lazy env x (Lazy.from_fun v) in
+          let env =
+            match name with
+              | None -> env
+              | Some name -> Env.add_lazy env name (Lazy.from_fun v)
+          in
           mk (Value.Fun (p, env, body))
         in
         v ()

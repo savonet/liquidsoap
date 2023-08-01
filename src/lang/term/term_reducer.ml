@@ -31,7 +31,7 @@ let parse_error ?pos msg =
 let mk = Term_base.make
 
 let mk_fun ?pos arguments body =
-  Term.make ?pos (`Fun Term.{ free_vars = None; arguments; body })
+  Term.make ?pos (`Fun Term.{ free_vars = None; name = None; arguments; body })
 
 (** Time intervals *)
 
@@ -193,7 +193,8 @@ let args_of, app_of =
             mk_tm
               (`Fun
                 {
-                  Term_base.arguments = get_args ?pos t args;
+                  Term_base.name = None;
+                  arguments = get_args ?pos t args;
                   body;
                   free_vars = None;
                 })
@@ -448,7 +449,7 @@ let bool_reducer ?pos ~to_term = function
 
 let simple_fun_reducer ?pos:_ ~to_term = function
   | `Simple_fun tm ->
-      `Fun { arguments = []; body = to_term tm; free_vars = None }
+      `Fun { name = None; arguments = []; body = to_term tm; free_vars = None }
 
 let negative_reducer ?pos ~to_term = function
   | `Negative tm ->
@@ -552,7 +553,7 @@ let mk_rec_fun ?pos pat arguments body =
       | `PVar l when l <> [] -> List.hd (List.rev l)
       | _ -> assert false
   in
-  mk ?pos (`RFun (name, { arguments; body; free_vars = None }))
+  mk ?pos (`Fun { name = Some name; arguments; body; free_vars = None })
 
 let mk_eval ?pos (doc, pat, def, body, cast) =
   let ty = match cast with Some ty -> ty | None -> Type.var ?pos () in
@@ -684,10 +685,11 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
       let args = expand_appof ?pos ~to_term args in
       `App (to_term t, args)
   | `Fun (args, body) -> `Fun (to_func ?pos ~to_term args body)
-  | `RFun (lbl, args, body) -> `RFun (lbl, to_func ?pos ~to_term args body)
+  | `RFun (name, args, body) -> `Fun (to_func ?pos ~to_term ~name args body)
 
-and to_func ?pos ~to_term arguments body =
+and to_func ?pos ~to_term ?name arguments body =
   {
+    name;
     arguments = expand_argsof ?pos ~to_term arguments;
     body = to_term body;
     free_vars = None;

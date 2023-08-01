@@ -37,6 +37,7 @@ type ('a, 'b) func_argument = {
 
 type ('a, 'b) func = {
   mutable free_vars : Vars.t option;
+  name : string option;
   arguments : ('a, 'b) func_argument list;
   body : 'a;
 }
@@ -61,7 +62,6 @@ and runtime_ast =
   | `App of t * (string * t) list
   | `Invoke of (t, string) invoke
   | `Fun of (t, Type.t) func
-  | `RFun of string * (t, Type.t) func
   | t ast ]
 
 and let_t = {

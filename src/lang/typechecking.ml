@@ -33,7 +33,6 @@ let value_restriction t =
     match t.term with
       | `Var _ -> true
       | `Fun _ -> true
-      | `RFun _ -> true
       | `Null -> true
       | `List l | `Tuple l -> List.for_all value_restriction l
       | `Ground _ -> true
@@ -330,9 +329,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             | _ ->
                 let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
                 a.t <: Type.make (Type.Arrow (p, base_type)))
-      | `Fun p -> check_fun ~env e p
-      | `RFun (x, p) ->
-          let env = (x, ([], base_type)) :: env in
+      | `Fun p ->
+          let env =
+            match p.name with
+              | None -> env
+              | Some name -> (name, ([], base_type)) :: env
+          in
           check_fun ~env e p
       | `Var var ->
           let s =
