@@ -30,6 +30,7 @@ class on_end ~delay f s =
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek n = s#seek n
+    method seek_source = s
     method self_sync = s#self_sync
     method private on_new_metadata = ()
 

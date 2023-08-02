@@ -105,6 +105,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek len = source#seek len
+    method seek_source = source
 
     (* Operator startup *)
     method! private wake_up activation =

@@ -677,6 +677,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
       Generator.set_max_length self#buffer max_length
 
     method seek _ = 0
+    method seek_source = (self :> Source.source)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 

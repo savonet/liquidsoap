@@ -15,6 +15,8 @@ Fixed:
   `%ogg`, `%vorbis` and etc. (#3276)
 - Fixed quality argument parsing in ffmpeg encoders (#3267)
 - Make all HLS file write atomic (#3284)
+- Allow seek and cue operators to work with muxed sources
+  using a single underlying source (#3252)
 
 ---
 

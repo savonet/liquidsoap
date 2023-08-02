@@ -40,6 +40,7 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
 
     inherit Source.no_seek
     inherit! [Bytes.t] IoRing.input ~nb_blocks as ioring
+    method seek_source = (self :> Source.source)
 
     method! private wake_up l =
       active_source#wake_up l;

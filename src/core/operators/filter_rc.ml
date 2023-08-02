@@ -32,6 +32,7 @@ class filter (source : source) freq wet mode =
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
+    method seek_source = source
     method self_sync = source#self_sync
     method is_ready = source#is_ready
     method abort_track = source#abort_track

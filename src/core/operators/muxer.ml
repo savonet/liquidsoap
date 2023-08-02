@@ -56,9 +56,28 @@ class muxer tracks =
     method is_ready = Generator.length self#buffer > 0 || self#sources_ready
 
     method seek len =
-      let len = min (Generator.length self#buffer) len in
-      Generator.truncate self#buffer len;
-      len
+      let gen_len = min (Generator.length self#buffer) len in
+      Generator.truncate self#buffer gen_len;
+      if gen_len = len then len
+      else (
+        let s = self#seek_source in
+        if s == (self :> Source.source) then (
+          self#log#info
+            "Operator is muxing from multiple sources and cannot seek without \
+             risking losing content synchronization!";
+          gen_len)
+        else gen_len + s#seek (len - gen_len))
+
+    method seek_source =
+      match
+        List.fold_left
+          (fun sources source ->
+            let source = source#seek_source in
+            if List.memq source sources then sources else source :: sources)
+          [] sources
+      with
+        | [s] -> s
+        | _ -> (self :> Source.source)
 
     method remaining =
       match

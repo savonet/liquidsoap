@@ -39,6 +39,7 @@ class merge_metadata tracks =
     method private sources_ready = List.for_all (fun s -> s#is_ready) sources
     method is_ready = List.for_all (fun s -> s#is_ready) sources
     method seek len = len
+    method seek_source = (self :> Source.source)
     method remaining = -1
     val mutable track_frames = []
 

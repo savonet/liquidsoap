@@ -50,6 +50,7 @@ class defer ~delay ~overhead ~field source =
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek = source#seek
+    method seek_source = source
     method self_sync = source#self_sync
     val mutable state = { offset = 0; position = 0 }
     val mutable deferred = true

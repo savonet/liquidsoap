@@ -26,7 +26,7 @@
 class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
   ~empty_on_abort () =
   let bufferize = Frame.main_of_seconds bufferize in
-  object (self)
+  object (self : < Source.source ; .. > as 'a)
     val mutable buffering = true
     val mutable should_fail = false
     val mutable cur_meta : Request.metadata option = None
@@ -45,6 +45,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
             len)
           ()
 
+    method seek_source = (self :> Source.source)
     method abort_track = should_fail <- true
     method private length = Generator.length self#buffer
     val mutable last_buffering_warning = -1

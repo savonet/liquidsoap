@@ -237,6 +237,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     method private stop = self#close_device
     method remaining = -1
     method abort_track = ()
+    method seek_source = (self :> Source.source)
 
     (* TODO: convert samplerate *)
     method private get_frame frame =

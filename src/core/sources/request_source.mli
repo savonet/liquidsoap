@@ -44,6 +44,7 @@ class once :
        method resolve : bool
        method abort_track : unit
        method seek : int -> int
+       method seek_source : Source.source
      end
 
 class virtual unqueued :
@@ -62,6 +63,7 @@ class virtual unqueued :
        method self_sync : Source.self_sync
        method current : handler option
        method seek : int -> int
+       method seek_source : Source.source
      end
 
 type queue_item = {

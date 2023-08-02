@@ -179,6 +179,12 @@ class virtual source :
            with [#get], so they should not interfere. *)
        method virtual seek : int -> int
 
+       (** Return the source effectively used to seek, used
+           by the muxer to determine if there is a unique seeking
+           source. Should return [self] if there isn't a unique
+           source. *)
+       method virtual seek_source : source
+
        (** [is_ready] tells you if [get] can be called. *)
        method virtual is_ready : bool
 
