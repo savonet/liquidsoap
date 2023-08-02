@@ -124,7 +124,7 @@ let hls_proto frame_t =
            umask. Although you can enter values in octal notation (0oXXX) they \
            will be displayed in decimal (for instance, 0o777 = 7×8^2 + 7×8 + 7 \
            = 511)." );
-      ( "tmp_dir",
+      ( "temp_dir",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some
