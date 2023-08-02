@@ -134,6 +134,7 @@ module Buffer = struct
         Generator.truncate (Lazy.force c.generator) len;
         len
 
+      method seek_source = (self :> Source.source)
       method buffer_length = Generator.length (Lazy.force c.generator)
 
       method private get_frame frame =
@@ -298,6 +299,7 @@ module AdaptativeBuffer = struct
     object (self)
       inherit Source.source ~name:"buffer.adaptative.producer" () as super
       inherit Source.no_seek
+      method seek_source = (self :> Source.source)
       method stype = `Fallible
       method self_sync = (`Static, false)
       method remaining = proceed c (fun () -> MG.remaining c.mg)

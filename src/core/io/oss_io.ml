@@ -98,6 +98,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     method self_sync = (`Dynamic, fd <> None)
     method abort_track = ()
     method remaining = -1
+    method seek_source = (self :> Source.source)
     method private start = self#open_device
 
     method private open_device =

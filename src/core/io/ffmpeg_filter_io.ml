@@ -181,6 +181,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
     inherit Source.source ~name ()
     inherit Source.no_seek
     initializer Typing.(self#frame_type <: frame_t)
+    method seek_source = (self :> Source.source)
     method stype : Source.source_t = `Fallible
     method remaining = Generator.remaining self#buffer
     method abort_track = ()

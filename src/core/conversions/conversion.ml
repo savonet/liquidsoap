@@ -30,6 +30,7 @@ class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
     method abort_track = source#abort_track
     method remaining = source#remaining
     method seek = source#seek
+    method seek_source = source
     method self_sync = source#self_sync
     val mutable tmp_frame = None
 

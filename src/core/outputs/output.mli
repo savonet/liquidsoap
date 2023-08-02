@@ -45,6 +45,7 @@ class virtual output :
        method state : Start_stop.state
        method transition_to : Start_stop.state -> unit
        method seek : int -> int
+       method seek_source : Source.source
        method private video_dimensions : int * int
        method private add_metadata : Request.metadata -> unit
        method private metadata_queue : Request.metadata Queue.t
