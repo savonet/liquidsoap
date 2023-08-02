@@ -37,59 +37,44 @@ class append ~insert_missing ~merge source f =
   let state = Atomic.make `Idle in
   object (self)
     inherit operator ~name:"append" [source]
+    val mutable last_append_metadata = None
 
     method private get_frame buf =
       match Atomic.get state with
-        | `Idle -> (
-            let start = Frame.position buf in
+        | `Idle ->
             source#get buf;
-            let finished = Frame.is_partial buf in
-            match
-              let m = Frame.get_metadata buf start in
-              if insert_missing && m = None then Some (Hashtbl.create 10) else m
-            with
-              | Some m when Utils.hashtbl_get m "liq_append" <> Some "false" ->
-                  let append =
-                    Lang.to_source (Lang.apply f [("", Lang.metadata m)])
-                  in
-                  self#register append;
-                  if finished then
-                    if append#is_ready then (
-                      Atomic.set state (`Append append);
-                      if merge then (
+            if Frame.is_partial buf then (
+              let last_metadata =
+                if last_append_metadata == self#last_metadata then None
+                else self#last_metadata
+              in
+              last_append_metadata <- last_metadata;
+              match
+                if insert_missing && last_metadata = None then
+                  Some (Hashtbl.create 10)
+                else last_metadata
+              with
+                | Some m ->
+                    let append =
+                      Lang.to_source (Lang.apply f [("", Lang.metadata m)])
+                    in
+                    self#register append;
+                    Atomic.set state (`Append append);
+                    if merge then
+                      if not append#is_ready then (
+                        self#log#important
+                          "Track ends and append source is not ready: won't \
+                           append.";
+                        self#unregister append;
+                        Atomic.set state `Idle)
+                      else (
                         let pos = Frame.position buf in
                         self#get_frame buf;
                         Frame.set_breaks buf
-                          (Utils.remove_one (( = ) pos) (Frame.breaks buf))))
-                    else (
-                      self#log#important
-                        "Track ends and append source is not ready: won't \
-                         append.";
-                      self#unregister append;
-                      Atomic.set state `Idle)
-                  else Atomic.set state (`Replay (Some append))
-              | _ ->
-                  self#log#important
-                    "No metadata at beginning of track: won't append.";
-                  Atomic.set state (if finished then `Idle else `Replay None))
-        | `Replay None ->
-            source#get buf;
-            if Frame.is_partial buf then Atomic.set state `Idle
-        | `Replay (Some a) ->
-            source#get buf;
-            if Frame.is_partial buf then
-              if a#is_ready then (
-                Atomic.set state (`Append a);
-                if merge then (
-                  let pos = Frame.position buf in
-                  self#get_frame buf;
-                  Frame.set_breaks buf
-                    (Utils.remove_one (( = ) pos) (Frame.breaks buf))))
-              else (
-                self#log#important
-                  "Track ends and append source is not ready: won't append.";
-                Atomic.set state `Idle;
-                self#unregister a)
+                          (Utils.remove_one (( = ) pos) (Frame.breaks buf)))
+                | None ->
+                    self#log#important
+                      "No metadata at beginning of track: won't append.")
         | `Append a ->
             a#get buf;
             if Frame.is_partial buf then (
@@ -98,43 +83,27 @@ class append ~insert_missing ~merge source f =
 
     method stype = source#stype
 
+    method private seek_source =
+      match Atomic.get state with
+        | `Append s -> s#seek_source
+        | `Idle -> source#seek_source
+
     method is_ready =
-      match Atomic.get state with
-        | `Idle | `Replay None -> source#is_ready
-        | `Append s | `Replay (Some s) -> source#is_ready || s#is_ready
+      match (Atomic.get state, self#stype) with
+        | `Append a, `Infallible when not a#is_ready ->
+            self#unregister a;
+            Atomic.set state `Idle;
+            true
+        | `Append a, _ -> a#is_ready
+        | `Idle, _ -> source#is_ready
 
-    method remaining =
-      match Atomic.get state with
-        | `Idle | `Replay None -> source#remaining
-        | `Replay (Some s) when s#is_ready && merge ->
-            let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
-            source#remaining + s#remaining
-        | `Replay (Some _) -> source#remaining
-        | `Append s -> s#remaining
-
-    method seek n =
-      match Atomic.get state with
-        | `Idle | `Replay None -> source#seek n
-        | `Replay (Some s) when s#is_ready && merge -> 0
-        | `Replay (Some _) -> source#seek n
-        | `Append s -> s#seek n
-
-    method seek_source =
-      match Atomic.get state with `Append s -> s | _ -> source
+    method remaining = self#seek_source#remaining
+    method seek = self#seek_source#seek
 
     method self_sync =
-      ( Lazy.force self_sync_type,
-        match Atomic.get state with
-          | `Append s -> snd s#self_sync
-          | _ -> snd source#self_sync )
+      (Lazy.force self_sync_type, snd self#seek_source#self_sync)
 
-    method cancel_pending =
-      (match Atomic.get state with
-        | `Replay (Some s) -> self#unregister s
-        | _ -> ());
-      Atomic.set state `Idle
-
-    method abort_track = source#abort_track
+    method abort_track = self#seek_source#abort_track
 
     (* Finally, the administrative bit *)
     val mutable activation = []
@@ -149,9 +118,7 @@ class append ~insert_missing ~merge source f =
       source#leave (self :> source);
       Lang.iter_sources (fun s -> s#leave ~dynamic:true (self :> source)) f;
       begin
-        match Atomic.get state with
-          | `Replay (Some a) | `Append a -> self#unregister a
-          | _ -> ()
+        match Atomic.get state with `Append a -> self#unregister a | _ -> ()
       end;
       Atomic.set state `Idle
 
@@ -185,30 +152,6 @@ let _ =
            track is to be appended." );
     ]
     ~return_t:frame_t ~category:`Track
-    ~meth:
-      [
-        ( "skip",
-          ([], Lang.fun_t [(true, "cancel_pending", Lang.bool_t)] Lang.unit_t),
-          "Skip the current track. Pending appended source are cancelled by \
-           default. Pass `cancel_pending=false` to keep it.",
-          fun s ->
-            Lang.val_fun
-              [("cancel_pending", "cancel_pending", Some (Lang.bool true))]
-              (fun p ->
-                let cancel_pending =
-                  Lang.to_bool (List.assoc "cancel_pending" p)
-                in
-                if cancel_pending then s#cancel_pending;
-                s#abort_track;
-                Lang.unit) );
-        ( "cancel_pending",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Cancel any pending appended source.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                s#cancel_pending;
-                Lang.unit) );
-      ]
     ~descr:
       "Append an extra track to every track. Set the metadata 'liq_append' to \
        'false' to inhibit appending on one track."

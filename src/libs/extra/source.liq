@@ -142,6 +142,7 @@ def source.say_metadata =
       end
     say_metadata = "#{artist_predicate}#{title}"
     say_metadata = r/:/g.replace(fun (_) -> '$(colon)', say_metadata)
+    say_metadata = say_metadata == "" ? "Sorry, I do not know what this song title was" : say_metadata
     "say:#{say_metadata}"
   end
   fun (~id=null("source.say_metadata"), ~pattern=pattern, s) ->
