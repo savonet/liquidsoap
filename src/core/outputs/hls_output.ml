@@ -560,9 +560,9 @@ class hls_output p =
               (try Unix.rename tmp_file filename
                with Unix.Unix_error (Unix.EXDEV, _, _) ->
                  self#log#important
-                   "Rename failed! Directory for temporary files appears to on \
-                    a different file system. Please set it to the same one \
-                    using `temp_dir` argument to guanrantee atomic file \
+                   "Rename failed! Directory for temporary files appears to be \
+                    on a different file system. Please set it to the same one \
+                    using `temp_dir` argument to guarantee atomic file \
                     operations!";
                  Utils.copy ~mode ~perms tmp_file filename);
               on_file_change ~state filename)
