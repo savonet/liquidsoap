@@ -124,6 +124,13 @@ let hls_proto frame_t =
            umask. Although you can enter values in octal notation (0oXXX) they \
            will be displayed in decimal (for instance, 0o777 = 7×8^2 + 7×8 + 7 \
            = 511)." );
+      ( "tmp_dir",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some
+          "Temporary directory used for writing files. This should be in the \
+           same partition or device as the final directory to guarantee atomic \
+           file operations. Use an system-specific value if `null`." );
       ( "on_file_change",
         Lang.fun_t
           [(false, "state", Lang.string_t); (false, "", Lang.string_t)]
@@ -304,6 +311,9 @@ class hls_output p =
   let directory = Lang.to_string directory_val in
   let perms = Lang.to_int (List.assoc "perm" p) in
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
+  let temp_dir =
+    Lang.to_valued_option Lang.to_string (List.assoc "temp_dir" p)
+  in
   let () =
     if (not (Sys.file_exists directory)) || not (Sys.is_directory directory)
     then (
@@ -533,10 +543,9 @@ class hls_output p =
 
     method private open_out filename =
       let state = if Sys.file_exists filename then `Updated else `Created in
+      let mode = [Open_wronly; Open_creat; Open_trunc] in
       let tmp_file, oc =
-        Filename.open_temp_file
-          ~mode:[Open_wronly; Open_creat; Open_trunc]
-          ~perms "liq" "tmp"
+        Filename.open_temp_file ?temp_dir ~mode ~perms "liq" "tmp"
       in
       set_binary_mode_out oc true;
       object
@@ -545,12 +554,18 @@ class hls_output p =
 
         method close =
           Stdlib.close_out_noerr oc;
-          match Sys.rename tmp_file filename with
-            | () -> on_file_change ~state filename
-            | exception exn ->
-                let bt = Printexc.get_raw_backtrace () in
-                (try Sys.remove tmp_file with _ -> ());
-                Printexc.raise_with_backtrace exn bt
+          Fun.protect
+            ~finally:(fun () -> try Sys.remove tmp_file with _ -> ())
+            (fun () ->
+              (try Unix.rename tmp_file filename
+               with Unix.Unix_error (Unix.EXDEV, _, _) ->
+                 self#log#important
+                   "Rename failed! Directory for temporary files appears to on \
+                    a different file system. Please set it to the same one \
+                    using `temp_dir` argument to guanrantee atomic file \
+                    operations!";
+                 Utils.copy ~mode ~perms tmp_file filename);
+              on_file_change ~state filename)
       end
 
     method private unlink filename =

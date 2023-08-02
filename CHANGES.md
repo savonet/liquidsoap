@@ -1,5 +1,11 @@
 # 2.2.1 (unreleased)
 
+Changed:
+
+- BREAKING: on HLS outputs, `on_file_change` events are
+  now `"created"`, `"updated"` and `"deleted"`, to better
+  reflect the new atomic file operations (#3284)
+
 Fixed:
 
 - Fixed HTTP response status in `output.harbor` (#3255)
