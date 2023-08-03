@@ -36,6 +36,7 @@ class blank duration =
     method is_ready = true
     method self_sync = (`Static, false)
     method seek x = x
+    method seek_source = (self :> Source.source)
     method abort_track = remaining <- 0
 
     method get_frame ab =

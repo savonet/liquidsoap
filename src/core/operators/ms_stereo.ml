@@ -31,6 +31,7 @@ class msstereo ~field (source : source) mode width =
     method is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
+    method seek_source = source
     method self_sync = source#self_sync
     method abort_track = source#abort_track
 
@@ -93,6 +94,7 @@ class spatializer ~field ~width (source : source) =
     method is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
+    method seek_source = source
     method self_sync = source#self_sync
     method abort_track = source#abort_track
 

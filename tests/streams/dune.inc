@@ -773,6 +773,28 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  seek_track_map.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} seek_track_map.liq liquidsoap %{test_liq} seek_track_map.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   sharing.liq
   ./file1.mp3
   ./file2.mp3

@@ -21,9 +21,10 @@
  *****************************************************************************)
 
 class fail name =
-  object
+  object (self)
     inherit Source.source ~name ()
     inherit Source.no_seek
+    method seek_source = (self :> Source.source)
     method stype = `Fallible
     method is_ready = false
     method self_sync = (`Static, false)

@@ -61,17 +61,18 @@ let parse_time t =
     in
     let sub = Regexp.exec rex t in
     let g = g sub in
-    List.map g [1; 2; 3; 4]
+    { Parsed_term.week = g 1; hours = g 2; minutes = g 3; seconds = g 4 }
   with Not_found ->
     let rex = Regexp.regexp "^((?:\\d+w)?)(\\d+h)(\\d+)$" in
     let sub = Regexp.exec rex t in
     let g = g sub in
-    [
-      g 1;
-      g 2;
-      Some (int_of_string (Option.get (List.nth sub.Regexp.matches 3)));
-      None;
-    ]
+    {
+      Parsed_term.week = g 1;
+      hours = g 2;
+      minutes =
+        Some (int_of_string (Option.get (List.nth sub.Regexp.matches 3)));
+      seconds = None;
+    }
 
 (* See: https://en.wikipedia.org/wiki/Whitespace_character *)
 let line_break =
@@ -193,19 +194,34 @@ let rec token lexbuf =
         let n = String.index matched '"' in
         let r = String.rindex matched '"' in
         let file = String.sub matched (n + 1) (r - n - 1) in
-        PP_INCLUDE_EXTRA file
+        INCLUDE
+          {
+            inc_type = `Extra;
+            inc_name = file;
+            inc_pos = Sedlexing.lexing_positions lexbuf;
+          }
     | "%include", Star (white_space | '\t'), '"', Star (Compl '"'), '"' ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.index matched '"' in
         let r = String.rindex matched '"' in
         let file = String.sub matched (n + 1) (r - n - 1) in
-        PP_INCLUDE file
+        INCLUDE
+          {
+            inc_type = `Default;
+            inc_name = file;
+            inc_pos = Sedlexing.lexing_positions lexbuf;
+          }
     | "%include", Star (white_space | '\t'), '<', Star (Compl '>'), '>' ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.index matched '<' in
         let r = String.rindex matched '>' in
         let file = String.sub matched (n + 1) (r - n - 1) in
-        PP_INCLUDE (Filename.concat (!Hooks.liq_libs_dir ()) file)
+        INCLUDE
+          {
+            inc_type = `Lib;
+            inc_name = file;
+            inc_pos = Sedlexing.lexing_positions lexbuf;
+          }
     | "%argsof" -> ARGS_OF
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
@@ -329,7 +345,7 @@ let rec token lexbuf =
         PP_REGEXP (regexp, flags, (startp, endp))
     | any ->
         raise
-          (Term.Parse_error
+          (Term_base.Parse_error
              ( Sedlexing.lexing_bytes_positions lexbuf,
                "Parse error: " ^ Sedlexing.Utf8.lexeme lexbuf ))
     | _ -> failwith "Internal error"
@@ -355,7 +371,7 @@ and read_comment pos buf lexbuf =
     | eof -> ()
     | _ ->
         raise
-          (Term.Parse_error
+          (Term_base.Parse_error
              (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
 
 and read_multiline_comment ?(level = 0) pos buf lexbuf =
@@ -374,10 +390,11 @@ and read_multiline_comment ?(level = 0) pos buf lexbuf =
     | Plus (Intersect (Compl '>', Compl '#')) ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_multiline_comment ~level pos buf lexbuf
-    | eof -> raise (Term.Parse_error (pos, "Multiline comment not terminated!"))
+    | eof ->
+        raise (Term_base.Parse_error (pos, "Multiline comment not terminated!"))
     | _ ->
         raise
-          (Term.Parse_error
+          (Term_base.Parse_error
              (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
 
 and read_string c pos buf lexbuf =
@@ -475,7 +492,7 @@ and read_string c pos buf lexbuf =
           else "String is not terminated"
         in
         raise
-          (Term.Parse_error
+          (Term_base.Parse_error
              ((pos, snd (Sedlexing.lexing_bytes_positions lexbuf)), msg))
     | _ ->
         let msg =
@@ -483,6 +500,6 @@ and read_string c pos buf lexbuf =
           else "Illegal string character: "
         in
         raise
-          (Term.Parse_error
+          (Term_base.Parse_error
              ( (pos, snd (Sedlexing.lexing_bytes_positions lexbuf)),
                msg ^ Sedlexing.Utf8.lexeme lexbuf ))

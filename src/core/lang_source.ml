@@ -495,19 +495,19 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let rec iter_term env v =
     let iter_base_term env v =
       match v.Term.term with
-        | Term.Ground _ | Term.Encoder _ -> ()
-        | Term.List l -> List.iter (iter_term env) l
-        | Term.Tuple l -> List.iter (iter_term env) l
-        | Term.Null -> ()
-        | Term.Cast (a, _) -> iter_term env a
-        | Term.Invoke { Term.invoked = a } -> iter_term env a
-        | Term.Open (a, b) ->
+        | `Ground _ | `Encoder _ -> ()
+        | `List l -> List.iter (iter_term env) l
+        | `Tuple l -> List.iter (iter_term env) l
+        | `Null -> ()
+        | `Cast (a, _) -> iter_term env a
+        | `Invoke { Term.invoked = a } -> iter_term env a
+        | `Open (a, b) ->
             iter_term env a;
             iter_term env b
-        | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
+        | `Let { Term.def = a; body = b; _ } | `Seq (a, b) ->
             iter_term env a;
             iter_term env b
-        | Term.Var v -> (
+        | `Var v -> (
             try
               (* If it's locally bound it won't be in [env]. *)
               (* TODO since inner-bound variables don't mask outer ones in [env],
@@ -518,15 +518,15 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
                 iter_value v)
               else ()
             with Not_found -> ())
-        | Term.App (a, l) ->
+        | `App (a, l) ->
             iter_term env a;
             List.iter (fun (_, v) -> iter_term env v) l
-        | Term.Fun (_, proto, body) | Term.RFun (_, _, proto, body) ->
+        | `Fun { Term.arguments; body } | `RFun (_, { Term.arguments; body }) ->
             iter_term env body;
             List.iter
-              (fun (_, _, _, v) ->
-                match v with Some v -> iter_term env v | None -> ())
-              proto
+              (function
+                | { Term.default = Some v } -> iter_term env v | _ -> ())
+              arguments
     in
     Term.Methods.iter
       (fun _ meth_term -> iter_term env meth_term)

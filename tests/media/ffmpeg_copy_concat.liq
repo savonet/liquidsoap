@@ -6,7 +6,7 @@ s3 = single("third-concat.mp4")
 
 s = sequence([s1,s2,s3,switch([])])
 
-clock.assign_new(sync='none',[s])
+#clock.assign_new(sync='none',[s])
 
 def on_done () =
   ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")

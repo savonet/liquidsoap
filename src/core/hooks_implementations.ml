@@ -74,7 +74,7 @@ let eval_check ~env:_ ~tm v =
             in
             Typing.(source#frame_type <: frame_t)))
 
-let mk_field_t ~pos (kind, params) =
+let mk_field_t ~pos kind params =
   match kind with
     | "any" -> Type.var ~pos ()
     | "none" | "never" -> Type.make Type.Ground.never
@@ -101,25 +101,36 @@ let mk_field_t ~pos (kind, params) =
             params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
           in
           let t = kind ^ "(" ^ params ^ ")" in
-          raise (Term.Parse_error (pos, "Unknown type constructor: " ^ t ^ "."))
-        )
+          raise
+            (Liquidsoap_lang.Term_base.Parse_error
+               (pos, "Unknown type constructor: " ^ t ^ ".")))
 
-let mk_source_ty ~pos ~extensible name args =
+let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
+  let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
+
   if name <> "source" then
-    raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
+    raise
+      (Liquidsoap_lang.Term_base.Parse_error
+         (pos, "Unknown type constructor: " ^ name ^ "."));
 
-  match args with
+  match tracks with
     | [] ->
         Lang_source.source_t
           (Frame_type.make (Lang.univ_t ()) Frame.Fields.empty)
-    | args ->
+    | tracks ->
         let fields =
           List.fold_left
-            (fun fields (lbl, k) ->
+            (fun fields
+                 {
+                   Liquidsoap_lang.Parsed_term.track_name;
+                   track_type;
+                   track_params;
+                 } ->
               Frame.Fields.add
-                (Frame.Fields.field_of_string lbl)
-                (mk_field_t ~pos k) fields)
-            Frame.Fields.empty args
+                (Frame.Fields.field_of_string track_name)
+                (mk_field_t ~pos track_type track_params)
+                fields)
+            Frame.Fields.empty tracks
         in
         let base = if extensible then Lang.univ_t () else Lang.unit_t in
 

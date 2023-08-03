@@ -2,10 +2,15 @@ log.level.set(4)
 
 test = ()
 
+let test.done = ref(false)
+
 # End test successfully.
 def test.pass()
-  print("Test passed!")
-  shutdown()
+  if not test.done() then
+    test.done := true
+    print("Test passed!")
+    shutdown()
+  end
 end
 
 # End test with a failure.

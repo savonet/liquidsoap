@@ -20,9 +20,53 @@
 
  *****************************************************************************)
 
+let log = Log.make ["sdl"]
+
 open Mm
 open Tsdl
 module Gen = Image.Generic
+
+let conf_sdl =
+  Dtools.Conf.void ~p:(Configure.conf#plug "sdl") "SDL configuration"
+
+let conf_log = Dtools.Conf.void ~p:(conf_sdl#plug "log") "Logging configuration"
+
+let categories =
+  [
+    ("application", Sdl.Log.category_application);
+    ("error", Sdl.Log.category_error);
+    ("system", Sdl.Log.category_system);
+    ("audio", Sdl.Log.category_audio);
+    ("video", Sdl.Log.category_video);
+    ("render", Sdl.Log.category_render);
+    ("input", Sdl.Log.category_input);
+  ]
+
+let priorities =
+  [
+    ("verbose", Sdl.Log.priority_verbose);
+    ("debug", Sdl.Log.priority_debug);
+    ("info", Sdl.Log.priority_info);
+    ("warn", Sdl.Log.priority_warn);
+    ("error", Sdl.Log.priority_error);
+    ("critical", Sdl.Log.priority_critical);
+  ]
+
+let logging_conf_list =
+  List.map
+    (fun (label, category) ->
+      ( label,
+        category,
+        Dtools.Conf.string ~p:(conf_log#plug label)
+          (label ^ " logging verbosity.")
+          ~comments:
+            [
+              "Set SDL " ^ label ^ " logging verbosity";
+              "One of: \"verbose\", \"debug\", \"info\", \"warn\", \"error\" \
+               or \"critical\".";
+            ]
+          ~d:"warn" ))
+    categories
 
 type event =
   [ `AUDIO
@@ -39,11 +83,20 @@ let options : Sdl.Init.t option ref = ref None
 let check f x =
   match f x with Error (`Msg err) -> failwith err | Ok ans -> ans
 
-let initialized = ref false
+(* This is also done in sdl_log_level, but just in case... *)
+let () = Sdl.log_set_all_priority Sdl.Log.priority_warn
 
 let init l =
   if !options = None then options := Some Sdl.Init.nothing;
-  List.iter (fun e -> options := Some Sdl.Init.(Option.get !options + e)) l
+  List.iter (fun e -> options := Some Sdl.Init.(Option.get !options + e)) l;
+  List.iter
+    (fun (label, category, conf) ->
+      try
+        let priority = List.assoc conf#get priorities in
+        Sdl.log_set_priority category priority
+      with Not_found ->
+        log#important "Invalid log priority %S for category %S!" conf#get label)
+    logging_conf_list
 
 let () =
   Lifecycle.on_start (fun () ->

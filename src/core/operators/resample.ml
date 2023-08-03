@@ -43,6 +43,8 @@ class resample ~field ~ratio source =
       Generator.truncate self#buffer glen;
       (if glen < len then source#seek (len - glen) else 0) + glen
 
+    method seek_source = (self :> Source.source)
+
     method remaining =
       let rem = source#remaining in
       if rem = -1 then rem

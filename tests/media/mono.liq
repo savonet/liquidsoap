@@ -13,7 +13,7 @@ s = single(fname)
 
 s = sequence([s, s, once(s)])
 
-clock.assign_new(sync='none',[s])
+#clock.assign_new(sync='none',[s])
 
 def on_done () =
   thread.run(delay=0.2, fun () -> begin

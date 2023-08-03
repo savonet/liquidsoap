@@ -29,7 +29,7 @@ let type_of_encoder p =
   let has_video =
     List.exists
       (function
-        | "", `Term { Term.term = Term.Ground (Bool true) } -> true | _ -> false)
+        | "", `Term { Term.term = `Ground (Bool true) } -> true | _ -> false)
       p
   in
   let channels = Lang_encoder.channels_of_params p in

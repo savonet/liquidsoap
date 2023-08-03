@@ -130,6 +130,7 @@ class input p =
     val mutable stream = None
     method remaining = -1
     method abort_track = ()
+    method seek_source = (self :> Source.source)
 
     method private open_device =
       let ss =

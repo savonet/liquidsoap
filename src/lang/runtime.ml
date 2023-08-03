@@ -103,7 +103,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
   | Parser.Error | Parsing.Parse_error ->
       print_error ~formatter 2 "Parse error";
       raise Error
-  | Term.Parse_error (pos, s) ->
+  | Term_base.Parse_error (pos, s) ->
       error_header ~formatter 3 (Some pos);
       Format.fprintf formatter "%s@]@." s;
       raise Error
@@ -216,23 +216,27 @@ let report lexbuf f =
 
 (** {1 Parsing} *)
 
-let mk_expr ?fname ~pwd processor lexbuf =
-  let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
-  let tokenizer = Preprocessor.mk_tokenizer ?fname ~pwd lexbuf in
-  processor tokenizer
+let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
 
-let from_lexbuf ?fname ?(dir = Sys.getcwd ()) ?(parse_only = false) ~ns ~lib
-    lexbuf =
+let interactive =
+  MenhirLib.Convert.Simplified.traditional2revised Parser.interactive
+
+let mk_expr ?fname processor lexbuf =
+  let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
+  let parsed_term = processor tokenizer in
+  Term_reducer.to_term parsed_term
+
+let from_lexbuf ?fname ?(parse_only = false) ~ns ~lib lexbuf =
   begin
     match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
   end;
   report lexbuf (fun ~throw () ->
-      let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
+      let expr = mk_expr ?fname program lexbuf in
       if not parse_only then type_and_run ~throw ~lib expr)
 
-let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
+let from_in_channel ?fname ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
-  from_lexbuf ?fname ?dir ?parse_only ~ns ~lib lexbuf
+  from_lexbuf ?fname ?parse_only ~ns ~lib lexbuf
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
@@ -241,9 +245,7 @@ let from_file ?parse_only ~ns ~lib filename =
   let display_types = !Typechecking.display_types in
   if String.ends_with ~suffix:"stdlib.liq" filename then
     Typechecking.display_types := false;
-  from_in_channel ~fname
-    ~dir:(Filename.dirname filename)
-    ?parse_only ~ns ~lib ic;
+  from_in_channel ~fname ?parse_only ~ns ~lib ic;
   Typechecking.display_types := display_types;
   close_in ic
 
@@ -281,13 +283,13 @@ let parse_with_lexbuf s =
       if !pos < len then Some s.[!pos] else None
   in
   let lexbuf = Sedlexing.Utf8.from_gen gen in
-  (mk_expr ~pwd:(Sys.getcwd ()) Parser.program lexbuf, lexbuf)
+  (mk_expr program lexbuf, lexbuf)
 
 let parse s = fst (parse_with_lexbuf s)
 
 let eval ~ignored ~ty s =
   let expr, lexbuf = parse_with_lexbuf s in
-  let expr = Term.(make (Cast (expr, ty))) in
+  let expr = Term.(make (`Cast (expr, ty))) in
   !Hooks.collect_after (fun () ->
       report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
       Evaluation.eval expr)
@@ -338,7 +340,7 @@ let interactive () =
     if
       try
         report lexbuf (fun ~throw () ->
-            let expr = mk_expr ~pwd:(Sys.getcwd ()) Parser.interactive lexbuf in
+            let expr = mk_expr interactive lexbuf in
             Typechecking.check ~throw ~ignored:false expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore

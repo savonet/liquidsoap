@@ -45,11 +45,12 @@ let plugin_dirs =
 class frei0r_filter ~name bgra instance params (source : source) =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
-  object
+  object (self)
     inherit operator ~name:("frei0r." ^ name) [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
+    method seek_source = (self :> Source.source)
     method is_ready = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
@@ -82,6 +83,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
   object (self)
     inherit operator ~name:("frei0r." ^ name) [source; source2] as super
     inherit Source.no_seek
+    method seek_source = (self :> Source.source)
 
     method stype =
       match (source#stype, source2#stype) with
@@ -157,9 +159,10 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
 class frei0r_source ~name bgra instance params =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
-  object
+  object (self)
     inherit source ~name:("frei0r." ^ name) ()
     inherit Source.no_seek
+    method seek_source = (self :> Source.source)
     method stype = `Infallible
     method is_ready = true
     method self_sync = (`Static, false)

@@ -1,0 +1,17 @@
+(env
+ (release
+  (ocamlopt_flags
+   (:standard -O2)))
+ (dev
+  (flags
+   (:standard -w -9))))
+
+(library
+ (name liquidsoap_tooling)
+ (modules parsed_json)
+ (libraries sedlex liquidsoap_lang))
+
+(executable
+ (name json_dump)
+ (modules json_dump)
+ (libraries liquidsoap_tooling liquidsoap_lang liquidsoap_core))

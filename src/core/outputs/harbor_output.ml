@@ -456,7 +456,7 @@ class output p =
           data.format icyheader extra_headers
       in
       let buffer =
-        Strings.Mutable.of_strings (Option.get encoder).Encoder.header
+        Strings.Mutable.of_strings ((Option.get encoder).Encoder.header ())
       in
       let close () = try Harbor.close s with _ -> () in
       let rec client =

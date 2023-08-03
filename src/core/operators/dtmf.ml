@@ -158,6 +158,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
+    method seek_source = source
     method is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
@@ -295,6 +296,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
     method stype = source#stype
     method remaining = source#remaining
     method seek = source#seek
+    method seek_source = source
     method is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync

@@ -56,6 +56,7 @@ class keyboard =
   object (self)
     inherit Source.active_source ~name:"input.keyboard" ()
     inherit Source.no_seek
+    method seek_source = (self :> Source.source)
     method stype = `Infallible
     method is_ready = true
     method remaining = -1

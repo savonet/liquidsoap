@@ -30,6 +30,7 @@ class rms ~tau source =
     method is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
+    method seek_source = source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     method! wake_up a = super#wake_up a
