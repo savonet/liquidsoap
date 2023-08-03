@@ -218,6 +218,7 @@ jobs:
           mkdir -p "/tmp/${{ github.run_number }}/metrics"
           chown -R opam "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "/tmp/${{ github.run_number }}/metrics"
+          touch /tmp/${{ github.run_number }}/.clear-metrics
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v3
         with:
@@ -230,7 +231,7 @@ jobs:
           BRANCH: metrics
           FOLDER: ${{ github.workspace }}/${{ github.run_number }}/metrics
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLEAR_GLOBS_FILE: .clear-metrics
+          # CLEAR_GLOBS_FILE: .clear-metrics
       - name: Save traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
         run: |
