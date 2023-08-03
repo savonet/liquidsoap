@@ -20,29 +20,7 @@
 
  *****************************************************************************)
 
-include Term_base
+(** Runtime reducer from parsed terms to runtime terms. *)
 
-module ActiveTerm = Weak.Make (struct
-  type typ = t
-  type t = typ
-
-  let equal t t' = t == t'
-  let hash = Hashtbl.hash
-end)
-
-let active_terms = ActiveTerm.create 1024
-
-let trim_runtime_types () =
-  ActiveTerm.iter (fun term -> term.t <- Type.deep_demeth term.t) active_terms
-
-(** Create a new value. *)
-let make ?pos ?t ?methods e =
-  let term = make ?pos ?t ?methods e in
-  let t = match t with Some t -> t | None -> Type.var ?pos () in
-  if Lazy.force debug then
-    Printf.eprintf "%s (%s): assigned type var %s\n"
-      (Pos.Option.to_string t.Type.pos)
-      (try to_string term with _ -> "<?>")
-      (Repr.string_of_type t);
-  ActiveTerm.add active_terms term;
-  term
+val to_term : Parsed_term.t -> Term.t
+val to_encoder_params : Parsed_term.encoder_params -> Term.encoder_params

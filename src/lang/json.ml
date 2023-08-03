@@ -10,9 +10,14 @@ let sedlexing_error ~pos ~message lexbuf =
   in
   Runtime_error.raise ~message ~pos "json"
 
+let json5_processor =
+  MenhirLib.Convert.Simplified.traditional2revised Json_parser.json5
+
+let json_processor =
+  MenhirLib.Convert.Simplified.traditional2revised Json_parser.json
+
 let from_string ?(pos = []) ?(json5 = false) s =
-  let parser = if json5 then Json_parser.json5 else Json_parser.json in
-  let processor = MenhirLib.Convert.Simplified.traditional2revised parser in
+  let processor = if json5 then json5_processor else json_processor in
   let lexbuf =
     let gen =
       let pos = ref (-1) in

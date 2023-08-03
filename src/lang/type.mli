@@ -85,6 +85,8 @@ type custom_handler = Type_base.custom_handler = {
   to_string : custom -> string;
 }
 
+type 'a argument = bool * string * 'a
+
 type descr +=
   | Custom of custom_handler
   | Constr of constructed
@@ -93,7 +95,7 @@ type descr +=
   | Tuple of t list
   | Nullable of t
   | Meth of meth * t
-  | Arrow of (bool * string * t) list * t
+  | Arrow of t argument list * t
   | Var of invar ref
 
 exception NotImplemented

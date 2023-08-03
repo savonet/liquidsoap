@@ -40,10 +40,12 @@ val load_libs :
    after printing language errors. *)
 val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
 
+val program :
+  (unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t
+
 val mk_expr :
   ?fname:string ->
-  pwd:string ->
-  (Parser.token, Term.t) MenhirLib.Convert.traditional ->
+  ((unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t) ->
   Sedlexing.lexbuf ->
   Term.t
 

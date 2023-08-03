@@ -148,7 +148,7 @@ let parse_encoder_params ~to_pos (name, p) : parsed_encoder =
   (field, mode)
 
 let to_static_string_term = function
-  | `Term Term.{ term = Ground (Ground.String s) } -> Some s
+  | `Term Term.{ term = `Ground (Ground.String s) } -> Some s
   | _ -> None
 
 let term_pos = function
@@ -189,7 +189,7 @@ let type_of_encoder =
                                 with Not_found -> ("ac", List.assoc "ac" args)
                               in
                               match channels with
-                                | `Term { Term.term = Term.Ground (Int n) } -> n
+                                | `Term { Term.term = `Ground (Int n) } -> n
                                 | `Term ({ t = { Type.pos } } as tm) ->
                                     Lang_encoder.raise_error ~pos
                                       (Printf.sprintf
@@ -206,23 +206,18 @@ let type_of_encoder =
                             List.fold_left
                               (fun pcm_kind -> function
                                 | ( "",
-                                    `Term
-                                      { Term.term = Term.Ground (String "pcm") }
+                                    `Term { Term.term = `Ground (String "pcm") }
                                   ) ->
                                     Content.Audio.kind
                                 | ( "",
                                     `Term
-                                      {
-                                        Term.term =
-                                          Term.Ground (String "pcm_s16");
-                                      } ) ->
+                                      { Term.term = `Ground (String "pcm_s16") }
+                                  ) ->
                                     Content_pcm_s16.kind
                                 | ( "",
                                     `Term
-                                      {
-                                        Term.term =
-                                          Term.Ground (String "pcm_f32");
-                                      } ) ->
+                                      { Term.term = `Ground (String "pcm_f32") }
+                                  ) ->
                                     Content_pcm_f32.kind
                                 | _ -> pcm_kind)
                               Content.Audio.kind args

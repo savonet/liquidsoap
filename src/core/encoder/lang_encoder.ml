@@ -89,9 +89,9 @@ let channels_of_params ?(default = 2) p =
   match
     List.find_map
       (function
-        | "", `Term { term = Ground (String "stereo") } -> Some 2
-        | "", `Term { term = Ground (String "mono") } -> Some 1
-        | "stereo", `Term { term = Ground (Bool b); _ } ->
+        | "", `Term { term = `Ground (String "stereo") } -> Some 2
+        | "", `Term { term = `Ground (String "mono") } -> Some 1
+        | "stereo", `Term { term = `Ground (Bool b); _ } ->
             Some (if b then 2 else 1)
         | "stereo", `Term ({ t = { Type.pos } } as tm) ->
             raise_error ~pos
@@ -99,7 +99,7 @@ let channels_of_params ?(default = 2) p =
                  "Invalid value %s for stereo mode. Only static `true` or \
                   `false` are allowed."
                  (Term.to_string tm))
-        | "mono", `Term { term = Ground (Bool b); _ } ->
+        | "mono", `Term { term = `Ground (Bool b); _ } ->
             Some (if b then 1 else 2)
         | "mono", `Term ({ t = { Type.pos } } as tm) ->
             raise_error ~pos
@@ -107,7 +107,7 @@ let channels_of_params ?(default = 2) p =
                  "Invalid value %s for mono mode. Only static `true` or \
                   `false` are allowed."
                  (Term.to_string tm))
-        | "channels", `Term { term = Ground (Int n) } -> Some n
+        | "channels", `Term { term = `Ground (Int n) } -> Some n
         | "channels", `Term ({ t = { Type.pos } } as tm) ->
             raise_error ~pos
               (Printf.sprintf

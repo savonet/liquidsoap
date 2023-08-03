@@ -40,10 +40,6 @@
   --unused-token
   PP_IFVERSION
   --unused-token
-  PP_INCLUDE_EXTRA
-  --unused-token
-  PP_INCLUDE
-  --unused-token
   PP_INT_DOT_LCUR
   --unused-token
   PP_REGEXP
@@ -127,6 +123,7 @@
   lexer
   methods
   modules
+  parsed_term
   parser
   parser_helper
   pos
@@ -141,6 +138,9 @@
   sites
   startup
   term
+  term_base
+  term_reducer
+  term_types
   type
   type_base
   typechecking

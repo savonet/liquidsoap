@@ -20,8 +20,9 @@
 
  *****************************************************************************)
 
+include module type of Term_types
+
 exception Internal_error of (Pos.t list * string)
-exception Parse_error of (Pos.t * string)
 exception Unsupported_encoder of (Pos.t option * string)
 
 val conf_debug : bool ref
@@ -30,78 +31,7 @@ val debug : bool Lazy.t
 val profile : bool ref
 val ref_t : ?pos:Pos.t -> Type.t -> Type.t
 
-module Vars : sig
-  type elt = String.t
-  type t = Set.Make(String).t
-
-  val empty : t
-  val is_empty : t -> bool
-  val mem : elt -> t -> bool
-  val add : elt -> t -> t
-  val singleton : elt -> t
-  val remove : elt -> t -> t
-  val union : t -> t -> t
-  val inter : t -> t -> t
-  val disjoint : t -> t -> bool
-  val diff : t -> t -> t
-  val compare : t -> t -> int
-  val equal : t -> t -> bool
-  val subset : t -> t -> bool
-  val iter : (elt -> unit) -> t -> unit
-  val map : (elt -> elt) -> t -> t
-  val fold : (elt -> 'a -> 'a) -> t -> 'a -> 'a
-  val for_all : (elt -> bool) -> t -> bool
-  val exists : (elt -> bool) -> t -> bool
-  val filter : (elt -> bool) -> t -> t
-  val filter_map : (elt -> elt option) -> t -> t
-  val partition : (elt -> bool) -> t -> t * t
-  val cardinal : t -> int
-  val elements : t -> elt list
-  val min_elt : t -> elt
-  val min_elt_opt : t -> elt option
-  val max_elt : t -> elt
-  val max_elt_opt : t -> elt option
-  val choose : t -> elt
-  val choose_opt : t -> elt option
-  val split : elt -> t -> t * bool * t
-  val find : elt -> t -> elt
-  val find_opt : elt -> t -> elt option
-  val find_first : (elt -> bool) -> t -> elt
-  val find_first_opt : (elt -> bool) -> t -> elt option
-  val find_last : (elt -> bool) -> t -> elt
-  val find_last_opt : (elt -> bool) -> t -> elt option
-  val of_list : elt list -> t
-  val to_seq_from : elt -> t -> elt Seq.t
-  val to_seq : t -> elt Seq.t
-  val to_rev_seq : t -> elt Seq.t
-  val add_seq : elt Seq.t -> t -> t
-  val of_seq : elt Seq.t -> t
-end
-
-module Ground : sig
-  type t = ..
-
-  type content = {
-    descr : t -> string;
-    to_json : pos:Pos.t list -> t -> Json.t;
-    compare : t -> t -> int;
-    typ : (module Type.Ground.Custom);
-  }
-
-  val handlers : (Type_base.custom, content * (t -> bool)) Hashtbl.t
-  val register : (t -> bool) -> content -> unit
-
-  exception Found of content
-
-  val find : t -> content
-  val to_string : t -> string
-  val to_json : t -> pos:Pos.t list -> Json.t
-  val to_descr : t -> Type_base.descr
-  val to_type : t -> Type_base.custom
-  val compare : t -> t -> int
-
-  type t += Bool of bool | Int of int | String of string | Float of float
-end
+module Ground = Term_base.Ground
 
 module type GroundDef = sig
   type content
@@ -116,62 +46,19 @@ module MkGround : functor (D : GroundDef) -> sig
   type Ground.t += Ground of D.content
 end
 
-module Methods : sig
-  include module type of Methods
+type encoder_params = t ast_encoder_params
+type encoder = t ast_encoder
 
-  type 'a typ = (string, 'a) t
-  type 'a t = 'a typ
-end
-
-type t = private { mutable t : Type.t; term : in_term; methods : t Methods.t }
-and doc = Doc.Value.t
-
-and let_t = {
-  doc : doc option;
-  replace : bool;
-  pat : pattern;
-  mutable gen : Type.var list;
-  def : t;
-  body : t;
-}
-
-and encoder_params = (string * [ `Encoder of encoder | `Term of t ]) list
-and encoder = string * encoder_params
-and invoke = { invoked : t; default : t option; meth : string }
-
-and in_term =
-  | Ground of Ground.t
-  | Encoder of encoder
-  | List of t list
-  | Tuple of t list
-  | Null
-  | Cast of t * Type.t
-  | Invoke of invoke
-  | Open of t * t
-  | Let of let_t
-  | Var of string
-  | Seq of t * t
-  | App of t * (string * t) list
-  | Fun of Vars.t * (string * string * Type.t * t option) list * t
-  | RFun of string * Vars.t * (string * string * Type.t * t option) list * t
-
-and pattern =
-  | PVar of string list
-  | PTuple of pattern list
-  | PList of (pattern list * string option * pattern list)
-  | PMeth of (pattern option * (string * pattern option) list)
-
-type term = t
-
-val unit : in_term
+val unit : runtime_ast
 val is_ground : t -> bool
 val string_of_pat : pattern -> string
 val to_string : t -> string
-val make : ?pos:Pos.t -> ?t:Type.t -> ?methods:term Methods.t -> in_term -> t
+val make : ?pos:Pos.t -> ?t:Type.t -> ?methods:t Methods.t -> runtime_ast -> t
 val trim_runtime_types : unit -> unit
 val free_vars_pat : pattern -> Vars.t
 val bound_vars_pat : pattern -> Vars.t
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
+val free_fun_vars : (t, Type.t) func -> Vars.t
 val can_ignore : Type.t -> bool
 
 exception Unbound of Pos.Option.t * string
