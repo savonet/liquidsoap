@@ -45,6 +45,9 @@ type ty_content_args = ty_content_arg list
 type ty_content = string * ty_content_args
 type meth_pattern_el = string * Term.pattern option
 
+val clear_comments : unit -> unit
+val append_comment : pos:Pos.t -> string -> unit
+val attach_comments : pos:Pos.t -> Term.t -> unit
 val mk_ty : ?pos:Pos.t -> Parsed_term.type_annotation -> Type.t
 
 val mk_let :

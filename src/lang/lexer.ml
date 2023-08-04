@@ -139,19 +139,23 @@ let time =
 
 let rec token lexbuf =
   match%sedlex lexbuf with
-    | skipped -> token lexbuf
+    | Plus skipped -> token lexbuf
     | Star white_space, '#', '<' ->
         let buf = Buffer.create 1024 in
-        let pos = Sedlexing.lexing_bytes_positions lexbuf in
+        let ((startp, _) as pos) = Sedlexing.lexing_bytes_positions lexbuf in
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_multiline_comment pos buf lexbuf;
-        PP_COMMENT (Regexp.split (Regexp.regexp "\n") (Buffer.contents buf))
+        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
+        Parser_helper.append_comment ~pos:(startp, endp) (Buffer.contents buf);
+        token lexbuf
     | "#", Star white_space ->
         let buf = Buffer.create 1024 in
-        let pos = Sedlexing.lexing_bytes_positions lexbuf in
+        let ((startp, _) as pos) = Sedlexing.lexing_bytes_positions lexbuf in
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_comment pos buf lexbuf;
-        PP_COMMENT (Regexp.split (Regexp.regexp "\n") (Buffer.contents buf))
+        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
+        Parser_helper.append_comment ~pos:(startp, endp) (Buffer.contents buf);
+        token lexbuf
     | line_break -> PP_ENDL
     | "%ifdef", Plus white_space, var, Star ("" | '.', var) ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
@@ -225,9 +229,9 @@ let rec token lexbuf =
     | "%argsof" -> ARGS_OF
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
-    | "def", Plus skipped, "rec", Plus skipped -> PP_DEF `Recursive
-    | "def", Plus skipped, "replaces", Plus skipped -> PP_DEF `Replaces
-    | "def" -> PP_DEF `None
+    | "def", Plus skipped, "rec", Plus skipped -> DEF `Recursive
+    | "def", Plus skipped, "replaces", Plus skipped -> DEF `Replaces
+    | "def" -> DEF `None
     | "try" -> TRY
     | "catch" -> CATCH
     | "do" -> DO
@@ -362,7 +366,7 @@ and read_regexp_flags flags lexbuf =
 and read_comment pos buf lexbuf =
   match%sedlex lexbuf with
     | '\n', Star white_space, '#', Star white_space ->
-        Buffer.add_char buf '\n';
+        Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_comment pos buf lexbuf
     | '\n' -> ()
     | Plus (Compl '\n') ->
@@ -377,10 +381,9 @@ and read_comment pos buf lexbuf =
 and read_multiline_comment ?(level = 0) pos buf lexbuf =
   match%sedlex lexbuf with
     | '>', '#' ->
+        Buffer.add_string buf ">#";
         if level = 0 then ()
-        else (
-          Buffer.add_string buf ">#";
-          read_multiline_comment ~level:(level - 1) pos buf lexbuf)
+        else read_multiline_comment ~level:(level - 1) pos buf lexbuf
     | '#', '<' ->
         Buffer.add_string buf "#<";
         read_multiline_comment ~level:(level + 1) pos buf lexbuf

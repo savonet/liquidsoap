@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-include Term_types
+include Runtime_term
 module Ground = Term_base.Ground
 
 type inc_type = [ `Lib | `Extra | `Default ]
@@ -149,5 +149,90 @@ and t = parsed_ast term
 
 type encoder_params = t ast_encoder_params
 
-let make = Term_base.make
 let unit = `Tuple []
+
+let rec iter_term fn ({ term; methods } as tm) =
+  fn tm;
+  Methods.iter (fun _ tm -> iter_term fn tm) methods;
+  match term with
+    | `If p | `Inline_if p ->
+        iter_term fn p.if_condition;
+        iter_term fn p.if_then;
+        iter_term fn p.if_else
+    | `While { while_condition; while_loop } ->
+        iter_term fn while_condition;
+        iter_term fn while_loop
+    | `For { for_from; for_to; for_loop } ->
+        iter_term fn for_from;
+        iter_term fn for_to;
+        iter_term fn for_loop
+    | `Iterable_for { iterable_for_iterator; iterable_for_loop } ->
+        iter_term fn iterable_for_iterator;
+        iter_term fn iterable_for_loop
+    | `List l ->
+        List.iter (function `Term tm | `Ellipsis tm -> iter_term fn tm) l
+    | `Try { try_body; try_errors_list; try_handler } ->
+        iter_term fn try_body;
+        iter_term fn try_errors_list;
+        iter_term fn try_handler
+    | `Regexp _ -> ()
+    | `Time_interval _ -> ()
+    | `Time _ -> ()
+    | `Def (_let, tm) | `Let (_let, tm) | `Binding (_let, tm) ->
+        (match _let.arglist with
+          | Some args -> iter_fun_args fn args
+          | None -> ());
+        iter_term fn _let.def;
+        iter_term fn tm
+    | `Cast (tm, _) -> iter_term fn tm
+    | `App (tm, args) ->
+        iter_term fn tm;
+        List.iter
+          (function `Term (_, tm) -> iter_term fn tm | `Argsof _ -> ())
+          args
+    | `Invoke { invoked } -> iter_term fn invoked
+    | `Fun (args, tm) | `RFun (_, args, tm) ->
+        iter_fun_args fn args;
+        iter_term fn tm
+    | `Not tm -> iter_term fn tm
+    | `Get tm -> iter_term fn tm
+    | `Set (tm, tm') ->
+        iter_term fn tm;
+        iter_term fn tm'
+    | `Negative tm -> iter_term fn tm
+    | `Append (tm, tm') ->
+        iter_term fn tm;
+        iter_term fn tm'
+    | `Assoc (tm, tm') ->
+        iter_term fn tm;
+        iter_term fn tm'
+    | `Infix (tm, _, tm') ->
+        iter_term fn tm;
+        iter_term fn tm'
+    | `Bool (tm, _, tm') ->
+        iter_term fn tm;
+        iter_term fn tm'
+    | `Coalesce (tm, tm') ->
+        iter_term fn tm;
+        iter_term fn tm'
+    | `Simple_fun tm -> iter_term fn tm
+    | `Include _ -> ()
+    | `Ground _ -> ()
+    | `Encoder _ -> ()
+    | `Tuple l -> List.iter (iter_term fn) l
+    | `Null -> ()
+    | `Open (tm, tm') ->
+        iter_term fn tm;
+        iter_term fn tm'
+    | `Var _ -> ()
+    | `Seq (tm, tm') ->
+        iter_term fn tm;
+        iter_term fn tm'
+
+and iter_fun_args fn args =
+  List.iter
+    (function
+      | `Term tm -> (
+          match tm.default with Some tm -> iter_term fn tm | None -> ())
+      | `Argsof _ -> ())
+    args

@@ -34,6 +34,53 @@ type lexer_let_decoration =
 type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
 type binding = [ explicit_binding | `Binding of Term._let ]
 
+let pending_comments = ref []
+let clear_comments () = pending_comments := []
+let append_comment ~pos c = pending_comments := (pos, c) :: !pending_comments
+
+let comment_distance term_pos comment_pos =
+  let distance_before =
+    (fst term_pos).Lexing.pos_cnum - (snd comment_pos).Lexing.pos_cnum
+  in
+  let distance_after =
+    (fst comment_pos).Lexing.pos_cnum - (snd term_pos).Lexing.pos_cnum
+  in
+  if abs distance_before < abs distance_after then (`Before, distance_before)
+  else (`After, distance_after)
+
+let sort_comments comments =
+  List.sort
+    (fun (p, _) (p', _) ->
+      Stdlib.compare (fst p).Lexing.pos_cnum (fst p').Lexing.pos_cnum)
+    comments
+
+let attach_comments ~pos term =
+  List.iter
+    (fun (comment_pos, c) ->
+      let closest_term = ref term in
+      let distance = ref (comment_distance pos comment_pos) in
+      Parsed_term.iter_term
+        (fun term ->
+          match term.t.pos with
+            | None -> ()
+            | Some term_pos -> (
+                match (comment_distance term_pos comment_pos, !distance) with
+                  | ((_, d) as new_distance), (_, d')
+                    when d' < 0 || (0 <= d && d <= d') ->
+                      distance := new_distance;
+                      closest_term := term
+                  | _ -> ()))
+        term;
+      match !distance with
+        | `Before, _ ->
+            !closest_term.before_comments <-
+              sort_comments ((comment_pos, c) :: !closest_term.before_comments)
+        | `After, _ ->
+            !closest_term.after_comments <-
+              sort_comments ((comment_pos, c) :: !closest_term.after_comments))
+    !pending_comments;
+  pending_comments := []
+
 let mk_source_ty ?pos name args =
   let fn = !Hooks.mk_source_ty in
   fn ?pos name args
@@ -134,7 +181,7 @@ let args_of_json_parse ~pos = function
         (Term_base.Parse_error
            (pos, "Invalid argument " ^ lbl ^ " for json.parse let constructor"))
 
-let mk = Term.make
+let mk = Term_base.make
 let mk_fun ~pos arguments body = mk ~pos (`Fun (arguments, body))
 
 let mk_let ~pos _let body =

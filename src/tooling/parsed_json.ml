@@ -383,9 +383,13 @@ and to_encoder_param_json = function
       `Assoc
         [("type", `String "term"); ("label", `String lbl); ("value", to_json t)]
 
-and to_json { t; methods; term } : Json.t =
+and to_json { t; methods; term; after_comments; before_comments } : Json.t =
+  let before_comments = List.map (fun (_, c) -> `String c) before_comments in
+  let after_comments = List.map (fun (_, c) -> `String c) after_comments in
   `Assoc
     ([
+       ("before_comments", `Tuple before_comments);
+       ("after_comments", `Tuple after_comments);
        ("position", json_of_positions t.pos);
        ( "methods",
          `Tuple
