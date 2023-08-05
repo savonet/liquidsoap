@@ -99,11 +99,11 @@ end
 # Append an extra track to every track. Set the metadata ‘liq_append’ to
 # `false` to inhibit appending on one track.
 # @category Source / Track processing
-# @param f Given the metadata, build the source producing the track to append. This source is allowed to fail (produce nothing) if no relevant track is to be appended.
+# @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent appening a new track.
 # @param ~insert_missing Treat track beginnings without metadata as having empty one.
 # @param ~merge Merge the track with its appended track.
 # @flag extra
-def append(~id=null(), ~insert_missing=true, ~merge=false, s, f) =
+def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   last_meta = ref(null())
   pending = ref(null())
 
@@ -113,7 +113,7 @@ def append(~id=null(), ~insert_missing=true, ~merge=false, s, f) =
       pending := null()
     elsif last_meta() != m then
       last_meta := m
-      pending := (f(m):source)
+      pending := (f(m):source?)
     end
   end
 
@@ -157,4 +157,51 @@ def append(~id=null(), ~insert_missing=true, ~merge=false, s, f) =
       s.skip()
     end
   }
+end
+
+# Prepend an extra track before every track. Set the metadata `liq_prepend` to
+# `false` to inhibit prepending on one track.
+# @category Source / Track processing
+# @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent any track prepend.
+# @param ~merge Merge the track with its appended track.
+# @flag extra
+def prepend(~id=null("prepend"), ~merge=false, s, f) =
+  last_meta = ref(null())
+
+  def on_meta(m) =
+    if m["liq_prepend"] == "false" then
+      last_meta := null()
+    elsif last_meta() != m then
+      last_meta := m
+    end
+  end
+
+  s = source.on_track(s, fun (m) -> m == [] ? last_meta := null() : on_meta(m))
+  s = source.on_metadata(s, on_meta)
+
+  def next() =
+    if null.defined(last_meta) then
+      m = last_meta()
+      last_meta := null()
+      if null.defined(m) then
+        m =  null.get(m)
+        p = (f(m):source?)
+        if null.defined(p) then
+          sequence(merge=merge, [null.get(p), s])
+        else
+          s
+        end
+      else
+        s
+      end
+    else
+      s
+    end
+  end
+
+  source.dynamic(
+    id=id,
+    track_sensitive=true,
+    next
+  )
 end
