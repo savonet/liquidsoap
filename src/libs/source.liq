@@ -95,3 +95,113 @@ def source.run(s, ~delay=0., ~every=null(), f)
   end
   source.on_frame(s, check)
 end
+
+# Append an extra track to every track. Set the metadata ‘liq_append’ to
+# `false` to inhibit appending on one track.
+# @category Source / Track processing
+# @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent appening a new track.
+# @param ~insert_missing Treat track beginnings without metadata as having empty one.
+# @param ~merge Merge the track with its appended track.
+# @flag extra
+def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
+  last_meta = ref(null())
+  pending = ref(null())
+
+  def f(m) =
+    if m["liq_append"] == "false" then
+      last_meta := null()
+      pending := null()
+    elsif last_meta() != m then
+      last_meta := m
+      pending := (f(m):source?)
+    end
+  end
+
+  s =
+    if insert_missing then
+      source.on_track(s, f)
+    else
+      s
+    end
+
+  s = source.on_metadata(s, f)
+
+  def next() =
+    p = pending()
+    pending := null()
+    last_meta := null()
+    if null.defined(p) then
+      p = null.get(p)
+      sequence(merge=merge, [p, s])
+    else
+      s
+    end
+  end
+
+  s = source.dynamic(
+    id=id,
+    track_sensitive=true,
+    next
+  )
+
+  s.{
+    # Return the pending source
+    pending = fun () -> pending(),
+    # Set the pending source
+    set_pending = fun (s) -> pending.set(s),
+    # Cancel any pending appended source.
+    cancel_pending = fun () -> pending.set(null()),
+    # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
+    skip = fun (~cancel_pending=true) -> begin
+      if cancel_pending then pending.set(null()) end
+      s.skip()
+    end
+  }
+end
+
+# Prepend an extra track before every track. Set the metadata `liq_prepend` to
+# `false` to inhibit prepending on one track.
+# @category Source / Track processing
+# @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent any track prepend.
+# @param ~merge Merge the track with its appended track.
+# @flag extra
+def prepend(~id=null("prepend"), ~merge=false, s, f) =
+  last_meta = ref(null())
+
+  def on_meta(m) =
+    if m["liq_prepend"] == "false" then
+      last_meta := null()
+    elsif last_meta() != m then
+      last_meta := m
+    end
+  end
+
+  s = source.on_track(s, fun (m) -> m == [] ? last_meta := null() : on_meta(m))
+  s = source.on_metadata(s, on_meta)
+
+  def next() =
+    if null.defined(last_meta) then
+      m = last_meta()
+      last_meta := null()
+      if null.defined(m) then
+        m =  null.get(m)
+        p = (f(m):source?)
+        if null.defined(p) then
+          sequence(merge=merge, [null.get(p), s])
+        else
+          s
+        end
+      else
+        s
+      end
+    else
+      s
+    end
+  end
+
+  source.dynamic(
+    id=id,
+    track_sensitive=true,
+    next
+  )
+end

@@ -52,7 +52,6 @@
   add
   amplify
   annotate
-  append
   audio_converter
   audio_gen
   available
@@ -204,7 +203,6 @@
   pool
   pos
   ppm_decoder
-  prepend
   process_handler
   producer_consumer
   raw_audio_decoder
