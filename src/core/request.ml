@@ -299,6 +299,12 @@ let conf_recode =
     ~p:(conf_metadata_decoders#plug "recode")
     ~d:true "Re-encode metadata strings in UTF-8"
 
+let conf_recode_excluded =
+  Dtools.Conf.list
+    ~d:["apic"; "metadata_block_picture"; "coverart"]
+    ~p:(conf_recode#plug "exclude")
+    "Exclude these metadata from automatic recording."
+
 (** Sys.file_exists doesn't make a difference between existing files and files
     without enough permissions to list their attributes, for example when they
     are in a directory without x permission.  The two following functions allow a
@@ -330,7 +336,10 @@ let read_metadata t =
         (Lang_string.quote_string name)
     else (
       let convert =
-        if conf_recode#get then fun x -> Charset.convert x else fun x -> x
+        if conf_recode#get then (
+          let excluded = conf_recode_excluded#get in
+          fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
+        else fun _ x -> x
       in
       List.iter
         (fun (_, resolver) ->
@@ -338,8 +347,8 @@ let read_metadata t =
             let ans = resolver ~metadata:indicator.metadata name in
             List.iter
               (fun (k, v) ->
-                let k = String.lowercase_ascii (convert k) in
-                let v = convert v in
+                let k = String.lowercase_ascii (convert k k) in
+                let v = convert k v in
                 if conf_override_metadata#get || get_metadata t k = None then
                   Hashtbl.replace indicator.metadata k v)
               ans;

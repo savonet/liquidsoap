@@ -2,6 +2,11 @@
 
 (include dune.inc)
 
+(executable
+ (name gen_dune)
+ (libraries liquidsoap_build_tools)
+ (modules gen_dune))
+
 (rule
  (alias gendune)
  (deps
@@ -10,9 +15,60 @@
  (action
   (with-stdout-to
    dune.inc.gen
-   (run ../gen_dune.exe))))
+   (run ./gen_dune.exe))))
 
 (rule
  (alias gendune)
  (action
   (diff dune.inc dune.inc.gen)))
+
+(rule
+ (deps
+  write_cover.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq))
+ (target cover.png)
+ (action
+  (run ../../src/bin/liquidsoap.exe ./write_cover.liq -- %{target})))
+
+(rule
+ (alias citest)
+ (deps cover.png)
+ (target cover.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=5"
+   -ac
+   2
+   -i
+   ./cover.png
+   -map
+   0
+   -map
+   1
+   -vcodec
+   copy
+   %{target})))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  cover.png
+  cover.mp3
+  test_cover.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} test_cover.liq liquidsoap %{test_liq} test_cover.liq)))
