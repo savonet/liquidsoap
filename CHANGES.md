@@ -5,6 +5,8 @@ Changed:
 - BREAKING: on HLS outputs, `on_file_change` events are
   now `"created"`, `"updated"` and `"deleted"`, to better
   reflect the new atomic file operations (#3284)
+- Added `compact` argument to the `http.response.json` function. `http.response.json` will produce minified JSON by
+  default. Added a newline symbol to the end of the JSON data produced by `http.response.json`. (#3299)
 
 Fixed:
 

@@ -194,12 +194,12 @@ def http.response(~http_version="1.1",
     header("Location", location)
   end
 
-  def json(v) =
+  def json(~compact=true, v) =
     if headers_sent() then
       error.raise(error.invalid, "HTTP response has already been sent for this value!")
     end
     content_type := "application/json; charset=utf-8"
-    data := json.stringify(v)
+    data := json.stringify(v, compact=compact) ^ "\n"
   end
 
   def html(d) =
