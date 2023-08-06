@@ -219,11 +219,12 @@ expr:
   | ENCODER encoder_opt              { mk_encoder ~pos:$loc $1 $2 }
   | LPAR RPAR                        { mk ~pos:$loc (`Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (`Tuple $2) }
-  | expr DOT LCUR record RCUR        { $4 ~pos:$loc $1 }
+  | expr DOT LCUR record optional_comma RCUR
+                                     { $4 ~pos:$loc $1 }
   | LCUR DOTDOTDOT expr RCUR         { $3 }
   | LCUR record COMMA DOTDOTDOT expr RCUR
                                      { $2 ~pos:$loc $5 }
-  | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (`Tuple [])) }
+  | LCUR record optional_comma RCUR  { $2 ~pos:$loc (mk ~pos:$loc (`Tuple [])) }
   | LCUR RCUR                        { mk ~pos:$loc (`Tuple []) }
   | expr QUESTION DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $4; default = Some (mk ~pos:$loc `Null) }) }
   | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; default = None }) }
@@ -556,6 +557,10 @@ encoder_params:
 
 plain_encoder_params:
   | LPAR encoder_params RPAR { $2 }
+
+optional_comma:
+  |       {}
+  | COMMA {}
 
 record:
   | VAR GETS expr {
