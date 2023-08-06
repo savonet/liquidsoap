@@ -23,11 +23,9 @@ let () =
          (Frame.Fields.make ~audio:(Format_type.audio ()) ()))
   in
   let frame = Frame.create ctype in
-  let m = Hashtbl.create 12 in
-  Hashtbl.add m "foo" "bla";
+  let m = Frame.Metadata.from_list [("foo", "bla")] in
   Frame.set_metadata frame 123 m;
-  let m = Hashtbl.create 12 in
-  Hashtbl.add m "gni" "gno";
+  let m = Frame.Metadata.from_list [("gni", "gno")] in
   Frame.set_metadata frame 123 m;
   assert (Frame.get_all_metadata frame = [(123, m)])
 

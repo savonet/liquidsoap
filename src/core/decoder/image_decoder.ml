@@ -88,12 +88,14 @@ let create_decoder ~audio ~width ~height ~metadata img =
   (* Dimensions. *)
   let img_w = Image.YUV420.width img in
   let img_h = Image.YUV420.height img in
-  let width = try Hashtbl.find metadata "width" with Not_found -> "" in
-  let height = try Hashtbl.find metadata "height" with Not_found -> "" in
+  let width = try Frame.Metadata.find "width" metadata with Not_found -> "" in
+  let height =
+    try Frame.Metadata.find "height" metadata with Not_found -> ""
+  in
   let width, height = wh_string img_w img_h width height in
   (* Offset. *)
-  let off_x = try Hashtbl.find metadata "x" with Not_found -> "" in
-  let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
+  let off_x = try Frame.Metadata.find "x" metadata with Not_found -> "" in
+  let off_y = try Frame.Metadata.find "y" metadata with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
   log#debug "Decoding to %dx%d at %dx%d" width height off_x off_y;
   (* We are likely to have no α channel, optimize it. *)
@@ -108,7 +110,7 @@ let create_decoder ~audio ~width ~height ~metadata img =
   let img = Video.Canvas.Image.translate off_x off_y img in
   let duration =
     try
-      let seconds = float_of_string (Hashtbl.find metadata "duration") in
+      let seconds = float_of_string (Frame.Metadata.find "duration" metadata) in
       if seconds < 0. then -1 else Frame.video_of_seconds seconds
     with Not_found -> -1
   in

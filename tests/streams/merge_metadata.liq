@@ -2,7 +2,7 @@ log.level.set(4)
 
 def f(m)
   print("Got metadata!")
-  if m == [("s", "That's me!"), ("test", "bla"), ("s'", "That's me!"), ("test", "blo")] then
+  if m == [("s", "That's me!"), ("s'", "That's me!"), ("test", "bla")] then
     test.pass()
   else
     test.fail()

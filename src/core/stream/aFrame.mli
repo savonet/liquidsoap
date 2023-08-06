@@ -40,7 +40,7 @@ val clear : t -> unit
 
 exception No_metadata
 
-type metadata = (string, string) Hashtbl.t
+type metadata = Frame.metadata
 
 val free_metadata : t -> int -> unit
 val set_metadata : t -> int -> metadata -> unit

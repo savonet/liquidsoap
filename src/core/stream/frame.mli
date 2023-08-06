@@ -51,11 +51,42 @@ type field = Fields.field
 (** Precise description of the channel types for the current track. *)
 type content_type = Content.format Fields.t
 
-(** Metadata of a frame. *)
-type metadata = (string, string) Hashtbl.t
+module Metadata : sig
+  type t = Frame_base.Metadata.t
 
-val metadata_of_list : (string * string) list -> metadata
-val list_of_metadata : metadata -> (string * string) list
+  val from_list : (string * string) list -> t
+  val to_list : t -> (string * string) list
+  val is_empty : t -> bool
+  val empty : t
+  val cardinal : t -> int
+  val fold : (string -> string -> 'a -> 'a) -> t -> 'a -> 'a
+  val find : string -> t -> string
+  val find_opt : string -> t -> string option
+  val mem : string -> t -> bool
+  val remove : string -> t -> t
+  val add : string -> string -> t -> t
+  val mapi : (string -> string -> string) -> t -> t
+  val map : (string -> string) -> t -> t
+  val filter : (string -> string -> bool) -> t -> t
+  val for_all : (string -> string -> bool) -> t -> bool
+  val exists : (string -> string -> bool) -> t -> bool
+  val iter : (string -> string -> unit) -> t -> unit
+
+  module Export : sig
+    type metadata = t
+    type t = Frame_base.Metadata.Export.t
+
+    val from_metadata : metadata -> t
+    val to_metadata : t -> metadata
+    val to_list : t -> (string * string) list
+    val equal : t -> t -> bool
+    val empty : t
+    val is_empty : t -> bool
+  end
+end
+
+(** Metadata of a frame. *)
+type metadata = Metadata.t
 
 (** A frame. *)
 type t = Generator.t

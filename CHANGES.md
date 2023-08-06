@@ -7,6 +7,7 @@ New:
 Changed:
 
 - Mute SDL startup messages (#2913).
+- Changed internal metadata format to be immutable (#3297)
 
 # 2.2.0 (2023-07-21)
 

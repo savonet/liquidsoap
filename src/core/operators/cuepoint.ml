@@ -64,7 +64,7 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
         | Some table ->
             let get key =
               try
-                let content = Hashtbl.find table key in
+                let content = Frame.Metadata.find key table in
                 try Some (Frame.main_of_seconds (float_of_string content))
                 with _ ->
                   self#log#severe "Ill-formed metadata %s=%S!" key content;

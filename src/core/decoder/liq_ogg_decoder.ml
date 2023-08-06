@@ -119,11 +119,11 @@ let create_decoder ?(merge_tracks = false) source input =
       (* Initial metadata in files is handled separately. *)
       if source = `Stream || (merge_tracks && not !first_meta) then (
         let _, (v, m) = f decoder t in
-        let metas = Hashtbl.create 10 in
-        List.iter
-          (fun (x, y) -> Hashtbl.add metas (String.lowercase_ascii x) y)
-          m;
-        Hashtbl.add metas "vendor" v;
+        let metas =
+          Frame.Metadata.from_list
+            (("vendor", v)
+            :: List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m)
+        in
         Generator.add_metadata buffer.Decoder.generator metas);
       first_meta := false
     in

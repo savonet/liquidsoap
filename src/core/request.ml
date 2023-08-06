@@ -47,13 +47,13 @@ let parse_uri uri =
 
 (** Metadata *)
 
-type metadata = (string, string) Hashtbl.t
+type metadata = Frame.metadata
 
 let string_of_metadata metadata =
   let b = Buffer.create 20 in
   let f = Format.formatter_of_buffer b in
   let first = ref true in
-  Hashtbl.iter
+  Frame.Metadata.iter
     (fun k v ->
       if !first then (
         first := false;
@@ -70,7 +70,7 @@ let short_string_of_metadata m =
   "Title: "
   ^
   try
-    let t = Hashtbl.find m "title" in
+    let t = Frame.Metadata.find "title" m in
     if String.length t < 12 then t else String.sub t 0 9 ^ "..."
   with Not_found -> "(undef)"
 
@@ -118,7 +118,12 @@ let string_of_log log =
     ]
   *)
 
-type indicator = { string : string; temporary : bool; metadata : metadata }
+type indicator = {
+  string : string;
+  temporary : bool;
+  mutable metadata : metadata;
+}
+
 type status = Idle | Resolving | Ready | Playing | Destroyed
 
 type t = {
@@ -149,7 +154,7 @@ let ctype r = r.ctype
 let initial_uri r = r.initial_uri
 let status r = r.status
 
-let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
+let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
   { string = home_unrelate s; temporary = temporary = Some true; metadata }
 
 (** Length *)
@@ -173,41 +178,43 @@ let duration ~metadata file =
 
 (** Manage requests' metadata *)
 
-let toplevel_metadata t =
-  match t.indicators with
-    | [] -> t.root_metadata
-    | [] :: _ -> assert false
-    | (h :: _) :: _ -> h.metadata
-
 let iter_metadata t f =
   List.iter
     (function [] -> assert false | h :: _ -> f h.metadata)
     t.indicators;
   f t.root_metadata
 
-let set_metadata t k v = Hashtbl.replace (toplevel_metadata t) k v
-let set_root_metadata t k v = Hashtbl.replace t.root_metadata k v
+let set_metadata t k v =
+  match t.indicators with
+    | [] -> t.root_metadata <- Frame.Metadata.add k v t.root_metadata
+    | [] :: _ -> assert false
+    | (h :: _) :: _ -> h.metadata <- Frame.Metadata.add k v h.metadata
+
+let set_root_metadata t k v =
+  t.root_metadata <- Frame.Metadata.add k v t.root_metadata
 
 exception Found of string
 
 let get_metadata t k =
   try
     iter_metadata t (fun h ->
-        try raise (Found (Hashtbl.find h k)) with Not_found -> ());
-    (try raise (Found (Hashtbl.find t.root_metadata k)) with Not_found -> ());
+        try raise (Found (Frame.Metadata.find k h)) with Not_found -> ());
+    (try raise (Found (Frame.Metadata.find k t.root_metadata))
+     with Not_found -> ());
     None
   with Found s -> Some s
 
 let get_root_metadata t k =
-  try raise (Found (Hashtbl.find t.root_metadata k)) with
+  try raise (Found (Frame.Metadata.find k t.root_metadata)) with
     | Not_found -> None
     | Found x -> Some x
 
 let get_all_metadata t =
-  let h = Hashtbl.create 20 in
+  let h = ref Frame.Metadata.empty in
   iter_metadata t
-    (Hashtbl.iter (fun k v -> if not (Hashtbl.mem h k) then Hashtbl.add h k v));
-  h
+    (Frame.Metadata.iter (fun k v ->
+         if not (Frame.Metadata.mem k !h) then h := Frame.Metadata.add k v !h));
+  !h
 
 (** Logging *)
 
@@ -350,12 +357,16 @@ let read_metadata t =
                 let k = String.lowercase_ascii (convert k k) in
                 let v = convert k v in
                 if conf_override_metadata#get || get_metadata t k = None then
-                  Hashtbl.replace indicator.metadata k v)
+                  indicator.metadata <-
+                    Frame.Metadata.add k v indicator.metadata)
               ans;
             if conf_duration#get && get_metadata t "duration" = None then (
               try
-                Hashtbl.replace indicator.metadata "duration"
-                  (string_of_float (duration ~metadata:indicator.metadata name))
+                indicator.metadata <-
+                  Frame.Metadata.add "duration"
+                    (string_of_float
+                       (duration ~metadata:indicator.metadata name))
+                    indicator.metadata
               with Not_found -> ())
           with _ -> ())
         (get_decoders conf_metadata_decoders mresolvers)))
@@ -367,7 +378,8 @@ let local_check t =
         let indicator = peek_indicator t in
         let name = indicator.string in
         let metadata =
-          if t.resolve_metadata then get_all_metadata t else Hashtbl.create 0
+          if t.resolve_metadata then get_all_metadata t
+          else Frame.Metadata.empty
         in
         if not (file_is_readable name) then (
           log#important "Read permission denied for %s!"
@@ -414,7 +426,7 @@ let get_filename t =
   if resolved t then Some (List.hd (List.hd t.indicators)).string else None
 
 let update_metadata t =
-  let replace = Hashtbl.replace t.root_metadata in
+  let replace k v = t.root_metadata <- Frame.Metadata.add k v t.root_metadata in
   replace "rid" (string_of_int t.id);
   replace "initial_uri" t.initial_uri;
 
@@ -484,7 +496,7 @@ module Pool = Pool.Make (struct
       resolving = None;
       on_air = None;
       log = Queue.create ();
-      root_metadata = Hashtbl.create 0;
+      root_metadata = Frame.Metadata.empty;
       indicators = [];
       decoder = None;
     }
@@ -564,13 +576,15 @@ let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
         status = Idle;
         decoder = None;
         log = Queue.create ();
-        root_metadata = Hashtbl.create 10;
+        root_metadata = Frame.Metadata.empty;
         indicators = [];
       }
     in
     Pool.add (fun id -> { req with id })
   in
-  List.iter (fun (k, v) -> Hashtbl.replace t.root_metadata k v) metadata;
+  List.iter
+    (fun (k, v) -> t.root_metadata <- Frame.Metadata.add k v t.root_metadata)
+    metadata;
   push_indicators t (if indicators = [] then [indicator u] else indicators);
   Gc.finalise finalise t;
   t

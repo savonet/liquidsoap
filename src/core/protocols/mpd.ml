@@ -96,7 +96,7 @@ let search read write field v =
   let add () =
     if !file <> "" then
       ans :=
-        Request.indicator ~metadata:(Utils.hashtbl_of_list !metadata) !file
+        Request.indicator ~metadata:(Frame.Metadata.from_list !metadata) !file
         :: !ans
   in
   List.iter

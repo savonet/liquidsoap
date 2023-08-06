@@ -90,7 +90,7 @@ module Metadata_specs = struct
   let default_params _ = ()
   let parse_param _ _ = Some ()
   let merge _ _ = ()
-  let copy = copy ~copy:Hashtbl.copy
+  let copy = copy ~copy:(fun x -> x)
 end
 
 module Metadata = struct

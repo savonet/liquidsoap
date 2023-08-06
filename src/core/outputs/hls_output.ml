@@ -245,9 +245,7 @@ let remove_segment segments =
 type init_state = [ `Todo | `No_init | `Has_init of string ]
 
 type metadata =
-  [ `None
-  | `Sent of Export_metadata.metadata
-  | `Todo of Export_metadata.metadata ]
+  [ `None | `Sent of Frame.Metadata.Export.t | `Todo of Frame.Metadata.Export.t ]
 
 let pending_metadata = function `Todo _ -> true | _ -> false
 
@@ -384,8 +382,7 @@ class hls_output p =
           raise (Error.Invalid_value (fmt_val, "Unsupported format"))
       in
       let encoder =
-        encoder_factory ~pos:fmt_val.Value.pos name
-          Export_metadata.empty_metadata
+        encoder_factory ~pos:fmt_val.Value.pos name Frame.Metadata.Export.empty
       in
       let bandwidth =
         lazy
@@ -643,8 +640,8 @@ class hls_output p =
           match s.metadata with
             | `Todo m ->
                 s.metadata <- `Sent m;
-                Export_metadata.to_list m
-            | `Sent m when s.replay_id3 -> Export_metadata.to_list m
+                Frame.Metadata.Export.to_list m
+            | `Sent m when s.replay_id3 -> Frame.Metadata.Export.to_list m
             | `Sent _ | `None -> []
         in
         let frame_position, sample_position = current_position in
@@ -970,7 +967,7 @@ class hls_output p =
       List.iter
         (fun s ->
           match s.metadata with
-            | `Sent m' when Export_metadata.equal m m' -> ()
+            | `Sent m' when Frame.Metadata.Export.equal m m' -> ()
             | _ -> s.metadata <- `Todo m)
         streams
   end

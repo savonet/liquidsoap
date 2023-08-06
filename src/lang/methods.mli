@@ -24,6 +24,7 @@
 
 type ('a, 'b) t
 
+val from_list : ('a * 'b) list -> ('a, 'b) t
 val is_empty : ('a, 'b) t -> bool
 val empty : ('a, 'b) t
 val cardinal : ('a, 'b) t -> int
@@ -32,6 +33,7 @@ val bindings : ('a, 'b) t -> ('a * 'b) list
 val find : 'a -> ('a, 'b) t -> 'b
 val find_opt : 'a -> ('a, 'b) t -> 'b option
 val mem : 'a -> ('a, 'b) t -> bool
+val remove : 'a -> ('a, 'b) t -> ('a, 'b) t
 val add : 'a -> 'b -> ('a, 'b) t -> ('a, 'b) t
 val mapi : ('a -> 'b -> 'c) -> ('a, 'b) t -> ('a, 'c) t
 val map : ('b -> 'c) -> ('a, 'b) t -> ('a, 'c) t

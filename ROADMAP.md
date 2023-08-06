@@ -35,7 +35,7 @@
 
 ## For 2.3
 
-- switch to immutable content for metadata
+- ~~switch to immutable content for metadata~~
 - switch to immutable content for frames (#2364)
   - frame should be changed to extensible arrays (a bit like `Strings`) instead
     of filling a buffer

@@ -237,9 +237,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let { get_metadata } = self#get_connected_container in
         let meta = get_metadata () in
         if meta <> [] then (
-          let m = Hashtbl.create (List.length meta) in
-          List.iter (fun (k, v) -> Hashtbl.add m k v) meta;
-          Generator.add_metadata self#buffer m;
+          Generator.add_metadata self#buffer (Frame.Metadata.from_list meta);
           if new_track_on_metadata then Generator.add_track_mark self#buffer);
         Generator.fill self#buffer frame;
         let stop = Frame.position frame in
@@ -250,7 +248,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
               if p < pos || stop < p then (p, m) :: metadata
               else (
                 let m = metadata_filter m in
-                if 0 < Hashtbl.length m then (p, m) :: metadata else metadata))
+                if 0 < Frame.Metadata.cardinal m then (p, m) :: metadata
+                else metadata))
             []
             (Frame.get_all_metadata frame)
         in
@@ -561,11 +560,8 @@ let register_input is_http =
                  m))
          in
          let metadata_filter m =
-           let m = Hashtbl.fold (fun k v m -> (k, v) :: m) m [] in
-           let m = metadata_filter m in
-           let ret = Hashtbl.create (List.length m) in
-           List.iter (fun (k, v) -> Hashtbl.add ret k v) m;
-           ret
+           let m = metadata_filter (Frame.Metadata.to_list m) in
+           Frame.Metadata.from_list m
          in
          let new_track_on_metadata =
            Lang.to_bool (List.assoc "new_track_on_metadata" p)

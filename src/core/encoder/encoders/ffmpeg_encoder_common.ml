@@ -306,12 +306,7 @@ let encoder ~pos ~mk_streams ffmpeg meta =
     Frame.Fields.iter (fun _ { flush } -> flush ()) !encoder.streams
   in
   let insert_metadata m =
-    let m =
-      Hashtbl.fold
-        (fun lbl v l -> (lbl, v) :: l)
-        (Export_metadata.to_metadata m)
-        []
-    in
+    let m = Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m) in
     match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
       | _ when not !encoder.started -> Av.set_output_metadata !encoder.output m
       | `Stream, Some "ogg" ->

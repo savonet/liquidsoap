@@ -109,14 +109,14 @@ type hls = {
 val dummy_hls : (Generator.t -> int -> int -> Strings.t) -> hls
 
 type encoder = {
-  insert_metadata : Export_metadata.metadata -> unit;
+  insert_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   hls : hls;
   encode : Frame.t -> int -> int -> Strings.t;
   stop : unit -> Strings.t;
 }
 
-type factory = pos:Pos.t option -> string -> Export_metadata.metadata -> encoder
+type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 
 (** A plugin might or might not accept a given format.
   * If it accepts it, it gives a function creating suitable encoders. *)

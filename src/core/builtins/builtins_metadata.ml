@@ -34,6 +34,6 @@ let _ =
     ]
     Lang.string_t
     (fun p ->
-      let m = Utils.list_of_metadata (Lang.to_metadata (List.assoc "" p)) in
+      let m = Frame.Metadata.to_list (Lang.to_metadata (List.assoc "" p)) in
       let version = Lang.to_int (List.assoc "version" p) in
       Lang.string (Utils.id3v2_of_metadata ~version m))

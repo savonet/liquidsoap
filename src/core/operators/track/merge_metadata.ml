@@ -61,9 +61,15 @@ class merge_metadata tracks =
               List.iter
                 (fun (p, m) ->
                   if pos <= p then (
-                    match Frame.get_metadata buf p with
-                      | None -> Frame.set_metadata buf p m
-                      | Some m' -> Hashtbl.iter (Hashtbl.add m') m))
+                    let m =
+                      match Frame.get_metadata buf p with
+                        | None -> m
+                        | Some m' ->
+                            Frame.Metadata.fold
+                              (fun lbl v m -> Frame.Metadata.add lbl v m)
+                              m' m
+                    in
+                    Frame.set_metadata buf p m))
                 (Frame.get_all_metadata tmp_frame));
             max max_pos (Frame.position tmp_frame))
           (Frame.position buf) sources

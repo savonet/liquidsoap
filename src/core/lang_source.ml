@@ -32,18 +32,12 @@ let to_metadata_list t =
   in
   List.map pop (to_list t)
 
-let to_metadata t =
-  let t = to_metadata_list t in
-  let metas = Hashtbl.create 10 in
-  List.iter (fun (a, b) -> Hashtbl.add metas a b) t;
-  metas
+let to_metadata t = Frame.Metadata.from_list (to_metadata_list t)
 
 let metadata_list m =
   list (List.map (fun (k, v) -> product (string k) (string v)) m)
 
-let metadata m =
-  list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
-
+let metadata m = metadata_list (Frame.Metadata.to_list m)
 let metadata_track_t = Format_type.metadata
 let track_marks_t = Format_type.track_marks
 

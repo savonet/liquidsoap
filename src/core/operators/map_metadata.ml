@@ -36,15 +36,15 @@ class map_metadata source rewrite_f insert_missing update strip =
 
     method private rewrite m =
       let m' = Lang.apply rewrite_f [("", Lang.metadata m)] in
-      let replace_val v =
+      let replace_val m v =
         let x, y = Lang.to_product v in
         let x = Lang.to_string x and y = Lang.to_string y in
-        if not strip then Hashtbl.replace m x y
-        else if y <> "" then Hashtbl.replace m x y
-        else Hashtbl.remove m x
+        if not strip then Frame.Metadata.add x y m
+        else if y <> "" then Frame.Metadata.add x y m
+        else Frame.Metadata.remove x m
       in
-      if not update then Hashtbl.clear m;
-      List.iter replace_val (Lang.to_list m')
+      let m = if not update then Frame.Metadata.empty else m in
+      List.fold_left replace_val m (Lang.to_list m')
 
     val mutable in_track = false
 
@@ -56,15 +56,15 @@ class map_metadata source rewrite_f insert_missing update strip =
         match Frame.get_metadata buf p with
           | None ->
               self#log#important "Inserting missing metadata.";
-              let h = Hashtbl.create 10 in
-              Frame.set_metadata buf p h
+              Frame.set_metadata buf p Frame.Metadata.empty
           | Some _ -> ());
       if Frame.is_partial buf then in_track <- false;
       List.iter
         (fun (t, m) ->
           if t >= p then (
-            self#rewrite m;
-            if strip && Hashtbl.length m = 0 then Frame.free_metadata buf t))
+            let m = self#rewrite m in
+            if strip && Frame.Metadata.is_empty m then Frame.free_metadata buf t
+            else Frame.set_metadata buf t m))
         (Frame.get_all_metadata buf)
   end
 

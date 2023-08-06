@@ -54,7 +54,7 @@ class max_duration ~override_meta ~duration source =
       List.iter
         (fun (p, m) ->
           if p >= offset then
-            Hashtbl.iter
+            Frame.Metadata.iter
               (fun lbl v ->
                 if lbl = override_meta then (
                   try

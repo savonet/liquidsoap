@@ -540,7 +540,7 @@ let parse_input_args args =
       "ffmpeg_decoder"
 
 let parse_file_decoder_args metadata =
-  match Hashtbl.find_opt metadata "ffmpeg_options" with
+  match Frame.Metadata.find_opt "ffmpeg_options" metadata with
     | Some args -> parse_input_args args
     | None -> ([], None)
 
@@ -845,7 +845,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
         is_first := false;
         latest_metadata := Some m;
         Generator.add_metadata buffer.Decoder.generator
-          (Frame.metadata_of_list m));
+          (Frame.Metadata.from_list m));
       fn ~buffer data
   in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
@@ -978,7 +978,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
                     in
                     if metadata <> [] then
                       Generator.add_metadata buffer.Decoder.generator
-                        (Frame.metadata_of_list metadata) ))
+                        (Frame.Metadata.from_list metadata) ))
               streams,
             pos + 1 )
         else (streams, pos + 1))

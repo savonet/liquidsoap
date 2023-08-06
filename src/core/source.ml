@@ -266,7 +266,7 @@ let rec forget var subclock =
 
 (** Instrumentation. *)
 
-type metadata = (int * (string, string) Hashtbl.t) list
+type metadata = (int * Frame.metadata) list
 type clock_sync_mode = [ sync | `Unknown ]
 
 type watcher = {
@@ -664,8 +664,7 @@ class virtual operator ?(name = "src") sources =
           List.iter (fun fn -> fn m) on_metadata)
         metadata;
       (match List.rev metadata with
-        | (_, m) :: _ ->
-            self#mutexify (fun () -> last_metadata <- Some (Hashtbl.copy m)) ()
+        | (_, m) :: _ -> self#mutexify (fun () -> last_metadata <- Some m) ()
         | [] -> ());
       self#mutexify
         (fun () ->
@@ -673,7 +672,7 @@ class virtual operator ?(name = "src") sources =
             was_partial <- false;
             let m =
               match Frame.get_metadata buf start_position with
-                | None -> Hashtbl.create 0
+                | None -> Frame.Metadata.empty
                 | Some m -> m
             in
             List.iter (fun fn -> fn m) on_track);

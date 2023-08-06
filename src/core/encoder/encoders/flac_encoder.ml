@@ -25,7 +25,9 @@ open Mm
 (** FLAC encoder *)
 
 let encoder ~pos:_ flac meta =
-  let comments = Utils.list_of_metadata (Export_metadata.to_metadata meta) in
+  let comments =
+    Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata meta)
+  in
   let channels = flac.Flac_format.channels in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
   let samplerate = Lazy.force flac.Flac_format.samplerate in

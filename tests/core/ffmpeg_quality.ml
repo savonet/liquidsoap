@@ -29,7 +29,7 @@ let () =
     }
   in
   let mk_encoder = Encoder.get_factory (Encoder.Ffmpeg vorbis_enc) in
-  let enc = mk_encoder ~pos:None "ffmpeg" Export_metadata.empty_metadata in
+  let enc = mk_encoder ~pos:None "ffmpeg" Frame.Metadata.Export.empty in
   assert (Encoder.(enc.hls.bitrate ()) = None)
 
 let () =
@@ -77,5 +77,5 @@ let () =
     }
   in
   let mk_encoder = Encoder.get_factory (Encoder.Ffmpeg mixed_enc) in
-  let enc = mk_encoder ~pos:None "ffmpeg" Export_metadata.empty_metadata in
+  let enc = mk_encoder ~pos:None "ffmpeg" Frame.Metadata.Export.empty in
   assert (Encoder.(enc.hls.bitrate ()) = Some 128000)

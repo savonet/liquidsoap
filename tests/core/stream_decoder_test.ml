@@ -32,7 +32,7 @@ let () =
   let mp3_format = Lang_mp3.mp3_base_defaults () in
   let create_encoder = Encoder.get_factory (Encoder.MP3 mp3_format) in
   let encoder =
-    create_encoder ~pos:None "test stream" Export_metadata.empty_metadata
+    create_encoder ~pos:None "test stream" Frame.Metadata.Export.empty
   in
   write (encoder.Encoder.header ());
   try

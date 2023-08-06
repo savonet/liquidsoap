@@ -77,11 +77,15 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       (* Metadata may contain only the "song" value
        * or "artist" and "title". Here, we use "song"
        * as the "title" field if "title" is not provided. *)
-      if not (Hashtbl.mem m "title") then (
-        try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
+      let m =
+        if not (Frame.Metadata.mem "title" m) then (
+          try Frame.Metadata.add "title" (Frame.Metadata.find "song" m) m
+          with _ -> m)
+        else m
+      in
       self#log#important "New metadata chunk %s -- %s."
-        (try Hashtbl.find m "artist" with _ -> "?")
-        (try Hashtbl.find m "title" with _ -> "?");
+        (try Frame.Metadata.find "artist" m with _ -> "?")
+        (try Frame.Metadata.find "title" m with _ -> "?");
       Generator.add_metadata self#buffer m
 
     method get_mime_type = mime_type

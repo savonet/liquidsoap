@@ -54,7 +54,7 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
                 match Frame.get_metadata ab off_ticks with
                   | None -> duration
                   | Some m -> (
-                      match Utils.hashtbl_get m meta with
+                      match Frame.Metadata.find_opt meta m with
                         | Some d -> (
                             try float_of_string d with _ -> duration)
                         | None -> duration)
@@ -112,7 +112,7 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
                 match Frame.get_metadata ab off_ticks with
                   | None -> duration
                   | Some m -> (
-                      match Utils.hashtbl_get m meta with
+                      match Frame.Metadata.find_opt meta m with
                         | None -> duration
                         | Some d -> (
                             try float_of_string d with _ -> duration))

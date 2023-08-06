@@ -471,17 +471,18 @@ let file_metadata =
       let exclude =
         List.map Lang.to_string (Lang.to_list (List.assoc "exclude" p))
       in
-      let metadata = Hashtbl.create 0 in
+      let metadata = ref Frame.Metadata.empty in
       Plug.iter Request.mresolvers (fun name decoder ->
           try
             if List.mem name exclude then failwith "excluded!";
-            let m = decoder ~metadata:(Hashtbl.create 0) uri in
-            List.iter
-              (fun (k, v) ->
-                Hashtbl.replace metadata (String.lowercase_ascii k) v)
-              m
+            let m = decoder ~metadata:Frame.Metadata.empty uri in
+            metadata :=
+              List.fold_left
+                (fun m (k, v) ->
+                  Frame.Metadata.add (String.lowercase_ascii k) v m)
+                !metadata m
           with _ -> ());
-      Lang.metadata metadata)
+      Lang.metadata !metadata)
 
 let () =
   Lifecycle.before_script_parse (fun () ->
@@ -501,12 +502,12 @@ let () =
                (fun p ->
                  let uri = Lang.to_string (List.assoc "" p) in
                  let m =
-                   try decoder ~metadata:(Hashtbl.create 0) uri with _ -> []
+                   try decoder ~metadata:Frame.Metadata.empty uri with _ -> []
                  in
                  let m =
                    List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
                  in
-                 Lang.metadata (Frame.metadata_of_list m)))))
+                 Lang.metadata (Frame.Metadata.from_list m)))))
 
 let _ =
   Lang.add_builtin ~base:file_metadata "native" ~category:`File
@@ -521,7 +522,7 @@ let _ =
       let file = List.assoc "" p |> Lang.to_string in
       let m = try Metadata.parse_file file with _ -> [] in
       let m = List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m in
-      Lang.metadata (Frame.metadata_of_list m))
+      Lang.metadata (Frame.Metadata.from_list m))
 
 let _ =
   Lang.add_builtin ~base:file "which" ~category:`File
