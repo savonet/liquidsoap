@@ -17,6 +17,7 @@ Fixed:
 - Make all HLS file write atomic (#3284)
 - Allow seek and cue operators to work with muxed sources
   using a single underlying source (#3252)
+- Fixed export of cover art metadata (#3279)
 
 ---
 
