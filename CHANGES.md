@@ -7,6 +7,9 @@ Changed:
   reflect the new atomic file operations (#3284)
 - Added `compact` argument to the `http.response.json` function. `http.response.json` will produce minified JSON by
   default. Added a newline symbol to the end of the JSON data produced by `http.response.json`. (#3299)
+- Bumped internal ogg decoder to make sure that it is used over the ffmpeg decoder whenever possible.
+  FFmpeg has issues with metadata in chained streams which needs to be fixed upstream. Unfortunately,
+  `input.http` can only use the ffmpeg decoder at the moment.
 
 Fixed:
 

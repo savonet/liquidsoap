@@ -279,7 +279,7 @@ let file_extensions =
 let priority =
   Dtools.Conf.int
     ~p:(Decoder.conf_priorities#plug "ogg")
-    "Priority for the OGG decoder" ~d:1
+    "Priority for the OGG decoder" ~d:15
 
 let create_file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype
