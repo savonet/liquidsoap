@@ -190,10 +190,13 @@ let encoder ~pos ~mk_streams ffmpeg meta =
   in
   let bitrate () =
     let encoder = !encoder in
-    Some
-      (Frame.Fields.fold
-         (fun _ c cur -> cur + Option.value ~default:0 (c.bitrate ()))
-         encoder.streams 0)
+    let ( + ) v v' =
+      match (v, v') with
+        | None, None -> None
+        | None, Some v | Some v, None -> Some v
+        | Some v, Some v' -> Some (v + v')
+    in
+    Frame.Fields.fold (fun _ c cur -> cur + c.bitrate ()) encoder.streams None
   in
   let video_size () =
     let encoder = !encoder in
