@@ -229,6 +229,10 @@ def f() =
   end
   g({blo="bla"})
 
+  # Allow optional trailing comma
+  x = { foo = "bar", gni = 123, }
+  x = "aabb".{ foo = "bar", gni = 123, }
+
   test.pass()
 end
 

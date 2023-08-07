@@ -1,6 +1,8 @@
-# 2.2.1 (unreleased)
+# 2.3.0 (unreleased)
 
 New:
+
+- Allow trailing commas in record definition (#3300)
 
 Changed:
 
