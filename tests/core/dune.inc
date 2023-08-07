@@ -28,6 +28,20 @@
 
 
 (executable
+ (name ffmpeg_quality)
+ (modules ffmpeg_quality)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+
+  (:ffmpeg_quality ffmpeg_quality.exe))
+ (action (run %{ffmpeg_quality} )))
+
+
+(executable
  (name frame_test)
  (modules frame_test)
  (libraries liquidsoap_core liquidsoap_optionals))
