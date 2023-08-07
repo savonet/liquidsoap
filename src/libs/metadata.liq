@@ -119,7 +119,7 @@ def metadata.cover(~coverart_mime=null(), m)
   end
 end
 
-# Obtain cover-art for a file. An empty string is returned in case there is no
+# Obtain cover-art for a file. `null` is returned in case there is no
 # such information.
 # @category Metadata
 # @param file File from which the cover should be obtained
