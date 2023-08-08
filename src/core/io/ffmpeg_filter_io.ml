@@ -136,8 +136,7 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
                         if pass_metadata then (
                           (* Pass only one metadata. *)
                           match Frame.get_all_metadata memo with
-                            | (_, m) :: _ ->
-                                Hashtbl.fold (fun k v m -> (k, v) :: m) m []
+                            | (_, m) :: _ -> Frame.Metadata.to_list m
                             | _ -> [])
                         else []
                       in
@@ -199,11 +198,10 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
         if pass_metadata then (
           let metadata = Avutil.Frame.metadata frame in
           if metadata <> [] then (
-            let m = Hashtbl.create (List.length metadata) in
-            List.iter
-              (fun (k, v) -> if k <> track_mark_metadata then Hashtbl.add m k v)
-              metadata;
-            Generator.add_metadata self#buffer m;
+            let m =
+              List.filter (fun (k, _) -> k <> track_mark_metadata) metadata
+            in
+            Generator.add_metadata self#buffer (Frame.Metadata.from_list m);
             if List.mem_assoc track_mark_metadata metadata then
               Generator.add_track_mark self#buffer));
         match

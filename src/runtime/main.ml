@@ -179,7 +179,7 @@ let process_request s =
         Request.read_metadata req;
         let metadata =
           Request.get_all_metadata req
-          |> Hashtbl.to_seq
+          |> Frame.Metadata.to_list |> List.to_seq
           |> Seq.map (fun (k, v) ->
                  (k, if String.length v > 1024 then "<redacted>" else v))
           |> Seq.map (fun (k, v) -> k ^ " = " ^ v)

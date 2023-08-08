@@ -164,7 +164,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       List.iter
         (fun (p, m) ->
           if p >= pos then (
-            match Utils.hashtbl_get m override_duration with
+            match Frame.Metadata.find_opt override_duration m with
               | None -> ()
               | Some v -> (
                   try
@@ -314,7 +314,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       in
       let compound =
         Clock.collect_after (fun () ->
-            let metadata = function None -> Hashtbl.create 0 | Some m -> m in
+            let metadata = function
+              | None -> Frame.Metadata.empty
+              | Some m -> m
+            in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
             let before =

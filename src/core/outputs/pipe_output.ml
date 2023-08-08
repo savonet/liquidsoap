@@ -55,14 +55,14 @@ class virtual base ~source ~name p =
     val mutable current_metadata = None
 
     method virtual private encoder_factory
-        : string -> Export_metadata.metadata -> Encoder.encoder
+        : string -> Frame.Metadata.Export.t -> Encoder.encoder
 
     method start =
       let enc = self#encoder_factory self#id in
       let meta =
         match current_metadata with
           | Some m -> m
-          | None -> Export_metadata.empty_metadata
+          | None -> Frame.Metadata.Export.empty
       in
       encoder <- Some (enc meta)
 
@@ -315,7 +315,8 @@ class virtual piped_output ~name p =
       let current_metadata =
         match current_metadata with
           | Some m ->
-              fun x -> subst (Hashtbl.find (Export_metadata.to_metadata m) x)
+              let m = Frame.Metadata.Export.to_metadata m in
+              fun x -> subst (Frame.Metadata.find x m)
           | None -> fun _ -> raise Not_found
       in
       Utils.interpolate current_metadata s
@@ -380,7 +381,7 @@ class virtual piped_output ~name p =
       if self#is_open then super#send b
 
     method! insert_metadata metadata =
-      if reopen_on_metadata (Export_metadata.to_metadata metadata) then
+      if reopen_on_metadata (Frame.Metadata.Export.to_metadata metadata) then
         self#reopen;
       super#insert_metadata metadata
   end

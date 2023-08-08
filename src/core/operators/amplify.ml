@@ -45,7 +45,7 @@ class amplify ~field (source : source) override_field coeff =
                 (fun (p, m) ->
                   if p >= offset then (
                     try
-                      let s = Hashtbl.find m f in
+                      let s = Frame.Metadata.find f m in
                       let k =
                         try Scanf.sscanf s " %f dB" Audio.lin_of_dB
                         with _ -> float_of_string s

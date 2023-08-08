@@ -12,7 +12,7 @@ let () =
   Generator.put buffer Frame.Fields.video (Content.make ~length:250 video);
   assert (Generator.length buffer = 250);
   assert (Generator.buffered_length buffer = 500);
-  let m = Frame.metadata_of_list [("foo", "bla")] in
+  let m = Frame.Metadata.from_list [("foo", "bla")] in
 
   Generator.add_metadata buffer m;
   Generator.add_track_mark buffer;

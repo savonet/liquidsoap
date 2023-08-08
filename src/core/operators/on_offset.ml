@@ -53,7 +53,7 @@ class on_offset ~force ~offset ~override f s =
 
     method private on_new_metadata =
       try
-        let pos = Hashtbl.find latest_metadata override in
+        let pos = Frame.Metadata.find override latest_metadata in
         let pos =
           try float_of_string pos
           with Failure _ -> raise (Invalid_override pos)

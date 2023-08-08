@@ -70,7 +70,7 @@ class virtual encoded :
        inherit output
        method private send_frame : Frame.t -> unit
        method virtual private encode : Frame.t -> int -> int -> 'a
-       method virtual private insert_metadata : Export_metadata.metadata -> unit
+       method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
        method virtual private send : 'a -> unit
        method private reset : unit
        method virtual private start : unit

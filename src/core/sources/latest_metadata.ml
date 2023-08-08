@@ -23,15 +23,16 @@
 (* Virtual class to keep track of a source's latest metadata *)
 class virtual source =
   object (self)
-    val mutable latest_metadata = Hashtbl.create 0
+    val mutable latest_metadata = Frame.Metadata.empty
     method virtual private on_new_metadata : unit
 
     method private save_latest_metadata frame =
       let compare x y = -compare (fst x) (fst y) in
       let l = List.sort compare (Frame.get_all_metadata frame) in
       if List.length l > 0 then (
-        latest_metadata <- Hashtbl.copy (snd (List.hd l));
+        latest_metadata <- snd (List.hd l);
         self#on_new_metadata)
 
-    method private clear_latest_metadata = latest_metadata <- Hashtbl.create 0
+    method private clear_latest_metadata =
+      latest_metadata <- Frame.Metadata.empty
   end

@@ -36,7 +36,7 @@ let midi ?field b = Content.Midi.get_data (content ?field b)
 let add_break t i = add_break t (tom i)
 let is_partial = is_partial
 
-type metadata = (string, string) Hashtbl.t
+type metadata = Frame.metadata
 
 let set_metadata t i m = set_metadata t (tom i) m
 let get_metadata t i = get_metadata t (tom i)

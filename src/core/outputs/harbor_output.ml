@@ -193,9 +193,11 @@ type client = {
 
 let add_meta c data =
   let mk_icy_meta meta =
-    let f x = try Some (Hashtbl.find meta x) with _ -> None in
     let meta_info =
-      match (f "artist", f "title") with
+      match
+        ( Frame.Metadata.find_opt "artist" meta,
+          Frame.Metadata.find_opt "title" meta )
+      with
         | Some a, Some t -> Some (Printf.sprintf "%s - %s" a t)
         | Some s, None | None, Some s -> Some s
         | None, None -> None
@@ -322,9 +324,9 @@ class output p =
       match encoding with "" -> Charset.utf8 | s -> Charset.of_string s
     in
     let f = Charset.convert ~target:out_enc in
-    let meta = Hashtbl.create (Hashtbl.length m) in
-    Hashtbl.iter (fun a b -> Hashtbl.add meta a (f b)) m;
-    meta
+    Frame.Metadata.fold
+      (fun a b m -> Frame.Metadata.add a (f b) m)
+      Frame.Metadata.empty m
   in
   let timeout = Lang.to_float (List.assoc "timeout" p) in
   let buflen = Lang.to_int (List.assoc "buffer" p) in
@@ -426,12 +428,13 @@ class output p =
       (Option.get encoder).Encoder.encode frame ofs len
 
     method insert_metadata m =
-      let m = Export_metadata.to_metadata m in
+      let m = Frame.Metadata.Export.to_metadata m in
       let m = recode m in
       Tutils.mutexify metadata.metadata_m
         (fun () -> metadata.metadata <- Some m)
         ();
-      (Option.get encoder).Encoder.insert_metadata (Export_metadata.metadata m)
+      (Option.get encoder).Encoder.insert_metadata
+        (Frame.Metadata.Export.from_metadata m)
 
     method add_client ~protocol ~headers ~uri ~query s =
       let ip =
@@ -528,9 +531,9 @@ class output p =
         (Harbor.relayed reply (fun () ->
              self#log#info "Client %s connected" ip;
              Tutils.mutexify clients_m (fun () -> Queue.push client clients) ();
-             let h_headers = Hashtbl.create (List.length headers) in
-             List.iter (fun (x, y) -> Hashtbl.add h_headers x y) headers;
-             on_connect ~protocol ~uri ~headers:h_headers ip))
+             on_connect ~protocol ~uri
+               ~headers:(Frame.Metadata.from_list headers)
+               ip))
 
     method send b =
       let slen = Strings.length b in
@@ -587,7 +590,7 @@ class output p =
     method start =
       assert (encoder = None);
       let enc = data.factory self#id in
-      encoder <- Some (enc Export_metadata.empty_metadata);
+      encoder <- Some (enc Frame.Metadata.Export.empty);
       let handler ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri =
         self#add_client ~protocol ~headers ~uri ~query socket
       in

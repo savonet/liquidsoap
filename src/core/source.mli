@@ -47,7 +47,7 @@ type source_t = [ `Fallible | `Infallible ]
 
 (** Instrumentation. *)
 
-type metadata = (int * (string, string) Hashtbl.t) list
+type metadata = (int * Frame.metadata) list
 type clock_sync_mode = [ sync | `Unknown ]
 
 type watcher = {
@@ -201,7 +201,7 @@ class virtual source :
        method on_metadata : (Frame.metadata -> unit) -> unit
 
        (** Register a callback to be called on new track *)
-       method on_track : ((string, string) Hashtbl.t -> unit) -> unit
+       method on_track : (Frame.metadata -> unit) -> unit
 
        method virtual private get_frame : Frame.t -> unit
 

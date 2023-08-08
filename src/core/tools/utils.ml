@@ -50,18 +50,6 @@ let rec prefix p l =
     | _, [] -> false
     | hp :: tp, hl :: tl -> hp = hl && prefix tp tl
 
-let hashtbl_of_list l =
-  let h = Hashtbl.create (List.length l) in
-  List.iter (fun (k, v) -> Hashtbl.add h k v) l;
-  h
-
-let list_of_metadata m =
-  let f x y l = (x, y) :: l in
-  List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (Hashtbl.fold f m [])
-
-let hashtbl_get : ('a, 'b) Hashtbl.t -> 'a -> 'b option =
- fun h k -> try Some (Hashtbl.find h k) with Not_found -> None
-
 (** Remove the first element satisfying a predicate, raising Not_found
   * if none is found. *)
 let remove_one f l =

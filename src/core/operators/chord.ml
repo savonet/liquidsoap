@@ -66,19 +66,19 @@ class chord metadata_name (source : source) =
         let ans = ref [] in
         List.iter
           (fun (t, m) ->
-            List.iter
-              (fun c ->
-                try
-                  let sub =
-                    Pcre.exec ~pat:"^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$" c
-                  in
-                  let n = Pcre.get_substring sub 1 in
-                  let n = note_of_string n in
-                  let m = Pcre.get_substring sub 2 in
-                  ans := (t, n, m) :: !ans
-                with Not_found ->
-                  self#log#important "Could not parse chord '%s'." c)
-              (Hashtbl.find_all m metadata_name))
+            match Frame.Metadata.find_opt metadata_name m with
+              | None -> ()
+              | Some c -> (
+                  try
+                    let sub =
+                      Pcre.exec ~pat:"^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$" c
+                    in
+                    let n = Pcre.get_substring sub 1 in
+                    let n = note_of_string n in
+                    let m = Pcre.get_substring sub 2 in
+                    ans := (t, n, m) :: !ans
+                  with Not_found ->
+                    self#log#important "Could not parse chord '%s'." c))
           meta;
         List.rev !ans
       in

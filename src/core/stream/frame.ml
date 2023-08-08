@@ -55,13 +55,6 @@ let compatible c c' =
 
 (* Frames *)
 
-let metadata_of_list l =
-  let m = Hashtbl.create (List.length l) in
-  List.iter (fun (k, v) -> Hashtbl.add m k v) l;
-  m
-
-let list_of_metadata h = Hashtbl.fold (fun k v l -> (k, v) :: l) h []
-
 type t = Generator.t
 
 let create content_type = Generator.create ~length:!!size content_type
@@ -149,10 +142,11 @@ let get_chunk ab from =
     begin
       let is_meta_equal m m' =
         try
-          if Hashtbl.length m <> Hashtbl.length m' then raise Not_equal;
-          Hashtbl.iter
+          if Frame_base.Metadata.cardinal m <> Frame_base.Metadata.cardinal m'
+          then raise Not_equal;
+          Frame_base.Metadata.iter
             (fun v l ->
-              match Hashtbl.find_opt m' v with
+              match Frame_base.Metadata.find_opt v m' with
                 | Some l' when l = l' -> ()
                 | _ -> raise Not_equal)
             m;

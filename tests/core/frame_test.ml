@@ -5,8 +5,7 @@ let () =
 
   let src = create (Frame.Fields.make ()) in
   add_break src (Lazy.force size);
-  let m = Hashtbl.create 1 in
-  Hashtbl.add m "foo" "bar";
+  let m = Frame.Metadata.from_list [("foo", "bar")] in
   set_all_metadata src [(0, m)];
 
   (* First check that last meta from src is
@@ -20,8 +19,7 @@ let () =
      one that is the same. *)
   let dst = create (Frame.Fields.make ()) in
   add_break dst 1;
-  let m' = Hashtbl.create 1 in
-  Hashtbl.add m' "foo" "bar";
+  let m' = Frame.Metadata.from_list [("foo", "bar")] in
   set_all_metadata dst [(0, m')];
   get_chunk dst src;
   assert (get_all_metadata dst = [(0, m')]);
@@ -30,8 +28,7 @@ let () =
      but it is different. *)
   let dst = create (Frame.Fields.make ()) in
   add_break dst 1;
-  let m' = Hashtbl.create 1 in
-  Hashtbl.add m' "gni" "gno";
+  let m' = Frame.Metadata.from_list [("gni", "gno")] in
   set_all_metadata dst [(0, m')];
   get_chunk dst src;
   assert (get_all_metadata dst = [(0, m'); (1, m)])

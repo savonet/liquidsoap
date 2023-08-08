@@ -35,7 +35,7 @@ let _ =
       try
         let metadata, uri = Annotate.parse (Lang.to_string v) in
         Lang.product
-          (Lang.metadata (Utils.hashtbl_of_list metadata))
+          (Lang.metadata (Frame.Metadata.from_list metadata))
           (Lang.string uri)
       with Annotate.Error err ->
         Lang.raise_error ~message:err ~pos:(Lang.pos p) "string")

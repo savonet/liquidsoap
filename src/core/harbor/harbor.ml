@@ -161,7 +161,7 @@ module type T = sig
         socket ->
         unit
 
-      method virtual insert_metadata : (string, string) Hashtbl.t -> unit
+      method virtual insert_metadata : Frame.metadata -> unit
 
       method virtual login :
         string * (socket:socket -> string -> string -> bool)
@@ -224,7 +224,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             socket ->
             unit
 
-      method virtual insert_metadata : (string, string) Hashtbl.t -> unit
+      method virtual insert_metadata : Frame.metadata -> unit
 
       method virtual login
           : string * (socket:socket -> string -> string -> bool)
@@ -658,13 +658,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   log#debug "Metadata packet: %s\n%!" s;
                   let data = Option.get data in
                   let m = List.map (fun (l, v) -> (l, json_string_of v)) data in
-                  let m =
-                    let ans = Hashtbl.create (List.length m) in
-                    (* TODO: convert charset *)
-                    let g x = x in
-                    List.iter (fun (l, v) -> Hashtbl.add ans (g l) (g v)) m;
-                    ans
-                  in
+                  let m = Frame.Metadata.from_list m in
                   source#insert_metadata m;
                   raise Retry
               | _ -> raise Retry)
@@ -762,12 +756,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 | _ -> x
             in
             let g x = Charset.convert ?source:in_enc x in
-            Hashtbl.add m (g x) (g y);
-            m
+            Frame.Metadata.add (g x) (g y) m
           in
-          let args =
-            Hashtbl.fold f args (Hashtbl.create (Hashtbl.length args))
-          in
+          let args = Hashtbl.fold f args Frame.Metadata.empty in
           s#insert_metadata args;
           simple_reply
             (Printf.sprintf

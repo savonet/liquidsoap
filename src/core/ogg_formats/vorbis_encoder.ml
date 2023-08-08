@@ -95,8 +95,10 @@ let create_vorbis = function
       let channels = vorbis.Vorbis_format.channels in
       let samplerate = Lazy.force vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
-        let m = Export_metadata.to_metadata m in
-        let metadata = Vorbis.tags m () in
+        let m = Frame.Metadata.Export.to_metadata m in
+        let metas = Hashtbl.create 0 in
+        Frame.Metadata.iter (fun k v -> Hashtbl.add metas k v) m;
+        let metadata = Vorbis.tags metas () in
         let enc =
           (* For ABR, a value of -1 means unset.. *)
           let f x = match x with Some x -> x | None -> -1 in

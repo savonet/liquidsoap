@@ -23,7 +23,7 @@
 (** A request is something from which we can produce a file. *)
 
 (** Metadatas of a request. *)
-type metadata = (string, string) Hashtbl.t
+type metadata = Frame.metadata
 
 (** An indicator is a resource location (URI), when meaningful, it can be
     declared as temporary if liquidsoap should destroy it after usage (this means

@@ -76,8 +76,8 @@ let _ =
         |> Option.map Charset.of_string
       in
       let metas =
-        let ret = Hashtbl.create (Hashtbl.length metas) in
-        Hashtbl.iter
+        let ret = Hashtbl.create 0 in
+        Frame.Metadata.iter
           (fun x y -> Hashtbl.add ret x (Charset.convert ?target:out_enc y))
           metas;
         ret

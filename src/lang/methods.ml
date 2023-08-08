@@ -24,6 +24,7 @@
 
 type ('a, 'b) t = ('a * 'b) list
 
+let from_list l = l
 let is_empty h = h = []
 let bindings h = h
 let empty = []
@@ -35,7 +36,8 @@ let mem = List.mem_assoc
 let mapi fn = List.map (fun (k, v) -> (k, fn k v))
 let map fn = List.map (fun (k, v) -> (k, fn v))
 let filter fn = List.filter (fun (k, v) -> fn k v)
-let add k v h = (k, v) :: List.remove_assoc k h
+let remove k h = List.remove_assoc k h
+let add k v h = (k, v) :: remove k h
 let iter fn = List.iter (fun (k, v) -> fn k v)
 let for_all fn = List.for_all (fun (k, v) -> fn k v)
 let exists fn = List.exists (fun (k, v) -> fn k v)

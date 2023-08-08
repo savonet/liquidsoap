@@ -36,8 +36,7 @@ let () =
   let encoded_test = new encoded_test in
   let frame = Frame.dummy () in
   Frame.add_break frame (Lazy.force Frame.size);
-  let m = Hashtbl.create 1 in
-  Hashtbl.add m "foo" "bla";
+  let m = Frame.Metadata.from_list [("foo", "bla")] in
   Frame.set_metadata frame 0 m;
   encoded_test#test_send_frame frame;
   assert !insert_metadata_called

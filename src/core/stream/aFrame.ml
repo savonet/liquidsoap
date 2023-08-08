@@ -47,7 +47,7 @@ let clear = clear
 
 exception No_metadata
 
-type metadata = (string, string) Hashtbl.t
+type metadata = Frame.metadata
 
 let set_metadata t i m = set_metadata t (tos i) m
 let get_metadata t i = get_metadata t (tos i)
