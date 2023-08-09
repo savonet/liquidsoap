@@ -313,7 +313,7 @@ let fill gen =
                        Content.Metadata.set_data frame_content
                          (Content.Metadata.get_data frame_content @ content)
                    | f ->
-                       Content.fill content 0
+                       Content.blit content 0
                          (Frame_base.Fields.find f frame_content)
                          pos len);
                  rem)
