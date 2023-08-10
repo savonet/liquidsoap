@@ -22,7 +22,7 @@
 
 open Parsed_term
 open Term.Ground
-include Term_types
+include Runtime_term
 
 let parse_error ?pos msg =
   let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
@@ -705,8 +705,9 @@ and to_encoder_params l =
 and to_encoder (lbl, params) = (lbl, to_encoder_params params)
 
 and to_term (tm : Parsed_term.t) : Term.t =
-  {
-    tm with
-    methods = Methods.map to_term tm.methods;
-    term = to_ast ?pos:tm.t.pos tm.term;
-  }
+  let term =
+    match (to_ast ?pos:tm.t.pos tm.term, List.rev tm.before_comments) with
+      | `Let p, (pos, doc) :: _ -> `Let { p with doc = Doc.parse_doc ~pos doc }
+      | ast, _ -> ast
+  in
+  { tm with methods = Methods.map to_term tm.methods; term }

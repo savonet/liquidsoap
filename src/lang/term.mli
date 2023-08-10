@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-include module type of Term_types
+include module type of Runtime_term
 
 exception Internal_error of (Pos.t list * string)
 exception Unsupported_encoder of (Pos.t option * string)

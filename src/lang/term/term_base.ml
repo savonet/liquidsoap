@@ -22,7 +22,7 @@
 
 (** Terms and values in the Liquidsoap language. *)
 
-include Term_types
+include Runtime_term
 
 (** An internal error. Those should not happen in theory... *)
 exception Internal_error of (Pos.t list * string)
@@ -278,7 +278,7 @@ let rec to_string (v : t) =
 (** Create a new value. *)
 let make ?pos ?t ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  { t; term = e; methods }
+  { t; term = e; methods; before_comments = []; after_comments = [] }
 
 let rec free_vars_pat = function
   | `PVar [] -> assert false
@@ -541,7 +541,13 @@ module MkAbstract (Def : AbstractDef) = struct
   let of_term t = match t.term with `Ground (Value c) -> c | _ -> assert false
 
   let to_term c =
-    { t = Type.make T.descr; term = `Ground (Value c); methods = Methods.empty }
+    {
+      t = Type.make T.descr;
+      term = `Ground (Value c);
+      methods = Methods.empty;
+      before_comments = [];
+      after_comments = [];
+    }
 
   let is_term t = match t.term with `Ground (Value _) -> true | _ -> false
 end

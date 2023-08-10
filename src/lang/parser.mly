@@ -45,7 +45,7 @@ open Parser_helper
 %token <Parser_helper.lexer_let_decoration> LETLBRA
 %token BEGIN END GETS TILD QUESTION
 (* name, arguments, methods *)
-%token <Doc.Value.t option*Parsed_term.let_decoration> DEF
+%token <Parser_helper.lexer_let_decoration> DEF
 %token REPLACES
 %token COALESCE
 %token TRY CATCH DO
@@ -70,10 +70,8 @@ open Parser_helper
 %token <[ `Eq | `Geq | `Leq | `Gt | `Lt] * string> PP_IFVERSION
 %token ARGS_OF
 %token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
-%token <Parser_helper.lexer_let_decoration> PP_DEF
 %token PP_ENDL PP_DEFINE
 %token <Parsed_term.inc> INCLUDE
-%token <string list> PP_COMMENT
 %token WHILE FOR TO
 
 %nonassoc YIELDS       (* fun x -> (x+x) *)
@@ -471,17 +469,20 @@ _let:
         | `Json_parse     -> `Json_parse (Parser_helper.args_of_json_parse ~pos:$loc $2)
         | _ -> raise (Term_base.Parse_error ($loc, "Invalid let constructor")) }
 
+def:
+  | DEF { Parser_helper.let_decoration_of_lexer_let_decoration $1 }
+
 explicit_binding:
   | _let pattern GETS expr   { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$2 ~def:$4 ()) }
   | _let LPAR pattern COLON ty RPAR GETS expr
                              { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 ()) }
   | _let subfield GETS expr  { `Let Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~def:$4 ()) }
-  | DEF pattern g exprs END  { `Def Parser_helper.(let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:$2 ~def:$4 ()) }
-  | DEF LPAR pattern COLON ty RPAR g exprs END
-                             { `Def Parser_helper.(let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:$3 ~def:$8 ~cast:$5 ()) }
-  | DEF subfield g exprs END { `Def Parser_helper.(let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(`PVar $2) ~def:$4 ()) }
-  | DEF varlpar arglist RPAR g exprs END
-                             { `Def Parser_helper.(let_args ?doc:(fst $1) ~decoration:(snd $1) ~pat:(`PVar $2) ~arglist:$3 ~def:$6 ()) }
+  | def pattern g exprs END  { `Def Parser_helper.(let_args ~decoration:$1 ~pat:$2 ~def:$4 ()) }
+  | def LPAR pattern COLON ty RPAR g exprs END
+                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 ()) }
+  | def subfield g exprs END { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~def:$4 ()) }
+  | def varlpar arglist RPAR g exprs END
+                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~arglist:$3 ~def:$6 ()) }
 
 binding:
   | optvar GETS expr         { `Binding Parser_helper.(let_args ~decoration:`None ~pat:(`PVar [$1]) ~def:$3 ()) }
@@ -564,12 +565,12 @@ optional_comma:
 
 record:
   | VAR GETS expr {
-      fun ~pos:_ e -> Term.make ~t:e.Term.t ~methods:(Methods.add $1 $3 e.methods) e.Term.term
+      fun ~pos:_ e -> mk ~pos:$loc ~t:e.Term.t ~methods:(Methods.add $1 $3 e.methods) e.Term.term
   }
   | record COMMA VAR GETS expr {
       fun ~pos e ->
         let tm = $1 ~pos e in
-        Term.make ~t:tm.Term.t ~methods:(Methods.add $3 $5 tm.methods) tm.Term.term
+        mk ~pos:$loc ~t:tm.Term.t ~methods:(Methods.add $3 $5 tm.methods) tm.Term.term
   }
 
 annotate:

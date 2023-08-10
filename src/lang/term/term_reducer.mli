@@ -22,5 +22,10 @@
 
 (** Runtime reducer from parsed terms to runtime terms. *)
 
+val program :
+  ( Parser.token * Lexing.position * Lexing.position,
+    Parser_helper.Term.t )
+  MenhirLib.Convert.revised
+
 val to_term : Parsed_term.t -> Term.t
 val to_encoder_params : Parsed_term.encoder_params -> Term.encoder_params
