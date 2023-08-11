@@ -664,6 +664,28 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
   | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast
+  | `String_interpolation l ->
+      let l =
+        List.map
+          (function
+            | `String s ->
+                `Term (Term_base.make (`Ground (Term.Ground.String s)))
+            | `Term tm ->
+                `Term
+                  (Term_base.make
+                     (`App (Term_base.make (`Var "string"), [`Term ("", tm)]))))
+          l
+      in
+      let op =
+        Term_base.make
+          (`Invoke
+            {
+              invoked = Term_base.make (`Var "string");
+              meth = `String "concat";
+              default = None;
+            })
+      in
+      to_ast ?pos (`App (op, [`Term ("", Term_base.make (`List l))]))
   | `Def p | `Let p | `Binding p -> mk_let ?pos ~to_term p
   | `Coalesce (t, default) -> mk_coalesce ?pos ~to_term ~default t
   | `Time t -> mk_time_pred ?pos (during ?pos t)

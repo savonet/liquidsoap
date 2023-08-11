@@ -99,18 +99,13 @@ let eval_ifdefs tokenizer =
   token
 
 (* The expander turns "bla #{e} bli" into ("bla "^string(e)^" bli"). *)
-type exp_item =
-  | String of string
-  | Expr of tokenizer
-  | Concat
-  | RPar
-  | LPar
-  | String_of
+type exp_item = String of string | Expr of tokenizer | End
 
 let expand_string ?fname tokenizer =
   let state = Queue.create () in
   let add pos x = Queue.add (x, pos) state in
   let pop () = ignore (Queue.take state) in
+  let clear () = Queue.clear state in
   let parse s pos =
     let l = Regexp.split (Regexp.regexp "#{(.*?)}") s in
     let l = if l = [] then [""] else l in
@@ -120,13 +115,12 @@ let expand_string ?fname tokenizer =
           let lexbuf = Sedlexing.Utf8.from_string x in
           let tokenizer = mk_tokenizer ?fname lexbuf in
           let tokenizer () = (fst (tokenizer ()), pos) in
-          List.iter add
-            [String s; Concat; LPar; String_of; Expr tokenizer; RPar; RPar];
-          if l <> [] then (
-            add Concat;
-            parse l)
-      | [x] -> add (String x)
-      | [] -> assert false
+          List.iter add [String s; Expr tokenizer];
+          parse l
+      | x :: l ->
+          add (String x);
+          parse l
+      | [] -> add End
     in
     parse l
   in
@@ -135,35 +129,26 @@ let expand_string ?fname tokenizer =
       match tokenizer () with
         | Parser.STRING s, pos ->
             parse s pos;
-            if Queue.length state > 1 then (
-              add pos RPar;
-              (Parser.LPAR, pos))
-            else token ()
+            if Queue.length state > 2 then (Parser.BEGIN_INTERPOLATION, pos)
+            else (
+              clear ();
+              (Parser.STRING s, pos))
         | x -> x)
     else (
       let el, pos = Queue.peek state in
       match el with
         | String s ->
             pop ();
-            (Parser.STRING s, pos)
-        | Concat ->
-            pop ();
-            (Parser.BIN2 "^", pos)
-        | RPar ->
-            pop ();
-            (Parser.RPAR, pos)
-        | LPar ->
-            pop ();
-            (Parser.LPAR, pos)
-        | String_of ->
-            pop ();
-            (Parser.VARLPAR "string", pos)
+            (Parser.INTERPOLATED_STRING s, pos)
         | Expr tokenizer -> (
             match tokenizer () with
               | Parser.EOF, _ ->
                   pop ();
                   token ()
-              | x, _ -> (x, pos)))
+              | x, _ -> (x, pos))
+        | End ->
+            pop ();
+            (Parser.END_INTERPOLATION, pos))
   in
   token
 

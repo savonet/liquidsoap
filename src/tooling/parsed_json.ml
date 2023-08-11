@@ -293,6 +293,19 @@ let rec to_ast_json = function
       ast_node ~typ:"iterable_for" (json_of_iterable_for ~to_json p)
   | `Not t -> ast_node ~typ:"not" [("value", to_json t)]
   | `Negative t -> ast_node ~typ:"negative" [("value", to_json t)]
+  | `String_interpolation l ->
+      let l =
+        List.map
+          (function
+            | `String s ->
+                `Assoc
+                  (ast_node ~typ:"interpolated_string" [("value", `String s)])
+            | `Term tm ->
+                `Assoc
+                  (ast_node ~typ:"interpolated_term" [("value", to_json tm)]))
+          l
+      in
+      ast_node ~typ:"string_interpolation" [("value", `Tuple l)]
   | `Append (t, t') ->
       ast_node ~typ:"append" [("left", to_json t); ("right", to_json t')]
   | `Assoc (t, t') ->
