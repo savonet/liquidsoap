@@ -45,7 +45,12 @@ class muxer tracks =
     List.iter (fun (_, frame) -> Frame.clear frame) !track_frames
   in
   object (self)
-    inherit Source.operator ~name:"source" sources
+    (* Pass duplicated list to operator to make sure caching is properly enabled. *)
+    inherit
+      Source.operator
+        ~name:"source"
+        (List.map (fun { source } -> source) tracks)
+
     method stype = stype
 
     method self_sync =
