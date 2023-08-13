@@ -398,14 +398,14 @@ save a file per hour in wav format, the following script can be used:
 # s = ...
 
 # Dump the stream
-output.file(%wav, '/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3', s, reopen_when={0m})
+output.file(%wav, {time.string("/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3")}, s, reopen_when={0m})
 ```
 
 In the following variant we write a new mp3 file each time new metadata is
 coming from `s`:
 
 ```liquidsoap
-file_name = '/archive/$(if $(title),"$(title)","Unknown archive")-%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3'
+filename = {time.string('/archive/$(if $(title),"$(title)","Unknown archive")-%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3')}
 output.file(%mp3, filename, s, reopen_on_metadata=true)
 ```
 

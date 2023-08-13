@@ -267,7 +267,7 @@ output.icecast(%mp3,mount="blah",icecast_source)
 
 # File output:
 output.file(
-  %mp3,"record-%Y-%m-%d-%H-%M-%S.mp3",
+  %mp3,{time.string("record-%Y-%m-%d-%H-%M-%S.mp3")},
   input)
 ```
 
