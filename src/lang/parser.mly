@@ -71,6 +71,8 @@ open Parser_helper
 %token ARGS_OF
 %token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
 %token PP_ENDL PP_DEFINE
+%token BEGIN_INTERPOLATION END_INTERPOLATION
+%token <string> INTERPOLATED_STRING
 %token <Parsed_term.inc> INCLUDE
 %token WHILE FOR TO
 
@@ -210,6 +212,7 @@ expr:
   | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
   | FLOAT                            { mk ~pos:$loc (`Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (`Ground (String $1)) }
+  | string_interpolation             { mk ~pos:$loc (`String_interpolation $1) }
   | VAR                              { mk ~pos:$loc (`Var $1) }
   | varlist                          { mk ~pos:$loc (`List $1) }
   | GET expr                         { mk ~pos:$loc (`Get $2) }
@@ -572,6 +575,18 @@ record:
         let tm = $1 ~pos e in
         mk ~pos:$loc ~t:tm.Term.t ~methods:(Methods.add $3 $5 tm.methods) tm.Term.term
   }
+
+string_interpolation:
+  | BEGIN_INTERPOLATION string_interpolation_elems END_INTERPOLATION { $2 }
+
+string_interpolation_elem:
+  | INTERPOLATED_STRING  { `String $1 }
+  | expr                 { `Term $1 }
+
+string_interpolation_elems:
+  | string_interpolation_elem { [$1] }
+  | string_interpolation_elem string_interpolation_elems
+                              { $1::$2 }
 
 annotate:
   | annotate_metadata COLON { $1 }

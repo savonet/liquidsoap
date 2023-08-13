@@ -12,5 +12,6 @@ let parse_content content =
 let () =
   let content = read_stdin () in
   let term = parse_content content in
+  Parser_helper.attach_comments ~pos:(Option.get term.Term.t.Type.pos) term;
   let json = Liquidsoap_tooling.Parsed_json.to_json term in
   Printf.printf "%s\n%!" (Json.to_string ~compact:false json)

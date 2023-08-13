@@ -142,10 +142,12 @@ and parsed_ast =
   | `Bool of t * string * t
   | `Coalesce of t * t
   | `Simple_fun of t
+  | `String_interpolation of string_interpolation list
   | `Include of inc
   | t ast ]
 
 and t = parsed_ast term
+and string_interpolation = [ `String of string | `Term of t ]
 
 type encoder_params = t ast_encoder_params
 
@@ -225,6 +227,8 @@ let rec iter_term fn ({ term; methods } as tm) =
         iter_term fn tm;
         iter_term fn tm'
     | `Var _ -> ()
+    | `String_interpolation l ->
+        List.iter (function `String _ -> () | `Term tm -> iter_term fn tm) l
     | `Seq (tm, tm') ->
         iter_term fn tm;
         iter_term fn tm'
