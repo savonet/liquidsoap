@@ -27,8 +27,9 @@ end
 
 # Compute the ReplayGain for a file (in dB).
 # @category File
+# @param ~ratio Decoding ratio. A value of `50` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing replaygain tags.
 # @param fname File name.
-def file.replaygain(~id=null(), fname)
+def file.replaygain(~id=null(), ~ratio=50., fname)
   id = string.id.default(default="file.replaygain", id)
   try
     meta = file.metadata(exclude=["replaygain_track_gain"], fname)
@@ -43,7 +44,7 @@ def file.replaygain(~id=null(), fname)
       log.important(label=id, "Computing replay gain for #{string.quote(fname)}")
       t = time()
       s = source.replaygain.compute(request.once(r))
-      source.drop(s)
+      source.drop(ratio=ratio, s)
       gain = s.gain()
       log.important(label=id, "Computed replay gain #{gain} dB for #{string.quote(fname)} (time: #{time() - t} s).")
       gain
@@ -57,8 +58,9 @@ end
 # decoded by Liquidsoap and add a `replaygain_track_gain` metadata when this
 # value could be computed. For a finer-grained replay gain processing, use the
 # `replaygain:` protocol.
+# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing replaygain tags.
 # @category Liquidsoap
-def enable_replaygain_metadata()
+def enable_replaygain_metadata(~ratio=50.)
   def replaygain_metadata(~metadata=_, fname)
     meta = file.metadata(exclude=["replaygain_track_gain"], fname)
     replaygain_meta = meta["replaygain_track_gain"]
@@ -66,7 +68,7 @@ def enable_replaygain_metadata()
       log.important(label="decoder.replaygain.metadata", "Detected replaygain metadata #{replaygain_meta} for #{string.quote(fname)}")
       [("replaygain_track_gain", replaygain_meta)]
     else
-      gain = file.replaygain(fname)
+      gain = file.replaygain(ratio=ratio, fname)
       if null.defined(gain) then
         [("replaygain_track_gain","#{null.get(gain)} dB")]
       else
