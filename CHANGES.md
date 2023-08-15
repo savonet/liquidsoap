@@ -11,6 +11,7 @@ Changed:
   FFmpeg has issues with metadata in chained streams which needs to be fixed upstream. Unfortunately,
   `input.http` can only use the ffmpeg decoder at the moment.
 - Cleanup `output.file` encoding and file handling logic (#3328)
+- Added `ratio` to `source.{dump,drop}` to make it possible to control its CPU peaks.
 
 Fixed:
 
