@@ -437,6 +437,11 @@ let mk_decoder mode =
            Lang.to_default_option ~default:name Lang.to_string
              (List.assoc "id" p)
          in
+         let pos =
+           match Liquidsoap_lang.Lang_core.pos p with
+             | [] -> None
+             | p :: _ -> Some p
+         in
          let field, source = Lang.to_track (List.assoc "" p) in
 
          let mk_decode_frame generator =
@@ -488,6 +493,7 @@ let mk_decoder mode =
              ~always_enabled:true ~write_frame:decode_frame
              ~name:(id ^ ".consumer") ~source:(Lang.source source) ()
          in
+         consumer#set_pos pos;
 
          let input_frame_t = Typing.generalize ~level:(-1) input_frame_t in
          let input_frame_t = Typing.instantiate ~level:(-1) input_frame_t in
@@ -499,7 +505,7 @@ let mk_decoder mode =
          ( field,
            new Producer_consumer.producer
            (* We are expecting real-rate with a couple of hickups.. *)
-             ~create_known_clock:false ~check_self_sync:false
+             ?pos ~create_known_clock:false ~check_self_sync:false
              ~consumers:[consumer] ~name:(id ^ ".producer") () )))
 
 let () =

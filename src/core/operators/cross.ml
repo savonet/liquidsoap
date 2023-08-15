@@ -117,7 +117,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     method private prepare_transition_source s =
       let s = (s :> source) in
       s#get_ready ~dynamic:true [(self :> source)];
-      Clock.unify source#clock s#clock;
+      Clock.unify ~pos:self#pos source#clock s#clock;
       transition_source <- Some s
 
     method cleanup_transition_source =
@@ -368,7 +368,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 self#log#important "Not enough data for crossing.";
                 (new Sequence.sequence [before; after] :> source))
             in
-            Clock.unify compound#clock s#clock;
+            Clock.unify ~pos:self#pos compound#clock s#clock;
             Typing.(compound#frame_type <: self#frame_type);
             compound)
       in

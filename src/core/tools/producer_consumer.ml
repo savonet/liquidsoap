@@ -65,11 +65,11 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
 (** The source which produces data by reading the buffer.
     We do NOT want to use [operator] here b/c the [consumers]
     may have different content-kind when this is used in the muxers. *)
-class producer ?create_known_clock ~check_self_sync ~consumers ~name () =
+class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
   let infallible = List.for_all (fun s -> s#stype = `Infallible) consumers in
   let self_sync_type = Utils.self_sync_type consumers in
   object (self)
-    inherit Source.source ~name () as super
+    inherit Source.source ?pos ~name () as super
 
     inherit!
       Child_support.base

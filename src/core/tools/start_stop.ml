@@ -92,7 +92,7 @@ class virtual active_source ?get_clock ~name ~clock_safe
     method! private set_clock =
       super#set_clock;
       if clock_safe then
-        Clock.unify self#clock
+        Clock.unify ~pos:self#pos self#clock
           (Clock.create_known (self#get_clock :> Source.clock))
 
     method virtual private get_frame : Frame.t -> unit

@@ -61,7 +61,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
                | None -> ()
                | Some s ->
                    Typing.(s#frame_type <: self#frame_type);
-                   Clock.unify s#clock self#clock;
+                   Clock.unify ~pos:self#pos s#clock self#clock;
                    s#get_ready activation;
                    self#unregister_source ~already_locked:true;
                    source <- Some s))

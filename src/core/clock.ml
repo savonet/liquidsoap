@@ -382,7 +382,8 @@ module MkClock (Time : Liq_time.T) = struct
         fun () ->
           let to_start =
             if to_start <> [] then
-              log#info "Starting %d source(s)..." (List.length to_start);
+              log#info "Starting source(s): %s"
+                (String.concat ", " (List.map (fun s -> s#id) to_start));
             List.map
               (fun (s : active_source) ->
                 try
@@ -529,7 +530,7 @@ let collect ~must_lock =
             if should_start o#clock then get_default ()
             else create_follow_clock o#id
           in
-          ignore (unify o#clock (create_known clock))));
+          ignore (unify ~pos:o#pos o#clock (create_known clock))));
     gc_alarm ();
     let filter _ = true in
     let collects =
@@ -569,7 +570,7 @@ let force_init filter =
       (fun () ->
         Source.iterate_new_outputs (fun o ->
             if filter o && not (is_known o#clock) then
-              ignore (unify o#clock (create_known (get_default ()))));
+              ignore (unify ~pos:o#pos o#clock (create_known (get_default ()))));
         gc_alarm ();
         Clocks.fold (fun s l -> s#start_outputs filter :: l) clocks [])
       ()
