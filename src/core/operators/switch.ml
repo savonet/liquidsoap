@@ -210,7 +210,7 @@ class virtual switch ~name ~override_meta ~transition_length
                                   ~merge:true [s; new_source]
                         in
                         Typing.(s#frame_type <: self#frame_type);
-                        Clock.unify s#clock self#clock;
+                        Clock.unify ~pos:self#pos s#clock self#clock;
                         s#get_ready activation;
                         selected <- Some { child = c; effective_source = s })
                 | _ ->

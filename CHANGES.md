@@ -12,6 +12,7 @@ Changed:
   `input.http` can only use the ffmpeg decoder at the moment.
 - Cleanup `output.file` encoding and file handling logic (#3328)
 - Added `ratio` to `source.{dump,drop}` to make it possible to control its CPU peaks.
+- Enhanced clock error reporting (#3317)
 
 Fixed:
 

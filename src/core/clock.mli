@@ -173,6 +173,6 @@ val create_unknown :
   clock_variable
 
 val create_known : Source.clock -> clock_variable
-val unify : clock_variable -> clock_variable -> unit
+val unify : pos:Pos.Option.t -> clock_variable -> clock_variable -> unit
 val forget : clock_variable -> clock_variable -> unit
 val get : clock_variable -> Source.clock

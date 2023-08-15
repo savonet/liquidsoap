@@ -50,7 +50,7 @@ class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
     method! private set_clock =
       super#set_clock;
       if clock_safe then
-        Clock.unify self#clock
+        Clock.unify ~pos:self#pos self#clock
           (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable fd = None
