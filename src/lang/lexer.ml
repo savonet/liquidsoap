@@ -161,12 +161,12 @@ let rec token lexbuf =
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.indexp_from matched 6 (fun c -> c <> ' ') in
         let r = String.rindexp matched (fun c -> c <> ' ') in
-        PP_IFDEF (String.sub matched n (r - n + 1))
+        PP_IFDEF (false, String.sub matched n (r - n + 1))
     | "%ifndef", Plus white_space, var, Star ("" | '.', var) ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let n = String.indexp_from matched 7 (fun c -> c <> ' ') in
         let r = String.rindexp matched (fun c -> c <> ' ') in
-        PP_IFNDEF (String.sub matched n (r - n + 1))
+        PP_IFDEF (true, String.sub matched n (r - n + 1))
     | ( "%ifversion",
         Plus white_space,
         ("==" | ">=" | "<=" | "<" | ">"),
@@ -188,9 +188,9 @@ let rec token lexbuf =
             | ">" -> `Gt
             | _ -> assert false
         in
-        PP_IFVERSION (cmp, ver)
-    | "%ifencoder" -> PP_IFENCODER
-    | "%ifnencoder" -> PP_IFNENCODER
+        PP_IFVERSION (cmp, Lang_string.Version.of_string ver)
+    | "%ifencoder" -> PP_IFENCODER false
+    | "%ifnencoder" -> PP_IFENCODER true
     | "%else" -> PP_ELSE
     | "%endif" -> PP_ENDIF
     | "%include_extra", Star (white_space | '\t'), '"', Star (Compl '"'), '"' ->

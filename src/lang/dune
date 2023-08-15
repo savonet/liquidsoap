@@ -18,8 +18,6 @@
   --unused-token
   DOTVAR
   --unused-token
-  PP_DEFINE
-  --unused-token
   PP_ELSE
   --unused-token
   PP_ENDIF

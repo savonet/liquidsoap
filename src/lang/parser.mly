@@ -66,11 +66,12 @@ open Parser_helper
 %token UNDERSCORE
 %token NOT
 %token GET SET
-%token <string> PP_IFDEF PP_IFNDEF
-%token <[ `Eq | `Geq | `Leq | `Gt | `Lt] * string> PP_IFVERSION
+%token <bool * string> PP_IFDEF
+%token <[ `Eq | `Geq | `Leq | `Gt | `Lt] * Lang_string.Version.t> PP_IFVERSION
 %token ARGS_OF
-%token PP_IFENCODER PP_IFNENCODER PP_ELSE PP_ENDIF
-%token PP_ENDL PP_DEFINE
+%token <bool> PP_IFENCODER
+%token PP_ELSE PP_ENDIF
+%token PP_ENDL
 %token BEGIN_INTERPOLATION END_INTERPOLATION
 %token <string> INTERPOLATED_STRING
 %token <Parsed_term.inc> INCLUDE
@@ -202,6 +203,9 @@ simple_fun_body:
 (* General expressions. *)
 expr:
   | INCLUDE                          { mk ~pos:$loc (`Include $1) }
+  | if_def                           { mk ~pos:$loc (`If_def $1) }
+  | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
+  | if_version                       { mk ~pos:$loc (`If_version $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }
@@ -587,6 +591,47 @@ string_interpolation_elems:
   | string_interpolation_elem { [$1] }
   | string_interpolation_elem string_interpolation_elems
                               { $1::$2 }
+if_def:
+  | PP_IFDEF exprs PP_ENDIF { {
+      if_def_negative = fst $1;
+      if_def_condition = snd $1;
+      if_def_then = $2;
+      if_def_else = None
+   } }
+  | PP_IFDEF exprs PP_ELSE exprs PP_ENDIF { {
+      if_def_negative = fst $1;
+      if_def_condition = snd $1;
+      if_def_then = $2;
+      if_def_else = Some $4;
+  } }
+
+if_encoder:
+  | PP_IFENCODER ENCODER exprs PP_ENDIF { {
+      if_encoder_negative = $1;
+      if_encoder_condition = $2;
+      if_encoder_then = $3;
+      if_encoder_else = None
+   } }
+  | PP_IFENCODER ENCODER exprs PP_ELSE exprs PP_ENDIF { {
+      if_encoder_negative = $1;
+      if_encoder_condition = $2;
+      if_encoder_then = $3;
+      if_encoder_else = Some $5;
+  } }
+
+if_version:
+  | PP_IFVERSION exprs PP_ENDIF { {
+      if_version_op = fst $1;
+      if_version_version = snd $1;
+      if_version_then = $2;
+      if_version_else = None
+   } }
+  | PP_IFVERSION exprs PP_ELSE exprs PP_ENDIF { {
+      if_version_op = fst $1;
+      if_version_version = snd $1;
+      if_version_then = $2;
+      if_version_else = Some $4;
+  } }
 
 annotate:
   | annotate_metadata COLON { $1 }

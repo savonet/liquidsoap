@@ -8,15 +8,16 @@ let stdlib_native = native
 # @param ~native Use native implementation, when available.
 def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
   ignore(native)
+  default = request.dynamic(%argsof(request.dynamic), f)
 %ifdef native
   if native then
     stdlib_native.request.dynamic(%argsof(request.dynamic), f)
   else
-%else
-  begin
-%endif
-    request.dynamic(%argsof(request.dynamic), f)
+    default
   end
+%else
+  default
+%endif
 end
 
 # Play a queue of requests (the first added request gets played first).
@@ -31,8 +32,8 @@ end
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
 def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~queue=[], ~timeout=20.)
-  id = string.id.default(default="request.queue", id)
   ignore(native)
+  id = string.id.default(default="request.queue", id)
   queue = ref(queue)
   fetch = ref(fun () -> true)
   def next() =
@@ -54,16 +55,17 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~qu
     r = request.create(uri)
     push(r)
   end
+  default = request.dynamic(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(queue())}, next)
   s =
 %ifdef native
     if native then
       stdlib_native.request.dynamic(id=id, timeout=timeout, next)
     else
-%else
-    begin
-%endif
-      request.dynamic(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(queue())}, next)
+      default
     end
+%else
+    default
+%endif
   source.set_name(s, "request.queue")
   fetch := s.fetch
   if interactive then

@@ -93,8 +93,8 @@ let stdlib_native = native
 # @method remaining_files Songs remaining to be played.
 def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
                   ~mode="normal", ~native=false, ~on_loop={()}, ~on_done={()}, ~max_fail=10, ~on_fail=null(), ~timeout=20., playlist)
-  id = string.id.default(default="playlist.list", id)
   ignore(native)
+  id = string.id.default(default="playlist.list", id)
   mode =
     if not list.mem(mode, ["normal", "random", "randomize"]) then
       log.severe(label=id, "Invalid mode: #{mode}"); "randomize"
@@ -136,16 +136,17 @@ def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
   end
 
   # Instantiate the source
+  default = request.dynamic(id=id, prefetch=prefetch, timeout=timeout, retry_delay=1., available={not has_stopped()}, next)
   s =
 %ifdef native
     if native then
       stdlib_native.request.dynamic(id=id, next)
     else
-%else
-    begin
-%endif
-      request.dynamic(id=id, prefetch=prefetch, timeout=timeout, retry_delay=1., available={not has_stopped()}, next)
+      default
     end
+%else
+    default
+%endif
   source.set_name(s, "playlist.list.reloadable")
 
   # The reload function
