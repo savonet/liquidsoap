@@ -30,10 +30,6 @@ def f() =
   echo(l["dix"])
   t("11",{ 2 == list.length(r//.split(l["blo"])) })
 
-%ifdef foobarbaz
-  if = if is not a well-formed expression, and we do not care...
-%endif
-
   echo("1#{1+1}")
   echo(string(int_of_float(float_of_string(default=13.,"blah"))))
 

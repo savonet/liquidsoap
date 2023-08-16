@@ -394,6 +394,53 @@ let if_reducer ?pos ~to_term = function
       let if_else = mk_fun ?pos [] (to_term if_else) in
       `App (op, [("", if_condition); ("then", if_then); ("else", if_else)])
 
+let pp_if_reducer ?pos ~to_term = function
+  | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else } -> (
+      let if_def_else =
+        Option.value ~default:(Term_base.make ?pos (`Tuple [])) if_def_else
+      in
+      match (Environment.has_builtin if_def_condition, if_def_negative) with
+        | true, false | false, true -> (to_term if_def_then).term
+        | _ -> (to_term if_def_else).term)
+  | `If_version
+      { if_version_op; if_version_version; if_version_then; if_version_else }
+    -> (
+      let if_version_else =
+        Option.value ~default:(Term_base.make ?pos (`Tuple [])) if_version_else
+      in
+      let current_version =
+        Lang_string.Version.of_string Build_config.version
+      in
+      match
+        ( if_version_op,
+          Lang_string.Version.compare current_version if_version_version )
+      with
+        | `Eq, 0 -> (to_term if_version_then).term
+        | `Geq, v when v >= 0 -> (to_term if_version_then).term
+        | `Leq, v when v <= 0 -> (to_term if_version_then).term
+        | `Gt, v when v > 0 -> (to_term if_version_then).term
+        | `Lt, v when v < 0 -> (to_term if_version_then).term
+        | _ -> (to_term if_version_else).term)
+  | `If_encoder
+      {
+        if_encoder_negative;
+        if_encoder_condition;
+        if_encoder_then;
+        if_encoder_else;
+      } -> (
+      let if_encoder_else =
+        Option.value ~default:(Term_base.make ?pos (`Tuple [])) if_encoder_else
+      in
+      try
+        let encoder =
+          !Hooks.make_encoder ~pos:None (Term.make Term.unit)
+            (if_encoder_condition, [])
+        in
+        match (!Hooks.has_encoder encoder, if_encoder_negative) with
+          | true, false | false, true -> (to_term if_encoder_then).term
+          | _ -> (to_term if_encoder_else).term
+      with _ -> (to_term if_encoder_else).term)
+
 let while_reducer ?pos ~to_term = function
   | `While { while_condition; while_loop } ->
       let op = mk ?pos (`Var "while") in
@@ -652,6 +699,8 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Set _ as ast -> set_reducer ?pos ~to_term ast
   | `Inline_if _ as ast -> if_reducer ?pos ~to_term ast
   | `If _ as ast -> if_reducer ?pos ~to_term ast
+  | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
+      pp_if_reducer ?pos ~to_term ast
   | `While _ as ast -> while_reducer ?pos ~to_term ast
   | `For _ as ast -> for_reducer ?pos ~to_term ast
   | `Iterable_for _ as ast -> iterable_for_reducer ?pos ~to_term ast
@@ -700,7 +749,10 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
       mk_invoke ?pos ?default ~to_term invoked meth
   | `Open (t, t') -> `Open (to_term t, to_term t')
   | `Var s -> `Var s
-  | `Seq (({ term = `Include _ } as t), t') ->
+  | `Seq (({ term = `Include _ } as t), t')
+  | `Seq (({ term = `If_def _ } as t), t')
+  | `Seq (({ term = `If_encoder _ } as t), t')
+  | `Seq (({ term = `If_version _ } as t), t') ->
       (concat_term (to_term t) (to_term t')).term
   | `Seq (t, t') -> `Seq (to_term t, to_term t')
   | `App (t, args) ->

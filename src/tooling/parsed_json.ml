@@ -44,6 +44,45 @@ let json_of_if ~to_json { if_condition; if_then; if_else } =
     ("else", to_json if_else);
   ]
 
+let json_of_if_def ~to_json
+    { if_def_negative; if_def_condition; if_def_then; if_def_else } =
+  [
+    ("negative", `Bool if_def_negative);
+    ("condition", `String if_def_condition);
+    ("then", to_json if_def_then);
+    ("else", match if_def_else with None -> `Null | Some t -> to_json t);
+  ]
+
+let json_of_if_encoder ~to_json
+    {
+      if_encoder_negative;
+      if_encoder_condition;
+      if_encoder_then;
+      if_encoder_else;
+    } =
+  [
+    ("negative", `Bool if_encoder_negative);
+    ("condition", `String if_encoder_condition);
+    ("then", to_json if_encoder_then);
+    ("else", match if_encoder_else with None -> `Null | Some t -> to_json t);
+  ]
+
+let json_of_if_version ~to_json
+    { if_version_op; if_version_version; if_version_then; if_version_else } =
+  [
+    ( "opt",
+      `String
+        (match if_version_op with
+          | `Eq -> "="
+          | `Geq -> ">="
+          | `Leq -> "<="
+          | `Gt -> ">"
+          | `Lt -> "<") );
+    ("version", `String (Lang_string.Version.str if_version_version));
+    ("then", to_json if_version_then);
+    ("else", match if_version_else with None -> `Null | Some t -> to_json t);
+  ]
+
 let json_of_while ~to_json { while_condition; while_loop } =
   [("condition", to_json while_condition); ("loop", to_json while_loop)]
 
@@ -287,6 +326,9 @@ let rec to_ast_json = function
       ast_node ~typ:"set" [("left", to_json t); ("right", to_json t')]
   | `Inline_if p -> ast_node ~typ:"inline_if" (json_of_if ~to_json p)
   | `If p -> ast_node ~typ:"if" (json_of_if ~to_json p)
+  | `If_def p -> ast_node ~typ:"if_def" (json_of_if_def ~to_json p)
+  | `If_version p -> ast_node ~typ:"if_version" (json_of_if_version ~to_json p)
+  | `If_encoder p -> ast_node ~typ:"if_encoder" (json_of_if_encoder ~to_json p)
   | `While p -> ast_node ~typ:"while" (json_of_while ~to_json p)
   | `For p -> ast_node ~typ:"for" (json_of_for ~to_json p)
   | `Iterable_for p ->

@@ -30,74 +30,6 @@ let mk_tokenizer ?(fname = "") lexbuf =
       | Parser.PP_REGEXP (r, flags, pos) -> (Parser.REGEXP (r, flags), pos)
       | token -> (token, Sedlexing.lexing_bytes_positions lexbuf)
 
-(* The Lang_lexer is not quite enough for our needs, so we first define
-   convenient layers between it and the parser. First a pre-processor which
-   evaluates %ifdefs. *)
-let eval_ifdefs tokenizer =
-  let state = ref 0 in
-  let rec token () =
-    let go_on () =
-      incr state;
-      token ()
-    in
-    let rec skip () =
-      match tokenizer () with
-        | Parser.PP_ENDIF, _ -> token ()
-        | Parser.PP_ELSE, _ -> go_on ()
-        | _ -> skip ()
-    in
-    match tokenizer () with
-      | (Parser.PP_IFDEF v, _ | Parser.PP_IFNDEF v, _) as tok ->
-          let test =
-            match fst tok with
-              | Parser.PP_IFDEF _ -> fun x -> x
-              | Parser.PP_IFNDEF _ -> not
-              | _ -> assert false
-          in
-          (* XXX Less natural meaning than the original one. *)
-          if test (Environment.has_builtin v) then go_on () else skip ()
-      | Parser.PP_IFVERSION (cmp, ver), _ ->
-          let current = Lang_string.Version.of_string Build_config.version in
-          let ver = Lang_string.Version.of_string ver in
-          let test =
-            let compare = Lang_string.Version.compare current ver in
-            match cmp with
-              | `Eq -> compare = 0
-              | `Geq -> compare >= 0
-              | `Leq -> compare <= 0
-              | `Gt -> compare > 0
-              | `Lt -> compare < 0
-          in
-          if test then go_on () else skip ()
-      | (Parser.PP_IFENCODER, _ | Parser.PP_IFNENCODER, _) as tok ->
-          let has_enc =
-            try
-              let fmt =
-                let token = fst (tokenizer ()) in
-                match token with
-                  | Parser.ENCODER e ->
-                      !Hooks.make_encoder ~pos:None (Term.make Term.unit) (e, [])
-                  | _ -> failwith "expected an encoding format after %ifencoder"
-              in
-              !Hooks.has_encoder fmt
-            with _ -> false
-          in
-          let test =
-            if fst tok = Parser.PP_IFENCODER then fun x -> x else not
-          in
-          if test has_enc then go_on () else skip ()
-      | Parser.PP_ELSE, _ ->
-          if !state = 0 then failwith "no %ifdef to end here";
-          decr state;
-          skip ()
-      | Parser.PP_ENDIF, _ ->
-          if !state = 0 then failwith "no %ifdef to end here";
-          decr state;
-          token ()
-      | x -> x
-  in
-  token
-
 (* The expander turns "bla #{e} bli" into ("bla "^string(e)^" bli"). *)
 type exp_item = String of string | Expr of tokenizer | End
 
@@ -256,8 +188,8 @@ let strip_newlines tokenizer =
 (* Wrap the lexer with its extensions *)
 let mk_tokenizer ?fname lexbuf =
   let tokenizer =
-    mk_tokenizer ?fname lexbuf |> eval_ifdefs |> expand_string ?fname
-    |> int_meth |> dotvar |> uminus |> strip_newlines
+    mk_tokenizer ?fname lexbuf |> expand_string ?fname |> int_meth |> dotvar
+    |> uminus |> strip_newlines
   in
   fun () ->
     let t, (startp, endp) = tokenizer () in

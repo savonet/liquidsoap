@@ -105,6 +105,27 @@ and fun_arg =
 
 and list_el = [ `Term of t | `Ellipsis of t ]
 
+and if_def = {
+  if_def_negative : bool;
+  if_def_condition : string;
+  if_def_then : t;
+  if_def_else : t option;
+}
+
+and if_version = {
+  if_version_op : [ `Eq | `Geq | `Leq | `Gt | `Lt ];
+  if_version_version : Lang_string.Version.t;
+  if_version_then : t;
+  if_version_else : t option;
+}
+
+and if_encoder = {
+  if_encoder_negative : bool;
+  if_encoder_condition : string;
+  if_encoder_then : t;
+  if_encoder_else : t option;
+}
+
 and time_el = {
   week : int option;
   hours : int option;
@@ -116,6 +137,9 @@ and time_el = {
 and parsed_ast =
   [ `If of _if
   | `Inline_if of _if
+  | `If_def of if_def
+  | `If_version of if_version
+  | `If_encoder of if_encoder
   | `While of _while
   | `For of _for
   | `Iterable_for of iterable_for
@@ -161,6 +185,15 @@ let rec iter_term fn ({ term; methods } as tm) =
         iter_term fn p.if_condition;
         iter_term fn p.if_then;
         iter_term fn p.if_else
+    | `If_def { if_def_then; if_def_else } -> (
+        iter_term fn if_def_then;
+        match if_def_else with None -> () | Some term -> iter_term fn term)
+    | `If_version { if_version_then; if_version_else } -> (
+        iter_term fn if_version_then;
+        match if_version_else with None -> () | Some term -> iter_term fn term)
+    | `If_encoder { if_encoder_then; if_encoder_else } -> (
+        iter_term fn if_encoder_then;
+        match if_encoder_else with None -> () | Some term -> iter_term fn term)
     | `While { while_condition; while_loop } ->
         iter_term fn while_condition;
         iter_term fn while_loop
