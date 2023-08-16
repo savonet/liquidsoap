@@ -16,25 +16,27 @@ s = source({audio=source.tracks(blank()).audio, video=source.tracks(s).video})
 
 #clock.assign_new(sync='none',[s])
 
-def on_done () =
-  j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+def on_close (filename) =
+  if not test.done() then
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
 
-  let json.parse ( parsed: {
-    streams: ({
-      width: int,
-      height: int
-    } * _)
-  }) = j
+    let json.parse ( parsed: {
+      streams: ({
+        width: int,
+        height: int
+      } * _)
+    }) = j
 
-  let stream = fst(parsed.streams)
+    let stream = fst(parsed.streams)
 
-  print("Output video size is #{stream.width}x#{stream.height}.")
+    print("Output video size is #{stream.width}x#{stream.height}.")
 
-  if stream.width == 47 and stream.height == 52 then
-    test.pass()
-  else
-    test.fail()
+    if stream.width == 47 and stream.height == 52 then
+      test.pass()
+    else
+      test.fail()
+    end
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %avi(width=47, height=52), out, s)
+output.file(fallible=true, on_close=on_close, %avi(width=47, height=52), out, s)

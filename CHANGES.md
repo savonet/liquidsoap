@@ -10,6 +10,7 @@ Changed:
 - Bumped internal ogg decoder to make sure that it is used over the ffmpeg decoder whenever possible.
   FFmpeg has issues with metadata in chained streams which needs to be fixed upstream. Unfortunately,
   `input.http` can only use the ffmpeg decoder at the moment.
+- Cleanup `output.file` encoding and file handling logic (#3328)
 
 Fixed:
 
@@ -26,6 +27,7 @@ Fixed:
 - Remove use of `stereo:` protocol in `say:` protocol:
   this is now handled automatically by the decoder and generates latency via
   high CPU usage peak.
+- Fixed `output.file` reopening with flac encoding (#3328)
 
 ---
 

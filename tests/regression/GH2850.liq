@@ -9,7 +9,7 @@ def f() =
   error_count = ref(0)
 
   def on_error(_) =
-    error_count := !error_count + 1
+    error_count := error_count() + 1
   end
 
   s = sine()
@@ -27,7 +27,7 @@ def f() =
   )
 
   thread.run(delay=1., {begin
-    if !has_connected or !error_count == 0 then
+    if has_connected() or error_count() == 0 then
       test.fail()
     end
 
@@ -38,19 +38,21 @@ def f() =
         test.fail()
       end
 
+      print("Shutting down initial source")
       s.shutdown()
       error_count := 0
 
       thread.run(delay=3., {begin
-        if !error_count == 0 then
+        if error_count() == 0 then
           test.fail()
         end
 
         has_connected := false
+        print("Starting new source")
         input.harbor(port=8005,password="hackme","test")
 
         thread.run(delay=1., {begin
-          if not !has_connected then
+          if not has_connected() then
             test.fail()
           end
 

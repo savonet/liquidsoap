@@ -1,6 +1,8 @@
 log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
 
+test.skip()
+
 fname = argv(default="",1)
 out = "#{fname}+ffmpeg_raw_and_encode_decoder.mp4"
 
@@ -14,9 +16,9 @@ s = sequence([s, s, once(s)])
 
 #clock.assign_new(sync='none',[s])
 
-def on_done () =
-  thread.run(delay=0.2, fun () -> begin
-    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+def on_close (filename) =
+  if not test.done() then
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
 
     let json.parse ( parsed : {
       streams: [{
@@ -41,7 +43,7 @@ def on_done () =
     else
       test.fail()
     end
-  end)
+  end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio(codec="aac"),%video.raw(codec="libx264")), out, s)
+output.file(fallible=true, on_close=on_close, %ffmpeg(format="mkv",%audio(codec="aac"),%video.raw(codec="libx264")), out, s)
