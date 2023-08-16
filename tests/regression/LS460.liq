@@ -14,4 +14,4 @@ end
 at(3.,"foo.stop")
 at(4.,"bar.skip")
 at(5.,"foo.start")
-thread.run(delay=6.,{test.pass(); shutdown()})
+thread.run(delay=6.,test.pass)

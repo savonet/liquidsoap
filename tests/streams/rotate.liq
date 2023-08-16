@@ -26,7 +26,6 @@ def ot(label)
       print("jingles: #{!njingles} / music : #{!nmusic} / music2: #{!nmusic2}")
       test.fail()
     end
-    shutdown()
   end
 end
 

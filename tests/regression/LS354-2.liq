@@ -1,9 +1,7 @@
 s1 = source.fail()
 s2 = blank(duration=1.)
 
-s2.on_track(
-       fun(_)-> begin test.pass(); shutdown() end
-)
+s2.on_track(fun (_) -> test.pass())
 
 r = ref(0)
 d = source.dynamic({ if !r==1 then s1

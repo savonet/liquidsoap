@@ -19,4 +19,4 @@ s = mean(sine(id="sine"))
 s = add([s , source.dynamic(f)])
 
 output.dummy(s)
-thread.run(delay=1., {test.pass(); shutdown()})
+thread.run(delay=1., test.pass)

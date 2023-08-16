@@ -18,7 +18,6 @@ test.check(f)
 
 def on_done () =
   test.pass()
-  shutdown()
 end
 
 thread.run(delay=5., on_done)

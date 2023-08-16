@@ -9,4 +9,4 @@ on_cleanup(test.pass)
 
 thread.run(delay=2., { o.shutdown() })
 thread.run(delay=3., { ignore(output.dummy(fallible=true,p)) })
-thread.run(delay=4., { shutdown() })
+thread.run(delay=4., { test.pass() })

@@ -11,7 +11,6 @@ output.dummy(s)
 def on_done () =
   print("RMS: #{rms()}")
   if rms() > 0.5 then test.pass() else test.fail() end
-  shutdown()
 end
 
 thread.run(delay=2., on_done)

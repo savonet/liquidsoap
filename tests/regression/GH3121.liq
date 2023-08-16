@@ -5,7 +5,7 @@ track_count = ref(0)
 def on_track(_) =
   track_count := track_count() + 1
   if track_count() > 3 then
-    shutdown()
+    test.pass()
   end
 end
 

@@ -17,8 +17,4 @@ s = cross(f, s)
 
 output.dummy(s)
 
-def on_done () =
-  test.pass()
-  shutdown()
-end
-thread.run(delay=8., on_done)
+thread.run(delay=8., test.pass)
