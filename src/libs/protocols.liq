@@ -588,7 +588,7 @@ protocol.add(static=true,"gtts",protocol.gtts,
 # Register the legacy say: protocol
 # @flag hidden
 def protocol.say(~rlog=_, ~maxtime=_, arg) =
-  ["stereo:pico2wave:#{arg}", "stereo:gtts:#{arg}", "stereo:text2wave:#{arg}"]
+  ["pico2wave:#{arg}", "gtts:#{arg}", "text2wave:#{arg}"]
 end
 protocol.add(static=true,"say",protocol.say,
              doc="Generate speech synthesis using text2wave. Result is always stereo.",

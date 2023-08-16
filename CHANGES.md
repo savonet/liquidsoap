@@ -23,6 +23,9 @@ Fixed:
 - Allow seek and cue operators to work with muxed sources
   using a single underlying source (#3252)
 - Fixed export of cover art metadata (#3279)
+- Remove use of `stereo:` protocol in `say:` protocol:
+  this is now handled automatically by the decoder and generates latency via
+  high CPU usage peak.
 
 ---
 
