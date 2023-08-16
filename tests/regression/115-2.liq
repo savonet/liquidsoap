@@ -6,4 +6,4 @@ thread.run(delay=1., {sb_on := true})
 
 output.dummy(smooth_add(p=0.3, normal=sa, special=sb))
 
-thread.run(delay=4., {test.pass(); shutdown()})
+thread.run(delay=4., test.pass)

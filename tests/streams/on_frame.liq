@@ -7,7 +7,6 @@ def f()
   print("Frame #{!n}")
   if !n > 10 then
     test.pass()
-    shutdown()
   end
 end
 

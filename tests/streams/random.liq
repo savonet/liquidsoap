@@ -68,8 +68,6 @@ def on_done () =
   else
     test.fail()
   end
-
-  shutdown()
 end
 
 thread.run(delay=1., on_done)

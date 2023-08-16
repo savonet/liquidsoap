@@ -12,4 +12,4 @@ s = mean(sine(id="sine"))
 s = add([s , f()])
 
 output.dummy(s)
-thread.run(delay=1., {test.pass(); shutdown()})
+thread.run(delay=1., test.pass)

@@ -22,4 +22,4 @@ mixer = fallback(id="mixer", track_sensitive=false,
   [source.available(sine(duration=3.), pred), blank()])
 
 output.dummy(mixer)
-thread.run(delay=3., { test.pass() ; shutdown()})
+thread.run(delay=3., test.pass)

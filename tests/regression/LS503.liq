@@ -10,7 +10,7 @@
 on_cleanup(test.pass)
 
 def on_error(_) =
-  shutdown()
+  test.pass()
   3.
 end
 

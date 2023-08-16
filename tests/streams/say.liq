@@ -11,7 +11,7 @@ def f(_)
   if n() < 1 then
     n := n() + 1
   else
-    test.pass(); shutdown()
+    test.pass()
   end
 end
 s.on_track(f)

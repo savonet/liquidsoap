@@ -3,7 +3,6 @@ log.level.set(4)
 def f(_)
   print("Got metadata!")
   test.pass()
-  shutdown()
 end
 
 s = sine()

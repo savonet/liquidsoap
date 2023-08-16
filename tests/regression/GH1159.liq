@@ -12,8 +12,6 @@ def f(rem, _) =
   else
     test.fail()
   end
-
-  shutdown()
 end
 
 s = source.on_end(s,delay=0.1,f)

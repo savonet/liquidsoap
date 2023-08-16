@@ -36,7 +36,6 @@ def check()
   else
     test.pass()
   end
-  shutdown()
 end
 
 output.dummy(fallback([test,on_track(fun(_)->check(),sine())]))

@@ -15,7 +15,6 @@ def f(k)
     else
       test.fail()
     end
-    shutdown()
   end
 end
 

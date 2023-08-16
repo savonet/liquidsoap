@@ -7,7 +7,6 @@ output.dummy(fallible=true, s)
 
 def on_done () =
   test.pass()
-  shutdown()
 end
 
 thread.run(delay=8., on_done)
