@@ -743,6 +743,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Encoder e -> `Encoder (to_encoder e)
   | `List l -> list_reducer ?pos ~to_term (List.rev l)
   | `Tuple l -> `Tuple (List.map to_term l)
+  | `Eof -> `Tuple []
   | `Null -> `Null
   | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ?pos typ)
   | `Invoke { invoked; default; meth } ->

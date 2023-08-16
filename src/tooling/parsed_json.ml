@@ -78,7 +78,7 @@ let json_of_if_version ~to_json
           | `Leq -> "<="
           | `Gt -> ">"
           | `Lt -> "<") );
-    ("version", `String (Lang_string.Version.str if_version_version));
+    ("version", `String (Lang_string.Version.to_string if_version_version));
     ("then", to_json if_version_then);
     ("else", match if_version_else with None -> `Null | Some t -> to_json t);
   ]
@@ -399,6 +399,7 @@ let rec to_ast_json = function
           ("default", match default with None -> `Null | Some d -> to_json d);
           ("meth", `Assoc (json_of_invoke_meth ~to_json meth));
         ]
+  | `Eof -> ast_node ~typ:"eof" []
   | `Open (t, t') ->
       ast_node ~typ:"open" [("left", to_json t); ("right", to_json t')]
   | `Let (p, body) -> ast_node ~typ:"let" (json_of_let ~to_json p body)

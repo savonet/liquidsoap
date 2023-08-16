@@ -157,38 +157,9 @@ let rec token lexbuf =
         Parser_helper.append_comment ~pos:(startp, endp) (Buffer.contents buf);
         token lexbuf
     | line_break -> PP_ENDL
-    | "%ifdef", Plus white_space, var, Star ("" | '.', var) ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        let n = String.indexp_from matched 6 (fun c -> c <> ' ') in
-        let r = String.rindexp matched (fun c -> c <> ' ') in
-        PP_IFDEF (false, String.sub matched n (r - n + 1))
-    | "%ifndef", Plus white_space, var, Star ("" | '.', var) ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        let n = String.indexp_from matched 7 (fun c -> c <> ' ') in
-        let r = String.rindexp matched (fun c -> c <> ' ') in
-        PP_IFDEF (true, String.sub matched n (r - n + 1))
-    | ( "%ifversion",
-        Plus white_space,
-        ("==" | ">=" | "<=" | "<" | ">"),
-        Plus ' ',
-        Plus (decimal_digit | '.') ) ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        let n1 = String.indexp_from matched 10 (fun c -> c <> ' ') in
-        let n2 = String.indexp_from matched n1 (fun c -> c = ' ') in
-        let n3 = String.indexp_from matched n2 (fun c -> c <> ' ') in
-        let r = String.rindexp matched (fun c -> c <> ' ') in
-        let cmp = String.sub matched n1 (n2 - n1) in
-        let ver = String.sub matched n3 (r - n3 + 1) in
-        let cmp =
-          match cmp with
-            | "==" -> `Eq
-            | ">=" -> `Geq
-            | "<=" -> `Leq
-            | "<" -> `Lt
-            | ">" -> `Gt
-            | _ -> assert false
-        in
-        PP_IFVERSION (cmp, Lang_string.Version.of_string ver)
+    | "%ifdef" -> PP_IFDEF false
+    | "%ifndef" -> PP_IFDEF true
+    | "%ifversion" -> PP_IFVERSION
     | "%ifencoder" -> PP_IFENCODER false
     | "%ifnencoder" -> PP_IFENCODER true
     | "%else" -> PP_ELSE
@@ -312,13 +283,14 @@ let rec token lexbuf =
         let fpart =
           String.sub matched (idx + 1) (String.length matched - idx - 1)
         in
-        let fpart =
-          if fpart = "" then 0.
-          else
-            float_of_string fpart /. (10. ** float_of_int (String.length fpart))
-        in
-        let ipart = if ipart = "" then 0. else float_of_string ipart in
-        FLOAT (ipart +. fpart)
+        FLOAT (ipart, fpart)
+    | ( Plus decimal_digit,
+        ".",
+        Plus decimal_digit,
+        ".",
+        Plus decimal_digit,
+        Star (Compl (white_space | line_break)) ) ->
+        VERSION (Lang_string.Version.of_string (Sedlexing.Utf8.lexeme lexbuf))
     | time -> TIME (parse_time (Sedlexing.Utf8.lexeme lexbuf))
     | time, Star skipped, '-', Star skipped, time ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in

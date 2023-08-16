@@ -168,6 +168,7 @@ and parsed_ast =
   | `Simple_fun of t
   | `String_interpolation of string_interpolation list
   | `Include of inc
+  | `Eof
   | t ast ]
 
 and t = parsed_ast term
@@ -178,7 +179,7 @@ type encoder_params = t ast_encoder_params
 let unit = `Tuple []
 
 let rec iter_term fn ({ term; methods } as tm) =
-  fn tm;
+  if term <> `Eof then fn tm;
   Methods.iter (fun _ tm -> iter_term fn tm) methods;
   match term with
     | `If p | `Inline_if p ->
@@ -260,6 +261,7 @@ let rec iter_term fn ({ term; methods } as tm) =
         iter_term fn tm;
         iter_term fn tm'
     | `Var _ -> ()
+    | `Eof -> ()
     | `String_interpolation l ->
         List.iter (function `String _ -> () | `Term tm -> iter_term fn tm) l
     | `Seq (tm, tm') ->

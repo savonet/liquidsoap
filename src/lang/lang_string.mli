@@ -66,6 +66,7 @@ module Version : sig
   type t = int list * string
 
   val of_string : string -> t
+  val to_string : t -> string
   val num : t -> int list
   val str : t -> string
   val compare : t -> t -> int
