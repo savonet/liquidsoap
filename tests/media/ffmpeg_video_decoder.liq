@@ -16,23 +16,25 @@ s = once(s)
 
 #clock.assign_new(sync='none',[s])
 
-def on_done () =
-  j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+def on_close (filename) =
+  if not test.done() then
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
 
-  let json.parse ( parsed: {
-    streams: [{
-      r_frame_rate: string,
-      codec_name: string
-    }]
-  }) = j
+    let json.parse ( parsed: {
+      streams: [{
+        r_frame_rate: string,
+        codec_name: string
+      }]
+    }) = j
 
-  let [stream] = parsed.streams
+    let [stream] = parsed.streams
 
-  if stream.r_frame_rate == "45/1" and stream.codec_name == "h264" then
-    test.pass()
-  else
-    test.fail()
+    if stream.r_frame_rate == "45/1" and stream.codec_name == "h264" then
+      test.pass()
+    else
+      test.fail()
+    end
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mp4",%video(codec="libx264")), out, s)
+output.file(fallible=true, on_close=on_close, %ffmpeg(format="mp4",%video(codec="libx264")), out, s)

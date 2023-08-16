@@ -393,6 +393,32 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  GH3276.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3276.liq liquidsoap %{test_liq} GH3276.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  GH3316.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3316.liq liquidsoap %{test_liq} GH3316.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   LS268.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe

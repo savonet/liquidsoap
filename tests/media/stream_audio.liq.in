@@ -12,7 +12,7 @@ s = noise(duration=2.)
 
 s = once(s)
 
-clock.assign_new(sync='none',[s])
+#clock.assign_new(sync='none',[s])
 
 output.udp(id="output",port=5001,host="localhost",fallible=true,@FORMAT@,s)
 
@@ -23,22 +23,24 @@ s = (s:source(1,0,0))
 #clock.assign_new(sync='none',[s])
 
 def on_done () =
-  j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+  if not test.done() then
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
-  let json.parse ( parsed: {
-    streams: [{
-      channels: int,
-      sample_rate: string
-    }]
-  }) = j
+    let json.parse ( parsed: {
+      streams: [{
+        channels: int,
+        sample_rate: string
+      }]
+    }) = j
 
-  let [stream] = parsed.streams
+    let [stream] = parsed.streams
 
-  if stream.channels == 1 and stream.sample_rate == "48000" then
-    test.pass()
-  else
-    test.fail()
+    if stream.channels == 1 and stream.sample_rate == "48000" then
+      test.pass()
+    else
+      test.fail()
+    end
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %wav(mono), out, s)
+output.file(fallible=true, on_close=on_close, %wav(mono), out, s)

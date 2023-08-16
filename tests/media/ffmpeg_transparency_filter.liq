@@ -37,8 +37,8 @@ s.on_track(on_track)
 
 #clock.assign_new(id='test_clock',sync='none',[s])
 
-def on_done () =
-  if !started then
+def on_close (_) =
+  if not test.done() and !started then
     j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
     let json.parse ( parsed : {
@@ -74,6 +74,6 @@ encoder = %ffmpeg(
 
 output.file(
   encoder,
-  on_stop=on_done,
+  on_close=on_close,
   fallible=true,
   out, s)
