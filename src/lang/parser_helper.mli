@@ -87,3 +87,5 @@ val mk_encoder :
   pos:Pos.t -> string -> Term.t Term_base.ast_encoder_params -> Term.t
 
 val args_of_json_parse : pos:Pos.t -> (string * 'a) list -> (string * 'a) list
+val render_string_ref : (pos:Pos.t -> char * string -> string) ref
+val render_string : pos:Pos.t -> char * string -> string

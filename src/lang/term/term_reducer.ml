@@ -33,6 +33,10 @@ let parse_error ?pos msg =
   let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
   raise (Term_base.Parse_error (pos, msg))
 
+let render_string ?pos ~sep s =
+  let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
+  Lexer.render_string ~pos ~sep s
+
 let mk = Term_base.make
 
 let mk_fun ?pos arguments body =
@@ -543,6 +547,7 @@ let assoc_reducer ?pos ~to_term = function
 
 let regexp_reducer ?pos ~to_term:_ = function
   | `Regexp (regexp, flags) ->
+      let regexp = render_string ?pos ~sep:'/' regexp in
       let regexp = mk ?pos (`Ground (Term_base.Ground.String regexp)) in
       let flags = List.map Char.escaped flags in
       let flags =
@@ -726,7 +731,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
   | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast
-  | `String_interpolation l ->
+  | `String_interpolation (_, l) ->
       let l =
         List.map
           (function
@@ -756,6 +761,9 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Encoder e -> `Encoder (to_encoder e)
   | `List l -> list_reducer ?pos ~to_term (List.rev l)
   | `Tuple l -> `Tuple (List.map to_term l)
+  | `String (sep, s) ->
+      `Ground
+        (String (Printf.sprintf "%c%s%c" sep (render_string ?pos ~sep s) sep))
   | `Float (ipart, fpart) ->
       let fpart =
         if fpart = "" then 0.

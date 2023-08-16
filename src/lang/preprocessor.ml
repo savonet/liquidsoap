@@ -26,7 +26,7 @@ let mk_tokenizer ?(fname = "") lexbuf =
   Sedlexing.set_filename lexbuf fname;
   fun () ->
     match Lexer.token lexbuf with
-      | Parser.PP_STRING (s, pos) -> (Parser.STRING s, pos)
+      | Parser.PP_STRING (c, s, pos) -> (Parser.STRING (c, s), pos)
       | Parser.PP_REGEXP (r, flags, pos) -> (Parser.REGEXP (r, flags), pos)
       | token -> (token, Sedlexing.lexing_bytes_positions lexbuf)
 
@@ -38,12 +38,13 @@ let expand_string ?fname tokenizer =
   let add pos x = Queue.add (x, pos) state in
   let pop () = ignore (Queue.take state) in
   let clear () = Queue.clear state in
-  let parse s pos =
+  let parse ~sep s pos =
     let l = Regexp.split (Regexp.regexp "#{(.*?)}") s in
     let l = if l = [] then [""] else l in
     let add = add pos in
     let rec parse = function
       | s :: x :: l ->
+          let x = Lexer.render_string ~pos ~sep x in
           let lexbuf = Sedlexing.Utf8.from_string x in
           let tokenizer = mk_tokenizer ?fname lexbuf in
           let tokenizer () = (fst (tokenizer ()), pos) in
@@ -59,12 +60,12 @@ let expand_string ?fname tokenizer =
   let rec token () =
     if Queue.is_empty state then (
       match tokenizer () with
-        | Parser.STRING s, pos ->
-            parse s pos;
-            if Queue.length state > 2 then (Parser.BEGIN_INTERPOLATION, pos)
+        | (Parser.STRING (sep, s), pos) as tok ->
+            parse ~sep s pos;
+            if Queue.length state > 2 then (Parser.BEGIN_INTERPOLATION sep, pos)
             else (
               clear ();
-              (Parser.STRING s, pos))
+              tok)
         | x -> x)
     else (
       let el, pos = Queue.peek state in

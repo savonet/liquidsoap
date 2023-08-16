@@ -335,7 +335,11 @@ let rec to_ast_json = function
       ast_node ~typ:"iterable_for" (json_of_iterable_for ~to_json p)
   | `Not t -> ast_node ~typ:"not" [("value", to_json t)]
   | `Negative t -> ast_node ~typ:"negative" [("value", to_json t)]
-  | `String_interpolation l ->
+  | `String_interpolation (c, l) ->
+      let l =
+        `String (Printf.sprintf "%c" c)
+        :: (l @ [`String (Printf.sprintf "%c" c)])
+      in
       let l =
         List.map
           (function
@@ -381,6 +385,9 @@ let rec to_ast_json = function
         ]
   | `Float (ipart, fpart) ->
       ast_node ~typ:"ground" [("value", `String (ipart ^ "." ^ fpart))]
+  | `String (c, s) ->
+      ast_node ~typ:"ground"
+        [("value", `String (Printf.sprintf "%c%s%c" c s c))]
   | `Encoder e -> ast_node ~typ:"encoder" (to_encoder_json e)
   | `List l ->
       ast_node ~typ:"list"

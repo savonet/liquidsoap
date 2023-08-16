@@ -166,9 +166,10 @@ and parsed_ast =
   | `Bool of t * string * t
   | `Coalesce of t * t
   | `Simple_fun of t
-  | `String_interpolation of string_interpolation list
+  | `String_interpolation of char * string_interpolation list
   | `Include of inc
   | `Float of string * string
+  | `String of char * string
   | `Eof
   | t ast ]
 
@@ -262,9 +263,10 @@ let rec iter_term fn ({ term; methods } as tm) =
         iter_term fn tm;
         iter_term fn tm'
     | `Float _ -> ()
+    | `String _ -> ()
     | `Var _ -> ()
     | `Eof -> ()
-    | `String_interpolation l ->
+    | `String_interpolation (_, l) ->
         List.iter (function `String _ -> () | `Term tm -> iter_term fn tm) l
     | `Seq (tm, tm') ->
         iter_term fn tm;

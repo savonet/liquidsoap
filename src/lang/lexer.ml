@@ -307,12 +307,12 @@ let rec token lexbuf =
         let startp, _ = Sedlexing.lexing_bytes_positions lexbuf in
         let s = read_string '"' startp (Buffer.create 17) lexbuf in
         let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
-        PP_STRING (s, (startp, endp))
+        PP_STRING ('"', s, (startp, endp))
     | '\'' ->
         let startp, _ = Sedlexing.lexing_bytes_positions lexbuf in
         let s = read_string '\'' startp (Buffer.create 17) lexbuf in
         let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
-        PP_STRING (s, (startp, endp))
+        PP_STRING ('\'', s, (startp, endp))
     | "r/" ->
         let startp, _ = Sedlexing.lexing_bytes_positions lexbuf in
         let regexp = read_string '/' startp (Buffer.create 17) lexbuf in
@@ -375,80 +375,7 @@ and read_multiline_comment ?(level = 0) pos buf lexbuf =
 and read_string c pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
   match%sedlex lexbuf with
-    | '\\', 'a' ->
-        Buffer.add_char buf '\x07';
-        read_string c pos buf lexbuf
-    | '\\', 'b' ->
-        Buffer.add_char buf '\b';
-        read_string c pos buf lexbuf
-    | '\\', 'e' ->
-        Buffer.add_char buf '\x1b';
-        read_string c pos buf lexbuf
-    | '\\', 'f' ->
-        Buffer.add_char buf '\x0c';
-        read_string c pos buf lexbuf
-    | '\\', 'n' ->
-        Buffer.add_char buf '\n';
-        read_string c pos buf lexbuf
-    | '\\', 'r' ->
-        Buffer.add_char buf '\r';
-        read_string c pos buf lexbuf
-    | '\\', 't' ->
-        Buffer.add_char buf '\t';
-        read_string c pos buf lexbuf
-    | '\\', 'v' ->
-        Buffer.add_char buf '\x0b';
-        read_string c pos buf lexbuf
-    | '\\', ('"' | '\'' | '/' | '\\') ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        (* For regexp, we want to make sure these are kept as-is
-           and does not need any further escaping. *)
-        if c = '/' && matched.[1] <> '/' then Buffer.add_char buf matched.[0];
-        Buffer.add_char buf matched.[1];
-        read_string c pos buf lexbuf
-    | '\\', '?' ->
-        (* For regexp, we want to make sure \? is kept as-is
-           and does not need any further escaping. *)
-        if c = '/' then (
-          Buffer.add_char buf '\\';
-          Buffer.add_char buf '?';
-          read_string c pos buf lexbuf)
-        else (
-          Buffer.add_char buf '\x3f';
-          read_string c pos buf lexbuf)
-    | '\\', 'x', ascii_hex_digit, ascii_hex_digit ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        let idx = String.index matched 'x' in
-        let code = String.sub matched (idx + 1) 2 in
-        let code = int_of_string (Printf.sprintf "0x%s" code) in
-        Buffer.add_char buf (Char.chr code);
-        read_string c pos buf lexbuf
-    | '\\', oct_digit, oct_digit, oct_digit ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        let idx = String.index matched '\\' in
-        let code = String.sub matched (idx + 1) 3 in
-        let code = min 255 (int_of_string (Printf.sprintf "0o%s" code)) in
-        Buffer.add_char buf (Char.chr code);
-        read_string c pos buf lexbuf
-    | ( '\\',
-        'u',
-        ascii_hex_digit,
-        ascii_hex_digit,
-        ascii_hex_digit,
-        ascii_hex_digit ) ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        Buffer.add_string buf (Lang_string.unescape_utf8_char matched);
-        read_string c pos buf lexbuf
-    (* Multiline string support: some text \
-       Some more text *)
-    | '\\', '\n', Star skipped -> read_string c pos buf lexbuf
-    | '\\', any ->
-        if c <> '/' then (
-          let pos =
-            Pos.to_string (pos, snd (Sedlexing.lexing_bytes_positions lexbuf))
-          in
-          Printf.printf
-            "Warning at position %s: illegal backslash escape in string.\n" pos);
+    | '\\', Opt any ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         read_string c pos buf lexbuf
     | Plus (Compl ('"' | '\'' | '\\' | '/')) ->
@@ -478,3 +405,115 @@ and read_string c pos buf lexbuf =
           (Term_base.Parse_error
              ( (pos, snd (Sedlexing.lexing_bytes_positions lexbuf)),
                msg ^ Sedlexing.Utf8.lexeme lexbuf ))
+
+let render_string ~pos ~sep s =
+  let buf = Buffer.create (String.length s) in
+  let lexbuf = Sedlexing.Utf8.from_string (Printf.sprintf "%s%c" s sep) in
+  let rec render_string () =
+    (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
+    match%sedlex lexbuf with
+      | '\\', 'a' ->
+          Buffer.add_char buf '\x07';
+          render_string ()
+      | '\\', 'b' ->
+          Buffer.add_char buf '\b';
+          render_string ()
+      | '\\', 'e' ->
+          Buffer.add_char buf '\x1b';
+          render_string ()
+      | '\\', 'f' ->
+          Buffer.add_char buf '\x0c';
+          render_string ()
+      | '\\', 'n' ->
+          Buffer.add_char buf '\n';
+          render_string ()
+      | '\\', 'r' ->
+          Buffer.add_char buf '\r';
+          render_string ()
+      | '\\', 't' ->
+          Buffer.add_char buf '\t';
+          render_string ()
+      | '\\', 'v' ->
+          Buffer.add_char buf '\x0b';
+          render_string ()
+      | '\\', ('"' | '\'' | '/' | '\\') ->
+          let matched = Sedlexing.Utf8.lexeme lexbuf in
+          (* For regexp, we want to make sure these are kept as-is
+             and does not need any further escaping. *)
+          if sep = '/' && matched.[1] <> '/' then
+            Buffer.add_char buf matched.[0];
+          Buffer.add_char buf matched.[1];
+          render_string ()
+      | '\\', '?' ->
+          (* For regexp, we want to make sure \? is kept as-is
+             and does not need any further escaping. *)
+          if sep = '/' then (
+            Buffer.add_char buf '\\';
+            Buffer.add_char buf '?';
+            render_string ())
+          else (
+            Buffer.add_char buf '\x3f';
+            render_string ())
+      | '\\', 'x', ascii_hex_digit, ascii_hex_digit ->
+          let matched = Sedlexing.Utf8.lexeme lexbuf in
+          let idx = String.index matched 'x' in
+          let code = String.sub matched (idx + 1) 2 in
+          let code = int_of_string (Printf.sprintf "0x%s" code) in
+          Buffer.add_char buf (Char.chr code);
+          render_string ()
+      | '\\', oct_digit, oct_digit, oct_digit ->
+          let matched = Sedlexing.Utf8.lexeme lexbuf in
+          let idx = String.index matched '\\' in
+          let code = String.sub matched (idx + 1) 3 in
+          let code = min 255 (int_of_string (Printf.sprintf "0o%s" code)) in
+          Buffer.add_char buf (Char.chr code);
+          render_string ()
+      | ( '\\',
+          'u',
+          ascii_hex_digit,
+          ascii_hex_digit,
+          ascii_hex_digit,
+          ascii_hex_digit ) ->
+          let matched = Sedlexing.Utf8.lexeme lexbuf in
+          Buffer.add_string buf (Lang_string.unescape_utf8_char matched);
+          render_string ()
+      (* Multiline string support: some text \
+         Some more text *)
+      | '\\', '\n', Star skipped -> render_string ()
+      | '\\', any ->
+          if sep <> '/' then (
+            let pos = Pos.to_string pos in
+            Printf.printf
+              "Warning at position %s: illegal backslash escape in string.\n"
+              pos);
+          Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+          render_string ()
+      | Plus (Compl ('"' | '\'' | '\\' | '/')) ->
+          Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+          render_string ()
+      | '"' | '\'' | '/' ->
+          let matched = Sedlexing.Utf8.lexeme lexbuf in
+          let c' = matched.[0] in
+          if sep = c' then Buffer.contents buf
+          else (
+            Buffer.add_char buf c';
+            render_string ())
+      | eof ->
+          let msg =
+            if sep = '/' then "Regexp not terminated"
+            else "String is not terminated"
+          in
+          raise (Term_base.Parse_error (pos, msg))
+      | _ ->
+          let msg =
+            if sep = '/' then "Illegal regexp character: "
+            else "Illegal string character: "
+          in
+          raise
+            (Term_base.Parse_error (pos, msg ^ Sedlexing.Utf8.lexeme lexbuf))
+  in
+  render_string ()
+
+let () =
+  Parser_helper.render_string_ref :=
+    fun ~pos (sep, s) -> render_string ~pos ~sep s
