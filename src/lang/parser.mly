@@ -208,14 +208,14 @@ expr:
   | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
   | if_version                       { mk ~pos:$loc (`If_version $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
-  | UMINUS float                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
+  | UMINUS FLOAT                     { mk ~pos:$loc (`Float ("-" ^ (if fst $2 = "" then "0" else fst $2), snd $2)) }
   | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`Negative $3) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk ~pos:$loc (`Ground (Int $1)) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
   | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
-  | float                            { mk ~pos:$loc (`Ground (Float  $1)) }
+  | FLOAT                            { mk ~pos:$loc (`Float $1) }
   | STRING                           { mk ~pos:$loc (`Ground (String $1)) }
   | string_interpolation             { mk ~pos:$loc (`String_interpolation $1) }
   | VAR                              { mk ~pos:$loc (`Var $1) }
@@ -273,18 +273,6 @@ expr:
   | expr TIMES expr                { mk ~pos:$loc (`Infix ($1, "*", $3)) }
   | expr MINUS expr                { mk ~pos:$loc (`Infix ($1, "-", $3)) }
   | time_predicate                 { $1 }
-
-float:
-  | FLOAT {
-        let (ipart, fpart) = $1 in
-        let fpart =
-          if fpart = "" then 0.
-          else
-            float_of_string fpart /. (10. ** float_of_int (String.length fpart))
-        in
-        let ipart = if ipart = "" then 0. else float_of_string ipart in
-        ipart +. fpart
-  }
 
 invoke:
   | VAR                   { `String $1 }

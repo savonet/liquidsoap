@@ -379,6 +379,8 @@ let rec to_ast_json = function
           ( "value",
             `String (Json.to_string (Term_base.Ground.to_json ~pos:[] g)) );
         ]
+  | `Float (ipart, fpart) ->
+      ast_node ~typ:"ground" [("value", `String (ipart ^ "." ^ fpart))]
   | `Encoder e -> ast_node ~typ:"encoder" (to_encoder_json e)
   | `List l ->
       ast_node ~typ:"list"

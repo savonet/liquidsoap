@@ -168,6 +168,7 @@ and parsed_ast =
   | `Simple_fun of t
   | `String_interpolation of string_interpolation list
   | `Include of inc
+  | `Float of string * string
   | `Eof
   | t ast ]
 
@@ -260,6 +261,7 @@ let rec iter_term fn ({ term; methods } as tm) =
     | `Open (tm, tm') ->
         iter_term fn tm;
         iter_term fn tm'
+    | `Float _ -> ()
     | `Var _ -> ()
     | `Eof -> ()
     | `String_interpolation l ->
