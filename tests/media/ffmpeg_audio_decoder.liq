@@ -15,9 +15,9 @@ s = sequence([s, s, once(s)])
 
 #clock.assign_new(sync='none',[s])
 
-def on_done () =
-  thread.run(delay=0.2, fun () -> begin
-    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+def on_close(filename) =
+  if not test.done() then
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
 
     let json.parse ( parsed: {
       streams: [{
@@ -33,7 +33,7 @@ def on_done () =
     else
       test.fail()
     end
-  end)
+  end
 end
 
-output.file(fallible=true, on_stop=on_done, %wav(mono), out, s)
+output.file(fallible=true, on_close=on_close, %wav(mono), out, s)

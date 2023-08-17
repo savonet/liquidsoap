@@ -16,7 +16,7 @@ s = once(blank(duration=10.))
 
 todo = ref(2)
 
-def on_done () =
+def on_close (_) =
   def check(out) =
     j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
@@ -43,7 +43,7 @@ def on_done () =
 
   todo := !todo - 1
 
-  if !todo == 0 then
+  if not test.done() and !todo == 0 then
     if check(out_copy) and check(out_encode) then
       test.pass()
     else
@@ -63,7 +63,7 @@ s = ffmpeg.encode.audio_video(
 
 output.file(
   fallible=true,
-  on_stop=on_done,
+  on_close=on_close,
   %ffmpeg(
     %video.copy,
     %audio.copy,
@@ -78,7 +78,7 @@ s = ffmpeg.decode.audio_video(id="decoder", s)
 
 output.file(
   fallible=true,
-  on_stop=on_done,
+  on_close=on_close,
   %ffmpeg(
     %video(codec="libx264", b="5m"),
     %audio(codec="aac")

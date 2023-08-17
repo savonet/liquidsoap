@@ -18,34 +18,32 @@ s = source.mux.video(video=v, a)
 
 todo = ref(2)
 
-def on_done () =
-  thread.run(delay=1., fun () -> begin
-    def check(out) =
-      j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+def on_close (_) =
+  def check(out) =
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
-      let json.parse ( parsed : {
-        streams: [{
-          codec_name: string,
-          pix_fmt: string
-        }]
-      }) = j
+    let json.parse ( parsed : {
+      streams: [{
+        codec_name: string,
+        pix_fmt: string
+      }]
+    }) = j
 
-      let [stream] = parsed.streams
+    let [stream] = parsed.streams
 
-      stream.codec_name == "h264" and
-      stream.pix_fmt == "yuv420p"
+    stream.codec_name == "h264" and
+    stream.pix_fmt == "yuv420p"
+  end
+
+  todo := !todo - 1
+
+  if not test.done () and !todo == 0 then
+    if check(out_copy) and check(out_encode) then
+      test.pass()
+    else
+      test.fail()
     end
-
-    todo := !todo - 1
-
-    if !todo == 0 then
-      if check(out_copy) and check(out_encode) then
-        test.pass()
-      else
-        test.fail()
-      end
-    end
-  end)
+  end
 end
 
 s = ffmpeg.encode.video(
@@ -57,7 +55,7 @@ s = ffmpeg.encode.video(
 
 output.file(
   fallible=true,
-  on_stop=on_done,
+  on_close=on_close,
   %ffmpeg(
     %video.copy,
   ),
@@ -71,7 +69,7 @@ s = ffmpeg.decode.video(s)
 
 output.file(
   fallible=true,
-  on_stop=on_done,
+  on_close=on_close,
   %ffmpeg(
     %video(codec="libx264")
   ),
