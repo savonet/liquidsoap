@@ -134,7 +134,7 @@ open Parser_helper
 %type <Term.t> exprs
 %type <Term.t> simple_fun_body
 %type <unit> g
-%type <Term.t> if_elsif
+%type <(Term.t * Term.t) list * Term.t option> if_elsif
 %type <string list> in_subfield
 %type <string list> in_subfield_lbra
 %type <Parsed_term.list_el list> inner_list
@@ -264,9 +264,9 @@ expr:
                                          try_variable = $4;
                                          try_errors_list =  mk ~pos:$loc `Null;
                                          try_handler = $6 }) }
-  | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
+  | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_elsif = fst $5; if_else = snd $5 }) }
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
-  | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_else = $5}) }
+  | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_elsif = []; if_else = Some $5}) }
   | expr BINB expr                 { mk ~pos:$loc (`Bool ($1, $2, $3)) }
   | expr BIN1 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
   | expr BIN2 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
@@ -545,9 +545,9 @@ in_subfield_lbra:
   | VAR DOT in_subfield_lbra { $1::$3 }
 
 if_elsif:
-  | ELSIF exprs THEN exprs if_elsif { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
-  | ELSE exprs                      { $2 }
-  |                                 { mk ~pos:$loc unit }
+  | ELSIF exprs THEN exprs if_elsif { ($2, $4)::(fst $5), snd $5 }
+  | ELSE exprs                      { [], Some $2 }
+  |                                 { [], None }
 
 encoder_opt:
   | %prec no_app { [] }

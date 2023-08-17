@@ -395,13 +395,29 @@ let set_reducer ?pos ~to_term = function
       `App (op, [("", to_term v)])
 
 let if_reducer ?pos ~to_term = function
-  | `Inline_if { if_condition; if_then; if_else }
-  | `If { if_condition; if_then; if_else } ->
-      let op = mk ?pos (`Var "if") in
-      let if_condition = to_term if_condition in
-      let if_then = mk_fun ?pos [] (to_term if_then) in
-      let if_else = mk_fun ?pos [] (to_term if_else) in
-      `App (op, [("", if_condition); ("then", if_then); ("else", if_else)])
+  | `Inline_if { if_condition; if_then; if_elsif; if_else }
+  | `If { if_condition; if_then; if_elsif; if_else } ->
+      let if_else =
+        match if_else with
+          | None -> Term_base.make ?pos (`Tuple [])
+          | Some t -> to_term t
+      in
+      let term =
+        List.fold_left
+          (fun if_else (condition, _then) ->
+            let op = mk ?pos (`Var "if") in
+            Term_base.make ?pos
+              (`App
+                ( op,
+                  [
+                    ("", to_term condition);
+                    ("then", mk_fun ?pos [] (to_term _then));
+                    ("else", mk_fun ?pos [] if_else);
+                  ] )))
+          if_else
+          (List.rev ((if_condition, if_then) :: if_elsif))
+      in
+      term.term
 
 let pp_if_reducer ?pos ~to_term = function
   | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else } -> (
@@ -731,12 +747,14 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Simple_fun _ as ast -> simple_fun_reducer ?pos ~to_term ast
   | `Regexp _ as ast -> regexp_reducer ?pos ~to_term ast
   | `Try _ as ast -> try_reducer ?pos ~to_term ast
-  | `String_interpolation (_, l) ->
+  | `String_interpolation (sep, l) ->
       let l =
         List.map
           (function
             | `String s ->
-                `Term (Term_base.make (`Ground (Term.Ground.String s)))
+                `Term
+                  (Term_base.make
+                     (`Ground (Term.Ground.String (render_string ?pos ~sep s))))
             | `Term tm ->
                 `Term
                   (Term_base.make
@@ -761,9 +779,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Encoder e -> `Encoder (to_encoder e)
   | `List l -> list_reducer ?pos ~to_term (List.rev l)
   | `Tuple l -> `Tuple (List.map to_term l)
-  | `String (sep, s) ->
-      `Ground
-        (String (Printf.sprintf "%c%s%c" sep (render_string ?pos ~sep s) sep))
+  | `String (sep, s) -> `Ground (String (render_string ?pos ~sep s))
   | `Float (ipart, fpart) ->
       let fpart =
         if fpart = "" then 0.

@@ -37,13 +37,6 @@ let json_of_positions = function
   | None -> `Null
   | Some (p, p') -> `Tuple [json_of_position p; json_of_position p']
 
-let json_of_if ~to_json { if_condition; if_then; if_else } =
-  [
-    ("condition", to_json if_condition);
-    ("then", to_json if_then);
-    ("else", to_json if_else);
-  ]
-
 let json_of_if_def ~to_json
     { if_def_negative; if_def_condition; if_def_then; if_def_else } =
   [
@@ -180,6 +173,22 @@ and json_of_source_track_annotation { track_name; track_type; track_params } =
     (`String track_type)
 
 let ast_node ~typ value = ("type", `String typ) :: value
+
+let json_of_if ~to_json { if_condition; if_then; if_elsif; if_else } =
+  [
+    ("condition", to_json if_condition);
+    ("then", to_json if_then);
+    ( "elsif",
+      `Tuple
+        (List.map
+           (fun (t, t') ->
+             `Assoc
+               (ast_node ~typ:"elsif"
+                  [("condition", to_json t); ("then", to_json t')]))
+           if_elsif) );
+    ( "else",
+      match if_else with None -> `Null | Some if_else -> to_json if_else );
+  ]
 
 let rec base_json_of_pat = function
   | `PVar l ->
