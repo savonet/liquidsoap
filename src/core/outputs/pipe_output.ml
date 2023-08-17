@@ -53,11 +53,13 @@ class virtual base ~source ~name p =
 
     val mutable encoder = None
     val mutable current_metadata = None
+    method virtual start : unit
+    method virtual stop : unit
 
     method virtual private encoder_factory
         : string -> Frame.Metadata.Export.t -> Encoder.encoder
 
-    method start =
+    method create_encoder =
       let enc = self#encoder_factory self#id in
       let meta =
         match current_metadata with
@@ -68,24 +70,28 @@ class virtual base ~source ~name p =
 
     (* Make sure to call stop on the encoder to close any open
        connection. *)
-    method stop =
+    method close_encoder =
       match encoder with
-        | None -> ()
+        | None -> Strings.empty
         | Some enc ->
-            (try ignore (enc.Encoder.stop ()) with _ -> ());
-            encoder <- None
+            let flushed = try enc.Encoder.stop () with _ -> Strings.empty in
+            encoder <- None;
+            flushed
 
     method! reset = ()
 
     method encode frame ofs len =
-      let enc = Option.get encoder in
-      enc.Encoder.encode frame ofs len
+      match encoder with
+        | None -> Strings.empty
+        | Some encoder -> encoder.Encoder.encode frame ofs len
 
     method virtual write_pipe : string -> int -> int -> unit
     method send b = Strings.iter self#write_pipe b
 
     method insert_metadata m =
-      ignore (Option.map (fun e -> e.Encoder.insert_metadata m) encoder)
+      match encoder with
+        | None -> ()
+        | Some encoder -> encoder.Encoder.insert_metadata m
   end
 
 (** url output: discard encoded data, try to restart on encoding error (can be
@@ -147,54 +153,49 @@ class url_output p =
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let name = "output.url" in
   object (self)
-    inherit base p ~source ~name as super
+    inherit base p ~source ~name as base
     method private encoder_factory = encoder_factory ~format format_val
     val mutable restart_time = 0.
+    method can_connect = restart_time <= Unix.gettimeofday ()
 
-    method! start =
+    method on_error ~bt exn =
+      (try ignore self#close_encoder with _ -> ());
+      Utils.log_exception ~log:self#log
+        ~bt:(Printexc.raw_backtrace_to_string bt)
+        (Printf.sprintf "Error while connecting: %s" (Printexc.to_string exn));
+      on_error ~bt exn;
+      match restart_delay with
+        | None -> Printexc.raise_with_backtrace exn bt
+        | Some delay ->
+            restart_time <- Unix.gettimeofday () +. delay;
+            self#log#important "Will try again in %.02f seconds." delay
+
+    method connect =
       match encoder with
-        | None when restart_time <= Unix.gettimeofday () -> (
+        | None when self#can_connect -> (
             try
-              super#start;
+              self#create_encoder;
               on_start ()
-            with exn -> (
+            with exn ->
               let bt = Printexc.get_raw_backtrace () in
-              Utils.log_exception ~log:self#log
-                ~bt:(Printexc.raw_backtrace_to_string bt)
-                (Printf.sprintf "Error while connecting: %s"
-                   (Printexc.to_string exn));
-              on_error ~bt exn;
-              match restart_delay with
-                | None -> Printexc.raise_with_backtrace exn bt
-                | Some delay ->
-                    restart_time <- Unix.gettimeofday () +. delay;
-                    self#log#important "Will try again in %.02f seconds." delay)
-            )
+              self#on_error ~bt exn)
         | _ -> ()
+
+    method start = self#connect
+    method stop = ignore self#close_encoder
 
     method! encode frame ofs len =
       try
         match encoder with
-          | None when restart_time <= Unix.gettimeofday () ->
-              super#start;
-              on_start ();
-              super#encode frame ofs len
+          | None when self#can_connect ->
+              self#connect;
+              base#encode frame ofs len
           | None -> Strings.empty
-          | Some _ -> super#encode frame ofs len
-      with exn -> (
+          | Some _ -> base#encode frame ofs len
+      with exn ->
         let bt = Printexc.get_raw_backtrace () in
-        Utils.log_exception ~log:self#log
-          ~bt:(Printexc.raw_backtrace_to_string bt)
-          (Printf.sprintf "Error while encoding data: %s"
-             (Printexc.to_string exn));
-        on_error ~bt exn;
-        match restart_delay with
-          | None -> Printexc.raise_with_backtrace exn bt
-          | Some delay ->
-              self#stop;
-              restart_time <- Unix.gettimeofday () +. delay;
-              self#log#important "Will try again in %.02f seconds." delay;
-              Strings.empty)
+        self#on_error ~bt exn;
+        Strings.empty
 
     method write_pipe _ _ _ = ()
     method! self_sync = (`Static, self_sync)
@@ -303,7 +304,7 @@ class virtual piped_output ~name p =
   let on_reopen = List.assoc "on_reopen" p in
   let on_reopen () = ignore (Lang.apply on_reopen []) in
   object (self)
-    inherit base ~source ~name p as super
+    inherit base ~source ~name p as base
     val mutable open_date = 0.
     val need_reopen = Atomic.make false
     method need_reopen = Atomic.set need_reopen true
@@ -324,25 +325,20 @@ class virtual piped_output ~name p =
     method prepare_pipe =
       self#open_pipe;
       open_date <- Unix.gettimeofday ();
-      Atomic.set need_reopen false
+      Atomic.set need_reopen false;
+      self#create_encoder
 
-    method private close_encoder =
-      match encoder with
-        | None -> ()
-        | Some encoder ->
-            let flush = encoder.Encoder.stop () in
-            super#send flush
-
-    method! stop =
+    method cleanup_pipe =
       if self#is_open then (
-        self#close_encoder;
-        self#close_pipe);
-      super#stop
+        base#send self#close_encoder;
+        self#close_pipe)
+
+    method start = self#prepare_pipe
+    method stop = self#cleanup_pipe
 
     method reopen =
       self#log#important "Re-opening output pipe.";
-      self#close_encoder;
-      self#close_pipe;
+      self#cleanup_pipe;
       self#prepare_pipe;
       on_reopen ()
 
@@ -358,13 +354,10 @@ class virtual piped_output ~name p =
               (Printexc.to_string exn) reopen_delay
 
     method! output =
-      try super#output
+      try base#output
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
-        (try
-           self#close_encoder;
-           self#close_pipe
-         with _ -> ());
+        (try self#cleanup_pipe with _ -> ());
         self#reopen_on_error ~bt exn
 
     method! send b =
@@ -378,12 +371,12 @@ class virtual piped_output ~name p =
             Atomic.set need_reopen true;
             open_date <- Unix.gettimeofday ()
         | _ -> ());
-      if self#is_open then super#send b
+      if self#is_open then base#send b
 
     method! insert_metadata metadata =
       if reopen_on_metadata (Frame.Metadata.Export.to_metadata metadata) then
         self#reopen;
-      super#insert_metadata metadata
+      base#insert_metadata metadata
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to
@@ -478,7 +471,8 @@ class virtual ['a] file_output_base p =
     method close_chan fd =
       try
         self#close_out fd;
-        self#on_close (Option.get (Atomic.get current_filename));
+        (try self#on_close (Option.get (Atomic.get current_filename))
+         with _ -> ());
         Atomic.set current_filename None
       with Sys_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
@@ -507,9 +501,11 @@ class file_output ~format_val p =
 class file_output_using_encoder ~format_val p =
   let format = Lang.to_format format_val in
   let append = Lang.to_bool (List.assoc "append" p) in
+  let on_close = List.assoc "on_close" p in
+  let on_close s = Lang.to_unit (Lang.apply on_close [("", Lang.string s)]) in
   let p = ("append", Lang.bool true) :: List.remove_assoc "append" p in
   object (self)
-    inherit piped_output ~name:"output.file" p
+    inherit piped_output ~name:"output.file" p as base
     inherit [unit] chan_output p
     inherit [unit] file_output_base p
 
@@ -521,9 +517,16 @@ class file_output_using_encoder ~format_val p =
     method encoder_factory name meta =
       (* Make sure the file is created with the right perms. *)
       let filename, mode, perm = self#prepare_filename in
+      Atomic.set current_filename (Some filename);
       self#open_out_gen mode perm filename;
       let format = Encoder.with_file_output ~append format filename in
       encoder_factory ~format format_val name meta
+
+    method! close_encoder =
+      let ret = base#close_encoder in
+      (try on_close (Option.get (Atomic.get current_filename)) with _ -> ());
+      Atomic.set current_filename None;
+      ret
 
     method output_substring () _ _ _ = ()
     method flush () = ()

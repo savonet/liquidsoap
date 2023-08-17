@@ -42,9 +42,9 @@ s.on_track(on_track)
 
 #clock.assign_new(id='test_clock',sync='none',[s])
 
-def on_done () =
-  if !started then
-    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+def on_close (filename) =
+  if !started and not test.done() then
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
 
     let json.parse ( parsed : {
       streams: [{
@@ -72,4 +72,4 @@ def on_done () =
   end
 end
 
-output.file(fallible=true, on_stop=on_done, %ffmpeg(format="mkv",%audio.raw(codec="aac"),%video.raw(codec="libx264")), out, s)
+output.file(fallible=true, on_close=on_close, %ffmpeg(format="mkv",%audio.raw(codec="aac"),%video.raw(codec="libx264")), out, s)
