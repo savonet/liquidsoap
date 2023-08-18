@@ -63,7 +63,13 @@ and type_annotation =
 
 type _of = { only : string list; except : string list; source : string }
 
-type _if = { if_condition : t; if_then : t; if_else : t }
+type _if = {
+  if_condition : t;
+  if_then : t;
+  if_elsif : (t * t) list;
+  if_else : t option;
+}
+
 and _while = { while_condition : t; while_loop : t }
 and _for = { for_variable : string; for_from : t; for_to : t; for_loop : t }
 
@@ -166,8 +172,10 @@ and parsed_ast =
   | `Bool of t * string * t
   | `Coalesce of t * t
   | `Simple_fun of t
-  | `String_interpolation of string_interpolation list
+  | `String_interpolation of char * string_interpolation list
   | `Include of inc
+  | `Float of string * string
+  | `String of char * string
   | `Eof
   | t ast ]
 
@@ -182,10 +190,15 @@ let rec iter_term fn ({ term; methods } as tm) =
   if term <> `Eof then fn tm;
   Methods.iter (fun _ tm -> iter_term fn tm) methods;
   match term with
-    | `If p | `Inline_if p ->
+    | `If p | `Inline_if p -> (
         iter_term fn p.if_condition;
         iter_term fn p.if_then;
-        iter_term fn p.if_else
+        List.iter
+          (fun (t, t') ->
+            iter_term fn t;
+            iter_term fn t')
+          p.if_elsif;
+        match p.if_else with None -> () | Some t -> iter_term fn t)
     | `If_def { if_def_then; if_def_else } -> (
         iter_term fn if_def_then;
         match if_def_else with None -> () | Some term -> iter_term fn term)
@@ -260,9 +273,11 @@ let rec iter_term fn ({ term; methods } as tm) =
     | `Open (tm, tm') ->
         iter_term fn tm;
         iter_term fn tm'
+    | `Float _ -> ()
+    | `String _ -> ()
     | `Var _ -> ()
     | `Eof -> ()
-    | `String_interpolation l ->
+    | `String_interpolation (_, l) ->
         List.iter (function `String _ -> () | `Term tm -> iter_term fn tm) l
     | `Seq (tm, tm') ->
         iter_term fn tm;

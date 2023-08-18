@@ -37,13 +37,6 @@ let json_of_positions = function
   | None -> `Null
   | Some (p, p') -> `Tuple [json_of_position p; json_of_position p']
 
-let json_of_if ~to_json { if_condition; if_then; if_else } =
-  [
-    ("condition", to_json if_condition);
-    ("then", to_json if_then);
-    ("else", to_json if_else);
-  ]
-
 let json_of_if_def ~to_json
     { if_def_negative; if_def_condition; if_def_then; if_def_else } =
   [
@@ -180,6 +173,22 @@ and json_of_source_track_annotation { track_name; track_type; track_params } =
     (`String track_type)
 
 let ast_node ~typ value = ("type", `String typ) :: value
+
+let json_of_if ~to_json { if_condition; if_then; if_elsif; if_else } =
+  [
+    ("condition", to_json if_condition);
+    ("then", to_json if_then);
+    ( "elsif",
+      `Tuple
+        (List.map
+           (fun (t, t') ->
+             `Assoc
+               (ast_node ~typ:"elsif"
+                  [("condition", to_json t); ("then", to_json t')]))
+           if_elsif) );
+    ( "else",
+      match if_else with None -> `Null | Some if_else -> to_json if_else );
+  ]
 
 let rec base_json_of_pat = function
   | `PVar l ->
@@ -335,7 +344,11 @@ let rec to_ast_json = function
       ast_node ~typ:"iterable_for" (json_of_iterable_for ~to_json p)
   | `Not t -> ast_node ~typ:"not" [("value", to_json t)]
   | `Negative t -> ast_node ~typ:"negative" [("value", to_json t)]
-  | `String_interpolation l ->
+  | `String_interpolation (c, l) ->
+      let l =
+        `String (Printf.sprintf "%c" c)
+        :: (l @ [`String (Printf.sprintf "%c" c)])
+      in
       let l =
         List.map
           (function
@@ -379,6 +392,11 @@ let rec to_ast_json = function
           ( "value",
             `String (Json.to_string (Term_base.Ground.to_json ~pos:[] g)) );
         ]
+  | `Float (ipart, fpart) ->
+      ast_node ~typ:"ground" [("value", `String (ipart ^ "." ^ fpart))]
+  | `String (c, s) ->
+      ast_node ~typ:"ground"
+        [("value", `String (Printf.sprintf "%c%s%c" c s c))]
   | `Encoder e -> ast_node ~typ:"encoder" (to_encoder_json e)
   | `List l ->
       ast_node ~typ:"list"

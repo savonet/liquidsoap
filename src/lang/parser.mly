@@ -31,9 +31,9 @@ open Parser_helper
 %token <string> VARLPAR
 %token <string> VARLBRA
 %token <Lang_string.Version.t> VERSION
-%token <string * Pos.t> PP_STRING
+%token <char * string * Pos.t> PP_STRING
 %token <string * char list * Pos.t> PP_REGEXP
-%token <string > STRING
+%token <char * string > STRING
 %token <string * char list > REGEXP
 %token <int> INT PP_INT_DOT_LCUR
 %token <string * string> FLOAT
@@ -73,7 +73,8 @@ open Parser_helper
 %token <bool> PP_IFENCODER
 %token PP_ELSE PP_ENDIF
 %token PP_ENDL
-%token BEGIN_INTERPOLATION END_INTERPOLATION
+%token <char> BEGIN_INTERPOLATION
+%token END_INTERPOLATION
 %token <string> INTERPOLATED_STRING
 %token <Parsed_term.inc> INCLUDE
 %token WHILE FOR TO
@@ -133,7 +134,7 @@ open Parser_helper
 %type <Term.t> exprs
 %type <Term.t> simple_fun_body
 %type <unit> g
-%type <Term.t> if_elsif
+%type <(Term.t * Term.t) list * Term.t option> if_elsif
 %type <string list> in_subfield
 %type <string list> in_subfield_lbra
 %type <Parsed_term.list_el list> inner_list
@@ -208,15 +209,15 @@ expr:
   | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
   | if_version                       { mk ~pos:$loc (`If_version $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
-  | UMINUS float                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
+  | UMINUS FLOAT                     { mk ~pos:$loc (`Float ("-" ^ (if fst $2 = "" then "0" else fst $2), snd $2)) }
   | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`Negative $3) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk ~pos:$loc (`Ground (Int $1)) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
   | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
-  | float                            { mk ~pos:$loc (`Ground (Float  $1)) }
-  | STRING                           { mk ~pos:$loc (`Ground (String $1)) }
+  | FLOAT                            { mk ~pos:$loc (`Float $1) }
+  | STRING                           { mk ~pos:$loc (`String $1) }
   | string_interpolation             { mk ~pos:$loc (`String_interpolation $1) }
   | VAR                              { mk ~pos:$loc (`Var $1) }
   | varlist                          { mk ~pos:$loc (`List $1) }
@@ -263,9 +264,9 @@ expr:
                                          try_variable = $4;
                                          try_errors_list =  mk ~pos:$loc `Null;
                                          try_handler = $6 }) }
-  | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
+  | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_elsif = fst $5; if_else = snd $5 }) }
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
-  | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_else = $5}) }
+  | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_elsif = []; if_else = Some $5}) }
   | expr BINB expr                 { mk ~pos:$loc (`Bool ($1, $2, $3)) }
   | expr BIN1 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
   | expr BIN2 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
@@ -273,18 +274,6 @@ expr:
   | expr TIMES expr                { mk ~pos:$loc (`Infix ($1, "*", $3)) }
   | expr MINUS expr                { mk ~pos:$loc (`Infix ($1, "-", $3)) }
   | time_predicate                 { $1 }
-
-float:
-  | FLOAT {
-        let (ipart, fpart) = $1 in
-        let fpart =
-          if fpart = "" then 0.
-          else
-            float_of_string fpart /. (10. ** float_of_int (String.length fpart))
-        in
-        let ipart = if ipart = "" then 0. else float_of_string ipart in
-        ipart +. fpart
-  }
 
 invoke:
   | VAR                   { `String $1 }
@@ -317,11 +306,11 @@ meth_ty:
   | VAR QUESTION COLON ty   { { optional = true; name = $1; typ = $4; json_name = None } }
   | STRING VAR VAR COLON ty {
        match $2 with
-         |"as" ->             { optional = false; name = $3; typ = $5; json_name = Some $1 }
+         |"as" ->             { optional = false; name = $3; typ = $5; json_name = Some (render_string ~pos:$loc $1) }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
   | STRING VAR VAR QUESTION COLON ty {
        match $2 with
-         |"as" ->             { optional = true; name = $3; typ = $6; json_name = Some $1 }
+         |"as" ->             { optional = true; name = $3; typ = $6; json_name = Some (render_string ~pos:$loc $1) }
          | _ -> raise (Term_base.Parse_error ($loc, "Invalid type constructor")) }
 
 ty_source:
@@ -351,9 +340,9 @@ ty_content_args:
 
 ty_content_arg:
   | VAR                  { "",$1 }
-  | STRING               { "",$1 }
+  | STRING               { "", render_string ~pos:$loc $1 }
   | VAR GETS VAR         { $1,$3 }
-  | VAR GETS STRING      { $1,$3}
+  | VAR GETS STRING      { $1, render_string ~pos:$loc $3}
   | VAR GETS INT         { $1,string_of_int $3}
 
 ty_tuple:
@@ -556,9 +545,9 @@ in_subfield_lbra:
   | VAR DOT in_subfield_lbra { $1::$3 }
 
 if_elsif:
-  | ELSIF exprs THEN exprs if_elsif { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_else = $5 }) }
-  | ELSE exprs                      { $2 }
-  |                                 { mk ~pos:$loc unit }
+  | ELSIF exprs THEN exprs if_elsif { ($2, $4)::(fst $5), snd $5 }
+  | ELSE exprs                      { [], Some $2 }
+  |                                 { [], None }
 
 encoder_opt:
   | %prec no_app { [] }
@@ -566,9 +555,9 @@ encoder_opt:
 
 encoder_param:
   | VAR GETS expr       { $1, `Term $3 }
-  | STRING GETS expr    { $1, `Term $3 }
+  | STRING GETS expr    { render_string ~pos:$loc $1, `Term $3 }
   | VAR                 { "", `Term (mk ~pos:$loc (`Ground (String $1))) }
-  | STRING              { "", `Term (mk ~pos:$loc (`Ground (String $1))) }
+  | STRING              { "", `Term (mk ~pos:$loc (`String $1)) }
   | ENCODER encoder_opt { "", `Encoder ($1, $2) }
 
 encoder_params:
@@ -594,7 +583,7 @@ record:
   }
 
 string_interpolation:
-  | BEGIN_INTERPOLATION string_interpolation_elems END_INTERPOLATION { $2 }
+  | BEGIN_INTERPOLATION string_interpolation_elems END_INTERPOLATION { $1, $2 }
 
 string_interpolation_elem:
   | INTERPOLATED_STRING  { `String $1 }
@@ -679,11 +668,11 @@ annotate_metadata_entry:
 
 annotate_key:
   | VAR { $1 }
-  | STRING { $1 }
+  | STRING { render_string ~pos:$loc $1 }
 
 annotate_value:
   | INT { string_of_int $1 }
   | FLOAT { fst $1 ^ "." ^ snd $1 }
   | BOOL { string_of_bool $1 }
   | VAR { $1 }
-  | STRING { $1 }
+  | STRING { render_string ~pos:$loc $1 }

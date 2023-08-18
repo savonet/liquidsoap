@@ -34,6 +34,13 @@ type lexer_let_decoration =
 type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
 type binding = [ explicit_binding | `Binding of Term._let ]
 
+let render_string_ref = ref (fun ~pos:_ _ -> assert false)
+
+(* This is filled by Lexer to make it possible to use this function in the parser. *)
+let render_string ~pos s =
+  let fn = !render_string_ref in
+  fn ~pos s
+
 let pending_comments = ref []
 let clear_comments () = pending_comments := []
 let append_comment ~pos c = pending_comments := (pos, c) :: !pending_comments
