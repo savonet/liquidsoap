@@ -30,12 +30,13 @@ open Parser_helper
 %token <string> VAR
 %token <string> VARLPAR
 %token <string> VARLBRA
+%token <Lang_string.Version.t> VERSION
 %token <string * Pos.t> PP_STRING
 %token <string * char list * Pos.t> PP_REGEXP
 %token <string > STRING
 %token <string * char list > REGEXP
 %token <int> INT PP_INT_DOT_LCUR
-%token <float> FLOAT
+%token <string * string> FLOAT
 %token <bool> BOOL
 %token <Parsed_term.time_el> TIME
 %token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
@@ -66,8 +67,8 @@ open Parser_helper
 %token UNDERSCORE
 %token NOT
 %token GET SET
-%token <bool * string> PP_IFDEF
-%token <[ `Eq | `Geq | `Leq | `Gt | `Lt] * Lang_string.Version.t> PP_IFVERSION
+%token <bool> PP_IFDEF
+%token PP_IFVERSION
 %token ARGS_OF
 %token <bool> PP_IFENCODER
 %token PP_ELSE PP_ENDIF
@@ -173,7 +174,7 @@ open Parser_helper
 
 program:
   | error { raise (Term_base.Parse_error ($loc, "Syntax error!")) }
-  | EOF { mk ~pos:$loc unit }
+  | EOF { mk ~pos:$loc `Eof }
   | exprs EOF { $1 }
 
 interactive:
@@ -188,7 +189,7 @@ exprs:
   | OPEN expr s exprs        { mk ~pos:$loc (`Open ($2,$4)) }
   | expr s                   { $1 }
   | expr s exprs             { mk ~pos:$loc (`Seq ($1,$3)) }
-  | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
+  | binding s                { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc `Eof) }
   | binding s exprs          { mk_let ~pos:$loc($1) $1 $3 }
 
 (* Simple fun body, syntax: { ... }. Same as expressions except initial x = 1
@@ -207,14 +208,14 @@ expr:
   | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
   | if_version                       { mk ~pos:$loc (`If_version $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
-  | UMINUS FLOAT                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
+  | UMINUS float                     { mk ~pos:$loc (`Ground (Float (-. $2))) }
   | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`Negative $3) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk ~pos:$loc (`Ground (Int $1)) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
   | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
-  | FLOAT                            { mk ~pos:$loc (`Ground (Float  $1)) }
+  | float                            { mk ~pos:$loc (`Ground (Float  $1)) }
   | STRING                           { mk ~pos:$loc (`Ground (String $1)) }
   | string_interpolation             { mk ~pos:$loc (`String_interpolation $1) }
   | VAR                              { mk ~pos:$loc (`Var $1) }
@@ -272,6 +273,18 @@ expr:
   | expr TIMES expr                { mk ~pos:$loc (`Infix ($1, "*", $3)) }
   | expr MINUS expr                { mk ~pos:$loc (`Infix ($1, "-", $3)) }
   | time_predicate                 { $1 }
+
+float:
+  | FLOAT {
+        let (ipart, fpart) = $1 in
+        let fpart =
+          if fpart = "" then 0.
+          else
+            float_of_string fpart /. (10. ** float_of_int (String.length fpart))
+        in
+        let ipart = if ipart = "" then 0. else float_of_string ipart in
+        ipart +. fpart
+  }
 
 invoke:
   | VAR                   { `String $1 }
@@ -591,18 +604,23 @@ string_interpolation_elems:
   | string_interpolation_elem { [$1] }
   | string_interpolation_elem string_interpolation_elems
                               { $1::$2 }
+
+if_def_var:
+  | VAR                { [$1] }
+  | VAR DOT if_def_var { $1::$3 }
+
 if_def:
-  | PP_IFDEF exprs PP_ENDIF { {
-      if_def_negative = fst $1;
-      if_def_condition = snd $1;
-      if_def_then = $2;
+  | PP_IFDEF if_def_var exprs PP_ENDIF { {
+      if_def_negative = $1;
+      if_def_condition = String.concat "." $2;
+      if_def_then = $3;
       if_def_else = None
    } }
-  | PP_IFDEF exprs PP_ELSE exprs PP_ENDIF { {
-      if_def_negative = fst $1;
-      if_def_condition = snd $1;
-      if_def_then = $2;
-      if_def_else = Some $4;
+  | PP_IFDEF if_def_var exprs PP_ELSE exprs PP_ENDIF { {
+      if_def_negative = $1;
+      if_def_condition = String.concat "." $2;
+      if_def_then = $3;
+      if_def_else = Some $5;
   } }
 
 if_encoder:
@@ -619,18 +637,34 @@ if_encoder:
       if_encoder_else = Some $5;
   } }
 
+if_version_op:
+  | BIN1 {
+      match $1 with
+        | "==" -> `Eq
+        | ">=" -> `Geq
+        | "<=" -> `Leq
+        | "<" -> `Lt
+        | ">" -> `Gt
+        | _ -> raise (Term_base.Parse_error ($loc, "invalid %ifversion operand"))
+  }
+
+if_version_version:
+  | VERSION  { $1 }
+  | INT      { Lang_string.Version.of_string (string_of_int $1) }
+  | FLOAT    { Lang_string.Version.of_string (fst $1 ^ "." ^ snd $1) }
+
 if_version:
-  | PP_IFVERSION exprs PP_ENDIF { {
-      if_version_op = fst $1;
-      if_version_version = snd $1;
-      if_version_then = $2;
+  | PP_IFVERSION if_version_op if_version_version exprs PP_ENDIF { {
+      if_version_op = $2;
+      if_version_version = $3;
+      if_version_then = $4;
       if_version_else = None
    } }
-  | PP_IFVERSION exprs PP_ELSE exprs PP_ENDIF { {
-      if_version_op = fst $1;
-      if_version_version = snd $1;
-      if_version_then = $2;
-      if_version_else = Some $4;
+  | PP_IFVERSION if_version_op if_version_version exprs PP_ELSE exprs PP_ENDIF { {
+      if_version_op = $2;
+      if_version_version = $3;
+      if_version_then = $4;
+      if_version_else = Some $6;
   } }
 
 annotate:
@@ -649,7 +683,7 @@ annotate_key:
 
 annotate_value:
   | INT { string_of_int $1 }
-  | FLOAT { string_of_float $1 }
+  | FLOAT { fst $1 ^ "." ^ snd $1 }
   | BOOL { string_of_bool $1 }
   | VAR { $1 }
   | STRING { $1 }

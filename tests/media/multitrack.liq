@@ -53,41 +53,39 @@ enc = %ffmpeg(
   %video.copy
 )
 
-def on_close(filename) =
-  if not test.done() then
-    test.equals(meta_seen(), true)
-    test.equals(track_seen(), true)
-    test.equals(file_no_meta_seen(), true)
-    test.equals(file_track_seen(), 1)
+def on_stop() =
+  test.equals(meta_seen(), true)
+  test.equals(track_seen(), true)
+  test.equals(file_no_meta_seen(), true)
+  test.equals(file_track_seen(), 1)
 
-    ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
+  ojson = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
-    let json.parse ( parsed : {
-      streams: [{
-        channel_layout: string?,
-        sample_rate: string?,
-        sample_fmt: string?,
-        codec_name: string?,
-        pix_fmt: string?
-      }]
-    }) = ojson
+  let json.parse ( parsed : {
+    streams: [{
+      channel_layout: string?,
+      sample_rate: string?,
+      sample_fmt: string?,
+      codec_name: string?,
+      pix_fmt: string?
+    }]
+  }) = ojson
 
-    test.equals(list.length(parsed.streams), 3)
+  test.equals(list.length(parsed.streams), 3)
 
-    video_stream = list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)
-    aac_stream = list.find((fun (stream) -> stream.codec_name == "aac"), parsed.streams)
-    mp3_stream = list.find((fun (stream) -> stream.codec_name == "mp3"), parsed.streams)
+  video_stream = list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)
+  aac_stream = list.find((fun (stream) -> stream.codec_name == "aac"), parsed.streams)
+  mp3_stream = list.find((fun (stream) -> stream.codec_name == "mp3"), parsed.streams)
 
-    test.equals(video_stream.codec_name, "h264")
-    test.equals(video_stream.pix_fmt, "yuv420p")
-    test.equals(aac_stream.channel_layout, "stereo")
-    test.equals(mp3_stream.channel_layout, "mono")
+  test.equals(video_stream.codec_name, "h264")
+  test.equals(video_stream.pix_fmt, "yuv420p")
+  test.equals(aac_stream.channel_layout, "stereo")
+  test.equals(mp3_stream.channel_layout, "mono")
 
-    test.pass()
-  end
+  test.pass()
 end
 
-output.file(fallible=true, on_close=on_close, enc, out, s)
+output.file(fallible=true, on_stop=on_stop, enc, out, s)
 
 meta_count = ref(0)
 

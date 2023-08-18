@@ -351,6 +351,11 @@ module Version = struct
   (** String part. *)
   let str (v : t) = snd v
 
+  let to_string v =
+    Printf.sprintf "%s%s"
+      (String.concat "." (List.map string_of_int (num v)))
+      (str v)
+
   (** Compare two versions. 2.0.0~foo is less than 2.0.0 *)
   let compare v w =
     let compare_suffixes =
