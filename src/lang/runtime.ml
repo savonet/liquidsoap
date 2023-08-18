@@ -222,12 +222,7 @@ let interactive =
   MenhirLib.Convert.Simplified.traditional2revised Parser.interactive
 
 let mk_expr ?fname processor lexbuf =
-  let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
-  Parser_helper.clear_comments ();
-  let parsed_term = processor tokenizer in
-  Parser_helper.attach_comments
-    ~pos:(Option.get parsed_term.Term.t.Type.pos)
-    parsed_term;
+  let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
   Term_reducer.to_term parsed_term
 
 let from_lexbuf ?fname ?(parse_only = false) ~ns ~lib lexbuf =

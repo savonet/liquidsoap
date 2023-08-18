@@ -20,6 +20,11 @@
 
  *****************************************************************************)
 
+type processor =
+  ( Parser.token * Lexing.position * Lexing.position,
+    Parser_helper.Term.t )
+  MenhirLib.Convert.revised
+
 open Parsed_term
 open Term.Ground
 include Runtime_term
@@ -667,6 +672,15 @@ exception No_extra
 
 let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
 
+let mk_expr ?fname processor lexbuf =
+  let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
+  Parser_helper.clear_comments ();
+  let parsed_term = processor tokenizer in
+  Parser_helper.attach_comments
+    ~pos:(Option.get parsed_term.Term.t.Type.pos)
+    parsed_term;
+  parsed_term
+
 let includer_reducer ~to_term = function
   | `Include { inc_type; inc_name; inc_pos } -> (
       try
@@ -687,8 +701,7 @@ let includer_reducer ~to_term = function
             ~finally:(fun () -> close_in ic)
             (fun () ->
               let lexbuf = Sedlexing.Utf8.from_channel ic in
-              let tokenizer = Preprocessor.mk_tokenizer ~fname lexbuf in
-              program tokenizer)
+              mk_expr ~fname program lexbuf)
         in
         (to_term term).term
       with No_extra -> `Tuple [])

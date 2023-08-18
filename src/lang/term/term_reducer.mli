@@ -22,10 +22,12 @@
 
 (** Runtime reducer from parsed terms to runtime terms. *)
 
-val program :
+type processor =
   ( Parser.token * Lexing.position * Lexing.position,
     Parser_helper.Term.t )
   MenhirLib.Convert.revised
 
+val program : processor
+val mk_expr : ?fname:string -> processor -> Sedlexing.lexbuf -> Parsed_term.t
 val to_term : Parsed_term.t -> Term.t
 val to_encoder_params : Parsed_term.encoder_params -> Term.encoder_params
