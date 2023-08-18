@@ -64,14 +64,9 @@ let _ =
           let clock = Clock.clock ?on_error ~sync id in
           List.iter
             (fun s ->
-              try
-                let s = Lang.to_source s in
-                Clock.unify s#clock (Clock.create_known (clock :> Source.clock))
-              with
-                | Source.Clock_conflict (a, b) ->
-                    raise (Error.Clock_conflict (s.Lang.pos, a, b))
-                | Source.Clock_loop (a, b) ->
-                    raise (Error.Clock_loop (s.Lang.pos, a, b)))
+              let s = Lang.to_source s in
+              Clock.unify ~pos:s#pos s#clock
+                (Clock.create_known (clock :> Source.clock)))
             sources;
           Lang.unit
   in
@@ -108,17 +103,11 @@ let _ =
     Lang.unit_t
     (fun p ->
       let l = List.assoc "" p in
-      try
-        match Lang.to_source_list l with
-          | [] -> Lang.unit
-          | hd :: tl ->
-              List.iter (fun s -> Clock.unify hd#clock s#clock) tl;
-              Lang.unit
-      with
-        | Source.Clock_conflict (a, b) ->
-            raise (Error.Clock_conflict (l.Lang.pos, a, b))
-        | Source.Clock_loop (a, b) ->
-            raise (Error.Clock_loop (l.Lang.pos, a, b)))
+      match Lang.to_source_list l with
+        | [] -> Lang.unit
+        | hd :: tl ->
+            List.iter (fun s -> Clock.unify ~pos:hd#pos hd#clock s#clock) tl;
+            Lang.unit)
 
 let _ =
   let t = Lang.product_t Lang.string_t Lang.int_t in

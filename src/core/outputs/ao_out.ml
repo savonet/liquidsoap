@@ -55,7 +55,7 @@ class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
     method! private set_clock =
       super#set_clock;
       if clock_safe then
-        Clock.unify self#clock
+        Clock.unify ~pos:self#pos self#clock
           (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable device = None

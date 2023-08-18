@@ -50,7 +50,7 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~start dev source =
     method! private set_clock =
       super#set_clock;
       if clock_safe then
-        Clock.unify self#clock
+        Clock.unify ~pos:self#pos self#clock
           (Clock.create_known (Alsa_settings.get_clock () :> Source.clock))
 
     val mutable device = None

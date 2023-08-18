@@ -156,7 +156,7 @@ class append ~insert_missing ~merge source f =
       Atomic.set state `Idle
 
     method private register a =
-      Clock.unify a#clock source#clock;
+      Clock.unify ~pos:a#pos a#clock source#clock;
       Typing.(a#frame_type <: self#frame_type);
       a#get_ready activation
 

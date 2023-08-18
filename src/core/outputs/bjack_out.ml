@@ -51,7 +51,7 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
     method! private set_clock =
       super#set_clock;
       if clock_safe then
-        Clock.unify self#clock
+        Clock.unify ~pos:self#pos self#clock
           (Clock.create_known (Bjack_in.bjack_clock () :> Source.clock))
 
     val mutable device = None

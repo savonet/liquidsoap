@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Liquidsoap_lang.Error
+
 (** In this module we define the central streaming concepts: sources, active
     sources and clocks.
 
@@ -184,36 +186,34 @@ let var_eq a b =
     | Known a, Known b -> a = b
     | _, _ -> false
 
-exception Clock_conflict of string * string
-exception Clock_loop of string * string
-
 let rec sub_clocks = function
   | Known c -> c#sub_clocks
   | Link { contents = Unknown { sub_clocks } } -> sub_clocks
   | Link { contents = Same_as x } -> sub_clocks x
 
-let occurs_check x y =
+let occurs_check ~pos x y =
   let rec aux = function
     | [] -> ()
     | [] :: tl -> aux tl
     | (x' :: clocks) :: tl ->
         if var_eq x x' then
-          raise (Clock_loop (variable_to_string x, variable_to_string y));
+          raise (Clock_loop (pos, variable_to_string x, variable_to_string y));
         aux (sub_clocks x' :: clocks :: tl)
   in
   aux [sub_clocks y]
 
-let occurs_check x y =
-  occurs_check x y;
-  occurs_check y x
+let occurs_check ~pos x y =
+  occurs_check ~pos x y;
+  occurs_check ~pos y x
 
-let rec unify a b =
+let rec unify ~pos a b =
   match (a, b) with
-    | Link { contents = Same_as a }, _ -> unify a b
-    | _, Link { contents = Same_as b } -> unify a b
+    | Link { contents = Same_as a }, _ -> unify ~pos a b
+    | _, Link { contents = Same_as b } -> unify ~pos a b
     | Known s, Known s' ->
         if s <> s' then
-          raise (Clock_conflict (variable_to_string a, variable_to_string b))
+          raise
+            (Clock_conflict (pos, variable_to_string a, variable_to_string b))
     | Link ra, Link rb when ra == rb -> ()
     | ( Link
           ({ contents = Unknown { start; sources = sa; sub_clocks = ca } } as
@@ -229,9 +229,10 @@ let rec unify a b =
             | Some v, Some v' when v = v' -> Some v
             | _ ->
                 raise
-                  (Clock_conflict (variable_to_string a, variable_to_string b))
+                  (Clock_conflict
+                     (pos, variable_to_string a, variable_to_string b))
         in
-        occurs_check a b;
+        occurs_check ~pos a b;
         let merge =
           let s = List.sort_uniq Stdlib.compare (List.rev_append sa sb) in
           let sc = List.sort_uniq Stdlib.compare (List.rev_append ca cb) in
@@ -247,8 +248,9 @@ let rec unify a b =
           ({ contents = Unknown { start; sources = s; sub_clocks = sc } } as r),
         Known c ) ->
         if start <> None && c#start <> Option.get start then
-          raise (Clock_conflict (variable_to_string a, variable_to_string b));
-        occurs_check (Known c) (Link r);
+          raise
+            (Clock_conflict (pos, variable_to_string a, variable_to_string b));
+        occurs_check ~pos (Known c) (Link r);
         List.iter c#attach s;
         List.iter c#attach_clock sc;
         r := Same_as (Known c)
@@ -306,7 +308,7 @@ let add_new_output, iterate_new_outputs =
         List.iter f !l;
         l := []) )
 
-class virtual operator ?(name = "src") sources =
+class virtual operator ?pos ?(name = "src") sources =
   let frame_type = Type.var () in
   object (self)
     (** Monitoring *)
@@ -314,6 +316,9 @@ class virtual operator ?(name = "src") sources =
 
     method add_watcher w = watchers <- w :: watchers
     method private iter_watchers fn = List.iter fn watchers
+    val mutable pos : Pos.Option.t = pos
+    method pos = pos
+    method set_pos p = pos <- p
 
     (** Logging and identification *)
 
@@ -374,7 +379,7 @@ class virtual operator ?(name = "src") sources =
     method virtual self_sync : self_sync
 
     method private set_clock =
-      List.iter (fun s -> unify self#clock s#clock) sources
+      List.iter (fun s -> unify ~pos self#clock s#clock) sources
 
     initializer self#set_clock
 
@@ -789,15 +794,15 @@ class virtual operator ?(name = "src") sources =
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
-and virtual active_operator ?name sources =
+and virtual active_operator ?pos ?name sources =
   object (self)
-    inherit operator ?name sources
+    inherit operator ?pos ?name sources
 
     initializer
       has_outputs := true;
       add_new_output (self :> active_operator);
       ignore
-        (unify self#clock
+        (unify ~pos:self#pos self#clock
            (create_unknown
               ~sources:[(self :> active_operator)]
               ~sub_clocks:[] ()))
@@ -813,14 +818,14 @@ and virtual active_operator ?name sources =
 
 (** Shortcuts for defining sources with no children *)
 
-and virtual source ?name () =
+and virtual source ?pos ?name () =
   object
-    inherit operator ?name []
+    inherit operator ?pos ?name []
   end
 
-class virtual active_source ?name () =
+class virtual active_source ?pos ?name () =
   object
-    inherit active_operator ?name []
+    inherit active_operator ?pos ?name []
   end
 
 class virtual no_seek =

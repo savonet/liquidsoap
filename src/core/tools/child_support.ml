@@ -56,14 +56,17 @@ class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
     method virtual id : string
     method virtual clock : Source.clock_variable
     method private child_clock = Option.get child_clock
+    method virtual pos : Pos.Option.t
 
     method private set_clock =
       child_clock <- Some (create_child_clock self#id);
 
-      Clock.unify self#clock
+      Clock.unify ~pos:self#pos self#clock
         (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock] ());
 
-      List.iter (fun c -> Clock.unify self#child_clock c#clock) children;
+      List.iter
+        (fun c -> Clock.unify ~pos:c#pos self#child_clock c#clock)
+        children;
 
       Gc.finalise (finalise_child_clock self#child_clock) self
 
