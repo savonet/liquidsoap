@@ -368,9 +368,9 @@ let rec to_ast_json = function
   | `Infix (t, op, t') ->
       ast_node ~typ:"infix"
         [("left", to_json t); ("op", `String op); ("right", to_json t')]
-  | `Bool (t, op, t') ->
+  | `Bool (op, l) ->
       ast_node ~typ:"bool"
-        [("left", to_json t); ("op", `String op); ("right", to_json t')]
+        [("op", `String op); ("value", `Tuple (List.map to_json l))]
   | `Simple_fun t -> ast_node ~typ:"simple_fun" [("value", to_json t)]
   | `Time t -> ast_node ~typ:"time" (json_of_time_el t)
   | `Time_interval (t, t') ->

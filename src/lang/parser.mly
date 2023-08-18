@@ -58,7 +58,7 @@ open Parser_helper
 %token LBRA RBRA LCUR RCUR
 %token FUN YIELDS
 %token DOTDOTDOT
-%token <string> BINB
+%token AND OR
 %token <string> BIN1
 %token <string> BIN2
 %token <string> BIN3
@@ -83,7 +83,8 @@ open Parser_helper
 %nonassoc COALESCE     (* (x ?? y) == z *)
 %right SET             (* expr := (expr + expr), expr := (expr := expr) *)
 %nonassoc QUESTION     (* x ? y : z *)
-%left BINB             (* ((x+(y*z))==3) or ((not a)==b) *)
+%left AND             (* ((x+(y*z))==3) or ((not a)==b) *)
+%left OR
 %left BIN1
 %nonassoc NOT
 %left BIN2 MINUS
@@ -267,7 +268,16 @@ expr:
   | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_elsif = fst $5; if_else = snd $5 }) }
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
   | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_elsif = []; if_else = Some $5}) }
-  | expr BINB expr                 { mk ~pos:$loc (`Bool ($1, $2, $3)) }
+  | expr AND expr                  { match $1.term, $3.term with
+                                       | `Bool ("and", l), `Bool ("and", l') -> mk ~pos:$loc (`Bool ("and", l@l'))
+                                       |  `Bool ("and", l), _ -> mk ~pos:$loc (`Bool ("and", l@[$3]))
+                                       |  _, `Bool ("and", l) -> mk ~pos:$loc (`Bool ("and", $1::l))
+                                       | _ -> mk ~pos:$loc (`Bool ("and", [$1; $3])) }
+  | expr OR expr                  { match $1.term, $3.term with
+                                       | `Bool ("or", l), `Bool ("or", l') -> mk ~pos:$loc (`Bool ("or", l@l'))
+                                       |  `Bool ("or", l), _ -> mk ~pos:$loc (`Bool ("or", l@[$3]))
+                                       |  _, `Bool ("or", l) -> mk ~pos:$loc (`Bool ("or", $1::l))
+                                       | _ -> mk ~pos:$loc (`Bool ("or", [$1; $3])) }
   | expr BIN1 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
   | expr BIN2 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
   | expr BIN3 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
