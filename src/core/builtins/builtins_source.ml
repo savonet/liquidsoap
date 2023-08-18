@@ -186,9 +186,17 @@ let _ =
       ("", Lang.format_t kind, None, Some "Encoding format.");
       ("", Lang.string_t, None, Some "Name of the file.");
       ("", Lang.source_t kind, None, Some "Source to encode.");
+      ( "ratio",
+        Lang.float_t,
+        Some (Lang.float 50.),
+        Some
+          "Time ratio. A value of `50` means process data at `50x` real rate, \
+           when possible." );
     ]
     Lang.unit_t
     (fun p ->
+      let module Time = (val Clock.time_implementation () : Liq_time.T) in
+      let open Time in
       let proto =
         let p = Pipe_output.file_proto (Lang.univ_t ()) in
         List.filter_map (fun (l, _, v, _) -> Option.map (fun v -> (l, v)) v) p
@@ -197,12 +205,16 @@ let _ =
       let s = Lang.to_source (Lang.assoc "" 3 p) in
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
       let fo = Pipe_output.new_file_output p in
+      let ratio = Lang.to_float (List.assoc "ratio" p) in
+      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
       let clock = Clock.clock ~start:false "source_dumper" in
       Clock.unify fo#clock (Clock.create_known clock);
       ignore (clock#start_outputs (fun _ -> true) ());
-      log#info "Start dumping source.";
+      log#info "Start dumping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && fo#is_ready do
-        clock#end_tick
+        let start_time = Time.time () in
+        clock#end_tick;
+        sleep_until (start_time |+| latency)
       done;
       log#info "Source dumped.";
       fo#leave s;
@@ -213,9 +225,19 @@ let _ =
   Lang.add_builtin ~base:source "drop" ~category:(`Source `Liquidsoap)
     ~descr:"Animate the source as fast as possible, dropping its output."
     ~flags:[`Experimental]
-    [("", Lang.source_t (Lang.univ_t ()), None, Some "Source to animate.")]
+    [
+      ("", Lang.source_t (Lang.univ_t ()), None, Some "Source to animate.");
+      ( "ratio",
+        Lang.float_t,
+        Some (Lang.float 50.),
+        Some
+          "Time ratio. A value of `50` means process data at `50x` real rate, \
+           when possible." );
+    ]
     Lang.unit_t
     (fun p ->
+      let module Time = (val Clock.time_implementation () : Liq_time.T) in
+      let open Time in
       let s = List.assoc "" p |> Lang.to_source in
       let o =
         new Output.dummy
@@ -224,12 +246,16 @@ let _ =
           ~on_stop:(fun () -> ())
           ~autostart:true (Lang.source s)
       in
+      let ratio = Lang.to_float (List.assoc "ratio" p) in
+      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
       let clock = Clock.clock ~start:false "source_dropper" in
       Clock.unify o#clock (Clock.create_known clock);
       ignore (clock#start_outputs (fun _ -> true) ());
-      log#info "Start dropping source.";
+      log#info "Start dropping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && o#is_ready do
-        clock#end_tick
+        let start_time = Time.time () in
+        clock#end_tick;
+        sleep_until (start_time |+| latency)
       done;
       log#info "Source dropped.";
       o#leave s;
