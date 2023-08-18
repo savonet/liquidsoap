@@ -625,16 +625,16 @@ let _ =
                 ())
          in
          let name = uniq_name "abuffer" in
-         let pos = track_val.Lang.pos in
-         let s =
-           try
-             Ffmpeg_filter_io.(
-               new audio_output ~pass_metadata ~name ~frame_t ~field source)
-           with
-             | Source.Clock_conflict (a, b) ->
-                 raise (Error.Clock_conflict (pos, a, b))
-             | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+         let pos =
+           match Liquidsoap_lang.Lang_core.pos p with
+             | [] -> None
+             | p :: _ -> Some p
          in
+         let s =
+           Ffmpeg_filter_io.(
+             new audio_output ~pass_metadata ~name ~frame_t ~field source)
+         in
+         s#set_pos pos;
          s#set_id id;
          Queue.add (s :> Source.source) graph.graph_inputs;
 
@@ -759,16 +759,16 @@ let _ =
                 ())
          in
          let name = uniq_name "buffer" in
-         let pos = track_val.Lang.pos in
-         let s =
-           try
-             Ffmpeg_filter_io.(
-               new video_output ~pass_metadata ~name ~frame_t ~field source)
-           with
-             | Source.Clock_conflict (a, b) ->
-                 raise (Error.Clock_conflict (pos, a, b))
-             | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+         let pos =
+           match Liquidsoap_lang.Lang_core.pos p with
+             | [] -> None
+             | p :: _ -> Some p
          in
+         let s =
+           Ffmpeg_filter_io.(
+             new video_output ~pass_metadata ~name ~frame_t ~field source)
+         in
+         s#set_pos pos;
          s#set_id id;
          Queue.add (s :> Source.source) graph.graph_inputs;
 
@@ -846,7 +846,7 @@ let _ =
       (field, (s :> Source.source)))
 
 let unify_clocks ~clock sources =
-  Queue.iter (fun s -> Clock.unify clock s#clock) sources
+  Queue.iter (fun s -> Clock.unify ~pos:s#pos clock s#clock) sources
 
 let _ =
   let univ_t = Lang.univ_t () in
@@ -878,7 +878,8 @@ let _ =
       in
       let ret = Lang.apply fn [("", Graph.to_value graph)] in
       let input_clock =
-        Clock.create_known (Clock.clock ~start:false "ffmpeg.filter")
+        Clock.create_known
+          (Clock.clock ~start:false (Lang_string.generate_id "ffmpeg.filter"))
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       let output_clock =

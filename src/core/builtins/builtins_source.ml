@@ -208,7 +208,7 @@ let _ =
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
       let clock = Clock.clock ~start:false "source_dumper" in
-      Clock.unify fo#clock (Clock.create_known clock);
+      Clock.unify ~pos:fo#pos fo#clock (Clock.create_known clock);
       ignore (clock#start_outputs (fun _ -> true) ());
       log#info "Start dumping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && fo#is_ready do
@@ -249,7 +249,7 @@ let _ =
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
       let clock = Clock.clock ~start:false "source_dropper" in
-      Clock.unify o#clock (Clock.create_known clock);
+      Clock.unify ~pos:o#pos o#clock (Clock.create_known clock);
       ignore (clock#start_outputs (fun _ -> true) ());
       log#info "Start dropping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && o#is_ready do

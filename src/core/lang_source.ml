@@ -422,25 +422,18 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
         | p :: _ -> Some p
     in
     let return_t = check_arguments ~return_t ~env arguments in
-    try
-      let src : < Source.source ; .. > = f env in
-      Typing.(src#frame_type <: return_t);
-      ignore
-        (Option.map
-           (fun id -> src#set_id id)
-           (to_valued_option to_string (List.assoc "id" env)));
-      let v =
-        let src = (src :> Source.source) in
-        if category = `Output then source_methods ~base:unit src else source src
-      in
-      _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
-    with
-      | Source.Clock_conflict (a, b) ->
-          let bt = Printexc.get_raw_backtrace () in
-          Printexc.raise_with_backtrace (Error.Clock_conflict (pos, a, b)) bt
-      | Source.Clock_loop (a, b) ->
-          let bt = Printexc.get_raw_backtrace () in
-          Printexc.raise_with_backtrace (Error.Clock_loop (pos, a, b)) bt
+    let src : < Source.source ; .. > = f env in
+    src#set_pos pos;
+    Typing.(src#frame_type <: return_t);
+    ignore
+      (Option.map
+         (fun id -> src#set_id id)
+         (to_valued_option to_string (List.assoc "id" env)));
+    let v =
+      let src = (src :> Source.source) in
+      if category = `Output then source_methods ~base:unit src else source src
+    in
+    _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
   in
   let base_t =
     if category = `Output then unit_t else source_t ~methods:false return_t
@@ -463,8 +456,14 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: arguments
   in
   let f env =
+    let pos =
+      match Liquidsoap_lang.Lang_core.pos env with
+        | [] -> None
+        | p :: _ -> Some p
+    in
     let return_t = check_arguments ~return_t ~env arguments in
     let field, (src : < Source.source ; .. >) = f env in
+    src#set_pos pos;
     (if field <> Frame.Fields.track_marks && field <> Frame.Fields.metadata then
        Typing.(
          src#frame_type

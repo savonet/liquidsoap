@@ -30,7 +30,7 @@ let () =
   let failed = new failed in
   let o = new dummy ~on_start ~autostart:true failed in
   let clock = Clock.clock ~start:false "source" in
-  Clock.unify o#clock (Clock.create_known clock);
+  Clock.unify ~pos:o#pos o#clock (Clock.create_known clock);
   assert (not o#is_ready);
   o#content_type_computation_allowed;
   o#test_wake_up;

@@ -74,7 +74,8 @@ type watcher = {
 
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
-  ?name:string
+  ?pos:Pos.t
+  -> ?name:string
   -> unit
   -> object
        method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
@@ -86,6 +87,11 @@ class virtual source :
 
        method set_name : string -> unit
        method set_id : ?definitive:bool -> string -> unit
+
+       (** Position in script *)
+       method pos : Pos.Option.t
+
+       method set_pos : Pos.Option.t -> unit
 
        (* {1 Liveness type}
           [stype] is the liveness type, telling whether a scheduler is
@@ -228,7 +234,8 @@ class virtual source :
 
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source :
-  ?name:string
+  ?pos:Pos.t
+  -> ?name:string
   -> unit
   -> object
        inherit source
@@ -242,7 +249,8 @@ and virtual active_source :
 
 (* This is for defining a source which has children *)
 class virtual operator :
-  ?name:string
+  ?pos:Pos.t
+  -> ?name:string
   -> source list
   -> object
        inherit source
@@ -251,7 +259,8 @@ class virtual operator :
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
 class virtual active_operator :
-  ?name:string
+  ?pos:Pos.t
+  -> ?name:string
   -> source list
   -> object
        inherit active_source
@@ -306,9 +315,6 @@ class type clock =
     method end_tick : unit
   end
 
-exception Clock_conflict of string * string
-exception Clock_loop of string * string
-
 module Clock_variables : sig
   val to_string : clock_variable -> string
 
@@ -320,7 +326,7 @@ module Clock_variables : sig
     clock_variable
 
   val create_known : clock -> clock_variable
-  val unify : clock_variable -> clock_variable -> unit
+  val unify : pos:Pos.Option.t -> clock_variable -> clock_variable -> unit
   val forget : clock_variable -> clock_variable -> unit
   val get : clock_variable -> clock
   val is_known : clock_variable -> bool
