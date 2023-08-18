@@ -169,7 +169,7 @@ and parsed_ast =
   | `Append of t * t
   | `Assoc of t * t
   | `Infix of t * string * t
-  | `Bool of t * string * t
+  | `Bool of string * t list
   | `Coalesce of t * t
   | `Simple_fun of t
   | `String_interpolation of char * string_interpolation list
@@ -258,9 +258,7 @@ let rec iter_term fn ({ term; methods } as tm) =
     | `Infix (tm, _, tm') ->
         iter_term fn tm;
         iter_term fn tm'
-    | `Bool (tm, _, tm') ->
-        iter_term fn tm;
-        iter_term fn tm'
+    | `Bool (_, l) -> List.iter (iter_term fn) l
     | `Coalesce (tm, tm') ->
         iter_term fn tm;
         iter_term fn tm'

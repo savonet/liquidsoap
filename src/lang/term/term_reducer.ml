@@ -513,11 +513,15 @@ let infix_reducer ?pos ~to_term = function
       `App (op, [("", to_term tm); ("", to_term tm')])
 
 let bool_reducer ?pos ~to_term = function
-  | `Bool (tm, op, tm') ->
-      let op = mk ?pos (`Var op) in
-      let tm = mk_fun ?pos [] (to_term tm) in
-      let tm' = mk_fun ?pos [] (to_term tm') in
-      `App (op, [("", tm); ("", tm')])
+  | `Bool (op, tm :: terms) ->
+      List.fold_left
+        (fun tm tm' ->
+          let op = mk ?pos (`Var op) in
+          let tm = mk_fun ?pos [] (Term_base.make ?pos tm) in
+          let tm' = mk_fun ?pos [] (to_term tm') in
+          `App (op, [("", tm); ("", tm')]))
+        (to_term tm).term terms
+  | `Bool (_, []) -> assert false
 
 let simple_fun_reducer ?pos:_ ~to_term = function
   | `Simple_fun tm ->
