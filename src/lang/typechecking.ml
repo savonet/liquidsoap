@@ -213,7 +213,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           check ~level ~env a;
           a.t <: t;
           base_type >: t
-      | `Invoke { invoked = a; default; meth = l } ->
+      | `Invoke { invoked = a; invoke_default; meth = l } ->
           check ~level ~env a;
           let rec aux t =
             match (Type.deref t).Type.descr with
@@ -232,7 +232,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                          Meth
                            ( {
                                meth = l;
-                               optional = default <> None;
+                               optional = invoke_default <> None;
                                scheme = ([], x);
                                doc = "";
                                json_name = None;
@@ -242,7 +242,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           in
           let vars, typ = aux a.t in
           let typ =
-            match default with
+            match invoke_default with
               | None -> typ
               | Some v ->
                   check ~level ~env v;

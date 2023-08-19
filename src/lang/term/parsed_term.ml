@@ -103,6 +103,7 @@ and _let = {
   def : t;
 }
 
+and invoke = { invoked : t; optional : bool; meth : invoke_meth }
 and invoke_meth = [ `String of string | `App of string * app_arg list ]
 and app_arg = [ `Term of string * t | `Argsof of _of ]
 
@@ -159,7 +160,7 @@ and parsed_ast =
   | `Binding of _let * t
   | `Cast of t * type_annotation
   | `App of t * app_arg list
-  | `Invoke of (t, invoke_meth) invoke
+  | `Invoke of invoke
   | `Fun of fun_arg list * t
   | `RFun of string * fun_arg list * t
   | `Not of t
@@ -239,7 +240,14 @@ let rec iter_term fn ({ term; methods } as tm) =
         List.iter
           (function `Term (_, tm) -> iter_term fn tm | `Argsof _ -> ())
           args
-    | `Invoke { invoked } -> iter_term fn invoked
+    | `Invoke { invoked; meth } -> (
+        iter_term fn invoked;
+        match meth with
+          | `String _ -> ()
+          | `App (_, args) ->
+              List.iter
+                (function `Argsof _ -> () | `Term (_, tm) -> iter_term fn tm)
+                args)
     | `Fun (args, tm) | `RFun (_, args, tm) ->
         iter_fun_args fn args;
         iter_term fn tm

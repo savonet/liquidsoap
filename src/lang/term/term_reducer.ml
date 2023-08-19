@@ -285,8 +285,8 @@ let mk_any ~pos () =
   let op = mk ~pos (`Var "💣") in
   mk ~pos (`App (op, []))
 
-let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
-    =
+let rec mk_invoke_default ~pos ~optional ~name value
+    { invoked; meth; invoke_default } =
   let t =
     Type.meth ~pos ~optional name ([], Type.var ~pos ()) (Type.var ~pos ())
   in
@@ -297,26 +297,32 @@ let rec mk_invoke_default ~pos ~optional ~name value { invoked; meth; default }
       tm.Term.term
   in
   ( value,
-    update_invoke_default ~pos ~optional:(default <> None) invoked meth value )
+    update_invoke_default ~pos ~optional:(invoke_default <> None) invoked meth
+      value )
 
 and update_invoke_default ~pos ~optional expr name value =
   match expr.term with
-    | `Invoke ({ meth; default } as invoked) ->
+    | `Invoke ({ meth; invoke_default } as invoked) ->
         let value, invoked =
           mk_invoke_default ~pos ~name ~optional value invoked
         in
         Term.make ~t:expr.Term.t ~methods:expr.Term.methods
           (`Invoke
-            { invoked; meth; default = Option.map (fun _ -> value) default })
-    | `App ({ term = `Invoke ({ meth; default } as invoked) }, args) ->
+            {
+              invoked;
+              meth;
+              invoke_default = Option.map (fun _ -> value) invoke_default;
+            })
+    | `App ({ term = `Invoke ({ meth; invoke_default } as invoked) }, args) ->
         let value, invoked =
-          let default =
-            match default with
+          let invoke_default =
+            match invoke_default with
               | Some { term = `Fun { Term_base.body } } -> Some body
               | None -> Some (mk_any ~pos ())
               | _ -> assert false
           in
-          mk_invoke_default ~pos ~name ~optional value { invoked with default }
+          mk_invoke_default ~pos ~name ~optional value
+            { invoked with invoke_default }
         in
         Term.make ~t:expr.Term.t ~methods:expr.Term.methods
           (`App
@@ -325,10 +331,10 @@ and update_invoke_default ~pos ~optional expr name value =
                   {
                     invoked;
                     meth;
-                    default =
+                    invoke_default =
                       Option.map
                         (fun _ -> mk_app_invoke_default ~pos ~args value)
-                        default;
+                        invoke_default;
                   }),
               args ))
     | _ -> expr
@@ -346,7 +352,7 @@ let mk_invoke ?(default : Parsed_term.t option) ?pos ~to_term expr v =
         `Invoke
           {
             invoked = expr;
-            default = Option.map (fun _ -> value) default;
+            invoke_default = Option.map (fun _ -> value) default;
             meth;
           }
     | `App (meth, args) ->
@@ -358,7 +364,7 @@ let mk_invoke ?(default : Parsed_term.t option) ?pos ~to_term expr v =
               (`Invoke
                 {
                   invoked = expr;
-                  default = Option.map (fun _ -> value) default;
+                  invoke_default = Option.map (fun _ -> value) default;
                   meth;
                 }),
             args )
@@ -371,7 +377,9 @@ let mk_coalesce ?pos ~(default : Parsed_term.t) ~to_term
     | _ ->
         let null = mk ~pos (`Var "null") in
         let op =
-          mk ~pos (`Invoke { invoked = null; default = None; meth = "default" })
+          mk ~pos
+            (`Invoke
+              { invoked = null; invoke_default = None; meth = "default" })
         in
         let handler = mk_fun ~pos [] (to_term default) in
         `App (op, [("", to_term computed); ("", handler)])
@@ -390,7 +398,9 @@ let get_reducer ?pos ~to_term = function
 let set_reducer ?pos ~to_term = function
   | `Set (tm, v) ->
       let op =
-        mk ?pos (`Invoke { invoked = to_term tm; default = None; meth = "set" })
+        mk ?pos
+          (`Invoke
+            { invoked = to_term tm; invoke_default = None; meth = "set" })
       in
       `App (op, [("", to_term v)])
 
@@ -500,7 +510,8 @@ let for_reducer ?pos ~to_term = function
   | `For { for_variable; for_from; for_to; for_loop } ->
       let to_op = mk ?pos (`Var "iterator") in
       let to_op =
-        mk ?pos (`Invoke { invoked = to_op; default = None; meth = "int" })
+        mk ?pos
+          (`Invoke { invoked = to_op; invoke_default = None; meth = "int" })
       in
       let for_condition =
         mk ?pos (`App (to_op, [("", to_term for_from); ("", to_term for_to)]))
@@ -555,7 +566,8 @@ let rec list_reducer ?pos ?(cur = `List []) ~to_term l =
     | `Ellipsis v :: rem, cur ->
         let list = mk ?pos (`Var "list") in
         let op =
-          mk ?pos (`Invoke { invoked = list; default = None; meth = "append" })
+          mk ?pos
+            (`Invoke { invoked = list; invoke_default = None; meth = "append" })
         in
         let cur = `App (op, [("", to_term v); ("", mk ?pos cur)]) in
         list_reducer ?pos ~cur ~to_term rem
@@ -597,7 +609,8 @@ let try_reducer ?pos ~to_term = function
       let try_errors_list = to_term try_errors_list in
       let op =
         mk ?pos
-          (`Invoke { invoked = error_module; default = None; meth = "catch" })
+          (`Invoke
+            { invoked = error_module; invoke_default = None; meth = "catch" })
       in
       `App (op, [("errors", try_errors_list); ("", try_body); ("", handler)])
 
@@ -771,7 +784,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
             {
               invoked = Term_base.make (`Var "string");
               meth = `String "concat";
-              default = None;
+              optional = false;
             })
       in
       to_ast ?pos (`App (op, [`Term ("", Term_base.make (`List l))]))
@@ -794,7 +807,10 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Eof -> `Tuple []
   | `Null -> `Null
   | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ?pos typ)
-  | `Invoke { invoked; default; meth } ->
+  | `Invoke { invoked; optional; meth } ->
+      let default =
+        if optional then Some (Term_base.make ?pos `Null) else None
+      in
       mk_invoke ?pos ?default ~to_term invoked meth
   | `Open (t, t') -> `Open (to_term t, to_term t')
   | `Var s -> `Var s

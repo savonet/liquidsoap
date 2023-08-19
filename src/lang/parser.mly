@@ -234,12 +234,12 @@ expr:
                                      { $2 ~pos:$loc $5 }
   | LCUR record optional_comma RCUR  { $2 ~pos:$loc (mk ~pos:$loc (`Tuple [])) }
   | LCUR RCUR                        { mk ~pos:$loc (`Tuple []) }
-  | expr QUESTION DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $4; default = Some (mk ~pos:$loc `Null) }) }
-  | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; default = None }) }
+  | expr QUESTION DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $4; optional = true }) }
+  | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = false }) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var $1), $2)) }
   | expr COLONCOLON expr             { mk ~pos:$loc (`Append ($1, $3)) }
   | VARLBRA expr RBRA                { mk ~pos:$loc (`Assoc (mk ~pos:$loc($1) (`Var $1), $2)) }
-  | expr DOT VARLBRA expr RBRA       { let src = mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; default = None; meth = `String $3})) in
+  | expr DOT VARLBRA expr RBRA       { let src = mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; optional = false; meth = `String $3})) in
                                        mk ~pos:$loc (`Assoc (src, $4)) }
   | BEGIN exprs END                  { $2 }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }

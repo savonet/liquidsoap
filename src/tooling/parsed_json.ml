@@ -410,11 +410,11 @@ let rec to_ast_json = function
   | `Cast (t, typ) ->
       ast_node ~typ:"cast"
         [("left", to_json t); ("right", json_of_type_annotation typ)]
-  | `Invoke { Term_base.invoked; default; meth } ->
+  | `Invoke { invoked; optional; meth } ->
       ast_node ~typ:"invoke"
         [
           ("invoked", to_json invoked);
-          ("default", match default with None -> `Null | Some d -> to_json d);
+          ("optional", `Bool optional);
           ("meth", `Assoc (json_of_invoke_meth ~to_json meth));
         ]
   | `Eof -> ast_node ~typ:"eof" []
