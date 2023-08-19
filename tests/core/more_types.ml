@@ -13,7 +13,8 @@ let () =
   let _false () = Term.make (`Ground (Term.Ground.Bool false)) in
   let cond =
     Term.make
-      (`Invoke { Term.invoked = x; default = Some (_false ()); meth = "foo" })
+      (`Invoke
+        { Term.invoked = x; invoke_default = Some (_false ()); meth = "foo" })
   in
   let _then =
     Term.make

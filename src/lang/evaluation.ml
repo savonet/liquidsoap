@@ -251,9 +251,9 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
     | `Null -> mk Value.Null
     | `Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
-    | `Invoke { invoked = t; default; meth } -> (
+    | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
-        match (Value.Methods.find_opt meth v.Value.methods, default) with
+        match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
           (* If method returns `null` and a default is provided, pick default. *)
           | Some Value.{ value = Null; methods }, Some default
             when Methods.is_empty methods ->

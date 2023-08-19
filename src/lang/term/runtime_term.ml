@@ -30,8 +30,6 @@ type 'a ast_encoder_params =
 
 and 'a ast_encoder = string * 'a ast_encoder_params
 
-type ('a, 'b) invoke = { invoked : 'a; default : 'a option; meth : 'b }
-
 (* ~l1:x1 .. ?li:(xi=defi) .. *)
 type ('a, 'b) func_argument = {
   label : string;
@@ -65,9 +63,11 @@ and runtime_ast =
   | `List of t list
   | `Cast of t * Type.t
   | `App of t * (string * t) list
-  | `Invoke of (t, string) invoke
+  | `Invoke of invoke
   | `Fun of (t, Type.t) func
   | t ast ]
+
+and invoke = { invoked : t; invoke_default : t option; meth : string }
 
 and let_t = {
   doc : Doc.Value.t option;

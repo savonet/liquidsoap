@@ -241,8 +241,8 @@ let rec to_string (v : t) =
       | `Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | `Null -> "null"
       | `Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Type.to_string t ^ ")"
-      | `Invoke { invoked = e; meth = l; default } -> (
-          match default with
+      | `Invoke { invoked = e; meth = l; invoke_default } -> (
+          match invoke_default with
             | None -> to_string e ^ "." ^ l
             | Some v -> "(" ^ to_string e ^ "." ^ l ^ " ?? " ^ to_string v ^ ")"
           )
@@ -340,9 +340,11 @@ let rec free_term_vars tm =
         enc e
     | `Cast (e, _) -> free_vars e
     | `Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
-    | `Invoke { invoked = e; default } ->
+    | `Invoke { invoked = e; invoke_default } ->
         Vars.union (free_vars e)
-          (match default with None -> Vars.empty | Some d -> free_vars d)
+          (match invoke_default with
+            | None -> Vars.empty
+            | Some d -> free_vars d)
     | `Open (a, b) -> Vars.union (free_vars a) (free_vars b)
     | `List l ->
         List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
