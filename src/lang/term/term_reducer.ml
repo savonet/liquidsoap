@@ -807,9 +807,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
   | `Null -> `Null
   | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ?pos typ)
   | `Invoke { invoked; optional; meth } ->
-      let default =
-        if optional then Some (Term_base.make ?pos `Null) else None
-      in
+      let default = if optional then Some (mk_parsed ?pos `Null) else None in
       mk_invoke ?pos ?default ~to_term invoked meth
   | `Open (t, t') -> `Open (to_term t, to_term t')
   | `Var s -> `Var s
