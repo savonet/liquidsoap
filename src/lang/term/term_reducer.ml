@@ -22,7 +22,7 @@
 
 type processor =
   ( Parser.token * Lexing.position * Lexing.position,
-    Parser_helper.Term.t )
+    Parsed_term.t )
   MenhirLib.Convert.revised
 
 open Parsed_term
@@ -37,7 +37,8 @@ let render_string ?pos ~sep s =
   let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
   Lexer.render_string ~pos ~sep s
 
-let mk = Term_base.make
+let mk = Term.make
+let mk_parsed = Parsed_term.make
 
 let mk_fun ?pos arguments body =
   Term.make ?pos (`Fun Term.{ free_vars = None; name = None; arguments; body })
@@ -408,15 +409,13 @@ let if_reducer ?pos ~to_term = function
   | `Inline_if { if_condition; if_then; if_elsif; if_else }
   | `If { if_condition; if_then; if_elsif; if_else } ->
       let if_else =
-        match if_else with
-          | None -> Term_base.make ?pos (`Tuple [])
-          | Some t -> to_term t
+        match if_else with None -> mk ?pos (`Tuple []) | Some t -> to_term t
       in
       let term =
         List.fold_left
           (fun if_else (condition, _then) ->
             let op = mk ?pos (`Var "if") in
-            Term_base.make ?pos
+            mk ?pos
               (`App
                 ( op,
                   [
@@ -432,7 +431,7 @@ let if_reducer ?pos ~to_term = function
 let pp_if_reducer ?pos ~to_term = function
   | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else } -> (
       let if_def_else =
-        Option.value ~default:(Term_base.make ?pos (`Tuple [])) if_def_else
+        Option.value ~default:(mk_parsed ?pos (`Tuple [])) if_def_else
       in
       match (Environment.has_builtin if_def_condition, if_def_negative) with
         | true, false | false, true -> (to_term if_def_then).term
@@ -441,7 +440,7 @@ let pp_if_reducer ?pos ~to_term = function
       { if_version_op; if_version_version; if_version_then; if_version_else }
     -> (
       let if_version_else =
-        Option.value ~default:(Term_base.make ?pos (`Tuple [])) if_version_else
+        Option.value ~default:(mk_parsed ?pos (`Tuple [])) if_version_else
       in
       let current_version =
         Lang_string.Version.of_string Build_config.version
@@ -464,7 +463,7 @@ let pp_if_reducer ?pos ~to_term = function
         if_encoder_else;
       } -> (
       let if_encoder_else =
-        Option.value ~default:(Term_base.make ?pos (`Tuple [])) if_encoder_else
+        Option.value ~default:(mk_parsed ?pos (`Tuple [])) if_encoder_else
       in
       try
         let encoder =
@@ -528,7 +527,7 @@ let bool_reducer ?pos ~to_term = function
       List.fold_left
         (fun tm tm' ->
           let op = mk ?pos (`Var op) in
-          let tm = mk_fun ?pos [] (Term_base.make ?pos tm) in
+          let tm = mk_fun ?pos [] (mk ?pos tm) in
           let tm' = mk_fun ?pos [] (to_term tm') in
           `App (op, [("", tm); ("", tm')]))
         (to_term tm).term terms
@@ -715,7 +714,7 @@ let mk_expr ?fname processor lexbuf =
   Parser_helper.clear_comments ();
   let parsed_term = processor tokenizer in
   Parser_helper.attach_comments
-    ~pos:(Option.get parsed_term.Term.t.Type.pos)
+    ~pos:(Option.get parsed_term.Parsed_term.t.Type.pos)
     parsed_term;
   parsed_term
 
@@ -770,24 +769,24 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
           (function
             | `String s ->
                 `Term
-                  (Term_base.make
+                  (mk_parsed
                      (`Ground (Term.Ground.String (render_string ?pos ~sep s))))
             | `Term tm ->
                 `Term
-                  (Term_base.make
-                     (`App (Term_base.make (`Var "string"), [`Term ("", tm)]))))
+                  (mk_parsed
+                     (`App (mk_parsed (`Var "string"), [`Term ("", tm)]))))
           l
       in
       let op =
-        Term_base.make
+        mk_parsed
           (`Invoke
             {
-              invoked = Term_base.make (`Var "string");
+              invoked = mk_parsed (`Var "string");
               meth = `String "concat";
               optional = false;
             })
       in
-      to_ast ?pos (`App (op, [`Term ("", Term_base.make (`List l))]))
+      to_ast ?pos (`App (op, [`Term ("", mk_parsed (`List l))]))
   | `Def p | `Let p | `Binding p -> mk_let ?pos ~to_term p
   | `Coalesce (t, default) -> mk_coalesce ?pos ~to_term ~default t
   | `Time t -> mk_time_pred ?pos (during ?pos t)
@@ -849,4 +848,4 @@ and to_term (tm : Parsed_term.t) : Term.t =
       | `Let p, (pos, doc) :: _ -> `Let { p with doc = Doc.parse_doc ~pos doc }
       | ast, _ -> ast
   in
-  { tm with methods = Methods.map to_term tm.methods; term }
+  { t = tm.t; methods = Methods.map to_term tm.methods; term }

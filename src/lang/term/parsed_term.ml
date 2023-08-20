@@ -180,12 +180,23 @@ and parsed_ast =
   | `Eof
   | t ast ]
 
-and t = parsed_ast term
+and t = {
+  mutable t : Type.t;
+  term : parsed_ast;
+  methods : t Methods.t;
+  mutable before_comments : (Pos.t * string) list;
+  mutable after_comments : (Pos.t * string) list;
+}
+
 and string_interpolation = [ `String of string | `Term of t ]
 
 type encoder_params = t ast_encoder_params
 
 let unit = `Tuple []
+
+let make ?pos ?t ?(methods = Methods.empty) e =
+  let t = match t with Some t -> t | None -> Type.var ?pos () in
+  { t; term = e; methods; before_comments = []; after_comments = [] }
 
 let rec iter_term fn ({ term; methods } as tm) =
   if term <> `Eof then fn tm;

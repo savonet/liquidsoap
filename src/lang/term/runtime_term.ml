@@ -17,13 +17,7 @@ type pattern =
   | `PMeth of pattern option * (string * pattern option) list
     (** a value with methods *) ]
 
-type 'a term = {
-  mutable t : Type.t;
-  term : 'a;
-  methods : 'a term Methods.t;
-  mutable before_comments : (Pos.t * string) list;
-  mutable after_comments : (Pos.t * string) list;
-}
+type 'a term = { mutable t : Type.t; term : 'a; methods : 'a term Methods.t }
 
 type 'a ast_encoder_params =
   (string * [ `Encoder of 'a ast_encoder | `Term of 'a ]) list

@@ -278,7 +278,7 @@ let rec to_string (v : t) =
 (** Create a new value. *)
 let make ?pos ?t ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  { t; term = e; methods; before_comments = []; after_comments = [] }
+  { t; term = e; methods }
 
 let rec free_vars_pat = function
   | `PVar [] -> assert false
@@ -543,13 +543,7 @@ module MkAbstract (Def : AbstractDef) = struct
   let of_term t = match t.term with `Ground (Value c) -> c | _ -> assert false
 
   let to_term c =
-    {
-      t = Type.make T.descr;
-      term = `Ground (Value c);
-      methods = Methods.empty;
-      before_comments = [];
-      after_comments = [];
-    }
+    { t = Type.make T.descr; term = `Ground (Value c); methods = Methods.empty }
 
   let is_term t = match t.term with `Ground (Value _) -> true | _ -> false
 end

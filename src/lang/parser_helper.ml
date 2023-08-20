@@ -73,7 +73,7 @@ let attach_comments ~pos term =
             | Some term_pos -> (
                 match (comment_distance term_pos comment_pos, !distance) with
                   | ((_, d) as new_distance), (_, d')
-                    when d' < 0 || (0 <= d && d <= d') ->
+                    when d' < 0 || (0 <= d && d < d') ->
                       distance := new_distance;
                       closest_term := term
                   | _ -> ()))
@@ -188,7 +188,7 @@ let args_of_json_parse ~pos = function
         (Term_base.Parse_error
            (pos, "Invalid argument " ^ lbl ^ " for json.parse let constructor"))
 
-let mk = Term_base.make
+let mk = Parsed_term.make
 let mk_fun ~pos arguments body = mk ~pos (`Fun (arguments, body))
 
 let mk_let ~pos _let body =
