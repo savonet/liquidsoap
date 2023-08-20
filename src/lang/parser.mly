@@ -241,7 +241,7 @@ expr:
   | VARLBRA expr RBRA                { mk ~pos:$loc (`Assoc (mk ~pos:$loc($1) (`Var $1), $2)) }
   | expr DOT VARLBRA expr RBRA       { let src = mk ~pos:($startpos($1),$endpos($3)) (`Invoke ({invoked = $1; optional = false; meth = `String $3})) in
                                        mk ~pos:$loc (`Assoc (src, $4)) }
-  | BEGIN exprs END                  { $2 }
+  | BEGIN exprs END                  { mk ~pos:$loc (`Block $2) }
   | FUN LPAR arglist RPAR YIELDS expr{ mk_fun ~pos:$loc $3 $6 }
   | LCUR simple_fun_body RCUR        { mk ~pos:$loc (`Simple_fun $2) }
   | WHILE expr DO exprs END          { mk ~pos:$loc (`While {while_condition = $2; while_loop = $4 }) }
