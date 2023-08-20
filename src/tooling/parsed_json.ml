@@ -394,6 +394,7 @@ let rec to_ast_json = function
         ]
   | `Float (ipart, fpart) ->
       ast_node ~typ:"ground" [("value", `String (ipart ^ "." ^ fpart))]
+  | `Block tm -> ast_node ~typ:"block" [("value", to_json tm)]
   | `String (c, s) ->
       ast_node ~typ:"ground"
         [("value", `String (Printf.sprintf "%c%s%c" c s c))]

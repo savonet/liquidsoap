@@ -176,6 +176,7 @@ and parsed_ast =
   | `Include of inc
   | `Float of string * string
   | `String of char * string
+  | `Block of t
   | `Eof
   | t ast ]
 
@@ -289,6 +290,7 @@ let rec iter_term fn ({ term; methods } as tm) =
     | `Open (tm, tm') ->
         iter_term fn tm;
         iter_term fn tm'
+    | `Block tm -> iter_term fn tm
     | `Float _ -> ()
     | `String _ -> ()
     | `Var _ -> ()

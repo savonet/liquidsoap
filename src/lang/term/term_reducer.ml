@@ -822,6 +822,7 @@ let rec to_ast ?pos : parsed_ast -> Term.runtime_ast = function
       `App (to_term t, args)
   | `Fun (args, body) -> `Fun (to_func ?pos ~to_term args body)
   | `RFun (name, args, body) -> `Fun (to_func ?pos ~to_term ~name args body)
+  | `Block _ -> assert false
 
 and to_func ?pos ~to_term ?name arguments body =
   {
@@ -841,6 +842,15 @@ and to_encoder_params l =
 and to_encoder (lbl, params) = (lbl, to_encoder_params params)
 
 and to_term (tm : Parsed_term.t) : Term.t =
+  let tm =
+    match tm with
+      | { term = `Block term } ->
+          {
+            term with
+            methods = Methods.fold Methods.add tm.methods term.methods;
+          }
+      | _ -> tm
+  in
   let term =
     match (to_ast ?pos:tm.t.pos tm.term, List.rev tm.before_comments) with
       | `Let p, (pos, doc) :: _ -> `Let { p with doc = Doc.parse_doc ~pos doc }
