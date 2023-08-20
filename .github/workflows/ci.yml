@@ -218,6 +218,7 @@ jobs:
           mkdir -p "/tmp/${{ github.run_number }}/metrics"
           chown -R opam "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "/tmp/${{ github.run_number }}/metrics"
+          touch "/tmp/${{ github.run_number }}/metrics/.clear-metrics"
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v3
         with:
