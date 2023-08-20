@@ -644,13 +644,13 @@ let mk_rec_fun ?pos pat arguments body =
   in
   mk ?pos (`Fun { name = Some name; arguments; body; free_vars = None })
 
-let mk_eval ?pos (doc, pat, def, body, cast) =
+let mk_eval ?pos (pat, def, body, cast) =
   let ty = match cast with Some ty -> ty | None -> Type.var ?pos () in
   let tty = Value.RuntimeType.to_term ty in
   let eval = mk ?pos (`Var "_eval_") in
   let def = mk ?pos (`App (eval, [("type", tty); ("", def)])) in
   let def = mk ?pos (`Cast (def, ty)) in
-  `Let { Term_base.doc; replace = false; pat; gen = []; def; body }
+  `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
 
 let string_of_let_decoration = function
   | `None -> ""
@@ -660,7 +660,7 @@ let string_of_let_decoration = function
   | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ?pos ~to_term ({ doc; decoration; pat; arglist; def; cast }, body) =
+let mk_let ?pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
   let def = to_term def in
   let body = to_term body in
   let cast = Option.map (Parser_helper.mk_ty ?pos) cast in
@@ -672,20 +672,20 @@ let mk_let ?pos ~to_term ({ doc; decoration; pat; arglist; def; cast }, body) =
         let def =
           match cast with Some ty -> mk ?pos (`Cast (def, ty)) | None -> def
         in
-        `Let { Term_base.doc; replace; pat; gen = []; def; body }
+        `Let { Term_base.doc = None; replace; pat; gen = []; def; body }
     | Some arglist, `Recursive ->
         let def = mk_rec_fun ?pos pat arglist def in
         let def =
           match cast with Some ty -> mk ?pos (`Cast (def, ty)) | None -> def
         in
-        `Let { Term_base.doc; replace = false; pat; gen = []; def; body }
+        `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
     | None, `None | None, `Replaces ->
         let replace = decoration = `Replaces in
         let def =
           match cast with Some ty -> mk ?pos (`Cast (def, ty)) | None -> def
         in
-        `Let { Term_base.doc; replace; pat; gen = []; def; body }
-    | None, `Eval -> mk_eval ?pos (doc, pat, def, body, cast)
+        `Let { Term_base.doc = None; replace; pat; gen = []; def; body }
+    | None, `Eval -> mk_eval ?pos (pat, def, body, cast)
     | None, `Json_parse args ->
         let args = List.map (fun (l, v) -> (l, to_term v)) args in
         mk_let_json_parse ?pos (args, pat, def, cast) body

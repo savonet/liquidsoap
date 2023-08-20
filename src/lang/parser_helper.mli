@@ -57,7 +57,6 @@ val mk_let :
   Term.t
 
 val let_args :
-  ?doc:Doc.Value.t ->
   decoration:Term.let_decoration ->
   pat:Term.pattern ->
   ?arglist:arglist ->

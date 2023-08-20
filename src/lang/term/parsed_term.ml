@@ -95,7 +95,6 @@ and let_decoration =
   | `Json_parse of (string * t) list ]
 
 and _let = {
-  doc : Doc.Value.t option;
   decoration : let_decoration;
   pat : pattern;
   arglist : fun_arg list option;
