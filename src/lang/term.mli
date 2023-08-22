@@ -46,8 +46,10 @@ module MkGround : functor (D : GroundDef) -> sig
   type Ground.t += Ground of D.content
 end
 
-type encoder_params = t ast_encoder_params
-type encoder = t ast_encoder
+type encoder_params =
+  [ `Anonymous of string | `Encoder of encoder | `Labelled of string * t ] list
+
+and encoder = string * encoder_params
 
 val unit : runtime_ast
 val is_ground : t -> bool

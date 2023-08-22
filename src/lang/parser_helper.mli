@@ -32,17 +32,7 @@ type lexer_let_decoration =
 
 type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
 type binding = [ explicit_binding | `Binding of Term._let ]
-
-type encoder_param =
-  string * [ `Term of Term.t | `Encoder of string * encoder_opt ]
-
-and encoder_opt = encoder_param list
-
 type let_opt_el = string * Term.t
-type record = pos:Lexing.position * Lexing.position -> Term.t -> Term.t
-type ty_content_arg = string * string
-type ty_content_args = ty_content_arg list
-type ty_content = string * ty_content_args
 type meth_pattern_el = string * Term.pattern option
 
 val clear_comments : unit -> unit
@@ -74,17 +64,10 @@ val mk_json_assoc_object_ty :
   Term.type_annotation
 
 val mk :
-  ?pos:Pos.t ->
-  ?t:Type_base.t ->
-  ?methods:Term.t Term.Methods.typ ->
-  Term.parsed_ast ->
-  Term.t
+  ?comments:(Pos.t * string list) list -> pos:Pos.t -> Term.parsed_ast -> Term.t
 
 val mk_fun : pos:Pos.t -> arglist -> Term.t -> Term.t
-
-val mk_encoder :
-  pos:Pos.t -> string -> Term.t Term_base.ast_encoder_params -> Term.t
-
+val mk_encoder : pos:Pos.t -> string -> Term.encoder_params -> Term.t
 val args_of_json_parse : pos:Pos.t -> (string * 'a) list -> (string * 'a) list
 val render_string_ref : (pos:Pos.t -> char * string -> string) ref
 val render_string : pos:Pos.t -> char * string -> string

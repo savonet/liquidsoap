@@ -2,19 +2,25 @@
 # @flag extra
 # @category Source / Visualization
 # @param ~id Force the value of the source ID.
-def server.rms(~id=null(),s) =
-  let s = rms(id=id,s)
+def server.rms(~id=null(), s) =
+  let s = rms(id=id, s)
   id = source.id(s)
   def rms(_) =
     rms = s.rms()
     "#{rms}"
   end
-  server.register(namespace="#{id}",
-                  description="Return the current RMS of the source.",
-                  usage="rms",
-                  "rms",rms)
+
+  server.register(
+    namespace="#{id}",
+    description="Return the current RMS of the source.",
+    usage="rms",
+    "rms",
+    rms
+  )
+
   s
 end
+
 
 # Register a server/telnet command to update a source's metadata. Returns a new
 # source, which will receive the updated metadata. The command has the following
@@ -22,25 +28,33 @@ end
 # @flag extra
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
-def server.insert_metadata(~id=null(),s) =
-  s = insert_metadata(id=id,s)
+def server.insert_metadata(~id=null(), s) =
+  s = insert_metadata(id=id, s)
   insert = s.insert_metadata
   def insert(s) =
     let (meta, _) = string.annotate.parse("#{s}:")
-    if meta != [] then
+    if
+      meta != []
+    then
       insert(meta)
       "Done"
     else
       "Syntax error or no metadata given. Use key1=\"val1\",key2=\"val2\",.."
     end
   end
+
   id = source.id(s)
-  server.register(namespace="#{id}",
-                  description="Insert a metadata chunk.",
-                  usage="insert key1=\"val1\",key2=\"val2\",..",
-                  "insert",insert)
+  server.register(
+    namespace="#{id}",
+    description="Insert a metadata chunk.",
+    usage="insert key1=\"val1\",key2=\"val2\",..",
+    "insert",
+    insert
+  )
+
   s
 end
+
 
 # Start an interface for the "telnet" server over http.
 # @category Internet
@@ -48,9 +62,10 @@ end
 # @param ~port Port of the server.
 # @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
 # @param ~uri URI of the server.
-def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet")
-  def webpage(_, response)
-    response.html("
+def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet") =
+  def webpage(_, response) =
+    response.html(
+      "
 <html>
   <head>
     <meta charset='utf-8'/>
@@ -105,35 +120,51 @@ def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet")
     <p style='text-align: center'>Type <code>help</code> if you are lost.</p>
   </body>
 </html>
-")
+"
+    )
   end
 
-  harbor.http.register(transport=transport, port=port, method="GET", uri, webpage)
+  harbor.http.register(
+    transport=transport, port=port, method="GET", uri, webpage
+  )
 
-  def setter(request, response)
+  def setter(request, response) =
     log.info("Executing command: #{request.data}")
     answer = server.execute(request.body())
     answer = string.concat(separator="\n", answer) ^ "\n"
     response.data(answer)
   end
 
-  harbor.http.register(transport=transport, port=port, method="POST", uri, setter)
-  log.important(label="server.harbor", "Website should be ready at <http://localhost:#{port}#{uri}>.")
+  harbor.http.register(
+    transport=transport, port=port, method="POST", uri, setter
+  )
+
+  log.important(
+    label="server.harbor",
+    "Website should be ready at <http://localhost:#{port}#{uri}>."
+  )
 end
+
 
 # Add a skip telnet command to a source when it does not have one by default.
 # @category Interaction
 # @flag extra
 # @param s The source to attach the command to.
 def add_skip_command(s) =
+
   # A command to skip
   def skip(_) =
     s.skip()
     "Done!"
   end
+
+
   # Register the command:
-  server.register(namespace="#{source.id(s)}",
-                  usage="skip",
-                  description="Skip the current song.",
-                  "skip",skip)
+  server.register(
+    namespace="#{source.id(s)}",
+    usage="skip",
+    description="Skip the current song.",
+    "skip",
+    skip
+  )
 end

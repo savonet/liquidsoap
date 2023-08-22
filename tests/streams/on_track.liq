@@ -1,11 +1,9 @@
 log.level.set(4)
-
-def f(_)
+def f(_) =
   print("Got track!")
   test.pass()
 end
 
 s = sequence([sine(duration=1.), sine()])
-s = source.on_track(s,f)
-
+s = source.on_track(s, f)
 output.dummy(s)

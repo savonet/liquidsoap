@@ -35,7 +35,7 @@ open Parser_helper
 %token <string * char list * Pos.t> PP_REGEXP
 %token <char * string > STRING
 %token <string * char list > REGEXP
-%token <int> INT PP_INT_DOT_LCUR
+%token <string> INT PP_INT_DOT_LCUR
 %token <string * string> FLOAT
 %token <bool> BOOL
 %token <Parsed_term.time_el> TIME
@@ -114,7 +114,7 @@ open Parser_helper
 %type <Term.t> time_predicate
 
 %start plain_encoder_params
-%type <Parser_helper.encoder_param list> plain_encoder_params
+%type <Term.encoder_params> plain_encoder_params
 
 %type <Parsed_term.let_decoration> _let
 %type <string> annotate_key
@@ -128,9 +128,7 @@ open Parser_helper
 %type <Term.type_annotation Type.argument> argty
 %type <Parser_helper.explicit_binding> explicit_binding
 %type <Parser_helper.binding> binding
-%type <Parser_helper.encoder_opt> encoder_opt
-%type <Parser_helper.encoder_param> encoder_param
-%type <Parser_helper.encoder_param list> encoder_params
+%type <Term.encoder_params> encoder_params
 %type <Term.t> expr
 %type <Term.t> exprs
 %type <Term.t> simple_fun_body
@@ -153,7 +151,7 @@ open Parser_helper
 %type <Term.pattern> pattern
 %type <Term.pattern list> pattern_list
 %type <Term.pattern list * string option * Term.pattern list> pattern_list_with_spread
-%type <Parser_helper.record> record
+%type <(string * Parsed_term.t) list> record
 %type <Parser_helper.meth_pattern_el list> record_pattern
 %type <Term.meth_annotation list> record_ty
 %type <unit> s
@@ -162,9 +160,8 @@ open Parser_helper
 %type <string list> subfield_lbra
 %type <Term.pattern> tuple_pattern
 %type <Term.type_annotation> ty
-%type <Parser_helper.ty_content> ty_content
-%type <Parser_helper.ty_content_arg> ty_content_arg
-%type <Parser_helper.ty_content_args> ty_content_args
+%type <string * Term.track_annotation list> ty_content
+%type <Term.track_annotation> ty_content_arg
 %type <string * Term.source_annotation> ty_source
 %type <Term.source_annotation> ty_source_tracks
 %type <Term.type_annotation list> ty_tuple
@@ -211,10 +208,10 @@ expr:
   | if_version                       { mk ~pos:$loc (`If_version $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
   | UMINUS FLOAT                     { mk ~pos:$loc (`Float ("-" ^ (if fst $2 = "" then "0" else fst $2), snd $2)) }
-  | UMINUS INT                       { mk ~pos:$loc (`Ground (Int (- $2))) }
+  | UMINUS INT                       { mk ~pos:$loc (`Int ("-" ^ $2)) }
   | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`Negative $3) }
-  | LPAR expr RPAR                   { $2 }
-  | INT                              { mk ~pos:$loc (`Ground (Int $1)) }
+  | LPAR expr RPAR                   { mk ~pos:$loc (`Parenthesis $2) }
+  | INT                              { mk ~pos:$loc (`Int $1) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
   | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
   | FLOAT                            { mk ~pos:$loc (`Float $1) }
@@ -228,12 +225,12 @@ expr:
   | LPAR RPAR                        { mk ~pos:$loc (`Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (`Tuple $2) }
   | expr DOT LCUR record optional_comma RCUR
-                                     { $4 ~pos:$loc $1 }
-  | LCUR DOTDOTDOT expr RCUR         { $3 }
+                                     { mk ~pos:$loc (`Methods { base = `Term $1; methods = $4 }) }
+  | LCUR DOTDOTDOT expr RCUR         { mk ~pos:$loc (`Methods { base = `Spread $3; methods = [] }) }
   | LCUR record COMMA DOTDOTDOT expr RCUR
-                                     { $2 ~pos:$loc $5 }
-  | LCUR record optional_comma RCUR  { $2 ~pos:$loc (mk ~pos:$loc (`Tuple [])) }
-  | LCUR RCUR                        { mk ~pos:$loc (`Tuple []) }
+                                     { mk ~pos:$loc (`Methods { base = `Spread $5; methods = $2 }) }
+  | LCUR record optional_comma RCUR  { mk ~pos:$loc (`Methods { base = `None; methods = $2 }) }
+  | LCUR RCUR                        { mk ~pos:$loc (`Methods {base = `None; methods = []}) }
   | expr QUESTION DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $4; optional = true }) }
   | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = false }) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var $1), $2)) }
@@ -349,11 +346,11 @@ ty_content_args:
   | ty_content_arg COMMA ty_content_args { $1::$3 }
 
 ty_content_arg:
-  | VAR                  { "",$1 }
-  | STRING               { "", render_string ~pos:$loc $1 }
-  | VAR GETS VAR         { $1,$3 }
-  | VAR GETS STRING      { $1, render_string ~pos:$loc $3}
-  | VAR GETS INT         { $1,string_of_int $3}
+  | VAR                  { ("", `Verbatim $1) }
+  | STRING               { ("", `String ($loc($1), $1)) }
+  | VAR GETS VAR         { ($1, `Verbatim $3) }
+  | VAR GETS STRING      { ($1, `String ($loc($3), $3)) }
+  | VAR GETS INT         { ($1, `Verbatim $3) }
 
 ty_tuple:
   | ty TIMES ty { [$1; $3] }
@@ -564,11 +561,11 @@ encoder_opt:
   | LPAR encoder_params RPAR { $2 }
 
 encoder_param:
-  | VAR GETS expr       { $1, `Term $3 }
-  | STRING GETS expr    { render_string ~pos:$loc $1, `Term $3 }
-  | VAR                 { "", `Term (mk ~pos:$loc (`Ground (String $1))) }
-  | STRING              { "", `Term (mk ~pos:$loc (`String $1)) }
-  | ENCODER encoder_opt { "", `Encoder ($1, $2) }
+  | VAR GETS expr       { `Labelled (`Verbatim $1, $3) }
+  | STRING GETS expr    { `Labelled (`String ($loc($1), $1), $3) }
+  | VAR                 { `Anonymous (`Verbatim $1) }
+  | STRING              { `Anonymous (`String (($loc($1), $1))) }
+  | ENCODER encoder_opt { `Encoder ($1, $2) }
 
 encoder_params:
   |                                    { [] }
@@ -583,14 +580,8 @@ optional_comma:
   | COMMA {}
 
 record:
-  | VAR GETS expr {
-      fun ~pos:_ e -> mk ~pos:$loc ~t:e.Term.t ~methods:(Methods.add $1 $3 e.methods) e.Term.term
-  }
-  | record COMMA VAR GETS expr {
-      fun ~pos e ->
-        let tm = $1 ~pos e in
-        mk ~pos:$loc ~t:tm.Term.t ~methods:(Methods.add $3 $5 tm.methods) tm.Term.term
-  }
+  | VAR GETS expr { [($1, $3)] }
+  | record COMMA VAR GETS expr { $1@[($3,$5)] }
 
 string_interpolation:
   | BEGIN_INTERPOLATION string_interpolation_elems END_INTERPOLATION { $1, $2 }
@@ -649,7 +640,7 @@ if_version_op:
 
 if_version_version:
   | VERSION  { $1 }
-  | INT      { Lang_string.Version.of_string (string_of_int $1) }
+  | INT      { Lang_string.Version.of_string $1 }
   | FLOAT    { Lang_string.Version.of_string (fst $1 ^ "." ^ snd $1) }
 
 if_version:
@@ -681,7 +672,7 @@ annotate_key:
   | STRING { render_string ~pos:$loc $1 }
 
 annotate_value:
-  | INT { string_of_int $1 }
+  | INT { $1 }
   | FLOAT { fst $1 ^ "." ^ snd $1 }
   | BOOL { string_of_bool $1 }
   | VAR { $1 }

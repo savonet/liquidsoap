@@ -23,6 +23,8 @@
 include Runtime_term
 module Ground = Term_base.Ground
 
+type string_param = [ `Verbatim of string | `String of Pos.t * (char * string) ]
+type track_annotation = string * string_param
 type inc_type = [ `Lib | `Extra | `Default ]
 
 type inc = {
@@ -41,7 +43,7 @@ type meth_annotation = {
 and source_track_annotation = {
   track_name : string;
   track_type : string;
-  track_params : (string * string) list;
+  track_params : track_annotation list;
 }
 
 and source_annotation = {
@@ -165,6 +167,7 @@ and parsed_ast =
   | `Not of t
   | `Get of t
   | `Set of t * t
+  | `Methods of methods
   | `Negative of t
   | `Append of t * t
   | `Assoc of t * t
@@ -174,33 +177,41 @@ and parsed_ast =
   | `Simple_fun of t
   | `String_interpolation of char * string_interpolation list
   | `Include of inc
+  | `Int of string
   | `Float of string * string
   | `String of char * string
   | `Block of t
+  | `Parenthesis of t
+  | `Encoder of encoder
   | `Eof
   | t ast ]
 
 and t = {
-  mutable t : Type.t;
   term : parsed_ast;
-  methods : t Methods.t;
-  mutable before_comments : (Pos.t * string) list;
-  mutable after_comments : (Pos.t * string) list;
+  pos : Pos.t;
+  mutable comments : (Pos.t * string list) list;
+}
+
+and methods = {
+  base : [ `None | `Spread of t | `Term of t ];
+  methods : (string * t) list;
 }
 
 and string_interpolation = [ `String of string | `Term of t ]
 
-type encoder_params = t ast_encoder_params
+and encoder_params =
+  [ `Anonymous of string_param
+  | `Encoder of encoder
+  | `Labelled of string_param * t ]
+  list
+
+and encoder = string * encoder_params
 
 let unit = `Tuple []
+let make ?(comments = []) ~pos term = { pos; term; comments }
 
-let make ?pos ?t ?(methods = Methods.empty) e =
-  let t = match t with Some t -> t | None -> Type.var ?pos () in
-  { t; term = e; methods; before_comments = []; after_comments = [] }
-
-let rec iter_term fn ({ term; methods } as tm) =
+let rec iter_term fn ({ term } as tm) =
   if term <> `Eof then fn tm;
-  Methods.iter (fun _ tm -> iter_term fn tm) methods;
   match term with
     | `If p | `Inline_if p -> (
         iter_term fn p.if_condition;
@@ -290,7 +301,14 @@ let rec iter_term fn ({ term; methods } as tm) =
     | `Open (tm, tm') ->
         iter_term fn tm;
         iter_term fn tm'
+    | `Parenthesis tm -> iter_term fn tm
     | `Block tm -> iter_term fn tm
+    | `Methods { base; methods } ->
+        (match base with
+          | `None -> ()
+          | `Spread tm | `Term tm -> iter_term fn tm);
+        List.iter (fun (_, tm) -> iter_term fn tm) methods
+    | `Int _ -> ()
     | `Float _ -> ()
     | `String _ -> ()
     | `Var _ -> ()

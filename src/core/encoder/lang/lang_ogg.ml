@@ -25,7 +25,7 @@ let type_of_encoder p =
   let audio =
     List.find_map
       (function
-        | "", `Encoder (e, p) -> if List.mem e audio then Some p else None
+        | `Encoder (e, p) -> if List.mem e audio then Some p else None
         | _ -> None)
       p
   in
@@ -33,7 +33,7 @@ let type_of_encoder p =
     match audio with None -> 0 | Some p -> Lang_encoder.channels_of_params p
   in
   let video =
-    List.exists (function "", `Encoder ("theora", _) -> true | _ -> false) p
+    List.exists (function `Encoder ("theora", _) -> true | _ -> false) p
   in
   if not video then Encoder.audio_type ~pcm_kind:Content.Audio.kind channels
   else Encoder.audio_video_type ~pcm_kind:Content.Audio.kind channels
@@ -56,12 +56,12 @@ let make p =
   let ogg_video_opt e p = try Some (ogg_video e p) with Not_found -> None in
   let audio =
     List.find_map
-      (function "", `Encoder (e, p) -> ogg_audio_opt e p | _ -> None)
+      (function `Encoder (e, p) -> ogg_audio_opt e p | _ -> None)
       p
   in
   let video =
     List.find_map
-      (function "", `Encoder (e, p) -> ogg_video_opt e p | _ -> None)
+      (function `Encoder (e, p) -> ogg_video_opt e p | _ -> None)
       p
   in
   Encoder.Ogg { Ogg_format.audio; video }

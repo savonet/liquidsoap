@@ -74,6 +74,10 @@ let eval_check ~env:_ ~tm v =
             in
             Typing.(source#frame_type <: frame_t)))
 
+let render_string = function
+  | `Verbatim s -> s
+  | `String (pos, (sep, s)) -> Liquidsoap_lang.Lexer.render_string ~pos ~sep s
+
 let mk_field_t ~pos kind params =
   match kind with
     | "any" -> Type.var ~pos ()
@@ -83,11 +87,12 @@ let mk_field_t ~pos kind params =
           let k = Content.kind_of_string kind in
           match params with
             | [] -> Type.make (Format_type.descr (`Kind k))
-            | [("", "any")] -> Type.var ()
-            | [("", "internal")] ->
+            | [("", `Verbatim "any")] -> Type.var ()
+            | [("", `Verbatim "internal")] ->
                 Type.var ~constraints:[Format_type.internal_tracks] ()
             | param :: params ->
                 let mk_format (label, value) =
+                  let value = render_string value in
                   Content.parse_param k label value
                 in
                 let f = mk_format param in
@@ -98,7 +103,9 @@ let mk_field_t ~pos kind params =
                 Type.make (Format_type.descr (`Format f))
         with _ ->
           let params =
-            params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
+            params
+            |> List.map (fun (l, v) -> l ^ "=" ^ render_string v)
+            |> String.concat ","
           in
           let t = kind ^ "(" ^ params ^ ")" in
           raise

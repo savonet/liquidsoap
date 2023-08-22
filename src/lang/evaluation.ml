@@ -237,11 +237,11 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let pos = tm.t.Type.pos in
         let rec eval_param p =
           List.map
-            (fun (l, t) ->
-              ( l,
-                match t with
-                  | `Term t -> `Value (eval ~eval_check env t)
-                  | `Encoder (l, p) -> `Encoder (l, eval_param p) ))
+            (fun t ->
+              match t with
+                | `Anonymous s -> `Anonymous s
+                | `Labelled (l, t) -> `Labelled (l, eval ~eval_check env t)
+                | `Encoder (l, p) -> `Encoder (l, eval_param p))
             p
         in
         let p = eval_param p in

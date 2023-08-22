@@ -33,9 +33,7 @@ let json_of_position { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } : Json.t
       ("cnum", `Int pos_cnum);
     ]
 
-let json_of_positions = function
-  | None -> `Null
-  | Some (p, p') -> `Tuple [json_of_position p; json_of_position p']
+let json_of_positions (p, p') = `Tuple [json_of_position p; json_of_position p']
 
 let json_of_if_def ~to_json
     { if_def_negative; if_def_condition; if_def_then; if_def_else } =
@@ -66,7 +64,7 @@ let json_of_if_version ~to_json
     ( "opt",
       `String
         (match if_version_op with
-          | `Eq -> "="
+          | `Eq -> "=="
           | `Geq -> ">="
           | `Leq -> "<="
           | `Gt -> ">"
@@ -112,6 +110,14 @@ let type_node ~typ ?(extra = []) value =
        ("value", value);
      ]
     @ extra)
+
+let ast_node ~typ value = ("type", `String typ) :: value
+
+let json_of_annotated_string = function
+  | `Verbatim s -> ast_node ~typ:"var" [("value", `String s)]
+  | `String (_, (sep, s)) ->
+      ast_node ~typ:"ground"
+        [("value", `String (Printf.sprintf "%c%s%c" sep s sep))]
 
 let rec json_of_type_annotation = function
   | `Named n -> type_node ~typ:"named" (`String n)
@@ -167,12 +173,16 @@ and json_of_source_track_annotation { track_name; track_type; track_params } =
         ( "params",
           `Tuple
             (List.map
-               (fun (l, v) -> `Tuple [`String l; `String v])
+               (fun (l, v) ->
+                 `Assoc
+                   (ast_node ~typ:"app_arg"
+                      [
+                        ("label", `String l);
+                        ("value", `Assoc (json_of_annotated_string v));
+                      ]))
                track_params) );
       ]
     (`String track_type)
-
-let ast_node ~typ value = ("type", `String typ) :: value
 
 let json_of_if ~to_json { if_condition; if_then; if_elsif; if_else } =
   [
@@ -202,19 +212,35 @@ let rec base_json_of_pat = function
           ("middle", match v with None -> `Null | Some s -> `String s);
           ("right", `Tuple (List.map json_of_pat l'));
         ]
-  | `PMeth (p, l) ->
-      let json_of_opt_pat = function
-        | None -> `Null
-        | Some p -> json_of_pat p
-      in
+  | `PMeth (ellipsis, methods) ->
       ast_node ~typ:"pmeth"
         [
-          ("left", json_of_opt_pat p);
-          ( "right",
+          ( "value",
             `Tuple
               (List.map
-                 (fun (lbl, p) -> `Tuple [`String lbl; json_of_opt_pat p])
-                 l) );
+                 (function
+                   | var, None ->
+                       `Assoc (ast_node ~typ:"var" [("value", `String var)])
+                   | var, Some pat ->
+                       `Assoc
+                         (ast_node ~typ:"infix"
+                            [
+                              ( "left",
+                                `Assoc
+                                  (ast_node ~typ:"var" [("value", `String var)])
+                              );
+                              ("op", `String "=");
+                              ("right", json_of_pat pat);
+                            ]))
+                 methods
+              @
+              match ellipsis with
+                | None -> []
+                | Some pat ->
+                    [
+                      `Assoc
+                        (ast_node ~typ:"ellipsis" [("value", json_of_pat pat)]);
+                    ]) );
         ]
 
 and json_of_pat p = `Assoc (base_json_of_pat p)
@@ -262,20 +288,36 @@ let json_of_fun ~to_json arguments body =
 let json_of_let_decoration ~to_json : Parsed_term.let_decoration -> Json.t =
   function
   | `None -> `Null
-  | `Recursive -> `Assoc [("type", `String "rec")]
-  | `Replaces -> `Assoc [("type", `String "replaces")]
-  | `Eval -> `Assoc [("type", `String "eval")]
-  | `Yaml_parse -> `Assoc [("type", `String "yaml.parse")]
+  | `Recursive -> `Assoc (ast_node ~typ:"var" [("value", `String "rec")])
+  | `Replaces -> `Assoc (ast_node ~typ:"var" [("value", `String "replaces")])
+  | `Eval -> `Assoc (ast_node ~typ:"var" [("value", `String "eval")])
+  | `Yaml_parse ->
+      `Assoc (ast_node ~typ:"var" [("value", `String "yaml.parse")])
+  | `Json_parse [] ->
+      `Assoc (ast_node ~typ:"var" [("value", `String "json.parse")])
   | `Json_parse args ->
       `Assoc
-        [
-          ("type", `String "json.parse");
-          ( "arguments",
-            `Tuple (List.map (fun (l, v) -> `Tuple [`String l; to_json v]) args)
-          );
-        ]
+        (ast_node ~typ:"app"
+           [
+             ( "op",
+               `Assoc (ast_node ~typ:"var" [("value", `String "json.parse")]) );
+             ( "args",
+               `Tuple
+                 (List.map
+                    (fun (l, t) ->
+                      `Assoc
+                        (ast_node ~typ:"term"
+                           [
+                             ( "value",
+                               `Assoc
+                                 (ast_node ~typ:"app_arg"
+                                    [("label", `String l); ("value", to_json t)])
+                             );
+                           ]))
+                    args) );
+           ])
 
-let json_of_let ~to_json { decoration; pat; arglist; cast; def } body =
+let args_of_json_let ~to_json { decoration; pat; arglist; cast; def } =
   [
     ("decoration", json_of_let_decoration ~to_json decoration);
     ("pat", json_of_pat pat);
@@ -290,8 +332,16 @@ let json_of_let ~to_json { decoration; pat; arglist; cast; def } body =
     ( "cast",
       match cast with None -> `Null | Some t -> json_of_type_annotation t );
     ("definition", to_json def);
-    ("body", to_json body);
   ]
+
+let json_of_let ~to_json ast =
+  let typ, args, body =
+    match ast with
+      | `Def (p, body) -> ("def", args_of_json_let ~to_json p, body)
+      | `Let (p, body) -> ("let", args_of_json_let ~to_json p, body)
+      | `Binding (p, body) -> ("binding", args_of_json_let ~to_json p, body)
+  in
+  ast_node ~typ (("body", to_json body) :: args)
 
 let json_of_app_arg ~to_json = function
   | `Term (l, v) ->
@@ -329,10 +379,11 @@ let json_of_time_el { week; hours; minutes; seconds } =
     ("seconds", to_int seconds);
   ]
 
-let rec to_ast_json = function
+let rec to_ast_json ~to_json = function
   | `Get t -> ast_node ~typ:"get" [("value", to_json t)]
   | `Set (t, t') ->
-      ast_node ~typ:"set" [("left", to_json t); ("right", to_json t')]
+      ast_node ~typ:"infix"
+        [("left", to_json t); ("op", `String ":="); ("right", to_json t')]
   | `Inline_if p -> ast_node ~typ:"inline_if" (json_of_if ~to_json p)
   | `If p -> ast_node ~typ:"if" (json_of_if ~to_json p)
   | `If_def p -> ast_node ~typ:"if_def" (json_of_if_def ~to_json p)
@@ -376,14 +427,17 @@ let rec to_ast_json = function
   | `Time_interval (t, t') ->
       ast_node ~typ:"time_interval"
         [
-          ("left", `Assoc (json_of_time_el t));
-          ("right", `Assoc (json_of_time_el t'));
+          ("left", `Assoc (ast_node ~typ:"time" (json_of_time_el t)));
+          ("right", `Assoc (ast_node ~typ:"time" (json_of_time_el t')));
         ]
   | `Regexp (name, flags) ->
       ast_node ~typ:"regexp"
         [
           ("name", `String name);
-          ("flags", `Tuple (List.map (fun c -> `String (Char.escaped c)) flags));
+          ( "flags",
+            `Tuple
+              (List.sort Stdlib.compare
+                 (List.map (fun c -> `String (Char.escaped c)) flags)) );
         ]
   | `Try p -> ast_node ~typ:"try" (json_of_try ~to_json p)
   | `Ground g ->
@@ -392,13 +446,15 @@ let rec to_ast_json = function
           ( "value",
             `String (Json.to_string (Term_base.Ground.to_json ~pos:[] g)) );
         ]
+  | `Int i -> ast_node ~typ:"ground" [("value", `String i)]
   | `Float (ipart, fpart) ->
       ast_node ~typ:"ground" [("value", `String (ipart ^ "." ^ fpart))]
+  | `Parenthesis tm -> ast_node ~typ:"parenthesis" [("value", to_json tm)]
   | `Block tm -> ast_node ~typ:"block" [("value", to_json tm)]
   | `String (c, s) ->
       ast_node ~typ:"ground"
         [("value", `String (Printf.sprintf "%c%s%c" c s c))]
-  | `Encoder e -> ast_node ~typ:"encoder" (to_encoder_json e)
+  | `Encoder e -> ast_node ~typ:"encoder" (to_encoder_json ~to_json e)
   | `List l ->
       ast_node ~typ:"list"
         [
@@ -418,12 +474,33 @@ let rec to_ast_json = function
           ("optional", `Bool optional);
           ("meth", `Assoc (json_of_invoke_meth ~to_json meth));
         ]
+  | `Methods { base; methods } ->
+      let base, base_methods =
+        match base with
+          | `None -> (`Null, [])
+          | `Term t -> (to_json t, [])
+          | `Spread t ->
+              (`Null, [`Assoc (ast_node ~typ:"ellipsis" [("value", to_json t)])])
+      in
+      ast_node ~typ:"methods"
+        [
+          ("base", base);
+          ( "methods",
+            `Tuple
+              (List.map
+                 (fun (k, v) ->
+                   `Assoc
+                     (ast_node ~typ:"method"
+                        [("name", `String k); ("value", to_json v)]))
+                 methods
+              @ base_methods) );
+        ]
   | `Eof -> ast_node ~typ:"eof" []
   | `Open (t, t') ->
       ast_node ~typ:"open" [("left", to_json t); ("right", to_json t')]
-  | `Let (p, body) -> ast_node ~typ:"let" (json_of_let ~to_json p body)
-  | `Def (p, body) -> ast_node ~typ:"def" (json_of_let ~to_json p body)
-  | `Binding (p, body) -> ast_node ~typ:"binding" (json_of_let ~to_json p body)
+  | `Let _ as ast -> json_of_let ~to_json ast
+  | `Def _ as ast -> json_of_let ~to_json ast
+  | `Binding _ as ast -> json_of_let ~to_json ast
   | `Include { inc_type = `Lib; inc_name } ->
       ast_node ~typ:"include_lib" [("value", `String inc_name)]
   | `Include { inc_type = `Default; inc_name } ->
@@ -443,36 +520,35 @@ let rec to_ast_json = function
       ast_node ~typ:"rfun"
         (("name", `String lbl) :: json_of_fun ~to_json args body)
 
-and to_encoder_json (lbl, params) =
+and to_encoder_json ~to_json (lbl, params) =
   [
     ("label", `String lbl);
-    ("params", `Tuple (List.map to_encoder_param_json params));
+    ("params", `Tuple (List.map (to_encoder_param_json ~to_json) params));
   ]
 
-and to_encoder_param_json = function
-  | lbl, `Encoder e ->
+and to_encoder_param_json ~to_json = function
+  | `Encoder e -> `Assoc (ast_node ~typ:"encoder" (to_encoder_json ~to_json e))
+  | `Labelled (lbl, v) ->
       `Assoc
-        ([("type", `String "encoder"); ("label", `String lbl)]
-        @ to_ast_json (`Encoder e))
-  | lbl, `Term t ->
-      `Assoc
-        [("type", `String "term"); ("label", `String lbl); ("value", to_json t)]
+        (ast_node ~typ:"infix"
+           [
+             ("left", `Assoc (json_of_annotated_string lbl));
+             ("op", `String "=");
+             ("right", to_json v);
+           ])
+  | `Anonymous s -> `Assoc (json_of_annotated_string s)
 
-and to_json { t; methods; term; after_comments; before_comments } : Json.t =
-  let before_comments = List.map (fun (_, c) -> `String c) before_comments in
-  let after_comments = List.map (fun (_, c) -> `String c) after_comments in
+let rec to_json { pos; term; comments } : Json.t =
+  let comments =
+    List.map (fun (_, c) -> `Tuple (List.map (fun s -> `String s) c)) comments
+  in
   `Assoc
-    ([
-       ("before_comments", `Tuple before_comments);
-       ("after_comments", `Tuple after_comments);
-       ("position", json_of_positions t.pos);
-       ( "methods",
-         `Tuple
-           (List.map
-              (fun (lbl, tm) ->
-                `Assoc
-                  (ast_node ~typ:"method"
-                     [("label", `String lbl); ("value", to_json tm)]))
-              (Methods.bindings methods)) );
-     ]
-    @ to_ast_json term)
+    ([("ast_comments", `Tuple comments); ("position", json_of_positions pos)]
+    @ to_ast_json ~to_json term)
+
+let parse_string content =
+  let lexbuf = Sedlexing.Utf8.from_string content in
+  let tokenizer = Preprocessor.mk_tokenizer lexbuf in
+  let term = Runtime.program tokenizer in
+  Parser_helper.attach_comments ~pos:term.Parsed_term.pos term;
+  to_json term

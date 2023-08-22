@@ -1,0 +1,7 @@
+(rule
+ (target main.mjs)
+ (deps src/base.mjs package.json webpack.config.js)
+ (action
+  (progn
+   (run npm install)
+   (run npm exec webpack))))

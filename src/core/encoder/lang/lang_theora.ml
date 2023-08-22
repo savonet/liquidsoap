@@ -47,39 +47,39 @@ let make params =
   in
   List.fold_left
     (fun f -> function
-      | "quality", `Value { value = Ground (Int i); pos } ->
+      | `Labelled ("quality", { value = Ground (Int i); pos }) ->
           (* According to the doc, this should be a value between
            * 0 and 63. *)
           if i < 0 || i > 63 then
             Lang_encoder.raise_error ~pos "Theora quality should be in 0..63";
           { f with Theora_format.bitrate_control = Theora_format.Quality i }
-      | "bitrate", `Value { value = Ground (Int i); _ } ->
+      | `Labelled ("bitrate", { value = Ground (Int i); _ }) ->
           { f with Theora_format.bitrate_control = Theora_format.Bitrate i }
-      | "width", `Value { value = Ground (Int i); pos } ->
+      | `Labelled ("width", { value = Ground (Int i); pos }) ->
           (* According to the doc: must be a multiple of 16, and less than 1048576. *)
           if i mod 16 <> 0 || i >= 1048576 then
             Lang_encoder.raise_error ~pos
               "invalid frame width value (should be a multiple of 16)";
           { f with Theora_format.width = lazy i; picture_width = lazy i }
-      | "height", `Value { value = Ground (Int i); pos } ->
+      | `Labelled ("height", { value = Ground (Int i); pos }) ->
           (* According to the doc: must be a multiple of 16, and less than 1048576. *)
           if i mod 16 <> 0 || i >= 1048576 then
             Lang_encoder.raise_error ~pos
               "invalid frame height value (should be a multiple of 16)";
           { f with Theora_format.height = lazy i; picture_height = lazy i }
-      | "picture_width", `Value { value = Ground (Int i); pos } ->
+      | `Labelled ("picture_width", { value = Ground (Int i); pos }) ->
           (* According to the doc: must not be larger than width. *)
           if i > Lazy.force f.Theora_format.width then
             Lang_encoder.raise_error ~pos
               "picture width must not be larger than width";
           { f with Theora_format.picture_width = lazy i }
-      | "picture_height", `Value { value = Ground (Int i); pos } ->
+      | `Labelled ("picture_height", { value = Ground (Int i); pos }) ->
           (* According to the doc: must not be larger than height. *)
           if i > Lazy.force f.Theora_format.height then
             Lang_encoder.raise_error ~pos
               "picture height must not be larger than height";
           { f with Theora_format.picture_height = lazy i }
-      | "picture_x", `Value { value = Ground (Int i); pos } ->
+      | `Labelled ("picture_x", { value = Ground (Int i); pos }) ->
           (* According to the doc: must be no larger than width-picture_width
            * or 255, whichever is smaller. *)
           if
@@ -93,7 +93,7 @@ let make params =
               "picture x must not be larger than width - picture width or 255, \
                whichever is smaller";
           { f with Theora_format.picture_x = i }
-      | "picture_y", `Value { value = Ground (Int i); pos } ->
+      | `Labelled ("picture_y", { value = Ground (Int i); pos }) ->
           (* According to the doc: must be no larger than width-picture_width
            * and frame_height-pic_height-pic_y must be no larger than 255. *)
           if
@@ -107,21 +107,21 @@ let make params =
             Lang_encoder.raise_error ~pos
               "picture height - picture y must not be larger than 255";
           { f with Theora_format.picture_y = i }
-      | "aspect_numerator", `Value { value = Ground (Int i); _ } ->
+      | `Labelled ("aspect_numerator", { value = Ground (Int i); _ }) ->
           { f with Theora_format.aspect_numerator = i }
-      | "aspect_denominator", `Value { value = Ground (Int i); _ } ->
+      | `Labelled ("aspect_denominator", { value = Ground (Int i); _ }) ->
           { f with Theora_format.aspect_denominator = i }
-      | "keyframe_frequency", `Value { value = Ground (Int i); _ } ->
+      | `Labelled ("keyframe_frequency", { value = Ground (Int i); _ }) ->
           { f with Theora_format.keyframe_frequency = i }
-      | "vp3_compatible", `Value { value = Ground (Bool i); _ } ->
+      | `Labelled ("vp3_compatible", { value = Ground (Bool i); _ }) ->
           { f with Theora_format.vp3_compatible = Some i }
-      | "soft_target", `Value { value = Ground (Bool i); _ } ->
+      | `Labelled ("soft_target", { value = Ground (Bool i); _ }) ->
           { f with Theora_format.soft_target = i }
-      | "buffer_delay", `Value { value = Ground (Int i); _ } ->
+      | `Labelled ("buffer_delay", { value = Ground (Int i); _ }) ->
           { f with Theora_format.buffer_delay = Some i }
-      | "speed", `Value { value = Ground (Int i); _ } ->
+      | `Labelled ("speed", { value = Ground (Int i); _ }) ->
           { f with Theora_format.speed = Some i }
-      | "bytes_per_page", `Value { value = Ground (Int i); _ } ->
+      | `Labelled ("bytes_per_page", { value = Ground (Int i); _ }) ->
           { f with Theora_format.fill = Some i }
       | t -> Lang_encoder.raise_generic_error t)
     defaults params

@@ -1,14 +1,14 @@
 success = ref(true)
-
-def t(x, y)
-  if x != y then
+def t(x, y) =
+  if
+    x != y
+  then
     print("Failure: got #{x} instead of #{y}")
     success := false
   end
 end
 
 file = "interactive.json"
-
 def f() =
   x = interactive.float("x", 2.)
   interactive.save(file)
@@ -16,7 +16,6 @@ def f() =
   t(x(), 15.)
   interactive.load(file)
   t(x(), 2.)
-
   try
     interactive.float("bla", 0.)
     interactive.float("bla", 0.)
