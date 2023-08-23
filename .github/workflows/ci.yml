@@ -225,7 +225,7 @@ jobs:
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Upload metrics
         uses: JamesIves/github-pages-deploy-action@v4
-        env:
+        with:
           branch: metrics
           folder: ${{ github.workspace }}/${{ github.run_number }}/metrics
           clean: false
