@@ -223,6 +223,8 @@ jobs:
         with:
           name: metrics
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
+      - name: Checkout code in order to upload metrics
+        uses: actions/checkout@v3
       - name: Upload metrics
         uses: JamesIves/github-pages-deploy-action@v4
         with:
