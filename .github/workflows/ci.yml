@@ -224,13 +224,11 @@ jobs:
           name: metrics
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Upload metrics
-        uses: s0/git-publish-subdir-action@develop
+        uses: JamesIves/github-pages-deploy-action@v4
         env:
-          REPO: self
-          BRANCH: metrics
-          FOLDER: ${{ github.workspace }}/${{ github.run_number }}/metrics
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLEAR_GLOBS_FILE: ".clear-metrics"
+          branch: metrics
+          folder: ${{ github.workspace }}/${{ github.run_number }}/metrics
+          clean: false
       - name: Save traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
         run: |
