@@ -232,12 +232,19 @@ jobs:
           echo "Workspace var: $GITHUB_WORKSPACE"
           echo "Files in metrics:"
           ls /tmp/${{ github.run_number }}/metrics
+        # uses: JamesIves/github-pages-deploy-action@v4
+        # with:
+        # branch: metrics
+        # folder: ${{ github.workspace }}/${{ github.run_number }}/metrics
+        # clean: false
+      # - name: Upload metrics
       - name: Upload metrics
-        uses: JamesIves/github-pages-deploy-action@v4
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          branch: metrics
-          folder: ${{ github.workspace }}/${{ github.run_number }}/metrics
-          clean: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: metrics
+          publish_dir: ${{ github.workspace }}/${{ github.run_number }}/metrics
+          keep_files: true
       - name: Save traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
         run: |
