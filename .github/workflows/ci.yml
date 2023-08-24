@@ -225,11 +225,16 @@ jobs:
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Checkout code in order to upload metrics
         uses: actions/checkout@v3
+      - name: Debug metrics
+        run: |
+          echo "Workspace: ${{ github.workspace }}"
+          echo "Workspace var: $GITHUB_WORKSPACE"
       - name: Upload metrics
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: metrics
-          folder: ${{ github.workspace }}/${{ github.run_number }}/metrics
+          # This is ugly but ${{ github.workspace }} spits out /__w/liquidsoap/liquidsoap here...
+          folder: /home/runner/work/liquidsoap/liquidsoap/${{ github.run_number }}/metrics
           clean: false
       - name: Save traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
