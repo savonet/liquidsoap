@@ -226,6 +226,7 @@ jobs:
       - name: Checkout code in order to upload metrics
         uses: actions/checkout@v3
       - name: Debug metrics
+        # Seems to be related to https://github.com/actions/runner/issues/2058
         run: |
           echo "Workspace: ${{ github.workspace }}"
           echo "Workspace var: $GITHUB_WORKSPACE"
@@ -233,8 +234,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: metrics
-          # This is ugly but ${{ github.workspace }} spits out /__w/liquidsoap/liquidsoap here...
-          folder: /home/runner/work/liquidsoap/liquidsoap/${{ github.run_number }}/metrics
+          folder: ${{ github.run_number }}/metrics
           clean: false
       - name: Save traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
