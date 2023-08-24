@@ -234,7 +234,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: metrics
-          folder: ${{ github.run_number }}/metrics
+          folder: /tmp/${{ github.run_number }}/metrics
           clean: false
       - name: Save traces
         if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
