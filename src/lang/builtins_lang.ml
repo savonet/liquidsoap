@@ -148,6 +148,13 @@ let _ =
     Lang.(Ground (Ground.String Sys.executable_name))
     Lang.string_t
 
+let liquidsoap_functions = Lang.add_module ~base:liquidsoap "functions"
+
+let _ =
+  Lang.add_builtin ~base:liquidsoap_functions "count" ~category:`Liquidsoap
+    ~descr:"Number of functions registered in the standard library." []
+    Lang.int_t (fun _ -> Doc.Value.count () |> Lang.int)
+
 let _ =
   Lang.add_builtin_base ~category:`System
     ~descr:"Type of OS running liquidsoap." ~base:Modules.os "type"

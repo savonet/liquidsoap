@@ -255,6 +255,18 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  metrics.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   null.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
