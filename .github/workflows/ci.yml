@@ -223,8 +223,8 @@ jobs:
         with:
           name: metrics
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
-      - name: Checkout code in order to upload metrics
-        uses: actions/checkout@v3
+      # - name: Checkout code in order to upload metrics
+      # uses: actions/checkout@v3
       - name: Debug metrics
         # Seems to be related to https://github.com/actions/runner/issues/2058
         run: |
