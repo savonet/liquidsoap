@@ -1,6 +1,7 @@
 #!/bin/sh
 
-METRICS_DIR=$1
+BRANCH=$1
+METRICS_DIR=$2
 TIME="$(date +%s)"
 METRICS_FILE="${METRICS_DIR}/${TIME}.yaml"
 
@@ -11,6 +12,6 @@ touch /tmp/metrics.yaml
 cat /tmp/metrics.yaml > "${METRICS_FILE}"
 {
   echo "- commit: $(git rev-parse HEAD)"
-  echo "  branch: $(git rev-parse --abbrev-ref HEAD)"
+  echo "  branch: ${BRANCH}"
   echo "  time: ${TIME}"
 } >> "${METRICS_FILE}"
