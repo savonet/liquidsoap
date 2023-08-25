@@ -84,6 +84,12 @@ def test.raise(fn) =
   try ignore(fn()) catch _ do () end
 end
 
+# Add a metric
+def test.metric(~category, ~name, ~value, ~unit)
+  data = "- name: \"#{(name:string)}\"\n  category: \"#{(category:string)}\"\n  value: #{(value:float)}\n  unit: \"#{(unit:string)}\"\n  time: #{(time():float)}\n\n"
+  file.write(append=true, data=data, "/tmp/metrics.yaml")
+end
+
 def on_error(~backtrace, error) =
   print("Uncaught error while running test: #{error}\n#{backtrace}")
   test.fail()

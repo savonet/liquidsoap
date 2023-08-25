@@ -2,7 +2,9 @@
 
 set -e
 
-TARGET=$1
+#TARGET=$1
+
+TARGET=@perftest
 
 cd /tmp/liquidsoap-full/liquidsoap
 eval "$(opam config env)"

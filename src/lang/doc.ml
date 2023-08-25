@@ -219,6 +219,7 @@ module Value = struct
   let db = ref Map.empty
   let add (name : string) (doc : t Lazy.t) = db := Map.add name doc !db
   let get name = Lazy.force (Map.find name !db)
+  let count () = Map.cardinal !db
 
   (** Only print function names. *)
   let print_functions print =
