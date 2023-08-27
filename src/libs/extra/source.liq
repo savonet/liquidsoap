@@ -76,7 +76,10 @@ def overlap_sources(~id=null("overlap_sources"),~normalize=false,
   def on_start_next(_,_) =
     set_ready(current_position(),true)
   end
-  on_offset = fun(s) -> on_offset(force=true,override=start_next,on_start_next,s)
+  def on_offset(s) =
+    offset = metadata.getter.float(-1.,start_next,s)
+    on_offset(force=true,offset=offset,on_start_next,s)
+  end
   sources = list.map(on_offset,sources)
 
   # Disable after each track
