@@ -51,10 +51,12 @@ Sources that support seeking can also be used to implement cue points.
 The basic operator for this is `cue_cut`. Its has type:
 
 ```
-(?id:string,?cue_in_metadata:string,
- ?cue_out_metadata:string,
- source(audio='#a,video='#b,midi='#c))->
-    source(audio='#a,video='#b,midi='#c)
+(?id : string?,
+ ?cue_in_metadata : string,
+ ?cue_out_metadata : string,
+ ?on_cue_in : (() -> unit),
+ ?on_cue_out : (() -> unit),
+ source('a)) -> source('a)
 ```
 
 Its parameters are:
