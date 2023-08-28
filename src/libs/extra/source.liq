@@ -77,7 +77,7 @@ def overlap_sources(~id=null("overlap_sources"),~normalize=false,
     set_ready(current_position(),true)
   end
   def on_offset(s) =
-    offset = metadata.getter.float(-1.,start_next,s)
+    let (s,offset) = metadata.getter.source.float(-1.,start_next,s)
     on_offset(force=true,offset=offset,on_start_next,s)
   end
   sources = list.map(on_offset,sources)
