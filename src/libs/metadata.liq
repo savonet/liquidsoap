@@ -30,8 +30,8 @@ def metadata.getter.source.base(init, map, metadata, s)
     v = m[metadata]
     if v != "" then x := map(v) end
   end
-  s = source.on_metadata(f)
-  s, ref.getter(x)
+  s = source.on_metadata(s, f)
+  (s, ref.getter(x))
 end
 
 # Create a getter from a metadata: this is a string, whose value can be changed
