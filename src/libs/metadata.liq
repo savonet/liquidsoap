@@ -17,6 +17,23 @@ def metadata.getter.base(init, map, metadata, s)
   ref.getter(x)
 end
 
+let metadata.getter.source = ()
+
+# Variant of `metadata.getter.base` which also returns the source. Using this
+# variant is a bit more complex, but safer this it does not involve a global
+# state, which might unexpectedly change the metadata if a source is used at
+# various places.
+# @flag hidden
+def metadata.getter.source.base(init, map, metadata, s)
+  x = ref(init)
+  def f(m)
+    v = m[metadata]
+    if v != "" then x := map(v) end
+  end
+  s = source.on_metadata(s, f)
+  (s, ref.getter(x))
+end
+
 # Create a getter from a metadata: this is a string, whose value can be changed
 # with a metadata.
 # @category Metadata
@@ -35,6 +52,16 @@ end
 # @param s Source containing the metadata.
 def metadata.getter.float(init, m, s)
   metadata.getter.base(init, float_of_string, m, s)
+end
+
+# Create a float getter from a metadata: this is a float, whose value can be
+# changed with a metadata. This function also returns the source.
+# @category Metadata
+# @param init Initial value.
+# @param m Metadata on which the value should be updated.
+# @param s Source containing the metadata.
+def metadata.getter.source.float(init, m, s)
+  metadata.getter.source.base(init, float_of_string, m, s)
 end
 
 # Extract filename from metadata.
