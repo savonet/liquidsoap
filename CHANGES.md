@@ -2,7 +2,8 @@
 
 New:
 
-- Allow trailing commas in record definition (#3300)
+- Allow trailing commas in record definition (#3300).
+- Add `metadata.getter.source.float` (#3356).
 
 Changed:
 
