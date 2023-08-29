@@ -1,0 +1,57 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.68719792366
+  unit: "s"
+  time: 1693319548.93
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.30744290352
+  unit: "s"
+  time: 1693319550.24
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 2.43294787407
+  unit: "s"
+  time: 1693319552.67
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 5.02964305878
+  unit: "s"
+  time: 1693319557.7
+
+- name: "functions"
+  category: "language"
+  value: 2202.
+  unit: "functions"
+  time: 1693319755.61
+
+- name: "protocols"
+  category: "language"
+  value: 19.
+  unit: "protocols"
+  time: 1693319755.61
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 1.9465200901
+  unit: "s"
+  time: 1693320152.46
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 5.64070606232
+  unit: "s"
+  time: 1693320405.82
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 5.84358716011
+  unit: "s"
+  time: 1693320411.66
+
+- commit: 5326c8c91c401e8958ccac2b7a232e19707d9700
+  branch: main
+  time: 1693320411
