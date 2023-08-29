@@ -619,6 +619,7 @@ class hls_output p =
       let out_channel = self#open_out filename in
       Strings.iter out_channel#output_substring (s.encoder.Encoder.header ());
       let discontinuous = state = `Restarted in
+      state <- `Started;
       let segment =
         {
           id = s.position;
