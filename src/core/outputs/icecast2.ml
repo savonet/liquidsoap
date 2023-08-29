@@ -622,7 +622,12 @@ class output p =
           | Cry.Disconnected -> ()
           | Cry.Connected _ ->
               self#log#important "Closing connection...";
-              Cry.close connection;
+              (try Cry.close connection
+               with exn ->
+                 let bt = Printexc.get_backtrace () in
+                 Utils.log_exception ~log:self#log ~bt
+                   (Printf.sprintf "Error while closing connection: %s"
+                      (Printexc.to_string exn)));
               on_disconnect ()
       end;
       match dump with Some f -> close_out f | None -> ()

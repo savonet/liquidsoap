@@ -20,6 +20,7 @@ Fixed:
 - Fixed HTTP response status in `output.harbor` (#3255)
 - Make sure main HLS playlist is regenerated after being
   unlinked (#3275)
+- Fixed hard crash on icecast disconnection errors.
 - Fix `output.harbor` encoder header when encoding with
   `%ogg`, `%vorbis` and etc. (#3276)
 - Fixed quality argument parsing in ffmpeg encoders (#3267)
