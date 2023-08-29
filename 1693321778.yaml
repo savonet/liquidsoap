@@ -1,0 +1,63 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.871040821075
+  unit: "s"
+  time: 1693320787.69
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.60908818245
+  unit: "s"
+  time: 1693320789.3
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 3.00429606438
+  unit: "s"
+  time: 1693320792.3
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 6.13675999641
+  unit: "s"
+  time: 1693320798.44
+
+- name: "functions"
+  category: "language"
+  value: 2202.
+  unit: "functions"
+  time: 1693321038.48
+
+- name: "protocols"
+  category: "language"
+  value: 19.
+  unit: "protocols"
+  time: 1693321038.48
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.80711197853
+  unit: "s"
+  time: 1693321459.45
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 7.1782450676
+  unit: "s"
+  time: 1693321764.49
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 7.25441598892
+  unit: "s"
+  time: 1693321771.74
+
+- name: "Process managed memory"
+  category: "performance"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1693321778.22
+
+- commit: f5d6873605a89944ef4dc97f045e5cf4de128f29
+  branch: memory
+  time: 1693321778
