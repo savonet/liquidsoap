@@ -6,7 +6,7 @@ def time(name, f)
   t = time()
   f()
   t = time() - t
-  print("Computing #{name} took #{t} seconds.")
+  print("Computing #{name} took #{string.float(decimal_places=2,t)} seconds.")
   test.metric(category="performance", name=name, value=t, unit="s")
   if profile then print(profiler.stats.string()) end
 end

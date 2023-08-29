@@ -1,7 +1,9 @@
 #!../../liquidsoap ../test.liq
 
 def f() =
-  test.metric(category="language", name="functions", value=float(liquidsoap.functions.count()), unit="functions")
+  n = liquidsoap.functions.count()
+  print("We have #{n} functions.")
+  test.metric(category="language", name="functions", value=float(n), unit="functions")
   test.pass()
 end
 
