@@ -179,3 +179,8 @@ let _ =
             (fun s -> Request.indicator ~temporary (Lang.to_string s))
             (Lang.to_list l));
       Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:Modules.protocol "count" ~category:`Liquidsoap
+    ~descr:"Number of registered protocols." [] Lang.int_t (fun _ ->
+      Doc.Protocol.count () |> Lang.int)

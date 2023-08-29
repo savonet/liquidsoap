@@ -78,6 +78,7 @@ module Protocol = struct
     db := p :: !db
 
   let db () = List.sort compare !db
+  let count () = db () |> List.length
 
   let print_md print =
     List.iter
