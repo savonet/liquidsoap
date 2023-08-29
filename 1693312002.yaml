@@ -1,0 +1,45 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.667306184769
+  unit: "s"
+  time: 1693311966.58
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.26530504227
+  unit: "s"
+  time: 1693311967.84
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 2.40124106407
+  unit: "s"
+  time: 1693311970.24
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 4.84555411339
+  unit: "s"
+  time: 1693311975.09
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.05566287041
+  unit: "s"
+  time: 1693311985.73
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 5.5238339901
+  unit: "s"
+  time: 1693311996.77
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 5.70593714714
+  unit: "s"
+  time: 1693312002.47
+
+- commit: a93db787dbfa793d65c2f3a12481515b0142ef3f
+  branch: ignore-close-error
+  time: 1693312002
