@@ -85,8 +85,9 @@ def test.raise(fn) =
 end
 
 # Add a metric
-def test.metric(~category, ~name, ~value, ~unit)
-  data = "- name: \"#{(name:string)}\"\n  category: \"#{(category:string)}\"\n  value: #{(value:float)}\n  unit: \"#{(unit:string)}\"\n  time: #{(time():float)}\n\n"
+def test.metric(~category, ~name, ~value, ~unit, ~min=null())
+  min = null.defined(min)?"\n  min: #{(null.get(min):float)}":""
+  data = "- name: \"#{(name:string)}\"\n  category: \"#{(category:string)}\"\n  value: #{(value:float)}\n  unit: \"#{(unit:string)}\"\n  time: #{(time():float)}#{min}\n\n"
   file.write(append=true, data=data, "/tmp/metrics.yaml")
 end
 
