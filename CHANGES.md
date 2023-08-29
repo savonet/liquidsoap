@@ -16,6 +16,7 @@ Changed:
 
 Fixed:
 
+- Fixed discontinuity logic error in HLS outputs after a restart.
 - Fixed HTTP response status in `output.harbor` (#3255)
 - Make sure main HLS playlist is regenerated after being
   unlinked (#3275)
