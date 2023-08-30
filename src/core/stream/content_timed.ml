@@ -44,9 +44,10 @@ module Specs = struct
   let sort : 'a. (int * 'a) list -> (int * 'a) list =
    fun data -> List.sort (fun (p, _) (p', _) -> compare p p') data
 
-  let sub c ofs len =
+  let sub c ofs length =
+    let len = match length with Infinite -> max_int | Finite len -> len in
     {
-      length = Finite len;
+      length;
       data =
         List.filter_map
           (fun (pos, x) ->
@@ -56,14 +57,16 @@ module Specs = struct
 
   let blit : 'a. 'a content -> int -> 'a content -> int -> int -> unit =
    fun src src_pos dst dst_pos len ->
-    let head = (sub dst 0 dst_pos).data in
+    let head = (sub dst 0 (Finite dst_pos)).data in
     let middle =
-      List.map (fun (pos, x) -> (dst_pos + pos, x)) (sub src src_pos len).data
+      List.map
+        (fun (pos, x) -> (dst_pos + pos, x))
+        (sub src src_pos (Finite len)).data
     in
     let tail_length =
       match dst.length with
-        | Infinite -> max_int
-        | Finite dst_len -> dst_len - len - dst_pos
+        | Infinite -> Infinite
+        | Finite dst_len -> Finite (dst_len - len - dst_pos)
     in
     let tail = (sub dst (dst_pos + len) tail_length).data in
     dst.data <- sort (head @ middle @ tail)
