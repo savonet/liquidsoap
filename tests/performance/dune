@@ -21,9 +21,11 @@
   (:big_record ./big-record.liq)
   (:erathostenes ./erathostenes.liq)
   (:performance performance.liq)
+  (:memory memory.liq)
   (:test_liq ../test.liq))
  (action
   (progn
    (run %{liquidsoap} %{test_liq} %{performance} %{small_record})
    (run %{liquidsoap} %{test_liq} %{performance} %{big_record})
-   (run %{liquidsoap} %{test_liq} %{performance} %{erathostenes}))))
+   (run %{liquidsoap} %{test_liq} %{performance} %{erathostenes})
+   (run %{liquidsoap} %{test_liq} %{performance} %{memory}))))
