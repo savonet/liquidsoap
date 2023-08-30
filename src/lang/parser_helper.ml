@@ -43,17 +43,13 @@ let render_string ~pos s =
 
 let pending_comments = ref []
 let clear_comments () = pending_comments := []
-let append_comment ~pos c = pending_comments := (pos, c) :: !pending_comments
+
+let append_comment ~pos c =
+  let comments = List.map String.trim (String.split_on_char '\n' c) in
+  pending_comments := (pos, comments) :: !pending_comments
 
 let comment_distance term_pos comment_pos =
-  let distance_before =
-    (fst term_pos).Lexing.pos_cnum - (snd comment_pos).Lexing.pos_cnum
-  in
-  let distance_after =
-    (fst comment_pos).Lexing.pos_cnum - (snd term_pos).Lexing.pos_cnum
-  in
-  if abs distance_before < abs distance_after then (`Before, distance_before)
-  else (`After, distance_after)
+  (fst term_pos).Lexing.pos_cnum - (snd comment_pos).Lexing.pos_cnum
 
 let sort_comments comments =
   List.sort
@@ -68,23 +64,14 @@ let attach_comments ~pos term =
       let distance = ref (comment_distance pos comment_pos) in
       Parsed_term.iter_term
         (fun term ->
-          match term.t.pos with
-            | None -> ()
-            | Some term_pos -> (
-                match (comment_distance term_pos comment_pos, !distance) with
-                  | ((_, d) as new_distance), (_, d')
-                    when d' < 0 || (0 <= d && d < d') ->
-                      distance := new_distance;
-                      closest_term := term
-                  | _ -> ()))
+          match (comment_distance term.pos comment_pos, !distance) with
+            | d, d' when d' < 0 || (0 <= d && d < d') ->
+                distance := d;
+                closest_term := term
+            | _ -> ())
         term;
-      match !distance with
-        | `Before, _ ->
-            !closest_term.before_comments <-
-              sort_comments ((comment_pos, c) :: !closest_term.before_comments)
-        | `After, _ ->
-            !closest_term.after_comments <-
-              sort_comments ((comment_pos, c) :: !closest_term.after_comments))
+      !closest_term.comments <-
+        sort_comments ((comment_pos, c) :: !closest_term.comments))
     !pending_comments;
   pending_comments := []
 
@@ -160,16 +147,7 @@ let mk_json_assoc_object_ty ~pos = function
   | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty
   | _ -> raise (Term_base.Parse_error (pos, "Invalid type constructor"))
 
-type encoder_param =
-  string * [ `Term of Term.t | `Encoder of string * encoder_opt ]
-
-and encoder_opt = encoder_param list
-
 type let_opt_el = string * Term.t
-type record = pos:Lexing.position * Lexing.position -> Term.t -> Term.t
-type ty_content_arg = string * string
-type ty_content_args = ty_content_arg list
-type ty_content = string * ty_content_args
 type meth_pattern_el = string * Term.pattern option
 
 let let_decoration_of_lexer_let_decoration = function

@@ -42,27 +42,25 @@ let make params =
   let wav =
     List.fold_left
       (fun f -> function
-        | "stereo", `Value { value = Ground (Bool b); _ } ->
+        | `Labelled ("stereo", { value = Ground (Bool b); _ }) ->
             { f with Wav_format.channels = (if b then 2 else 1) }
-        | "mono", `Value { value = Ground (Bool b); _ } ->
+        | `Labelled ("mono", { value = Ground (Bool b); _ }) ->
             { f with Wav_format.channels = (if b then 1 else 2) }
-        | "", `Value { value = Ground (String s); _ }
-          when String.lowercase_ascii s = "stereo" ->
+        | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Wav_format.channels = 2 }
-        | "", `Value { value = Ground (String s); _ }
-          when String.lowercase_ascii s = "mono" ->
+        | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Wav_format.channels = 1 }
-        | "channels", `Value { value = Ground (Int c); _ } ->
+        | `Labelled ("channels", { value = Ground (Int c); _ }) ->
             { f with Wav_format.channels = c }
-        | "duration", `Value { value = Ground (Float d); _ } ->
+        | `Labelled ("duration", { value = Ground (Float d); _ }) ->
             { f with Wav_format.duration = Some d }
-        | "samplerate", `Value { value = Ground (Int i); _ } ->
+        | `Labelled ("samplerate", { value = Ground (Int i); _ }) ->
             { f with Wav_format.samplerate = Lazy.from_val i }
-        | "samplesize", `Value { value = Ground (Int i); pos } ->
+        | `Labelled ("samplesize", { value = Ground (Int i); pos }) ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
               Lang_encoder.raise_error ~pos "invalid sample size";
             { f with Wav_format.samplesize = i }
-        | "header", `Value { value = Ground (Bool b); _ } ->
+        | `Labelled ("header", { value = Ground (Bool b); _ }) ->
             { f with Wav_format.header = b }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params

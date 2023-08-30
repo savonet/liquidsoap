@@ -8,6 +8,7 @@
 
 (library
  (name liquidsoap_tooling)
+ (package liquidsoap-lang)
  (modules parsed_json)
  (libraries sedlex liquidsoap_lang))
 

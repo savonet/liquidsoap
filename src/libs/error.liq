@@ -13,7 +13,7 @@ let error.string = error.register("string")
 # otherwise).
 # @category Programming
 # @param c Condition which should be satisfied.
-def assert(c)
+def assert(c) =
   if not c then error.raise(error.assertion, "Assertion failed.") end
 end
 
@@ -22,6 +22,4 @@ let error.failure = error.register("failure")
 # Major failure.
 # @category Programming
 # @param msg Explanation about the failure.
-def failwith(msg)
-  error.raise(error.failure, msg)
-end
+def failwith(msg) = error.raise(error.failure, msg) end

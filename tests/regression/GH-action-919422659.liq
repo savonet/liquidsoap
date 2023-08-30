@@ -5,21 +5,10 @@
 # copy of it with decoder forced to FFMPEG, the one originally
 # failing in the github action run & serves as regresstion test
 # for this case.
-
 settings.decoder.decoders.set(["ffmpeg"])
-
 s = single("../media/@flac[stereo].flac")
+def f(rem, _) = if rem > 0. then test.pass() else test.fail() end end
 
-def f(rem, _) =
-  if rem > 0. then
-    test.pass()
-  else
-    test.fail()
-  end
-end
-
-s = source.on_end(s,delay=0.1,f)
-
-clock.assign_new(sync="none",[s])
-
+s = source.on_end(s, delay=0.1, f)
+clock.assign_new(sync="none", [s])
 output.dummy(s)

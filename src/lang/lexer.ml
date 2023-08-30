@@ -272,11 +272,11 @@ let rec token lexbuf =
     | '_' -> UNDERSCORE
     | "true" -> BOOL true
     | "false" -> BOOL false
-    | int_literal -> INT (int_of_string (Sedlexing.Utf8.lexeme lexbuf))
+    | int_literal -> INT (Sedlexing.Utf8.lexeme lexbuf)
     | Plus decimal_digit, ".{" ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let matched = String.sub matched 0 (String.length matched - 2) in
-        PP_INT_DOT_LCUR (int_of_string matched)
+        PP_INT_DOT_LCUR matched
     | Star decimal_digit, '.', Star decimal_digit ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let idx = String.index matched '.' in
@@ -374,7 +374,6 @@ and read_multiline_comment ?(level = 0) pos buf lexbuf =
              (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
 
 and read_string c pos buf lexbuf =
-  (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
   match%sedlex lexbuf with
     | '\\', Opt any ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);

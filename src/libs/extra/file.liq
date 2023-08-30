@@ -7,42 +7,64 @@
 # @category Source / Track processing
 # @method add Record that file with given metadata has been played.
 # @method last How long ago a file was played (in seconds), `infinity` is returned if the song has never been played.
-def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"])
+def playlog(
+  ~duration=infinity,
+  ~persistency=null(),
+  ~hash=fun (m) -> m["filename"]
+) =
   l = ref([])
+
   # Load from persistency file
-  if null.defined(persistency) then
-    if file.exists(null.get(persistency)) then
-      let json.parse ( parsed : [(string * float)]? ) = file.contents(null.get(persistency))
-      if null.defined(parsed) then
-         l := null.get(parsed)
-      end
+  if
+    null.defined(persistency)
+  then
+    if
+      file.exists(null.get(persistency))
+    then
+      let json.parse (parsed : [(string*float)]?) =
+        file.contents(null.get(persistency))
+
+      if null.defined(parsed) then l := null.get(parsed) end
     end
   end
+
+
   # Save into persistency file
-  def save()
-    if null.defined(persistency) then
+  def save() =
+    if
+      null.defined(persistency)
+    then
       data = json.stringify(l())
       file.write(data=data, null.get(persistency))
     end
   end
+
+
   # Remove too old elements
-  def prune()
-    if duration != infinity then
+  def prune() =
+    if
+      duration != infinity
+    then
       t = time()
-      l := list.assoc.filter(fun(_, tf) -> t - tf <= duration, l())
+      l := list.assoc.filter(fun (_, tf) -> t - tf <= duration, l())
     end
   end
+
+
   # Add a new entry
-  def add(m)
+  def add(m) =
     prune()
     f = hash(m)
-    l := (f, time()) :: l()
+    l := (f, time())::l()
     save()
   end
+
+
   # Last time this entry was played
-  def last(m)
+  def last(m) =
     f = hash(m)
-    time() - list.assoc(default = 0.-infinity, f, l())
+    time() - list.assoc(default=0. - infinity, f, l())
   end
-  { add=add, last=last }
+
+  {add=add, last=last}
 end

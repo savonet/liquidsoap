@@ -1,18 +1,21 @@
-def t(x,y) =
-  if x != y then
+def t(x, y) =
+  if
+    x != y
+  then
     print("#{x} != #{y}!")
     test.fail()
   end
 end
 
 def f() =
+
   # Test basic syntax
-  ignore(r/bla/igsm)
+  ignore(r/bla/gims)
   ignore(r/gni/)
   ignore(r/bla\foo\/gni/)
 
   # Test equality
-  t(r/bla/igsm, r/bla/mgis)
+  t(r/bla/gims, r/bla/gims)
 
   # Test test
   t(r/^foo[\d]+bar$/.test("foo1234bar"), true)
@@ -28,11 +31,9 @@ def f() =
   t(r/gni/.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnibla")
   t(r/gni/g.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnobla")
 
-
   # Test string escape.
   x = r/^\/foo$/g
   t("#{x}", "r/^\\/foo$/g")
-
   test.pass()
 end
 

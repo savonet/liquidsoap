@@ -20,6 +20,16 @@ let () =
       Printf.printf
         {|
 (rule
+  (alias fmt)
+  (deps %s (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (action
+    (progn
+      (with-stdout-to %s.prettier
+       (chdir ../../src/tooling/prettier
+         (run pnpm prettier --config ./config.json ../../../tests/streams/%s)))
+      (diff %s %s.prettier))))
+
+(rule
  (alias citest)
  (package liquidsoap)
  (deps
@@ -41,5 +51,5 @@ let () =
   (:run_test ../run_test.exe))
  (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
   |}
-        test test test)
+        test test test test test test test test)
     tests

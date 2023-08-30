@@ -59,14 +59,14 @@ let raise_error ~pos message =
           ~pos:(match pos with None -> [] | Some pos -> [pos])
           "encoder"
 
-let raise_generic_error (l, t) =
-  match t with
-    | `Value v ->
-        raise_error ~pos:v.Value.pos
-          (Printf.sprintf
-             "unknown parameter name (%s) or invalid parameter value (%s)" l
-             (Value.to_string v))
-    | `Encoder _ -> raise_error ~pos:None "unexpected subencoder"
+let raise_generic_error = function
+  | `Anonymous s -> raise_error ~pos:None ("Unknown encoder parameter: " ^ s)
+  | `Labelled (l, v) ->
+      raise_error ~pos:v.Value.pos
+        (Printf.sprintf
+           "unknown parameter name (%s) or invalid parameter value (%s)" l
+           (Value.to_string v))
+  | `Encoder _ -> raise_error ~pos:None "unexpected subencoder"
 
 (* An encoder. *)
 type encoder = {
@@ -89,26 +89,26 @@ let channels_of_params ?(default = 2) p =
   match
     List.find_map
       (function
-        | "", `Term { term = `Ground (String "stereo") } -> Some 2
-        | "", `Term { term = `Ground (String "mono") } -> Some 1
-        | "stereo", `Term { term = `Ground (Bool b); _ } ->
+        | `Anonymous s when String.lowercase_ascii s = "mono" -> Some 1
+        | `Anonymous s when String.lowercase_ascii s = "stereo" -> Some 2
+        | `Labelled ("stereo", { term = `Ground (Bool b); _ }) ->
             Some (if b then 2 else 1)
-        | "stereo", `Term ({ t = { Type.pos } } as tm) ->
+        | `Labelled ("stereo", ({ t = { Type.pos } } as tm)) ->
             raise_error ~pos
               (Printf.sprintf
                  "Invalid value %s for stereo mode. Only static `true` or \
                   `false` are allowed."
                  (Term.to_string tm))
-        | "mono", `Term { term = `Ground (Bool b); _ } ->
+        | `Labelled ("mono", { term = `Ground (Bool b); _ }) ->
             Some (if b then 1 else 2)
-        | "mono", `Term ({ t = { Type.pos } } as tm) ->
+        | `Labelled ("mono", ({ t = { Type.pos } } as tm)) ->
             raise_error ~pos
               (Printf.sprintf
                  "Invalid value %s for mono mode. Only static `true` or \
                   `false` are allowed."
                  (Term.to_string tm))
-        | "channels", `Term { term = `Ground (Int n) } -> Some n
-        | "channels", `Term ({ t = { Type.pos } } as tm) ->
+        | `Labelled ("channels", { term = `Ground (Int n) }) -> Some n
+        | `Labelled ("channels", ({ t = { Type.pos } } as tm)) ->
             raise_error ~pos
               (Printf.sprintf
                  "Invalid value %s for channels mode. Only static numbers are \

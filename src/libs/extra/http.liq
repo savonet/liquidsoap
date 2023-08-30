@@ -19,111 +19,140 @@ def harbor.http.middleware.cors(
   ~credentials=false,
   ~max_age=null(),
   ~preflight_continue=false,
-  ~options_status_code=204) =
-  fun (req, res, next) -> begin
-    # This is for typing purposes
-    res = if false then http.response() else res end
-    if false then
-      harbor.http.register("/foo", fun (r, _) -> ignore(if false then r else req end))
-    end
+  ~options_status_code=204
+) =
+  fun (req, res, next) ->
+    begin
 
-    vary = ref([])
-
-    def add_vary() =
-      if vary() != [] then
-        res.header("Vary", string.concat(separator=",", vary()))
+      # This is for typing purposes
+      res = if false then http.response() else res end
+      if
+        false
+      then
+        harbor.http.register(
+          "/foo", fun (r, _) -> ignore(if false then r else req end)
+        )
       end
-    end
 
-    def vary(v) =
-      vary := v::vary()
-    end
-
-    def add_origin(origin) =
-      res.header("Access-Control-Allow-Origin", origin)
-      if origin != "*" then
-        vary("Origin")
+      vary = ref([])
+      def add_vary() =
+        if
+          vary() != []
+        then
+          res.header("Vary", string.concat(separator=",", vary()))
+        end
       end
-    end
 
-    def add_methods() =
-      if methods != [] then
-        res.header("Access-Control-Allow-Methods", string.concat(separator=",", methods))
+      def vary(v) = vary := v::vary() end
+
+      def add_origin(origin) =
+        res.header("Access-Control-Allow-Origin", origin)
+        if origin != "*" then vary("Origin") end
       end
-    end
 
-    def add_credentials() =
-      if credentials then
-        res.header("Access-Control-Allow-Credentials", "true")
+      def add_methods() =
+        if
+          methods != []
+        then
+          res.header(
+            "Access-Control-Allow-Methods",
+            string.concat(separator=",", methods)
+          )
+        end
       end
-    end
 
-    def add_allowed_headers() =
-      allowed_headers =
-        if null.defined(allowed_headers) then
-          string.concat(separator=",", null.get(allowed_headers))
-        elsif list.assoc.mem("access-control-request-headers", req.headers) then
-          req.headers["access-control-request-headers"]
+      def add_credentials() =
+        if
+          credentials
+        then
+          res.header("Access-Control-Allow-Credentials", "true")
+        end
+      end
+
+      def add_allowed_headers() =
+        allowed_headers =
+          if
+            null.defined(allowed_headers)
+          then
+            string.concat(separator=",", null.get(allowed_headers))
+          elsif
+            list.assoc.mem("access-control-request-headers", req.headers)
+          then
+            req.headers["access-control-request-headers"]
+          else
+            null()
+          end
+
+        if
+          null.defined(allowed_headers)
+        then
+          res.header("Access-Control-Allow-Headers", null.get(allowed_headers))
+          vary("Access-Control-Request-Headers")
+        end
+      end
+
+      def add_exposed_headers() =
+        if
+          exposed_headers != []
+        then
+          res.header(
+            "Access-Control-Expose-Headers",
+            string.concat(separator=",", exposed_headers)
+          )
+        end
+      end
+
+      def add_max_age() =
+        if
+          null.defined(max_age)
+        then
+          res.header("Access-Control-Max-Age", "#{(null.get(max_age) : int)}")
+        end
+      end
+
+      origin =
+        if
+          null.defined(origin_callback)
+        then
+          fn = null.get(origin_callback)
+          fn(req)
         else
-          null()
+          getter.get(origin)
         end
 
-      if null.defined(allowed_headers) then
-        res.header("Access-Control-Allow-Headers", null.get(allowed_headers))
-        vary("Access-Control-Request-Headers")
-      end
-    end
-
-    def add_exposed_headers() =
-      if exposed_headers != [] then
-        res.header("Access-Control-Expose-Headers", string.concat(separator=",", exposed_headers))
-      end
-    end
-
-    def add_max_age() =
-       if null.defined(max_age) then
-         res.header("Access-Control-Max-Age", "#{(null.get(max_age):int)}")
-       end
-    end
-
-    origin =
-      if null.defined(origin_callback) then
-        fn = null.get(origin_callback)
-        fn(req)
-      else
-        getter.get(origin)
-      end
-
-    if not null.defined(origin) then
-      next(req, res)
-    else
-      add_origin(null.get(origin))
-
-      if req.method == "OPTIONS" then
-        add_credentials()
-        add_methods()
-        add_allowed_headers()
-        add_max_age()
-        add_exposed_headers()
-        add_vary()
-
-        if preflight_continue then
-          next(req, res)
-        else
-          res.status_code(options_status_code)
-          res.header("Content-length", "0")
-        end
-      else
-        add_credentials()
-        add_allowed_headers()
-        add_vary()
+      if
+        not null.defined(origin)
+      then
         next(req, res)
+      else
+        add_origin(null.get(origin))
+        if
+          req.method == "OPTIONS"
+        then
+          add_credentials()
+          add_methods()
+          add_allowed_headers()
+          add_max_age()
+          add_exposed_headers()
+          add_vary()
+          if
+            preflight_continue
+          then
+            next(req, res)
+          else
+            res.status_code(options_status_code)
+            res.header("Content-length", "0")
+          end
+        else
+          add_credentials()
+          add_allowed_headers()
+          add_vary()
+          next(req, res)
+        end
       end
     end
-  end
 end
+
 
 # This is for typing purposes
-if false then
-  harbor.http.middleware.register(harbor.http.middleware.cors())
-end
+if false then harbor.http.middleware.register(harbor.http.middleware.cors()) end

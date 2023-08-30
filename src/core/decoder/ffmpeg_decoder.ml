@@ -523,15 +523,16 @@ let parse_input_args args =
     let args = parse_encoder_params args in
     List.fold_left
       (fun (args, format) -> function
-        | "f", `Term Term.{ term = `Var format; _ }
-        | "format", `Term Term.{ term = `Var format; _ } ->
+        | `Labelled ("f", Term.{ term = `Var format; _ })
+        | `Labelled ("format", Term.{ term = `Var format; _ }) ->
             (args, Av.Format.find_input_format format)
-        | k, `Term Term.{ term = `Var v; _ } -> ((k, `String v) :: args, format)
-        | k, `Term Term.{ term = `Ground (Ground.String s); _ } ->
+        | `Labelled (k, Term.{ term = `Var v; _ }) ->
+            ((k, `String v) :: args, format)
+        | `Labelled (k, Term.{ term = `Ground (Ground.String s); _ }) ->
             ((k, `String s) :: args, format)
-        | k, `Term Term.{ term = `Ground (Ground.Int i); _ } ->
+        | `Labelled (k, Term.{ term = `Ground (Ground.Int i); _ }) ->
             ((k, `Int i) :: args, format)
-        | k, `Term Term.{ term = `Ground (Ground.Float f); _ } ->
+        | `Labelled (k, Term.{ term = `Ground (Ground.Float f); _ }) ->
             ((k, `Float f) :: args, format)
         | _ -> assert false)
       ([], None) args

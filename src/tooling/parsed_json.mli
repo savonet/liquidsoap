@@ -23,3 +23,4 @@
 open Liquidsoap_lang
 
 val to_json : Parsed_term.t -> Json.t
+val parse_string : string -> Json.t

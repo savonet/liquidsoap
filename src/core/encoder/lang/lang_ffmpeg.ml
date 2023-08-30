@@ -104,7 +104,11 @@ let stream_media_type ~to_pos ~to_static_string name args =
 let copy_param = function
   | [] -> None
   | [("", t)] -> Some t
-  | [(l, v)] | _ :: (l, v) :: _ -> Lang_encoder.raise_generic_error (l, `Value v)
+  | [(l, v)] | _ :: (l, v) :: _ ->
+      Lang_encoder.raise_generic_error
+        (match l with
+          | "" -> `Anonymous (Lang.to_string v)
+          | l -> `Labelled (l, v))
 
 let parse_encoder_name name =
   let field, mode =
@@ -148,18 +152,25 @@ let parse_encoder_params ~to_pos (name, p) : parsed_encoder =
   (field, mode)
 
 let to_static_string_term = function
-  | `Term Term.{ term = `Ground (Ground.String s) } -> Some s
+  | Term.{ term = `Ground (Ground.String s) } -> Some s
   | _ -> None
 
-let term_pos = function
-  | `Term { Term.t = { Type.pos } } -> pos
-  | _ -> raise Exit
+let term_pos { Term.t = { Type.pos } } = pos
 
 let type_of_encoder =
   List.fold_left
     (fun content_type p ->
       match p with
-        | "", `Encoder (name, args) ->
+        | `Encoder (name, args) ->
+            let args =
+              List.filter_map
+                (function
+                  | `Anonymous s ->
+                      Some ("", Term.make (`Ground (Term.Ground.String s)))
+                  | `Labelled (l, v) -> Some (l, v)
+                  | `Encoder _ -> None)
+                args
+            in
             let field, mode = parse_encoder_name name in
             let format =
               match mode with
@@ -189,35 +200,25 @@ let type_of_encoder =
                                 with Not_found -> ("ac", List.assoc "ac" args)
                               in
                               match channels with
-                                | `Term { Term.term = `Ground (Int n) } -> n
-                                | `Term ({ t = { Type.pos } } as tm) ->
+                                | { Term.term = `Ground (Int n) } -> n
+                                | { t = { Type.pos } } as tm ->
                                     Lang_encoder.raise_error ~pos
                                       (Printf.sprintf
                                          "Invalid value %s for %s parameter. \
                                           Only static numbers are allowed."
                                          name (Term.to_string tm))
-                                | _ ->
-                                    Lang_encoder.raise_error ~pos:None
-                                      (Printf.sprintf
-                                         "Invalid value for %s parameter." name)
                             with Not_found -> 2
                           in
                           let pcm_kind =
                             List.fold_left
                               (fun pcm_kind -> function
-                                | ( "",
-                                    `Term { Term.term = `Ground (String "pcm") }
-                                  ) ->
+                                | "", { Term.term = `Ground (String "pcm") } ->
                                     Content.Audio.kind
-                                | ( "",
-                                    `Term
-                                      { Term.term = `Ground (String "pcm_s16") }
-                                  ) ->
+                                | "", { Term.term = `Ground (String "pcm_s16") }
+                                  ->
                                     Content_pcm_s16.kind
-                                | ( "",
-                                    `Term
-                                      { Term.term = `Ground (String "pcm_f32") }
-                                  ) ->
+                                | "", { Term.term = `Ground (String "pcm_f32") }
+                                  ->
                                     Content_pcm_f32.kind
                                 | _ -> pcm_kind)
                               Content.Audio.kind args
@@ -448,22 +449,30 @@ let ffmpeg_gen params =
       | `Option (k, { value = Ground (Float i); _ }) ->
           Hashtbl.add f.Ffmpeg_format.opts k (`Float i);
           f
-      | `Option (l, v) -> Lang_encoder.raise_generic_error (l, `Value v))
+      | `Option (l, v) ->
+          Lang_encoder.raise_generic_error
+            (match l with
+              | "" -> `Anonymous (Lang.to_string v)
+              | l -> `Labelled (l, v)))
     defaults params
 
 let make params =
   let params =
     List.map
       (function
-        | _, `Encoder (name, args) ->
+        | `Encoder (name, args) ->
             let args =
               List.filter_map
-                (function l, `Value v -> Some (l, v) | _, `Encoder _ -> None)
+                (function
+                  | `Anonymous s -> Some ("", Lang.string s)
+                  | `Labelled (l, v) -> Some (l, v)
+                  | `Encoder _ -> None)
                 args
             in
             `Encoder
               (parse_encoder_params ~to_pos:(fun t -> t.pos) (name, args))
-        | l, `Value v -> `Option (l, v))
+        | `Anonymous s -> `Option ("", Lang.string s)
+        | `Labelled (l, v) -> `Option (l, v))
       params
   in
   Encoder.Ffmpeg (ffmpeg_gen params)
