@@ -1,0 +1,107 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.775825977325
+  unit: "s"
+  time: 1693407319.2
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.32680702209
+  unit: "s"
+  time: 1693407320.53
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 2.53431892395
+  unit: "s"
+  time: 1693407323.07
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 5.17026305199
+  unit: "s"
+  time: 1693407328.24
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 391.78125
+  unit: "Mio"
+  time: 1693407548.1
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 952.89453125
+  unit: "Mio"
+  time: 1693407548.1
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 6931.953125
+  unit: "Mio"
+  time: 1693407548.1
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 11027.9492188
+  unit: "Mio"
+  time: 1693407548.1
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 6240.21484375
+  unit: "Mio"
+  time: 1693407548.1
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 6241.2265625
+  unit: "Mio"
+  time: 1693407548.1
+
+- name: "functions"
+  category: "language"
+  value: 2202.
+  unit: "functions"
+  time: 1693407555.96
+
+- name: "protocols"
+  category: "language"
+  value: 19.
+  unit: "protocols"
+  time: 1693407555.96
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.43185186386
+  unit: "s"
+  time: 1693407961.54
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 5.91405892372
+  unit: "s"
+  time: 1693408238.49
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 6.13637685776
+  unit: "s"
+  time: 1693408244.62
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1693408250.69
+  min: 0.
+
+- commit: d11bcba307dd594887f856e2f2b4ebb74b73ea01
+  branch: better-infinite-sub
+  time: 1693408250
