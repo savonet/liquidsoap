@@ -1,0 +1,64 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 1.54905200005
+  unit: "s"
+  time: 1693357232.12
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.57777690887
+  unit: "s"
+  time: 1693357233.7
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 2.91289997101
+  unit: "s"
+  time: 1693357236.62
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 6.0091919899
+  unit: "s"
+  time: 1693357242.63
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2202.
+  unit: "functions"
+  time: 1693357485.64
+
+- name: "protocols"
+  category: "language"
+  value: 19.
+  unit: "protocols"
+  time: 1693357485.64
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.72279191017
+  unit: "s"
+  time: 1693357908.28
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 7.14942502975
+  unit: "s"
+  time: 1693358201.65
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 7.24301505089
+  unit: "s"
+  time: 1693358208.9
+  min: 0.
+
+- commit: 5cc67a10a71f409ae07254c07b8670ac75c061d4
+  branch: prettier-fixpoint
+  time: 1693358209
