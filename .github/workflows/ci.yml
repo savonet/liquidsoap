@@ -120,6 +120,33 @@ jobs:
           eval "$(opam config env)"
           dune build --profile release ./src/js/interactive_js.bc.js
 
+  tree_sitter_parse:
+    runs-on: ubuntu-latest
+    needs: build_details
+    container:
+      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    env:
+      HOME: /home/opam
+    steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
+      - name: Checkout code
+        run: |
+          cd /tmp/liquidsoap-full/liquidsoap
+          rm -rf doc/content/build.md doc/content/install.md
+          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
+          sudo -u opam -E git fetch origin ${{ github.sha }}
+          sudo -u opam -E git checkout ${{ github.sha }}
+      - name: Install node
+        run: |
+          apt-get update
+          apt-get install -y npm
+      - name: Parse using tree-sitter
+        run: |
+          dune build @tree-sitter-test
+
   update_doc:
     runs-on: ubuntu-latest
     needs: build_details

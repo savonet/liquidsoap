@@ -572,3 +572,495 @@
        (chdir ./../tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../libs/./video.liq)))
       (diff video.liq video.liq.prettier))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   audio.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./audio.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   clock.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./clock.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   error.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./error.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   fades.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./fades.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./ffmpeg.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   file.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./file.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   getter.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./getter.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   hls.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./hls.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   http.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./http.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   http_codes.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./http_codes.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   icecast.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./icecast.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   io.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./io.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   liquidsoap.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./liquidsoap.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   list.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./list.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   log.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./log.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   math.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./math.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   medialib.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./medialib.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   metadata.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./metadata.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   null.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./null.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   playlist.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./playlist.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   predicate.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./predicate.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   process.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./process.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   profiler.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./profiler.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   protocols.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./protocols.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ref.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./ref.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   replaygain.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./replaygain.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   request.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./request.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   resolvers.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./resolvers.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   runtime.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./runtime.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   server.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./server.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   settings.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./settings.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   socket.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./socket.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   source.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./source.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   stdlib.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./stdlib.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   string.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./string.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   switches.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./switches.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   testing.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./testing.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   thread.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./thread.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   tracks.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./tracks.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   utils.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./utils.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   video.liq
+   (source_tree ./../tooling/tree-sitter-liquidsoap)
+   ./../tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ./../tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../libs/./video.liq)))))

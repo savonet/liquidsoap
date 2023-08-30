@@ -102,7 +102,7 @@ let bin_literal =
 let int_literal =
   [%sedlex.regexp? decimal_literal | hex_literal | oct_literal | bin_literal]
 
-let var_char = [%sedlex.regexp? alphabetic | other_alphabetic]
+let var_char = [%sedlex.regexp? alphabetic]
 let var_underscore = [%sedlex.regexp? '_', Plus '_']
 
 let var_lit =
@@ -110,7 +110,7 @@ let var_lit =
     ( var_underscore
     | Star '_', var_char, Star (var_char | decimal_digit | '_' | '\'') )]
 
-let var = [%sedlex.regexp? var_lit | so | math | other_math]
+let var = [%sedlex.regexp? var_lit | so]
 let encoder = [%sedlex.regexp? '%', Plus (var_char | decimal_digit | '.' | '_')]
 
 let time =
