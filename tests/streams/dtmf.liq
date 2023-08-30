@@ -14,7 +14,7 @@ def f(k) =
   end
 end
 
-s = amplify(0.5, dtmf(duration=0.1, keys))
+s = amplify(0.5, dtmf(duration=1., keys))
 
 # s = add([s, amplify(0.5, noise())]) # Removed to make the test deterministic
 s = dtmf.detect(debug=false, s, f)

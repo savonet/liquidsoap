@@ -14,7 +14,7 @@ def f(k) =
   end
 end
 
-s = amplify(0.5, dtmf(duration=0.1, keys))
+s = amplify(0.5, dtmf(duration=1., keys))
 s = audio.encode.pcm_s16(s)
 s = add([s, blank()])
 s = audio.decode.pcm_s16(s)
