@@ -21,7 +21,8 @@ val eval_check :
   (env:(string * Value.t lazy_t) list -> tm:Term.t -> Value.t -> unit) ref
 
 type encoder_params =
-  (string * [ `Value of Value.t | `Encoder of encoder ]) list
+  [ `Anonymous of string | `Encoder of encoder | `Labelled of string * Value.t ]
+  list
 
 and encoder = string * encoder_params
 

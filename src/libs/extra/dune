@@ -1,0 +1,18 @@
+; Regenerate using dune build @gendune --auto-promote
+
+(include dune.inc)
+
+(rule
+ (alias gendune)
+ (target dune.inc.gen)
+ (deps
+  (source_tree .))
+ (action
+  (with-stdout-to
+   dune.inc.gen
+   (run ../gen_dune.exe .. extra))))
+
+(rule
+ (alias gendune)
+ (action
+  (diff dune.inc dune.inc.gen)))

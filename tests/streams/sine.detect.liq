@@ -1,6 +1,5 @@
 log.level.set(4)
-
-def f(freq)
+def f(freq) =
   print("Detected sine at #{freq}Hz.")
   test.pass()
 end

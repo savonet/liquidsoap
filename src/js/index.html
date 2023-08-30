@@ -1,17 +1,162 @@
+<!doctype html>
 <html>
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="interactive_js.bc.js"></script>
+    <script type="module">
+      import * as prettier from "https://unpkg.com/prettier@3.0.2/standalone.mjs";
+      import prettierPluginLiquidsoap from "./prettier-plugin-liquidsoap.mjs";
+
+      window.formatLiqCode = (code, cb) =>
+        prettier
+          .format(code, {
+            parser: "liquidsoap",
+            plugins: [prettierPluginLiquidsoap],
+          })
+          .then(cb);
+
+      window.onLiqLoaded = (version) => {
+        document.getElementById(
+          "input",
+        ).value = `# ✨ Welcome to liquidsoap's online interpreter! ✨
+# 🤖 Language version: ${version}
+#  Write your code here:
+
+`;
+      };
+
+      let showingResults = false;
+
+      const switchDisplay = () => {
+        const code = document.getElementById("code");
+        const results = document.getElementById("results");
+
+        if (showingResults) {
+          code.style.display = "grid";
+          results.style.display = "none";
+        } else {
+          code.style.display = "none";
+          results.style.display = "grid";
+        }
+
+        showingResults = !showingResults;
+      };
+
+      window.addEventListener("load", () => {
+        document.getElementById("switch-code").addEventListener("click", () => {
+          switchDisplay();
+        });
+
+        document
+          .getElementById("switch-results")
+          .addEventListener("click", () => {
+            switchDisplay();
+          });
+
+        document.getElementById("execute").addEventListener("click", () => {
+          switchDisplay();
+        });
+      });
+    </script>
   </head>
-  <body>
-    <form>
-<textarea disabled=true id="output" rows="20" cols="70">
-# Welcome to liquidsoap's online interpreter!
-</textarea>
-<br/>
-<textarea id="input" rows="5" cols="70">
-# Write your code here
-</textarea>
-    </form>
-    <button id="execute">Execute</button>
+  <body class="px-4 lg:px-32 bg-zinc-900 text-slate-100">
+    <header class="inset-x-0 top-0 z-50">
+      <nav
+        class="flex items-center justify-between p-6 lg:px-8"
+        aria-label="Global"
+      >
+        <div class="flex lg:flex-1">
+          <a href="/" class="-m-1.5 p-1.5 font-semibold hover:text-slate-400">
+            Liquidsoap playground
+          </a>
+        </div>
+      </nav>
+    </header>
+    <main>
+      <div
+        class="grid grid-flow-row lg:grid-flow-col gap-1 justify-items-center"
+      >
+        <div class="text-zinc-800 grid grid-flow-row lg:!grid w-full" id="code">
+          <div class="grid grid-flow-row w-full lg:hidden">
+            <div class="justify-self-start">
+              <button
+                class="my-2 px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
+                id="switch-results"
+              >
+                See Results
+              </button>
+            </div>
+          </div>
+          <div>
+            <textarea
+              class="p-4 bg-slate-200 caret-cyan-500 box-border w-full"
+              style="
+                text-shadow: 0px 0px 0px #000;
+                border: none;
+                outline: none;
+                box-shadow: none;
+                resize: none;
+              "
+              id="input"
+              rows="20"
+              cols="70"
+            >
+# Interpreter loading.. ⏳
+</textarea
+            >
+          </div>
+          <div class="justify-self-end">
+            <button
+              class="my-2 px-4 py-2 font-semibold text-sm bg-red-700 text-white rounded-full shadow-sm"
+              id="clear"
+            >
+              Clear
+            </button>
+            <button
+              class="my-2 px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
+              id="format"
+            >
+              Format
+            </button>
+            <button
+              class="my-2 px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
+              id="execute"
+            >
+              Execute
+            </button>
+          </div>
+        </div>
+        <div class="hidden lg:!grid grid grid-flow-row w-full" id="results">
+          <div class="grid grid-flow-row w-full lg:hidden">
+            <div class="justify-self-start">
+              <button
+                class="my-2 px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm flex lg:hidden"
+                id="switch-code"
+              >
+                See Code
+              </button>
+            </div>
+          </div>
+          <div>
+            <textarea
+              class="p-4 bg-slate-400 box-border w-full"
+              style="
+                text-shadow: 0px 0px 0px #000;
+                border: none;
+                outline: none;
+                box-shadow: none;
+                resize: none;
+              "
+              disabled="true"
+              id="output"
+              rows="20"
+              cols="70"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+    </main>
   </body>
 </html>

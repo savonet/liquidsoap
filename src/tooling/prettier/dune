@@ -1,0 +1,8 @@
+(rule
+ (mode fallback)
+ (deps package.json)
+ (target node_modules)
+ (action
+  (progn
+   (run npm install)
+   (run touch node_modules))))

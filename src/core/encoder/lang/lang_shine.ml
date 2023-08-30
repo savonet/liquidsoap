@@ -40,27 +40,23 @@ let make params =
   let shine =
     List.fold_left
       (fun f -> function
-        | "stereo", `Value { value = Ground (Bool b); _ } ->
+        | `Labelled ("stereo", { value = Ground (Bool b); _ }) ->
             { f with Shine_format.channels = (if b then 2 else 1) }
-        | "mono", `Value { value = Ground (Bool b); _ } ->
+        | `Labelled ("mono", { value = Ground (Bool b); _ }) ->
             { f with Shine_format.channels = (if b then 1 else 2) }
-        | "", `Value { value = Ground (String s); _ }
-          when String.lowercase_ascii s = "mono" ->
+        | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Shine_format.channels = 1 }
-        | "", `Value { value = Ground (String s); _ }
-          when String.lowercase_ascii s = "stereo" ->
+        | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Shine_format.channels = 2 }
-        | "channels", `Value { value = Ground (Int i); _ } ->
+        | `Labelled ("channels", { value = Ground (Int i); _ }) ->
             { f with Shine_format.channels = i }
-        | "samplerate", `Value { value = Ground (Int i); _ } ->
+        | `Labelled ("samplerate", { value = Ground (Int i); _ }) ->
             { f with Shine_format.samplerate = Lazy.from_val i }
-        | "bitrate", `Value { value = Ground (Int i); _ } ->
+        | `Labelled ("bitrate", { value = Ground (Int i); _ }) ->
             { f with Shine_format.bitrate = i }
-        | "", `Value { value = Ground (String s); _ }
-          when String.lowercase_ascii s = "mono" ->
+        | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Shine_format.channels = 1 }
-        | "", `Value { value = Ground (String s); _ }
-          when String.lowercase_ascii s = "stereo" ->
+        | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Shine_format.channels = 2 }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params

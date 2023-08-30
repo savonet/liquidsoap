@@ -37,12 +37,11 @@ let () =
   Printexc.register_printer (function
     | Internal_error (pos, e) ->
         Some
-          (Printf.sprintf "Lang_values.Internal_error at %s: %s"
+          (Printf.sprintf "Lang_values.Internal_error %s: %s"
              (Pos.List.to_string pos) e)
     | Parse_error (pos, e) ->
         Some
-          (Printf.sprintf "Term_base.Parse_error at %s: %s" (Pos.to_string pos)
-             e)
+          (Printf.sprintf "Term_base.Parse_error %s: %s" (Pos.to_string pos) e)
     | Unsupported_encoder (pos, e) ->
         Some
           (Printf.sprintf "Lang_values.Unsupported_encoder at %s: %s"
@@ -183,9 +182,6 @@ module MkGround (D : GroundDef) = struct
       { Ground.typ = D.typ; to_json; compare; descr }
 end
 
-type encoder_params = t ast_encoder_params
-type encoder = t ast_encoder
-
 let unit = `Tuple []
 
 (* Only used for printing very simple functions. *)
@@ -229,9 +225,9 @@ let rec to_string (v : t) =
             let p =
               p
               |> List.map (function
-                   | "", `Term v -> to_string v
-                   | l, `Term v -> l ^ "=" ^ to_string v
-                   | _, `Encoder e -> aux e)
+                   | `Anonymous s -> s
+                   | `Encoder e -> aux e
+                   | `Labelled (l, v) -> l ^ "=" ^ to_string v)
               |> String.concat ", "
             in
             "%" ^ e ^ "(" ^ p ^ ")"
@@ -331,9 +327,10 @@ let rec free_term_vars tm =
     | `Encoder e ->
         let rec enc (_, p) =
           List.fold_left
-            (fun v (_, t) ->
+            (fun v t ->
               match t with
-                | `Term t -> Vars.union v (free_vars t)
+                | `Anonymous _ -> v
+                | `Labelled (_, t) -> Vars.union v (free_vars t)
                 | `Encoder e -> Vars.union v (enc e))
             Vars.empty p
         in
@@ -437,8 +434,11 @@ let check_unused ~throw ~lib tm =
       | `Encoder e ->
           let rec enc v (_, p) =
             List.fold_left
-              (fun v (_, t) ->
-                match t with `Term t -> check v t | `Encoder e -> enc v e)
+              (fun v t ->
+                match t with
+                  | `Anonymous _ -> v
+                  | `Labelled (_, t) -> check v t
+                  | `Encoder e -> enc v e)
               v p
           in
           enc v e

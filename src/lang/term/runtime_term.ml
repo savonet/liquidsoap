@@ -19,11 +19,6 @@ type pattern =
 
 type 'a term = { mutable t : Type.t; term : 'a; methods : 'a term Methods.t }
 
-type 'a ast_encoder_params =
-  (string * [ `Encoder of 'a ast_encoder | `Term of 'a ]) list
-
-and 'a ast_encoder = string * 'a ast_encoder_params
-
 (* ~l1:x1 .. ?li:(xi=defi) .. *)
 type ('a, 'b) func_argument = {
   label : string;
@@ -43,7 +38,6 @@ type 'a app = 'a * (string * 'a) list
 
 type 'a ast =
   [ `Ground of ground
-  | `Encoder of 'a ast_encoder
   | `Tuple of 'a list
   | `Null
   | `Open of 'a * 'a
@@ -58,10 +52,16 @@ and runtime_ast =
   | `Cast of t * Type.t
   | `App of t * (string * t) list
   | `Invoke of invoke
+  | `Encoder of encoder
   | `Fun of (t, Type.t) func
   | t ast ]
 
 and invoke = { invoked : t; invoke_default : t option; meth : string }
+
+and encoder_params =
+  [ `Anonymous of string | `Encoder of encoder | `Labelled of string * t ] list
+
+and encoder = string * encoder_params
 
 and let_t = {
   doc : Doc.Value.t option;
