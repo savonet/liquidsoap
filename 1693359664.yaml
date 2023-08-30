@@ -1,0 +1,64 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.720381975174
+  unit: "s"
+  time: 1693358816.5
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.80571389198
+  unit: "s"
+  time: 1693358818.31
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 2.63140797615
+  unit: "s"
+  time: 1693358820.94
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 5.25479412079
+  unit: "s"
+  time: 1693358826.2
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2202.
+  unit: "functions"
+  time: 1693359031.74
+
+- name: "protocols"
+  category: "language"
+  value: 19.
+  unit: "protocols"
+  time: 1693359031.74
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.31082320213
+  unit: "s"
+  time: 1693359405.53
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 5.85451698303
+  unit: "s"
+  time: 1693359658.05
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 5.95434308052
+  unit: "s"
+  time: 1693359664.01
+  min: 0.
+
+- commit: cac87c9ebe5550ea02406f3a5d976c9df8f34e22
+  branch: gh-readonly-queue_main_pr-3341-0bca03279977871f599ea4d685aa0c1ffb4f070c
+  time: 1693359664
