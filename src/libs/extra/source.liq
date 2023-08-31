@@ -188,12 +188,13 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
   s = insert_metadata(s)
 
   # Track time in the source's context:
-  start_time = ref(0.)
+  time = ref(0.)
   def f() =
+    time := time() + settings.frame.duration()
     if
-      getter.get(every) <= s.time() - start_time()
+      getter.get(every) <= time()
     then
-      start_time := s.time()
+      time := 0.
       s.insert_metadata(new_track=true, getter.get(metadata))
     end
   end
