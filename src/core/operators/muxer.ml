@@ -164,7 +164,7 @@ class muxer tracks =
     initializer
       self#on_after_output (fun () ->
           clear_track_frames ();
-          Frame.clear self#buffer)
+          Generator.clear self#buffer)
   end
 
 let muxer_operator p =
