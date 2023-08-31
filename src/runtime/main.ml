@@ -556,7 +556,7 @@ let check_directories () =
       Printf.printf
         {|FATAL ERROR: %s directory %S does not exist.
 To change it, add the following to your script:
-  %s.set("<path>")|}
+  %s := "<path>"|}
         kind dir
         (Dtools.Conf.string_of_path (List.hd routes));
       flush_all ();
@@ -664,8 +664,8 @@ let () =
         | None -> ()
         | Some err ->
             Printf.eprintf
-              "init: security exit, %s. Override with \
-               settings.init.allow_root.set(true)\n"
+              "init: security exit, %s. Override with settings.init.allow_root \
+               := true\n"
               err;
             sync_cleanup ();
             exit (-1));
