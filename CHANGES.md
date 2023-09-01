@@ -16,7 +16,7 @@ Changed:
 
 Fixed:
 
-- Fixed slow memory leak in muxer operator (#3372, #3181)
+- Fixed slow memory leak in muxer operator (#3372, #3181, #3334)
 - Fixed discontinuity logic error in HLS outputs after a restart.
 - Fixed HTTP response status in `output.harbor` (#3255)
 - Make sure main HLS playlist is regenerated after being
