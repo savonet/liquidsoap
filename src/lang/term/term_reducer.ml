@@ -875,7 +875,7 @@ and to_term (tm : Parsed_term.t) : Term.t =
           match (to_ast ~pos:tm.pos term, List.rev tm.comments) with
             | `Let p, (pos, doc) :: _ ->
                 `Let
-                  { p with doc = Doc.parse_doc ~pos (String.concat "\n#" doc) }
+                  { p with doc = Doc.parse_doc ~pos (String.concat "\n" doc) }
             | ast, _ -> ast
         in
         { t = Type.var ~pos:tm.pos (); term; methods = Methods.empty }
