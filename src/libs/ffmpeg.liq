@@ -278,7 +278,7 @@ let video.add_text.ffmpeg.raw = ()
 # @param ~graph a ffmpeg filter graph to attach this filter to.
 # @param ~x x offset.
 # @param ~y y offset.
-# @params d Text to display.
+# @params Text to display.
 # @method on_change Method to call when parameters have changed to update the filter's rendered out, including when text changes.
 # @method on_metadata Method to call on new metadata.
 def video.add_text.ffmpeg.raw.filter(
@@ -464,7 +464,7 @@ end
 # @param ~graph a ffmpeg filter graph to attach this filter to.
 # @param ~x x offset.
 # @param ~y y offset.
-# @params d Text to display.
+# @params Text to display.
 def replaces video.add_text.ffmpeg.raw(
   ~color=0xffffff,
   ~cycle=true,
@@ -534,7 +534,7 @@ end
 #               according to x and y in case they are variable).
 # @param ~x x offset.
 # @param ~y y offset.
-# @params d Text to display.
+# @params Text to display.
 def video.add_text.ffmpeg.internal(
   ~id=null(),
   ~color=0xffffff,
