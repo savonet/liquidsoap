@@ -17,8 +17,8 @@
   (name liquidsoap)
   (depends
     (liquidsoap-core (= :version))
-    (liquidsoap-libs (and (>= 2.2.0~1) (< 2.2.0)))
-    (liquidsoap-libs-extra (and (>= 2.2.0~1) (< 2.2.0))))
+    (liquidsoap-libs (and (>= 2.3.0) (< 2.3.1)))
+    (liquidsoap-libs-extra (and (>= 2.3.0) (< 2.3.1))))
   (synopsis "Swiss-army knife for multimedia streaming")
   (description
 "\| Liquidsoap is a powerful and flexible language for describing your
@@ -31,7 +31,6 @@
 
 (package
    (name liquidsoap-libs-extra)
-   (version 2.2.0~1)
    (depends
       (liquidsoap-libs (= :version))
       (liquidsoap-lang :build))
@@ -39,7 +38,6 @@
 
 (package
    (name liquidsoap-libs)
-   (version 2.2.0~1)
    (depends (liquidsoap-lang :build))
    (synopsis "Liquidosap standard library"))
 
