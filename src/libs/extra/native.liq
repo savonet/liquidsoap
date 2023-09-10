@@ -22,7 +22,7 @@ def native.fallback(~id=null(), ~track_sensitive=true, sources) =
   fail = (source.fail() : source)
   def s() = list.find(default=fail, source.is_ready, sources) end
 
-  infallible = not (list.for_all(source.fallible, sources))
+  infallible = not (list.exists(source.fallible, sources))
   source.dynamic(
     id=id, infallible=infallible, track_sensitive=track_sensitive, s
   )
