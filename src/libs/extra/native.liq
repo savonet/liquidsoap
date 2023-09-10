@@ -20,9 +20,9 @@ end
 # @param ~track_sensitive Re-select only on end of tracks.
 def native.fallback(~id=null(), ~track_sensitive=true, sources) =
   fail = (source.fail() : source)
-  def s() = list.find(default=fail, source.is_ready, sources) end
+  def s() = list.find(default=fail, source.is_ready, getter.get(sources)) end
 
-  infallible = not (list.for_all(source.fallible, sources))
+  infallible = getter.is_constant(sources) and not (list.exists(source.fallible, getter.get(sources)))
   source.dynamic(
     id=id, infallible=infallible, track_sensitive=track_sensitive, s
   )
