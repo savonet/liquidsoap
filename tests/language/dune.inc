@@ -507,6 +507,28 @@
 
 (rule
   (alias fmt)
+  (deps number.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (action
+    (progn
+      (with-stdout-to number.liq.prettier
+       (chdir ../../src/tooling/prettier
+         (run pnpm prettier --config ./config.json ../../../tests/language/number.liq)))
+      (diff number.liq number.liq.prettier))))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  number.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} number.liq liquidsoap %{test_liq} number.liq)))
+
+(rule
+  (alias fmt)
   (deps osc.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
   (action
     (progn

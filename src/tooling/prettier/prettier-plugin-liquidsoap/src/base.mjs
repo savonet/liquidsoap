@@ -359,6 +359,8 @@ const print = (path, options, print) => {
           "%endif",
           ifBreak("", hardline),
         ]);
+      case "negative":
+        return group(["-", print("value")]);
       case "append":
         return group([print("left"), "::", print("right")]);
       case "not":

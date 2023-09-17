@@ -8,6 +8,7 @@ let error.not_found = error.register("not_found")
 let error.output = error.register("output")
 let error.socket = error.register("socket")
 let error.string = error.register("string")
+let error.math = error.register("math")
 
 # Ensure that a condition is satisfied (raise `error.assertion` exception
 # otherwise).

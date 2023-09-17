@@ -178,7 +178,7 @@ and parsed_ast =
   | `String_interpolation of char * string_interpolation list
   | `Include of inc
   | `Int of string
-  | `Float of string * string
+  | `Float of bool * string * string
   | `String of char * string
   | `Block of t
   | `Parenthesis of t
