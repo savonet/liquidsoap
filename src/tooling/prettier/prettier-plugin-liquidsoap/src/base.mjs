@@ -540,7 +540,7 @@ const print = (path, options, print) => {
       case "infix":
         return group([
           print("left"),
-          line,
+          " ",
           node.op,
           indent([line, print("right")]),
         ]);

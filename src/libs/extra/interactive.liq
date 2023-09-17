@@ -196,8 +196,7 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
   end
 
   variables := (name, {type=type, description=description})::variables()
-  variables
-  :=
+  variables :=
     list.sort(
       fun (n, n') -> if fst(n) < fst(n') then -1 else 1 end, variables()
     )
@@ -665,8 +664,7 @@ def replaces interactive.float(
 ) =
   interactive.create(name=name, description=description, osc=osc, type="float")
   r = ref(v)
-  variables_float
-  :=
+  variables_float :=
     (name, {ref=r, unit=unit, min=min, max=max, step=step})::variables_float()
 
   r.{
@@ -759,10 +757,8 @@ def compress.multiband.interactive(~id=null(), ~bands=5, s) =
   def band(i) =
     frequency =
       exp(
-        (ln(max_freq) - ln(min_freq)) * float_of_int(i)
-        /
-          float_of_int(bands - 1)
-        +
+        (ln(max_freq) - ln(min_freq)) * float_of_int(i) /
+          float_of_int(bands - 1) +
           ln(min_freq)
       )
 

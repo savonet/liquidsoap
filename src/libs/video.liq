@@ -344,8 +344,7 @@ let video.text.available = ref([])
 # @params d Text to display.
 def video.add_text.native = add_text_builder(video.text.native) end
 
-video.text.available
-:=
+video.text.available :=
   [("native", video.text.native), ...video.text.available()]
 
 %ifdef video.text.gd
@@ -368,8 +367,7 @@ def video.text.gd = add_text_builder(video.text.gd) end
 %endif
 
 %ifdef video.text.gstreamer
-video.text.available
-:=
+video.text.available :=
   [("gstreamer", video.text.gstreamer), ...video.text.available()]
 
 
@@ -409,8 +407,7 @@ def video.add_text.sdl = add_text_builder(video.text.sdl) end
 %endif
 
 %ifdef video.text.camlimages
-video.text.available
-:=
+video.text.available :=
   [("camlimages", video.text.camlimages), ...video.text.available()]
 
 

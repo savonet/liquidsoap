@@ -87,8 +87,7 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
   output = file.temp("liq-process", ".#{extname}")
   def resolve(input) =
     cmd =
-      cmd
-      %
+      cmd %
         [
           ("input", process.quote(input)),
           ("output", process.quote(output)),

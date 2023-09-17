@@ -369,8 +369,7 @@ let harbor.http.middleware = ref(fun (req, res, next) -> next(req, res))
 # @category Internet
 def harbor.http.middleware.register(fn) =
   middleware = harbor.http.middleware()
-  harbor.http.middleware
-  :=
+  harbor.http.middleware :=
     fun (req, res, next) ->
       begin middleware(req, res, fun (res, res) -> fn(req, res, next)) end
 end
