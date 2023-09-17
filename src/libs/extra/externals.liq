@@ -445,8 +445,7 @@ def notify_metadata(
 ) =
   time = int_of_float(timeout * 1000.)
   send =
-    'notify-send -i #{icon} -u #{urgency}'
-    ^
+    'notify-send -i #{icon} -u #{urgency}' ^
       ' -t #{time} #{process.quote(title)} '
 
   s.on_metadata(

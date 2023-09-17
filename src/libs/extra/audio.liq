@@ -136,8 +136,7 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
   list.length(l) - 2
   do
     if
-      getter.get(list.nth(l, i + 1).frequency)
-      <
+      getter.get(list.nth(l, i + 1).frequency) <
         getter.get(list.nth(l, i).frequency)
     then
       failwith("Bands should be sorted.")

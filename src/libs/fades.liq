@@ -212,8 +212,7 @@ def fade.skip(
       remaining = source.remaining(s)
       duration = if remaining < duration() then remaining else duration() end
       log("Skip fade executed for: #{duration}s")
-      fn
-      :=
+      fn :=
         mkfade(
           start=1., stop=0., type=type(), duration=duration, on_done=skip, s
         )

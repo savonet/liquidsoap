@@ -62,8 +62,7 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s) =
   if
     prefix != ""
   then
-    ans
-    :=
+    ans :=
       ans() or string.sub(s, start=0, length=string.length(prefix)) == prefix
   end
 
@@ -71,8 +70,7 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s) =
     suffix != ""
   then
     suflen = string.length(suffix)
-    ans
-    :=
+    ans :=
       ans()
     or
       string.sub(s, start=string.length(s) - suflen, length=suflen) == suffix
@@ -149,8 +147,7 @@ def string.binary.to_int(~little_endian=true, s) =
   to
   n - 1
   do
-    ans
-    :=
+    ans :=
       lsl(ans(), 8) + string.nth(s, if little_endian then n - 1 - i else i end)
   end
 

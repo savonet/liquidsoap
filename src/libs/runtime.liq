@@ -4,10 +4,8 @@
 def runtime.memory() =
   x =
     {
-      process_managed_memory=runtime.gc.quick_stat().heap_words
-      *
-        runtime.sys.word_size
-      /
+      process_managed_memory=runtime.gc.quick_stat().heap_words *
+        runtime.sys.word_size /
         8
     }
 

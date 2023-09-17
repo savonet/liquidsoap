@@ -489,8 +489,7 @@ def replaces playlist(
         w = watcher()
         if null.defined(w) then null.get(w).unwatch() end
         watched_uri := uri
-        watcher
-        :=
+        watcher :=
           if file.exists(uri) then file.watch(uri, s.reload) else null() end
       end
     end
