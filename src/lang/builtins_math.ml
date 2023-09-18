@@ -131,7 +131,7 @@ let _ =
       ( "raise",
         Lang.bool_t,
         Some (Lang.bool false),
-        Some "Raise `error.math` if number is `NaN` or `+/-infinity`." );
+        Some "Raise `error.invalid` if number is `NaN` or `+/-infinity`." );
     ]
     Lang.int_t
     (fun p ->
@@ -148,7 +148,7 @@ let _ =
                   ~message:
                     "Infinite floating point number cannot be converted to \
                      integers!"
-                  "math";
+                  "invalid";
               log#important "At %s: floating point number is infinite!"
                 (Pos.Option.to_string
                    (try Some (List.hd pos) with Not_found -> None));
@@ -158,7 +158,7 @@ let _ =
                 Runtime_error.raise ~pos
                   ~message:
                     "NaN floating point number cannot be converted to integers!"
-                  "math";
+                  "invalid";
               log#important "At %s: floating point number is `NaN`!"
                 (Pos.Option.to_string
                    (try Some (List.hd pos) with Not_found -> None));

@@ -12,3 +12,19 @@
  (name run_test)
  (modules run_test)
  (libraries liquidsoap-lang.console unix threads))
+
+(rule
+ (alias fmt)
+ (deps
+  test.liq
+  (source_tree ../src/tooling/prettier)
+  ../src/tooling/json_dump.exe
+  ../src/tooling/prettier/node_modules)
+ (action
+  (progn
+   (with-stdout-to
+    test.liq.prettier
+    (chdir
+     ../src/tooling/prettier
+     (run pnpm prettier --config ./config.json ../../../tests/test.liq)))
+   (diff test.liq test.liq.prettier))))
