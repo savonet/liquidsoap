@@ -81,17 +81,12 @@ let conf_shell_path =
     "Patch to shell binary. Defaults to `$SHELL` if set and \"/bin/sh\" \
      otherwise."
 
-let is_docker =
-  lazy
-    (Sys.unix
-    && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
-
 let has_binary =
   lazy (Utils.which_opt ~path:(Configure.path ()) conf_binary#get <> None)
 
 let () =
   Lifecycle.before_start (fun () ->
-      if Lazy.force is_docker then (
+      if Lazy.force Utils.is_docker then (
         log#important "Running inside a docker container, disabling sandboxing.";
         conf_sandbox#set false)
       else if not (Lazy.force has_binary) then (

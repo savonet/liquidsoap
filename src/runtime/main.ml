@@ -54,7 +54,8 @@ let force_start =
 let allow_root =
   Dtools.Conf.bool
     ~p:(Configure.conf_init#plug "allow_root")
-    ~d:false "Allow liquidsoap to run as root"
+    ~d:(Lazy.force Utils.is_docker)
+    "Allow liquidsoap to run as root"
     ~comments:
       [
         "This should be reserved for advanced dynamic uses of liquidsoap ";
