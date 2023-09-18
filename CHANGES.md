@@ -4,10 +4,13 @@ New:
 
 - Allow trailing commas in record definition (#3300).
 - Add `metadata.getter.source.float` (#3356).
+- Added `is_nan`, `is_infinite`, `ceil`, `floor`, `sign` and `round` (#3407)
 
 Changed:
 
 - Mute SDL startup messages (#2913).
+- `int` can optionally raises an error when passing `nan` or `infinity`, `int(infinity)`
+  now returns `max_int` and `int(-infinity)` returns `min_int`. (#3407)
 - Changed internal metadata format to be immutable (#3297).
 - Allow a getter for the offset of `on_offset` and dropped the metadata
   mechanism for updating it (#3355).

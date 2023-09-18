@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let log = lazy (!Hooks.make_log ["math"])
+
 let () =
   let add op name descr =
     let t = Lang.float_t in
@@ -107,14 +109,62 @@ let _ =
       Lang.float x)
 
 let _ =
+  Lang.add_builtin "is_nan" ~category:`Math
+    ~descr:"Return `true` if the floating point number is `NaN`."
+    [("", Lang.float_t, None, None)]
+    Lang.bool_t
+    (fun p -> Lang.bool (Float.is_nan (Lang.to_float (List.assoc "" p))))
+
+let _ =
+  Lang.add_builtin "is_infinite" ~category:`Math
+    ~descr:"Return `true` if the floating point number is infinite."
+    [("", Lang.float_t, None, None)]
+    Lang.bool_t
+    (fun p -> Lang.bool (Float.is_infinite (Lang.to_float (List.assoc "" p))))
+
+let _ =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "int" ~category:`Math
     ~descr:"Convert a number to an integer."
-    [("", t, None, None)]
+    [
+      ("", t, None, None);
+      ( "raise",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Raise `error.math` if number is `NaN` or `+/-infinity`." );
+    ]
     Lang.int_t
     (fun p ->
       let x = List.assoc "" p |> Lang.to_num in
-      let x = match x with `Int x -> x | `Float x -> int_of_float x in
+      let raise = List.assoc "raise" p |> Lang.to_bool in
+      let pos = Lang.pos p in
+      let log = Lazy.force log in
+      let x =
+        match x with
+          | `Int x -> x
+          | `Float x when Float.is_infinite x ->
+              if raise then
+                Runtime_error.raise ~pos
+                  ~message:
+                    "Infinite floating point number cannot be converted to \
+                     integers!"
+                  "math";
+              log#important "At %s: floating point number is infinite!"
+                (Pos.Option.to_string
+                   (try Some (List.hd pos) with Not_found -> None));
+              if x < 0. then min_int else max_int
+          | `Float x when Float.is_nan x ->
+              if raise then
+                Runtime_error.raise ~pos
+                  ~message:
+                    "NaN floating point number cannot be converted to integers!"
+                  "math";
+              log#important "At %s: floating point number is `NaN`!"
+                (Pos.Option.to_string
+                   (try Some (List.hd pos) with Not_found -> None));
+              0
+          | `Float x -> int_of_float x
+      in
       Lang.int x)
 
 let _ =
@@ -204,3 +254,47 @@ let _ =
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsr b))
+
+let _ =
+  Lang.add_builtin "ceil" ~category:`Math
+    ~descr:
+      "Round above to an integer value. `ceil(f) returns the least integer \
+       value greater than or equal to `f`. The result is returned as a float."
+    [("", Lang.float_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let f = Lang.to_float (List.assoc "" p) in
+      Lang.float (Float.ceil f))
+
+let _ =
+  Lang.add_builtin "floor" ~category:`Math
+    ~descr:
+      "Round below to an integer value. `ceil(f) returns the greatest integer \
+       value less than or equal to `f`. The result is returned as a float."
+    [("", Lang.float_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let f = Lang.to_float (List.assoc "" p) in
+      Lang.float (Float.floor f))
+
+let _ =
+  Lang.add_builtin "round" ~category:`Math
+    ~descr:
+      "Rounds `x` to the nearest integer with ties (fractional values of \
+       `0.5`) rounded away from zero, regardless of the current rounding \
+       direction. If `x` is an integer, `+0.`, `-0.`, `nan`, or `infinite`, \
+       `x` itself is returned."
+    [("", Lang.float_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let f = Lang.to_float (List.assoc "" p) in
+      Lang.float (Float.floor f))
+
+let _ =
+  Lang.add_builtin "sign" ~category:`Math
+    ~descr:"Return `1.` if the argument is positive and `-1.` otherwise."
+    [("", Lang.float_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let f = Lang.to_float (List.assoc "" p) in
+      Lang.float (if Float.sign_bit f then -1. else 1.))

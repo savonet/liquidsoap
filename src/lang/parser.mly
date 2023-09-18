@@ -200,6 +200,9 @@ simple_fun_body:
   | explicit_binding s       { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
   | explicit_binding s exprs { mk_let ~pos:$loc($1) $1 $3 }
 
+parenthesis_expr:
+  | LPAR expr RPAR           { mk ~pos:$loc (`Parenthesis $2) }
+
 (* General expressions. *)
 expr:
   | INCLUDE                          { mk ~pos:$loc (`Include $1) }
@@ -207,14 +210,17 @@ expr:
   | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
   | if_version                       { mk ~pos:$loc (`If_version $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
-  | UMINUS FLOAT                     { mk ~pos:$loc (`Float ("-" ^ (if fst $2 = "" then "0" else fst $2), snd $2)) }
+  | UMINUS FLOAT                     {
+      let (ipart, fpart) = $2 in
+      mk ~pos:$loc (`Float (false, ipart, fpart))
+  }
   | UMINUS INT                       { mk ~pos:$loc (`Int ("-" ^ $2)) }
-  | UMINUS LPAR expr RPAR            { mk ~pos:$loc (`Negative $3) }
-  | LPAR expr RPAR                   { mk ~pos:$loc (`Parenthesis $2) }
+  | UMINUS parenthesis_expr          { mk ~pos:$loc (`Negative $2) }
+  | parenthesis_expr                 { $1 }
   | INT                              { mk ~pos:$loc (`Int $1) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
   | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
-  | FLOAT                            { mk ~pos:$loc (`Float $1) }
+  | FLOAT                            { mk ~pos:$loc (`Float (true, fst $1, snd $1)) }
   | STRING                           { mk ~pos:$loc (`String $1) }
   | string_interpolation             { mk ~pos:$loc (`String_interpolation $1) }
   | VAR                              { mk ~pos:$loc (`Var $1) }

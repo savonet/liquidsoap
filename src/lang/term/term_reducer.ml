@@ -777,13 +777,13 @@ let rec to_ast ~pos : parsed_ast -> Term.runtime_ast = function
   | `Tuple l -> `Tuple (List.map to_term l)
   | `String (sep, s) -> `Ground (String (render_string ~pos ~sep s))
   | `Int i -> `Ground (Int (int_of_string i))
-  | `Float (ipart, fpart) ->
+  | `Float (sign, ipart, fpart) ->
       let fpart =
         if fpart = "" then 0.
         else float_of_string fpart /. (10. ** float_of_int (String.length fpart))
       in
       let ipart = if ipart = "" then 0. else float_of_string ipart in
-      `Ground (Float (ipart +. fpart))
+      `Ground (Float ((if sign then 1. else -1.) *. (ipart +. fpart)))
   | `Eof -> `Tuple []
   | `Null -> `Null
   | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ~pos typ)

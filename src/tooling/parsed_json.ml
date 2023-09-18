@@ -447,8 +447,9 @@ let rec to_ast_json ~to_json = function
             `String (Json.to_string (Term_base.Ground.to_json ~pos:[] g)) );
         ]
   | `Int i -> ast_node ~typ:"ground" [("value", `String i)]
-  | `Float (ipart, fpart) ->
-      ast_node ~typ:"ground" [("value", `String (ipart ^ "." ^ fpart))]
+  | `Float (sign, ipart, fpart) ->
+      ast_node ~typ:"ground"
+        [("value", `String ((if sign then "" else "-") ^ ipart ^ "." ^ fpart))]
   | `Parenthesis tm -> ast_node ~typ:"parenthesis" [("value", to_json tm)]
   | `Block tm -> ast_node ~typ:"block" [("value", to_json tm)]
   | `String (c, s) ->
