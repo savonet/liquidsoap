@@ -615,3 +615,8 @@ let id3v2_of_metadata ~version m =
       [] m
   in
   Metadata.ID3v2.make ~version frames
+
+let is_docker =
+  lazy
+    (Sys.unix
+    && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
