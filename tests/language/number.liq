@@ -7,29 +7,11 @@ def f() =
   test.equals(is_infinite(infinity), true)
   test.equals(is_infinite(-(infinity)), true)
   test.equals(int(nan), 0)
-  try
-    ignore(int(raise=true, nan))
-    test.fail()
-  catch _ : [error.math] do
-    ()
-  end
-
+  test.raises({int(raise=true, nan)}, error.invalid)
   test.equals(int(infinity), max_int)
   test.equals(int(-(infinity)), min_int)
-  try
-    ignore(int(raise=true, infinity))
-    test.fail()
-  catch _ : [error.math] do
-    ()
-  end
-
-  try
-    ignore(int(raise=true, -(infinity)))
-    test.fail()
-  catch _ : [error.math] do
-    ()
-  end
-
+  test.raises({int(raise=true, infinity)}, error.invalid)
+  test.raises({int(raise=true, -(infinity))}, error.invalid)
   test.equals(ceil(1.), 1.)
   test.equals(ceil(1.4), 2.)
   test.equals(ceil(1.5), 2.)
