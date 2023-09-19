@@ -1,11 +1,11 @@
 
 (rule
   (alias fmt)
-  (deps http.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
+  (deps http.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to http.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/harbor/http.liq)))
       (diff http.liq http.liq.prettier))))
 
@@ -23,11 +23,11 @@
 
 (rule
   (alias fmt)
-  (deps http2.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
+  (deps http2.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to http2.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/harbor/http2.liq)))
       (diff http2.liq http2.liq.prettier))))
 
@@ -45,11 +45,11 @@
 
 (rule
   (alias fmt)
-  (deps http3.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
+  (deps http3.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to http3.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/harbor/http3.liq)))
       (diff http3.liq http3.liq.prettier))))
 
@@ -67,11 +67,11 @@
 
 (rule
   (alias fmt)
-  (deps post.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
+  (deps post.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to post.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/harbor/post.liq)))
       (diff post.liq post.liq.prettier))))
 
@@ -89,11 +89,11 @@
 
 (rule
   (alias fmt)
-  (deps put.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
+  (deps put.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to put.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/harbor/put.liq)))
       (diff put.liq put.liq.prettier))))
 

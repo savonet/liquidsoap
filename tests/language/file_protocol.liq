@@ -1,4 +1,6 @@
-def rlog(_) = () end
+def rlog(_) =
+  ()
+end
 
 def f() =
   if

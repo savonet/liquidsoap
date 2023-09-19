@@ -74,7 +74,6 @@ let settings.decoder.external.mpcdec.path =
 # Enable external Musepack decoder.
 # @category Liquidsoap
 def enable_external_mpc_decoder() =
-
   # A list of know extensions and content-type for Musepack.
   # Values from http://en.wikipedia.org/wiki/Musepack
   mpc_mimes = ["audio/x-musepack", "audio/musepack"]
@@ -94,7 +93,6 @@ def enable_external_mpc_decoder() =
         )
       )
     end
-
 
     # Get the file's mime
     mime = file.mime(f)
@@ -287,7 +285,6 @@ def enable_external_faad_decoder() =
   # Faad is not very selective so we are checking only file that end with a
   # known extension or mime type
   def faad_test(f) =
-
     # Get the file's mime
     mime = file.mime(f)
 
@@ -388,7 +385,6 @@ def enable_external_faad_decoder() =
   end
 end
 
-
 # Standard function for displaying metadata.
 # Shows artist and title, using "Unknown" when a field is empty.
 # @param m Metadata packet to be displayed.
@@ -400,7 +396,6 @@ def string_of_metadata(m) =
   title = if "" == title then "Unknown" else title end
   "#{artist} -- #{title}"
 end
-
 
 # Use X On Screen Display to display metadata info.
 # @flag extra
@@ -425,7 +420,6 @@ def osd_metadata(
 
   s.on_metadata(feedback)
 end
-
 
 # Use notify to display metadata info.
 # @flag extra
@@ -486,7 +480,6 @@ def input.mplayer(
     )} 2>/dev/null"
   )
 end
-
 %endif
 
 
@@ -529,7 +522,6 @@ def input.external.ffmpeg(
   ) : source(audio=pcm(stereo), video=canvas))
 end
 
-
 # ffmpeg's test source video (useful for testing and debugging).
 # @param ~restart restart on exit.
 # @param ~restart_on_error restart on exit with error.
@@ -560,7 +552,6 @@ def video.external.testsrc(
     cmd
   )
 end
-
 
 # Output to ffmpeg.
 # @category Source / Output
@@ -619,7 +610,6 @@ def output.external.ffmpeg(
     s
   )
 end
-
 
 # Output a HLS playlist using ffmpeg
 # @category Source / Output

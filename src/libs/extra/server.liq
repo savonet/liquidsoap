@@ -21,7 +21,6 @@ def server.rms(~id=null(), s) =
   s
 end
 
-
 # Register a server/telnet command to update a source's metadata. Returns a new
 # source, which will receive the updated metadata. The command has the following
 # format: insert key1="val1",key2="val2",...
@@ -54,7 +53,6 @@ def server.insert_metadata(~id=null(), s) =
 
   s
 end
-
 
 # Start an interface for the "telnet" server over http.
 # @category Internet
@@ -145,19 +143,16 @@ def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet") =
   )
 end
 
-
 # Add a skip telnet command to a source when it does not have one by default.
 # @category Interaction
 # @flag extra
 # @param s The source to attach the command to.
 def add_skip_command(s) =
-
   # A command to skip
   def skip(_) =
     s.skip()
     "Done!"
   end
-
 
   # Register the command:
   server.register(

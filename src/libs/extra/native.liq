@@ -5,13 +5,11 @@ let native = ()
 # @category Source / Track processing
 # @flag extra
 def native.once(s) =
-
   # source.available(track_sensitive=true, s, predicate.first({true}))
   a = ref(true)
   s = source.on_track(s, fun (_) -> a := false)
   source.available(s, a)
 end
-
 
 # At the beginning of each track, select the first ready child.
 # @category Source / Track processing
@@ -20,7 +18,9 @@ end
 # @param ~track_sensitive Re-select only on end of tracks.
 def native.fallback(~id=null(), ~track_sensitive=true, sources) =
   fail = (source.fail() : source)
-  def s() = list.find(default=fail, source.is_ready, getter.get(sources)) end
+  def s() =
+    list.find(default=fail, source.is_ready, getter.get(sources))
+  end
 
   infallible =
     getter.is_constant(sources)
@@ -31,7 +31,6 @@ def native.fallback(~id=null(), ~track_sensitive=true, sources) =
     id=id, infallible=infallible, track_sensitive=track_sensitive, s
   )
 end
-
 
 # Play only one track of every successive source, except for the last one which
 # is played as much as available.
@@ -60,12 +59,12 @@ def native.sequence(~id=null(), sources) =
   first = ref(true)
   def ot(_) =
     # Drop the first track
-    if first() then first := false else ref.incr(n) end end
+    if first() then first := false else ref.incr(n) end
+  end
 
   s = source.on_track(s, ot)
   s
 end
-
 
 # Select the first source whose predicate is true in a list. If the second
 # argument is a getter, the source will be dynamically created.
@@ -78,7 +77,6 @@ def native.switch(~id=null(), ~track_sensitive=true, sources) =
   sources = list.map(fun (ps) -> source.available(snd(ps), fst(ps)), sources)
   native.fallback(id=id, track_sensitive=track_sensitive, sources)
 end
-
 
 # This allows doing `open native`
 let native.request = request
@@ -95,11 +93,12 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     end
   end
 
-
   # Prepared requests
   queue = ref([])
   def get_queue() =
-    def get_request(s) = s.request end
+    def get_request(s) =
+      s.request
+    end
 
     list.map(get_request, queue())
   end
@@ -133,7 +132,6 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     end
   end
 
-
   # Prefetch thread
   def fetch() =
     r = f()
@@ -157,7 +155,9 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     end
   end
 
-  def fill() = if list.length(queue()) < prefetch then ignore(fetch()) end end
+  def fill() =
+    if list.length(queue()) < prefetch then ignore(fetch()) end
+  end
 
   thread.run(every=retry_delay, fill)
 

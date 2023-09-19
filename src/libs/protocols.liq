@@ -72,7 +72,6 @@ def protocol.process.parse(~default_timeout, arg) =
   args.{uri=uri, cmd=string.concat(separator=",", args.cmd)}
 end
 
-
 # Register the process protocol. Syntax:
 # process:[timeout=<seconds>],<output ext>,<cmd>:uri where `timeout` argument is optional and
 # cannot exceed the underlying time and <cmd> is interpolated with:
@@ -97,7 +96,9 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
     log.info("Executing #{cmd}")
     env_vars = settings.protocol.process.env()
     env = environment()
-    def get_env(k) = (k, env[k]) end
+    def get_env(k) =
+      (k, env[k])
+    end
 
     env = list.map(get_env, env_vars)
     inherit_env = settings.protocol.process.inherit_env()
@@ -162,7 +163,6 @@ def process.uri(~timeout=null(), ~extname, ~uri="", cmd) =
   uri = if uri != "" then ":#{uri}" else "" end
   "process:#{timeout}#{extname},#{cmd}#{uri}"
 end
-
 
 # Resolve http(s) URLs using curl
 # @flag hidden
@@ -234,7 +234,6 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
     []
   end
 end
-
 
 # Register download protocol.
 # @flag hidden
@@ -333,7 +332,9 @@ protocol.add(
 
 # Register tmp
 # @flag hidden
-def protocol.tmp(~rlog=_, ~maxtime=_, arg) = [arg] end
+def protocol.tmp(~rlog=_, ~maxtime=_, arg) =
+  [arg]
+end
 
 protocol.add(
   "tmp",
@@ -749,7 +750,6 @@ def aws_base() =
     aws
   end
 end
-
 
 # Register the s3:// protocol
 # @flag hidden

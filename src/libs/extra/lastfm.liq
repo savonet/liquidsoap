@@ -19,7 +19,6 @@ def librefm.submit(~user, ~password, ~source="broadcast", ~length=false, m) =
   )
 end
 
-
 # Submit metadata to lastfm.fm using the audioscrobbler protocol.
 # @category Interaction
 # @flag extra
@@ -37,7 +36,6 @@ def lastfm.submit(~user, ~password, ~source="broadcast", ~length=false, m) =
   )
 end
 
-
 # Submit metadata to libre.fm using the audioscrobbler protocol (nowplaying mode).
 # @category Interaction
 # @flag extra
@@ -52,7 +50,6 @@ def librefm.nowplaying(~user, ~password, ~length=false, m) =
     m
   )
 end
-
 
 # Submit metadata to lastfm.fm using the audioscrobbler protocol (nowplaying mode).
 # @category Interaction
@@ -124,7 +121,6 @@ def audioscrobbler.submit.full(
   source_on_end(s, delay=delay, f)
 end
 
-
 # Submit songs to librefm using audioscrobbler, respecting the full protocol:
 # First signal song as now playing when starting, and
 # then submit song when it ends.
@@ -156,7 +152,6 @@ def librefm.submit.full(
   )
 end
 
-
 # Submit songs to lastfm using audioscrobbler, respecting the full protocol:
 # First signal song as now playing when starting, and
 # then submit song when it ends.
@@ -187,5 +182,4 @@ def lastfm.submit.full(
     s
   )
 end
-
 %endif

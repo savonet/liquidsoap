@@ -27,7 +27,9 @@ test.check(
         test.fail()
       end
 
-      def next() = request.create("file1.mp3") end
+      def next() =
+        request.create("file1.mp3")
+      end
 
       r = request.dynamic(prefetch=1, next)
       o = output.dummy(fallible=true, r)

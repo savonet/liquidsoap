@@ -39,7 +39,6 @@ def playlog(
     end
   end
 
-
   # Remove too old elements
   def prune() =
     if
@@ -50,7 +49,6 @@ def playlog(
     end
   end
 
-
   # Add a new entry
   def add(m) =
     prune()
@@ -58,7 +56,6 @@ def playlog(
     l := (f, time())::l()
     save()
   end
-
 
   # Last time this entry was played
   def last(m) =

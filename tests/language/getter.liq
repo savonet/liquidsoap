@@ -1,7 +1,9 @@
 #!../../liquidsoap ../test.liq
 
 # Test getters, see #1181
-def f(~x) = ignore(getter.get(x) + 2) end
+def f(~x) =
+  ignore(getter.get(x) + 2)
+end
 
 def g(~x=getter(2)) =
   x = getter.function(x)

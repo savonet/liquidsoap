@@ -22,7 +22,7 @@ export const languages = [
     name: "liquidsoap",
     parsers: ["liquidsoap"],
     extensions: [".liq"],
-    vscodeLanguageIds: ["liquidsoap"]
+    vscodeLanguageIds: ["liquidsoap"],
   },
 ];
 
@@ -33,6 +33,18 @@ export const parsers = {
     locStart: () => 0,
     locEnd: () => 0,
   },
+};
+
+const disableNewLinesOnComments = (node, path) => {
+  if (path.stack.length == 1) return true;
+  if (path.stack[path.stack.length - 2] === "definition") return true;
+  if (
+    path.stack[path.stack.length - 2] === "body" &&
+    path.stack[path.stack.length - 3].type === "def"
+  )
+    return true;
+
+  return false;
 };
 
 const print = (path, options, print) => {
@@ -74,12 +86,16 @@ const print = (path, options, print) => {
           : []),
         " ",
         "=",
-        group([indent([line, print("definition")])]),
-        ...(label === "def" ? [line, "end"] : [softline]),
+        group([
+          indent([
+            ...(label === "def" ? [hardline] : [line]),
+            print("definition"),
+          ]),
+        ]),
+        ...(label === "def" ? [hardline, "end"] : [softline]),
       ]),
       ...(label === "def" ? [hardline] : []),
-      hardline,
-      print("body"),
+      ...(node.body.type !== "eof" ? [hardline, print("body")] : []),
     ];
   };
 
@@ -681,7 +697,7 @@ const print = (path, options, print) => {
   };
 
   return [
-    ...(path.stack.length > 1 && node.ast_comments?.length > 0
+    ...(node.ast_comments?.length > 0 && !disableNewLinesOnComments(node, path)
       ? [hardlineWithoutBreakParent]
       : []),
     join(

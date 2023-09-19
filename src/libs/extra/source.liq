@@ -8,7 +8,6 @@ def map_first_track(~id=null("map_first_track"), fn, s) =
   fallback(id=id, track_sensitive=true, [fn((once(s) : source)), s])
 end
 
-
 # Same operator as rotate but merges tracks from each sources.
 # For instance, `rotate.merge([intro,main,outro])` creates a source
 # that plays a sequence `[intro,main,outro]` as single track and loops back.
@@ -63,7 +62,6 @@ def rotate.merge(
   )
 end
 
-
 # Rotate between overlapping sources. Next track starts according
 # to 'liq_start_next' offset metadata.
 # @category Source / Track processing
@@ -94,9 +92,10 @@ def overlap_sources(
     is_ready := b
   end
 
-
   # Start next track on_offset
-  def on_start_next(_, _) = set_ready(current_position(), true) end
+  def on_start_next(_, _) =
+    set_ready(current_position(), true)
+  end
 
   def on_offset(s) =
     let (s, offset) = metadata.getter.source.float(-1., start_next, s)
@@ -107,7 +106,9 @@ def overlap_sources(
 
   # Disable after each track
   def disable(pos, source) =
-    def disable(_) = set_ready(pos, false) end
+    def disable(_) =
+      set_ready(pos, false)
+    end
 
     source.on_track(disable)
   end
@@ -126,7 +127,6 @@ def overlap_sources(
     let {metadata = _, ...tracks} = source.tracks(s)
     source(tracks)
   end
-
 
   # Now drop all metadata
   sources = list.map(drop_metadata, sources)
@@ -150,7 +150,6 @@ def overlap_sources(
   send_to_main_source := fun (m) -> s.insert_metadata(m)
   s
 end
-
 
 # Append speech-synthesized tracks reading the metadata.
 # @category Metadata
@@ -177,7 +176,6 @@ def source.say_metadata =
     append(id=id, s, fun (m) -> once(single(pattern(m))))
 end
 
-
 # Regularly insert track boundaries in a stream (useful for testing tracks).
 # @category Source / Track processing
 # @flag extra
@@ -201,7 +199,6 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
 
   source.on_frame(s, f)
 end
-
 
 # Regularly skip tracks from a source (useful for testing skipping).
 # @category Source / Track processing

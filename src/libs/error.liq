@@ -22,4 +22,6 @@ let error.failure = error.register("failure")
 # Major failure.
 # @category Programming
 # @param msg Explanation about the failure.
-def failwith(msg) = error.raise(error.failure, msg) end
+def failwith(msg) =
+  error.raise(error.failure, msg)
+end

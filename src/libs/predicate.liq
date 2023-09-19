@@ -15,12 +15,12 @@ def predicate.activates(~init=false, p) =
     end
 end
 
-
 # Become true once every time a predicate is true.
 # @category Programming
 # @param p Predicate.
-def predicate.once(p) = predicate.activates(init=true, p) end
-
+def predicate.once(p) =
+  predicate.activates(init=true, p)
+end
 
 # Limit the number of times a predicate is true is a row.
 # @category Programming
@@ -42,7 +42,6 @@ def predicate.at_most(n, p) =
     end
 end
 
-
 # Detect when a predicate changes.
 # @category Programming
 # @param p Predicate.
@@ -56,7 +55,6 @@ def predicate.changes(p) =
       ans
     end
 end
-
 
 # First occurrence of a predicate.
 # @category Programming
@@ -82,14 +80,15 @@ def predicate.first(p) =
     end
 end
 
-
 # Predicate which is true when a signal is sent. The returned predicate has a
 # method `signal` to send the signal.
 # @category Programming
 # @method signal Send a signal.
 def predicate.signal() =
   state = ref(false)
-  def signal() = state := true end
+  def signal() =
+    state := true
+  end
 
   def p() =
     if

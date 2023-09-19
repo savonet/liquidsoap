@@ -1,5 +1,4 @@
 def f() =
-
   # Works as expected with no errors
   ret =
     try
@@ -124,8 +123,9 @@ def f() =
 
   if (on_error()).kind != e.kind then test.fail() end
   if (on_error()).message != "On done callback" then test.fail() end
-  def on_done() = test.pass() end
-
+  def on_done() =
+    test.pass()
+  end
 
   # Catches error
   def on_error(~backtrace, e) =

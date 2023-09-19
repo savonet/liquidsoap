@@ -8,7 +8,6 @@ def t(x, y) =
 end
 
 def f() =
-
   # Test basic syntax
   ignore(r/bla/gims)
   ignore(r/gni/)

@@ -9,9 +9,13 @@ def t(x, y) =
   end
 end
 
-def id(x) = x end
+def id(x) =
+  x
+end
 
-def incr(n) = n + 1 end
+def incr(n) =
+  n + 1
+end
 
 def f() =
   n = ref(0)

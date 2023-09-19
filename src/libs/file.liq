@@ -38,7 +38,6 @@ def file.write.stream(~perms=0o644, ~append=false, path) =
   write
 end
 
-
 # Write data to a file.
 # @category File
 # @param ~data Data to write. If passing a callback `() -> string?`, the callback \
@@ -57,7 +56,6 @@ def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
   write()
 end
 
-
 # Read the whole contents of a file.
 # @category File
 def file.contents(fname) =
@@ -70,16 +68,17 @@ def file.contents(fname) =
   f("")
 end
 
-
 # Get the list of lines of a file.
 # @category File
-def file.lines(fname) = r/\n/.split(file.contents(fname)) end
-
+def file.lines(fname) =
+  r/\n/.split(file.contents(fname))
+end
 
 # Iterate over the lines of a file.
 # @category File
-def file.lines.iterator(fname) = list.iterator(file.lines(fname)) end
-
+def file.lines.iterator(fname) =
+  list.iterator(file.lines(fname))
+end
 
 # Iterate over the contents of a file.
 # @category File
@@ -91,7 +90,6 @@ def file.iterator(fname) =
       (s == "") ? null() : s
     end
 end
-
 
 # Get a file's mime type by calling the `file` command line binary.
 # @category File
@@ -107,7 +105,6 @@ def file.mime.cli(fname) =
   mime == "" ? null() : mime
 end
 
-
 # Get a file's mime type. Uses libmagic if enabled, otherwise try
 # to get the value using the file binary. Returns `null()` if no value
 # can be found.
@@ -117,25 +114,24 @@ def replaces file.mime(fname) =
   fn = file.mime.cli
 %ifdef file.mime.libmagic
   ignore(fn)
-  fn = file.mime.libmagic
-%endif
+  fn = file.mime.libmagic%endif
 
   fn(fname)
 end
-
 
 # Getter to the contents of a file.
 # @category File
 # @param fname Name of the file from which the contents should be taken.
 def file.getter(fname) =
   contents = ref("")
-  def update() = contents := file.contents(fname) end
+  def update() =
+    contents := file.contents(fname)
+  end
 
   update()
   ignore(file.watch(fname, update))
   ref.getter(contents)
 end
-
 
 # Float getter from a file.
 # @category File
@@ -143,7 +139,9 @@ end
 # @param ~default Default value when the file contains invalid data.
 def file.getter.float(~default=0., fname) =
   x = file.getter(fname)
-  def f(x) = float_of_string(default=default, string.trim(x)) end
+  def f(x) =
+    float_of_string(default=default, string.trim(x))
+  end
 
   getter.map.memoize(f, x)
 end
@@ -157,7 +155,6 @@ let file.metadata.flac.cover = ()
 # Decode a flac-encoded cover metadata string.
 # @category String
 def file.metadata.flac.cover.decode(s) =
-
   # See https://xiph.org/flac/format.html#metadata_block_picture
   i = ref(0)
   def read_int() =
@@ -208,7 +205,6 @@ def file.metadata.flac.cover.decode(s) =
   end
 end
 
-
 # Encode cover metadata for embedding with flac files.
 # @category String
 def file.metadata.flac.cover.encode(
@@ -246,7 +242,6 @@ def file.metadata.flac.cover.encode(
   let (data_len, data) = encode_string(data)
   "#{pic_type}#{mime_len}#{mime}#{desc_len}#{description}#{width}#{height}#{color_depth}#{number_of_colors}#{data_len}#{data}"
 end
-
 
 # Download file using a regular http.get request. Returns `true` on success.
 # @category File

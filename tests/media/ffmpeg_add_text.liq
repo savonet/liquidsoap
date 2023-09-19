@@ -8,7 +8,9 @@ s = single(fname)
 s = sequence([s, s, s, s, s, source.fail()])
 s = video.add_text.ffmpeg("bla blo", s)
 started = ref(false)
-def on_track(_) = started := true end
+def on_track(_) =
+  started := true
+end
 
 s.on_track(on_track)
 
@@ -41,7 +43,9 @@ def on_close(filename) =
     end
 
     output_streams = list.map(m, output_streams)
-    def cmp(c, c') = if c < c' then -1 elsif c' < c then 1 else 0 end end
+    def cmp(c, c') =
+      if c < c' then -1 elsif c' < c then 1 else 0 end
+    end
 
     output_streams =
       list.map((fun (stream) -> list.sort(cmp, stream)), output_streams)

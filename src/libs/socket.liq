@@ -8,7 +8,6 @@ def socket.unix.client(~non_blocking=false, path) =
   (s : socket).{read=s.read, write=s.write, type=s.type, close=s.close}
 end
 
-
 # Open a named socket and wait for a client to connect
 # @param ~non_blocking Open in non-blocking mode.
 # @category File

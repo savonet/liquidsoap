@@ -45,7 +45,6 @@ def runtime.memory() =
         info.process_physical_memory
       )
     }
-
 %endif
 
   x
@@ -76,7 +75,6 @@ def runtime.cpu.usage_getter() =
 
   f
 end
-
 %endif
 
 
@@ -84,4 +82,6 @@ end
 # equivalent to setting the `TZ` environment
 # variable.
 # @category Time
-def time.zone.set(tz) = environment.set("TZ", tz) end
+def time.zone.set(tz) =
+  environment.set("TZ", tz)
+end

@@ -14,7 +14,6 @@ def replaces thread.run(~fast=true, ~delay=0., ~every=null(), f) =
   thread.run.recurrent(fast=fast, delay=delay, f)
 end
 
-
 # Execute a callback when a predicate is `true`. The predicate
 # is checked `every` seconds and the callback is
 # called when the predicate returns `true` after having been
@@ -50,7 +49,6 @@ def thread.when(
 
   thread.run.recurrent(fast=fast, delay=0., check)
 end
-
 
 # @flag hidden
 def default_error_handler(~backtrace, err) =

@@ -13,7 +13,6 @@ def environment.get(~default="", s) =
     list.assoc(default=default, s, env)
   end
 end
-
 %endif
 
 
@@ -34,7 +33,6 @@ def url.split_args(args) =
   list.map(f, l)
 end
 
-
 # Split an url of the form `foo?arg=bar&arg2=bar2` into
 # `("foo",[("arg","bar"),("arg2","bar2")])`. The returned strings are decoded
 # (see `url.decode`).
@@ -51,7 +49,6 @@ def url.split(uri) =
     (url.decode(uri), [])
   end
 end
-
 
 # Memoize the result of a function, making sure it is only executed once.
 # @category Programming

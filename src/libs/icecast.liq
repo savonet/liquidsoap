@@ -43,7 +43,6 @@ def output.shoutcast(
   )
 end
 
-
 # Encode and output the stream to an icecast server.
 # @category Source / Output
 # @argsof output.icecast[!protocol, !icy_id]
@@ -54,5 +53,4 @@ def output.icecast(%argsof(output.icecast[!protocol,!icy_id]), e, s) =
     %argsof(output.icecast[!protocol,!icy_id]), protocol="http", e, s
   )
 end
-
 %endif

@@ -9,6 +9,8 @@ def f() =
 end
 
 test.check(f)
-def on_done() = test.pass() end
+def on_done() =
+  test.pass()
+end
 
 thread.run(delay=5., on_done)

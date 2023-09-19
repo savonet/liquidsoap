@@ -5,18 +5,17 @@ let mk_prettify_rule ~location ~path f =
   (alias fmt)
   (deps
    %s
-   (source_tree %s/../tooling/prettier)
-   %s/../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
-   %s/../tooling/prettier/node_modules
+   %s/../tooling/liq-prettier
+   %s/../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
       (with-stdout-to %s.prettier
-       (chdir %s/../tooling/prettier
+       (chdir %s/../tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../libs/%s/%s)))
       (diff %s %s.prettier))))
 |}
-    f location location location f location path f f f
+    f location location f location path f f f
 
 let () =
   let location = Sys.argv.(1) in

@@ -8,7 +8,6 @@ def audio.encode.pcm_s16(~id=null("audio.encode.pcm_s16"), s) =
   source(id=id, tracks.{audio=track.encode.audio.pcm_s16(audio)})
 end
 
-
 # Encode audio track to pcm_f32
 # @category Source / Audio processing
 def audio.encode.pcm_f32(~id=null("audio.encode.pcm_f32"), s) =
@@ -25,7 +24,6 @@ def audio.decode.pcm_s16(~id=null("audio.decode.pcm_s16"), s) =
   source(id=id, tracks.{audio=track.decode.audio.pcm_s16(audio)})
 end
 
-
 # Decode audio track to pcm_f32
 # @category Source / Audio processing
 def audio.decode.pcm_f32(~id=null("audio.decode.pcm_f32"), s) =
@@ -33,16 +31,17 @@ def audio.decode.pcm_f32(~id=null("audio.decode.pcm_f32"), s) =
   source(id=id, tracks.{audio=track.decode.audio.pcm_f32(audio)})
 end
 
-
 # Samplerate for audio.
 # @category Settings
-def audio.samplerate = settings.frame.audio.samplerate end
-
+def audio.samplerate =
+  settings.frame.audio.samplerate
+end
 
 # Channels for audio.
 # @category Settings
-def audio.channels = settings.frame.audio.channels end
-
+def audio.channels =
+  settings.frame.audio.channels
+end
 
 # Multiply the amplitude of the signal.
 # @category Source / Audio processing
@@ -57,7 +56,6 @@ def amplify(~id=null("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
     }
   )
 end
-
 
 # Clip samples, i.e. ensure that all values are between
 # `-1` and `1`: values lower than `-1` become `-1` and
@@ -149,7 +147,9 @@ def replaces normalize(
     end
   end
 
-  def target_gain() = lin_of_dB(getter.get(target)) / rms() end
+  def target_gain() =
+    lin_of_dB(getter.get(target)) / rms()
+  end
 
   s =
     if
@@ -179,14 +179,12 @@ def replaces normalize(
   }
 end
 
-
 # Swap two channels of a stereo source.
 # @category Source / Conversion
 def swap(id=null("swap"), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=track.audio.swap(tracks.audio)})
 end
-
 
 # Produce mono audio by taking the mean of all audio channels.
 # @category Source / Conversion
@@ -199,7 +197,6 @@ def mean(~id=null("mean"), %argsof(track.audio.mean[!id]), s) =
   )
 end
 
-
 # Convert any pcm audio source into a stereo source.
 # @category Source / Conversion
 def stereo(~id=null("stereo"), s) =
@@ -207,14 +204,12 @@ def stereo(~id=null("stereo"), s) =
   source(id=id, tracks.{audio=track.audio.stereo(tracks.audio)})
 end
 
-
 # Extract the left channel of a stereo track
 # @category Source / Conversion
 # @param t Track to extract from
 def track.audio.stereo.left(~id=null("track.audio.stereo.left"), t) =
   track.audio.mean(id=id, track.audio.stereo.pan(pan=-1., t))
 end
-
 
 # Extract the left channel of a stereo source
 # @category Source / Conversion
@@ -224,14 +219,12 @@ def stereo.left(~id=null("stereo.left"), s) =
   source(id=id, tracks.{audio=track.audio.stereo.left(tracks.audio)})
 end
 
-
 # Extract the right channel of a stereo track
 # @category Source / Conversion
 # @param s Track to extract from
 def track.audio.stereo.right(~id=null("track.audio.stereo.right"), t) =
   track.audio.mean(id=id, track.audio.stereo.pan(pan=1., t))
 end
-
 
 # Extract the right channel of a stereo source
 # @category Source / Conversion
@@ -241,7 +234,6 @@ def stereo.right(~id=null("stereo.right"), s) =
   source(id=id, tracks.{audio=track.audio.stereo.right(tracks.audio)})
 end
 
-
 # Spacializer which allows controlling the width of the signal.
 # @category Source / Audio processing
 # @param w Width of the signal (-1: mono, 0.: original, 1.: wide stereo).
@@ -249,7 +241,6 @@ def stereo.width(~id=null("stereo.width"), w=getter(0.), (s:source)) =
   tracks = source.tracks(s)
   source(id=id, tracks.{audio=track.audio.stereo.width(w, tracks.audio)})
 end
-
 
 # Pan a stereo sound.
 # @category Source / Audio processing
@@ -269,7 +260,6 @@ def stereo.pan(
     }
   )
 end
-
 
 # Slow down or accelerate an audio stream by stretching (sounds lower) or squeezing it (sounds higher).
 # @category Source / Audio processing
@@ -305,7 +295,6 @@ def stereo.ms.decode(
     }
   )
 end
-
 
 # Encode left+right stereo to mid+side stereo (M/S).
 # @category Source / Audio processing
@@ -343,5 +332,4 @@ def stereotool(
 
   s
 end
-
 %endif

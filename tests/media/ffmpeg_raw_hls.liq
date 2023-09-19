@@ -29,7 +29,9 @@ s = noise()
 raw = ffmpeg.raw.encode.audio_video(raw_encoder, s)
 streams = [("mp4", mp4), ("mpegts", mpegts)]
 output_dir = file.temp_dir("liq", "hls")
-def cleanup() = file.rmdir(output_dir) end
+def cleanup() =
+  file.rmdir(output_dir)
+end
 
 on_cleanup(cleanup)
 is_done = ref(false)
@@ -90,7 +92,6 @@ def segment_name(~position, ~extname, stream_name) =
   timestamp = int_of_float(time())
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
-
 
 #clock.assign_new(sync='none',[raw])
 output.file.hls(

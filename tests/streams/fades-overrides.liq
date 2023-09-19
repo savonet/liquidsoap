@@ -49,6 +49,8 @@ end
 
 fade_out.on_track(on_track)
 clock.assign_new(sync="none", [fade_out])
-def on_stop() = if !success then test.pass() else test.fail() end end
+def on_stop() =
+  if !success then test.pass() else test.fail() end
+end
 
 output.dummy(fallible=true, on_stop=on_stop, fade_out)

@@ -7,7 +7,9 @@ def echo(s) =
   ()
 end
 
-def t(lbl, f) = if f() then echo(lbl) else echo("fail " ^ lbl) end end
+def t(lbl, f) =
+  if f() then echo(lbl) else echo("fail " ^ lbl) end
+end
 
 def f() =
   t("1", {1 == 1})

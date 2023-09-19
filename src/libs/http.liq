@@ -54,7 +54,6 @@ def http.multipart_form_data(~boundary=null(), data) =
   {contents=contents, boundary=boundary}
 end
 
-
 # Initiate a response handler with pre-filled values.
 # @category Internet
 # @method content_type Set `"Content-Type"` header
@@ -193,12 +192,16 @@ def http.response(
       attr := v
     end
 
-    def get() = attr() end
+    def get() =
+      attr()
+    end
 
     set.{current=get}
   end
 
-  def header(k, v) = headers := (k, v)::headers() end
+  def header(k, v) =
+    headers := (k, v)::headers()
+  end
 
   code = status_code
   def redirect(~status_code=301, location) =
@@ -275,7 +278,6 @@ def http.response(
   }
 end
 
-
 # @flag hidden
 def harbor.http.regexp_of_path(path) =
   def named_capture(s) =
@@ -286,7 +288,6 @@ def harbor.http.regexp_of_path(path) =
   rex = r/:[\w_]+/g.replace(named_capture, path)
   regexp("^#{rex}$")
 end
-
 
 # @flag hidden
 def harbor.http.mk_body(get_data) =
@@ -330,7 +331,6 @@ def harbor.http.mk_body(get_data) =
   body
 end
 
-
 # Register a HTTP handler on the harbor. This function offers a simple API,
 # suitable for quick implementation of HTTP handlers. See `harbor.http.register`
 # for a node/express like alternative API.
@@ -338,7 +338,9 @@ end
 # @argsof harbor.http.register
 def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) =
   def handler(request) =
-    def data(~timeout=10.) = request.data(timeout=timeout) end
+    def data(~timeout=10.) =
+      request.data(timeout=timeout)
+    end
 
     handler(request.{data=data, body=harbor.http.mk_body(data)})
   end
@@ -347,7 +349,6 @@ def harbor.http.register.simple(%argsof(harbor.http.register), path, handler) =
     %argsof(harbor.http.register), harbor.http.regexp_of_path(path), handler
   )
 end
-
 
 # Register a HTTP handler on the harbor with a generic regexp `path`. This function offers a simple API,
 # suitable for quick implementation of HTTP handlers. See `harbor.http.register`
@@ -358,9 +359,9 @@ def harbor.http.register.simple.regexp(
   %argsof(harbor.http.register),
   path,
   handler
-) = harbor.http.register(%argsof(harbor.http.register), path, handler)
+) =
+  harbor.http.register(%argsof(harbor.http.register), path, handler)
 end
-
 
 # @flag hidden
 let harbor.http.middleware = ref(fun (req, res, next) -> next(req, res))
@@ -373,7 +374,6 @@ def harbor.http.middleware.register(fn) =
     fun (req, res, next) ->
       begin middleware(req, res, fun (res, res) -> fn(req, res, next)) end
 end
-
 
 # @flag hidden
 def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
@@ -422,8 +422,9 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
   harbor.http.register(%argsof(harbor.http.register), path, handler)
 end
 
-def replaces harbor.http.middleware = () end
-
+def replaces harbor.http.middleware =
+  ()
+end
 
 # Register a HTTP handler on the harbor. The handler function
 # receives as argument the full requested information and returns the
@@ -504,7 +505,9 @@ def harbor.http.static.base(
             response.status_code(403)
           else
             page = ref("")
-            def add(s) = page := page() ^ s ^ "\n" end
+            def add(s) =
+              page := page() ^ s ^ "\n"
+            end
 
             def add_file(f) =
               add(
@@ -528,11 +531,12 @@ def harbor.http.static.base(
   end
 
   basepath = "#{basepath}.*"
-  def register(method) = serve(method=method, basepath, handler) end
+  def register(method) =
+    serve(method=method, basepath, handler)
+  end
 
   list.iter(register, ["OPTIONS", "HEAD", "GET"])
 end
-
 
 # It seems that browsers want a trailing 0 for floats.
 # @flag hidden
@@ -542,7 +546,6 @@ def http.string_of_float(x) =
   if string.sub(s, start=n - 1, length=1) == "." then s ^ "0" else s end
 end
 
-
 # @flag hidden
 def get_mime_process(file) =
   mime =
@@ -550,7 +553,6 @@ def get_mime_process(file) =
 
   if mime == "" then null() else mime end
 end
-
 
 # @flag hidden
 content_type = get_mime_process
@@ -579,7 +581,6 @@ def replaces harbor.http.static(
   ~headers=[("Access-Control-Allow-Origin", "*")],
   directory
 ) =
-
   # Make the method argument non-optional, see #1018
   serve =
     fun (~method, uri, handler) ->
@@ -596,7 +597,6 @@ def replaces harbor.http.static(
     directory
   )
 end
-
 
 # @flag hidden
 stdlib_file = file
@@ -716,7 +716,6 @@ def http.post.file(
   )
 end
 
-
 # Send a file via PUT request encoded in multipart/form-data. The contents can
 # either be directly specified (with the `contents` argument) or taken from a
 # file (with the `file` argument).
@@ -827,7 +826,6 @@ def http.headers.content_type(headers) =
   )
 end
 
-
 # Extract the content-disposition header
 # @category Internet
 def http.headers.content_disposition(headers) =
@@ -908,7 +906,6 @@ def http.headers.content_disposition(headers) =
     content_disposition
   )
 end
-
 
 # Try to get a filename from a request's headers.
 # @category Internet

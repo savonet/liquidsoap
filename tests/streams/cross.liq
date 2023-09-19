@@ -30,7 +30,8 @@ end
 
 s.on_metadata(check_duplicate)
 clock.assign_new(sync="none", [s])
-def on_stop() = if seen_a() and seen_b() then test.pass() else test.fail() end
+def on_stop() =
+  if seen_a() and seen_b() then test.pass() else test.fail() end
 end
 
 output.dummy(fallible=true, on_stop=on_stop, s)

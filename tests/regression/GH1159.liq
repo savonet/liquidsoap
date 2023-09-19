@@ -3,7 +3,9 @@
 # trigering an early `on_end` call.
 settings.decoder.decoders.set(["flac"])
 s = single("../media/@flac[stereo].flac")
-def f(rem, _) = if rem > 0. then test.pass() else test.fail() end end
+def f(rem, _) =
+  if rem > 0. then test.pass() else test.fail() end
+end
 
 s = source.on_end(s, delay=0.1, f)
 clock.assign_new(sync="none", [s])

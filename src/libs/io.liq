@@ -55,7 +55,6 @@ def output.video(%argsof(output.sdl), s) =
     (output.dummy(fallible=fallible, s) : unit)
   end
 end
-
 %endif
 
 %ifdef output.graphics
@@ -84,7 +83,6 @@ def output.video(
     id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s
   )
 end
-
 
 # Output a stream with audio and video using the default operator. The input
 # source does not need to be infallible, blank will just be played during

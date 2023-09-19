@@ -1,8 +1,12 @@
 test_no_autostart = ref(true)
 test_autostart = ref(false)
-def on_unwanted_autostart() = test_no_autostart := false end
+def on_unwanted_autostart() =
+  test_no_autostart := false
+end
 
-def on_wanted_autostart() = test_autostart := true end
+def on_wanted_autostart() =
+  test_autostart := true
+end
 
 s = blank()
 clock.assign_new(sync="none", [s])

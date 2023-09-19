@@ -1,6 +1,5 @@
 #!../../liquidsoap ../test.liq
 def f() =
-
   # Basic checks
   n = 2
   r = n.{a=8, b=12, f=fun (x) -> 2 * x}
@@ -24,7 +23,9 @@ def f() =
   let r.a.b = 5
   let replaces r.a = 2
   ignore(r.a.b)
-  def replaces r.a(x) = 2 * x end
+  def replaces r.a(x) =
+    2 * x
+  end
 
   ignore(r.a.b)
 
@@ -35,7 +36,9 @@ def f() =
     !n
   end
 
-  def counter.reset() = n := 0 end
+  def counter.reset() =
+    n := 0
+  end
 
   ignore(counter())
   ignore(counter())
@@ -49,7 +52,9 @@ def f() =
 
   # Open
   r = ()
-  def r.f(n) = 2 * n end
+  def r.f(n) =
+    2 * n
+  end
 
   open r
   test.equals(f(3), 6)
@@ -64,7 +69,9 @@ def f() =
   ignore(list.hd(l).x)
   l = [b, a]
   ignore(list.hd(l).x)
-  def f(c) = [a, c] end
+  def f(c) =
+    [a, c]
+  end
 
   ignore(f)
 
@@ -88,7 +95,9 @@ def f() =
   test.equals("bla" == "bla".{x=2}, true)
 
   # Test optional fields
-  def f(x) = (x?.foo ?? 2) + 1 end
+  def f(x) =
+    (x?.foo ?? 2) + 1
+  end
 
   test.equals(f(()), 3)
   test.equals(f({}), 3)
@@ -103,7 +112,9 @@ def f() =
   test.equals(f({}), 1)
   test.equals(f({foo=(fun (x) -> x)}), 123)
   test.equals(f({foo=null()}), 1)
-  def f(x) = [x, {foo=123}] end
+  def f(x) =
+    [x, {foo=123}]
+  end
 
   ignore(list.hd(f(()))?.foo)
   ignore((f({foo=345}) : [{foo?: int}]))
@@ -119,19 +130,24 @@ def f() =
   (x : {add?: int})
   x = (() : {foo?: int?})
   ignore(f(()))
-  def f(x) = x.foo.gni.bla(1, 2, 3).blo end
+  def f(x) =
+    x.foo.gni.bla(1, 2, 3).blo
+  end
 
   test.equals(
     f({foo={gni={bla=(fun (_, _, _, ~foo="gni") -> {blo=123})}}}), 123
   )
 
-  def f(x) = x.foo?.gni.bla(1, 2, 3) end
+  def f(x) =
+    x.foo?.gni.bla(1, 2, 3)
+  end
 
   test.equals(f({foo=null()}), null())
 
   # We want to make sure that:
-  def f(x) = x?.foo end
-
+  def f(x) =
+    x?.foo
+  end
 
   # is properly typed as: ('B.{foo? : 'A}) -> 'A?
   test.equals(f({}), null())
@@ -143,8 +159,9 @@ def f() =
   test.equals(f({foo=1}), null(1))
 
   # We want to make sure that:
-  def f(x) = x?.foo(1)?.gni end
-
+  def f(x) =
+    x?.foo(1)?.gni
+  end
 
   # is properly typed as: ('A.{foo? : (int) -> 'B.{gni? : 'C}}) -> 'C?
   # i.e. that { foo = (fun (_) -> { } ) } is a valid argument
@@ -154,8 +171,9 @@ def f() =
   test.equals(f(345.{foo=(fun (_) -> "aabb".{gni=2})}), null(2))
 
   # We want to make sure that:
-  def f(x) = x?.foo(1).gni ?? 1 end
-
+  def f(x) =
+    x?.foo(1).gni ?? 1
+  end
 
   # is properly typed as: ('A.{foo? : (int) -> 'B.{gni? : int}}) -> int
   # i.e. that { foo = (fun (_) -> { } ) } is a valid argument
@@ -200,16 +218,22 @@ def f() =
 
   # Make sure that a function that takes a record of the
   # type { foo?: int} can take a record of the type: {foo?: never}
-  def f(x) = (x?.foo ?? 1) + 2 end
+  def f(x) =
+    (x?.foo ?? 1) + 2
+  end
 
   x = {foo=123}
   let {foo = _, ...y} = x
   test.equals(f(y), 3)
 
   # Make sure that we infer optional methods correctly
-  def f(x) = ignore(x?.foo) end
+  def f(x) =
+    ignore(x?.foo)
+  end
 
-  def g(x) = f(x.{gni=123}) end
+  def g(x) =
+    f(x.{gni=123})
+  end
 
   g({blo="bla"})
 

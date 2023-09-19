@@ -25,8 +25,9 @@ def medialib(
   directories = ref(directories)
   if null.defined(dir) then directories := null.get(dir)::directories() end
   db = ref([])
-  def dt(t) = string.float(decimal_places=2, time() - t) end
-
+  def dt(t) =
+    string.float(decimal_places=2, time() - t)
+  end
 
   # Read metadata from file.
   def metadata(f) =
@@ -43,10 +44,10 @@ def medialib(
     m
   end
 
-
   # Whether an entry needs ot be updated.
-  def needs_update(f, m) = file.mtime(f) > string.to_float(m["last scan"]) end
-
+  def needs_update(f, m) =
+    file.mtime(f) > string.to_float(m["last scan"])
+  end
 
   # Add a file to the database.
   def add(f) =
@@ -57,8 +58,8 @@ def medialib(
         not list.assoc.mem(f, db()) or needs_update(f, list.assoc(f, db()))
       then
         db := (f, metadata(f))::list.assoc.remove(f, db())
-      end end end
-
+      end end
+  end
 
   # Update database by renewing metadata and removing removed files.
   def update(~progress=fun (_, _) -> ()) =
@@ -87,7 +88,6 @@ def medialib(
     log.debug(label=id, "Updated #{nu()} files.")
   end
 
-
   # Make sure that new files from directories are registered.
   def scan(~progress=fun (_, _) -> ()) =
     l =
@@ -106,7 +106,6 @@ def medialib(
 
     list.iter(add, l)
   end
-
 
   # Increment when the format of the db changes
   db_version = 1
@@ -140,7 +139,6 @@ def medialib(
     end
   end
 
-
   # Store the file in a persistent file.
   def store() =
     if
@@ -153,7 +151,6 @@ def medialib(
     end
   end
 
-
   # Refresh the library.
   def refresh() =
     log.info(label=id, "Refreshing the library...")
@@ -163,7 +160,6 @@ def medialib(
     store()
     log.info(label=id, "Refreshed the library in #{dt(t)}s.")
   end
-
 
   # Find all files matching given criteria.
   def find(
@@ -201,9 +197,13 @@ def medialib(
         end
       end
 
-      def eqf(k, v) = null.defined(v) ? eq(m[k], null.get(v)) : true  end
+      def eqf(k, v) =
+        null.defined(v) ? eq(m[k], null.get(v)) : true
+      end
 
-      def ctf(k, v) = null.defined(v) ? contains(null.get(v), m[k]) : true  end
+      def ctf(k, v) =
+        null.defined(v) ? contains(null.get(v), m[k]) : true
+      end
 
       def mtf(k, v) =
         null.defined(v) ? string.match(pattern=null.get(v), m[k]) : true
@@ -328,7 +328,9 @@ def medialib(
     )
   end
 
-  def clear() = db := [] end
+  def clear() =
+    db := []
+  end
 
   def add_directory(d) =
     directories := d::directories()

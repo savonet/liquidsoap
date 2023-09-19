@@ -23,7 +23,9 @@ s = single(fname)
 s = sequence([s, s, s, s, s, source.fail()])
 s = f(s)
 started = ref(false)
-def on_track(_) = started := true end
+def on_track(_) =
+  started := true
+end
 
 s.on_track(on_track)
 

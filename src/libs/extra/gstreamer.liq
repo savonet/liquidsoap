@@ -11,7 +11,6 @@ def input.v4l2(~id=null(), ~device="/dev/video0", ~on_error=fun (_) -> 3.) =
   input.gstreamer.video(id=id, pipeline=pipeline, on_error=on_error)
 end
 
-
 # Stream from a video4linux2 input device, such as a webcam.
 # @category Source / Input
 # @flag extra
@@ -49,7 +48,6 @@ def gstreamer.single.audio(~id=null(), ~on_error=fun (_) -> 3., uri) =
   )
 end
 
-
 # Play an http live stream.
 # @category Source / Input
 # @flag extra
@@ -70,7 +68,6 @@ def output.file.hls.gstreamer(~id=null(), ~on_error=fun (_) -> 3., uri) =
   )
 end
 
-
 # Play an audio-only http live stream.
 # @category Source / Input
 # @flag extra
@@ -82,7 +79,6 @@ def output.file.hls.gstreamer.audio(~id=null(), ~on_error=fun (_) -> 3., uri) =
   pipeline = {"souphttpsrc location=\"#{uri()}\""}
   input.gstreamer.audio(id=id, pipeline=pipeline, on_error=on_error)
 end
-
 
 # Encode an x264 video file using gstreamer
 # @category Source / Output
@@ -96,7 +92,6 @@ def gstreamer.encode_x264_avi(fname, source) =
   )
 end
 
-
 # Encode jpeg video file using gstreamer
 # @category Source / Output
 # @flag extra
@@ -108,7 +103,6 @@ def gstreamer.encode_jpeg_avi(fname, source) =
     source
   )
 end
-
 
 # Encode a mp3 file using gstreamer
 # @category Source / Output
@@ -140,7 +134,6 @@ def gstreamer.rtp.mpeg4(~host="127.0.0.1", ~port=5000, source) =
     source
   )
 end
-
 
 # Stream live on youtube. You need the following Gstreamer plugins: flvmux, rtmpsink, x264enc and a suitable AAC encoder (see `audio_encoder` params).
 # @param ~id Source ID
@@ -182,7 +175,6 @@ def output.youtube.live.gstreamer(
   )
 end
 
-
 # Test audio-video source using GStreamer.
 # @category Source / Input
 # @flag extra
@@ -193,5 +185,4 @@ def video.testsrc.gstreamer(~id=null()) =
     id=id, video_pipeline=video_pipeline, audio_pipeline=audio_pipeline
   )
 end
-
 %endif

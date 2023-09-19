@@ -7,7 +7,9 @@ b = sine(duration=2.)
 # fun (source('a), source('a)) -> source('a). We
 # need to make sure that it returns a mono source
 # when used as transition for a mono crossfade.
-def fn(a, b) = add([fade.out(a.source), fade.in(b.source)]) end
+def fn(a, b) =
+  add([fade.out(a.source), fade.in(b.source)])
+end
 
 s = sequence([a, b])
 s = cross(fn, s)

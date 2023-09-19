@@ -6,7 +6,6 @@
 # @param ~ebu_r128 Also amplify according to EBU R128 tags.
 # @param s Source to be amplified.
 def replaygain(~id=null(), ~ebu_r128=true, s) =
-
   # Normalize opus gain
   def f(m) =
     def f(m) =
@@ -31,7 +30,6 @@ def replaygain(~id=null(), ~ebu_r128=true, s) =
   s = metadata.map(f, s)
   amplify(id=id, override="replaygain_track_gain", 1., s)
 end
-
 
 # Compute the ReplayGain for a file (in dB).
 # @category File
@@ -76,7 +74,6 @@ def file.replaygain(~id=null(), ~ratio=50., fname) =
     end
   end
 end
-
 
 # Enable ReplayGain metadata resolver. This resolver will process any file
 # decoded by Liquidsoap and add a `replaygain_track_gain` metadata when this

@@ -15,7 +15,9 @@ def fallback(
   ~transitions=[],
   sources
 ) =
-  def add_condition(s) = ({true}, s) end
+  def add_condition(s) =
+    ({true}, s)
+  end
 
   switch(
     id=id,
@@ -27,7 +29,6 @@ def fallback(
     list.map(add_condition, sources)
   )
 end
-
 
 # Rotate between sources.
 # @category Source / Track processing
@@ -94,7 +95,6 @@ def rotate(
     end
   end
 
-
   # Add condition to i-th source.
   def add_condition(index, s) =
     def cond() =
@@ -141,11 +141,12 @@ def rotate(
   end
 
   s = source.on_track(s, f)
-  def replaces s = fallback(id=id, track_sensitive=true, s::sources) end
+  def replaces s =
+    fallback(id=id, track_sensitive=true, s::sources)
+  end
 
   s
 end
-
 
 # At the beginning of every track, select a random ready child.
 # @category Source / Track processing
@@ -224,10 +225,14 @@ def replaces random(
       list.mapi(add_condition, sources)
     )
 
-  def f(_) = next_index := -1 end
+  def f(_) =
+    next_index := -1
+  end
 
   s = source.on_track(s, f)
-  def replaces s = fallback(id=id, track_sensitive=true, s::sources) end
+  def replaces s =
+    fallback(id=id, track_sensitive=true, s::sources)
+  end
 
   s
 end

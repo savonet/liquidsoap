@@ -14,11 +14,11 @@ let () =
         {|
 (rule
   (alias fmt)
-  (deps %s (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
+  (deps %s ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to %s.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/%s)))
       (diff %s %s.prettier))))
 

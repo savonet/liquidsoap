@@ -5,5 +5,5 @@
  (preprocess
   (pps js_of_ocaml-ppx))
  (js_of_ocaml
-  (javascript_files ../../../../js/filesystem.js))
+  (javascript_files ../../../js/filesystem.js))
  (libraries js_of_ocaml liquidsoap_lang liquidsoap_tooling liquidsoap_js))

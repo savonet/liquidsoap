@@ -3,7 +3,9 @@ log.level.set(5)
 def f() =
   test.skip()
   reloaded = ref("")
-  def on_reload(uri) = reloaded := uri end
+  def on_reload(uri) =
+    reloaded := uri
+  end
 
   s = playlist(on_reload=on_reload, reload_mode="watch", "invalid uri")
   playlist = file.temp("foo", "bar")

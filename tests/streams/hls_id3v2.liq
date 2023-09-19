@@ -1,6 +1,8 @@
 s = sine()
 s = insert_metadata(s)
-def f() = s.insert_metadata([("title", "test title"), ("album", "foolol")]) end
+def f() =
+  s.insert_metadata([("title", "test title"), ("album", "foolol")])
+end
 
 thread.run(every=2., f)
 s = mksafe(s)

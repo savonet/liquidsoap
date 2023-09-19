@@ -24,7 +24,9 @@ def input.hls.native(~id=null(), ~reload=10., uri) =
       files = playlist.parse(path=path.dirname(playlist_uri()) ^ "/", pl)
       def file_request(idx, el) =
         let (meta, file) = el
-        def escape(s) = string.escape(encoding="ascii", s) end
+        def escape(s) =
+          string.escape(encoding="ascii", s)
+        end
 
         s =
           list.fold(
@@ -108,7 +110,9 @@ let replaces input.hls = input.ffmpeg
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param uri Playlist URI.
-def input.hls(~id=null(), uri) = input.hls(id=id, uri) end
+def input.hls(~id=null(), uri) =
+  input.hls(id=id, uri)
+end
 
 let output.harbor.hls = ()
 
@@ -149,7 +153,6 @@ def output.harbor.hls.base(
   serve(port=port, path=path, content_type=content_type, tmpdir)
   output.file.hls(%argsof(output.file.hls), tmpdir, formats, s)
 end
-
 
 # Output the source stream to an HTTP live stream served from the harbor HTTP server.
 # @category Source / Output
@@ -234,5 +237,4 @@ def output.harbor.hls.https(
     s
   )
 end
-
 %endif

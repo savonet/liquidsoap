@@ -7,7 +7,9 @@ b = sine(duration=2.)
 # fun (source('a), source('a)) -> source('a). We
 # need to make sure that it returns a mono source
 # when used as transition for a mono fallback.
-def transition(a, b) = add([fade.out(a), fade.in(b)]) end
+def transition(a, b) =
+  add([fade.out(a), fade.in(b)])
+end
 
 s = fallback(transitions=[transition, transition], [a, b])
 clock.assign_new(sync='none', [s])

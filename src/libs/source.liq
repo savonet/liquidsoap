@@ -12,7 +12,6 @@ def source.audio(~id=null("source.audio"), audio) =
   )
 end
 
-
 # Create a video source from the given track, with
 # metadata and track marks from that same track.
 # @category Source / Track processing
@@ -26,7 +25,6 @@ def source.video(~id=null("source.video"), video) =
     }
   )
 end
-
 
 # Remove duplicate metadata in a track.
 # @category Metadata
@@ -48,7 +46,6 @@ def track.metadata.deduplicate(~id=null("track.metadata.deduplicate"), t) =
   )
 end
 
-
 # Remove duplicate metadata in a source.
 # @category Metadata
 # @param ~id Source id
@@ -57,7 +54,6 @@ def metadata.deduplicate(~id=null("metadata.deduplicate"), s) =
   tracks = source.tracks(s)
   source(id=id, tracks.{metadata=track.metadata.deduplicate(tracks.metadata)})
 end
-
 
 # Rewrite metadata on the fly using a function.
 # @category Source / Track processing
@@ -79,7 +75,6 @@ def metadata.map(
   )
 end
 
-
 # Turn a source into an infaillible source by adding blank when the source is
 # not available.
 # @param s the source to turn infaillible
@@ -88,13 +83,12 @@ def mksafe(~id="mksafe", s) =
   fallback(id=id, track_sensitive=false, [(s : source), blank(id="safe_blank")])
 end
 
-
 # Creates a source that plays only one track of the input source.
 # @category Source / Track processing
 # @param s The input source.
-def once(~id=null("once"), s) = sequence(id=id, [(s : source), source.fail()])
+def once(~id=null("once"), s) =
+  sequence(id=id, [(s : source), source.fail()])
 end
-
 
 # Skip track when detecting a blank.
 # @category Source / Track processing
@@ -122,7 +116,6 @@ def blank.skip(
   )
 end
 
-
 # Run a function regularly. This is similar to `thread.run` but based on a
 # source internal time instead of the computer's time.
 # @category Source / Track processing
@@ -146,7 +139,6 @@ def source.run(s, ~delay=0., ~every=null(), f) =
 
   source.on_frame(s, check)
 end
-
 
 # Append an extra track to every track. Set the metadata ‘liq_append’ to
 # `false` to inhibit appending on one track.
@@ -208,7 +200,6 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
       end
   }
 end
-
 
 # Prepend an extra track before every track. Set the metadata `liq_prepend` to
 # `false` to inhibit prepending on one track.

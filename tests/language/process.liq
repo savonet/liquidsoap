@@ -1,5 +1,7 @@
 #!../../liquidsoap ../test.liq
-def t(x, y) = if x != y then test.fail() end end
+def t(x, y) =
+  if x != y then test.fail() end
+end
 
 first = ref(true)
 thread.run.recurrent(

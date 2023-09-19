@@ -28,7 +28,6 @@ def vumeter(~rms_min=-25., ~rms_max=-5., ~window=0.5, ~scroll=false, s) =
   s
 end
 
-
 # VU meter: display the audio volume (RMS in dB). This adds a video track to the
 # source.
 # @category Source / Visualization

@@ -1,13 +1,17 @@
 def f() =
   def a() =
-    def next() = error.raise(error.not_found, "test") end
+    def next() =
+      error.raise(error.not_found, "test")
+    end
 
     request.dynamic(next)
   end
 
   output.dummy(fallible=true, a())
   def a() =
-    def next() = error.raise(error.not_found, "test") end
+    def next() =
+      error.raise(error.not_found, "test")
+    end
 
     native.request.dynamic(next)
   end
