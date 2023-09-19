@@ -261,12 +261,12 @@ expr:
                                      { mk~pos:$loc (`Try {
                                          Term.try_body = $2;
                                          try_variable = $4;
-                                         try_errors_list = mk ~pos:$loc($6) (`List $6);
+                                         try_errors_list = Some (mk ~pos:$loc($6) (`List $6));
                                          try_handler = $8 }) }
   | TRY exprs CATCH optvar DO exprs END { mk~pos:$loc (`Try {
                                          Term.try_body = $2;
                                          try_variable = $4;
-                                         try_errors_list =  mk ~pos:$loc `Null;
+                                         try_errors_list =  None;
                                          try_handler = $6 }) }
   | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_elsif = fst $5; if_else = snd $5 }) }
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }

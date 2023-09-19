@@ -664,7 +664,7 @@ const print = (path, options, print) => {
             "catch",
             line,
             node.variable,
-            ...(node.errors_list.type !== "null"
+            ...(node.errors_list
               ? [group([line, ":", line, print("errors_list")])]
               : []),
             line,

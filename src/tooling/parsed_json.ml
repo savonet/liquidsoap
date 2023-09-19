@@ -98,7 +98,8 @@ let json_of_try ~to_json
   [
     ("body", to_json try_body);
     ("variable", `String try_variable);
-    ("errors_list", to_json try_errors_list);
+    ( "errors_list",
+      match try_errors_list with None -> `Null | Some tm -> to_json tm );
     ("handler", to_json try_handler);
   ]
 

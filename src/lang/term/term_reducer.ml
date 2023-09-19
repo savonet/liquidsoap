@@ -587,7 +587,11 @@ let try_reducer ~pos ~to_term = function
       in
       let handler = mk_fun ~pos:try_handler.pos err_arg (to_term try_handler) in
       let error_module = mk ~pos (`Var "error") in
-      let try_errors_list = to_term try_errors_list in
+      let try_errors_list =
+        match try_errors_list with
+          | None -> mk ~pos `Null
+          | Some tm -> to_term tm
+      in
       let op =
         mk ~pos
           (`Invoke
