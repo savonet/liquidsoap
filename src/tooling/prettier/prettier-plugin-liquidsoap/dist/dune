@@ -1,0 +1,7 @@
+(rule
+ (mode
+  (promote (until-clean)))
+ (deps ../src/liquidsoap_js.bc.js)
+ (target liquidsoap.js)
+ (action
+  (copy %{deps} %{target})))

@@ -4,7 +4,7 @@
   (deps
    audio.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -19,7 +19,7 @@
   (deps
    deprecations.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -34,7 +34,7 @@
   (deps
    externals.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -49,7 +49,7 @@
   (deps
    file.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -64,7 +64,7 @@
   (deps
    gstreamer.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -79,7 +79,7 @@
   (deps
    http.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -94,7 +94,7 @@
   (deps
    interactive.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -109,7 +109,7 @@
   (deps
    lastfm.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -124,7 +124,7 @@
   (deps
    native.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -139,7 +139,7 @@
   (deps
    server.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -154,7 +154,7 @@
   (deps
    source.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -169,7 +169,7 @@
   (deps
    telnet.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action
@@ -184,7 +184,7 @@
   (deps
    visualization.liq
    (source_tree ../../tooling/prettier)
-   ../../tooling/json_dump.exe
+   ../../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    ../../tooling/prettier/node_modules
  )
   (action

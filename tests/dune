@@ -18,7 +18,7 @@
  (deps
   test.liq
   (source_tree ../src/tooling/prettier)
-  ../src/tooling/json_dump.exe
+  ../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
   ../src/tooling/prettier/node_modules)
  (action
   (progn

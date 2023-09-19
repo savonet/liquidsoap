@@ -11,8 +11,3 @@
  (package liquidsoap-lang)
  (modules parsed_json)
  (libraries sedlex liquidsoap_lang))
-
-(executable
- (name json_dump)
- (modules json_dump)
- (libraries liquidsoap_tooling liquidsoap_lang liquidsoap_core))

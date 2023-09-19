@@ -1,7 +1,7 @@
 
 (rule
   (alias fmt)
-  (deps http.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps http.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
   (action
     (progn
       (with-stdout-to http.liq.prettier
@@ -23,7 +23,7 @@
 
 (rule
   (alias fmt)
-  (deps http2.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps http2.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
   (action
     (progn
       (with-stdout-to http2.liq.prettier
@@ -45,7 +45,7 @@
 
 (rule
   (alias fmt)
-  (deps http3.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps http3.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
   (action
     (progn
       (with-stdout-to http3.liq.prettier
@@ -67,7 +67,7 @@
 
 (rule
   (alias fmt)
-  (deps post.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps post.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
   (action
     (progn
       (with-stdout-to post.liq.prettier
@@ -89,7 +89,7 @@
 
 (rule
   (alias fmt)
-  (deps put.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps put.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
   (action
     (progn
       (with-stdout-to put.liq.prettier

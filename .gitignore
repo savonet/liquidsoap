@@ -10,4 +10,4 @@ package-lock.json
 node_modules/
 pnpm-lock.yaml
 package-lock.json
-src/tooling/prettier/prettier-plugin-liquidsoap/dist
+src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js

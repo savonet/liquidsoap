@@ -6,7 +6,7 @@ let mk_prettify_rule ~location ~path f =
   (deps
    %s
    (source_tree %s/../tooling/prettier)
-   %s/../tooling/json_dump.exe
+   %s/../tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js
    %s/../tooling/prettier/node_modules
  )
   (action

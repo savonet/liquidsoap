@@ -12,7 +12,7 @@ let () =
         {|
 (rule
   (alias fmt)
-  (deps %s (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps %s (source_tree ../../src/tooling/prettier) ../../src/tooling/prettier/prettier-plugin-liquidsoap/dist/liquidsoap.js ../../src/tooling/prettier/node_modules)
   (action
     (progn
       (with-stdout-to %s.prettier

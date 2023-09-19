@@ -22,6 +22,7 @@ export const languages = [
     name: "liquidsoap",
     parsers: ["liquidsoap"],
     extensions: [".liq"],
+    vscodeLanguageIds: ["liquidsoap"]
   },
 ];
 
