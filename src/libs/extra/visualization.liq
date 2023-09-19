@@ -9,6 +9,7 @@ def vumeter(~rms_min=-25., ~rms_max=-5., ~window=0.5, ~scroll=false, s) =
   screen_width = 80
   bar_width = screen_width
   let s = rms(duration=window, s)
+
   def display() =
     v = dB_of_lin(s.rms())
     x = (v - rms_min) / (rms_max - rms_min)
@@ -49,6 +50,7 @@ def video.vumeter(
   s = rms(duration=window, s)
   height = video.frame.height()
   width = ref(0)
+
   def update() =
     v = dB_of_lin(s.rms())
     x = (v - rms_min) / (rms_max - rms_min)

@@ -14,7 +14,6 @@ def deprecated(old, new) =
 end
 
 %ifdef input.external.rawaudio
-
 # Deprecated: this function has been replaced by `input.external.rawaudio`.
 # @flag deprecated
 def replaces input.external(%argsof(input.external.rawaudio), cmd) =
@@ -22,7 +21,6 @@ def replaces input.external(%argsof(input.external.rawaudio), cmd) =
   input.external.rawaudio(%argsof(input.external.rawaudio), cmd)
 end
 %endif
-
 
 # Deprecated: this function has been replaced by `string.quote`.
 # @flag deprecated
@@ -140,6 +138,7 @@ end
 # @flag deprecated
 def rewrite_metadata(l, ~insert_missing=true, ~update=true, ~strip=false, s) =
   deprecated("rewrite_metadata", "metadata.map")
+
   def map(m) =
     def apply(x) =
       label = fst(x)
@@ -196,9 +195,14 @@ def register_flow(
       server == ""
     then
       let data = http.get("http://liquidsoap.info/flows_server")
-      if data.status_code == 200 then data else
+      if
+        data.status_code == 200
+      then
+        data
+      else
         # If sf is down, we use the hardcoded server
-        "http://savonet.rastageeks.org/liqflows.py" end
+        "http://savonet.rastageeks.org/liqflows.py"
+      end
     else
       server
     end
@@ -227,6 +231,7 @@ def register_flow(
     end
 
     log(level=4, "Processing command #{cmd} with arguments:")
+
     def log_arg(x) =
       let (label, value) = x
       log(level=4, "  #{label}: #{value}")
@@ -235,6 +240,7 @@ def register_flow(
     list.iter(log_arg, params)
     cmd = url.encode(cmd)
     params = list.append(base_params, params)
+
     def f(z) =
       let (x, y) = z
       y = url.encode(y)
@@ -323,6 +329,7 @@ def fade.final(~id="fade.final", ~duration=3., ~type="lin", s) =
   deprecated("fade.final", "fade.out")
   fn = mkfade(start=1., stop=0., type=type, duration=duration, s)
   should_play = ref(true)
+
   def fn() =
     v = fn()
     if v == 0. then should_play := false end
@@ -526,7 +533,6 @@ def https.delete(%argsof(http.delete), url) =
 end
 
 %ifdef input.http
-
 # Deprecated: use `input.http` instead
 # @flag deprecated
 def input.https(%argsof(input.http), url) =
@@ -536,7 +542,6 @@ end
 %endif
 
 %ifdef source.say_metadata
-
 # Deprecated: use `source.say_metadata` instead
 # @flag deprecated
 def say_metadata(s, ~pattern) =
@@ -547,7 +552,6 @@ def say_metadata(s, ~pattern) =
   source.say_metadata(pattern=pattern, s)
 end
 %endif
-
 
 # Deprecated: use `playlist.parse.register` instead
 # @flag deprecated
@@ -616,6 +620,7 @@ end
 def request.dynamic.list(%argsof(request.dynamic), f) =
   deprecated("request.dynamic.list", "request.dynamic")
   add = ref(fun (_) -> ())
+
   def f() =
     l = f()
     if
@@ -658,7 +663,6 @@ def garbage_collect() =
 end
 
 %ifdef output.youtube.live.gstreamer
-
 # Deprecated: use `output.youtube.live.rtmp`
 # @flag deprecated
 def replaces output.youtube.live(%argsof(output.youtube.live.gstreamer), s) =
@@ -666,7 +670,6 @@ def replaces output.youtube.live(%argsof(output.youtube.live.gstreamer), s) =
   output.youtube.live.gstreamer(%argsof(output.youtube.live.gstreamer), s)
 end
 %endif
-
 
 # Deprecated: use `video.alpha.of_color`
 # @flag deprecated
@@ -817,7 +820,6 @@ def merge_tracks(~id=null(), s) =
 end
 
 %ifdef compress
-
 # Deprecated: use `compress`
 # @flag deprecated
 def compress.old(~id=null(), s) =
@@ -825,7 +827,6 @@ def compress.old(~id=null(), s) =
   compress(id=id, s)
 end
 %endif
-
 
 # Deprecated: use `thread.pause`
 # @flag deprecated

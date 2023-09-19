@@ -1,5 +1,4 @@
 %ifdef output.icecast
-
 # Encode and output the stream to a shoutcast server.
 # @category Source / Output
 # @argsof output.icecast[!method,!mount,!description,!protocol]

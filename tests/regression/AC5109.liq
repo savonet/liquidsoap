@@ -4,6 +4,7 @@
 s1 = sine(duration=20.)
 s2 = sine(duration=20.)
 s = sequence([s1, s2])
+
 def transition(a, b) =
   s1 = sine(duration=0.5)
   s1 = metadata.map(fun (_) -> [("type", "s1")], s1)
@@ -15,6 +16,7 @@ def transition(a, b) =
 end
 
 s = cross(transition, s)
+
 def check(m) =
   if m["type"] == "s2" then test.pass() end
 end

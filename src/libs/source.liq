@@ -30,6 +30,7 @@ end
 # @category Metadata
 def track.metadata.deduplicate(~id=null("track.metadata.deduplicate"), t) =
   last_meta = ref([])
+
   def f(m) =
     if
       m == last_meta()
@@ -125,6 +126,7 @@ end
 # @param f Function to run.
 def source.run(s, ~delay=0., ~every=null(), f) =
   next = ref(delay)
+
   def check() =
     if
       source.time(s) >= next()
@@ -150,6 +152,7 @@ end
 def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   last_meta = ref(null())
   pending = ref(null())
+
   def f(m) =
     if
       m["liq_append"] == "false"
@@ -166,6 +169,7 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
 
   s = if insert_missing then source.on_track(s, f) else s end
   s = source.on_metadata(s, f)
+
   def next() =
     p = pending()
     pending := null()
@@ -209,6 +213,7 @@ end
 # @flag extra
 def prepend(~id=null("prepend"), ~merge=false, s, f) =
   last_meta = ref(null())
+
   def on_meta(m) =
     if
       m["liq_prepend"] == "false"
@@ -220,6 +225,7 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
 
   s = source.on_track(s, fun (m) -> m == [] ? last_meta := null() : on_meta(m) )
   s = source.on_metadata(s, on_meta)
+
   def next() =
     if
       null.defined(last_meta)

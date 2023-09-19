@@ -23,6 +23,7 @@ s = sequence([a, b, c])
 fade_in = fade.in(persist_overrides=true, duration=5., type="sin", s)
 fade_out = fade.out(persist_overrides=true, duration=5., type="sin", fade_in)
 track_count = ref(0)
+
 def on_track(m) =
   ref.incr(track_count)
   if
@@ -49,6 +50,7 @@ end
 
 fade_out.on_track(on_track)
 clock.assign_new(sync="none", [fade_out])
+
 def on_stop() =
   if !success then test.pass() else test.fail() end
 end

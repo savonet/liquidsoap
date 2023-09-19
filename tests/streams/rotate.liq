@@ -7,6 +7,7 @@ played = ref([])
 njingles = ref(0)
 nmusic = ref(0)
 nmusic2 = ref(0)
+
 def ot(label) =
   played := [label, ...!played]
   if label == "music" then ref.incr(nmusic) end

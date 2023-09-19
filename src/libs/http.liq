@@ -12,6 +12,7 @@ def http.multipart_form_data(~boundary=null(), data) =
   end
 
   boundary = null.default(boundary, default_boundary)
+
   def mk_content(contents, entry) =
     data = entry.contents
     attributes = [("name", entry.name), ...entry.attributes]
@@ -99,6 +100,7 @@ def http.response(
   headers_sent = ref(false)
   data_sent = ref(false)
   response_ended = ref(false)
+
   def mk_status() =
     status_sent := true
     http_version = http_version()
@@ -204,6 +206,7 @@ def http.response(
   end
 
   code = status_code
+
   def redirect(~status_code=301, location) =
     if
       status_sent()
@@ -293,6 +296,7 @@ end
 def harbor.http.mk_body(get_data) =
   done = ref(false)
   data = ref("")
+
   def body(~timeout=10.) =
     if
       done()
@@ -300,6 +304,7 @@ def harbor.http.mk_body(get_data) =
       data()
     else
       start_time = time()
+
       def rec read() =
         if
           done()
@@ -380,6 +385,7 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
   def handler(request) =
     response = http.response(http_version=request.http_version)
     is_response_done = ref(false)
+
     def replaces response() =
       ret = response()
       is_response_done := ret == ""
@@ -505,6 +511,7 @@ def harbor.http.static.base(
             response.status_code(403)
           else
             page = ref("")
+
             def add(s) =
               page := page() ^ s ^ "\n"
             end
@@ -531,6 +538,7 @@ def harbor.http.static.base(
   end
 
   basepath = "#{basepath}.*"
+
   def register(method) =
     serve(method=method, basepath, handler)
   end
@@ -557,11 +565,9 @@ end
 # @flag hidden
 content_type = get_mime_process
 %ifdef file.mime
-
 # @flag hidden
 content_type = file.mime
 %endif
-
 
 # Serve a static path.
 # @category Internet
@@ -673,7 +679,6 @@ upload_file_fn =
         url
       )
     end
-
 
 # Send a file via POST request encoded in multipart/form-data. The contents can
 # either be directly specified (with the `contents` argument) or taken from a

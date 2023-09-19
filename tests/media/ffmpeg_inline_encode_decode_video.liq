@@ -8,6 +8,7 @@ v = video.fill(color=0xff0000, blank())
 a = sine(duration=10.)
 s = source.mux.video(video=v, a)
 todo = ref(2)
+
 def on_close(_) =
   def check(out) =
     j =

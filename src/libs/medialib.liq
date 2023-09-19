@@ -25,6 +25,7 @@ def medialib(
   directories = ref(directories)
   if null.defined(dir) then directories := null.get(dir)::directories() end
   db = ref([])
+
   def dt(t) =
     string.float(decimal_places=2, time() - t)
   end
@@ -52,13 +53,18 @@ def medialib(
   # Add a file to the database.
   def add(f) =
     # If file doesn't exist remove it
-    if not (file.exists(f)) then db := list.assoc.remove(f, db()) else
+    if
+      not (file.exists(f))
+    then
+      db := list.assoc.remove(f, db())
+    else
       # New file or not recent enough metadata
       if
         not list.assoc.mem(f, db()) or needs_update(f, list.assoc(f, db()))
       then
         db := (f, metadata(f))::list.assoc.remove(f, db())
-      end end
+      end
+    end
   end
 
   # Update database by renewing metadata and removing removed files.
@@ -66,6 +72,7 @@ def medialib(
     len = list.length(db())
     n = ref(0)
     nu = ref(0)
+
     def u(fm) =
       let (f, m) = fm
       ref.incr(n)
@@ -98,6 +105,7 @@ def medialib(
     l = list.flatten(l)
     n = ref(0)
     len = list.length(l)
+
     def add(f) =
       ref.incr(n)
       progress(n(), len)

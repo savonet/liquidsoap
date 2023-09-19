@@ -8,6 +8,7 @@ def f() =
   end
 
   output.dummy(fallible=true, a())
+
   def a() =
     def next() =
       error.raise(error.not_found, "test")

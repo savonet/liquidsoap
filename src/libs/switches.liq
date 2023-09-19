@@ -70,7 +70,6 @@ def rotate(
         tracks_played
       )
 
-
   # Find index of next source to play, i.e. first ready source after currently
   # selected one.
   def pick() =
@@ -141,6 +140,7 @@ def rotate(
   end
 
   s = source.on_track(s, f)
+
   def replaces s =
     fallback(id=id, track_sensitive=true, s::sources)
   end
@@ -168,6 +168,7 @@ def replaces random(
   weights = list.map(getter.function, weights)
   default_weight = fun () -> 1
   next_index = ref(-1)
+
   def pick() =
     def available_weighted_sources(cur, s) =
       let (index, current_weight, indexes) = cur
@@ -230,6 +231,7 @@ def replaces random(
   end
 
   s = source.on_track(s, f)
+
   def replaces s =
     fallback(id=id, track_sensitive=true, s::sources)
   end

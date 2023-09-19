@@ -4,6 +4,7 @@ a = metadata.map(update=false, (fun (_) -> [("title", "a")]), a)
 b = sine(duration=5., 880.)
 b = metadata.map(update=false, (fun (_) -> [("title", "b")]), b)
 s = sequence([a, b])
+
 def t(a, b) =
   log.important("Crossing!")
   log.important("Levels: #{a.db_level} / #{b.db_level}")
@@ -14,6 +15,7 @@ end
 s = cross(duration=3., width=1., t, s)
 seen_a = ref(false)
 seen_b = ref(false)
+
 def check_duplicate(m) =
   if
     m["title"] == "a"
@@ -30,6 +32,7 @@ end
 
 s.on_metadata(check_duplicate)
 clock.assign_new(sync="none", [s])
+
 def on_stop() =
   if seen_a() and seen_b() then test.pass() else test.fail() end
 end

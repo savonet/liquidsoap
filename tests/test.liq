@@ -35,6 +35,7 @@ def test.check_non_repeating(~nb_files, ~nb_rounds, s) =
 
   # Number of rounds to test
   iterations = ref(0)
+
   def already(fname) =
     list.assoc(default=false, fname, seen())
   end

@@ -47,7 +47,6 @@ server.register(
   interactive.list
 )
 
-
 # Description of an interactive variable.
 # @flag hidden
 def interactive.description(name) =
@@ -176,7 +175,6 @@ end
 let stdlib_osc = osc
 %endif
 
-
 # Create an interactive variable.
 # @flag hidden
 # @param ~name Name of the variable.
@@ -218,7 +216,6 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
       stdlib_osc.on_string(osc, fun (x) -> interactive.string.set(name, x))
     elsif type == "unit" then ()
     else
-
       # TODO
       error.raise(error.not_found)
     end
@@ -267,7 +264,6 @@ server.register(
   interactive.get
 )
 
-
 # @flag hidden
 def interactive.set(arg) =
   try
@@ -300,7 +296,6 @@ server.register(
   "set",
   interactive.set
 )
-
 
 # Save the value of all interactive variables in a file.
 # @category Interaction
@@ -447,6 +442,7 @@ def interactive.harbor(
   def webpage(request, response) =
     form_data = request.data
     data = ref("")
+
     def add(s) =
       data := data() ^ s ^ "\n"
     end
@@ -527,6 +523,7 @@ def interactive.harbor(
 
     add("</head><body>")
     add("<h1>#{title}</h1>")
+
     def add_var(nv) =
       let (name, v) = nv
       description = interactive.description(name)
@@ -599,6 +596,7 @@ def interactive.harbor(
 
   def setter(request, _) =
     data = url.split_args(request.body())
+
     def update(nv) =
       let (name, v) = nv
       try
@@ -741,6 +739,7 @@ def compress.multiband.interactive(~id=null(), ~bands=5, s) =
   wet = interactive.float(prefix ^ "wet", min=0., max=1., 1.)
   min_freq = 100.
   max_freq = 15000.
+
   def band(i) =
     frequency =
       exp(

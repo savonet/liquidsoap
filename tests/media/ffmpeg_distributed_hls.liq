@@ -33,12 +33,14 @@ state_file =
   path.concat(path.dirname(argv(0)), "ffmpeg_distributed_hls_state.json")
 
 process.run("cp #{state_file} #{output_dir}/state.json")
+
 def cleanup() =
   file.rmdir(output_dir)
 end
 
 on_cleanup(cleanup)
 is_done = ref(false)
+
 def check_stream() =
   if
     not !is_done

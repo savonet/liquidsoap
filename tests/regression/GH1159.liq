@@ -3,6 +3,7 @@
 # trigering an early `on_end` call.
 settings.decoder.decoders.set(["flac"])
 s = single("../media/@flac[stereo].flac")
+
 def f(rem, _) =
   if rem > 0. then test.pass() else test.fail() end
 end

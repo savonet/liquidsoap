@@ -1,10 +1,12 @@
 def f() =
   has_connected = ref(false)
+
   def on_start() =
     has_connected := true
   end
 
   error_count = ref(0)
+
   def on_error(_) =
     error_count := error_count() + 1
   end

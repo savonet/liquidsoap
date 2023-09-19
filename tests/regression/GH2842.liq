@@ -1,8 +1,10 @@
 log.level := 5
+
 def f() =
   was_called = ref(false)
   filename = file.temp("bla", "blo")
   on_cleanup({file.remove(filename)})
+
   def filename() =
     if was_called() then test.fail() end
     was_called := true

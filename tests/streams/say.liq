@@ -11,6 +11,7 @@ s =
   end
 
 n = ref(0)
+
 def f(_) =
   if n() < 1 then n := n() + 1 else test.pass() end
 end

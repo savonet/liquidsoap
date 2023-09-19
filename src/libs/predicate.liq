@@ -86,6 +86,7 @@ end
 # @method signal Send a signal.
 def predicate.signal() =
   state = ref(false)
+
   def signal() =
     state := true
   end

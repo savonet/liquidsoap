@@ -52,7 +52,6 @@ end
 
 let runtime.cpu = ()
 %ifdef process.time
-
 # Create a function returning CPU usage (in `float` percent so
 # `0.2` means `20%`) since the last time it was called.
 # @category Liquidsoap
@@ -61,6 +60,7 @@ def runtime.cpu.usage_getter() =
   let {user, system} = process.time()
   u = ref(user)
   s = ref(system)
+
   def f() =
     t' = time()
     delta = t' - t()
@@ -76,7 +76,6 @@ def runtime.cpu.usage_getter() =
   f
 end
 %endif
-
 
 # Set the current time zone. This is
 # equivalent to setting the `TZ` environment

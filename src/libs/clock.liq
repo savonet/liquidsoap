@@ -22,6 +22,7 @@ def clock.log(~delay=0., ~every=1., logfile) =
 
   # Column headers
   file.write(data="# #{string.concat(separator=' ', clocks)}", logfile)
+
   def report() =
     status = clock.status()
     status = list.map(fun (x) -> (fst(x), string(snd(x))), status)

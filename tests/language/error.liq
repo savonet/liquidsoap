@@ -65,7 +65,7 @@ def f() =
   pos =
     string.concat(separator=", ", list.map(fun (pos) -> pos.to_string(), trace))
 
-  test.equals(pos, "At error.liq, line 59 char 4 - line 64 char 7")
+  test.equals(pos, "At error.liq, line 58 char 4 - line 63 char 7")
   e' = error.register("bla")
   test.equals(false, (e == e'))
 
@@ -123,6 +123,7 @@ def f() =
 
   if (on_error()).kind != e.kind then test.fail() end
   if (on_error()).message != "On done callback" then test.fail() end
+
   def on_done() =
     test.pass()
   end

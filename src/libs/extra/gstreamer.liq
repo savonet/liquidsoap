@@ -1,5 +1,4 @@
 %ifdef input.gstreamer.video
-
 # Stream from a video4linux2 input device, such as a webcam.
 # @category Source / Input
 # @flag extra

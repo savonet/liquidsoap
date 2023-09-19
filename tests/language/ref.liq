@@ -1,5 +1,6 @@
 #!../../liquidsoap ../test.liq
 success = ref(true)
+
 def t(x, y) =
   if
     x != y

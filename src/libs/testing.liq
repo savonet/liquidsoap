@@ -18,6 +18,7 @@ def sleeper(
 ) =
   last = ref(0.)
   frozen = ref(false)
+
   def f() =
     while frozen() do thread.pause(0.1) end
     now = source.time(s)

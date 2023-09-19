@@ -29,12 +29,14 @@ s = noise()
 raw = ffmpeg.raw.encode.audio_video(raw_encoder, s)
 streams = [("mp4", mp4), ("mpegts", mpegts)]
 output_dir = file.temp_dir("liq", "hls")
+
 def cleanup() =
   file.rmdir(output_dir)
 end
 
 on_cleanup(cleanup)
 is_done = ref(false)
+
 def check_stream() =
   if
     not !is_done

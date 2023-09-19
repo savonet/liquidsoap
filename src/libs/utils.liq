@@ -1,5 +1,4 @@
 %ifdef environment
-
 # Get the value of an environment variable.
 # Returns `default` if the variable is not set.
 # @category System
@@ -14,7 +13,6 @@ def environment.get(~default="", s) =
   end
 end
 %endif
-
 
 # Split the arguments of an url of the form `arg=bar&arg2=bar2` into
 # `[("arg","bar"),("arg2","bar2")]`. The returned strings are decoded (see

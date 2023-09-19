@@ -1,5 +1,6 @@
 s = single("annotate:liq_cue_in=3.,liq_cue_out=15.:../media/@wav[stereo].wav")
 track_count = ref(0)
+
 def on_track(_) =
   track_count := track_count() + 1
   if track_count() > 3 then test.pass() end

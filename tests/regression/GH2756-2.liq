@@ -4,6 +4,7 @@ def f() =
   s = insert_metadata(sine())
   insert_metadata = s.insert_metadata
   err = ref(null())
+
   def on_frame() =
     null.case(
       err(),
@@ -18,6 +19,7 @@ def f() =
 
   s = source.on_frame(s, on_frame)
   callstack = ref([])
+
   def reopen_on_metadata(_) =
     print("Got metadata!")
     callstack := [...(callstack()), "metadata"]

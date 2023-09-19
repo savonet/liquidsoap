@@ -1,6 +1,7 @@
 log.level := 4
 s = sine()
 count = ref(0)
+
 def on_close(filename) =
   count := count() + 1
   j =
@@ -18,6 +19,7 @@ end
 dir = file.temp_dir("flac")
 on_cleanup({file.rmdir(dir)})
 last_time = ref(time())
+
 def reopen_when() =
   current_time = time()
   time_diff = current_time - last_time()

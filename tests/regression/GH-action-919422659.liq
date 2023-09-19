@@ -7,6 +7,7 @@
 # for this case.
 settings.decoder.decoders.set(["ffmpeg"])
 s = single("../media/@flac[stereo].flac")
+
 def f(rem, _) =
   if rem > 0. then test.pass() else test.fail() end
 end

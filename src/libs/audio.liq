@@ -126,6 +126,7 @@ def replaces normalize(
   frame = frame.duration()
   gain_min = lin_of_dB(gain_min)
   gain_max = lin_of_dB(gain_max)
+
   def update() =
     target = lin_of_dB(getter.get(target))
     threshold = lin_of_dB(getter.get(threshold))
@@ -316,7 +317,6 @@ def stereo.ms.encode(
 end
 
 %ifdef track.audio.stereotool
-
 # Process an audio source using stereotool
 # @argsof track.audio.stereotool
 # @category Source / Audio processing

@@ -9,6 +9,7 @@ let metadata.getter = ()
 # @param s Source containing the metadata.
 def metadata.getter.base(init, map, metadata, s) =
   x = ref(init)
+
   def f(m) =
     v = m[metadata]
     if v != "" then x := map(v) end
@@ -27,6 +28,7 @@ let metadata.getter.source = ()
 # @flag hidden
 def metadata.getter.source.base(init, map, metadata, s) =
   x = ref(init)
+
   def f(m) =
     v = m[metadata]
     if v != "" then x := map(v) end
@@ -106,7 +108,6 @@ def metadata.cover(~coverart_mime=null(), m) =
   elsif
     list.assoc.mem("metadata_block_picture", m)
   then
-
     # See https://xiph.org/flac/format.html#metadata_block_picture
     cover = list.assoc(default="", "metadata_block_picture", m)
     cover = file.metadata.flac.cover.decode(cover)
@@ -119,7 +120,6 @@ def metadata.cover(~coverart_mime=null(), m) =
       null.get(cover)
     end
   else
-
     # Assume we have an mp3 file
     m =
       if
@@ -127,7 +127,6 @@ def metadata.cover(~coverart_mime=null(), m) =
       then
         m
       else
-
         # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
         log.debug(

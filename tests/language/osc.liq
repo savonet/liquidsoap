@@ -1,6 +1,7 @@
 #!../../liquidsoap ../test.liq
 success = ref(false)
 settings.oscnative.port.set(7778)
+
 def f() =
   # Test lo
   success := false

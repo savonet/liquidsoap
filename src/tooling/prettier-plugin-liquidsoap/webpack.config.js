@@ -1,7 +1,7 @@
 const path = require("path");
 
 module.exports = {
-  entry: "./src/base.mjs",
+  entry: "./src/base.js",
   mode: "production",
   experiments: {
     outputModule: true,

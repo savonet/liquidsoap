@@ -25,6 +25,7 @@ def rotate.merge(
 ) =
   ready = ref(true)
   duration = frame.duration()
+
   def to_first(_, new) =
     ready := (not ready())
     sequence(merge=true, [blank(duration=duration), (new : source)])
@@ -79,6 +80,7 @@ def overlap_sources(
 ) =
   position = ref(0)
   length = list.length(sources)
+
   def current_position() =
     pos = position()
     position := (pos + 1) mod length
@@ -87,6 +89,7 @@ def overlap_sources(
 
   ready_list = list.map(fun (_) -> ref(false), sources)
   grab_ready = fun (n) -> list.nth(default=ref(false), ready_list, n)
+
   def set_ready(pos, b) =
     is_ready = grab_ready(pos)
     is_ready := b
@@ -117,12 +120,14 @@ def overlap_sources(
 
   # Relay metadata from all sources
   send_to_main_source = ref(fun (_) -> ())
+
   def relay_metadata(m) =
     fn = send_to_main_source()
     fn(m)
   end
 
   list.iter(fun (s) -> s.on_metadata(relay_metadata), sources)
+
   def drop_metadata(s) =
     let {metadata = _, ...tracks} = source.tracks(s)
     source(tracks)
@@ -187,6 +192,7 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
 
   # Track time in the source's context:
   time = ref(0.)
+
   def f() =
     time := time() + settings.frame.duration()
     if
@@ -208,6 +214,7 @@ end
 # @flag extra
 def skipper(~every=getter(5.), s) =
   start_time = ref(0.)
+
   def f() =
     if
       getter.get(every) <= s.time() - start_time()
@@ -231,6 +238,7 @@ let stdlib_fallback = fallback
 def fallback.skip(s, ~fallback=null()) =
   fallback = fallback ?? (blank() : source)
   avail = ref(true)
+
   def check() =
     old = avail()
     avail := source.is_ready(s)

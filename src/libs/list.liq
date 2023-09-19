@@ -78,6 +78,7 @@ end
 # @category List
 def list.mapi(f, l) =
   n = ref(0)
+
   def f(x) =
     i = n()
     n := i + 1
@@ -325,6 +326,7 @@ end
 # @category List
 def list.iterator(l) =
   l = ref(l)
+
   def f() =
     list.case(
       l(),

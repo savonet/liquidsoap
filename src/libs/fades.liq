@@ -14,18 +14,21 @@ def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
 
   # Shape functions must map 0. -> 0. and 1. -> 1.
   pi = acos(-1.)
+
   def sin_shape(x) =
     (1. + sin((x - 0.5) * pi)) / 2.
   end
 
   curve = 2.
   m = exp(curve - 1.) - exp(-1.)
+
   def exp_shape(x) =
     (exp((curve * x) - 1.) - exp(-1.)) / m
   end
 
   curve = 10.
   m = ln(1. + curve)
+
   def log_shape(x) =
     ln(1. + 10. * x) / m
   end
@@ -48,6 +51,7 @@ def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
     end
 
   start_time = ref(-1.)
+
   def fade() =
     if start_time() < 0. then start_time := source.time(s) end
     t = source.time(s) - start_time()
@@ -107,6 +111,7 @@ def fade.out(
   duration = ref(duration)
   start_time = ref(-1.)
   started = ref(false)
+
   def start_fade(d, _) =
     log(
       "Fading out with type #{type()}, duration: #{duration()} and #{d}s remaining."
@@ -204,6 +209,7 @@ def fade.skip(
   type = ref(type)
   original_duration = duration
   duration = ref(duration)
+
   def apply() =
     fn = fn()
     fn()
@@ -289,6 +295,7 @@ def fade.in(
   duration = ref(duration)
   original_type = type
   type = ref(type)
+
   def apply() =
     fn = fn()
     fn()
@@ -447,7 +454,6 @@ def cross.smart(
     log("Transition: crossed, no fade.")
     add(a.source, b.source)
   else
-
     # What to do with a loud end and a quiet beginning ?
     # A good idea is to use a jingle to separate the two tracks,
     # but that's another story.
@@ -510,6 +516,7 @@ def crossfade(
   s
 ) =
   id = string.id.default(default="crossfade", id)
+
   def log(~level=3, x) =
     log(label=id, level=level, x)
   end

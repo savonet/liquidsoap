@@ -196,7 +196,6 @@ end
 %endif
 
 %ifdef input.ffmpeg
-
 # Stream from a video4linux2 input device, such as a webcam.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -539,6 +538,7 @@ def video.add_text.ffmpeg.internal(
   id = string.id.default(default="video.add_text.ffmpeg", id)
   s = ffmpeg.raw.encode.audio_video(%ffmpeg(%audio.raw, %video.raw), s)
   v = source({video=source.tracks(s).video})
+
   def mkfilter(graph) =
     v =
       video.add_text.ffmpeg.raw(

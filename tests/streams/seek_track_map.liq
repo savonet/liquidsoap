@@ -1,5 +1,6 @@
 # This is a regression test for GH3252
 s = single("./file1.mp3")
+
 def set_cues(s) =
   def f(_) =
     in = random.int(min=5, max=10)

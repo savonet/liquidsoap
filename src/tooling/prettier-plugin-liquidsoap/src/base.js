@@ -1,23 +1,23 @@
-import { builders } from "prettier/doc";
-
 const {
-  concat,
-  group,
-  trim,
-  indent,
-  dedent,
-  join,
-  literalline,
-  hardlineWithoutBreakParent,
-  hardline,
-  line,
-  softline,
-  ifBreak,
-  breakParent,
-  indentIfBreak,
-} = builders;
+  builders: {
+    concat,
+    group,
+    trim,
+    indent,
+    dedent,
+    join,
+    literalline,
+    hardlineWithoutBreakParent,
+    hardline,
+    line,
+    softline,
+    ifBreak,
+    breakParent,
+    indentIfBreak,
+  },
+} = require("prettier/doc");
 
-export const languages = [
+module.exports.languages = [
   {
     name: "liquidsoap",
     parsers: ["liquidsoap"],
@@ -26,7 +26,7 @@ export const languages = [
   },
 ];
 
-export const parsers = {
+module.exports.parsers = {
   liquidsoap: {
     parse: (json) => JSON.parse(json),
     astFormat: "liquidsoap",
@@ -35,16 +35,37 @@ export const parsers = {
   },
 };
 
-const disableNewLinesOnComments = (node, path) => {
+const hasComments = (node) => {
+  if (!node.ast_comments) return false;
+  return !!node.ast_comments.length;
+};
+
+const disableNewLine = (node, path) => {
   if (path.stack.length == 1) return true;
   if (path.stack[path.stack.length - 2] === "definition") return true;
+  if (
+    path.stack.length > 2 &&
+    path.stack[path.stack.length - 3].type === "block"
+  )
+    return true;
+  if (
+    path.stack.length > 2 &&
+    path.stack[path.stack.length - 3].type === "simple_fun"
+  )
+    return true;
+  if (path.stack[path.stack.length - 2] === "then") return true;
+  if (path.stack[path.stack.length - 2] === "else") return true;
   if (
     path.stack[path.stack.length - 2] === "body" &&
     path.stack[path.stack.length - 3].type === "def"
   )
     return true;
 
-  return false;
+  if (node.type === "def") return false;
+
+  if (hasComments(node)) return false;
+
+  return true;
 };
 
 const print = (path, options, print) => {
@@ -92,7 +113,11 @@ const print = (path, options, print) => {
             print("definition"),
           ]),
         ]),
-        ...(label === "def" ? [hardline, "end"] : [softline]),
+        ...(label === "def"
+          ? [hardline, "end"]
+          : node.body.type !== "def"
+          ? [softline]
+          : []),
       ]),
       ...(label === "def" ? [hardline] : []),
       ...(node.body.type !== "eof" ? [hardline, print("body")] : []),
@@ -114,7 +139,7 @@ const print = (path, options, print) => {
             group([
               node.label,
               ...(node.as_variable ? ["=", node.as_variable] : []),
-            ]),
+            ])
           ),
         ];
 
@@ -213,7 +238,7 @@ const print = (path, options, print) => {
                   [
                     ...path.map(print, "value"),
                     ...(node.extensible ? ["..."] : []),
-                  ],
+                  ]
                 ),
               ]),
               softline,
@@ -403,7 +428,7 @@ const print = (path, options, print) => {
                     softline,
                     join(
                       [",", softline],
-                      [...node.only, ...node.except.map((s) => `!${s}`)],
+                      [...node.only, ...node.except.map((s) => `!${s}`)]
                     ),
                     "]",
                   ]),
@@ -429,7 +454,7 @@ const print = (path, options, print) => {
         return group([
           "[",
           indent(
-            group([softline, join([",", line], path.map(print, "value"))]),
+            group([softline, join([",", line], path.map(print, "value"))])
           ),
           softline,
           "]",
@@ -454,7 +479,7 @@ const print = (path, options, print) => {
                 ...path.map(print, "left"),
                 ...(node.middle ? [group(["...", node.middle])] : []),
                 ...path.map(print, "right"),
-              ],
+              ]
             ),
           ]),
           softline,
@@ -489,10 +514,10 @@ const print = (path, options, print) => {
             indent([softline, join([",", line], path.map(print, "arguments"))]),
             softline,
             ")",
+            " ",
+            "->",
           ]),
-          " ",
-          "->",
-          group([indent([line, print("body")])]),
+          indent([line, print("body")]),
         ]);
       case "fun_arg":
         return print_fun_arg();
@@ -516,7 +541,17 @@ const print = (path, options, print) => {
       case "eof":
         return "";
       case "seq":
-        return [group([print("left"), softline]), hardline, print("right")];
+        return [
+          group([
+            ...(hasComments(node) || disableNewLine(node, path)
+              ? []
+              : [softline]),
+            print("left"),
+            ...(node.right.type === "def" ? [] : [softline]),
+          ]),
+          hardline,
+          print("right"),
+        ];
       case "def":
         return print_let("def");
       case "let":
@@ -528,7 +563,7 @@ const print = (path, options, print) => {
       case "if":
         return group([
           "if",
-          indent([line, print("condition")]),
+          indent([line, group(print("condition"))]),
           line,
           "then",
           indent([line, print("then")]),
@@ -569,9 +604,9 @@ const print = (path, options, print) => {
             [dedent(line), node.op, line],
             path.map(
               (v) => group([indent([softline, print(v)]), softline]),
-              "value",
-            ),
-          ),
+              "value"
+            )
+          )
         );
       case "string_interpolation":
         return group(path.map(print, "value"));
@@ -663,7 +698,7 @@ const print = (path, options, print) => {
                 [
                   ...path.map(print, "methods"),
                   ...(node.spread ? [["...", print("spread")]] : []),
-                ],
+                ]
               ),
             ]),
             softline,
@@ -697,14 +732,12 @@ const print = (path, options, print) => {
   };
 
   return [
-    ...(node.ast_comments?.length > 0 && !disableNewLinesOnComments(node, path)
-      ? [hardlineWithoutBreakParent]
-      : []),
+    ...(disableNewLine(node, path) ? [] : [hardlineWithoutBreakParent]),
     join(
       [hardlineWithoutBreakParent, hardlineWithoutBreakParent],
       (node.ast_comments || []).map((c) =>
-        join([hardlineWithoutBreakParent], c),
-      ),
+        join([hardlineWithoutBreakParent], c)
+      )
     ),
     ...(node.ast_comments?.length > 0 ? [hardlineWithoutBreakParent] : []),
     print_value(),
@@ -712,14 +745,8 @@ const print = (path, options, print) => {
   ];
 };
 
-export const printers = {
+module.exports.printers = {
   liquidsoap: {
     print,
   },
-};
-
-export default {
-  languages,
-  parsers,
-  printers,
 };

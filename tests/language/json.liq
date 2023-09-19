@@ -119,6 +119,7 @@ def f() =
   let (x, y, _) = x.nested.tuple
   ignore(x + 1)
   ignore(y + 3.14)
+
   def failed_array() =
     data = "[]"
     let json.parse (val : {x: int}) = data
@@ -274,6 +275,7 @@ def f() =
   )
 
   e = ref(null())
+
   def f(data) =
     try
       d = json.stringify(data)

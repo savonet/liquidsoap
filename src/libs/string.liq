@@ -333,6 +333,7 @@ end
 def string.getter.concat(l) =
   len = list.length(l)
   pos = ref(0)
+
   def rec f() =
     if
       pos() == len

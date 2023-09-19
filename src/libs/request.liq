@@ -3,7 +3,6 @@ let request.queue = ()
 let stdlib_native = native
 %endif
 
-
 # @docof request.dynamic
 # @param ~native Use native implementation, when available.
 def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
@@ -44,6 +43,7 @@ def request.queue(
   id = string.id.default(default="request.queue", id)
   queue = ref(queue)
   fetch = ref(fun () -> true)
+
   def next() =
     if
       queue() != []
@@ -212,6 +212,7 @@ def request.player(~simultaneous=true) =
     }
   else
     s = source.dynamic()
+
     def play(r) =
       s.set(request.once(r))
     end

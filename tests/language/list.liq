@@ -1,5 +1,6 @@
 #!../../liquidsoap ../test.liq
 success = ref(true)
+
 def t(x, y) =
   if
     x != y
@@ -69,6 +70,7 @@ def f() =
   t(list.insert(1, 2, [1, 3, 4]), [1, 2, 3, 4])
   t(list.insert(4, 5, [1, 2, 3, 4]), [1, 2, 3, 4, 5])
   t(list.flatten([[1, 2], [3, 4]]), [1, 2, 3, 4])
+
   def even(x) =
     (x / 2) * 2 == x
   end

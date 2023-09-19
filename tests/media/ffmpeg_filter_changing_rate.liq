@@ -4,8 +4,10 @@ fname = argv(default="", 1)
 fname2 = argv(default="", 2)
 out = "#{fname}+ffmpeg_filter_changing_rate.mp4"
 if file.exists(out) then file.remove(out) end
+
 def f(s) =
   tracks = source.tracks(s)
+
   def mkfilter(graph) =
     a = ffmpeg.filter.audio.input(graph, tracks.audio)
     a = ffmpeg.filter.flanger(graph, a, delay=10.)

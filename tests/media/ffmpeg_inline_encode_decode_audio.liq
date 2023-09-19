@@ -6,6 +6,7 @@ out_encode = "ffmpeg_inline_encode_decode_audio_encode.mp4"
 if file.exists(out_encode) then file.remove(out_encode) end
 s = once(blank(duration=10.))
 todo = ref(2)
+
 def on_close(_) =
   def check(out) =
     j =

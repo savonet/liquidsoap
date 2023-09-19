@@ -137,7 +137,6 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
     end
   end
 
-
   # Process a band
   def band(low, band) =
     high =
@@ -258,7 +257,6 @@ def bass_boost(~frequency=getter(200.), ~gain=getter(10.), s) =
 end
 
 %ifdef soundtouch
-
 # Increases the pitch, making voices sound like on helium.
 # @category Source / Audio processing
 # @flag extra
@@ -267,7 +265,6 @@ def helium(s) =
   soundtouch(pitch=1.5, s)
 end
 %endif
-
 
 # Remove low frequencies often produced by microphones.
 # @flag extra
@@ -520,6 +517,7 @@ def metronome(~frequency=440., bpm=60.) =
   volume_down = 0.
   beat_duration = 0.1
   s = sine(frequency)
+
   def f() =
     if s.time() mod (60. / bpm) <= beat_duration then 1. else volume_down end
   end
@@ -539,6 +537,7 @@ end
 def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
   p = getter.function(p)
   last_p = ref(p())
+
   def c(fn, s) =
     def v() =
       fn = fn()
@@ -552,6 +551,7 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
   special = c(special_volume, special)
   normal_volume = ref(fun () -> 1.)
   normal = c(normal_volume, normal)
+
   def to_special(_, special) =
     last_p := p()
     q = 1. - last_p()
@@ -577,7 +577,6 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
 end
 
 %ifencoder %ffmpeg
-
 # Output an MPEG-DASH playlist.
 # @category Source / Output
 # @flag extra

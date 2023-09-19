@@ -19,13 +19,13 @@ let settings.decoder.external.ffmpeg.mime_types =
     description="Mime types supported by the external ffmpeg stream decoder", []
   )
 
-
 # Enable ffmpeg decoder.
 # @category Liquidsoap
 def enable_external_ffmpeg_decoder() =
   ffmpeg = settings.decoder.external.ffmpeg.path()
   ffprobe = settings.decoder.external.ffprobe.path()
   mime_types = settings.decoder.external.ffmpeg.mime_types()
+
   def ffprobe_test(fname) =
     j =
       process.read(
@@ -70,7 +70,6 @@ let settings.decoder.external.mpcdec = settings.make.external("mpcdec")
 let settings.decoder.external.mpcdec.path =
   settings.make(description="Path to mpcdec binary", "mpcdec#{exe_ext}")
 
-
 # Enable external Musepack decoder.
 # @category Liquidsoap
 def enable_external_mpc_decoder() =
@@ -79,6 +78,7 @@ def enable_external_mpc_decoder() =
   mpc_mimes = ["audio/x-musepack", "audio/musepack"]
   mpc_filexts = ["mpc", "mp+", "mpp"]
   mpcdec = settings.decoder.external.mpcdec.path()
+
   def test_mpc(f) =
     def get_channels(f) =
       int_of_string(
@@ -103,7 +103,6 @@ def enable_external_mpc_decoder() =
     then
       get_channels(f)
     else
-
       # Otherwise test file extension
       ret = r/\.(?<ext>.+)$/.exec(f)
       if
@@ -145,7 +144,6 @@ let settings.decoder.external.metaflac = settings.make.external("metaflac")
 let settings.decoder.external.metaflac.path =
   settings.make(description="Path to metaflac binary", "metaflac#{exe_ext}")
 
-
 # Enable external FLAC decoders. Please note that built-in support for
 # FLAC is available in liquidsoap if compiled and should be preferred
 # over the external decoder.
@@ -158,6 +156,7 @@ def enable_external_flac_decoder() =
   then
     log(label="external.decoder", "Enabling EXTERNAL_FLAC external decoder.")
     flac_p = "#{flac} -d -c -"
+
     def test_flac(fname) =
       if
         file.which(metaflac) != null()
@@ -177,12 +176,16 @@ def enable_external_flac_decoder() =
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else
-        if r/flac/.test(fname) then
+        if
+          r/flac/.test(fname)
+        then
           # We do not know the number of audio channels
           # so setting to -1
-          (-1) else
+          (-1)
+        else
           # All tests failed: no audio decodable using flac..
-          0 end
+          0
+        end
       end
     end
 
@@ -256,7 +259,6 @@ let settings.decoder.external.faad = settings.make.external("faad")
 let settings.decoder.external.faad.path =
   settings.make(description="Path to faad binary", "faad#{exe_ext}")
 
-
 # Enable or disable external FAAD (AAC/AAC+/M4A) decoders. Does not work
 # on Win32.
 # Please note that built-in support for faad is available in liquidsoap if
@@ -294,7 +296,6 @@ def enable_external_faad_decoder() =
     then
       true
     else
-
       # Otherwise test file extension
       ret = r/\.(?<ext>.+)$/.exec(f)
       if
@@ -318,6 +319,7 @@ def enable_external_faad_decoder() =
     )
 
     faad_p = (fun (f) -> "#{faad} -w #{process.quote(f)}")
+
     def test_faad(file) =
       if
         faad_test(file)
@@ -334,10 +336,17 @@ def enable_external_faad_decoder() =
           )
 
         ret = r/, (\d) ch,/.exec(channels)
-        ret = if list.length(ret) == 0 then
+        ret =
+          if
+            list.length(ret) == 0
+          then
             # If we pass the faad_test, chances are high that the file will
             # contain aac audio data..
-            "-1" else ret[1] end
+            "-1"
+          else
+            ret[1]
+          end
+
         int_of_string(default=(-1), ret)
       else
         0
@@ -448,7 +457,6 @@ def notify_metadata(
 end
 
 %ifdef input.external.wav
-
 # Stream data from mplayer.
 # @flag extra
 # @category Source / Input
@@ -481,7 +489,6 @@ def input.mplayer(
   )
 end
 %endif
-
 
 # Input from ffmpeg.
 # @category Source / Video processing

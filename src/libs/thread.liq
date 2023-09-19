@@ -6,6 +6,7 @@
 # @param f Function to execute.
 def replaces thread.run(~fast=true, ~delay=0., ~every=null(), f) =
   every = every ?? getter(-1.)
+
   def f() =
     ignore(f() == ())
     getter.get(every)
@@ -36,6 +37,7 @@ def thread.when(
   f
 ) =
   p = once or not changed ? p : (predicate.activates(init=init, p))
+
   def check() =
     if
       p()

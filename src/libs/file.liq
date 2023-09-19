@@ -4,6 +4,7 @@
 def file.read(fname) =
   fd = file.open(write=false, fname)
   is_done = ref(false)
+
   def read() =
     if
       is_done()
@@ -30,6 +31,7 @@ let file.write = ()
 # @param path Path to write to
 def file.write.stream(~perms=0o644, ~append=false, path) =
   fd = file.open(write=true, append=append, perms=perms, path)
+
   def write(s) =
     s = s ?? ""
     if s == "" then fd.close() else fd.write(s) end
@@ -47,6 +49,7 @@ end
 # @param path Path to write to
 def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
   cb = file.write.stream(append=append, perms=perms, path)
+
   def rec write() =
     s = getter.get(data) ?? ""
     cb(s)
@@ -60,6 +63,7 @@ end
 # @category File
 def file.contents(fname) =
   fn = file.read(fname)
+
   def rec f(cur) =
     s = fn()
     if s == "" then cur else f("#{cur}#{s}") end
@@ -124,6 +128,7 @@ end
 # @param fname Name of the file from which the contents should be taken.
 def file.getter(fname) =
   contents = ref("")
+
   def update() =
     contents := file.contents(fname)
   end
@@ -139,6 +144,7 @@ end
 # @param ~default Default value when the file contains invalid data.
 def file.getter.float(~default=0., fname) =
   x = file.getter(fname)
+
   def f(x) =
     float_of_string(default=default, string.trim(x))
   end
@@ -157,6 +163,7 @@ let file.metadata.flac.cover = ()
 def file.metadata.flac.cover.decode(s) =
   # See https://xiph.org/flac/format.html#metadata_block_picture
   i = ref(0)
+
   def read_int() =
     ret =
       string.binary.to_int(

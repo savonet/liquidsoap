@@ -18,6 +18,7 @@ end
 # @param ~track_sensitive Re-select only on end of tracks.
 def native.fallback(~id=null(), ~track_sensitive=true, sources) =
   fail = (source.fail() : source)
+
   def s() =
     list.find(default=fail, source.is_ready, getter.get(sources))
   end
@@ -42,6 +43,7 @@ def native.sequence(~id=null(), sources) =
   len = list.length(sources)
   n = ref(0)
   fail = source.fail()
+
   def rec s() =
     sn = list.nth(default=list.last(default=fail, sources), sources, n())
     if
@@ -57,6 +59,7 @@ def native.sequence(~id=null(), sources) =
   infallible = not source.fallible(list.last(default=fail, sources))
   s = source.dynamic(id=id, infallible=infallible, track_sensitive=true, s)
   first = ref(true)
+
   def ot(_) =
     # Drop the first track
     if first() then first := false else ref.incr(n) end
@@ -85,6 +88,7 @@ let native.request = request
 def native.request.dynamic(%argsof(request.dynamic), f) =
   ignore(available)
   ignore(timeout)
+
   def f() =
     try
       f()
@@ -95,6 +99,7 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
 
   # Prepared requests
   queue = ref([])
+
   def get_queue() =
     def get_request(s) =
       s.request
@@ -121,6 +126,7 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
   end
 
   current = ref(null())
+
   def get_current() =
     if
       null.defined(current())

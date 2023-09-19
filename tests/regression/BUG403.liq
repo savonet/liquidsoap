@@ -10,6 +10,7 @@
 # but A finds itself not ready anymore.
 # In other words, B committed but A did not.
 r = ref(false)
+
 def pred() =
   v = !r
   r := false

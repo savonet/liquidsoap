@@ -4,6 +4,7 @@
 # Track selection 3 -> s1 ready, s2 with weight 0 -> switch to s1
 selected = ref([])
 s1 = blank(duration=0.04)
+
 def m1(_) =
   [("id", "s1")]
 end
@@ -13,6 +14,7 @@ s1_ready = ref(true)
 s1 = switch(id="s1", [(s1_ready, s1)])
 s1_weight = ref(1)
 s2 = blank(duration=0.04)
+
 def m2(_) =
   [("id", "s2")]
 end
@@ -22,6 +24,7 @@ s2_ready = ref(false)
 s2 = switch(id="s2", [(s2_ready, s2)])
 s2_weight = ref(1)
 round = ref(1)
+
 def f(m) =
   if
     round() == 1
@@ -48,6 +51,7 @@ end
 s = random(weights=[s1_weight, s2_weight], [s1, s2])
 s.on_track(f)
 output.dummy(fallible=true, s)
+
 def on_done() =
   s = list.rev(selected())
   if

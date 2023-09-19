@@ -36,6 +36,7 @@ def image(
   file
 ) =
   s = source.dynamic()
+
   def set(file) =
     image = single(id=id, fallible=fallible, file)
     image = video.crop(image)
@@ -121,6 +122,7 @@ end
 # @param s Audio source whose metadata contain cover-art.
 def video.cover(s) =
   video = source.dynamic()
+
   def read_cover(m) =
     filename = m["filename"]
     cover =
@@ -209,6 +211,7 @@ def output.youtube.live.hls(
   s
 ) =
   id = string.id.default(default="output.youtube.live.hls", id)
+
   def file_url(fname) =
     "#{url}?cid=#{key}&copy=0&file=#{fname}"
   end
@@ -273,6 +276,7 @@ def add_text_builder(f) =
     # Handle modifying the text with metadata.
     tref = ref(getter.get(text))
     text = null.defined(metadata) ? tref : text
+
     def on_metadata(m) =
       if
         null.defined(metadata)
@@ -297,6 +301,7 @@ def add_text_builder(f) =
       else
         fps = video.frame.rate()
         x = ref(getter.get(x))
+
         def x() =
           if
             cycle and x() < 0 - t.width()
@@ -373,7 +378,6 @@ end
 video.text.available :=
   [("gstreamer", video.text.gstreamer), ...video.text.available()]
 
-
 # Add a text to a stream (GStreamer implementation).
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
@@ -414,7 +418,6 @@ end
 %ifdef video.text.camlimages
 video.text.available :=
   [("camlimages", video.text.camlimages), ...video.text.available()]
-
 
 # Add a text to a stream (camlimages implementation).
 # @category Source / Video processing
@@ -459,7 +462,6 @@ thread.run(
       end
   )
 )
-
 
 # Display a text using the first available operator in: camlimages, SDL, FFmpeg, GStreamer, gd or native.
 # @category Source / Video processing
@@ -552,6 +554,7 @@ def video.add_subtitle(
   x = {(video.frame.width() - t.width()) / 2}
   y = {video.frame.height() - t.height() - offset}
   t = video.translate(x=x, y=y, t)
+
   def meta(m) =
     if list.assoc.mem(override, m) then subtitle := list.assoc(override, m) end
   end
@@ -583,6 +586,7 @@ def video.slideshow(
   l = ref(l)
   n = ref(-1)
   s = source.dynamic()
+
   def current() =
     list.nth(l(), n())
   end
@@ -715,6 +719,7 @@ def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y) =
   # offset of the currently drawn point.
   x = ref(0)
   dx = int_of_float(speed * frame.duration())
+
   def update() =
     tx := tx() - dx
     y = int_of_float(((max - y()) / (max - min)) * height)

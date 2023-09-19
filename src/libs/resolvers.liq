@@ -2,6 +2,7 @@
 def youtube_playlist_parser(~pwd="", url) =
   ignore(pwd)
   binary = null.get(settings.protocol.youtube_dl.path())
+
   def parse_line(line) =
     let json.parse (parsed : {url: string}?) = line
     parsed = parsed ?? {url="foo"}

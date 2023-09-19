@@ -28,4 +28,5 @@
     (progn
      (run npm init -y)
      (run npm install --save ../prettier-plugin-liquidsoap prettier)
-     (bash "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" > config.json"))))))
+     (bash
+      "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" > config.json"))))))

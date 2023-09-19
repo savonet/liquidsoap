@@ -1,5 +1,6 @@
 log.level.set(4)
 port = random.int(min=8000, max=10000)
+
 def fn() =
   def listen_callback(~hs_version=_, ~peeraddr=_, ~streamid, _) =
     if streamid == null("foobar") then test.pass() end

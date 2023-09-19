@@ -23,6 +23,7 @@ def f() =
   let r.a.b = 5
   let replaces r.a = 2
   ignore(r.a.b)
+
   def replaces r.a(x) =
     2 * x
   end
@@ -31,6 +32,7 @@ def f() =
 
   # A resettable counter
   n = ref(0)
+
   def counter() =
     n := !n + 1
     !n
@@ -52,6 +54,7 @@ def f() =
 
   # Open
   r = ()
+
   def r.f(n) =
     2 * n
   end
@@ -69,6 +72,7 @@ def f() =
   ignore(list.hd(l).x)
   l = [b, a]
   ignore(list.hd(l).x)
+
   def f(c) =
     [a, c]
   end
@@ -103,6 +107,7 @@ def f() =
   test.equals(f({}), 3)
   test.equals(f({foo=1}), 2)
   test.equals(f({foo=null()}), 3)
+
   def f(x) =
     ret = x?.foo(123)
     ret ?? 1
@@ -112,6 +117,7 @@ def f() =
   test.equals(f({}), 1)
   test.equals(f({foo=(fun (x) -> x)}), 123)
   test.equals(f({foo=null()}), 1)
+
   def f(x) =
     [x, {foo=123}]
   end
@@ -120,6 +126,7 @@ def f() =
   ignore((f({foo=345}) : [{foo?: int}]))
   x = {}
   ignore(x.foo ?? 123)
+
   def f(x) =
     ignore((x.add ?? 1))
     if false then x else () end
@@ -130,6 +137,7 @@ def f() =
   (x : {add?: int})
   x = (() : {foo?: int?})
   ignore(f(()))
+
   def f(x) =
     x.foo.gni.bla(1, 2, 3).blo
   end

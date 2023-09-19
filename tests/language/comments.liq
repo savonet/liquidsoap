@@ -53,6 +53,7 @@ it is not a code comment!
 bar/
 
 ignore(r)
+
 def f() =
   test.equals(x, 1)
   try

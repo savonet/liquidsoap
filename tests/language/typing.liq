@@ -155,6 +155,7 @@ def f() =
   end
 
   ignore(g(f))
+
   def sum_eq(a, b) =
     a + b == a
   end

@@ -2,6 +2,7 @@
 
 # Test large number of playlists, see #2586
 log.level.set(4)
+
 def f() =
   n = 1000
   print(newline=false, "Loading #{n} playlists... ")
@@ -16,6 +17,7 @@ def f() =
 end
 
 test.check(f)
+
 def on_done() =
   test.pass()
 end

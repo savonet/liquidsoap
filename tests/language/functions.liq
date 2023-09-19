@@ -22,16 +22,19 @@ def f() =
   # Free variables with same name
   x = 4
   x = 5
+
   def f() =
     x
   end
 
   t(f(), 5)
+
   def recf() =
     ()
   end
 
   recf()
+
   def replacesf() =
     ()
   end

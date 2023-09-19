@@ -28,7 +28,6 @@ def playlog(
     end
   end
 
-
   # Save into persistency file
   def save() =
     if

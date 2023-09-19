@@ -23,7 +23,6 @@ def harbor.http.middleware.cors(
 ) =
   fun (req, res, next) ->
     begin
-
       # This is for typing purposes
       res = if false then http.response() else res end
       if
@@ -35,6 +34,7 @@ def harbor.http.middleware.cors(
       end
 
       vary = ref([])
+
       def add_vary() =
         if
           vary() != []

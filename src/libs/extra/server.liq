@@ -5,6 +5,7 @@
 def server.rms(~id=null(), s) =
   let s = rms(id=id, s)
   id = source.id(s)
+
   def rms(_) =
     rms = s.rms()
     "#{rms}"
@@ -30,6 +31,7 @@ end
 def server.insert_metadata(~id=null(), s) =
   s = insert_metadata(id=id, s)
   insert = s.insert_metadata
+
   def insert(s) =
     let (meta, _) = string.annotate.parse("#{s}:")
     if

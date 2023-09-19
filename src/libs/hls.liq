@@ -11,6 +11,7 @@ def input.hls.native(~id=null(), ~reload=10., uri) =
   sequence = ref(0)
   playlist_uri = ref(uri)
   id = string.id.default(default="input.hls.native", id)
+
   def load_playlist() =
     pl = request.create(playlist_uri())
     if
@@ -22,8 +23,10 @@ def input.hls.native(~id=null(), ~reload=10., uri) =
       log.info(label=id, "Sequence: " ^ pl_sequence)
       pl_sequence = int_of_string(default=0, pl_sequence)
       files = playlist.parse(path=path.dirname(playlist_uri()) ^ "/", pl)
+
       def file_request(idx, el) =
         let (meta, file) = el
+
         def escape(s) =
           string.escape(encoding="ascii", s)
         end
@@ -39,6 +42,7 @@ def input.hls.native(~id=null(), ~reload=10., uri) =
 
       files = list.mapi(file_request, files)
       let (first_idx, _) = list.hd(default=(-1, ""), playlistr())
+
       def add_file(playlist, file) =
         let (idx, _) = file
         if
@@ -105,7 +109,6 @@ let replaces input.hls = input.hls.native
 let replaces input.hls = input.ffmpeg
 %endif
 
-
 # Play an HLS stream.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -128,6 +131,7 @@ def output.harbor.hls.base(
   s
 ) =
   tmpdir = tmpdir ?? file.temp_dir("hls", "")
+
   def content_type(fname) =
     ext = file.extension(fname)
     if
@@ -200,7 +204,6 @@ def replaces output.harbor.hls(
 end
 
 %ifdef harbor.https.static
-
 # Output the source stream to an HTTP live stream served from the harbor HTTPS server.
 # @category Source / Output
 # @param ~headers Default response headers.
