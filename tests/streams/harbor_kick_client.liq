@@ -3,6 +3,7 @@
 def fn() =
   kick_client = ref(fun () -> error.raise(error.assertion))
   first_client_connected = ref(false)
+
   def auth(_) =
     if
       !first_client_connected

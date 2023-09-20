@@ -6,6 +6,7 @@
 # @param f Function to execute.
 def replaces thread.run(~fast=true, ~delay=0., ~every=null(), f) =
   every = every ?? getter(-1.)
+
   def f() =
     ignore(f() == ())
     getter.get(every)
@@ -13,7 +14,6 @@ def replaces thread.run(~fast=true, ~delay=0., ~every=null(), f) =
 
   thread.run.recurrent(fast=fast, delay=delay, f)
 end
-
 
 # Execute a callback when a predicate is `true`. The predicate
 # is checked `every` seconds and the callback is
@@ -37,6 +37,7 @@ def thread.when(
   f
 ) =
   p = once or not changed ? p : (predicate.activates(init=init, p))
+
   def check() =
     if
       p()
@@ -50,7 +51,6 @@ def thread.when(
 
   thread.run.recurrent(fast=fast, delay=0., check)
 end
-
 
 # @flag hidden
 def default_error_handler(~backtrace, err) =

@@ -10,7 +10,6 @@ let settings.protocol.replaygain.tag =
     description="Tag used to annotate ReplayGain", "replaygain_track_gain"
   )
 
-
 # Register the replaygain protocol.
 # @flag hidden
 def protocol.replaygain(~rlog=_, ~maxtime=_, arg) =
@@ -72,7 +71,6 @@ def protocol.process.parse(~default_timeout, arg) =
   args.{uri=uri, cmd=string.concat(separator=",", args.cmd)}
 end
 
-
 # Register the process protocol. Syntax:
 # process:[timeout=<seconds>],<output ext>,<cmd>:uri where `timeout` argument is optional and
 # cannot exceed the underlying time and <cmd> is interpolated with:
@@ -85,6 +83,7 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
     protocol.process.parse(default_timeout=maxtime - time(), arg)
 
   output = file.temp("liq-process", ".#{extname}")
+
   def resolve(input) =
     cmd =
       cmd %
@@ -97,7 +96,10 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
     log.info("Executing #{cmd}")
     env_vars = settings.protocol.process.env()
     env = environment()
-    def get_env(k) = (k, env[k]) end
+
+    def get_env(k) =
+      (k, env[k])
+    end
 
     env = list.map(get_env, env_vars)
     inherit_env = settings.protocol.process.inherit_env()
@@ -150,7 +152,6 @@ protocol.add(
   syntax="process:<extname>,<cmd>[:uri]"
 )
 
-
 # Create a process: uri, replacing `:` with `$(colon)`.
 # @category Liquidsoap
 # @param cmd Command line to execute
@@ -163,11 +164,11 @@ def process.uri(~timeout=null(), ~extname, ~uri="", cmd) =
   "process:#{timeout}#{extname},#{cmd}#{uri}"
 end
 
-
 # Resolve http(s) URLs using curl
 # @flag hidden
 def protocol.http(proto, ~rlog, ~maxtime, arg) =
   uri = "#{proto}:#{arg}"
+
   def log(~level, s) =
     rlog(s)
     log(label="procol.external", level=level, s)
@@ -235,7 +236,6 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
   end
 end
 
-
 # Register download protocol.
 # @flag hidden
 def protocol.add.http(proto) =
@@ -264,13 +264,13 @@ let settings.protocol.youtube_dl.timeout =
     description="Timeout (in seconds) for youtube-dl executions.", 300.
   )
 
-
 # Register the youtube-dl protocol, using youtube-dl.
 # Syntax: youtube-dl:<ID>
 # @flag hidden
 def protocol.youtube_dl(~rlog, ~maxtime, arg) =
   binary = settings.protocol.youtube_dl.path()
   timeout = settings.protocol.youtube_dl.timeout()
+
   def log(~level, s) =
     rlog(s)
     log(label="protocol.youtube-dl", level=level, s)
@@ -305,7 +305,6 @@ protocol.add(
   syntax="youtube-dl:uri"
 )
 
-
 # Register the youtube-pl protocol.
 # Syntax: youtube-pl:<ID>
 # @flag hidden
@@ -330,10 +329,11 @@ protocol.add(
   syntax="youtube-pl:uri"
 )
 
-
 # Register tmp
 # @flag hidden
-def protocol.tmp(~rlog=_, ~maxtime=_, arg) = [arg] end
+def protocol.tmp(~rlog=_, ~maxtime=_, arg) =
+  [arg]
+end
 
 protocol.add(
   "tmp",
@@ -353,13 +353,13 @@ let settings.protocol.ffmpeg.metadata =
 let settings.protocol.ffmpeg.replaygain =
   settings.make(description="Should the protocol adjust ReplayGain", false)
 
-
 # Register ffmpeg
 # @flag hidden
 def protocol.ffmpeg(~rlog, ~maxtime, arg) =
   ffmpeg = settings.protocol.ffmpeg.path()
   metadata = settings.protocol.ffmpeg.metadata()
   replaygain = settings.protocol.ffmpeg.replaygain()
+
   def log(~level, s) =
     rlog(s)
     log(label="protocol.ffmpeg", level=level, s)
@@ -384,6 +384,7 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
     delay = maxtime - time()
     log(level=4, "Executing #{cmd}")
     lines = process.read.lines(timeout=delay, cmd)
+
     def f(cur, line) =
       m = r/=/.split(line)
       if
@@ -549,7 +550,6 @@ protocol.add(
   syntax="ffmpeg:uri"
 )
 
-
 # Register stereo protocol which converts a file to stereo (currently decodes as
 # wav).
 # @flag hidden
@@ -562,7 +562,6 @@ def protocol.stereo(~rlog=_, ~maxtime=_, arg) =
     log.info("Stereo: failed to resolve request #{arg}")
     []
   else
-
     # TODO: the following sometimes hangs, so we resolve twice...
     # source.dump(%wav, file, source.stereo(once(request.queue(queue=[r]))))
     source.dump(%wav, file, stereo(once(single(arg))))
@@ -584,7 +583,6 @@ protocol.add(
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 let settings.protocol.text2wave.path =
   settings.make(description="Path to the text2wave binary", "text2wave")
-
 
 # Register the text2wave: protocol using text2wave
 # @flag hidden
@@ -618,7 +616,6 @@ let settings.protocol.pico2wave.lang =
     "en-US"
   )
 
-
 # @flag hidden
 def protocol.pico2wave(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.pico2wave.path()
@@ -650,7 +647,6 @@ let settings.protocol.gtts.lang =
 let settings.protocol.gtts.options =
   settings.make(description="Command line options.", "")
 
-
 # Register the gtts: protocol using gtts
 # @flag hidden
 def protocol.gtts(~rlog=_, ~maxtime=_, arg) =
@@ -672,7 +668,6 @@ protocol.add(
   doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
   syntax="gtts:Text to read"
 )
-
 
 # Say
 
@@ -715,7 +710,6 @@ let settings.protocol.aws.polly.format =
 let settings.protocol.aws.polly.voice =
   settings.make(description="Voice ID", "Joanna")
 
-
 # Build a aws base call
 # @flag hidden
 def aws_base() =
@@ -750,7 +744,6 @@ def aws_base() =
   end
 end
 
-
 # Register the s3:// protocol
 # @flag hidden
 def s3_protocol(~rlog=_, ~maxtime=_, arg) =
@@ -765,7 +758,6 @@ protocol.add(
   doc="Fetch files from s3 using the AWS CLI",
   syntax="s3://uri"
 )
-
 
 # Register the polly: protocol using AWS Polly
 # speech synthesis services. Syntax: polly:<text>
@@ -802,7 +794,6 @@ protocol.add(
   syntax="polly:Text to read"
 )
 
-
 # Protocol to synthesize audio.
 # @flag hidden
 def synth_protocol(~rlog=_, ~maxtime=_, text) =
@@ -823,6 +814,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
     shape = ref("sine")
     duration = ref(10.)
     frequency = ref(440.)
+
     def set(p) =
       let (k, v) = p
       if
@@ -838,6 +830,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
     end
 
     list.iter(set, args)
+
     def synth(s) =
       file = file.temp("liq-synth", ".wav")
       log.info(label="synth", "Synthesizing #{shape()} in #{file}.")
@@ -869,7 +862,6 @@ protocol.add(
   doc="Syntesize audio. Parameters are optional.",
   syntax="synth:shape=sine,frequency=440.,duration=10."
 )
-
 
 # File protocol
 # @flag hidden

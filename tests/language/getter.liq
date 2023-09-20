@@ -1,7 +1,9 @@
 #!../../liquidsoap ../test.liq
 
 # Test getters, see #1181
-def f(~x) = ignore(getter.get(x) + 2) end
+def f(~x) =
+  ignore(getter.get(x) + 2)
+end
 
 def g(~x=getter(2)) =
   x = getter.function(x)
@@ -24,6 +26,7 @@ def tests() =
   test.equals(getter.get(getter.map(fun (x) -> 2 * x, getter({3}))), 6)
   test.equals(getter.is_constant(getter(3)), true)
   test.equals(getter.is_constant(getter({3})), false)
+
   def gen =
     pos = ref(0)
     fun () ->
@@ -44,6 +47,7 @@ def tests() =
   )
 
   test.equals(string.getter.flush(getter("foobar")), "foobar")
+
   def gen =
     pos = ref(0)
     fun () ->

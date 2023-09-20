@@ -2063,260 +2063,260 @@
   (run %{run_test} "pcm_f32_decode.liq" liquidsoap %{test_liq} pcm_f32_decode.liq -- "")))
 (rule
   (alias fmt)
-  (deps ffmpeg_add_text.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_add_text.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_add_text.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_add_text.liq)))
       (diff ffmpeg_add_text.liq ffmpeg_add_text.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_audio_decoder.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_audio_decoder.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_audio_decoder.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_audio_decoder.liq)))
       (diff ffmpeg_audio_decoder.liq ffmpeg_audio_decoder.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_complex_filter.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_complex_filter.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_complex_filter.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_complex_filter.liq)))
       (diff ffmpeg_complex_filter.liq ffmpeg_complex_filter.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_copy_and_encode_decoder.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_copy_and_encode_decoder.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_copy_and_encode_decoder.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_copy_and_encode_decoder.liq)))
       (diff ffmpeg_copy_and_encode_decoder.liq ffmpeg_copy_and_encode_decoder.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_copy_concat.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_copy_concat.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_copy_concat.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_copy_concat.liq)))
       (diff ffmpeg_copy_concat.liq ffmpeg_copy_concat.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_copy_decoder.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_copy_decoder.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_copy_decoder.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_copy_decoder.liq)))
       (diff ffmpeg_copy_decoder.liq ffmpeg_copy_decoder.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_distributed_hls.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_distributed_hls.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_distributed_hls.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_distributed_hls.liq)))
       (diff ffmpeg_distributed_hls.liq ffmpeg_distributed_hls.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_filter.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_filter.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_filter.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_filter.liq)))
       (diff ffmpeg_filter.liq ffmpeg_filter.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_filter_changing_rate.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_filter_changing_rate.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_filter_changing_rate.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_filter_changing_rate.liq)))
       (diff ffmpeg_filter_changing_rate.liq ffmpeg_filter_changing_rate.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_inline_encode_decode.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_inline_encode_decode.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_inline_encode_decode.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_inline_encode_decode.liq)))
       (diff ffmpeg_inline_encode_decode.liq ffmpeg_inline_encode_decode.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_inline_encode_decode_audio.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_inline_encode_decode_audio.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_inline_encode_decode_audio.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_inline_encode_decode_audio.liq)))
       (diff ffmpeg_inline_encode_decode_audio.liq ffmpeg_inline_encode_decode_audio.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_inline_encode_decode_video.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_inline_encode_decode_video.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_inline_encode_decode_video.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_inline_encode_decode_video.liq)))
       (diff ffmpeg_inline_encode_decode_video.liq ffmpeg_inline_encode_decode_video.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_raw_and_copy_decoder.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_raw_and_copy_decoder.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_raw_and_copy_decoder.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_raw_and_copy_decoder.liq)))
       (diff ffmpeg_raw_and_copy_decoder.liq ffmpeg_raw_and_copy_decoder.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_raw_and_encode_decoder.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_raw_and_encode_decoder.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_raw_and_encode_decoder.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_raw_and_encode_decoder.liq)))
       (diff ffmpeg_raw_and_encode_decoder.liq ffmpeg_raw_and_encode_decoder.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_raw_decoder.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_raw_decoder.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_raw_decoder.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_raw_decoder.liq)))
       (diff ffmpeg_raw_decoder.liq ffmpeg_raw_decoder.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_raw_hls.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_raw_hls.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_raw_hls.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_raw_hls.liq)))
       (diff ffmpeg_raw_hls.liq ffmpeg_raw_hls.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_transparency_filter.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_transparency_filter.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_transparency_filter.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_transparency_filter.liq)))
       (diff ffmpeg_transparency_filter.liq ffmpeg_transparency_filter.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps ffmpeg_video_decoder.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg_video_decoder.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_video_decoder.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/ffmpeg_video_decoder.liq)))
       (diff ffmpeg_video_decoder.liq ffmpeg_video_decoder.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps harbor_audio.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps harbor_audio.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to harbor_audio.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/harbor_audio.liq)))
       (diff harbor_audio.liq harbor_audio.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps mono.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps mono.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to mono.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/mono.liq)))
       (diff mono.liq mono.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps multitrack.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps multitrack.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to multitrack.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/multitrack.liq)))
       (diff multitrack.liq multitrack.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps pcm_f32_decode.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps pcm_f32_decode.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to pcm_f32_decode.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/pcm_f32_decode.liq)))
       (diff pcm_f32_decode.liq pcm_f32_decode.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps pcm_s16_decode.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps pcm_s16_decode.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to pcm_s16_decode.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/pcm_s16_decode.liq)))
       (diff pcm_s16_decode.liq pcm_s16_decode.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps stereo.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps stereo.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to stereo.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/stereo.liq)))
       (diff stereo.liq stereo.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps taglib.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps taglib.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to taglib.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/taglib.liq)))
       (diff taglib.liq taglib.liq.prettier))))
 
 (rule
   (alias fmt)
-  (deps video_size.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps video_size.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to video_size.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/video_size.liq)))
       (diff video_size.liq video_size.liq.prettier))))

@@ -1,5 +1,8 @@
 success = ref(true)
-def predicate.to_list(n, p) = list.init(n, fun (_) -> p()) end
+
+def predicate.to_list(n, p) =
+  list.init(n, fun (_) -> p())
+end
 
 def predicate.nth(n) =
   i = ref(-1)
@@ -28,7 +31,9 @@ def t(x, y) =
   end
 end
 
-def tl(p, l) = t(predicate.to_list(4, p), l) end
+def tl(p, l) =
+  t(predicate.to_list(4, p), l)
+end
 
 def f() =
   tl(predicate.nth(2), [false, false, true, false])

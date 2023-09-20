@@ -1,13 +1,16 @@
 #!../../liquidsoap ../test.liq
 count = ref(1)
 fail = ref(false)
+
 def echo(s) =
   if s != string(!count) then fail := true end
   count := count() + 1
   ()
 end
 
-def t(lbl, f) = if f() then echo(lbl) else echo("fail " ^ lbl) end end
+def t(lbl, f) =
+  if f() then echo(lbl) else echo("fail " ^ lbl) end
+end
 
 def f() =
   t("1", {1 == 1})

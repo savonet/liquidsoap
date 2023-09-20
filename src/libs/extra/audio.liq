@@ -12,7 +12,6 @@ def compand(~id=null("compand"), %argsof(track.audio.compand[!id]), s) =
   )
 end
 
-
 # Comb filter
 # @category Source / Audio processing
 # @argsof track.audio.comb
@@ -25,7 +24,6 @@ def comb(~id=null("comb"), %argsof(track.audio.comb[!id]), s) =
   )
 end
 
-
 # Compress the signal.
 # @category Source / Audio processing
 # @argsof track.audio.compress
@@ -37,7 +35,6 @@ def compress(%argsof(track.audio.compress), s) =
 
   source(id=id, tracks.{audio=audio}).{gain=gain, rms=rms}
 end
-
 
 # Exponential compressor.
 # @category Source / Audio processing
@@ -54,7 +51,6 @@ def compress.exponential(%argsof(track.audio.compress.exponential), s) =
     }
   )
 end
-
 
 # A limiter. This is a `compress` with tweaked parameters.
 # @category Source / Audio processing
@@ -112,7 +108,6 @@ def filter.iir.eq.low_high(~id=null(), ~low, ~high, ~q=1., s) =
   s
 end
 
-
 # Multiband compression. The list in argument specifies
 # - the `frequency` below which we should apply compression (it is above previous band)
 # - the `attack` time (ms)
@@ -126,7 +121,6 @@ end
 # @param s Source on which multiband compression should be applied.
 # @flag extra
 def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
-
   # Check that the bands are with increasing frequencies.
   for
   i
@@ -142,7 +136,6 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
       failwith("Bands should be sorted.")
     end
   end
-
 
   # Process a band
   def band(low, band) =
@@ -198,20 +191,19 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
   limiter(s)
 end
 
-
 # Compress and normalize, producing a more uniform and "full" sound.
 # @category Source / Audio processing
 # @flag extra
 # @param s The input source.
-def nrj(s) = compress(threshold=-15., ratio=3., gain=3., normalize(s)) end
-
+def nrj(s) =
+  compress(threshold=-15., ratio=3., gain=3., normalize(s))
+end
 
 # Multiband-compression.
 # @category Source / Audio processing
 # @flag extra
 # @param s The input source.
 def sky(s) =
-
   # 3-band crossover
   low = fun (s) -> filter.iir.eq.low(frequency=168., s)
   mh = fun (s) -> filter.iir.eq.high(frequency=100., s)
@@ -253,7 +245,6 @@ def sky(s) =
   )
 end
 
-
 # Add some bass to the sound.
 # @category Source / Audio processing
 # @param ~frequency Frequency below which sound is considered as bass.
@@ -266,15 +257,14 @@ def bass_boost(~frequency=getter(200.), ~gain=getter(10.), s) =
 end
 
 %ifdef soundtouch
-
 # Increases the pitch, making voices sound like on helium.
 # @category Source / Audio processing
 # @flag extra
 # @param s The input source.
-def helium(s) = soundtouch(pitch=1.5, s) end
-
+def helium(s) =
+  soundtouch(pitch=1.5, s)
+end
 %endif
-
 
 # Remove low frequencies often produced by microphones.
 # @flag extra
@@ -284,7 +274,6 @@ def helium(s) = soundtouch(pitch=1.5, s) end
 def mic_filter(~frequency=200., s) =
   filter(freq=frequency, q=1., mode="high", s)
 end
-
 
 # Mix between dry and wet sources. Useful for testing effects. Typically:
 # ```
@@ -306,7 +295,6 @@ def dry_wet(~power=false, wetness, dry, wet) =
     [dry, wet]
   )
 end
-
 
 # Generate DTMF tones.
 # @flag extra
@@ -356,7 +344,6 @@ def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf) =
   l = list.rev(l())
   sequence(l)
 end
-
 
 # Mixing table controllable via source methods and optional
 # server/telnet commands.
@@ -521,7 +508,6 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
   s.{inputs=inputs}
 end
 
-
 # Indicate beats.
 # @category Source / Sound synthesis
 # @param ~frequency Frequency of the sound.
@@ -531,13 +517,13 @@ def metronome(~frequency=440., bpm=60.) =
   volume_down = 0.
   beat_duration = 0.1
   s = sine(frequency)
+
   def f() =
     if s.time() mod (60. / bpm) <= beat_duration then 1. else volume_down end
   end
 
   amplify(f, s)
 end
-
 
 # Mixes two streams, with faded transitions between the state when only the
 # normal stream is available and when the special stream gets added on top of
@@ -551,6 +537,7 @@ end
 def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
   p = getter.function(p)
   last_p = ref(p())
+
   def c(fn, s) =
     def v() =
       fn = fn()
@@ -564,6 +551,7 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
   special = c(special_volume, special)
   normal_volume = ref(fun () -> 1.)
   normal = c(normal_volume, normal)
+
   def to_special(_, special) =
     last_p := p()
     q = 1. - last_p()
@@ -589,7 +577,6 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
 end
 
 %ifencoder %ffmpeg
-
 # Output an MPEG-DASH playlist.
 # @category Source / Output
 # @flag extra
@@ -625,5 +612,4 @@ def output.file.dash(
     s
   )
 end
-
 %endif

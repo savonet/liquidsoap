@@ -8,7 +8,6 @@ def t(x, y) =
 end
 
 def f() =
-
   # Test strictness and evaluation order
   l = ref(false)
   r = ref(false)

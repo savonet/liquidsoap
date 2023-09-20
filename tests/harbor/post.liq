@@ -62,6 +62,7 @@ def f() =
   range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
   l = list.init(12, fun (_) -> string.char.ascii.random(range))
   boundary = string.concat(l)
+
   def handler(req, _) =
     test.equals(req.http_version, "1.1")
     test.equals(req.method, "POST")
@@ -111,6 +112,7 @@ def f() =
   range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
   l = list.init(12, fun (_) -> string.char.ascii.random(range))
   boundary = string.concat(l)
+
   def handler(req, _) =
     test.equals(req.http_version, "1.1")
     test.equals(req.method, "POST")
@@ -162,6 +164,7 @@ def f() =
   j.add("foo", random.int())
   j.add("contents", file.contents("post.liq"))
   data = json.stringify(j)
+
   def handler(req, _) =
     test.equals(req.http_version, "1.1")
     test.equals(req.method, "POST")

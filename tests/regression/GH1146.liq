@@ -4,6 +4,7 @@
 # future.
 track_count = ref(0)
 s = single("../media/@flac[stereo].flac")
+
 def f(_) =
   track_count := !track_count + 1
   if !track_count > 2 then test.pass() end

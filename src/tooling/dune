@@ -12,7 +12,21 @@
  (modules parsed_json)
  (libraries sedlex liquidsoap_lang))
 
-(executable
- (name json_dump)
- (modules json_dump)
- (libraries liquidsoap_tooling liquidsoap_lang liquidsoap_core))
+(rule
+ (target liq-prettier)
+ (deps
+  (source_tree prettier-plugin-liquidsoap)
+  prettier-plugin-liquidsoap/dist/liquidsoap.js)
+ (action
+  (progn
+   (run mkdir -p liq-prettier)
+   (chdir
+    prettier-plugin-liquidsoap
+    (run npm install))
+   (chdir
+    liq-prettier
+    (progn
+     (run npm init -y)
+     (run npm install --save ../prettier-plugin-liquidsoap prettier)
+     (bash
+      "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" > config.json"))))))

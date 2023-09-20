@@ -47,44 +47,47 @@ server.register(
   interactive.list
 )
 
-
 # Description of an interactive variable.
 # @flag hidden
-def interactive.description(name) = list.assoc(name, variables()).description
+def interactive.description(name) =
+  list.assoc(name, variables()).description
 end
-
 
 # Type of an interactive variable.
 # @flag hidden
-def interactive.type(name) = list.assoc(name, variables()).type end
-
-
-# @flag hidden
-def interactive.float.ref(name) = list.assoc(name, variables_float()).ref end
-
-
-# @flag hidden
-def interactive.int.ref(name) = list.assoc(name, variables_int()).ref end
-
-
-# @flag hidden
-def interactive.bool.ref(name) = list.assoc(name, variables_bool()).ref end
-
-
-# @flag hidden
-def interactive.string.ref(name) = list.assoc(name, variables_string()).ref end
-
-
-# @flag hidden
-def interactive.unit.handler(name) = list.assoc(name, variables_unit()).handler
+def interactive.type(name) =
+  list.assoc(name, variables()).type
 end
 
+# @flag hidden
+def interactive.float.ref(name) =
+  list.assoc(name, variables_float()).ref
+end
+
+# @flag hidden
+def interactive.int.ref(name) =
+  list.assoc(name, variables_int()).ref
+end
+
+# @flag hidden
+def interactive.bool.ref(name) =
+  list.assoc(name, variables_bool()).ref
+end
+
+# @flag hidden
+def interactive.string.ref(name) =
+  list.assoc(name, variables_string()).ref
+end
+
+# @flag hidden
+def interactive.unit.handler(name) =
+  list.assoc(name, variables_unit()).handler
+end
 
 # @flag hidden
 def interactive.remove(name) =
   variables := list.assoc.remove.all(name, variables())
 end
-
 
 # Remove an interactive variable.
 # @param name Name of the variable.
@@ -95,7 +98,6 @@ def interactive.float.remove(name) =
   variables_float := list.assoc.remove.all(name, variables_float())
 end
 
-
 # Remove an interactive variable.
 # @param name Name of the variable.
 # @category Interaction
@@ -104,7 +106,6 @@ def interactive.int.remove(name) =
   interactive.remove(name)
   variables_int := list.assoc.remove.all(name, variables_int())
 end
-
 
 # Remove an interactive variable.
 # @param name Name of the variable.
@@ -115,7 +116,6 @@ def interactive.bool.remove(name) =
   variables_bool := list.assoc.remove.all(name, variables_bool())
 end
 
-
 # Remove an interactive variable.
 # @param name Name of the variable.
 # @category Interaction
@@ -125,7 +125,6 @@ def interactive.string.remove(name) =
   variables_string := list.assoc.remove.all(name, variables_string())
 end
 
-
 # Remove an interactive variable.
 # @param name Name of the variable.
 # @category Interaction
@@ -134,7 +133,6 @@ def interactive.unit.remove(name) =
   interactive.remove(name)
   variables_unit := list.assoc.remove.all(name, variables_unit())
 end
-
 
 # Function called to ensure persistency of data.
 let interactive.persistency = ref(fun () -> ())
@@ -146,14 +144,12 @@ def interactive.float.set(name, v) =
   p()
 end
 
-
 # @flag hidden
 def interactive.int.set(name, v) =
   interactive.int.ref(name) := v
   p = interactive.persistency()
   p()
 end
-
 
 # @flag hidden
 def interactive.bool.set(name, v) =
@@ -162,14 +158,12 @@ def interactive.bool.set(name, v) =
   p()
 end
 
-
 # @flag hidden
 def interactive.string.set(name, v) =
   interactive.string.ref(name) := v
   p = interactive.persistency()
   p()
 end
-
 
 # @flag hidden
 def interactive.unit.set(name) =
@@ -180,7 +174,6 @@ end
 %ifdef osc.on_float
 let stdlib_osc = osc
 %endif
-
 
 # Create an interactive variable.
 # @flag hidden
@@ -223,7 +216,6 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
       stdlib_osc.on_string(osc, fun (x) -> interactive.string.set(name, x))
     elsif type == "unit" then ()
     else
-
       # TODO
       error.raise(error.not_found)
     end
@@ -231,7 +223,6 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
   ignore(osc)
 %endif
 end
-
 
 # @flag hidden
 def interactive.get(name) =
@@ -273,7 +264,6 @@ server.register(
   interactive.get
 )
 
-
 # @flag hidden
 def interactive.set(arg) =
   try
@@ -306,7 +296,6 @@ server.register(
   "set",
   interactive.set
 )
-
 
 # Save the value of all interactive variables in a file.
 # @category Interaction
@@ -353,7 +342,6 @@ def interactive.save(fname) =
 
   file.write(data=data, fname)
 end
-
 
 # Load the value of interactive variables from a file.
 # @category Interaction
@@ -419,7 +407,6 @@ def interactive.load(fname) =
   )
 end
 
-
 # Make the value of interactive variables persistent: they are loaded from the
 # given file and stored there whenever updated. This function should be called
 # after all interactive variables have been defined (variables not declared yet
@@ -439,7 +426,6 @@ def interactive.persistent(fname) =
   interactive.persistency := {interactive.save(fname)}
 end
 
-
 # Expose interactive variables through habor http server. Once this is called,
 # with default parameters, you can browse <http://localhost:8000/interactive> to
 # change the value of interactive variables using sliders.
@@ -456,7 +442,10 @@ def interactive.harbor(
   def webpage(request, response) =
     form_data = request.data
     data = ref("")
-    def add(s) = data := data() ^ s ^ "\n" end
+
+    def add(s) =
+      data := data() ^ s ^ "\n"
+    end
 
     title = "Interactive values"
     add("<!DOCTYPE html><html><head>")
@@ -534,6 +523,7 @@ def interactive.harbor(
 
     add("</head><body>")
     add("<h1>#{title}</h1>")
+
     def add_var(nv) =
       let (name, v) = nv
       description = interactive.description(name)
@@ -606,6 +596,7 @@ def interactive.harbor(
 
   def setter(request, _) =
     data = url.split_args(request.body())
+
     def update(nv) =
       let (name, v) = nv
       try
@@ -640,7 +631,6 @@ def interactive.harbor(
   )
 end
 
-
 # Read a float from an interactive input.
 # @category Interaction
 # @flag extra
@@ -673,7 +663,6 @@ def replaces interactive.float(
   }
 end
 
-
 # Read an integer from an interactive input.
 # @category Interaction
 # @flag extra
@@ -690,7 +679,6 @@ def replaces interactive.int(~description="", ~osc="", name, v) =
     remove={interactive.int.remove(name)}
   }
 end
-
 
 # Read a boolean from an interactive input.
 # @category Interaction
@@ -709,7 +697,6 @@ def replaces interactive.bool(~description="", ~osc="", name, v) =
   }
 end
 
-
 # Read a string from an interactive input.
 # @category Interaction
 # @flag extra
@@ -727,7 +714,6 @@ def replaces interactive.string(~description="", ~osc="", name, v) =
   }
 end
 
-
 # Register a callback when a unit interactive input is set.
 # @category Interaction
 # @flag extra
@@ -741,7 +727,6 @@ def replaces interactive.unit(~description="", ~osc="", name, f) =
   {set=f, remove={interactive.float.remove(name)}}
 end
 
-
 # Create a multiband compressor whose parameters are interactive variables.
 # @category Interaction
 # @flag extra
@@ -754,6 +739,7 @@ def compress.multiband.interactive(~id=null(), ~bands=5, s) =
   wet = interactive.float(prefix ^ "wet", min=0., max=1., 1.)
   min_freq = 100.
   max_freq = 15000.
+
   def band(i) =
     frequency =
       exp(

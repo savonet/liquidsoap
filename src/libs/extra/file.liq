@@ -28,7 +28,6 @@ def playlog(
     end
   end
 
-
   # Save into persistency file
   def save() =
     if
@@ -38,7 +37,6 @@ def playlog(
       file.write(data=data, null.get(persistency))
     end
   end
-
 
   # Remove too old elements
   def prune() =
@@ -50,7 +48,6 @@ def playlog(
     end
   end
 
-
   # Add a new entry
   def add(m) =
     prune()
@@ -58,7 +55,6 @@ def playlog(
     l := (f, time())::l()
     save()
   end
-
 
   # Last time this entry was played
   def last(m) =

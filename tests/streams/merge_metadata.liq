@@ -1,4 +1,5 @@
 log.level.set(4)
+
 def f(m) =
   print("Got metadata!")
   if
@@ -14,6 +15,7 @@ s = sine()
 s = insert_metadata(s)
 s' = sine()
 s' = insert_metadata(s')
+
 def insert() =
   print("Inserting metadata")
   s.insert_metadata([("test", "bla"), ("s", "That's me!")])

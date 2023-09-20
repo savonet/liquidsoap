@@ -9,7 +9,6 @@ def check_value(v, v') =
 end
 
 def f() =
-
   # This check has race conditions issues.
   check_value(int_of_float(time()), int_of_float(time.make(time.local())))
   time.zone.set("Europe/Paris")

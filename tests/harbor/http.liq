@@ -1,5 +1,4 @@
 def f() =
-
   # Default response
   def handler(req, _) =
     test.equals(req.http_version, "1.1")
@@ -18,7 +17,9 @@ def f() =
   test.equals("#{resp}", "")
 
   # Endpoint are executed in the order they are declared
-  def handler(_, _) = test.fail() end
+  def handler(_, _) =
+    test.fail()
+  end
 
   harbor.http.register.regexp(r/default/g, port=3456, handler)
   harbor.http.register("/default", port=3456, handler)
@@ -73,6 +74,7 @@ def f() =
     res.status_message("YYR")
     res.http_version("1.0")
     data_count = ref(3)
+
     def data() =
       if
         data_count() >= 0
@@ -208,6 +210,7 @@ def f() =
     )
 
     test.equals(req.path, "/large_chunked")
+
     def rec f(count) =
       ret = req.data()
       if ret != "" then f(count + string.length(ret)) else count end
@@ -231,7 +234,6 @@ def f() =
           ""
         end
     end
-
 
   # Custom response
   def handler(req) =
@@ -283,7 +285,10 @@ def f() =
 
   # Response ended
   read = ref(fun (~timeout=_) -> error.raise(error.assertion))
-  def handler(req, _) = read := req.data end
+
+  def handler(req, _) =
+    read := req.data
+  end
 
   harbor.http.register("/response_ended", port=3456, handler)
   resp = http.get("http://localhost:3456/response_ended")

@@ -19,7 +19,6 @@ let replaces output = output.portaudio
 let replaces output = output.pulseaudio
 %endif
 
-
 # Output a stream using the default operator. The input source does not need to
 # be infallible, blank will just be played during failures.
 # @category Source / Output
@@ -50,18 +49,15 @@ def output.video(%argsof(output.sdl), s) =
   then
     (output.sdl(%argsof(output.sdl), s) : unit)
   else
-
     # Avoid using SDL when there is no video output.
     (output.dummy(fallible=fallible, s) : unit)
   end
 end
-
 %endif
 
 %ifdef output.graphics
 let output.video = output.graphics
 %endif
-
 
 # Output a video stream using the default operator. The input source does not
 # need to be infallible, blank will just be played during failures.
@@ -84,7 +80,6 @@ def output.video(
     id=id, fallible=fallible, start=start, on_start=on_start, on_stop=on_stop, s
   )
 end
-
 
 # Output a stream with audio and video using the default operator. The input
 # source does not need to be infallible, blank will just be played during
@@ -153,7 +148,6 @@ let replaces input = input.portaudio
 %ifdef input.pulseaudio
 let replaces input = input.pulseaudio
 %endif
-
 
 # Input an audio stream using the default operator.
 # @category Source / Input

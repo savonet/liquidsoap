@@ -8,7 +8,6 @@ def c(x, y) =
 end
 
 def f() =
-
   # Tuples
   let tuple = (123, "aabbcc", true, {foo=1})
   let (x, y, z, t) = tuple

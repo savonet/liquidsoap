@@ -25,7 +25,6 @@ def replaces request.dynamic(%argsof(request.dynamic), fn) =
 end
 
 %ifdef input.gstreamer.audio_video
-
 # @docof input.gstreamer.audio_video
 def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
   s = input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video))
@@ -78,9 +77,7 @@ def replaces input.gstreamer.audio_video(%argsof(input.gstreamer.audio_video)) =
 
   s
 end
-
 %endif
-
 
 # @docof blank.strip
 def replaces blank.strip(%argsof(blank.strip), s) =
@@ -100,7 +97,6 @@ def replaces blank.strip(%argsof(blank.strip), s) =
 
   s
 end
-
 
 # @docof output.external
 def replaces output.external(%argsof(output.external), f, p, s) =
@@ -124,7 +120,6 @@ def replaces output.external(%argsof(output.external), f, p, s) =
 
   s
 end
-
 
 # @docof input.external.avi
 def replaces input.external.avi(%argsof(input.external.avi), s) =
@@ -151,7 +146,6 @@ def replaces input.external.avi(%argsof(input.external.avi), s) =
 
   s
 end
-
 
 # @docof input.harbor
 def replaces input.harbor(%argsof(input.harbor), s) =
@@ -193,7 +187,6 @@ def replaces input.harbor(%argsof(input.harbor), s) =
 end
 
 %ifdef input.http
-
 # @docof input.http
 def replaces input.http(%argsof(input.http), s) =
   s = input.http(%argsof(input.http), s)
@@ -266,5 +259,4 @@ def replaces input.http(%argsof(input.http), s) =
 
   s
 end
-
 %endif

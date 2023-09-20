@@ -84,7 +84,7 @@ and iterable_for = {
 and _try = {
   try_body : t;
   try_variable : string;
-  try_errors_list : t;
+  try_errors_list : t option;
   try_handler : t;
 }
 
@@ -245,7 +245,7 @@ let rec iter_term fn ({ term } as tm) =
         List.iter (function `Term tm | `Ellipsis tm -> iter_term fn tm) l
     | `Try { try_body; try_errors_list; try_handler } ->
         iter_term fn try_body;
-        iter_term fn try_errors_list;
+        (match try_errors_list with None -> () | Some tm -> iter_term fn tm);
         iter_term fn try_handler
     | `Regexp _ -> ()
     | `Time_interval _ -> ()

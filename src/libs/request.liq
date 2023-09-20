@@ -3,7 +3,6 @@ let request.queue = ()
 let stdlib_native = native
 %endif
 
-
 # @docof request.dynamic
 # @param ~native Use native implementation, when available.
 def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
@@ -20,7 +19,6 @@ def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
   default
 %endif
 end
-
 
 # Play a queue of requests (the first added request gets played first).
 # @category Source / Track processing
@@ -45,6 +43,7 @@ def request.queue(
   id = string.id.default(default="request.queue", id)
   queue = ref(queue)
   fetch = ref(fun () -> true)
+
   def next() =
     if
       queue() != []
@@ -181,7 +180,6 @@ def request.queue(
   }
 end
 
-
 # Create a source on which plays immediately requests given with the `play`
 # method.
 # @category Source / Track processing
@@ -196,7 +194,9 @@ def request.player(~simultaneous=true) =
 
     # Perform some garbage collection in order to avoid that the list grows too
     # much.
-    def collect() = l := list.filter(source.is_ready, l()) end
+    def collect() =
+      l := list.filter(source.is_ready, l())
+    end
 
     def play(r) =
       collect()
@@ -212,7 +212,10 @@ def request.player(~simultaneous=true) =
     }
   else
     s = source.dynamic()
-    def play(r) = s.set(request.once(r)) end
+
+    def play(r) =
+      s.set(request.once(r))
+    end
 
     s.{play=play, length={1}}
   end

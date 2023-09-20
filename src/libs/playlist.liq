@@ -25,7 +25,6 @@ def playlist.id(~default, uri) =
   end
 end
 
-
 # Retrieve the list of files contained in a playlist.
 # @category File
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic detection.
@@ -48,6 +47,7 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
       then
         pl = request.filename(pl)
         files = playlist.parse(mime=mime_type, pl)
+
         def file_request(el) =
           let (meta, file) = el
           s =
@@ -76,7 +76,6 @@ end
 %ifdef native
 let stdlib_native = native
 %endif
-
 
 # Play a list of files.
 # @category Source / Input
@@ -142,8 +141,9 @@ def playlist.list(
   playlist_orig = ref(playlist)
 
   # Randomize the playlist if necessary
-  def randomize(p) = if mode == "randomize" then list.shuffle(p) else p end end
-
+  def randomize(p) =
+    if mode == "randomize" then list.shuffle(p) else p end
+  end
 
   # Current remaining playlist
   playlist = ref(randomize(playlist))
@@ -154,11 +154,11 @@ def playlist.list(
   # Delay the creation of next after the source because we need it to resolve
   # requests at the right content type.
   next_fun = ref(fun () -> null())
+
   def next() =
     f = next_fun()
     f()
   end
-
 
   # Instantiate the source
   default =
@@ -173,13 +173,8 @@ def playlist.list(
 
   s =
 %ifdef native
-    if
-      native
-    then
-      stdlib_native.request.dynamic(id=id, next)
-    else
-      default
-    end%else
+    if native then stdlib_native.request.dynamic(id=id, next) else default end
+%else
     default
 %endif
 
@@ -200,7 +195,6 @@ def playlist.list(
       ignore(s.fetch())
     end
   end
-
 
   # When we have more than max_fail failures in a row, we wait for 1 second
   # before trying again in order to avoid infinite loops.
@@ -237,7 +231,6 @@ def playlist.list(
           ret
         end
       else
-
         # Playlist finished
         if
           not has_stopped()
@@ -253,7 +246,6 @@ def playlist.list(
     if
       file == "" or (failed_count() >= max_fail and time() < failed_time() + 1.)
     then
-
       # Playlist failed too many times recently, don't try next for now.
       null()
     else
@@ -302,13 +294,13 @@ def playlist.list(
   next_fun := next
 
   # List of songs remaining to be played
-  def remaining_files() = playlist() end
-
+  def remaining_files() =
+    playlist()
+  end
 
   # Return
   s.{reload=reload, remaining_files=remaining_files}
 end
-
 
 # Read a playlist or a directory and play all files.
 # @category Source / Input
@@ -389,7 +381,6 @@ def replaces playlist(
     list.map.right(fun (file) -> prefix ^ file, files)
   end
 
-
   # Try to reload playlist when the playlist is looped and has failed.
   def on_fail() =
     l = load_playlist()
@@ -428,6 +419,7 @@ def replaces playlist(
   end
 
   watcher_reload_ref = ref(fun (_) -> ())
+
   def on_reload(uri) =
     watcher_reload = watcher_reload_ref()
     watcher_reload(uri)
@@ -448,7 +440,6 @@ def replaces playlist(
       files()
     )
 
-
   # The reload function
   def s.reload(~empty_queue=true, ~uri=null()) =
     if null.defined(uri) then playlist_uri := null.get(uri) end
@@ -459,7 +450,10 @@ def replaces playlist(
   end
 
   reloader_ref := s.reload
-  def s.length() = list.length(files()) end
+
+  def s.length() =
+    list.length(files())
+  end
 
   source.set_name(s, "playlist")
 
@@ -482,6 +476,7 @@ def replaces playlist(
       end
 
     watched_uri = ref(playlist_uri())
+
     def watcher_reload(uri) =
       if
         uri != watched_uri()
@@ -495,6 +490,7 @@ def replaces playlist(
     end
 
     watcher_reload_ref := watcher_reload
+
     def watcher_shutdown() =
       w = watcher()
       if null.defined(w) then null.get(w).unwatch() end

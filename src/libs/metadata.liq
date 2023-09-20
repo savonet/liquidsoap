@@ -9,6 +9,7 @@ let metadata.getter = ()
 # @param s Source containing the metadata.
 def metadata.getter.base(init, map, metadata, s) =
   x = ref(init)
+
   def f(m) =
     v = m[metadata]
     if v != "" then x := map(v) end
@@ -27,6 +28,7 @@ let metadata.getter.source = ()
 # @flag hidden
 def metadata.getter.source.base(init, map, metadata, s) =
   x = ref(init)
+
   def f(m) =
     v = m[metadata]
     if v != "" then x := map(v) end
@@ -35,7 +37,6 @@ def metadata.getter.source.base(init, map, metadata, s) =
   s = source.on_metadata(s, f)
   (s, ref.getter(x))
 end
-
 
 # Create a getter from a metadata: this is a string, whose value can be changed
 # with a metadata.
@@ -47,7 +48,6 @@ def replaces metadata.getter(init, m, s) =
   metadata.getter.base(init, fun (v) -> v, m, s)
 end
 
-
 # Create a float getter from a metadata: this is a float, whose value can be
 # changed with a metadata.
 # @category Metadata
@@ -57,7 +57,6 @@ end
 def metadata.getter.float(init, m, s) =
   metadata.getter.base(init, float_of_string, m, s)
 end
-
 
 # Create a float getter from a metadata: this is a float, whose value can be
 # changed with a metadata. This function also returns the source.
@@ -69,26 +68,29 @@ def metadata.getter.source.float(init, m, s) =
   metadata.getter.source.base(init, float_of_string, m, s)
 end
 
-
 # Extract filename from metadata.
 # @category Metadata
-def metadata.filename(m) = m["filename"] end
-
+def metadata.filename(m) =
+  m["filename"]
+end
 
 # Extract title from metadata.
 # @category Metadata
-def metadata.title(m) = m["title"] end
-
+def metadata.title(m) =
+  m["title"]
+end
 
 # Extract artist from metadata.
 # @category Metadata
-def metadata.artist(m) = m["artist"] end
-
+def metadata.artist(m) =
+  m["artist"]
+end
 
 # Extract comment from metadata.
 # @category Metadata
-def metadata.comment(m) = m["comment"] end
-
+def metadata.comment(m) =
+  m["comment"]
+end
 
 # Extract cover from metadata. This function implements cover extraction
 # for the following formats: coverart (ogg), apic (flac, mp3) and pic (mp3).
@@ -106,7 +108,6 @@ def metadata.cover(~coverart_mime=null(), m) =
   elsif
     list.assoc.mem("metadata_block_picture", m)
   then
-
     # See https://xiph.org/flac/format.html#metadata_block_picture
     cover = list.assoc(default="", "metadata_block_picture", m)
     cover = file.metadata.flac.cover.decode(cover)
@@ -119,7 +120,6 @@ def metadata.cover(~coverart_mime=null(), m) =
       null.get(cover)
     end
   else
-
     # Assume we have an mp3 file
     m =
       if
@@ -127,7 +127,6 @@ def metadata.cover(~coverart_mime=null(), m) =
       then
         m
       else
-
         # Try the builtin tag reader because APIC tags are not read by default,
         # e.g. with taglib
         log.debug(
@@ -172,13 +171,13 @@ def metadata.cover(~coverart_mime=null(), m) =
   end
 end
 
-
 # Obtain cover-art for a file. `null` is returned in case there is no
 # such information.
 # @category Metadata
 # @param file File from which the cover should be obtained
-def file.cover(fname) = metadata.cover(file.metadata(fname)) end
-
+def file.cover(fname) =
+  metadata.cover(file.metadata(fname))
+end
 
 # Remove cover metadata. This is mostly useful in order not to flood logs
 # with coverart when logging metadata.
@@ -196,7 +195,6 @@ def metadata.cover.remove(m) =
     m
   )
 end
-
 
 # Cleanup metadata for export. This is used to remove Liquidsoap's internal
 # metadata entries before sending them. List of exported metadata is set using
@@ -240,7 +238,6 @@ def metadata.json.stringify(
   list.iter(fun (v) -> data.add(fst(v), snd(v)), m)
   json.stringify(json5=json5, compact=compact, data)
 end
-
 
 # Parse metadata from JSON object.
 # @category Metadata

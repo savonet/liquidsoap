@@ -8,22 +8,34 @@ fade = ()
 # @param ~duration Duration in seconds.
 # @param ~on_done Function to execute when the fade is finished
 def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
-  def log(x) = log(label="mkfade", x) end
-
+  def log(x) =
+    log(label="mkfade", x)
+  end
 
   # Shape functions must map 0. -> 0. and 1. -> 1.
   pi = acos(-1.)
-  def sin_shape(x) = (1. + sin((x - 0.5) * pi)) / 2. end
+
+  def sin_shape(x) =
+    (1. + sin((x - 0.5) * pi)) / 2.
+  end
 
   curve = 2.
   m = exp(curve - 1.) - exp(-1.)
-  def exp_shape(x) = (exp((curve * x) - 1.) - exp(-1.)) / m end
+
+  def exp_shape(x) =
+    (exp((curve * x) - 1.) - exp(-1.)) / m
+  end
 
   curve = 10.
   m = ln(1. + curve)
-  def log_shape(x) = ln(1. + 10. * x) / m end
 
-  def lin_shape(x) = x end
+  def log_shape(x) =
+    ln(1. + 10. * x) / m
+  end
+
+  def lin_shape(x) =
+    x
+  end
 
   shape =
     if
@@ -39,6 +51,7 @@ def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
     end
 
   start_time = ref(-1.)
+
   def fade() =
     if start_time() < 0. then start_time := source.time(s) end
     t = source.time(s) - start_time()
@@ -61,13 +74,12 @@ def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
   fade
 end
 
-
 # Scale source during fading.
 # @category Source / Fade
 # @flag hidden
-def fade.scale(~id="fade.scale", x, s) = amplify(id=id, override=null(), x, s)
+def fade.scale(~id="fade.scale", x, s) =
+  amplify(id=id, override=null(), x, s)
 end
-
 
 # Fade the end of tracks.
 # @category Source / Fade
@@ -88,7 +100,9 @@ def fade.out(
   ~type="lin",
   s
 ) =
-  def log(x) = log(label=source.id(s), level=4, x) end
+  def log(x) =
+    log(label=source.id(s), level=4, x)
+  end
 
   fn = ref(fun () -> 1.)
   original_type = type
@@ -97,6 +111,7 @@ def fade.out(
   duration = ref(duration)
   start_time = ref(-1.)
   started = ref(false)
+
   def start_fade(d, _) =
     log(
       "Fading out with type #{type()}, duration: #{duration()} and #{d}s remaining."
@@ -166,7 +181,6 @@ def fade.out(
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
 
-
 # Fade when the metadata trigger is received and then skip.
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
@@ -186,19 +200,24 @@ def fade.skip(
   ~type="lin",
   s
 ) =
-  def log(x) = log(label=source.id(s), level=4, x) end
+  def log(x) =
+    log(label=source.id(s), level=4, x)
+  end
 
   fn = ref(fun () -> 1.)
   original_type = type
   type = ref(type)
   original_duration = duration
   duration = ref(duration)
+
   def apply() =
     fn = fn()
     fn()
   end
 
-  def stop_fade(_) = fn := fun () -> 1. end
+  def stop_fade(_) =
+    fn := fun () -> 1.
+  end
 
   def skip() =
     log("Fade finished executing. Calling skip now")
@@ -248,7 +267,6 @@ def fade.skip(
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
 
-
 # Fade the beginning of tracks.
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
@@ -268,13 +286,16 @@ def fade.in(
   ~type="lin",
   s
 ) =
-  def log(x) = log(label=source.id(s), level=4, x) end
+  def log(x) =
+    log(label=source.id(s), level=4, x)
+  end
 
   fn = ref(fun () -> 0.)
   original_duration = duration
   duration = ref(duration)
   original_type = type
   type = ref(type)
+
   def apply() =
     fn = fn()
     fn()
@@ -325,7 +346,6 @@ def fade.in(
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
 
-
 # Simple transition for crossfade
 # @category Source / Fade
 # @param ~fade_in  Fade-in duration, if any.
@@ -333,14 +353,17 @@ end
 # @param a Ending track
 # @param b Starting track
 def cross.simple(~fade_in=3., ~fade_out=3., a, b) =
-  def fade.out(s) = fade.out(type="sin", duration=fade_out, s) end
+  def fade.out(s) =
+    fade.out(type="sin", duration=fade_out, s)
+  end
 
-  def fade.in(s) = fade.in(type="sin", duration=fade_in, s) end
+  def fade.in(s) =
+    fade.in(type="sin", duration=fade_in, s)
+  end
 
   add = fun (a, b) -> add(normalize=false, [b, a])
   add(fade.out(a), fade.in(b))
 end
-
 
 # Smart transition for crossfade
 # @category Source / Fade
@@ -364,9 +387,13 @@ def cross.smart(
   a,
   b
 ) =
-  def fade.out(s) = fade.out(type="sin", duration=fade_out, s) end
+  def fade.out(s) =
+    fade.out(type="sin", duration=fade_out, s)
+  end
 
-  def fade.in(s) = fade.in(type="sin", duration=fade_in, s) end
+  def fade.in(s) =
+    fade.in(type="sin", duration=fade_in, s)
+  end
 
   add = fun (a, b) -> add(normalize=false, [b, a])
 
@@ -427,7 +454,6 @@ def cross.smart(
     log("Transition: crossed, no fade.")
     add(a.source, b.source)
   else
-
     # What to do with a loud end and a quiet beginning ?
     # A good idea is to use a jingle to separate the two tracks,
     # but that's another story.
@@ -439,7 +465,6 @@ def cross.smart(
     default(a.source, b.source)
   end
 end
-
 
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
@@ -491,7 +516,10 @@ def crossfade(
   s
 ) =
   id = string.id.default(default="crossfade", id)
-  def log(~level=3, x) = log(label=id, level=level, x) end
+
+  def log(~level=3, x) =
+    log(label=id, level=level, x)
+  end
 
   def simple_transition(a, b) =
     list.iter(

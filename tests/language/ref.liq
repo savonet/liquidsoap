@@ -1,5 +1,6 @@
 #!../../liquidsoap ../test.liq
 success = ref(true)
+
 def t(x, y) =
   if
     x != y
@@ -9,9 +10,13 @@ def t(x, y) =
   end
 end
 
-def id(x) = x end
+def id(x) =
+  x
+end
 
-def incr(n) = n + 1 end
+def incr(n) =
+  n + 1
+end
 
 def f() =
   n = ref(0)

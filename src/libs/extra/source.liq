@@ -8,7 +8,6 @@ def map_first_track(~id=null("map_first_track"), fn, s) =
   fallback(id=id, track_sensitive=true, [fn((once(s) : source)), s])
 end
 
-
 # Same operator as rotate but merges tracks from each sources.
 # For instance, `rotate.merge([intro,main,outro])` creates a source
 # that plays a sequence `[intro,main,outro]` as single track and loops back.
@@ -26,6 +25,7 @@ def rotate.merge(
 ) =
   ready = ref(true)
   duration = frame.duration()
+
   def to_first(_, new) =
     ready := (not ready())
     sequence(merge=true, [blank(duration=duration), (new : source)])
@@ -63,7 +63,6 @@ def rotate.merge(
   )
 end
 
-
 # Rotate between overlapping sources. Next track starts according
 # to 'liq_start_next' offset metadata.
 # @category Source / Track processing
@@ -81,6 +80,7 @@ def overlap_sources(
 ) =
   position = ref(0)
   length = list.length(sources)
+
   def current_position() =
     pos = position()
     position := (pos + 1) mod length
@@ -89,14 +89,16 @@ def overlap_sources(
 
   ready_list = list.map(fun (_) -> ref(false), sources)
   grab_ready = fun (n) -> list.nth(default=ref(false), ready_list, n)
+
   def set_ready(pos, b) =
     is_ready = grab_ready(pos)
     is_ready := b
   end
 
-
   # Start next track on_offset
-  def on_start_next(_, _) = set_ready(current_position(), true) end
+  def on_start_next(_, _) =
+    set_ready(current_position(), true)
+  end
 
   def on_offset(s) =
     let (s, offset) = metadata.getter.source.float(-1., start_next, s)
@@ -107,7 +109,9 @@ def overlap_sources(
 
   # Disable after each track
   def disable(pos, source) =
-    def disable(_) = set_ready(pos, false) end
+    def disable(_) =
+      set_ready(pos, false)
+    end
 
     source.on_track(disable)
   end
@@ -116,17 +120,18 @@ def overlap_sources(
 
   # Relay metadata from all sources
   send_to_main_source = ref(fun (_) -> ())
+
   def relay_metadata(m) =
     fn = send_to_main_source()
     fn(m)
   end
 
   list.iter(fun (s) -> s.on_metadata(relay_metadata), sources)
+
   def drop_metadata(s) =
     let {metadata = _, ...tracks} = source.tracks(s)
     source(tracks)
   end
-
 
   # Now drop all metadata
   sources = list.map(drop_metadata, sources)
@@ -150,7 +155,6 @@ def overlap_sources(
   send_to_main_source := fun (m) -> s.insert_metadata(m)
   s
 end
-
 
 # Append speech-synthesized tracks reading the metadata.
 # @category Metadata
@@ -177,7 +181,6 @@ def source.say_metadata =
     append(id=id, s, fun (m) -> once(single(pattern(m))))
 end
 
-
 # Regularly insert track boundaries in a stream (useful for testing tracks).
 # @category Source / Track processing
 # @flag extra
@@ -189,6 +192,7 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
 
   # Track time in the source's context:
   time = ref(0.)
+
   def f() =
     time := time() + settings.frame.duration()
     if
@@ -202,7 +206,6 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
   source.on_frame(s, f)
 end
 
-
 # Regularly skip tracks from a source (useful for testing skipping).
 # @category Source / Track processing
 # @flag extra
@@ -211,6 +214,7 @@ end
 # @flag extra
 def skipper(~every=getter(5.), s) =
   start_time = ref(0.)
+
   def f() =
     if
       getter.get(every) <= s.time() - start_time()
@@ -234,6 +238,7 @@ let stdlib_fallback = fallback
 def fallback.skip(s, ~fallback=null()) =
   fallback = fallback ?? (blank() : source)
   avail = ref(true)
+
   def check() =
     old = avail()
     avail := source.is_ready(s)

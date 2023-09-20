@@ -17,6 +17,7 @@ dedup_a = ref(0)
 dedup_b = ref(0)
 dup_a = ref(0)
 dup_b = ref(0)
+
 def check_duplicate(m) =
   if m["title"] == "a1" then dedup_a := dedup_a() + 1 end
   if m["title"] == "b1" then dedup_b := dedup_b() + 1 end
@@ -26,6 +27,7 @@ end
 
 s.on_metadata(check_duplicate)
 clock.assign_new(sync="none", [s])
+
 def on_stop() =
   if
     !dup_a == 2 and !dup_b == 2 and !dedup_a == 1 and !dedup_b == 1

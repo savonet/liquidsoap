@@ -14,6 +14,7 @@ c = metadata.map(update=false, (fun (_) -> [("source", "c")]), c)
 s = sequence([a, b, c])
 s = crossfade(persist_override=true, duration=5., s)
 track_count = ref(0)
+
 def on_metadata(m) =
   ref.incr(track_count)
   if
@@ -34,6 +35,9 @@ end
 
 s.on_metadata(on_metadata)
 clock.assign_new(sync="none", [s])
-def on_stop() = if !success then test.pass() else test.fail() end end
+
+def on_stop() =
+  if !success then test.pass() else test.fail() end
+end
 
 output.dummy(fallible=true, on_stop=on_stop, s)

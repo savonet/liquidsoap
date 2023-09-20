@@ -1,4 +1,6 @@
-def t(x, y) = if x != y then test.fail() end end
+def t(x, y) =
+  if x != y then test.fail() end
+end
 
 def f() =
   t(

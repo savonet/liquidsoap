@@ -33,10 +33,14 @@ state_file =
   path.concat(path.dirname(argv(0)), "ffmpeg_distributed_hls_state.json")
 
 process.run("cp #{state_file} #{output_dir}/state.json")
-def cleanup() = file.rmdir(output_dir) end
+
+def cleanup() =
+  file.rmdir(output_dir)
+end
 
 on_cleanup(cleanup)
 is_done = ref(false)
+
 def check_stream() =
   if
     not !is_done
@@ -94,7 +98,6 @@ def segment_name(~position, ~extname, stream_name) =
   timestamp = int_of_float(time())
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
-
 
 #clock.assign_new(id='test_clock',sync='none',[encoded])
 output.file.hls(

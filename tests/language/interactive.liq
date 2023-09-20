@@ -1,4 +1,5 @@
 success = ref(true)
+
 def t(x, y) =
   if
     x != y
@@ -9,6 +10,7 @@ def t(x, y) =
 end
 
 file = "interactive.json"
+
 def f() =
   x = interactive.float("x", 2.)
   interactive.save(file)

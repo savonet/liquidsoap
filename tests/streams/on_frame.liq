@@ -1,5 +1,6 @@
 log.level.set(4)
 n = ref(0)
+
 def f() =
   n := !n + 1
   print("Frame #{!n}")

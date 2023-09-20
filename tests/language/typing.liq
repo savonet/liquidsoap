@@ -3,7 +3,6 @@
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 def f() =
-
   # Check that some polymorphism is allowed.
   # id : (string,'a)->'a
   def id(a, b) =
@@ -21,8 +20,9 @@ def f() =
 
   # Polymorphism is limited to outer generalizations, this is not system F.
   # apply : ((string)->'a)->'a
-  def apply(f) = f("bla") end
-
+  def apply(f) =
+    f("bla")
+  end
 
   # f is not polymorphic, the following is forbidden:
   # f(0)
@@ -32,10 +32,11 @@ def f() =
   # The level checks forbid abusive generalization.
   # id' : ('a)->'a
   def id'(x) =
-
     # If one isn't careful about levels/scoping, f2 gets the type ('a)->'b and
     # so does twisted_id.
-    def f2(y) = x end
+    def f2(y) =
+      x
+    end
 
     f2(x)
   end
@@ -43,7 +44,9 @@ def f() =
   ignore(id')
 
   # Generalization and aliasing (see #941).
-  def id(x) = x end
+  def id(x) =
+    x
+  end
 
   _ = id(3)
   _ = id("a")
@@ -52,7 +55,9 @@ def f() =
   _ = id'("a")
 
   # Testing generalization of recursive functions.
-  def rec recid(x) = x end
+  def rec recid(x) =
+    x
+  end
 
   ignore(recid(3) == 3)
   ignore(recid("a") == "a")
@@ -131,7 +136,9 @@ def f() =
   # echo(blank()==blank())
 
   # Test record subtyping.
-  def f(x) = "" ^ x end
+  def f(x) =
+    "" ^ x
+  end
 
   ignore(f("a".{n=3}))
 
@@ -139,12 +146,19 @@ def f() =
   # contravariant, see #1465.
   # We have string.{l : int} < string
   # Thus    (string) -> int  < (string.{l : int}) -> int
-  def g(f) = f("a".{l=3}) end
+  def g(f) =
+    f("a".{l=3})
+  end
 
-  def f(x) = 0 end
+  def f(x) =
+    0
+  end
 
   ignore(g(f))
-  def sum_eq(a, b) = a + b == a end
+
+  def sum_eq(a, b) =
+    a + b == a
+  end
 
   ignore(sum_eq)
   (noise() : source(audio=pcm, video=canvas))

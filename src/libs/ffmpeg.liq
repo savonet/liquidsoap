@@ -16,7 +16,6 @@ def ffmpeg.encode.audio(~id=null("ffmpeg.encode.audio"), f, s) =
   )
 end
 
-
 # Encode a source's audio content
 # @category Source / Conversion
 def ffmpeg.raw.encode.audio(~id=null("ffmpeg.raw.encode.audio"), f, s) =
@@ -30,7 +29,6 @@ def ffmpeg.raw.encode.audio(~id=null("ffmpeg.raw.encode.audio"), f, s) =
     }
   )
 end
-
 
 # Encode a source's video content
 # @category Source / Conversion
@@ -46,7 +44,6 @@ def ffmpeg.encode.video(~id=null("ffmpeg.encode.video"), f, s) =
   )
 end
 
-
 # Encode a source's video content
 # @category Source / Conversion
 def ffmpeg.raw.encode.video(~id=null("ffmpeg.raw.encode.video"), f, s) =
@@ -60,7 +57,6 @@ def ffmpeg.raw.encode.video(~id=null("ffmpeg.raw.encode.video"), f, s) =
     }
   )
 end
-
 
 # Encode a source's audio and video content
 # @category Source / Conversion
@@ -78,7 +74,6 @@ def ffmpeg.encode.audio_video(~id=null("ffmpeg.encode.audio_video"), f, s) =
     }
   )
 end
-
 
 # Encode a source's audio and video content
 # @category Source / Conversion
@@ -100,7 +95,6 @@ def ffmpeg.raw.encode.audio_video(
     }
   )
 end
-
 %endif
 
 %ifdef track.ffmpeg.decode.audio
@@ -121,7 +115,6 @@ def ffmpeg.decode.audio(~id=null("ffmpeg.decode.audio"), s) =
   )
 end
 
-
 # Decode a source's audio content
 # @category Source / Conversion
 def ffmpeg.raw.decode.audio(~id=null("ffmpeg.raw.decode.audio"), s) =
@@ -135,7 +128,6 @@ def ffmpeg.raw.decode.audio(~id=null("ffmpeg.raw.decode.audio"), s) =
     }
   )
 end
-
 
 # Decode a source's video content
 # @category Source / Conversion
@@ -151,7 +143,6 @@ def ffmpeg.decode.video(~id=null("ffmpeg.decode.video"), s) =
   )
 end
 
-
 # Decode a source's video content
 # @category Source / Conversion
 def ffmpeg.raw.decode.video(~id=null("ffmpeg.raw.decode.video"), s) =
@@ -165,7 +156,6 @@ def ffmpeg.raw.decode.video(~id=null("ffmpeg.raw.decode.video"), s) =
     }
   )
 end
-
 
 # Decode a source's audio and video content
 # @category Source / Conversion
@@ -183,7 +173,6 @@ def ffmpeg.decode.audio_video(~id=null("ffmpeg.decode.audio_video"), s) =
     }
   )
 end
-
 
 # Decode a source's audio and video content
 # @category Source / Conversion
@@ -204,11 +193,9 @@ def ffmpeg.raw.decode.audio_video(
     }
   )
 end
-
 %endif
 
 %ifdef input.ffmpeg
-
 # Stream from a video4linux2 input device, such as a webcam.
 # @category Source / Input
 # @param ~id Force the value of the source ID.
@@ -219,7 +206,6 @@ def input.v4l2(~id=null(), ~max_buffer=0.5, ~device="/dev/video0") =
     video=canvas
   ))
 end
-
 
 # A test video source, which generates various patterns.
 # @category Source / Video processing
@@ -241,7 +227,6 @@ def video.testsrc.ffmpeg(
   ))
 end
 
-
 # Read an RTMP stream.
 # @category Source / Input
 # @param ~max_buffer Maximum data buffer in seconds
@@ -257,7 +242,6 @@ def input.rtmp(~id=null(), ~max_buffer=5., ~listen=true, url) =
     url
   )
 end
-
 %endif
 
 %ifdef ffmpeg.filter.drawtext
@@ -346,13 +330,17 @@ def video.add_text.ffmpeg.raw.filter(
       string.contains(substring=s, "(',%,\\,:,{,})")
     end
 
-    def escape_char(~encoding=_, s) = "\\#{s}" end
+    def escape_char(~encoding=_, s) =
+      "\\#{s}"
+    end
 
     fun (s) ->
       string.escape(special_char=special_char, escape_char=escape_char, s)
   end
 
-  def escaped_text() = escape(getter.get(d)) end
+  def escaped_text() =
+    escape(getter.get(d))
+  end
 
   filters =
     [
@@ -451,7 +439,6 @@ def video.add_text.ffmpeg.raw.filter(
   v.{on_change=on_change, on_metadata=on_metadata}
 end
 
-
 # Display a text. Use this operator inside ffmpeg filters with a input source
 # @category Source / Video processing
 # @param ~color Text color (in 0xRRGGBB format).
@@ -521,7 +508,6 @@ def replaces video.add_text.ffmpeg.raw(
   ffmpeg.filter.null(graph, v)
 end
 
-
 # Display a text.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
@@ -552,6 +538,7 @@ def video.add_text.ffmpeg.internal(
   id = string.id.default(default="video.add_text.ffmpeg", id)
   s = ffmpeg.raw.encode.audio_video(%ffmpeg(%audio.raw, %video.raw), s)
   v = source({video=source.tracks(s).video})
+
   def mkfilter(graph) =
     v =
       video.add_text.ffmpeg.raw(
@@ -578,8 +565,7 @@ def video.add_text.ffmpeg.internal(
   null.defined(duration) ? max_duration(null.get(duration), s) : s
 end
 
-let replaces video.add_text.ffmpeg = video.add_text.ffmpeg.internal
-%endif
+let replaces video.add_text.ffmpeg = video.add_text.ffmpeg.internal%endif
 
 
 # video.add_text.available := [("ffmpeg", video.add_text.ffmpeg.internal), ...video.add_text.available()]
@@ -598,5 +584,4 @@ def ffmpeg.filter.audio_video.output(~id=null(), graph, audio, video) =
   video = ffmpeg.filter.video.output(graph, video.tracks().video)
   source(id=id, {audio=audio, video=video})
 end
-
 %endif

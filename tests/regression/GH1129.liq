@@ -4,18 +4,28 @@
 # Bug appears when it switches to s3 again on step 2
 selected = ref([])
 s1 = blank(duration=0.04)
-def m1(_) = [("id", "s1")] end
+
+def m1(_) =
+  [("id", "s1")]
+end
 
 s1 = metadata.map(id="s1", m1, s1)
 s2_ready = ref(false)
 s2 = switch(id="s2", [({!s2_ready}, blank(duration=0.04))])
-def m2(_) = [("id", "s2")] end
+
+def m2(_) =
+  [("id", "s2")]
+end
 
 s2 = metadata.map(id="s2", m2, s2)
 s3 = blank(id="s3", duration=0.04)
-def m3(_) = [("id", "s3")] end
+
+def m3(_) =
+  [("id", "s3")]
+end
 
 s3 = metadata.map(id="s3", m3, s3)
+
 def f(m) =
   s2_ready := !s2_ready or m["id"] == "s3"
   selected := list.cons(m["id"], !selected)
@@ -24,6 +34,7 @@ end
 s = rotate([s1, s2, s3])
 s.on_track(f)
 output.dummy(s)
+
 def on_done() =
   s = list.rev(!selected)
   if

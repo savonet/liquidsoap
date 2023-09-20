@@ -1,8 +1,8 @@
 log.level.set(4)
 keys = "1234567890*#ABCD"
 detected = ref("")
-def f(k) =
 
+def f(k) =
   # Skip test for now.
   # test.skip()
   print("Detected key #{k}")

@@ -3,8 +3,10 @@ settings.decoder.decoders.set(["ffmpeg"])
 fname = argv(default="", 1)
 out = "#{fname}+ffmpeg_filter.mp4"
 if file.exists(out) then file.remove(out) end
+
 def f(s) =
   tracks = source.tracks(s)
+
   def mkfilter(graph) =
     a = ffmpeg.filter.audio.input(graph, tracks.audio)
     a = ffmpeg.filter.flanger(graph, a, delay=10.)
@@ -23,7 +25,10 @@ s = single(fname)
 s = sequence([s, s, s, s, s, source.fail()])
 s = f(s)
 started = ref(false)
-def on_track(_) = started := true end
+
+def on_track(_) =
+  started := true
+end
 
 s.on_track(on_track)
 

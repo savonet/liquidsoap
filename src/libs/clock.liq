@@ -8,7 +8,6 @@ def replaces clock(~sync="auto", ~id=null(), s) =
   s
 end
 
-
 # Create a log of clock times for all the clocks initially present. The log is
 # in a simple format which you can directly use with gnuplot.
 # @category Liquidsoap
@@ -18,12 +17,12 @@ end
 # @param ~every    Polling interval.
 # @param logfile   Path of the log file.
 def clock.log(~delay=0., ~every=1., logfile) =
-
   # Get the current clocks
   clocks = list.map(fst, clock.status())
 
   # Column headers
   file.write(data="# #{string.concat(separator=' ', clocks)}", logfile)
+
   def report() =
     status = clock.status()
     status = list.map(fun (x) -> (fst(x), string(snd(x))), status)
@@ -36,7 +35,6 @@ def clock.log(~delay=0., ~every=1., logfile) =
   delay = if delay <= 0. then 0. else delay end
   thread.run(delay=delay, every=every, report)
 end
-
 
 # Get the current time in seconds for all allocated clocks.
 # @category Liquidsoap

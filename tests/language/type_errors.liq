@@ -1,5 +1,7 @@
 #!../../liquidsoap ../test.liq
-def section(name) = print("\n*** #{name} ***\n\n") end
+def section(name) =
+  print("\n*** #{name} ***\n\n")
+end
 
 def incorrect(expr) =
   print("Incorrect expression #{expr}...\n")

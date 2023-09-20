@@ -23,7 +23,6 @@ def harbor.http.middleware.cors(
 ) =
   fun (req, res, next) ->
     begin
-
       # This is for typing purposes
       res = if false then http.response() else res end
       if
@@ -35,6 +34,7 @@ def harbor.http.middleware.cors(
       end
 
       vary = ref([])
+
       def add_vary() =
         if
           vary() != []
@@ -43,7 +43,9 @@ def harbor.http.middleware.cors(
         end
       end
 
-      def vary(v) = vary := v::vary() end
+      def vary(v) =
+        vary := v::vary()
+      end
 
       def add_origin(origin) =
         res.header("Access-Control-Allow-Origin", origin)
@@ -152,7 +154,6 @@ def harbor.http.middleware.cors(
       end
     end
 end
-
 
 # This is for typing purposes
 if false then harbor.http.middleware.register(harbor.http.middleware.cors()) end

@@ -190,11 +190,11 @@ let mk_prettify_rule f =
     {|
 (rule
   (alias fmt)
-  (deps %s (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps %s ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to %s.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/%s)))
       (diff %s %s.prettier))))
 |}

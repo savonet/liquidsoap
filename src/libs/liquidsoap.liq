@@ -4,9 +4,13 @@ let liquidsoap.chroot = ()
 # for packaging and docker images.
 # @category Liquidsoap
 def liquidsoap.chroot.make(chroot) =
-  def chroot(p) = path.concat(chroot, p) end
+  def chroot(p) =
+    path.concat(chroot, p)
+  end
 
-  def mkdir(p) = process.run("mkdir -p #{process.quote(p)}") end
+  def mkdir(p) =
+    process.run("mkdir -p #{process.quote(p)}")
+  end
 
   def cp(source) =
     mkdir(chroot(path.dirname(source)))

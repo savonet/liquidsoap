@@ -1,4 +1,5 @@
 success = ref(true)
+
 def t(x, y) =
   if
     x != y
@@ -9,6 +10,7 @@ def t(x, y) =
 end
 
 epsilon = 0.000000001
+
 def f() =
   x = 5.
   if abs(dB_of_lin(lin_of_dB(x)) - x) >= epsilon then success := false end

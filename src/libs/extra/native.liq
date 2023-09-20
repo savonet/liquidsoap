@@ -5,13 +5,11 @@ let native = ()
 # @category Source / Track processing
 # @flag extra
 def native.once(s) =
-
   # source.available(track_sensitive=true, s, predicate.first({true}))
   a = ref(true)
   s = source.on_track(s, fun (_) -> a := false)
   source.available(s, a)
 end
-
 
 # At the beginning of each track, select the first ready child.
 # @category Source / Track processing
@@ -20,7 +18,10 @@ end
 # @param ~track_sensitive Re-select only on end of tracks.
 def native.fallback(~id=null(), ~track_sensitive=true, sources) =
   fail = (source.fail() : source)
-  def s() = list.find(default=fail, source.is_ready, getter.get(sources)) end
+
+  def s() =
+    list.find(default=fail, source.is_ready, getter.get(sources))
+  end
 
   infallible =
     getter.is_constant(sources)
@@ -32,7 +33,6 @@ def native.fallback(~id=null(), ~track_sensitive=true, sources) =
   )
 end
 
-
 # Play only one track of every successive source, except for the last one which
 # is played as much as available.
 # @category Source / Track processing
@@ -43,6 +43,7 @@ def native.sequence(~id=null(), sources) =
   len = list.length(sources)
   n = ref(0)
   fail = source.fail()
+
   def rec s() =
     sn = list.nth(default=list.last(default=fail, sources), sources, n())
     if
@@ -58,14 +59,15 @@ def native.sequence(~id=null(), sources) =
   infallible = not source.fallible(list.last(default=fail, sources))
   s = source.dynamic(id=id, infallible=infallible, track_sensitive=true, s)
   first = ref(true)
+
   def ot(_) =
     # Drop the first track
-    if first() then first := false else ref.incr(n) end end
+    if first() then first := false else ref.incr(n) end
+  end
 
   s = source.on_track(s, ot)
   s
 end
-
 
 # Select the first source whose predicate is true in a list. If the second
 # argument is a getter, the source will be dynamically created.
@@ -79,7 +81,6 @@ def native.switch(~id=null(), ~track_sensitive=true, sources) =
   native.fallback(id=id, track_sensitive=track_sensitive, sources)
 end
 
-
 # This allows doing `open native`
 let native.request = request
 
@@ -87,6 +88,7 @@ let native.request = request
 def native.request.dynamic(%argsof(request.dynamic), f) =
   ignore(available)
   ignore(timeout)
+
   def f() =
     try
       f()
@@ -95,11 +97,13 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     end
   end
 
-
   # Prepared requests
   queue = ref([])
+
   def get_queue() =
-    def get_request(s) = s.request end
+    def get_request(s) =
+      s.request
+    end
 
     list.map(get_request, queue())
   end
@@ -122,6 +126,7 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
   end
 
   current = ref(null())
+
   def get_current() =
     if
       null.defined(current())
@@ -132,7 +137,6 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
       null()
     end
   end
-
 
   # Prefetch thread
   def fetch() =
@@ -157,7 +161,9 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     end
   end
 
-  def fill() = if list.length(queue()) < prefetch then ignore(fetch()) end end
+  def fill() =
+    if list.length(queue()) < prefetch then ignore(fetch()) end
+  end
 
   thread.run(every=retry_delay, fill)
 

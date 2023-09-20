@@ -3,6 +3,7 @@
 # (because of the add) has to be determined by unification at execution time.
 log.level.set(4)
 first = ref(true)
+
 def f() =
   if
     first()

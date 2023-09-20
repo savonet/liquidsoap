@@ -1,6 +1,9 @@
 s = sine()
 s = insert_metadata(s)
-def f() = s.insert_metadata([("title", "test title"), ("album", "foolol")]) end
+
+def f() =
+  s.insert_metadata([("title", "test title"), ("album", "foolol")])
+end
 
 thread.run(every=2., f)
 s = mksafe(s)
@@ -29,6 +32,7 @@ output.file.hls(
 )
 
 to_check = ref({aac=null(), ts_with_meta=null(), ts=null(), mp4=null()})
+
 def check_done() =
   let {aac, ts_with_meta, ts, mp4} = to_check()
   if null.defined(ts) then test.fail("ts shouldn't have metadata!") end

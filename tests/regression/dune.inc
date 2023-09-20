@@ -1,11 +1,11 @@
 
 (rule
   (alias fmt)
-  (deps 115-1.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps 115-1.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to 115-1.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/115-1.liq)))
       (diff 115-1.liq 115-1.liq.prettier))))
 
@@ -24,11 +24,11 @@
 
 (rule
   (alias fmt)
-  (deps 115-2.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps 115-2.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to 115-2.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/115-2.liq)))
       (diff 115-2.liq 115-2.liq.prettier))))
 
@@ -47,11 +47,11 @@
 
 (rule
   (alias fmt)
-  (deps AC5109.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps AC5109.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to AC5109.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/AC5109.liq)))
       (diff AC5109.liq AC5109.liq.prettier))))
 
@@ -70,11 +70,11 @@
 
 (rule
   (alias fmt)
-  (deps BUG403.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps BUG403.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to BUG403.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/BUG403.liq)))
       (diff BUG403.liq BUG403.liq.prettier))))
 
@@ -93,11 +93,11 @@
 
 (rule
   (alias fmt)
-  (deps GH-action-919422659.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH-action-919422659.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH-action-919422659.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH-action-919422659.liq)))
       (diff GH-action-919422659.liq GH-action-919422659.liq.prettier))))
 
@@ -116,11 +116,11 @@
 
 (rule
   (alias fmt)
-  (deps GH1129.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH1129.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH1129.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH1129.liq)))
       (diff GH1129.liq GH1129.liq.prettier))))
 
@@ -139,11 +139,11 @@
 
 (rule
   (alias fmt)
-  (deps GH1146.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH1146.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH1146.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH1146.liq)))
       (diff GH1146.liq GH1146.liq.prettier))))
 
@@ -162,11 +162,11 @@
 
 (rule
   (alias fmt)
-  (deps GH1151.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH1151.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH1151.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH1151.liq)))
       (diff GH1151.liq GH1151.liq.prettier))))
 
@@ -185,11 +185,11 @@
 
 (rule
   (alias fmt)
-  (deps GH1159.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH1159.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH1159.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH1159.liq)))
       (diff GH1159.liq GH1159.liq.prettier))))
 
@@ -208,11 +208,11 @@
 
 (rule
   (alias fmt)
-  (deps GH1279.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH1279.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH1279.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH1279.liq)))
       (diff GH1279.liq GH1279.liq.prettier))))
 
@@ -231,11 +231,11 @@
 
 (rule
   (alias fmt)
-  (deps GH1327.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH1327.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH1327.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH1327.liq)))
       (diff GH1327.liq GH1327.liq.prettier))))
 
@@ -254,11 +254,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2585.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2585.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2585.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2585.liq)))
       (diff GH2585.liq GH2585.liq.prettier))))
 
@@ -277,11 +277,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2602.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2602.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2602.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2602.liq)))
       (diff GH2602.liq GH2602.liq.prettier))))
 
@@ -300,11 +300,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2756-2.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2756-2.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2756-2.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2756-2.liq)))
       (diff GH2756-2.liq GH2756-2.liq.prettier))))
 
@@ -323,11 +323,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2756.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2756.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2756.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2756.liq)))
       (diff GH2756.liq GH2756.liq.prettier))))
 
@@ -346,11 +346,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2758.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2758.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2758.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2758.liq)))
       (diff GH2758.liq GH2758.liq.prettier))))
 
@@ -369,11 +369,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2842.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2842.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2842.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2842.liq)))
       (diff GH2842.liq GH2842.liq.prettier))))
 
@@ -392,11 +392,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2850.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2850.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2850.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2850.liq)))
       (diff GH2850.liq GH2850.liq.prettier))))
 
@@ -415,11 +415,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2867.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2867.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2867.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2867.liq)))
       (diff GH2867.liq GH2867.liq.prettier))))
 
@@ -438,11 +438,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2871.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2871.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2871.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2871.liq)))
       (diff GH2871.liq GH2871.liq.prettier))))
 
@@ -461,11 +461,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2872.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2872.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2872.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2872.liq)))
       (diff GH2872.liq GH2872.liq.prettier))))
 
@@ -484,11 +484,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2897.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2897.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2897.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2897.liq)))
       (diff GH2897.liq GH2897.liq.prettier))))
 
@@ -507,11 +507,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2902.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2902.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2902.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2902.liq)))
       (diff GH2902.liq GH2902.liq.prettier))))
 
@@ -530,11 +530,11 @@
 
 (rule
   (alias fmt)
-  (deps GH2926.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH2926.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH2926.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH2926.liq)))
       (diff GH2926.liq GH2926.liq.prettier))))
 
@@ -553,11 +553,11 @@
 
 (rule
   (alias fmt)
-  (deps GH3093.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH3093.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH3093.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH3093.liq)))
       (diff GH3093.liq GH3093.liq.prettier))))
 
@@ -576,11 +576,11 @@
 
 (rule
   (alias fmt)
-  (deps GH3121.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH3121.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH3121.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH3121.liq)))
       (diff GH3121.liq GH3121.liq.prettier))))
 
@@ -599,11 +599,11 @@
 
 (rule
   (alias fmt)
-  (deps GH3132.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH3132.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH3132.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH3132.liq)))
       (diff GH3132.liq GH3132.liq.prettier))))
 
@@ -622,11 +622,11 @@
 
 (rule
   (alias fmt)
-  (deps GH3224.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH3224.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH3224.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH3224.liq)))
       (diff GH3224.liq GH3224.liq.prettier))))
 
@@ -645,11 +645,11 @@
 
 (rule
   (alias fmt)
-  (deps GH3239-2.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH3239-2.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH3239-2.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH3239-2.liq)))
       (diff GH3239-2.liq GH3239-2.liq.prettier))))
 
@@ -668,11 +668,11 @@
 
 (rule
   (alias fmt)
-  (deps GH3239.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH3239.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH3239.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH3239.liq)))
       (diff GH3239.liq GH3239.liq.prettier))))
 
@@ -691,11 +691,11 @@
 
 (rule
   (alias fmt)
-  (deps GH3276.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH3276.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH3276.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH3276.liq)))
       (diff GH3276.liq GH3276.liq.prettier))))
 
@@ -714,11 +714,11 @@
 
 (rule
   (alias fmt)
-  (deps GH3316.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps GH3316.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to GH3316.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/GH3316.liq)))
       (diff GH3316.liq GH3316.liq.prettier))))
 
@@ -737,11 +737,11 @@
 
 (rule
   (alias fmt)
-  (deps LS268.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps LS268.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to LS268.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/LS268.liq)))
       (diff LS268.liq LS268.liq.prettier))))
 
@@ -760,11 +760,11 @@
 
 (rule
   (alias fmt)
-  (deps LS354-1.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps LS354-1.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to LS354-1.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/LS354-1.liq)))
       (diff LS354-1.liq LS354-1.liq.prettier))))
 
@@ -783,11 +783,11 @@
 
 (rule
   (alias fmt)
-  (deps LS354-2.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps LS354-2.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to LS354-2.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/LS354-2.liq)))
       (diff LS354-2.liq LS354-2.liq.prettier))))
 
@@ -806,11 +806,11 @@
 
 (rule
   (alias fmt)
-  (deps LS460.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps LS460.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to LS460.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/LS460.liq)))
       (diff LS460.liq LS460.liq.prettier))))
 
@@ -829,11 +829,11 @@
 
 (rule
   (alias fmt)
-  (deps LS503.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps LS503.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to LS503.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/LS503.liq)))
       (diff LS503.liq LS503.liq.prettier))))
 
@@ -852,11 +852,11 @@
 
 (rule
   (alias fmt)
-  (deps default_format.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps default_format.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to default_format.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/default_format.liq)))
       (diff default_format.liq default_format.liq.prettier))))
 
@@ -875,11 +875,11 @@
 
 (rule
   (alias fmt)
-  (deps external-encoder.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps external-encoder.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to external-encoder.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/external-encoder.liq)))
       (diff external-encoder.liq external-encoder.liq.prettier))))
 
@@ -898,11 +898,11 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg-copy-encode.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg-copy-encode.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg-copy-encode.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/ffmpeg-copy-encode.liq)))
       (diff ffmpeg-copy-encode.liq ffmpeg-copy-encode.liq.prettier))))
 
@@ -921,11 +921,11 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg-copy-input-http.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg-copy-input-http.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg-copy-input-http.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/ffmpeg-copy-input-http.liq)))
       (diff ffmpeg-copy-input-http.liq ffmpeg-copy-input-http.liq.prettier))))
 
@@ -944,11 +944,11 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg-naming-convention.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps ffmpeg-naming-convention.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg-naming-convention.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/ffmpeg-naming-convention.liq)))
       (diff ffmpeg-naming-convention.liq ffmpeg-naming-convention.liq.prettier))))
 
@@ -967,11 +967,11 @@
 
 (rule
   (alias fmt)
-  (deps infallible-shutdown.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps infallible-shutdown.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to infallible-shutdown.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/infallible-shutdown.liq)))
       (diff infallible-shutdown.liq infallible-shutdown.liq.prettier))))
 
@@ -990,11 +990,11 @@
 
 (rule
   (alias fmt)
-  (deps init-error.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps init-error.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to init-error.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/init-error.liq)))
       (diff init-error.liq init-error.liq.prettier))))
 
@@ -1013,11 +1013,11 @@
 
 (rule
   (alias fmt)
-  (deps initial_request_queue.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps initial_request_queue.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to initial_request_queue.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/initial_request_queue.liq)))
       (diff initial_request_queue.liq initial_request_queue.liq.prettier))))
 
@@ -1036,11 +1036,11 @@
 
 (rule
   (alias fmt)
-  (deps input_rtmp.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps input_rtmp.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to input_rtmp.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/input_rtmp.liq)))
       (diff input_rtmp.liq input_rtmp.liq.prettier))))
 
@@ -1059,11 +1059,11 @@
 
 (rule
   (alias fmt)
-  (deps metadata_cache.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps metadata_cache.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to metadata_cache.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/metadata_cache.liq)))
       (diff metadata_cache.liq metadata_cache.liq.prettier))))
 
@@ -1082,11 +1082,11 @@
 
 (rule
   (alias fmt)
-  (deps playlist-id.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps playlist-id.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to playlist-id.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/playlist-id.liq)))
       (diff playlist-id.liq playlist-id.liq.prettier))))
 
@@ -1105,11 +1105,11 @@
 
 (rule
   (alias fmt)
-  (deps replaygain.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps replaygain.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to replaygain.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/replaygain.liq)))
       (diff replaygain.liq replaygain.liq.prettier))))
 
@@ -1128,11 +1128,11 @@
 
 (rule
   (alias fmt)
-  (deps shoutcast-args.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps shoutcast-args.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to shoutcast-args.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/shoutcast-args.liq)))
       (diff shoutcast-args.liq shoutcast-args.liq.prettier))))
 
@@ -1151,11 +1151,11 @@
 
 (rule
   (alias fmt)
-  (deps unified-pcm-types.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps unified-pcm-types.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to unified-pcm-types.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/unified-pcm-types.liq)))
       (diff unified-pcm-types.liq unified-pcm-types.liq.prettier))))
 
@@ -1174,11 +1174,11 @@
 
 (rule
   (alias fmt)
-  (deps video-only.liq (source_tree ../../src/tooling/prettier) ../../src/tooling/json_dump.exe ../../src/tooling/prettier/node_modules)
+  (deps video-only.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to video-only.liq.prettier
-       (chdir ../../src/tooling/prettier
+       (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/regression/video-only.liq)))
       (diff video-only.liq video-only.liq.prettier))))
 

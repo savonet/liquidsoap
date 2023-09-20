@@ -1,17 +1,20 @@
 # Width for all video frames.
 # @category Source / Video processing
-def video.frame.width = settings.frame.video.width end
-
+def video.frame.width =
+  settings.frame.video.width
+end
 
 # Height for all video frames.
 # @category Source / Video processing
-def video.frame.height = settings.frame.video.height end
-
+def video.frame.height =
+  settings.frame.video.height
+end
 
 # Framerate for all video frames.
 # @category Source / Video processing
-def video.frame.rate = settings.frame.video.framerate end
-
+def video.frame.rate =
+  settings.frame.video.framerate
+end
 
 # Generate a source from a static image.
 # @category Source / Video processing
@@ -33,6 +36,7 @@ def image(
   file
 ) =
   s = source.dynamic()
+
   def set(file) =
     image = single(id=id, fallible=fallible, file)
     image = video.crop(image)
@@ -60,7 +64,6 @@ def image(
   s.{set=set}
 end
 
-
 # Add a static image on the given video track.
 # @category Track / Video processing
 # @param ~id Force the value of the source ID.
@@ -86,7 +89,6 @@ def track.video.add_image(
   let {video = image} = source.tracks(image)
   track.video.add([v, image])
 end
-
 
 # Add a static image on the source video channel.
 # @category Source / Video processing
@@ -114,13 +116,13 @@ def video.add_image(
   source(id=id, tracks.{video=video})
 end
 
-
 # Generate a video source containing cover-art for current track of input audio
 # source.
 # @category Source / Video processing
 # @param s Audio source whose metadata contain cover-art.
 def video.cover(s) =
   video = source.dynamic()
+
   def read_cover(m) =
     filename = m["filename"]
     cover =
@@ -181,7 +183,6 @@ def output.youtube.live.rtmp(
   )
 end
 
-
 # Stream to youtube using HLS.
 # @category Source / Output
 # @param ~id Force the value of the source ID.
@@ -210,7 +211,10 @@ def output.youtube.live.hls(
   s
 ) =
   id = string.id.default(default="output.youtube.live.hls", id)
-  def file_url(fname) = "#{url}?cid=#{key}&copy=0&file=#{fname}" end
+
+  def file_url(fname) =
+    "#{url}?cid=#{key}&copy=0&file=#{fname}"
+  end
 
   def file_upload(fname) =
     fun () ->
@@ -250,7 +254,6 @@ def output.youtube.live.hls(
   )
 end
 
-
 # @flag hidden
 def add_text_builder(f) =
   def at(
@@ -273,6 +276,7 @@ def add_text_builder(f) =
     # Handle modifying the text with metadata.
     tref = ref(getter.get(text))
     text = null.defined(metadata) ? tref : text
+
     def on_metadata(m) =
       if
         null.defined(metadata)
@@ -297,6 +301,7 @@ def add_text_builder(f) =
       else
         fps = video.frame.rate()
         x = ref(getter.get(x))
+
         def x() =
           if
             cycle and x() < 0 - t.width()
@@ -342,7 +347,9 @@ let video.text.available = ref([])
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def video.add_text.native = add_text_builder(video.text.native) end
+def video.add_text.native =
+  add_text_builder(video.text.native)
+end
 
 video.text.available :=
   [("native", video.text.native), ...video.text.available()]
@@ -362,14 +369,14 @@ video.text.available := [("gd", video.text.gd), ...video.text.available()]
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def video.text.gd = add_text_builder(video.text.gd) end
-
+def video.text.gd =
+  add_text_builder(video.text.gd)
+end
 %endif
 
 %ifdef video.text.gstreamer
 video.text.available :=
   [("gstreamer", video.text.gstreamer), ...video.text.available()]
-
 
 # Add a text to a stream (GStreamer implementation).
 # @category Source / Video processing
@@ -383,8 +390,9 @@ video.text.available :=
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def video.add_text.gstreamer = add_text_builder(video.text.gstreamer) end
-
+def video.add_text.gstreamer =
+  add_text_builder(video.text.gstreamer)
+end
 %endif
 
 %ifdef video.text.sdl
@@ -402,14 +410,14 @@ video.text.available := [("sdl", video.text.sdl), ...video.text.available()]
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def video.add_text.sdl = add_text_builder(video.text.sdl) end
-
+def video.add_text.sdl =
+  add_text_builder(video.text.sdl)
+end
 %endif
 
 %ifdef video.text.camlimages
 video.text.available :=
   [("camlimages", video.text.camlimages), ...video.text.available()]
-
 
 # Add a text to a stream (camlimages implementation).
 # @category Source / Video processing
@@ -423,8 +431,9 @@ video.text.available :=
 # @param ~x x offset.
 # @param ~y y offset.
 # @params d Text to display.
-def video.add_text.camlimages = add_text_builder(video.text.camlimages) end
-
+def video.add_text.camlimages =
+  add_text_builder(video.text.camlimages)
+end
 %endif
 
 let settings.video.text =
@@ -454,7 +463,6 @@ thread.run(
   )
 )
 
-
 # Display a text using the first available operator in: camlimages, SDL, FFmpeg, GStreamer, gd or native.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
@@ -480,7 +488,6 @@ def replaces video.text(
 
   f(id=id, color=color, duration=duration, font=font, size=size, text)
 end
-
 
 # Add a text to a stream. Uses the first available operator in: camlimages, SDL,
 # FFmpeg, GStreamer, gd or native.
@@ -529,7 +536,6 @@ def replaces video.add_text(
   )
 end
 
-
 # Add subtitle from metadata.
 # @category Source / Video processing
 # @param ~override Metadata where subtitle to display are located.
@@ -548,6 +554,7 @@ def video.add_subtitle(
   x = {(video.frame.width() - t.width()) / 2}
   y = {video.frame.height() - t.height() - offset}
   t = video.translate(x=x, y=y, t)
+
   def meta(m) =
     if list.assoc.mem(override, m) then subtitle := list.assoc(override, m) end
   end
@@ -558,7 +565,6 @@ def video.add_subtitle(
   let v = track.video.add([v, t])
   source(tracks.{video=v})
 end
-
 
 # Display a slideshow (typically of pictures).
 # @category Source / Video processing
@@ -580,8 +586,10 @@ def video.slideshow(
   l = ref(l)
   n = ref(-1)
   s = source.dynamic()
-  def current() = list.nth(l(), n()) end
 
+  def current() =
+    list.nth(l(), n())
+  end
 
   # Set current file to the nth.
   def set(n') =
@@ -628,7 +636,9 @@ def video.slideshow(
     n := 0
   end
 
-  def append(l') = l := list.append(l(), l') end
+  def append(l') =
+    l := list.append(l(), l')
+  end
 
   set(0)
   if
@@ -640,12 +650,12 @@ def video.slideshow(
   s.{append=append, clear=clear, next=next, prev=prev, current=current}
 end
 
-
 # Generate a video filled with given color.
 # @category Source / Video processing
 # @param color Color (in 0xRRGGBB format).
-def video.color(color) = video.fill(color=color, blank()) end
-
+def video.color(color) =
+  video.fill(color=color, blank())
+end
 
 # Tile sources
 # @category Source / Video processing
@@ -689,7 +699,6 @@ def video.tile(
   source(id=id, new_tracks)
 end
 
-
 # Plot a floating point value.
 # @category Source / Video processing
 # @param ~color Color of the drawn point (in 0xRRGGBB format).
@@ -710,6 +719,7 @@ def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y) =
   # offset of the currently drawn point.
   x = ref(0)
   dx = int_of_float(speed * frame.duration())
+
   def update() =
     tx := tx() - dx
     y = int_of_float(((max - y()) / (max - min)) * height)

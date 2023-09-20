@@ -6,6 +6,7 @@ main_tags = ref(false)
 aac_flags = ref(false)
 mp4_flags = ref(false)
 aac_insert_flags = ref(false)
+
 def on_file_change(~state, p) =
   fname = path.basename(p)
   if

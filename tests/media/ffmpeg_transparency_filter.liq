@@ -3,6 +3,7 @@ background = single("background.jpg")
 playlist = single("@mp3[stereo].mp3")
 logo = single("logo.png")
 out = "transparency.mp4"
+
 def logo_overlay(background, logo) =
   def mkfilter(graph) =
     background = ffmpeg.filter.video.input(graph, background)
@@ -18,7 +19,10 @@ video = logo_overlay(source.tracks(background).video, source.tracks(logo).video)
 s = source({audio=source.tracks(playlist).audio, video=video})
 s = max_duration(3., s)
 started = ref(false)
-def on_track(_) = started := true end
+
+def on_track(_) =
+  started := true
+end
 
 s.on_track(on_track)
 

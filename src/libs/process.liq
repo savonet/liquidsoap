@@ -24,7 +24,6 @@ def process.read(
   p.stdout
 end
 
-
 # Perform a shell call and return the list of its output lines.
 # @category System
 # @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
@@ -51,7 +50,6 @@ def process.read.lines(
   r/\r?\n/.split(s)
 end
 
-
 # Return true if process exited with 0 code.
 # @category System
 # @param ~timeout Cancel process after `timeout` has elapsed. Ignored if negative.
@@ -62,7 +60,6 @@ def process.test(~timeout=(-1.), ~env=[], ~inherit_env=true, command) =
   p = process.run(timeout=timeout, env=env, inherit_env=inherit_env, command)
   p.status == "exit" and p.status.code == 0
 end
-
 
 # Read some value from standard input (console).
 # @category System

@@ -1,4 +1,5 @@
 log.level := 4
+
 def f() =
   s =
     once(

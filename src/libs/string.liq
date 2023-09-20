@@ -2,8 +2,9 @@
 # recognized. Hence, special characters should be escaped. Alternatively, one
 # can use the the `r/_/.test(_)` syntax for regular expressions.
 # @category String
-def string.match(~pattern, s) = regexp(pattern).test(s) end
-
+def string.match(~pattern, s) =
+  regexp(pattern).test(s)
+end
 
 # Extract substrings from a string. Perl compatible regular expressions are
 # recognized. Hence, special characters should be escaped. Returns a list of
@@ -11,8 +12,9 @@ def string.match(~pattern, s) = regexp(pattern).test(s) end
 # means that the corresponding pattern was not found. Alter natively, one can
 # use the `r/_/.exec(_)` syntax for regular expressions.
 # @category String
-def string.extract(~pattern, s) = regexp(pattern).exec(s) end
-
+def string.extract(~pattern, s) =
+  regexp(pattern).exec(s)
+end
 
 # Replace all substrings matched by a pattern by another string returned by a
 # function. Alternatively, one can use the `r/_/g.replace(_)` syntax for regular
@@ -21,16 +23,17 @@ def string.extract(~pattern, s) = regexp(pattern).exec(s) end
 # @param ~pattern Pattern (regular expression) of substrings which should be replaced.
 # @param f Function getting a matched substring an returning the string to replace it with.
 # @param s String whose substrings should be replaced.
-def string.replace(~pattern, f, s) = regexp(flags=["g"], pattern).replace(f, s)
+def string.replace(~pattern, f, s) =
+  regexp(flags=["g"], pattern).replace(f, s)
 end
-
 
 # Split a string at "separator". Perl compatible regular expressions are
 # recognized. Hence, special characters should be escaped. Alternatively, one
 # can use the `r/_/.split(_)` syntax for regular expressions.
 # @category String
-def string.split(~separator, s) = regexp(separator).split(s) end
-
+def string.split(~separator, s) =
+  regexp(separator).split(s)
+end
 
 # Split a string in two at first "separator".
 # @category String
@@ -49,7 +52,6 @@ def string.split.first(~separator, s) =
     string.sub(s, start=i + l, length=n - (i + l))
   )
 end
-
 
 # Test whether a string contains a given prefix, substring or suffix.
 # @category String
@@ -94,7 +96,6 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s) =
   ans()
 end
 
-
 # What remains of a string after a given prefix.
 # @category String
 # @param ~prefix Requested prefix.
@@ -109,7 +110,6 @@ def string.residual(~prefix, s) =
   end
 end
 
-
 # Test whether a string is a valid integer.
 # @category String
 def string.is_int(s) =
@@ -121,15 +121,17 @@ def string.is_int(s) =
   end
 end
 
-
 # Convert a string to a int.
 # @category String
-def string.to_int(~default=0, s) = int_of_string(default=default, s) end
-
+def string.to_int(~default=0, s) =
+  int_of_string(default=default, s)
+end
 
 # Convert a string to a float.
 # @category String
-def string.to_float(~default=0., s) = float_of_string(default=default, s) end
+def string.to_float(~default=0., s) =
+  float_of_string(default=default, s)
+end
 
 let string.binary = ()
 
@@ -153,7 +155,6 @@ def string.binary.to_int(~little_endian=true, s) =
 
   ans()
 end
-
 
 # Encode a positive (unsigned) integer using native memory representation.
 # @category String
@@ -191,19 +192,20 @@ def string.binary.of_int(~pad=0, ~little_endian=true, d) =
   end
 end
 
-
 # Add a null character at the end of a string.
 # @category String
 # @param s String.
-def string.null_terminated(s) = s ^ "\000" end
-
+def string.null_terminated(s) =
+  s ^ "\000"
+end
 
 # Generate an identifier if no identifier was provided.
 # @category String
 # @param ~default Name from which identifier is generated if not present.
 # @param id Proposed identifier.
-def string.id.default(~default, id) = null.default(id, {string.id(default)}) end
-
+def string.id.default(~default, id) =
+  null.default(id, {string.id(default)})
+end
 
 # Return a quoted copy of the given string.
 # By default, the string is assumed to be `"utf8"` encoded and is escaped
@@ -224,7 +226,6 @@ def string.quote(~encoding=null(), s) =
   s = string.escape(special_char=special_char, encoding=encoding, s)
   "\"#{s}\""
 end
-
 
 # Return an unquoted copy of the given string.
 # Quotes are removed by trying to parse the string
@@ -250,7 +251,6 @@ def string.data_uri.encode(~base64=true, ~(mime:string), s) =
   s = base64 ? ";base64,#{string.base64.encode(s)}" : ",#{s}"
   "data:#{mime}#{s}"
 end
-
 
 # Decode a string using the data uri format,
 # i.e. `"data:<mime>[;base64],<data>"`.
@@ -299,7 +299,6 @@ def string.getter.single(s) =
     end
 end
 
-
 # Flush all values from a string getter and return
 # the concatenated result. If the getter is constant,
 # return the constant string. Otherwise, call the getter
@@ -327,7 +326,6 @@ def string.getter.flush(~separator="", gen) =
   end
 end
 
-
 # Combine a list of string getters `[g1, ...]`
 # and return a single getter `g` such that:
 # `string.getter.flush(separator=s, g) = string.concat(separator=s, list.filter(fun (s) -> s != "", [string.getter.flush(g1), ...]))`
@@ -335,6 +333,7 @@ end
 def string.getter.concat(l) =
   len = list.length(l)
   pos = ref(0)
+
   def rec f() =
     if
       pos() == len
