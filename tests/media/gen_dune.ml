@@ -200,6 +200,23 @@ let mk_prettify_rule f =
 |}
     f f f f f
 
+let mk_parse_rule f =
+  Printf.printf
+    {|
+(rule
+  (alias tree-sitter-test)
+  (deps
+   %s
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/%s)))))
+|}
+    f f
+
 let () =
   let liq_files =
     List.sort compare
@@ -207,4 +224,5 @@ let () =
          (fun f -> Filename.extension f = ".liq")
          (Build_tools.read_files ~location:"." "."))
   in
-  List.iter mk_prettify_rule liq_files
+  List.iter mk_prettify_rule liq_files;
+  List.iter mk_parse_rule liq_files

@@ -130,18 +130,18 @@ let dotvar tokenizer =
 (** Change MINUS to UMINUS if the minus is not preceded by a number (or an
    expression which could produce a number). *)
 let uminus tokenizer =
-  let was_number = ref false in
+  let no_uminus = ref false in
   let token () =
     match tokenizer () with
       | (Parser.INT _, _ | Parser.FLOAT _, _ | Parser.VAR _, _ | Parser.RPAR, _)
         as t ->
-          was_number := true;
+          no_uminus := true;
           t
-      | Parser.MINUS, pos when not !was_number ->
-          was_number := false;
+      | Parser.MINUS, pos when not !no_uminus ->
+          no_uminus := false;
           (Parser.UMINUS, pos)
       | t ->
-          was_number := false;
+          no_uminus := false;
           t
   in
   token

@@ -85,8 +85,8 @@ open Parser_helper
 %nonassoc QUESTION     (* x ? y : z *)
 %left AND             (* ((x+(y*z))==3) or ((not a)==b) *)
 %left OR
-%left BIN1
 %nonassoc NOT
+%left BIN1
 %left BIN2 MINUS
 %left BIN3 TIMES
 %right COLONCOLON
@@ -167,7 +167,7 @@ open Parser_helper
 %type <Term.type_annotation list> ty_tuple
 %type <Term.pattern> var_pattern
 %type <Parsed_term.list_el list> varlist
-%type <string list> varlpar
+%type <string list> subfield_lpar
 
 %%
 
@@ -499,20 +499,20 @@ explicit_binding:
   | _let LPAR pattern COLON ty RPAR GETS expr
                              { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 ()) }
   | _let subfield GETS expr  { `Let Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~def:$4 ()) }
-  | def pattern g exprs END  { `Def Parser_helper.(let_args ~decoration:$1 ~pat:$2 ~def:$4 ()) }
-  | def LPAR pattern COLON ty RPAR g exprs END
-                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 ()) }
+  | def optvar g exprs END   { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar [$2]) ~def:$4 ()) }
+  | def LPAR optvar COLON ty RPAR g exprs END
+                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar [$3]) ~def:$8 ~cast:$5 ()) }
   | def subfield g exprs END { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~def:$4 ()) }
-  | def varlpar arglist RPAR g exprs END
+  | def subfield_lpar arglist RPAR g exprs END
                              { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~arglist:$3 ~def:$6 ()) }
 
 binding:
   | optvar GETS expr         { `Binding Parser_helper.(let_args ~decoration:`None ~pat:(`PVar [$1]) ~def:$3 ()) }
   | explicit_binding         { ($1 :> binding) }
 
-varlpar:
-  | VARLPAR         { [$1] }
-  | VAR DOT varlpar { $1::$3 }
+subfield_lpar:
+  | VARLPAR               { [$1] }
+  | VAR DOT subfield_lpar { $1::$3 }
 
 arglist:
   |                       { [] }
@@ -551,6 +551,7 @@ args_of_params:
   | GET VAR                      { [], [$2] }
   | VAR COMMA args_of_params     { $1::(fst $3), (snd $3) }
   | GET VAR COMMA args_of_params { (fst $4), $2::(snd $4) }
+
 subfield_lbra:
   | VAR DOT in_subfield_lbra { $1::$3 }
 in_subfield_lbra:

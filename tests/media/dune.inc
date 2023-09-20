@@ -2243,16 +2243,6 @@
 
 (rule
   (alias fmt)
-  (deps harbor_audio.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
-  (action
-    (progn
-      (with-stdout-to harbor_audio.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
-         (run pnpm prettier --config ./config.json ../../../tests/media/harbor_audio.liq)))
-      (diff harbor_audio.liq harbor_audio.liq.prettier))))
-
-(rule
-  (alias fmt)
   (deps mono.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
@@ -2320,3 +2310,303 @@
        (chdir ../../src/tooling/liq-prettier
          (run pnpm prettier --config ./config.json ../../../tests/media/video_size.liq)))
       (diff video_size.liq video_size.liq.prettier))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_add_text.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_add_text.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_audio_decoder.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_audio_decoder.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_complex_filter.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_complex_filter.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_copy_and_encode_decoder.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_copy_and_encode_decoder.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_copy_concat.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_copy_concat.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_copy_decoder.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_copy_decoder.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_distributed_hls.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_distributed_hls.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_filter.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_filter.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_filter_changing_rate.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_filter_changing_rate.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_inline_encode_decode.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_inline_encode_decode.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_inline_encode_decode_audio.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_inline_encode_decode_audio.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_inline_encode_decode_video.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_inline_encode_decode_video.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_raw_and_copy_decoder.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_raw_and_copy_decoder.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_raw_and_encode_decoder.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_raw_and_encode_decoder.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_raw_decoder.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_raw_decoder.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_raw_hls.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_raw_hls.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_transparency_filter.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_transparency_filter.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   ffmpeg_video_decoder.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/ffmpeg_video_decoder.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   mono.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/mono.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   multitrack.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/multitrack.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   pcm_f32_decode.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/pcm_f32_decode.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   pcm_s16_decode.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/pcm_s16_decode.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   stereo.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/stereo.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   taglib.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/taglib.liq)))))
+
+(rule
+  (alias tree-sitter-test)
+  (deps
+   video_size.liq
+   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
+   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+ )
+  (action
+    (chdir ../../src/tooling/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../tests/media/video_size.liq)))))
