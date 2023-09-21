@@ -13,24 +13,23 @@ let () =
       Printf.printf
         {|
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    %s
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/%s)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/%s)))))
 
 (rule
   (alias fmt)
-  (deps %s ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps %s ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to %s.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/%s)))
       (diff %s %s.prettier))))
 

@@ -17,13 +17,13 @@
  (alias fmt)
  (deps
   test.liq
-  ../src/tooling/liq-prettier
+  ../src/tooling/test-prettier
   ../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
  (action
   (progn
    (with-stdout-to
     test.liq.prettier
     (chdir
-     ../src/tooling/liq-prettier
+     ../src/tooling/test-prettier
      (run pnpm prettier --config ./config.json ../../../tests/test.liq)))
    (diff test.liq test.liq.prettier))))
