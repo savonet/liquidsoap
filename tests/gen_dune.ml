@@ -11,17 +11,6 @@ let () =
       Printf.printf
         {|
 (rule
-  (alias tree-sitter-parse)
-  (deps
-   %s
-   ../../src/tooling/test-tree-sitter
- )
-  (action
-    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
-     (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../../tests/%s/%s)))))
-
-(rule
   (alias fmt)
   (deps %s ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
@@ -43,7 +32,7 @@ let () =
   (:run_test ../run_test.exe))
  (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
   |}
-        test dirname test test test dirname test test test test test test)
+        test test dirname test test test test test test)
     tests;
 
   let output_tests =
