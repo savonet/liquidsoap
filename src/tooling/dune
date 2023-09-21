@@ -13,20 +13,34 @@
  (libraries sedlex liquidsoap_lang))
 
 (rule
- (target liq-prettier)
+ (target test-prettier)
  (deps
   (source_tree prettier-plugin-liquidsoap)
   prettier-plugin-liquidsoap/dist/liquidsoap.js)
  (action
   (progn
-   (run mkdir -p liq-prettier)
+   (run mkdir -p test-prettier)
    (chdir
     prettier-plugin-liquidsoap
     (run npm install))
    (chdir
-    liq-prettier
+    test-prettier
     (progn
      (run npm init -y)
      (run npm install --save ../prettier-plugin-liquidsoap prettier)
      (bash
       "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" > config.json"))))))
+
+(rule
+ (target test-tree-sitter)
+ (deps
+  (source_tree tree-sitter-liquidsoap))
+ (action
+  (progn
+   (run cp -rf tree-sitter-liquidsoap test-tree-sitter)
+   (chdir
+    test-tree-sitter/tree-sitter-liquidsoap
+    (progn
+     (run chmod -R ug+w .)
+     (run npm install)
+     (run npm exec tree-sitter -- init-config))))))

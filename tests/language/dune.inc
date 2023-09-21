@@ -1,23 +1,22 @@
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    argsof.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/argsof.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/argsof.liq)))))
 
 (rule
   (alias fmt)
-  (deps argsof.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps argsof.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to argsof.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/argsof.liq)))
       (diff argsof.liq argsof.liq.prettier))))
 
@@ -34,24 +33,23 @@
  (action (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    bool.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/bool.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/bool.liq)))))
 
 (rule
   (alias fmt)
-  (deps bool.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps bool.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to bool.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/bool.liq)))
       (diff bool.liq bool.liq.prettier))))
 
@@ -68,24 +66,23 @@
  (action (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    comments.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/comments.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/comments.liq)))))
 
 (rule
   (alias fmt)
-  (deps comments.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps comments.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to comments.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/comments.liq)))
       (diff comments.liq comments.liq.prettier))))
 
@@ -102,24 +99,23 @@
  (action (run %{run_test} comments.liq liquidsoap %{test_liq} comments.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    conversions.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/conversions.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/conversions.liq)))))
 
 (rule
   (alias fmt)
-  (deps conversions.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps conversions.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to conversions.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/conversions.liq)))
       (diff conversions.liq conversions.liq.prettier))))
 
@@ -136,24 +132,23 @@
  (action (run %{run_test} conversions.liq liquidsoap %{test_liq} conversions.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    doc.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/doc.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/doc.liq)))))
 
 (rule
   (alias fmt)
-  (deps doc.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps doc.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to doc.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/doc.liq)))
       (diff doc.liq doc.liq.prettier))))
 
@@ -170,24 +165,23 @@
  (action (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    encoders.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/encoders.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/encoders.liq)))))
 
 (rule
   (alias fmt)
-  (deps encoders.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps encoders.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to encoders.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/encoders.liq)))
       (diff encoders.liq encoders.liq.prettier))))
 
@@ -204,24 +198,23 @@
  (action (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    error.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/error.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/error.liq)))))
 
 (rule
   (alias fmt)
-  (deps error.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps error.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to error.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/error.liq)))
       (diff error.liq error.liq.prettier))))
 
@@ -238,24 +231,23 @@
  (action (run %{run_test} error.liq liquidsoap %{test_liq} error.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    eval.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/eval.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/eval.liq)))))
 
 (rule
   (alias fmt)
-  (deps eval.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps eval.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to eval.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/eval.liq)))
       (diff eval.liq eval.liq.prettier))))
 
@@ -272,24 +264,23 @@
  (action (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    file.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/file.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/file.liq)))))
 
 (rule
   (alias fmt)
-  (deps file.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps file.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to file.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/file.liq)))
       (diff file.liq file.liq.prettier))))
 
@@ -306,24 +297,23 @@
  (action (run %{run_test} file.liq liquidsoap %{test_liq} file.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    file.watch.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/file.watch.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/file.watch.liq)))))
 
 (rule
   (alias fmt)
-  (deps file.watch.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps file.watch.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to file.watch.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/file.watch.liq)))
       (diff file.watch.liq file.watch.liq.prettier))))
 
@@ -340,24 +330,23 @@
  (action (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    file.watch2.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/file.watch2.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/file.watch2.liq)))))
 
 (rule
   (alias fmt)
-  (deps file.watch2.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps file.watch2.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to file.watch2.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/file.watch2.liq)))
       (diff file.watch2.liq file.watch2.liq.prettier))))
 
@@ -374,24 +363,23 @@
  (action (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    file_protocol.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/file_protocol.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/file_protocol.liq)))))
 
 (rule
   (alias fmt)
-  (deps file_protocol.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps file_protocol.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to file_protocol.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/file_protocol.liq)))
       (diff file_protocol.liq file_protocol.liq.prettier))))
 
@@ -408,24 +396,23 @@
  (action (run %{run_test} file_protocol.liq liquidsoap %{test_liq} file_protocol.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    functions.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/functions.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/functions.liq)))))
 
 (rule
   (alias fmt)
-  (deps functions.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps functions.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to functions.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/functions.liq)))
       (diff functions.liq functions.liq.prettier))))
 
@@ -442,24 +429,23 @@
  (action (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    getter.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/getter.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/getter.liq)))))
 
 (rule
   (alias fmt)
-  (deps getter.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps getter.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to getter.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/getter.liq)))
       (diff getter.liq getter.liq.prettier))))
 
@@ -476,24 +462,23 @@
  (action (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    interactive.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/interactive.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/interactive.liq)))))
 
 (rule
   (alias fmt)
-  (deps interactive.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps interactive.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to interactive.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/interactive.liq)))
       (diff interactive.liq interactive.liq.prettier))))
 
@@ -510,24 +495,23 @@
  (action (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    json.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/json.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/json.liq)))))
 
 (rule
   (alias fmt)
-  (deps json.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps json.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to json.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/json.liq)))
       (diff json.liq json.liq.prettier))))
 
@@ -544,24 +528,23 @@
  (action (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    list.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/list.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/list.liq)))))
 
 (rule
   (alias fmt)
-  (deps list.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps list.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to list.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/list.liq)))
       (diff list.liq list.liq.prettier))))
 
@@ -578,24 +561,23 @@
  (action (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    loop.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/loop.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/loop.liq)))))
 
 (rule
   (alias fmt)
-  (deps loop.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps loop.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to loop.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/loop.liq)))
       (diff loop.liq loop.liq.prettier))))
 
@@ -612,24 +594,23 @@
  (action (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    math.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/math.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/math.liq)))))
 
 (rule
   (alias fmt)
-  (deps math.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps math.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to math.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/math.liq)))
       (diff math.liq math.liq.prettier))))
 
@@ -646,24 +627,23 @@
  (action (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    mem_usage.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/mem_usage.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/mem_usage.liq)))))
 
 (rule
   (alias fmt)
-  (deps mem_usage.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps mem_usage.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to mem_usage.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/mem_usage.liq)))
       (diff mem_usage.liq mem_usage.liq.prettier))))
 
@@ -680,24 +660,23 @@
  (action (run %{run_test} mem_usage.liq liquidsoap %{test_liq} mem_usage.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    metadata.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/metadata.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/metadata.liq)))))
 
 (rule
   (alias fmt)
-  (deps metadata.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps metadata.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to metadata.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/metadata.liq)))
       (diff metadata.liq metadata.liq.prettier))))
 
@@ -714,24 +693,23 @@
  (action (run %{run_test} metadata.liq liquidsoap %{test_liq} metadata.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    metrics.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/metrics.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/metrics.liq)))))
 
 (rule
   (alias fmt)
-  (deps metrics.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps metrics.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to metrics.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/metrics.liq)))
       (diff metrics.liq metrics.liq.prettier))))
 
@@ -748,24 +726,23 @@
  (action (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    null.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/null.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/null.liq)))))
 
 (rule
   (alias fmt)
-  (deps null.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps null.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to null.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/null.liq)))
       (diff null.liq null.liq.prettier))))
 
@@ -782,24 +759,23 @@
  (action (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    number.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/number.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/number.liq)))))
 
 (rule
   (alias fmt)
-  (deps number.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps number.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to number.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/number.liq)))
       (diff number.liq number.liq.prettier))))
 
@@ -816,24 +792,23 @@
  (action (run %{run_test} number.liq liquidsoap %{test_liq} number.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    osc.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/osc.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/osc.liq)))))
 
 (rule
   (alias fmt)
-  (deps osc.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps osc.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to osc.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/osc.liq)))
       (diff osc.liq osc.liq.prettier))))
 
@@ -850,24 +825,23 @@
  (action (run %{run_test} osc.liq liquidsoap %{test_liq} osc.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    pattern.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/pattern.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/pattern.liq)))))
 
 (rule
   (alias fmt)
-  (deps pattern.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps pattern.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to pattern.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/pattern.liq)))
       (diff pattern.liq pattern.liq.prettier))))
 
@@ -884,24 +858,23 @@
  (action (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    pp.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/pp.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/pp.liq)))))
 
 (rule
   (alias fmt)
-  (deps pp.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps pp.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to pp.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/pp.liq)))
       (diff pp.liq pp.liq.prettier))))
 
@@ -918,24 +891,23 @@
  (action (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    predicate.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/predicate.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/predicate.liq)))))
 
 (rule
   (alias fmt)
-  (deps predicate.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps predicate.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to predicate.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/predicate.liq)))
       (diff predicate.liq predicate.liq.prettier))))
 
@@ -952,24 +924,23 @@
  (action (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    process.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/process.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/process.liq)))))
 
 (rule
   (alias fmt)
-  (deps process.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps process.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to process.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/process.liq)))
       (diff process.liq process.liq.prettier))))
 
@@ -986,24 +957,23 @@
  (action (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    rec.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/rec.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/rec.liq)))))
 
 (rule
   (alias fmt)
-  (deps rec.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps rec.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to rec.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/rec.liq)))
       (diff rec.liq rec.liq.prettier))))
 
@@ -1020,24 +990,23 @@
  (action (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    record.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/record.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/record.liq)))))
 
 (rule
   (alias fmt)
-  (deps record.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps record.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to record.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/record.liq)))
       (diff record.liq record.liq.prettier))))
 
@@ -1054,24 +1023,23 @@
  (action (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    ref.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/ref.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/ref.liq)))))
 
 (rule
   (alias fmt)
-  (deps ref.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps ref.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ref.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/ref.liq)))
       (diff ref.liq ref.liq.prettier))))
 
@@ -1088,24 +1056,23 @@
  (action (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    regexp.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/regexp.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/regexp.liq)))))
 
 (rule
   (alias fmt)
-  (deps regexp.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps regexp.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to regexp.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/regexp.liq)))
       (diff regexp.liq regexp.liq.prettier))))
 
@@ -1122,24 +1089,23 @@
  (action (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    socket.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/socket.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/socket.liq)))))
 
 (rule
   (alias fmt)
-  (deps socket.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps socket.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to socket.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/socket.liq)))
       (diff socket.liq socket.liq.prettier))))
 
@@ -1156,24 +1122,23 @@
  (action (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    stdlib.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/stdlib.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/stdlib.liq)))))
 
 (rule
   (alias fmt)
-  (deps stdlib.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps stdlib.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to stdlib.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/stdlib.liq)))
       (diff stdlib.liq stdlib.liq.prettier))))
 
@@ -1190,24 +1155,23 @@
  (action (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    string.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/string.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/string.liq)))))
 
 (rule
   (alias fmt)
-  (deps string.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps string.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to string.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/string.liq)))
       (diff string.liq string.liq.prettier))))
 
@@ -1224,24 +1188,23 @@
  (action (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    thread.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/thread.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/thread.liq)))))
 
 (rule
   (alias fmt)
-  (deps thread.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps thread.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to thread.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/thread.liq)))
       (diff thread.liq thread.liq.prettier))))
 
@@ -1258,24 +1221,23 @@
  (action (run %{run_test} thread.liq liquidsoap %{test_liq} thread.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    time.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/time.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/time.liq)))))
 
 (rule
   (alias fmt)
-  (deps time.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps time.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to time.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/time.liq)))
       (diff time.liq time.liq.prettier))))
 
@@ -1292,24 +1254,23 @@
  (action (run %{run_test} time.liq liquidsoap %{test_liq} time.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    type_errors.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/type_errors.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/type_errors.liq)))))
 
 (rule
   (alias fmt)
-  (deps type_errors.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps type_errors.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to type_errors.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/type_errors.liq)))
       (diff type_errors.liq type_errors.liq.prettier))))
 
@@ -1326,24 +1287,23 @@
  (action (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    typing.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/typing.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/typing.liq)))))
 
 (rule
   (alias fmt)
-  (deps typing.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps typing.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to typing.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/typing.liq)))
       (diff typing.liq typing.liq.prettier))))
 
@@ -1360,24 +1320,23 @@
  (action (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    url.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/url.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/url.liq)))))
 
 (rule
   (alias fmt)
-  (deps url.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps url.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to url.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/url.liq)))
       (diff url.liq url.liq.prettier))))
 
@@ -1394,24 +1353,23 @@
  (action (run %{run_test} url.liq liquidsoap %{test_liq} url.liq)))
 
 (rule
-  (alias tree-sitter-test)
+  (alias tree-sitter-parse)
   (deps
    yaml.liq
-   (source_tree ../../src/tooling/tree-sitter-liquidsoap)
-   ../../src/tooling/tree-sitter-liquidsoap/node_modules
+   ../../src/tooling/test-tree-sitter
  )
   (action
-    (chdir ../../src/tooling/tree-sitter-liquidsoap
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
      (ignore-stdout
-      (run npm exec tree-sitter -- parse ../../../tests/language/yaml.liq)))))
+      (run npm exec tree-sitter -- parse ../../../../tests/language/yaml.liq)))))
 
 (rule
   (alias fmt)
-  (deps yaml.liq ../../src/tooling/liq-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps yaml.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to yaml.liq.prettier
-       (chdir ../../src/tooling/liq-prettier
+       (chdir ../../src/tooling/test-prettier
          (run pnpm prettier --config ./config.json ../../../tests/language/yaml.liq)))
       (diff yaml.liq yaml.liq.prettier))))
 
