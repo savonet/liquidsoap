@@ -524,29 +524,13 @@ def interactive.harbor(
     add("</head><body>")
     add("<h1>#{title}</h1>")
 
-    def escape_html(s) =
-      string.replace(
-        pattern = "[&<>\"']",
-        fun (c) -> begin
-          if c == "&" then "&amp;"
-          elsif c == "<" then "&lt;"
-          elsif c == ">" then "&gt;"
-          elsif c == "\"" then "&quot;"
-          elsif c == "'" then "&apos;"
-          else c
-          end
-        end,
-        s
-      )
-    end
-
     def add_var(nv) =
       let (name, v) = nv
       description = interactive.description(name)
       description =
         if description == "" then name else "#{description} (#{name})" end
 
-      add("<label for=#{name}>#{escape_html(description)}</label>")
+      add("<label for=#{name}>#{string.escape.html(description)}</label>")
       common =
         "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
 
@@ -587,7 +571,7 @@ def interactive.harbor(
         v.type == "string"
       then
         v = list.assoc(name, variables_string())
-        add("<input type='text' #{common} value='#{escape_html(v.ref())}'>")
+        add("<input type='text' #{common} value='#{string.escape.html(v.ref())}'>")
       elsif
         v.type == "unit"
       then

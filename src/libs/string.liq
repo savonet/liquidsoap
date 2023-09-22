@@ -381,3 +381,21 @@ let string.char.ascii.number = list.init(10, fun (c) -> c + 48)
 def string.char.ascii.random(range=[...string.char.ascii]) =
   string.char(list.nth(range, random.int(min=0, max=list.length(range) - 1)))
 end
+
+# Escape HTML entities.
+# @category String
+def string.escape.html(s) =
+  string.replace(
+    pattern = "[&<>\"']",
+    fun (c) -> begin
+      if c == "&" then "&amp;"
+      elsif c == "<" then "&lt;"
+      elsif c == ">" then "&gt;"
+      elsif c == "\"" then "&quot;"
+      elsif c == "'" then "&apos;"
+      else c
+      end
+    end,
+    s
+  )
+end
