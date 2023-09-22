@@ -385,14 +385,13 @@ end
 # Escape HTML entities.
 # @category String
 def string.escape.html(s) =
-  string.replace(
-    pattern = "[&<>\"']",
+   r/[&<>"']/g.replace(
     fun (c) -> begin
       if c == "&" then "&amp;"
       elsif c == "<" then "&lt;"
       elsif c == ">" then "&gt;"
-      elsif c == "\"" then "&quot;"
-      elsif c == "'" then "&apos;"
+      elsif c == '"' then "&quot;"
+      elsif c == "'" then "&#39;"
       else c
       end
     end,
