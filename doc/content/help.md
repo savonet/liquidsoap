@@ -6,8 +6,8 @@ You will learn here how to get help by yourself, by asking liquidsoap.
 If you do not succeed in asking the tool, you can of course get help from
 humans. We maintain the following communication channels:
 
-- Slack: [slack.liquidsoap.info](http://slack.liquidsoap.info/)
-- IRC: #savonet on [irc.libera.chat](https://libera.chat/) (through a slack bridge)
+- Discord: [chat.liquidsoap.info](http://chat.liquidsoap.info/)
+- IRC: #savonet on [irc.libera.chat](https://libera.chat/) (through a discord bridge)
 - Mailing list: [savonet-users@lists.sourceforge.net](mailto:savonet-users@lists.sourceforge.net)
 
 ## Scripting API
@@ -114,7 +114,7 @@ application.
 Some common settings have shortcut for convenience. These are all shortcuts to their respective `settings` values:
 
 ```liquidsoap
-log.level :=4
+log.level := 4
 log.file := true
 log.stdout := true
 init.daemon := true
@@ -122,6 +122,7 @@ audio.samplerate := 48000
 audio.channels := 2
 video.frame.width := 720
 video.frame.height := 1280
+
 ```
 
 You can have a list of available settings, with their documentation,
