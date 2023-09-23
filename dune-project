@@ -9,7 +9,7 @@
 (homepage "https://github.com/savonet/liquidsoap")
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
 
-(version 2.2.1)
+(version 2.2.2)
 (generate_opam_files true)
 (executables_implicit_empty_intf true)
 
@@ -17,8 +17,8 @@
   (name liquidsoap)
   (depends
     (liquidsoap-core (= :version))
-    (liquidsoap-libs (and (>= 2.2.1~1) (< 2.2.1)))
-    (liquidsoap-libs-extra (and (>= 2.2.1~1) (< 2.2.1))))
+    (liquidsoap-libs (and (>= 2.2.2) (< 2.2.3)))
+    (liquidsoap-libs-extra (and (>= 2.2.2) (< 2.2.3))))
   (synopsis "Swiss-army knife for multimedia streaming")
   (description
 "\| Liquidsoap is a powerful and flexible language for describing your
@@ -31,7 +31,6 @@
 
 (package
    (name liquidsoap-libs-extra)
-   (version 2.2.1~1)
    (depends
       (liquidsoap-libs (= :version))
       (liquidsoap-lang :build))
@@ -39,7 +38,6 @@
 
 (package
    (name liquidsoap-libs)
-   (version 2.2.1~1)
    (depends (liquidsoap-lang :build))
    (synopsis "Liquidosap standard library"))
 

@@ -6,3 +6,5 @@ liquidsoap.config
 tests/streams/ssl.cert
 tests/streams/ssl.key
 .DS_Store
+package-lock.json
+node_modules/
