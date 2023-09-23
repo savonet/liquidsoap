@@ -50,7 +50,17 @@ end
 # @argsof track.audio.amplify
 def amplify(~id=null("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
   tracks = source.tracks(s)
-  source(id=id, tracks.{audio=track.audio.amplify(%argsof(track.audio.amplify), f, tracks.audio)})
+  source(
+    id=id,
+    tracks.{
+      audio=track.audio.amplify(
+        id=null("track.amplify"),
+        %argsof(track.audio.amplify[!id]),
+        f,
+        tracks.audio
+      )
+    }
+  )
 end
 
 # Clip samples, i.e. ensure that all values are between

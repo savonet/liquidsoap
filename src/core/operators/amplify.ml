@@ -25,7 +25,7 @@ open Source
 
 class amplify ~field (source : source) override_field coeff =
   object (self)
-    inherit operator ~name:"amplify" [source]
+    inherit operator ~name:"track.audio.amplify" [source]
     val mutable override = None
     method stype = source#stype
     method is_ready = source#is_ready
