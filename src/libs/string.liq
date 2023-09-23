@@ -384,17 +384,26 @@ end
 
 # Escape HTML entities.
 # @category String
-def string.escape.html(s) =
-   r/[&<>"']/g.replace(
-    fun (c) -> begin
-      if c == "&" then "&amp;"
-      elsif c == "<" then "&lt;"
-      elsif c == ">" then "&gt;"
-      elsif c == '"' then "&quot;"
-      elsif c == "'" then "&#39;"
-      else c
-      end
-    end,
+# @argsof string.escape[encoding]
+def string.escape.html(%argsof(string.escape[encoding]), s) =
+  escaped =
+    [
+      ("&", "&amp;"),
+      ("<", "&lt;"),
+      (">", "&gt;"),
+      ('"', "&quot;"),
+      ("'", "&#39;")
+    ]
+  def special_char(~encoding=_, c) =
+    list.assoc.mem(c, escaped)
+  end
+  def escape_char(~encoding=_, c) =
+    escaped[c]
+  end
+  string.escape(
+    %argsof(string.escape[encoding]),
+    special_char=special_char,
+    escape_char=escape_char,
     s
   )
 end
