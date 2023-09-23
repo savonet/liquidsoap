@@ -52,7 +52,12 @@ def amplify(~id=null("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
   source(
     id=id,
     tracks.{
-      audio=track.audio.amplify(%argsof(track.audio.amplify), f, tracks.audio)
+      audio=track.audio.amplify(
+        id=null("track.amplify"),
+        %argsof(track.audio.amplify[!id]),
+        f,
+        tracks.audio
+      )
     }
   )
 end

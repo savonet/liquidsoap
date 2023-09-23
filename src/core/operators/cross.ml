@@ -224,12 +224,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
               (* If underlying source if ready, try to continue filling up the frame
                * using it. Each call to [get_frame] must add exactly one break so
                * call it again and then remove the intermediate break that was just
-               * just added. *)
+               * added. *)
               if source#is_ready then (
                 self#get_frame frame;
                 Frame.set_breaks frame
-                  (match Frame.breaks frame with
-                    | _ :: b :: l -> b :: l
+                  (match List.rev (Frame.breaks frame) with
+                    | b :: _ :: l -> List.rev (b :: l)
                     | _ -> assert false)))
         | `After ->
             (* Here, transition source went down so we switch back to main source.
