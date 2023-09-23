@@ -324,6 +324,7 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.build_details.outputs.build_os) }}
         platform: ${{ fromJson(needs.build_details.outputs.build_platform) }}
+        include: ${{ fromJson(needs.build_details.outputs.build_include) }}
         exclude:
           - os: debian_bullseye
             platform: arm64
