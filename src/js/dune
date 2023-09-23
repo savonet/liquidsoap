@@ -20,6 +20,7 @@
 (executable
  (name interactive_js)
  (modes js)
+ (optional)
  (modules interactive_js)
  (js_of_ocaml
   (javascript_files filesystem.js))

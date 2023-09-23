@@ -25,11 +25,12 @@
     (run npm install))
    (chdir
     test-prettier
-    (progn
-     (run npm init -y)
-     (run npm install --save ../prettier-plugin-liquidsoap prettier)
-     (bash
-      "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" > config.json"))))))
+    (ignore-stdout
+     (progn
+      (run npm init -y)
+      (run npm install --save ../prettier-plugin-liquidsoap prettier)
+      (bash
+       "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" > config.json")))))))
 
 (rule
  (target test-tree-sitter)

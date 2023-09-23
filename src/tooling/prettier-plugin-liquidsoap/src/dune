@@ -1,5 +1,6 @@
 (executable
  (name liquidsoap_js)
+ (optional)
  (modes js)
  (modules liquidsoap_js)
  (preprocess
