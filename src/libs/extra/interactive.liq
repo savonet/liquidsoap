@@ -413,11 +413,6 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
         add("<input type='checkbox' #{common} value='true' #{c}>")
       elsif v.type == "string" then
         v = list.assoc(name, variables_string())
-<<<<<<< HEAD
-        add("<input type='text' #{common} value='#{v.ref()}'>")
-      elsif v.type == "unit" then
-        add("<button type='button' #{common} onclick=\"sendUnit('#{name}')\">#{name}</button>")
-=======
         add("<input type='text' #{common} value='#{string.escape.html(v.ref())}'>")
       elsif
         v.type == "unit"
@@ -425,7 +420,6 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
         add(
           "<button type='button' #{common} onclick=\"sendUnit('#{name}')\">#{name}</button>"
         )
->>>>>>> 81f4bcae6 (fixes interactive.harbor issues. ref #3418 (#3420))
       else
         ()
       end
