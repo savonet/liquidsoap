@@ -352,7 +352,7 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
           }
         }
         if (interactive[i].type != 'button') {
-          data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';
+          data = data.concat(interactive[i].name+'='+encodeURIComponent(interactive[i].value))+'&';
         }
       }
       console.log('Posting: ' + data);
@@ -381,10 +381,16 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
     def add_var(nv)
       let (name, v) = nv
       description = interactive.description(name)
-      description = if description == "" then name else "#{description} (#{name})" end
-      add("<label for=#{name}>#{description}</label>")
-      common = "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
-      if v.type == "float" then
+      description =
+        if description == "" then name else "#{description} (#{name})" end
+
+      add("<label for=#{name}>#{string.escape.html(description)}</label>")
+      common =
+        "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
+
+      if
+        v.type == "float"
+      then
         v = list.assoc(name, variables_float())
         value = http.string_of_float(v.ref())
         if v.min == 0.-infinity or v.max == infinity then
@@ -407,9 +413,19 @@ def interactive.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/intera
         add("<input type='checkbox' #{common} value='true' #{c}>")
       elsif v.type == "string" then
         v = list.assoc(name, variables_string())
+<<<<<<< HEAD
         add("<input type='text' #{common} value='#{v.ref()}'>")
       elsif v.type == "unit" then
         add("<button type='button' #{common} onclick=\"sendUnit('#{name}')\">#{name}</button>")
+=======
+        add("<input type='text' #{common} value='#{string.escape.html(v.ref())}'>")
+      elsif
+        v.type == "unit"
+      then
+        add(
+          "<button type='button' #{common} onclick=\"sendUnit('#{name}')\">#{name}</button>"
+        )
+>>>>>>> 81f4bcae6 (fixes interactive.harbor issues. ref #3418 (#3420))
       else
         ()
       end

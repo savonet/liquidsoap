@@ -1,5 +1,13 @@
 # 2.2.2 (unreleased)
 
+New:
+
+- Added `string.escape.html` (#3418, @ghostnumber7)
+
+Fixed:
+
+- Fixed html character escaping in `interactive.harbor` (#3418, @ghostnumber7)
+
 ---
 
 # 2.2.1 (2023-09-05)

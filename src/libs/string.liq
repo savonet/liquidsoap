@@ -326,3 +326,29 @@ let string.char.ascii.number = list.init(10, fun (c) -> c+48)
 def string.char.ascii.random(range=[...string.char.ascii]) =
   string.char(list.nth(range, random.int(min=0, max=list.length(range)-1)))
 end
+
+# Escape HTML entities.
+# @category String
+# @argsof string.escape[encoding]
+def string.escape.html(%argsof(string.escape[encoding]), s) =
+  escaped =
+    [
+      ("&", "&amp;"),
+      ("<", "&lt;"),
+      (">", "&gt;"),
+      ('"', "&quot;"),
+      ("'", "&#39;")
+    ]
+  def special_char(~encoding=_, c) =
+    list.assoc.mem(c, escaped)
+  end
+  def escape_char(~encoding=_, c) =
+    escaped[c]
+  end
+  string.escape(
+    %argsof(string.escape[encoding]),
+    special_char=special_char,
+    escape_char=escape_char,
+    s
+  )
+end
