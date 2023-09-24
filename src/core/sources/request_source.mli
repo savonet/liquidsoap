@@ -37,7 +37,7 @@ class once :
        inherit Source.source
        method stype : [ `Fallible | `Infallible ]
        method self_sync : Source.self_sync
-       method is_ready : bool
+       method private _is_ready : ?frame:Frame.t -> unit -> bool
        method request : Request.t
        method remaining : int
        method private get_frame : Frame.t -> unit
@@ -56,7 +56,7 @@ class virtual unqueued :
          [ `Empty | `Request of Request.t | `Retry of unit -> float ]
 
        inherit Source.source
-       method is_ready : bool
+       method private _is_ready : ?frame:Frame.t -> unit -> bool
        method private get_frame : Frame.t -> unit
        method abort_track : unit
        method remaining : int

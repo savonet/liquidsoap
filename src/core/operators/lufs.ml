@@ -107,7 +107,7 @@ class lufs window source =
   object (self)
     inherit operator [source] ~name:"lufs" as super
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = source

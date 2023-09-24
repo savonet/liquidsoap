@@ -30,7 +30,7 @@ class window mode duration source =
       operator [source] ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
 
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = source

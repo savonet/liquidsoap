@@ -51,7 +51,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = (self :> Source.source)
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
     val mutable t = 0.
@@ -95,7 +95,8 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
         | -1, x | x, -1 -> x
         | x, y -> min x y
 
-    method is_ready = source#is_ready && source2#is_ready
+    method private _is_ready ?frame () =
+      source#is_ready ?frame () && source2#is_ready ?frame ()
 
     method self_sync =
       match (source#self_sync, source2#self_sync) with
@@ -164,7 +165,7 @@ class frei0r_source ~name bgra instance params =
     inherit Source.no_seek
     method seek_source = (self :> Source.source)
     method stype = `Infallible
-    method is_ready = true
+    method private _is_ready ?frame:_ _ = true
     method self_sync = (`Static, false)
     val mutable must_fail = false
     method abort_track = must_fail <- true

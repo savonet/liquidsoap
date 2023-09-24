@@ -51,10 +51,13 @@ class virtual base ~name tracks =
       List.fold_left f (-1)
         (List.map
            (fun s -> s#remaining)
-           (List.filter (fun s -> s#is_ready) sources))
+           (List.filter (fun (s : Source.source) -> s#is_ready ()) sources))
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
-    method is_ready = List.exists (fun s -> s#is_ready) sources
+
+    method private _is_ready ?frame () =
+      List.exists (fun s -> s#is_ready ?frame ()) sources
+
     method seek n = match sources with [s] -> s#seek n | _ -> 0
 
     method seek_source =
@@ -89,7 +92,7 @@ class virtual base ~name tracks =
       match
         List.fold_left
           (fun cur { fields; source } ->
-            if not source#is_ready then cur
+            if not (source#is_ready ~frame:buf ()) then cur
             else
               List.fold_left
                 (fun cur { position; _ } ->
@@ -136,8 +139,8 @@ class audio_add ~renorm ~power ~field tracks =
                 (0., []) fields
             in
             ( total_weight +. source_weight,
-              if source#is_ready then { source; fields } :: tracks else tracks
-            ))
+              if source#is_ready ~frame:buf () then { source; fields } :: tracks
+              else tracks ))
           (0., []) tracks
       in
       let total_weight = if power then sqrt total_weight else total_weight in
@@ -171,7 +174,8 @@ class video_add ~field ~add tracks =
       let tracks =
         List.fold_left
           (fun tracks track ->
-            if track.source#is_ready then track :: tracks else tracks)
+            if track.source#is_ready ~frame:buf () then track :: tracks
+            else tracks)
           [] tracks
       in
       let offset = Frame.position buf in

@@ -87,7 +87,7 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     inherit operator ~name:"blank.detect" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
     method seek = source#seek
@@ -117,7 +117,10 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     inherit active_operator ~name:"blank.strip" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method stype = `Fallible
-    method is_ready = (not self#is_blank) && source#is_ready
+
+    method private _is_ready ?frame () =
+      (not self#is_blank) && source#is_ready ?frame ()
+
     method remaining = if self#is_blank then 0 else source#remaining
     method seek n = if self#is_blank then 0 else source#seek n
 
@@ -145,8 +148,11 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
        * the track ends, the beginning of the next track won't be lost. (Because
        * of granularity issues, the change of #is_ready only takes effect at the
        * end of the clock cycle). *)
-      if source#is_ready && self#is_blank && AFrame.is_partial self#memo then
-        self#get_frame self#memo
+      if
+        source#is_ready ~frame:self#memo ()
+        && self#is_blank
+        && AFrame.is_partial self#memo
+      then self#get_frame self#memo
 
     method reset = ()
   end
@@ -166,7 +172,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     val mutable stripping = false
     val mutable beginning = true
     method stype = `Fallible
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = source

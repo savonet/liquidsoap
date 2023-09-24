@@ -46,8 +46,8 @@ class delay ~initial (source : source) delay =
       in_track <- false;
       last <- Unix.time ()
 
-    method is_ready =
-      let is_ready = source#is_ready in
+    method private _is_ready ?frame () =
+      let is_ready = source#is_ready ?frame () in
       if in_track && not is_ready then self#end_track;
       self#delay_ok && is_ready
 

@@ -26,7 +26,7 @@ class base ?(audio = false) ?(video = false) ?(midi = false) ~converter
   (source : Source.source) =
   object (self)
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
     method seek = source#seek

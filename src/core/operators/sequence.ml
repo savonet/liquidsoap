@@ -59,8 +59,8 @@ class sequence ?(merge = false) sources =
     * inserted an end of track automatically instead of calling #get_frame. *)
     val mutable head_ready = false
 
-    method is_ready =
-      head_ready || List.exists (fun s -> s#is_ready) seq_sources
+    method private _is_ready ?frame () =
+      head_ready || List.exists (fun s -> s#is_ready ?frame ()) seq_sources
 
     method remaining =
       if merge then (
@@ -88,7 +88,7 @@ class sequence ?(merge = false) sources =
           head_ready <- false;
           if List.length seq_sources > 1 then (
             seq_sources <- List.tl seq_sources;
-            if merge && self#is_ready then (
+            if merge && self#is_ready ~frame:buf () then (
               let pos = Frame.position buf in
               self#get_frame buf;
               Frame.set_breaks buf
@@ -96,10 +96,11 @@ class sequence ?(merge = false) sources =
       else (
         match seq_sources with
           | a :: (_ :: _ as tl) ->
-              if a#is_ready then head_ready <- true else seq_sources <- tl;
+              if a#is_ready ~frame:buf () then head_ready <- true
+              else seq_sources <- tl;
               self#get_frame buf
           | [a] ->
-              assert a#is_ready;
+              assert (a#is_ready ~frame:buf ());
 
               (* Our #is_ready ensures that. *)
               head_ready <- true;
@@ -111,7 +112,7 @@ class merge_tracks source =
   object (self)
     inherit operator ~name:"sequence" [source]
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     method remaining = -1
     method self_sync = source#self_sync
@@ -120,7 +121,7 @@ class merge_tracks source =
 
     method private get_frame buf =
       source#get buf;
-      if Frame.is_partial buf && source#is_ready then (
+      if Frame.is_partial buf && source#is_ready ~frame:buf () then (
         self#log#info "End of track: merging.";
         self#get_frame buf;
         Frame.set_breaks buf

@@ -97,7 +97,7 @@ class defer ~delay ~overhead ~field source =
       let tmp_frame = self#tmp_frame in
       Frame.clear tmp_frame;
 
-      while Frame.is_partial tmp_frame && source#is_ready do
+      while Frame.is_partial tmp_frame && source#is_ready ~frame:tmp_frame () do
         source#get tmp_frame
       done;
       let gen_len = Frame.position tmp_frame in
@@ -138,7 +138,7 @@ class defer ~delay ~overhead ~field source =
     method private queue_output =
       let clock = Source.Clock_variables.get self#clock in
       clock#on_output (fun () ->
-          if source#is_ready then self#buffer_data;
+          if source#is_ready () then self#buffer_data;
           if should_queue then
             clock#on_before_output (fun () -> self#queue_output))
 
@@ -148,7 +148,9 @@ class defer ~delay ~overhead ~field source =
           self#queue_output);
       self#on_sleep (fun () -> should_queue <- false)
 
-    method is_ready = (not deferred) && Generator.length self#generator > 0
+    method private _is_ready ?frame:_ _ =
+      (not deferred) && Generator.length self#generator > 0
+
     method private get_frame buf = Generator.fill self#generator buf
   end
 

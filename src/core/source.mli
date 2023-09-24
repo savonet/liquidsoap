@@ -191,8 +191,17 @@ class virtual source :
            source. *)
        method virtual seek_source : source
 
-       (** [is_ready] tells you if [get] can be called. *)
-       method virtual is_ready : bool
+       (** [is_ready] tells you if [get] can be called.
+           Frame argument is optional. With no frame, the
+	   function tells you if the source can produce
+	   fresh data. With a frame, it tells you if the
+	   source can fill the frame from its current position,
+	   potentially using cached data when the source is
+	   caching. *)
+       method is_ready : ?frame:Frame.t -> unit -> bool
+
+       (* Internal implementation of [is_ready]. *)
+       method virtual private _is_ready : ?frame:Frame.t -> unit -> bool
 
        (** [get buf] asks the source to fill the buffer [buf] if possible.
            The [get] call is partial when the buffer is not completely filled.

@@ -102,7 +102,7 @@ class once ~name ~timeout request =
         remaining <- 0;
         if forced then must_fail <- true else over <- true)
 
-    method is_ready = not over
+    method private _is_ready ?frame:_ _ = not over
 
     method private get_frame buf =
       if must_fail then (
@@ -222,7 +222,7 @@ class virtual unqueued ~name =
 
     (** Now we can write the source's methods. *)
 
-    method is_ready =
+    method private _is_ready ?frame:_ _ =
       Tutils.mutexify plock
         (fun () ->
           current <> None || must_fail || try self#begin_track with _ -> false)

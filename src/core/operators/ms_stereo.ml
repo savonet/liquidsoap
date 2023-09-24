@@ -28,7 +28,7 @@ class msstereo ~field (source : source) mode width =
   object
     inherit operator ~name:"stereo.ms.encode" [source]
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = source
@@ -91,7 +91,7 @@ class spatializer ~field ~width (source : source) =
   object
     inherit operator ~name:"stereo.width" [source]
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = source

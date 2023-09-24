@@ -50,7 +50,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
     method private length = Generator.length self#buffer
     val mutable last_buffering_warning = -1
 
-    method is_ready =
+    method private _is_ready ?frame:_ _ =
       let r = self#length in
       if buffering then (
         (* We have some data, but not enough for safely starting to play it. *)

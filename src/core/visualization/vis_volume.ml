@@ -33,7 +33,7 @@ class vumeter ~kind source =
     inherit operator ~name:"visu.volume" kind [source] as super
     inherit no_seek
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method self_sync = source#self_sync

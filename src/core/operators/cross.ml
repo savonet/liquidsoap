@@ -205,16 +205,17 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Limit ->
             (* The track finished.
              * We compute rms_after and launch the transition. *)
-            if source#is_ready then self#analyze_after;
+            if source#is_ready ~frame () then self#analyze_after;
             self#create_transition;
 
             (* Check if the new source is ready *)
-            if (Option.get transition_source)#is_ready then self#get_frame frame
+            if (Option.get transition_source)#is_ready ~frame () then
+              self#get_frame frame
             else
               (* If not, finish this track, which requires our callers
                * to wait that we become ready again. *)
               Frame.add_break frame (Frame.position frame)
-        | `After when (Option.get transition_source)#is_ready ->
+        | `After when (Option.get transition_source)#is_ready ~frame () ->
             self#child_get (Option.get transition_source) frame;
 
             if Generator.length pending_after = 0 && Frame.is_partial frame then (
@@ -225,7 +226,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                * using it. Each call to [get_frame] must add exactly one break so
                * call it again and then remove the intermediate break that was just
                * added. *)
-              if source#is_ready then (
+              if source#is_ready ~frame () then (
                 self#get_frame frame;
                 Frame.set_breaks frame
                   (match List.rev (Frame.breaks frame) with
@@ -294,8 +295,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
           rmsi_after <- rmsi_after + len);
         self#save_last_metadata `After buf_frame;
         self#update_cross_length buf_frame start;
-        if AFrame.is_partial buf_frame && not source#is_ready then
-          Generator.add_track_mark gen_after
+        if
+          AFrame.is_partial buf_frame
+          && not (source#is_ready ~frame:buf_frame ())
+        then Generator.add_track_mark gen_after
         else (
           if not (Frame.is_partial buf_frame) then Frame.clear buf_frame;
           if after_len < before_len then f ())
@@ -396,14 +399,16 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `After -> Option.get transition_source
         | _ -> (self :> Source.source)
 
-    method is_ready =
+    method private _is_ready ?frame () =
       match status with
-        | `Idle | `Before -> source#is_ready
+        | `Idle | `Before -> source#is_ready ?frame ()
         | `Limit -> true
-        | `After -> (Option.get transition_source)#is_ready || source#is_ready
+        | `After ->
+            (Option.get transition_source)#is_ready ?frame ()
+            || source#is_ready ?frame ()
 
     method abort_track =
-      if status = `After && (Option.get transition_source)#is_ready then
+      if status = `After && (Option.get transition_source)#is_ready () then
         (Option.get transition_source)#abort_track
       else source#abort_track
   end

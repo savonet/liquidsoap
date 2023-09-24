@@ -66,7 +66,7 @@ let source_methods =
       "Indicate if a source is ready to stream. This does not mean that the \
        source is currently streaming, just that its resources are all properly \
        initialized.",
-      fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+      fun (s : Source.source) -> val_fun [] (fun _ -> bool (s#is_ready ())) );
     ( "buffered",
       ([], fun_t [] (list_t (product_t string_t float_t))),
       "Length of buffered data.",

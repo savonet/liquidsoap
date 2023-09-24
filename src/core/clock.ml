@@ -208,8 +208,8 @@ module MkClock (Time : Liq_time.T) = struct
           match sync with
             | `Auto ->
                 List.exists
-                  (fun (state, s) ->
-                    state = `Active && snd s#self_sync && s#is_ready)
+                  (fun (state, (s : Source.active_source)) ->
+                    state = `Active && snd s#self_sync && s#is_ready ())
                   outputs
             | `CPU -> false
             | `None -> true
