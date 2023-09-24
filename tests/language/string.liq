@@ -114,3 +114,19 @@ def f() =
 end
 
 test.check(f)
+
+def test_escape_html() =
+  test.equals(string.escape.html("&"), "&amp;")
+  test.equals(string.escape.html("<"), "&lt;")
+  test.equals(string.escape.html(">"), "&gt;")
+  test.equals(string.escape.html('"'), "&quot;")
+  test.equals(string.escape.html("'"), "&#39;")
+  test.equals(string.escape.html("&<>\"'"), "&amp;&lt;&gt;&quot;&#39;")
+  test.equals(string.escape.html("not escaped"), "not escaped")
+  test.equals(string.escape.html("&quot;double escape&quot;"), "&amp;quot;double escape&amp;quot;")
+  test.equals(string.escape.html("\\"), "\\")
+  test.equals(string.escape.html("/"), "/")
+  test.equals(string.escape.html("`"), "`")
+end
+
+test.check(test_escape_html)

@@ -495,7 +495,7 @@ def interactive.harbor(
           }
         }
         if (interactive[i].type != 'button') {
-          data = data.concat(interactive[i].name+'='+interactive[i].value)+'&';
+          data = data.concat(interactive[i].name+'='+encodeURIComponent(interactive[i].value))+'&';
         }
       }
       console.log('Posting: ' + data);
@@ -530,7 +530,7 @@ def interactive.harbor(
       description =
         if description == "" then name else "#{description} (#{name})" end
 
-      add("<label for=#{name}>#{description}</label>")
+      add("<label for=#{name}>#{string.escape.html(description)}</label>")
       common =
         "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
 
@@ -571,7 +571,7 @@ def interactive.harbor(
         v.type == "string"
       then
         v = list.assoc(name, variables_string())
-        add("<input type='text' #{common} value='#{v.ref()}'>")
+        add("<input type='text' #{common} value='#{string.escape.html(v.ref())}'>")
       elsif
         v.type == "unit"
       then
