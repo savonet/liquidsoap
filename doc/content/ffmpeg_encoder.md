@@ -113,7 +113,7 @@ data, which is required by most HLS clients.
 
 ### File output
 
-Some encoding formats, for instance `mp4`, require to rewing their stream and write a header after the fact, when encoding of the current
+Some encoding formats, for instance `mp4`, require to rewind their stream and write a header after the fact, when encoding of the current
 track has finished. For historical reasons, such formats cannot be used with `output.file`. To remedy that, we have introduced
 the `output.url` operator. When using this operator, the encoder is fully in charge of the output file and can thus write headers after the
 fact. The `%ffmpeg` encoder is one such encoder that can be used with this operator.
