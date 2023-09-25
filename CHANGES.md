@@ -8,6 +8,8 @@ Fixed:
 
 - Fixed pop/clicks in crossfade and source with caching (#3318)
 - Fixed html character escaping in `interactive.harbor` (#3418, @ghostnumber7)
+- Fixed icecast not reconnecting after erroring out while closing connection
+  in some circumstances (#3427)
 
 ---
 

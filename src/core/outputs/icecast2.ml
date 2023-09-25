@@ -532,7 +532,7 @@ class output p =
         let delay = on_error e in
         if delay >= 0. then (
           (* Ask for a restart after [restart_time]. *)
-          self#icecast_stop;
+          (try self#icecast_stop with _ -> ());
           restart_time <- Unix.gettimeofday () +. delay;
           self#log#important "Will try to reconnect in %.02f seconds." delay)
         else Printexc.raise_with_backtrace e bt
