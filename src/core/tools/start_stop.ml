@@ -78,7 +78,7 @@ class virtual active_source ?get_clock ~name ~clock_safe
     method stype = if fallible then `Fallible else `Infallible
     method! private wake_up _ = if autostart then base#transition_to `Started
     method! private sleep = base#transition_to `Stopped
-    method is_ready = state = `Started
+    method private _is_ready ?frame:_ _ = state = `Started
     val mutable clock = None
 
     method private get_clock =
@@ -99,7 +99,8 @@ class virtual active_source ?get_clock ~name ~clock_safe
     method virtual private memo : Frame.t
 
     method private output =
-      if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
+      if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
+        self#get self#memo
   end
 
 let base_proto ~label =

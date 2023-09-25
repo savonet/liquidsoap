@@ -40,7 +40,7 @@ class virtual base source =
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = source
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
   end
@@ -51,7 +51,7 @@ class virtual base_nosource =
     inherit Source.no_seek
     method seek_source = (self :> Source.source)
     method stype = `Infallible
-    method is_ready = true
+    method private _is_ready ?frame:_ _ = true
     val mutable must_fail = false
     method abort_track = must_fail <- true
     method remaining = -1

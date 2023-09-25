@@ -27,7 +27,7 @@ class rms ~tau source =
   object (self)
     inherit operator [source] ~name:"rms" as super
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = source

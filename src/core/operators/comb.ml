@@ -34,7 +34,7 @@ class comb ~field (source : source) delay feedback =
     method seek = source#seek
     method seek_source = source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     val mutable past = Audio.make 0 0 0.
 

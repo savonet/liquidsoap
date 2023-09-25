@@ -114,7 +114,8 @@ class virtual switch ~name ~override_meta ~transition_length
       if self#is_selected_generated then
         (Option.get selected).effective_source#leave (self :> source)
 
-    method is_ready = need_eot || selected <> None || self#cached_select <> None
+    method private _is_ready ?frame:_ _ =
+      need_eot || selected <> None || self#cached_select <> None
 
     (* This one is tricky. We do not want to call #cached_select as
        this requires some run-time info from underlying sources
@@ -317,7 +318,7 @@ class lang_switch ~override_meta ~all_predicates ~transition_length mode
                 (fun (d, single, s) ->
                   (* Check single constraints *)
                   (if selected s then not single else true)
-                  && satisfied d && s.source#is_ready)
+                  && satisfied d && s.source#is_ready ())
                 children))
       with Not_found -> None
 

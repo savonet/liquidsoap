@@ -487,7 +487,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     (* Source is ready when ready = true and gst has some audio or some video. *)
     val mutable ready = true
 
-    method is_ready =
+    method private _is_ready =
       let pending = function
         | Some sink -> sink.pending () > 0
         | None -> false

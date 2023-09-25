@@ -47,7 +47,7 @@ class accelerate ~ratio ~randomize source_val =
       source#get_ready [(self :> source)]
 
     method! private sleep = source#leave (self :> source)
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
 
     (** Filled ticks. *)
     val mutable filled = 0
@@ -75,13 +75,13 @@ class accelerate ~ratio ~randomize source_val =
       let pos = ref 1 in
       (* Drop frames if we are late. *)
       (* TODO: we could also duplicate if we are in advance. *)
-      while !pos > 0 && self#must_drop && source#is_ready do
+      while !pos > 0 && self#must_drop && source#is_ready ~frame () do
         Frame.clear null;
         self#child_on_output (fun () -> source#get null);
         pos := Frame.position null;
         skipped <- skipped + !pos
       done;
-      if source#is_ready then (
+      if source#is_ready ~frame () then (
         let before = Frame.position frame in
         if !pos > 0 then self#child_on_output (fun () -> source#get frame);
         let after = Frame.position frame in

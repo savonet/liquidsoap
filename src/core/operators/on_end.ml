@@ -26,7 +26,7 @@ class on_end ~delay f s =
     inherit Latest_metadata.source
     val mutable executed = false
     method stype = s#stype
-    method is_ready = s#is_ready
+    method private _is_ready = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek n = s#seek n

@@ -83,10 +83,10 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
         f;
       self#unregister_source ~already_locked:false
 
-    method is_ready =
+    method private _is_ready ?frame () =
       if (not track_sensitive) || source = None then self#select;
       match source with
-        | Some s when s#is_ready -> true
+        | Some s when s#is_ready ?frame () -> true
         | _ ->
             if
               track_sensitive && resurection_time <> None

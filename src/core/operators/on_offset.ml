@@ -33,7 +33,7 @@ class on_offset ~force ~offset f s =
     inherit Source.operator ~name:"on_offset" [s]
     inherit Latest_metadata.source
     method stype = s#stype
-    method is_ready = s#is_ready
+    method private _is_ready = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek n = s#seek n

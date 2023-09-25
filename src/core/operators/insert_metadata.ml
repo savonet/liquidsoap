@@ -29,7 +29,7 @@ class insert_metadata source =
   object (self)
     inherit operator ~name:"insert_metadata" [source]
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
     method seek_source = source
@@ -122,7 +122,7 @@ class replay meta src =
     inherit operator ~name:"replay_metadata" [src]
     val mutable first = true
     method stype = src#stype
-    method is_ready = src#is_ready
+    method private _is_ready = src#is_ready
     method abort_track = src#abort_track
     method remaining = src#remaining
     method self_sync = src#self_sync

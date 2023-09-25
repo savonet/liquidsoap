@@ -84,7 +84,7 @@ let _ =
        available), or currently streaming."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
-    (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#is_ready)
+    (fun p -> Lang.bool ((Lang.to_source (List.assoc "" p))#is_ready ()))
 
 let _ =
   Lang.add_builtin ~base:source "is_up" ~category:`System
@@ -211,7 +211,7 @@ let _ =
       Clock.unify ~pos:fo#pos fo#clock (Clock.create_known clock);
       ignore (clock#start_outputs (fun _ -> true) ());
       log#info "Start dumping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && fo#is_ready do
+      while (not (Atomic.get should_stop)) && fo#is_ready () do
         let start_time = Time.time () in
         clock#end_tick;
         sleep_until (start_time |+| latency)
@@ -252,7 +252,7 @@ let _ =
       Clock.unify ~pos:o#pos o#clock (Clock.create_known clock);
       ignore (clock#start_outputs (fun _ -> true) ());
       log#info "Start dropping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && o#is_ready do
+      while (not (Atomic.get should_stop)) && o#is_ready () do
         let start_time = Time.time () in
         clock#end_tick;
         sleep_until (start_time |+| latency)
