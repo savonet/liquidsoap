@@ -4,6 +4,11 @@ New:
 
 - Added `string.escape.html` (#3418, @ghostnumber7)
 
+Changed:
+
+- Trim urls in `input.ffmpeg` by default. Disable using
+  `trim_url=false` (#3424)
+
 Fixed:
 
 - Fixed pop/clicks in crossfade and source with caching (#3318)

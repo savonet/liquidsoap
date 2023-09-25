@@ -56,7 +56,8 @@ type container = {
 
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   ~clock_safe ~max_buffer ~on_error ~on_stop ~on_start ~on_connect
-  ~metadata_filter ~on_disconnect ~new_track_on_metadata ?format ~opts url =
+  ~metadata_filter ~on_disconnect ~new_track_on_metadata ?format ~opts ~trim_url
+  url =
   let max_length = Some (Frame.main_of_seconds max_buffer) in
   object (self)
     inherit
@@ -84,7 +85,11 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private start = self#connect
     method private stop = self#disconnect
     val mutable url = url
-    method url = url ()
+
+    method url =
+      let u = url () in
+      if trim_url then String.trim u else u
+
     method set_url u = url <- u
     method buffer_length = Frame.seconds_of_audio (Generator.length self#buffer)
 
@@ -270,7 +275,7 @@ let http_log = Log.make ["input"; "http"]
 
 class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
   ~max_buffer ~on_connect ~on_disconnect ?format ~opts ~user_agent ~timeout
-  ~metadata_filter ~on_start ~on_stop ~new_track_on_metadata url =
+  ~metadata_filter ~on_start ~on_stop ~new_track_on_metadata ~trim_url url =
   let () =
     Hashtbl.replace opts "icy" (`Int 1);
     Hashtbl.replace opts "user_agent" (`String user_agent);
@@ -317,7 +322,7 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
       input
         ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
           ~max_buffer ~on_stop ~on_start ~on_disconnect ~on_connect ~on_error
-          ~metadata_filter ?format ~opts ~new_track_on_metadata url
+          ~metadata_filter ?format ~opts ~new_track_on_metadata ~trim_url url
   end
 
 let parse_args ~t name p opts =
@@ -448,6 +453,10 @@ let register_input is_http =
              Some
                "Force a specific input format. Autodetected when passed a null \
                 argument" );
+           ( "trim_url",
+             Lang.bool_t,
+             Some (Lang.bool true),
+             Some "Trim input URL." );
            ("", Lang.getter_t Lang.string_t, None, Some "URL to decode.");
          ])
        ~return_t
@@ -572,6 +581,7 @@ let register_input is_http =
          in
          let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
          let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
+         let trim_url = Lang.to_bool (List.assoc "trim_url" p) in
          if is_http then (
            let timeout = Lang.to_float (List.assoc "timeout" p) in
            let user_agent = Lang.to_string (List.assoc "user_agent" p) in
@@ -588,7 +598,7 @@ let register_input is_http =
               ~metadata_filter ~debug ~autostart ~self_sync ~clock_safe
               ~poll_delay ~on_connect ~on_disconnect ~user_agent
               ~new_track_on_metadata ~max_buffer ?format ~opts ~timeout
-              ~on_error ~on_start ~on_stop url
+              ~on_error ~on_start ~on_stop ~trim_url url
              :> input))
          else (
            let on_connect _ =
@@ -597,7 +607,7 @@ let register_input is_http =
            new input
              ~metadata_filter ~autostart ~debug ~self_sync ~clock_safe
              ~poll_delay ~on_error ~on_start ~on_stop ~on_connect ~on_disconnect
-             ~max_buffer ?format ~opts ~new_track_on_metadata url)))
+             ~max_buffer ?format ~opts ~new_track_on_metadata ~trim_url url)))
 
 let () =
   register_input true;
