@@ -56,7 +56,7 @@ class prepend ~merge source f =
               else (
                 let prepend = Lang.to_source (Lang.apply f [("", lang_m)]) in
                 self#register prepend;
-                if not prepend#is_ready then (
+                if not (prepend#is_ready ~frame:buf ()) then (
                   self#log#important "Candidate to prepending not ready. Abort!";
                   state <- `Buffer peek;
                   self#unregister prepend)
@@ -96,10 +96,10 @@ class prepend ~merge source f =
 
     method stype = source#stype
 
-    method is_ready =
+    method _is_ready ?frame () =
       match state with
-        | `Idle | `Replay | `Buffer _ -> source#is_ready
-        | `Prepend (s, _) -> s#is_ready || source#is_ready
+        | `Idle | `Replay | `Buffer _ -> source#is_ready ?frame ()
+        | `Prepend (s, _) -> s#is_ready ?frame () || source#is_ready ?frame ()
 
     method remaining =
       match state with

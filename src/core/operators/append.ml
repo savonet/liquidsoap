@@ -54,7 +54,7 @@ class append ~insert_missing ~merge source f =
                   in
                   self#register append;
                   if finished then
-                    if append#is_ready then (
+                    if append#is_ready ~frame:buf () then (
                       Atomic.set state (`Append append);
                       if merge then (
                         let pos = Frame.position buf in
@@ -78,7 +78,7 @@ class append ~insert_missing ~merge source f =
         | `Replay (Some a) ->
             source#get buf;
             if Frame.is_partial buf then
-              if a#is_ready then (
+              if a#is_ready ~frame:buf () then (
                 Atomic.set state (`Append a);
                 if merge then (
                   let pos = Frame.position buf in
@@ -98,15 +98,16 @@ class append ~insert_missing ~merge source f =
 
     method stype = source#stype
 
-    method is_ready =
+    method _is_ready ?frame () =
       match Atomic.get state with
-        | `Idle | `Replay None -> source#is_ready
-        | `Append s | `Replay (Some s) -> source#is_ready || s#is_ready
+        | `Idle | `Replay None -> source#is_ready ?frame ()
+        | `Append s | `Replay (Some s) ->
+            source#is_ready ?frame () || s#is_ready ?frame ()
 
     method remaining =
       match Atomic.get state with
         | `Idle | `Replay None -> source#remaining
-        | `Replay (Some s) when s#is_ready && merge ->
+        | `Replay (Some s) when s#is_ready () && merge ->
             let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
             source#remaining + s#remaining
         | `Replay (Some _) -> source#remaining
@@ -115,7 +116,7 @@ class append ~insert_missing ~merge source f =
     method seek n =
       match Atomic.get state with
         | `Idle | `Replay None -> source#seek n
-        | `Replay (Some s) when s#is_ready && merge -> 0
+        | `Replay (Some s) when s#is_ready () && merge -> 0
         | `Replay (Some _) -> source#seek n
         | `Append s -> s#seek n
 
