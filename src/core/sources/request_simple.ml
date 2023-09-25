@@ -148,8 +148,8 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     val mutable retry_status = None
 
-    method! is_ready =
-      match (super#is_ready, retry_status) with
+    method! _is_ready ?frame () =
+      match (super#_is_ready ?frame (), retry_status) with
         | true, _ -> true
         | false, Some d when Unix.gettimeofday () < d -> false
         | false, _ ->

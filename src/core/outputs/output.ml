@@ -96,11 +96,11 @@ class virtual output ~output_kind ?(name = "") ~infallible
               let t = Frame.seconds_of_main r in
               Printf.sprintf "%.2f" t)))
 
-    method is_ready =
+    method private _is_ready ?frame () =
       if infallible then (
-        assert source#is_ready;
+        assert (source#is_ready ?frame ());
         true)
-      else source#is_ready
+      else source#is_ready ?frame ()
 
     method remaining = source#remaining
     method abort_track = source#abort_track
@@ -129,7 +129,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
          etc). *)
       source#get_ready ((self :> operator) :: activation);
       if infallible then
-        while not source#is_ready do
+        while not (source#is_ready ()) do
           self#log#important "Waiting for %S to be ready..." source#id;
           Thread.delay 1.
         done;
@@ -160,12 +160,12 @@ class virtual output ~output_kind ?(name = "") ~infallible
 
     method private output =
       self#has_ticked;
-      if self#is_ready && state <> `Stopped then
+      if self#is_ready ~frame:self#memo () && state <> `Stopped then
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         (* Complete filling of the frame *)
         let get_count = ref 0 in
-        while Frame.is_partial self#memo && self#is_ready do
+        while Frame.is_partial self#memo && self#is_ready ~frame:self#memo () do
           incr get_count;
           if !get_count > Lazy.force Frame.size then
             self#log#severe

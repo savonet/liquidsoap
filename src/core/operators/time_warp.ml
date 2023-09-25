@@ -127,7 +127,8 @@ module Buffer = struct
       method remaining =
         proceed c (fun () -> Generator.remaining (Lazy.force c.generator))
 
-      method is_ready = proceed c (fun () -> not c.buffering)
+      method private _is_ready ?frame:_ _ =
+        proceed c (fun () -> not c.buffering)
 
       method seek len =
         let len = min (Generator.length (Lazy.force c.generator)) len in
@@ -303,7 +304,10 @@ module AdaptativeBuffer = struct
       method stype = `Fallible
       method self_sync = (`Static, false)
       method remaining = proceed c (fun () -> MG.remaining c.mg)
-      method is_ready = proceed c (fun () -> not c.buffering)
+
+      method private _is_ready ?frame:_ _ =
+        proceed c (fun () -> not c.buffering)
+
       method ratio = proceed c (fun () -> c.rb_length /. prebuf)
 
       method buffer_duration =

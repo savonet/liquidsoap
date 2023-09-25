@@ -103,7 +103,7 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
     method stop = ()
     method! reset = ()
     val mutable is_up = false
-    method! is_ready = is_up && super#is_ready
+    method! is_ready ?frame () = is_up && super#is_ready ?frame ()
 
     method! wake_up l =
       is_up <- true;
@@ -249,7 +249,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
         f ()
       with Not_ready -> ()
 
-    method is_ready =
+    method private _is_ready ?frame:_ _ =
       Generator.length self#buffer >= Lazy.force Frame.size || is_ready ()
 
     method private get_frame frame =

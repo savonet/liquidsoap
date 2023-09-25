@@ -33,9 +33,9 @@ class available ~track_sensitive ~override p (source : source) =
     method self_sync = source#self_sync
     val mutable ready = p ()
 
-    method is_ready =
+    method private _is_ready ?frame () =
       if not (track_sensitive () && ready) then ready <- p ();
-      ready && (override || source#is_ready)
+      ready && (override || source#is_ready ?frame ())
 
     method private get_frame buf =
       source#get buf;

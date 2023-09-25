@@ -41,7 +41,7 @@ class virtual output :
        method output : unit
        method private get_frame : Frame.t -> unit
        method abort_track : unit
-       method is_ready : bool
+       method private _is_ready : ?frame:Frame.t -> unit -> bool
        method state : Start_stop.state
        method transition_to : Start_stop.state -> unit
        method seek : int -> int

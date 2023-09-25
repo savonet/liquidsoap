@@ -54,8 +54,8 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
     method start = ()
     method stop = write_frame producer_buffer `Flush
 
-    method! is_ready =
-      super#is_ready
+    method! _is_ready ?frame () =
+      super#_is_ready ?frame ()
       && (Clock.get self#clock)#is_attached (self :> Source.active_source)
 
     method! output = if always_enabled || output_enabled then super#output
@@ -99,7 +99,8 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
         | -1, r -> r
         | r, _ -> r
 
-    method is_ready = List.for_all (fun c -> c#is_ready) consumers
+    method private _is_ready ?frame () =
+      List.for_all (fun c -> c#is_ready ?frame ()) consumers
 
     method! wake_up a =
       super#wake_up a;
@@ -120,7 +121,8 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
       let b = Frame.breaks buf in
       List.iter (fun c -> c#set_output_enabled true) consumers;
       while
-        Generator.length self#buffer < Lazy.force Frame.size && self#is_ready
+        Generator.length self#buffer < Lazy.force Frame.size
+        && self#is_ready ~frame:self#buffer ()
       do
         self#child_tick
       done;

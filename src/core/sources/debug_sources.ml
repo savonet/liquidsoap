@@ -26,7 +26,7 @@ class fail name =
     inherit Source.no_seek
     method seek_source = (self :> Source.source)
     method stype = `Fallible
-    method is_ready = false
+    method private _is_ready ?frame:_ _ = false
     method self_sync = (`Static, false)
     method remaining = 0
     method abort_track = ()

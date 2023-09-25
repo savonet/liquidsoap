@@ -33,7 +33,7 @@ class blank duration =
 
     method remaining = remaining
     method stype = `Infallible
-    method is_ready = true
+    method private _is_ready ?frame:_ _ = true
     method self_sync = (`Static, false)
     method seek x = x
     method seek_source = (self :> Source.source)

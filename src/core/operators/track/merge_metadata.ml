@@ -36,8 +36,10 @@ class merge_metadata tracks =
       (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
-    method private sources_ready = List.for_all (fun s -> s#is_ready) sources
-    method is_ready = List.for_all (fun s -> s#is_ready) sources
+
+    method private _is_ready ?frame () =
+      List.for_all (fun s -> s#is_ready ?frame ()) sources
+
     method seek len = len
     method seek_source = (self :> Source.source)
     method remaining = -1
@@ -54,9 +56,10 @@ class merge_metadata tracks =
       let pos = Frame.position buf in
       let max_pos =
         List.fold_left
-          (fun max_pos source ->
+          (fun max_pos (source : Source.source) ->
             let tmp_frame = self#track_frame source in
-            if source#is_ready && Frame.is_partial tmp_frame then (
+            if source#is_ready ~frame:tmp_frame () && Frame.is_partial tmp_frame
+            then (
               source#get tmp_frame;
               List.iter
                 (fun (p, m) ->

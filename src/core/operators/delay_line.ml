@@ -29,7 +29,7 @@ class delay (source : source) duration =
     inherit operator ~name:"amplify" [source] as super
     val mutable override = None
     method stype = source#stype
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek = source#seek

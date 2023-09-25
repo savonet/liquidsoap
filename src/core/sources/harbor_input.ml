@@ -60,7 +60,8 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         | None -> "no source client connected"
 
     method private output =
-      if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
+      if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
+        self#get self#memo
 
     method reset = self#disconnect ~lock:true
     method buffer_length_cmd = Frame.seconds_of_audio self#length

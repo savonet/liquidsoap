@@ -153,7 +153,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
             t
 
     method private get_to_write =
-      if source#is_ready then (
+      if source#is_ready ~frame:self#tmp () then (
         Frame.clear self#tmp;
         self#child_on_output (fun () -> source#get self#tmp);
         let buf = AFrame.pcm self#tmp in

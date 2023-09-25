@@ -599,10 +599,17 @@ class virtual operator ?pos ?(name = "src") sources =
            source. *)
     method virtual seek_source : source
 
-    (* Is there some data available for the next [get]?
-       Must always be true while playing a track, i.e. all tracks
-       must be properly ended. *)
-    method virtual is_ready : bool
+    (* Underlying source implementation for [is_ready].
+       should return [true] when the source can produce
+       fresh data. *)
+    method virtual private _is_ready : ?frame:Frame.t -> unit -> bool
+
+    method is_ready ?frame () =
+      match frame with
+        | None -> self#_is_ready ?frame ()
+        | Some frame ->
+            (caching && Frame.position frame < Frame.position self#memo)
+            || self#_is_ready ~frame ()
 
     (* If possible, end the current track.
        Typically, that signal is just re-routed, or makes the next file
@@ -759,7 +766,7 @@ class virtual operator ?pos ?(name = "src") sources =
          track, otherwise the track will be ended without the source noticing! *)
       let silent_end_track () = Frame.add_break buf (Frame.position buf) in
       if not caching then
-        if not self#is_ready then silent_end_track ()
+        if not (self#_is_ready ~frame:buf ()) then silent_end_track ()
         else (
           let b = Frame.breaks buf in
           self#instrumented_get_frame buf;
@@ -774,7 +781,7 @@ class virtual operator ?pos ?(name = "src") sources =
         let memo = self#memo in
         try Frame.get_chunk buf memo
         with Frame.No_chunk ->
-          if not self#is_ready then silent_end_track ()
+          if not (self#_is_ready ~frame:buf ()) then silent_end_track ()
           else (
             (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
             let b = Frame.breaks memo in

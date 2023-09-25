@@ -31,7 +31,7 @@ class track_map ~name ~field ~fn s =
     method seek = s#seek
     method seek_source = s
     method self_sync = s#self_sync
-    method is_ready = s#is_ready
+    method private _is_ready = s#is_ready
     val mutable tmp_frame = None
 
     method tmp_frame =

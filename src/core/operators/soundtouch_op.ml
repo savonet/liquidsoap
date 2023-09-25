@@ -41,7 +41,7 @@ class soundtouch source_val rate tempo pitch =
     val mutable st = None
     method stype = source#stype
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private _is_ready = source#is_ready
     method seek = source#seek
     method seek_source = source
     method remaining = -1
@@ -77,7 +77,8 @@ class soundtouch source_val rate tempo pitch =
     method private get_frame buf =
       consumer#set_output_enabled true;
       while
-        Generator.length self#buffer < Lazy.force Frame.size && source#is_ready
+        Generator.length self#buffer < Lazy.force Frame.size
+        && source#is_ready ~frame:self#buffer ()
       do
         self#child_tick
       done;

@@ -24,7 +24,7 @@ class on_metadata f s =
   object (self)
     inherit Source.operator ~name:"on_metadata" [s]
     method stype = s#stype
-    method is_ready = s#is_ready
+    method private _is_ready = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek n = s#seek n
