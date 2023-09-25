@@ -604,6 +604,49 @@
 (rule
   (alias tree-sitter-parse)
   (deps
+   ffmpeg-trim.liq
+   ../../src/tooling/test-tree-sitter
+ )
+  (action
+    (chdir ../../src/tooling/test-tree-sitter/tree-sitter-liquidsoap
+     (ignore-stdout
+      (run npm exec tree-sitter -- parse ../../../../tests/streams/ffmpeg-trim.liq)))))
+
+(rule
+  (alias fmt)
+  (deps ffmpeg-trim.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (action
+    (progn
+      (with-stdout-to ffmpeg-trim.liq.prettier
+       (chdir ../../src/tooling/test-prettier
+         (run pnpm prettier --config ./config.json ../../../tests/streams/ffmpeg-trim.liq)))
+      (diff ffmpeg-trim.liq ffmpeg-trim.liq.prettier))))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ffmpeg-trim.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} ffmpeg-trim.liq liquidsoap %{test_liq} ffmpeg-trim.liq)))
+
+(rule
+  (alias tree-sitter-parse)
+  (deps
    file_output.liq
    ../../src/tooling/test-tree-sitter
  )
