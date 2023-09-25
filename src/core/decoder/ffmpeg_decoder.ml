@@ -110,7 +110,6 @@ let mime_types =
         "text/x-microdvd";
         "video/3gpp";
         "video/3gpp2";
-        "video/m2ts";
         "video/MP2T";
         "video/mp2t";
         "video/mp4";
