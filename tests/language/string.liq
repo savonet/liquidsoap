@@ -123,7 +123,11 @@ def test_escape_html() =
   test.equals(string.escape.html("'"), "&#39;")
   test.equals(string.escape.html("&<>\"'"), "&amp;&lt;&gt;&quot;&#39;")
   test.equals(string.escape.html("not escaped"), "not escaped")
-  test.equals(string.escape.html("&quot;double escape&quot;"), "&amp;quot;double escape&amp;quot;")
+  test.equals(
+    string.escape.html("&quot;double escape&quot;"),
+    "&amp;quot;double escape&amp;quot;"
+  )
+
   test.equals(string.escape.html("\\"), "\\")
   test.equals(string.escape.html("/"), "/")
   test.equals(string.escape.html("`"), "`")
