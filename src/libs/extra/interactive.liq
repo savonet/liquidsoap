@@ -571,7 +571,9 @@ def interactive.harbor(
         v.type == "string"
       then
         v = list.assoc(name, variables_string())
-        add("<input type='text' #{common} value='#{string.escape.html(v.ref())}'>")
+        add(
+          "<input type='text' #{common} value='#{string.escape.html(v.ref())}'>"
+        )
       elsif
         v.type == "unit"
       then

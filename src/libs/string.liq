@@ -394,12 +394,15 @@ def string.escape.html(%argsof(string.escape[encoding]), s) =
       ('"', "&quot;"),
       ("'", "&#39;")
     ]
+
   def special_char(~encoding=_, c) =
     list.assoc.mem(c, escaped)
   end
+
   def escape_char(~encoding=_, c) =
     escaped[c]
   end
+
   string.escape(
     %argsof(string.escape[encoding]),
     special_char=special_char,
