@@ -245,6 +245,7 @@ let options =
          Arg.Unit
            (fun () ->
              run_streams := false;
+             deprecated := false;
              parse_only := true),
          "Parse scripts but do not type-check and run them." );
        ( ["-q"; "--quiet"],
