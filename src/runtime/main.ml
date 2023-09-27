@@ -102,6 +102,7 @@ let load_libs =
           (Sys.time () -. t);
         loaded := true
       with Liquidsoap_lang.Runtime.Error ->
+        Dtools.Init.exec Dtools.Log.stop;
         flush_all ();
         exit 1)
 
@@ -135,6 +136,7 @@ let do_eval, eval =
             Startup.time ("Loaded " ^ f) (fun () ->
                 Runtime.from_file ~lib ~parse_only:!parse_only f)
     with Liquidsoap_lang.Runtime.Error ->
+      Dtools.Init.exec Dtools.Log.stop;
       flush_all ();
       exit 1
   in
