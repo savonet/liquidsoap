@@ -184,7 +184,8 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
     end
   end
 
-  s = source.dynamic(id=id, track_sensitive=true, next)
+  d = source.dynamic(track_sensitive=true, next)
+  s = fallback(id=id, track_sensitive=true, [d, s])
   s.{
     pending=
     # Return the pending source
@@ -252,5 +253,6 @@ def prepend(~id=null("prepend"), ~merge=false, s, f) =
     end
   end
 
-  source.dynamic(id=id, track_sensitive=true, next)
+  d = source.dynamic(track_sensitive=true, next)
+  fallback(id=id, track_sensitive=true, [d, s])
 end
