@@ -783,6 +783,7 @@ let rec to_ast ~pos : parsed_ast -> Term.runtime_ast = function
   | `Int i -> `Ground (Int (int_of_string i))
   | `Float (sign, ipart, fpart) ->
       let fpart =
+        let fpart = String.(concat "" (split_on_char '_' fpart)) in
         if fpart = "" then 0.
         else float_of_string fpart /. (10. ** float_of_int (String.length fpart))
       in

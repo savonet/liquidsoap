@@ -17,6 +17,7 @@ def f() =
   test.equals(ceil(1.5), 2.)
   test.equals(ceil(1.6), 2.)
   test.equals(ceil(0.1), 1.)
+  test.equals(1_1.2_2, 11.22)
   test.equals(ceil(0.), 0.)
   test.equals(ceil(-0.1), -0.)
   test.equals(ceil(-1.), -1.)
