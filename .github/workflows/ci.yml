@@ -145,9 +145,6 @@ jobs:
       - name: Parse using tree-sitter
         run: |
           opam install -y dune
-          cd src/tooling/tree-sitter-liquidsoap
-          npm install
-          cd ../../..
           opam exec dune build @tree-sitter-parse
 
   update_doc:

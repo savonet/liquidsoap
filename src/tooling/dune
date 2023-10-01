@@ -33,15 +33,10 @@
        "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" > config.json")))))))
 
 (rule
- (target test-tree-sitter)
- (deps
-  (source_tree tree-sitter-liquidsoap))
+ (target tree-sitter-liquidsoap)
  (action
   (progn
-   (run cp -rf tree-sitter-liquidsoap test-tree-sitter)
+   (run git clone https://github.com/savonet/tree-sitter-liquidsoap.git)
    (chdir
-    test-tree-sitter/tree-sitter-liquidsoap
-    (progn
-     (run chmod -R ug+w .)
-     (run npm install)
-     (run npm exec tree-sitter -- init-config))))))
+    tree-sitter-liquidsoap
+    (run npm install)))))
