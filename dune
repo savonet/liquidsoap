@@ -31,3 +31,14 @@
  (deps
   (alias_rec perftest)
   (alias_rec runtest)))
+
+(rule
+ (alias tree-sitter-parse)
+ (deps
+  (source_tree src/libs)
+  (source_tree tests)
+  src/tooling/tree-sitter-liquidsoap)
+ (action
+  (chdir
+   src/tooling/tree-sitter-liquidsoap
+   (run npm exec tree-sitter -- parse -q -s ../../../**/*.liq))))
