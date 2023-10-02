@@ -34,8 +34,8 @@ def f() =
   n = ref(0)
 
   def counter() =
-    n := !n + 1
-    !n
+    n := n() + 1
+    n()
   end
 
   def counter.reset() =

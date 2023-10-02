@@ -3,7 +3,7 @@ count = ref(1)
 fail = ref(false)
 
 def echo(s) =
-  if s != string(!count) then fail := true end
+  if s != string(count()) then fail := true end
   count := count() + 1
   ()
 end

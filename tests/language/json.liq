@@ -28,7 +28,7 @@ def test_parse_error(name, f, msg) =
   end
 
   if
-    not !error_caught
+    not error_caught()
   then
     print("parse error test #{name} failed: no error caught")
     test.fail()
@@ -286,7 +286,7 @@ def f() =
   end
 
   f(infinity)
-  if not null.defined(!e) then test.fail() end
+  if not null.defined(e()) then test.fail() end
   test.pass()
 end
 
