@@ -15,6 +15,24 @@ close to production. Streaming issues can build up over time. We do our best to
 release the most stable possible code but problems can arise from many reasons
 so, always best to first to a trial run before putting things to production!
 
+## From 2.2.x to 2.3.x
+
+### Replaygain
+
+- There is a new `metadata.replaygain` function that extracts the replay gain value in _dB_ from the metadata.
+  It handles both `r128_track_gain` and `replaygain_track_gain` internally and returns a single unified gain value.
+
+- The `file.replaygain` function now takes a new compute parameter:
+  `file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name)`.
+  The compute parameter determines if gain should be calculated when the metadata does not already contain replaygain tags.
+
+- The `enable_replaygain_metadata` function now accepts a compute parameter to control replaygain calculation.
+
+- The `replaygain` function no longer takes an `ebu_r128` parameter. The signature is now simply: `replaygain(~id=null(), s)`.
+  Previously, `ebu_r128` allowed controlling whether EBU R128 or standard replaygain was used.
+  However, EBU R128 data is now extracted directly from metadata when available.
+  So `replaygain` cannot control the gain type via this parameter anymore.
+
 ## From 2.1.x to 2.2.x
 
 ### References
