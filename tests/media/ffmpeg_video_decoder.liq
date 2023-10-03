@@ -1,5 +1,6 @@
 log.level.set(5)
 audio.samplerate.set(48000)
+settings.audio.converter.samplerate.converters.set(["native"])
 video.frame.rate.set(45)
 settings.decoder.decoders.set(["ffmpeg"])
 fname = argv(default="", 1)
