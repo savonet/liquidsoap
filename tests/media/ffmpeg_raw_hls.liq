@@ -1,5 +1,6 @@
 log.level.set(5)
 audio.samplerate.set(48000)
+settings.audio.converter.samplerate.converters.set(["native"])
 debian_version =
   string.trim(
     process.run(
