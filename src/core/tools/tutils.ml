@@ -59,9 +59,7 @@ let exit_code () =
     | `Idle -> 0
     | _ -> internal_error_code
 
-let _exit code =
-  Dtools.Init.exec Dtools.Log.stop;
-  exit code
+let _exit = exit
 
 let exit () =
   match Atomic.get state with
@@ -201,7 +199,6 @@ let create ~queue f x s =
                     log#important "Thread %S failed: %s!" s e;
                     Printexc.raise_with_backtrace exn raw_bt
                 | e when queue ->
-                    Dtools.Init.exec Dtools.Log.stop;
                     Printf.printf "Queue %s crashed with exception %s\n%s" s
                       (Printexc.to_string e) bt;
                     Printf.printf
