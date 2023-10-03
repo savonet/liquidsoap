@@ -1,7 +1,6 @@
 log.level.set(4)
 settings.ffmpeg.log.level.set(12)
 audio.samplerate.set(48000)
-settings.audio.converter.samplerate.converters.set(["native"])
 
 out = "stream_video.mp4"
 

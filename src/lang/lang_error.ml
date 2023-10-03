@@ -116,8 +116,7 @@ let _ =
     ~descr:
       "Register a callback to monitor errors raised during the execution of \
        the program. The callback is allow to re-raise a different error if \
-       needed. The callback passed to this function is called on every errors,\n\
-      \       not just uncaught errors."
+       needed."
     [("", Lang_core.fun_t [(false, "", Error.t)] Lang_core.unit_t, None, None)]
     Lang_core.unit_t
     (fun p ->

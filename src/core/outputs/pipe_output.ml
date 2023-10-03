@@ -471,9 +471,8 @@ class virtual ['a] file_output_base p =
     method close_chan fd =
       try
         self#close_out fd;
-        (match Atomic.get current_filename with
-          | Some f -> self#on_close f
-          | None -> ());
+        (try self#on_close (Option.get (Atomic.get current_filename))
+         with _ -> ());
         Atomic.set current_filename None
       with Sys_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
@@ -561,8 +560,7 @@ let file_proto frame_t =
       Some (Lang.val_cst_fun [("", None)] Lang.unit),
       Some
         "This function will be called for each file, after that it is finished \
-         and closed. The filename will be passed as argument. Errors raised by \
-         this function are ignored." );
+         and closed. The filename will be passed as argument." );
   ]
   @ chan_proto frame_t "Filename where to output the stream."
 
