@@ -131,6 +131,7 @@ def test_escape_html() =
   test.equals(string.escape.html("\\"), "\\")
   test.equals(string.escape.html("/"), "/")
   test.equals(string.escape.html("`"), "`")
+  test.pass()
 end
 
 test.check(test_escape_html)
