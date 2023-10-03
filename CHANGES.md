@@ -14,6 +14,7 @@ Changed:
 - Changed internal metadata format to be immutable (#3297).
 - Allow a getter for the offset of `on_offset` and dropped the metadata
   mechanism for updating it (#3355).
+- Disable output paging when `TERM` environment variable is not set.
 - Allow running as `root` user inside `docker` container by default (#3406)
 
 # 2.2.0 (2023-07-21)

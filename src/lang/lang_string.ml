@@ -300,7 +300,7 @@ let find_cmd cmds =
   cmd cmds
 
 let print_string ?(pager = false) s =
-  let pager = if Sys.getenv_opt "PAGER" = Some "none" then false else pager in
+  let pager = if Sys.getenv_opt "TERM" = None || Sys.getenv_opt "PAGER" = Some "none" then false else pager in
   let default = output_string stdout in
   let cmd =
     let cmds = [("less", "-F -X -r -f"); ("more", "")] in
