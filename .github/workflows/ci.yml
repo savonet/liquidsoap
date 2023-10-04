@@ -192,7 +192,7 @@ jobs:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
-    runs-on: macos-latest-xlarge
+    runs-on: [self-hosted, citest]
     needs: build_details
     container:
       image: savonet/liquidsoap-ci:debian_bookworm_arm64
