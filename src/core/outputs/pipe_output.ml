@@ -471,8 +471,9 @@ class virtual ['a] file_output_base p =
     method close_chan fd =
       try
         self#close_out fd;
-        (try self#on_close (Option.get (Atomic.get current_filename))
-         with _ -> ());
+        (match Atomic.get current_filename with
+          | Some f -> self#on_close f
+          | None -> ());
         Atomic.set current_filename None
       with Sys_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in

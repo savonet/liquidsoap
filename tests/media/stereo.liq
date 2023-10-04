@@ -1,5 +1,6 @@
 log.level.set(5)
 audio.samplerate.set(48000)
+settings.audio.converter.samplerate.converters.set(["native"])
 settings.decoder.priorities.ffmpeg.set(-1)
 fname = argv(default="", 1)
 out = "#{fname}+stereo.wav"

@@ -15,7 +15,7 @@ def f() =
   x = 5.
   if abs(dB_of_lin(lin_of_dB(x)) - x) >= epsilon then success := false end
   if abs(lin_of_dB(dB_of_lin(x)) - x) >= epsilon then success := false end
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
 test.check(f)
