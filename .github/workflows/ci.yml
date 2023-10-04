@@ -123,19 +123,13 @@ jobs:
   tree_sitter_parse:
     runs-on: ubuntu-latest
     needs: build_details
-    strategy:
-      fail-fast: false
-      matrix:
-        ocaml-compiler:
-          - 4.14.x
-          - 5.0.x
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v3
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          ocaml-compiler: 4.14.x
           opam-pin: false
           opam-depext: false
       - name: Setup node
@@ -198,10 +192,10 @@ jobs:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, citest]
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ci:debian_bookworm_arm64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false

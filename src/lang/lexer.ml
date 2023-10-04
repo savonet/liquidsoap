@@ -115,26 +115,26 @@ let encoder = [%sedlex.regexp? '%', Plus (var_char | decimal_digit | '.' | '_')]
 
 let time =
   [%sedlex.regexp?
-    ( Opt (Plus decimal_digit, 'w'), Plus decimal_digit, 'h', Plus decimal_digit
-    | ( Plus decimal_digit,
+    ( Opt (decimal_literal, 'w'), decimal_literal, 'h', decimal_literal
+    | ( decimal_literal,
         'w',
-        Opt (Plus decimal_digit, 'h'),
-        Opt (Plus decimal_digit, 'm'),
-        Opt (Plus decimal_digit, 's') )
-    | ( Opt (Plus decimal_digit, 'w'),
-        Plus decimal_digit,
+        Opt (decimal_literal, 'h'),
+        Opt (decimal_literal, 'm'),
+        Opt (decimal_literal, 's') )
+    | ( Opt (decimal_literal, 'w'),
+        decimal_literal,
         'h',
-        Opt (Plus decimal_digit, 'm'),
-        Opt (Plus decimal_digit, 's') )
-    | ( Opt (Plus decimal_digit, 'w'),
-        Opt (Plus decimal_digit, 'h'),
-        Plus decimal_digit,
+        Opt (decimal_literal, 'm'),
+        Opt (decimal_literal, 's') )
+    | ( Opt (decimal_literal, 'w'),
+        Opt (decimal_literal, 'h'),
+        decimal_literal,
         'm',
-        Opt (Plus decimal_digit, 's') )
-    | ( Opt (Plus decimal_digit, 'w'),
-        Opt (Plus decimal_digit, 'h'),
-        Opt (Plus decimal_digit, 'm'),
-        Plus decimal_digit,
+        Opt (decimal_literal, 's') )
+    | ( Opt (decimal_literal, 'w'),
+        Opt (decimal_literal, 'h'),
+        Opt (decimal_literal, 'm'),
+        decimal_literal,
         's' ) )]
 
 let rec token lexbuf =
@@ -273,11 +273,11 @@ let rec token lexbuf =
     | "true" -> BOOL true
     | "false" -> BOOL false
     | int_literal -> INT (Sedlexing.Utf8.lexeme lexbuf)
-    | Plus decimal_digit, ".{" ->
+    | decimal_literal, ".{" ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let matched = String.sub matched 0 (String.length matched - 2) in
         PP_INT_DOT_LCUR matched
-    | Star decimal_digit, '.', Star decimal_digit ->
+    | Star decimal_literal, '.', Star decimal_literal ->
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let idx = String.index matched '.' in
         let ipart = String.sub matched 0 idx in
@@ -285,11 +285,11 @@ let rec token lexbuf =
           String.sub matched (idx + 1) (String.length matched - idx - 1)
         in
         FLOAT (ipart, fpart)
-    | ( Plus decimal_digit,
+    | ( decimal_literal,
         ".",
-        Plus decimal_digit,
+        decimal_literal,
         ".",
-        Plus decimal_digit,
+        decimal_literal,
         Star (Compl (white_space | line_break)) ) ->
         VERSION (Lang_string.Version.of_string (Sedlexing.Utf8.lexeme lexbuf))
     | time -> TIME (parse_time (Sedlexing.Utf8.lexeme lexbuf))
