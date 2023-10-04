@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.707005023956
+  unit: "s"
+  time: 1696437436.94
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.3424680233
+  unit: "s"
+  time: 1696437438.28
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 2.50173997879
+  unit: "s"
+  time: 1696437440.79
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 5.28774809837
+  unit: "s"
+  time: 1696437446.07
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 398.44140625
+  unit: "Mio"
+  time: 1696437655.85
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 946.91796875
+  unit: "Mio"
+  time: 1696437655.85
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 6921.9921875
+  unit: "Mio"
+  time: 1696437655.85
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 11017.9882812
+  unit: "Mio"
+  time: 1696437655.85
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 6445.2109375
+  unit: "Mio"
+  time: 1696437655.85
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 6446.47265625
+  unit: "Mio"
+  time: 1696437655.85
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2209.
+  unit: "functions"
+  time: 1696437663.49
+
+- name: "protocols"
+  category: "language"
+  value: 19.
+  unit: "protocols"
+  time: 1696437663.49
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.57769989967
+  unit: "s"
+  time: 1696438066.64
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 5.65046787262
+  unit: "s"
+  time: 1696438334.87
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 6.01294898987
+  unit: "s"
+  time: 1696438340.88
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1696438346.68
+  min: 0.
+
+- commit: d2ffcfb227d7ad93bfb1e532dc174ed9fd611e23
+  branch: fix-unknown-streams-error
+  time: 1696438346
