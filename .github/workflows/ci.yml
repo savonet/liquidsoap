@@ -192,10 +192,10 @@ jobs:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
-    runs-on: [self-hosted, citest]
+    runs-on: macos-latest-xlarge
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ci:debian_bookworm_arm64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
