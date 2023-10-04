@@ -661,17 +661,25 @@ let get_type ~ctype ~format ~url container =
   let _, descriptions =
     List.fold_left
       (fun (n, descriptions) (_, _, params) ->
-        let field = Frame.Fields.data_n n in
-        let codec_name =
-          Avcodec.Unknown.string_of_id (Avcodec.Unknown.get_params_id params)
-        in
-        ( n + 1,
-          descriptions
-          @ [
-              Printf.sprintf "%s: {codec: %s}"
-                (Frame.Fields.string_of_field field)
-                codec_name;
-            ] ))
+        try
+          let field = Frame.Fields.data_n n in
+          let codec_name =
+            Avcodec.Unknown.string_of_id (Avcodec.Unknown.get_params_id params)
+          in
+          ( n + 1,
+            descriptions
+            @ [
+                Printf.sprintf "%s: {codec: %s}"
+                  (Frame.Fields.string_of_field field)
+                  codec_name;
+              ] )
+        with Avutil.Error _ as exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Failed to get stream info: %s"
+               (Printexc.to_string exn));
+          (n, descriptions))
       (0, descriptions)
       (Av.get_data_streams container)
   in
