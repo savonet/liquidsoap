@@ -17,6 +17,7 @@ Fixed:
 - Fixed icecast not reconnecting after erroring out while closing connection
   in some circumstances (#3427)
 - Fixed parse-only mode (#3423)
+- Fixed ffmpeg decoding failing on files with unknown codecs.
 
 ---
 
