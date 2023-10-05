@@ -12,7 +12,7 @@ let () =
         {|
 (rule
   (alias fmt)
-  (deps %s ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps %s ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to %s.prettier

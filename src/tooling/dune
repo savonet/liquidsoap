@@ -16,7 +16,7 @@
  (target test-prettier)
  (deps
   (source_tree prettier-plugin-liquidsoap)
-  prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
  (action
   (progn
    (run mkdir -p test-prettier)

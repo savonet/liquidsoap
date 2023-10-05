@@ -1,7 +1,7 @@
 
 (rule
   (alias fmt)
-  (deps 195.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps 195.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to 195.liq.prettier
@@ -33,7 +33,7 @@
 
 (rule
   (alias fmt)
-  (deps 197.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps 197.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to 197.liq.prettier
@@ -65,7 +65,7 @@
 
 (rule
   (alias fmt)
-  (deps autostart.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps autostart.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to autostart.liq.prettier
@@ -97,7 +97,7 @@
 
 (rule
   (alias fmt)
-  (deps cross-override.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps cross-override.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to cross-override.liq.prettier
@@ -129,7 +129,7 @@
 
 (rule
   (alias fmt)
-  (deps cross-persist-override.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps cross-persist-override.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to cross-persist-override.liq.prettier
@@ -161,7 +161,7 @@
 
 (rule
   (alias fmt)
-  (deps cross.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps cross.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to cross.liq.prettier
@@ -193,7 +193,7 @@
 
 (rule
   (alias fmt)
-  (deps crossfade.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps crossfade.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to crossfade.liq.prettier
@@ -225,7 +225,7 @@
 
 (rule
   (alias fmt)
-  (deps ctype1.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps ctype1.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to ctype1.liq.prettier
@@ -257,7 +257,7 @@
 
 (rule
   (alias fmt)
-  (deps ctype2.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps ctype2.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to ctype2.liq.prettier
@@ -289,7 +289,7 @@
 
 (rule
   (alias fmt)
-  (deps dtmf.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps dtmf.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to dtmf.liq.prettier
@@ -321,7 +321,7 @@
 
 (rule
   (alias fmt)
-  (deps dtmf_pcm_s16.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps dtmf_pcm_s16.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to dtmf_pcm_s16.liq.prettier
@@ -353,7 +353,7 @@
 
 (rule
   (alias fmt)
-  (deps fades-overrides.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps fades-overrides.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to fades-overrides.liq.prettier
@@ -385,7 +385,7 @@
 
 (rule
   (alias fmt)
-  (deps fades-persistent-override.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps fades-persistent-override.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to fades-persistent-override.liq.prettier
@@ -417,7 +417,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg-errors.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps ffmpeg-errors.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to ffmpeg-errors.liq.prettier
@@ -449,7 +449,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg-trim.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps ffmpeg-trim.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to ffmpeg-trim.liq.prettier
@@ -481,7 +481,7 @@
 
 (rule
   (alias fmt)
-  (deps file_output.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps file_output.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to file_output.liq.prettier
@@ -513,7 +513,7 @@
 
 (rule
   (alias fmt)
-  (deps harbor_kick_client.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps harbor_kick_client.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to harbor_kick_client.liq.prettier
@@ -545,7 +545,7 @@
 
 (rule
   (alias fmt)
-  (deps harbor_metadata.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps harbor_metadata.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to harbor_metadata.liq.prettier
@@ -577,7 +577,7 @@
 
 (rule
   (alias fmt)
-  (deps hls_custom_tags.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps hls_custom_tags.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to hls_custom_tags.liq.prettier
@@ -609,7 +609,7 @@
 
 (rule
   (alias fmt)
-  (deps hls_id3v2.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps hls_id3v2.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to hls_id3v2.liq.prettier
@@ -641,7 +641,7 @@
 
 (rule
   (alias fmt)
-  (deps huge-playlist.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps huge-playlist.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to huge-playlist.liq.prettier
@@ -673,7 +673,7 @@
 
 (rule
   (alias fmt)
-  (deps image.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps image.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to image.liq.prettier
@@ -705,7 +705,7 @@
 
 (rule
   (alias fmt)
-  (deps many-playlists.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps many-playlists.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to many-playlists.liq.prettier
@@ -737,7 +737,7 @@
 
 (rule
   (alias fmt)
-  (deps merge_metadata.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps merge_metadata.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to merge_metadata.liq.prettier
@@ -769,7 +769,7 @@
 
 (rule
   (alias fmt)
-  (deps never.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps never.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to never.liq.prettier
@@ -801,7 +801,7 @@
 
 (rule
   (alias fmt)
-  (deps on_frame.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps on_frame.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to on_frame.liq.prettier
@@ -833,7 +833,7 @@
 
 (rule
   (alias fmt)
-  (deps on_metadata.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps on_metadata.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to on_metadata.liq.prettier
@@ -865,7 +865,7 @@
 
 (rule
   (alias fmt)
-  (deps on_track.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps on_track.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to on_track.liq.prettier
@@ -897,7 +897,7 @@
 
 (rule
   (alias fmt)
-  (deps playlist-watch.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps playlist-watch.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to playlist-watch.liq.prettier
@@ -929,7 +929,7 @@
 
 (rule
   (alias fmt)
-  (deps radio.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps radio.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to radio.liq.prettier
@@ -961,7 +961,7 @@
 
 (rule
   (alias fmt)
-  (deps radio2.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps radio2.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to radio2.liq.prettier
@@ -993,7 +993,7 @@
 
 (rule
   (alias fmt)
-  (deps random.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps random.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to random.liq.prettier
@@ -1025,7 +1025,7 @@
 
 (rule
   (alias fmt)
-  (deps replaygain.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps replaygain.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to replaygain.liq.prettier
@@ -1057,7 +1057,7 @@
 
 (rule
   (alias fmt)
-  (deps request.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps request.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to request.liq.prettier
@@ -1089,7 +1089,7 @@
 
 (rule
   (alias fmt)
-  (deps rotate.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps rotate.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to rotate.liq.prettier
@@ -1121,7 +1121,7 @@
 
 (rule
   (alias fmt)
-  (deps say.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps say.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to say.liq.prettier
@@ -1153,7 +1153,7 @@
 
 (rule
   (alias fmt)
-  (deps seek_track_map.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps seek_track_map.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to seek_track_map.liq.prettier
@@ -1185,7 +1185,7 @@
 
 (rule
   (alias fmt)
-  (deps sharing.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps sharing.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to sharing.liq.prettier
@@ -1217,7 +1217,7 @@
 
 (rule
   (alias fmt)
-  (deps sine.detect.full_conv.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps sine.detect.full_conv.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to sine.detect.full_conv.liq.prettier
@@ -1249,7 +1249,7 @@
 
 (rule
   (alias fmt)
-  (deps sine.detect.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps sine.detect.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to sine.detect.liq.prettier
@@ -1281,7 +1281,7 @@
 
 (rule
   (alias fmt)
-  (deps sine.detect.pcm_f32.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps sine.detect.pcm_f32.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to sine.detect.pcm_f32.liq.prettier
@@ -1313,7 +1313,7 @@
 
 (rule
   (alias fmt)
-  (deps sine.detect.pcm_s16.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps sine.detect.pcm_s16.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to sine.detect.pcm_s16.liq.prettier
@@ -1345,7 +1345,7 @@
 
 (rule
   (alias fmt)
-  (deps smart-crossfade.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps smart-crossfade.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to smart-crossfade.liq.prettier
@@ -1377,7 +1377,7 @@
 
 (rule
   (alias fmt)
-  (deps srt_listen_callback.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps srt_listen_callback.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to srt_listen_callback.liq.prettier
@@ -1409,7 +1409,7 @@
 
 (rule
   (alias fmt)
-  (deps srt_multiple_outputs.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps srt_multiple_outputs.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to srt_multiple_outputs.liq.prettier
@@ -1441,7 +1441,7 @@
 
 (rule
   (alias fmt)
-  (deps srt_passphrase.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps srt_passphrase.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to srt_passphrase.liq.prettier
@@ -1473,7 +1473,7 @@
 
 (rule
   (alias fmt)
-  (deps srt_raw_pcm.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps srt_raw_pcm.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to srt_raw_pcm.liq.prettier
@@ -1505,7 +1505,7 @@
 
 (rule
   (alias fmt)
-  (deps stretch-clock-propagation.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
+  (deps stretch-clock-propagation.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
   (action
     (progn
       (with-stdout-to stretch-clock-propagation.liq.prettier

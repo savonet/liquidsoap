@@ -1,3 +1,5 @@
+import prettierDoc from "prettier/doc";
+
 const {
   builders: {
     concat,
@@ -15,9 +17,9 @@ const {
     breakParent,
     indentIfBreak,
   },
-} = require("prettier/doc");
+} = prettierDoc;
 
-module.exports.languages = [
+export const languages = [
   {
     name: "liquidsoap",
     parsers: ["liquidsoap"],
@@ -26,7 +28,7 @@ module.exports.languages = [
   },
 ];
 
-module.exports.parsers = {
+export const parsers = {
   liquidsoap: {
     parse: (json) => JSON.parse(json),
     astFormat: "liquidsoap",
@@ -139,7 +141,7 @@ const print = (path, options, print) => {
             group([
               node.label,
               ...(node.as_variable ? ["=", node.as_variable] : []),
-            ])
+            ]),
           ),
         ];
 
@@ -238,7 +240,7 @@ const print = (path, options, print) => {
                   [
                     ...path.map(print, "value"),
                     ...(node.extensible ? ["..."] : []),
-                  ]
+                  ],
                 ),
               ]),
               softline,
@@ -428,7 +430,7 @@ const print = (path, options, print) => {
                     softline,
                     join(
                       [",", softline],
-                      [...node.only, ...node.except.map((s) => `!${s}`)]
+                      [...node.only, ...node.except.map((s) => `!${s}`)],
                     ),
                     "]",
                   ]),
@@ -454,7 +456,7 @@ const print = (path, options, print) => {
         return group([
           "[",
           indent(
-            group([softline, join([",", line], path.map(print, "value"))])
+            group([softline, join([",", line], path.map(print, "value"))]),
           ),
           softline,
           "]",
@@ -479,7 +481,7 @@ const print = (path, options, print) => {
                 ...path.map(print, "left"),
                 ...(node.middle ? [group(["...", node.middle])] : []),
                 ...path.map(print, "right"),
-              ]
+              ],
             ),
           ]),
           softline,
@@ -604,9 +606,9 @@ const print = (path, options, print) => {
             [dedent(line), node.op, line],
             path.map(
               (v) => group([indent([softline, print(v)]), softline]),
-              "value"
-            )
-          )
+              "value",
+            ),
+          ),
         );
       case "string_interpolation":
         return group(path.map(print, "value"));
@@ -698,7 +700,7 @@ const print = (path, options, print) => {
                 [
                   ...path.map(print, "methods"),
                   ...(node.spread ? [["...", print("spread")]] : []),
-                ]
+                ],
               ),
             ]),
             softline,
@@ -736,8 +738,8 @@ const print = (path, options, print) => {
     join(
       [hardlineWithoutBreakParent, hardlineWithoutBreakParent],
       (node.ast_comments || []).map((c) =>
-        join([hardlineWithoutBreakParent], c)
-      )
+        join([hardlineWithoutBreakParent], c),
+      ),
     ),
     ...(node.ast_comments?.length > 0 ? [hardlineWithoutBreakParent] : []),
     print_value(),
@@ -745,8 +747,10 @@ const print = (path, options, print) => {
   ];
 };
 
-module.exports.printers = {
+export const printers = {
   liquidsoap: {
     print,
   },
 };
+
+export default { languages, parsers, printers };

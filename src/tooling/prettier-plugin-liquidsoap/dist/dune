@@ -2,6 +2,6 @@
  (mode
   (promote (until-clean)))
  (deps ../src/liquidsoap_js.bc.js)
- (target liquidsoap.js)
+ (target liquidsoap.cjs)
  (action
   (copy %{deps} %{target})))
