@@ -29,10 +29,10 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
   ~threshold =
   object (self)
     (** State can be either
-    *  - `Noise l: the source is considered to be emitting,
-    *     but it has been silent for l samples;
-    *  - `Blank l: the source is considered to be silent,
-    *     but it has been noisy for l samples. *)
+        - `Noise l: the source is considered to be emitting,
+           but it has been silent for l samples;
+        - `Blank l: the source is considered to be silent,
+           but it has been noisy for l samples. *)
     val mutable state = if start_blank then `Blank 0 else `Noise 0
 
     method virtual private log : Log.t
@@ -51,10 +51,10 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       state <- s
 
     (** This method should be called after the frame [s] has been
-    * filled, where [p0] is the position in [s] before filling. *)
+        filled, where [p0] is the position in [s] before filling. *)
     method private check_blank s p0 =
-      (* TODO The [p0 > 0] condition may not be fully justified.
-       *      By the way it was absent in [blank.eat]. *)
+      (* TODO: The [p0 > 0] condition may not be fully justified. By the way it
+         was absent in [blank.eat]. *)
       if AFrame.is_partial s || p0 > 0 then (
         if
           (* Don't bother analyzing the end of this track, jump to the new state. *)
@@ -114,8 +114,8 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
   source =
   object (self)
     (* Stripping is easy:
-     *  - declare yourself as unavailable when the source is silent
-     *  - keep pulling data from the source during those times. *)
+       - declare yourself as unavailable when the source is silent
+       - keep pulling data from the source during those times. *)
     inherit active_operator ~name:"blank.strip" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method stype = `Fallible
@@ -138,18 +138,17 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       source#get ab;
       self#check_blank ab p0;
 
-      (* It's useless to strip metadata, because [ab] is [memo]
-       * and metadata will not be copied from it outside of the track. *)
+      (* It's useless to strip metadata, because [ab] is [memo] and metadata
+         will not be copied from it outside of the track. *)
       if self#is_blank then AFrame.set_breaks ab (p0 :: b0)
 
     method private output =
-      (* We only #get once in memo; this is why we can set_breaks every time
-       * in #get_frame.
-       * This behavior makes time flow slower than expected, but doesn't seem
-       * harmful. The advantage of doing this is that if stripping stops because
-       * the track ends, the beginning of the next track won't be lost. (Because
-       * of granularity issues, the change of #is_ready only takes effect at the
-       * end of the clock cycle). *)
+      (* We only #get once in memo; this is why we can set_breaks every time in
+         #get_frame. This behavior makes time flow slower than expected, but
+         doesn't seem harmful. The advantage of doing this is that if stripping
+         stops because the track ends, the beginning of the next track won't be
+         lost. (Because of granularity issues, the change of #is_ready only
+         takes effect at the end of the clock cycle). *)
       if
         source#is_ready ~frame:self#memo ()
         && self#is_blank
@@ -168,8 +167,8 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     inherit! Child_support.base ~check_self_sync:true [source_val]
 
-    (** We strip when the source is silent,
-    * but only at the beginning of tracks if [at_beginning] is passed. *)
+    (** We strip when the source is silent, but only at the beginning of tracks
+        if [at_beginning] is passed. *)
 
     val mutable stripping = false
     val mutable beginning = true
@@ -184,8 +183,8 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     method private get_frame ab =
       let first = ref true in
       let breaks = AFrame.breaks ab in
-      (* Do at least one round of pulling data from the source into [ab],
-       * and as many as needed for getting rid of silence. *)
+      (* Do at least one round of pulling data from the source into [ab], and as
+         many as needed for getting rid of silence. *)
       while !first || stripping do
         if not !first then AFrame.set_breaks ab breaks;
         first := false;
