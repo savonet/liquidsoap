@@ -71,12 +71,14 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
               if noise then (if blank_len <> 0 then self#set_state (`Noise 0))
               else (
                 let blank_len = blank_len + len in
-                if blank_len <= max_blank then self#set_state (`Noise blank_len)
+                if blank_len <= max_blank () then
+                  self#set_state (`Noise blank_len)
                 else self#set_state (`Blank 0))
           | `Blank noise_len ->
               if noise then (
                 let noise_len = noise_len + len in
-                if noise_len < min_noise then self#set_state (`Blank noise_len)
+                if noise_len < min_noise () then
+                  self#set_state (`Blank noise_len)
                 else self#set_state (`Noise 0))
               else if noise_len <> 0 then self#set_state (`Blank 0))
   end
@@ -218,11 +220,11 @@ let proto frame_t =
       Some (Lang.bool false),
       Some "Start assuming we have blank." );
     ( "max_blank",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 20.),
       Some "Maximum duration of silence allowed, in seconds." );
     ( "min_noise",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 0.),
       Some "Minimum duration of noise required to end silence, in seconds." );
     ( "track_sensitive",
@@ -237,12 +239,12 @@ let extract p =
   let s = f "" in
   let start_blank = Lang.to_bool (f "start_blank") in
   let max_blank =
-    let l = Lang.to_float (f "max_blank") in
-    Frame.audio_of_seconds l
+    let l = Lang.to_float_getter (f "max_blank") in
+    fun () -> Frame.audio_of_seconds (l ())
   in
   let min_noise =
-    let l = Lang.to_float (f "min_noise") in
-    Frame.audio_of_seconds l
+    let l = Lang.to_float_getter (f "min_noise") in
+    fun () -> Frame.audio_of_seconds (l ())
   in
   let threshold =
     let v = f "threshold" in
