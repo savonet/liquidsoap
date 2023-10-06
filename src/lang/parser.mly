@@ -353,10 +353,13 @@ ty_content_args:
 
 ty_content_arg:
   | VAR                  { ("", `Verbatim $1) }
+  | INT                  { ("", `Verbatim $1) }
+  | FLOAT                { ("", `Verbatim (fst $1 ^ "." ^ snd $1)) }
   | STRING               { ("", `String ($loc($1), $1)) }
   | VAR GETS VAR         { ($1, `Verbatim $3) }
   | VAR GETS STRING      { ($1, `String ($loc($3), $3)) }
   | VAR GETS INT         { ($1, `Verbatim $3) }
+  | VAR GETS FLOAT       { ($1, `Verbatim (fst $3 ^ "." ^ snd $3)) }
 
 ty_tuple:
   | ty TIMES ty { [$1; $3] }
