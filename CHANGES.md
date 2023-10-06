@@ -16,7 +16,6 @@ Changed:
   mechanism for updating it (#3355).
 - Disable output paging when `TERM` environment variable is not set.
 - Allow running as `root` user inside `docker` container by default (#3406).
-- Add support for getters in arguments of `blank.detect` (#3452).
 
 # 2.2.0 (2023-07-21)
 
