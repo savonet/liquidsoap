@@ -64,7 +64,7 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
         let len = AFrame.position s - p0 in
         let rms = AFrame.rms s p0 len in
         let noise =
-          Array.fold_left (fun noise r -> noise || r > threshold) false rms
+          Array.fold_left (fun noise r -> noise || r > threshold ()) false rms
         in
         match state with
           | `Noise blank_len ->
@@ -210,7 +210,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
 let proto frame_t =
   [
     ( "threshold",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float (-40.)),
       Some "Power in decibels under which the stream is considered silent." );
     ( "start_blank",
@@ -246,10 +246,10 @@ let extract p =
   in
   let threshold =
     let v = f "threshold" in
-    let t = Lang.to_float v in
-    if t > 0. then
+    let t = Lang.to_float_getter v in
+    if t () > 0. then
       raise (Error.Invalid_value (v, "threshold should be negative"));
-    Audio.lin_of_dB t
+    fun () -> Audio.lin_of_dB (t ())
   in
   let ts = Lang.to_bool (f "track_sensitive") in
   (start_blank, max_blank, min_noise, threshold, ts, s)
