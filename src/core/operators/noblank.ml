@@ -29,10 +29,10 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
   ~threshold =
   object (self)
     (** State can be either
-    *  - `Noise l: the source is considered to be emitting,
-    *     but it has been silent for l samples;
-    *  - `Blank l: the source is considered to be silent,
-    *     but it has been noisy for l samples. *)
+        - `Noise l: the source is considered to be emitting,
+           but it has been silent for l samples;
+        - `Blank l: the source is considered to be silent,
+           but it has been noisy for l samples. *)
     val mutable state = if start_blank then `Blank 0 else `Noise 0
 
     method virtual private log : Log.t
@@ -51,32 +51,34 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       state <- s
 
     (** This method should be called after the frame [s] has been
-    * filled, where [p0] is the position in [s] before filling. *)
+        filled, where [p0] is the position in [s] before filling. *)
     method private check_blank s p0 =
-      (* TODO The [p0 > 0] condition may not be fully justified.
-       *      By the way it was absent in [blank.eat]. *)
+      (* TODO: The [p0 > 0] condition may not be fully justified. By the way it
+         was absent in [blank.eat]. *)
       if AFrame.is_partial s || p0 > 0 then (
         if
           (* Don't bother analyzing the end of this track, jump to the new state. *)
-          track_sensitive
+          track_sensitive ()
         then self#set_state (`Noise 0))
       else (
         let len = AFrame.position s - p0 in
         let rms = AFrame.rms s p0 len in
         let noise =
-          Array.fold_left (fun noise r -> noise || r > threshold) false rms
+          Array.fold_left (fun noise r -> noise || r > threshold ()) false rms
         in
         match state with
           | `Noise blank_len ->
               if noise then (if blank_len <> 0 then self#set_state (`Noise 0))
               else (
                 let blank_len = blank_len + len in
-                if blank_len <= max_blank then self#set_state (`Noise blank_len)
+                if blank_len <= max_blank () then
+                  self#set_state (`Noise blank_len)
                 else self#set_state (`Blank 0))
           | `Blank noise_len ->
               if noise then (
                 let noise_len = noise_len + len in
-                if noise_len < min_noise then self#set_state (`Blank noise_len)
+                if noise_len < min_noise () then
+                  self#set_state (`Blank noise_len)
                 else self#set_state (`Noise 0))
               else if noise_len <> 0 then self#set_state (`Blank 0))
   end
@@ -112,8 +114,8 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
   source =
   object (self)
     (* Stripping is easy:
-     *  - declare yourself as unavailable when the source is silent
-     *  - keep pulling data from the source during those times. *)
+       - declare yourself as unavailable when the source is silent
+       - keep pulling data from the source during those times. *)
     inherit active_operator ~name:"blank.strip" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method stype = `Fallible
@@ -136,18 +138,17 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       source#get ab;
       self#check_blank ab p0;
 
-      (* It's useless to strip metadata, because [ab] is [memo]
-       * and metadata will not be copied from it outside of the track. *)
+      (* It's useless to strip metadata, because [ab] is [memo] and metadata
+         will not be copied from it outside of the track. *)
       if self#is_blank then AFrame.set_breaks ab (p0 :: b0)
 
     method private output =
-      (* We only #get once in memo; this is why we can set_breaks every time
-       * in #get_frame.
-       * This behavior makes time flow slower than expected, but doesn't seem
-       * harmful. The advantage of doing this is that if stripping stops because
-       * the track ends, the beginning of the next track won't be lost. (Because
-       * of granularity issues, the change of #is_ready only takes effect at the
-       * end of the clock cycle). *)
+      (* We only #get once in memo; this is why we can set_breaks every time in
+         #get_frame. This behavior makes time flow slower than expected, but
+         doesn't seem harmful. The advantage of doing this is that if stripping
+         stops because the track ends, the beginning of the next track won't be
+         lost. (Because of granularity issues, the change of #is_ready only
+         takes effect at the end of the clock cycle). *)
       if
         source#is_ready ~frame:self#memo ()
         && self#is_blank
@@ -166,8 +167,8 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     inherit! Child_support.base ~check_self_sync:true [source_val]
 
-    (** We strip when the source is silent,
-    * but only at the beginning of tracks if [at_beginning] is passed. *)
+    (** We strip when the source is silent, but only at the beginning of tracks
+        if [at_beginning] is passed. *)
 
     val mutable stripping = false
     val mutable beginning = true
@@ -182,14 +183,14 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     method private get_frame ab =
       let first = ref true in
       let breaks = AFrame.breaks ab in
-      (* Do at least one round of pulling data from the source into [ab],
-       * and as many as needed for getting rid of silence. *)
+      (* Do at least one round of pulling data from the source into [ab], and as
+         many as needed for getting rid of silence. *)
       while !first || stripping do
         if not !first then AFrame.set_breaks ab breaks;
         first := false;
         let p0 = AFrame.position ab in
         self#child_on_output (fun () -> source#get ab);
-        if track_sensitive && AFrame.is_partial ab then (
+        if track_sensitive () && AFrame.is_partial ab then (
           stripping <- false;
           beginning <- true);
         let was_blank = self#is_blank in
@@ -210,7 +211,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
 let proto frame_t =
   [
     ( "threshold",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float (-40.)),
       Some "Power in decibels under which the stream is considered silent." );
     ( "start_blank",
@@ -218,15 +219,15 @@ let proto frame_t =
       Some (Lang.bool false),
       Some "Start assuming we have blank." );
     ( "max_blank",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 20.),
       Some "Maximum duration of silence allowed, in seconds." );
     ( "min_noise",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 0.),
       Some "Minimum duration of noise required to end silence, in seconds." );
     ( "track_sensitive",
-      Lang.bool_t,
+      Lang.getter_t Lang.bool_t,
       Some (Lang.bool true),
       Some "Reset blank counter at each track." );
     ("", Lang.source_t frame_t, None, None);
@@ -237,21 +238,21 @@ let extract p =
   let s = f "" in
   let start_blank = Lang.to_bool (f "start_blank") in
   let max_blank =
-    let l = Lang.to_float (f "max_blank") in
-    Frame.audio_of_seconds l
+    let l = Lang.to_float_getter (f "max_blank") in
+    fun () -> Frame.audio_of_seconds (l ())
   in
   let min_noise =
-    let l = Lang.to_float (f "min_noise") in
-    Frame.audio_of_seconds l
+    let l = Lang.to_float_getter (f "min_noise") in
+    fun () -> Frame.audio_of_seconds (l ())
   in
   let threshold =
     let v = f "threshold" in
-    let t = Lang.to_float v in
-    if t > 0. then
+    let t = Lang.to_float_getter v in
+    if t () > 0. then
       raise (Error.Invalid_value (v, "threshold should be negative"));
-    Audio.lin_of_dB t
+    fun () -> Audio.lin_of_dB (t ())
   in
-  let ts = Lang.to_bool (f "track_sensitive") in
+  let ts = Lang.to_bool_getter (f "track_sensitive") in
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
 let _ =
