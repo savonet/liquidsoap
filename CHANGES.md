@@ -3,6 +3,7 @@
 New:
 
 - Added `string.escape.html` (#3418, @ghostnumber7)
+- Add support for getters in arguments of `blank.detect` (#3452).
 
 Changed:
 
