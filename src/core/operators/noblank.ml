@@ -58,7 +58,7 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       if AFrame.is_partial s || p0 > 0 then (
         if
           (* Don't bother analyzing the end of this track, jump to the new state. *)
-          track_sensitive
+          track_sensitive ()
         then self#set_state (`Noise 0))
       else (
         let len = AFrame.position s - p0 in
@@ -190,7 +190,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
         first := false;
         let p0 = AFrame.position ab in
         self#child_on_output (fun () -> source#get ab);
-        if track_sensitive && AFrame.is_partial ab then (
+        if track_sensitive () && AFrame.is_partial ab then (
           stripping <- false;
           beginning <- true);
         let was_blank = self#is_blank in
@@ -227,7 +227,7 @@ let proto frame_t =
       Some (Lang.float 0.),
       Some "Minimum duration of noise required to end silence, in seconds." );
     ( "track_sensitive",
-      Lang.bool_t,
+      Lang.getter_t Lang.bool_t,
       Some (Lang.bool true),
       Some "Reset blank counter at each track." );
     ("", Lang.source_t frame_t, None, None);
@@ -252,7 +252,7 @@ let extract p =
       raise (Error.Invalid_value (v, "threshold should be negative"));
     fun () -> Audio.lin_of_dB (t ())
   in
-  let ts = Lang.to_bool (f "track_sensitive") in
+  let ts = Lang.to_bool_getter (f "track_sensitive") in
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
 let _ =
