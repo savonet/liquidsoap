@@ -52,7 +52,6 @@ def f() =
     min=0.
   )
 
-
   # See #2427
   thread.run({ignore(runtime.mem_usage())})
   test.pass()

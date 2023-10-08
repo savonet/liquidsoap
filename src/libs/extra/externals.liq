@@ -172,7 +172,6 @@ def enable_external_flac_decoder() =
             )
           )
 
-
         # If the value is not an int, this returns 0 and we are ok :)
         int_of_string(channels)
       else

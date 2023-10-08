@@ -136,7 +136,6 @@ def playlist.list(
       on_fail
     )
 
-
   # Original playlist when loaded
   playlist_orig = ref(playlist)
 
@@ -499,7 +498,6 @@ def replaces playlist(
     s.on_shutdown(watcher_shutdown)
   end
 
-
   # Set up telnet commands
   server.register(
     namespace=id,
@@ -573,7 +571,6 @@ def replaces playlist(
           "Warning: the watched file is not updated for now when changing the uri!"
         )
       end
-
 
       # TODO
       playlist_uri := uri'

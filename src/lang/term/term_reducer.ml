@@ -699,7 +699,7 @@ let mk_expr ?fname processor lexbuf =
   let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
   Parser_helper.clear_comments ();
   let parsed_term = processor tokenizer in
-  Parser_helper.attach_comments ~pos:parsed_term.Parsed_term.pos parsed_term;
+  Parser_helper.attach_comments parsed_term;
   parsed_term
 
 let includer_reducer ~to_term = function
@@ -876,8 +876,13 @@ and to_term (tm : Parsed_term.t) : Term.t =
         in
         { t = Type.var ~pos:tm.pos (); term; methods }
     | term ->
+        let comments =
+          List.filter_map
+            (function pos, `Before c -> Some (pos, c) | _ -> None)
+            tm.comments
+        in
         let term =
-          match (to_ast ~pos:tm.pos term, List.rev tm.comments) with
+          match (to_ast ~pos:tm.pos term, List.rev comments) with
             | `Let p, (pos, doc) :: _ ->
                 `Let
                   { p with doc = Doc.parse_doc ~pos (String.concat "\n" doc) }

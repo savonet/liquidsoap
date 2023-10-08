@@ -49,7 +49,20 @@ let append_comment ~pos c =
   pending_comments := (pos, comments) :: !pending_comments
 
 let comment_distance term_pos comment_pos =
-  (fst term_pos).Lexing.pos_cnum - (snd comment_pos).Lexing.pos_cnum
+  if (fst comment_pos).Lexing.pos_lnum = (snd term_pos).Lexing.pos_lnum then
+    (`Before, 0)
+  else (
+    let before_distance =
+      (fst term_pos).Lexing.pos_lnum - (snd comment_pos).Lexing.pos_lnum
+    in
+    let after_distance =
+      (fst comment_pos).Lexing.pos_lnum - (snd term_pos).Lexing.pos_lnum
+    in
+    if
+      0 <= after_distance
+      && (before_distance < 0 || after_distance < before_distance)
+    then (`After, after_distance)
+    else (`Before, before_distance))
 
 let sort_comments comments =
   List.sort
@@ -57,21 +70,28 @@ let sort_comments comments =
       Stdlib.compare (fst p).Lexing.pos_cnum (fst p').Lexing.pos_cnum)
     comments
 
-let attach_comments ~pos term =
+let attach_comments term =
   List.iter
     (fun (comment_pos, c) ->
       let closest_term = ref term in
-      let distance = ref (comment_distance pos comment_pos) in
+      let distance = ref (comment_distance term.pos comment_pos) in
       Parsed_term.iter_term
         (fun term ->
           match (comment_distance term.pos comment_pos, !distance) with
-            | d, d' when d' < 0 || (0 <= d && d < d') ->
-                distance := d;
+            | (t, d), (t', d')
+              when 0 <= d
+                   && (d' < 0
+                      || if t = `Before && t' = `After then d <= d' else d < d'
+                      ) ->
+                distance := (t, d);
                 closest_term := term
             | _ -> ())
         term;
+      let comment =
+        match !distance with `Before, _ -> `Before c | `After, _ -> `After c
+      in
       !closest_term.comments <-
-        sort_comments ((comment_pos, c) :: !closest_term.comments))
+        sort_comments ((comment_pos, comment) :: !closest_term.comments))
     !pending_comments;
   pending_comments := []
 

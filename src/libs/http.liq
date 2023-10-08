@@ -639,7 +639,6 @@ upload_file_fn =
         )
       end
 
-
       # Massage parameters
       filename =
         null.defined(filename)
@@ -648,7 +647,6 @@ upload_file_fn =
       contents =
         null.defined(contents)
         ? null.get(contents) : getter(stdlib_file.read(null.get(file)))
-
 
       # Create query
       content_type = content_type ?? "application/octet-stream"

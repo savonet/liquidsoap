@@ -282,7 +282,6 @@ def f() =
     )
   end
 
-
   # Response ended
   read = ref(fun (~timeout=_) -> error.raise(error.assertion))
 
@@ -301,7 +300,6 @@ def f() =
   catch err : [error.http] do
     test.equals(err.message, "Response ended!")
   end
-
 
   # Register output on the same port
   output.harbor(port=3456, mount="bla.wav", on_start=test.pass, %wav, sine())

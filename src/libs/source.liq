@@ -69,9 +69,8 @@ def metadata.map(
   source(
     id=id,
     tracks.{
-      metadata=track.metadata.map(
-        %argsof(track.metadata.map), f, tracks.metadata
-      )
+      metadata=
+        track.metadata.map(%argsof(track.metadata.map), f, tracks.metadata)
     }
   )
 end
@@ -188,21 +187,21 @@ def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
   s = fallback(id=id, track_sensitive=true, [d, s])
   s.{
     pending=
-    # Return the pending source
-    fun () -> pending(),
+      # Return the pending source
+      fun () -> pending(),
     set_pending=
-    # Set the pending source
-    fun (s) -> pending.set(s),
+      # Set the pending source
+      fun (s) -> pending.set(s),
     cancel_pending=
-    # Cancel any pending appended source.
-    fun () -> pending.set(null()),
+      # Cancel any pending appended source.
+      fun () -> pending.set(null()),
     skip=
-    # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
-    fun (~cancel_pending=true) ->
-      begin
-        if cancel_pending then pending.set(null()) end
-        s.skip()
-      end
+      # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
+      fun (~cancel_pending=true) ->
+        begin
+          if cancel_pending then pending.set(null()) end
+          s.skip()
+        end
   }
 end
 

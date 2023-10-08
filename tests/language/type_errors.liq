@@ -226,7 +226,6 @@ def f() =
     '%ffmpeg(%audio.copy(wait_for_keyframe), %video.copy(wait_for_keyframe))'
   )
 
-
   # Conventions for content type in %ffmpeg encoder:
   correct('%ffmpeg(%foo_audio, %bla_video_gni)')
   correct('%ffmpeg(%foo(audio_content), %bla(video_content))')

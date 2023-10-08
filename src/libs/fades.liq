@@ -401,7 +401,6 @@ def cross.smart(
   ignore(a.metadata["foo"])
   ignore(b.metadata["foo"])
   if
-
     # If A and B are not too loud and close, fully cross-fade them.
     a.db_level <= medium
   and
@@ -414,7 +413,6 @@ def cross.smart(
     log("Transition: crossed, fade-in, fade-out.")
     add(fade.out(a.source), fade.in(b.source))
   elsif
-
     # If B is significantly louder than A, only fade-out A.
     # We don't want to fade almost silent things, ask for >medium.
     b.db_level >= a.db_level + margin
@@ -428,7 +426,6 @@ def cross.smart(
     log("Transition: crossed, fade-out.")
     add(fade.out(a.source), b.source)
   elsif
-
     # Opposite as the previous one.
     a.db_level >= b.db_level + margin
   and
@@ -441,7 +438,6 @@ def cross.smart(
     log("Transition: crossed, fade-in.")
     add(a.source, fade.in(b.source))
   elsif
-
     # Do not fade if it's already very low.
     b.db_level >= a.db_level + margin
   and
@@ -453,11 +449,11 @@ def cross.smart(
     log("Do not fade if it's already very low.")
     log("Transition: crossed, no fade.")
     add(a.source, b.source)
-  else
+
     # What to do with a loud end and a quiet beginning ?
     # A good idea is to use a jingle to separate the two tracks,
     # but that's another story.
-
+  else
     # Otherwise, A and B are just too loud to overlap nicely, or the
     # difference between them is too large and overlapping would completely
     # mask one of them.
