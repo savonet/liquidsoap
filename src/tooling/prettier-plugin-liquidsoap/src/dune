@@ -8,3 +8,11 @@
  (js_of_ocaml
   (javascript_files ../../../js/filesystem.js))
  (libraries js_of_ocaml liquidsoap_lang liquidsoap_tooling liquidsoap_js))
+
+(rule
+ (mode
+  (promote (until-clean)))
+ (deps ./liquidsoap_js.bc.js)
+ (target liquidsoap.cjs)
+ (action
+  (copy %{deps} %{target})))

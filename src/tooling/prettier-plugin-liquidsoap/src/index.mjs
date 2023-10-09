@@ -5,7 +5,7 @@ export { languages, printers } from "./base.mjs";
 
 const require = createRequire(import.meta.url);
 
-const liquidsoap = require("../dist/liquidsoap.cjs");
+const liquidsoap = require("./liquidsoap.cjs");
 
 export const parsers = {
   liquidsoap: {

@@ -6,10 +6,12 @@ liquidsoap.config
 tests/streams/ssl.cert
 tests/streams/ssl.key
 .DS_Store
+package.json
 package-lock.json
 node_modules/
 pnpm-lock.yaml
 package-lock.json
+src/tooling/prettier-plugin-liquidsoap/src/liquidsoap.cjs
 src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
 src/tooling/prettier-plugin-liquidsoap/dist/web.mjs
 src/tooling/prettier-plugin-liquidsoap/dist/node.js
