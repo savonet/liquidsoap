@@ -1,7 +1,5 @@
 (rule
- (target main.mjs)
- (deps src/base.mjs package.json webpack.config.js)
+ (target node_modules)
+ (deps package.json)
  (action
-  (progn
-   (run npm install)
-   (run npm exec webpack))))
+  (run npm install)))

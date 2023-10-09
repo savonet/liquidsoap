@@ -5,3 +5,32 @@
  (target liquidsoap.cjs)
  (action
   (copy %{deps} %{target})))
+
+(rule
+ (mode
+  (promote (until-clean)))
+ (target web.mjs)
+ (deps
+  ../node_modules
+  ../src/base.mjs
+  ../webpack.web.js
+  ./liquidsoap.cjs)
+ (action
+  (chdir
+   ..
+   (run npm run build:web))))
+
+(rule
+ (mode
+  (promote (until-clean)))
+ (target node.js)
+ (deps
+  ../node_modules
+  ../src/base.mjs
+  ../src/index.mjs
+  ../webpack.node.js
+  ./liquidsoap.cjs)
+ (action
+  (chdir
+   ..
+   (run npm run build:node))))

@@ -7,7 +7,8 @@ module.exports = {
     outputModule: true,
   },
   output: {
-    path: __dirname,
+    path: __dirname + "/dist",
+    filename: "web.mjs",
     library: {
       type: "module",
     },

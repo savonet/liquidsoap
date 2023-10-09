@@ -61,4 +61,4 @@
    (not
     (= %{profile} release))))
  (action
-  (copy ../tooling/prettier-plugin-liquidsoap/main.mjs %{target})))
+  (copy ../tooling/prettier-plugin-liquidsoap/dist/web.mjs %{target})))

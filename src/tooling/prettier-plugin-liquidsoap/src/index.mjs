@@ -1,5 +1,5 @@
 import { parsers as baseParsers } from "./base.mjs";
-import { createRequire } from "module";
+import { createRequire } from "node:module";
 
 export { languages, printers } from "./base.mjs";
 
