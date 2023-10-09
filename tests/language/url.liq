@@ -7,7 +7,6 @@ def f() =
     ("abc", [("a", "aa"), ("b", ""), ("c", "cc")])
   )
 
-
   # No argument (#3126).
   test.equals(url.split("/bla"), ("/bla", []))
   test.pass()

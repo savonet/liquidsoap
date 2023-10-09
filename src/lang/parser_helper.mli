@@ -37,7 +37,7 @@ type meth_pattern_el = string * Term.pattern option
 
 val clear_comments : unit -> unit
 val append_comment : pos:Pos.t -> string -> unit
-val attach_comments : pos:Pos.t -> Term.t -> unit
+val attach_comments : Term.t -> unit
 val mk_ty : ?pos:Pos.t -> Parsed_term.type_annotation -> Type.t
 
 val mk_let :
@@ -64,7 +64,10 @@ val mk_json_assoc_object_ty :
   Term.type_annotation
 
 val mk :
-  ?comments:(Pos.t * string list) list -> pos:Pos.t -> Term.parsed_ast -> Term.t
+  ?comments:(Pos.t * Parsed_term.comment) list ->
+  pos:Pos.t ->
+  Term.parsed_ast ->
+  Term.t
 
 val mk_fun : pos:Pos.t -> arglist -> Term.t -> Term.t
 val mk_encoder : pos:Pos.t -> string -> Term.encoder_params -> Term.t

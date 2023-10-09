@@ -152,8 +152,7 @@ let rec token lexbuf =
         let buf = Buffer.create 1024 in
         let ((startp, _) as pos) = Sedlexing.lexing_bytes_positions lexbuf in
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
-        read_comment pos buf lexbuf;
-        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
+        let _, endp = read_comment pos buf lexbuf in
         Parser_helper.append_comment ~pos:(startp, endp) (Buffer.contents buf);
         token lexbuf
     | line_break -> PP_ENDL
@@ -336,16 +335,18 @@ and read_regexp_flags flags lexbuf =
         Sedlexing.rollback lexbuf;
         flags
 
-and read_comment pos buf lexbuf =
+and read_comment ((startp, _) as pos) buf lexbuf =
   match%sedlex lexbuf with
     | '\n', Star white_space, '#', Star white_space ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
-        read_comment pos buf lexbuf
-    | '\n' -> ()
+        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
+        read_comment (startp, endp) buf lexbuf
+    | '\n' -> pos
     | Plus (Compl '\n') ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
-        read_comment pos buf lexbuf
-    | eof -> ()
+        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
+        read_comment (startp, endp) buf lexbuf
+    | eof -> pos
     | _ ->
         raise
           (Term_base.Parse_error

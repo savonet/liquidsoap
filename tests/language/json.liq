@@ -90,17 +90,17 @@ def f() =
     {
       foo=34.24,
       gni_gno=true,
-      nested={
-        tuple=(null(), 3.14),
-        list=[44., 55., 66.12],
-        nullable_list=[null(), 23, null()],
-        object_as_list=[("foo", 123.), ("gni", 456.0), ("gno", 3.14)],
-        arbitrary_object_key=true,
-        not_present=null()
-      }
+      nested=
+        {
+          tuple=(null(), 3.14),
+          list=[44., 55., 66.12],
+          nullable_list=[null(), 23, null()],
+          object_as_list=[("foo", 123.), ("gni", 456.0), ("gno", 3.14)],
+          arbitrary_object_key=true,
+          not_present=null()
+        }
     }
   )
-
 
   # Pattern extraction with json parsing
   let json.parse {

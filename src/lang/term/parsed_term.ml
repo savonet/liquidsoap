@@ -23,6 +23,7 @@
 include Runtime_term
 module Ground = Term_base.Ground
 
+type comment = [ `Before of string list | `After of string list ]
 type string_param = [ `Verbatim of string | `String of Pos.t * (char * string) ]
 type track_annotation = string * string_param
 type inc_type = [ `Lib | `Extra | `Default ]
@@ -189,7 +190,7 @@ and parsed_ast =
 and t = {
   term : parsed_ast;
   pos : Pos.t;
-  mutable comments : (Pos.t * string list) list;
+  mutable comments : (Pos.t * comment) list;
 }
 
 and methods = {

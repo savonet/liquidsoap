@@ -73,7 +73,6 @@ def f() =
     string.quote(encoding="ascii", invalid_utf8_string)
   )
 
-
   # But raise an exception when encoding is specified:
   try
     ignore(string.quote(encoding="utf8", invalid_utf8_string))

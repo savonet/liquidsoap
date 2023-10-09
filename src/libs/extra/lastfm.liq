@@ -96,7 +96,8 @@ def audioscrobbler.submit.full(
   end
 
   s = source_on_metadata(s, f)
-  f = fun (rem, m) ->
+  f =
+    fun (rem, m) ->
       # Avoid skipped songs
       if
         rem > 0. or force

@@ -47,7 +47,6 @@ def f() =
     expected_pic_string_data.{description="", picture_type=1, mime="image/jpeg"}
   )
 
-
   # From http://towerofbabel.free.fr/test/music.ogg
   flac_cover =
     string.base64.decode(
@@ -84,7 +83,6 @@ def f() =
       number_of_colors=parse_flac_cover.number_of_colors,
       (parse_flac_cover : string)
     )
-
 
   # The re-encoded tag doesn't match the original one b/c mime string has padding in it..
   expected_encoded_flac_codec =

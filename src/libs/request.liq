@@ -15,7 +15,8 @@ def replaces request.dynamic(%argsof(request.dynamic), ~native=false, f) =
     stdlib_native.request.dynamic(%argsof(request.dynamic), f)
   else
     default
-  end%else
+  end
+%else
   default
 %endif
 end
@@ -85,7 +86,8 @@ def request.queue(
       stdlib_native.request.dynamic(id=id, timeout=timeout, next)
     else
       default
-    end%else
+    end
+%else
     default
 %endif
 
@@ -205,10 +207,11 @@ def request.player(~simultaneous=true) =
 
     source.dynamic({add(normalize=false, l())}).{
       play=play,
-      length={
-        collect()
-        list.length(l())
-      }
+      length=
+        {
+          collect()
+          list.length(l())
+        }
     }
   else
     s = source.dynamic()

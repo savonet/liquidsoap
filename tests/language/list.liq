@@ -111,7 +111,6 @@ def f() =
     t(err.message, "List should have at least 23 elemments")
   end
 
-
   # Test huge lists, see #2162.
   # l = list.init(100000, fun(i) -> i)
   if success() then test.pass() else test.fail() end

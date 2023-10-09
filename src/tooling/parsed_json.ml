@@ -541,16 +541,52 @@ and to_encoder_param_json ~to_json = function
   | `Anonymous s -> `Assoc (json_of_annotated_string s)
 
 let rec to_json { pos; term; comments } : Json.t =
-  let comments =
-    List.map (fun (_, c) -> `Tuple (List.map (fun s -> `String s) c)) comments
+  let before_comments, after_comments =
+    List.fold_left
+      (fun (before_comments, after_comments) -> function
+        | p, `Before c -> ((p, c) :: before_comments, after_comments)
+        | p, `After c -> (before_comments, (p, c) :: after_comments))
+      ([], []) comments
+  in
+  let ast_comments =
+    `Assoc
+      [
+        ( "before",
+          `Tuple
+            (List.map
+               (fun (p, c) ->
+                 `Assoc
+                   (ast_node ~typ:"comment"
+                      [
+                        ("position", json_of_positions p);
+                        ("value", `Tuple (List.map (fun c -> `String c) c));
+                      ]))
+               (List.rev before_comments)) );
+        ( "after",
+          `Tuple
+            (List.map
+               (fun (p, c) ->
+                 `Assoc
+                   (ast_node ~typ:"comment"
+                      [
+                        ("position", json_of_positions p);
+                        ("value", `Tuple (List.map (fun c -> `String c) c));
+                      ]))
+               (List.rev after_comments)) );
+      ]
   in
   `Assoc
-    ([("ast_comments", `Tuple comments); ("position", json_of_positions pos)]
+    ([("ast_comments", ast_comments); ("position", json_of_positions pos)]
     @ to_ast_json ~to_json term)
 
 let parse_string content =
   let lexbuf = Sedlexing.Utf8.from_string content in
-  let tokenizer = Preprocessor.mk_tokenizer lexbuf in
-  let term = Runtime.program tokenizer in
-  Parser_helper.attach_comments ~pos:term.Parsed_term.pos term;
-  to_json term
+  let throw = Runtime.throw ~formatter:Format.err_formatter lexbuf in
+  try
+    let tokenizer = Preprocessor.mk_tokenizer lexbuf in
+    let term = Runtime.program tokenizer in
+    Parser_helper.attach_comments term;
+    to_json term
+  with exn ->
+    throw exn;
+    exit 1

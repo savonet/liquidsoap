@@ -345,9 +345,10 @@ def video.add_text.ffmpeg.raw.filter(
   filters =
     [
       {
-        args=getter(
-          {"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{escaped_text()}"}
-        ),
+        args=
+          getter(
+            {"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{escaped_text()}"}
+          ),
         filter=filter
       }
     ]
@@ -360,18 +361,20 @@ def video.add_text.ffmpeg.raw.filter(
       [
         ...filters,
         {
-          args=getter(
-            {"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{escaped_text()}"}
-          ),
-          filter=ffmpeg.filter.drawtext.create(
-            fontfile=font,
-            fontsize="#{size}",
-            x="#{getter.get(x)}",
-            y="#{getter.get(y)}",
-            fontcolor=color,
-            text=getter.get(d),
-            graph
-          )
+          args=
+            getter(
+              {"x=#{getter.get(x)}:y=#{getter.get(y)}:text=#{escaped_text()}"}
+            ),
+          filter=
+            ffmpeg.filter.drawtext.create(
+              fontfile=font,
+              fontsize="#{size}",
+              x="#{getter.get(x)}",
+              y="#{getter.get(y)}",
+              fontcolor=color,
+              text=getter.get(d),
+              graph
+            )
         }
       ]
     else
@@ -565,8 +568,8 @@ def video.add_text.ffmpeg.internal(
   null.defined(duration) ? max_duration(null.get(duration), s) : s
 end
 
-let replaces video.add_text.ffmpeg = video.add_text.ffmpeg.internal%endif
-
+let replaces video.add_text.ffmpeg = video.add_text.ffmpeg.internal
+%endif
 
 # video.add_text.available := [("ffmpeg", video.add_text.ffmpeg.internal), ...video.add_text.available()]
 

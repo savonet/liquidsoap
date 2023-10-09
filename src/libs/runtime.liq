@@ -4,9 +4,8 @@
 def runtime.memory() =
   x =
     {
-      process_managed_memory=runtime.gc.quick_stat().heap_words *
-        runtime.sys.word_size /
-        8
+      process_managed_memory=
+        runtime.gc.quick_stat().heap_words * runtime.sys.word_size / 8
     }
 
 %ifdef runtime.mem_usage
@@ -23,27 +22,20 @@ def runtime.memory() =
 
   let x.pretty =
     {
-      process_managed_memory=runtime.mem_usage.prettify_bytes(
-        x.process_managed_memory
-      ),
-      total_virtual_memory=runtime.mem_usage.prettify_bytes(
-        info.total_virtual_memory
-      ),
-      total_physical_memory=runtime.mem_usage.prettify_bytes(
-        info.total_physical_memory
-      ),
-      total_used_virtual_memory=runtime.mem_usage.prettify_bytes(
-        info.total_used_virtual_memory
-      ),
-      total_used_physical_memory=runtime.mem_usage.prettify_bytes(
-        info.total_used_physical_memory
-      ),
-      process_virtual_memory=runtime.mem_usage.prettify_bytes(
-        info.process_virtual_memory
-      ),
-      process_physical_memory=runtime.mem_usage.prettify_bytes(
-        info.process_physical_memory
-      )
+      process_managed_memory=
+        runtime.mem_usage.prettify_bytes(x.process_managed_memory),
+      total_virtual_memory=
+        runtime.mem_usage.prettify_bytes(info.total_virtual_memory),
+      total_physical_memory=
+        runtime.mem_usage.prettify_bytes(info.total_physical_memory),
+      total_used_virtual_memory=
+        runtime.mem_usage.prettify_bytes(info.total_used_virtual_memory),
+      total_used_physical_memory=
+        runtime.mem_usage.prettify_bytes(info.total_used_physical_memory),
+      process_virtual_memory=
+        runtime.mem_usage.prettify_bytes(info.process_virtual_memory),
+      process_physical_memory=
+        runtime.mem_usage.prettify_bytes(info.process_physical_memory)
     }
 %endif
 

@@ -82,12 +82,8 @@ def string.contains(~prefix="", ~substring="", ~suffix="", s) =
     substring != ""
   then
     sublen = string.length(substring)
-    for
-    i
-    =
-    0
-    to
-    string.length(s) - sublen
+    for i = 0 to
+      string.length(s) - sublen
     do
       ans := ans() or (string.sub(s, start=i, length=sublen) == substring)
     end
@@ -142,12 +138,8 @@ let string.binary = ()
 def string.binary.to_int(~little_endian=true, s) =
   ans = ref(0)
   n = string.length(s)
-  for
-  i
-  =
-  0
-  to
-  n - 1
+  for i = 0 to
+    n - 1
   do
     ans :=
       lsl(ans(), 8) + string.nth(s, if little_endian then n - 1 - i else i end)
@@ -366,11 +358,13 @@ let string.char.ascii.printable = list.init(96, fun (c) -> c + 32)
 
 # All ASCII alphabet character codes
 # @category String
-let string.char.ascii.alphabet = [...
+let string.char.ascii.alphabet =
+  [
     # A-Z
-    list.init(24, fun (c) -> c + 65), ...
+    ...list.init(24, fun (c) -> c + 65),
     # a-z
-    list.init(24, fun (c) -> c + 97)]
+    ...list.init(24, fun (c) -> c + 97)
+  ]
 
 # All ASCII number character codes
 # @category String

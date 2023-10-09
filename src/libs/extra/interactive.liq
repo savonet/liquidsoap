@@ -219,7 +219,8 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
       # TODO
       error.raise(error.not_found)
     end
-  end%else
+  end
+%else
   ignore(osc)
 %endif
 end
@@ -305,38 +306,42 @@ def interactive.save(fname) =
   data =
     json.stringify(
       {
-        float=list.map(
-          fun (nv) ->
-            begin
-              let (name, v) = nv
-              (name, v.ref())
-            end,
-          variables_float()
-        ),
-        int=list.map(
-          fun (nv) ->
-            begin
-              let (name, v) = nv
-              (name, v.ref())
-            end,
-          variables_int()
-        ),
-        bool=list.map(
-          fun (nv) ->
-            begin
-              let (name, v) = nv
-              (name, v.ref())
-            end,
-          variables_bool()
-        ),
-        string=list.map(
-          fun (nv) ->
-            begin
-              let (name, v) = nv
-              (name, v.ref())
-            end,
-          variables_string()
-        )
+        float=
+          list.map(
+            fun (nv) ->
+              begin
+                let (name, v) = nv
+                (name, v.ref())
+              end,
+            variables_float()
+          ),
+        int=
+          list.map(
+            fun (nv) ->
+              begin
+                let (name, v) = nv
+                (name, v.ref())
+              end,
+            variables_int()
+          ),
+        bool=
+          list.map(
+            fun (nv) ->
+              begin
+                let (name, v) = nv
+                (name, v.ref())
+              end,
+            variables_bool()
+          ),
+        string=
+          list.map(
+            fun (nv) ->
+              begin
+                let (name, v) = nv
+                (name, v.ref())
+              end,
+            variables_string()
+          )
       }
     )
 
@@ -478,7 +483,6 @@ def interactive.harbor(
     }
     </style>"
     )
-
 
     # TODO: we could send only the updated value instead of sending them all
     add(

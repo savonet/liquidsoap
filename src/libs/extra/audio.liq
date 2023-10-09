@@ -45,9 +45,10 @@ def compress.exponential(%argsof(track.audio.compress.exponential), s) =
   source(
     id=id,
     tracks.{
-      audio=track.audio.compress.exponential(
-        %argsof(track.audio.compress.exponential), tracks.audio
-      )
+      audio=
+        track.audio.compress.exponential(
+          %argsof(track.audio.compress.exponential), tracks.audio
+        )
     }
   )
 end
@@ -122,12 +123,8 @@ end
 # @flag extra
 def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
   # Check that the bands are with increasing frequencies.
-  for
-  i
-  =
-  0
-  to
-  list.length(l) - 2
+  for i = 0 to
+    list.length(l) - 2
   do
     if
       getter.get(list.nth(l, i + 1).frequency) <
@@ -182,7 +179,6 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
     else
       c
     end
-
 
   # Seal l element type
   if false then () else list.hd(l) end
@@ -304,12 +300,8 @@ end
 # @param dtmf String describing DTMF tones to generates: it should contains characters 0 to 9, A to D, or * or #.
 def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf) =
   l = ref([])
-  for
-  i
-  =
-  0
-  to
-  string.length(dtmf) - 1
+  for i = 0 to
+    string.length(dtmf) - 1
   do
     c = string.sub(dtmf, start=i, length=1)
     let (row, col) =

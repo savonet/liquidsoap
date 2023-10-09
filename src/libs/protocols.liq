@@ -578,7 +578,6 @@ protocol.add(
   syntax="stereo:<uri>"
 )
 
-
 # Text2wave
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 let settings.protocol.text2wave.path =
@@ -603,7 +602,6 @@ protocol.add(
   doc="Generate speech synthesis using text2wave. Result may be mono.",
   syntax="text2wave:Text to read"
 )
-
 
 # Pico2wave
 let settings.protocol.pico2wave = settings.make.protocol("pico2wave")
@@ -634,7 +632,6 @@ protocol.add(
   doc="Generate speech synthesis using pico2wave. Result may be mono.",
   syntax="pico2wave:Text to read"
 )
-
 
 # GTTS
 let settings.protocol.gtts = settings.make.protocol("gtts")

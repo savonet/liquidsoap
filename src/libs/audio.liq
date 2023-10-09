@@ -52,12 +52,13 @@ def amplify(~id=null("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
   source(
     id=id,
     tracks.{
-      audio=track.audio.amplify(
-        id=null("track.amplify"),
-        %argsof(track.audio.amplify[!id]),
-        f,
-        tracks.audio
-      )
+      audio=
+        track.audio.amplify(
+          id=null("track.amplify"),
+          %argsof(track.audio.amplify[!id]),
+          f,
+          tracks.audio
+        )
     }
   )
 end
@@ -260,9 +261,8 @@ def stereo.pan(
   source(
     id=id,
     tracks.{
-      audio=track.audio.stereo.pan(
-        %argsof(track.audio.stereo.pan), tracks.audio
-      )
+      audio=
+        track.audio.stereo.pan(%argsof(track.audio.stereo.pan), tracks.audio)
     }
   )
 end
@@ -295,9 +295,10 @@ def stereo.ms.decode(
   source(
     id=id,
     tracks.{
-      audio=track.audio.stereo.ms.decode(
-        %argsof(track.audio.stereo.ms.decode), tracks.audio
-      )
+      audio=
+        track.audio.stereo.ms.decode(
+          %argsof(track.audio.stereo.ms.decode), tracks.audio
+        )
     }
   )
 end
@@ -314,9 +315,10 @@ def stereo.ms.encode(
   source(
     id=id,
     tracks.{
-      audio=track.audio.stereo.ms.encode(
-        %argsof(track.audio.stereo.ms.encode), tracks.audio
-      )
+      audio=
+        track.audio.stereo.ms.encode(
+          %argsof(track.audio.stereo.ms.encode), tracks.audio
+        )
     }
   )
 end
