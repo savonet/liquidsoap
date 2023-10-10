@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.715720891953
+  unit: "s"
+  time: 1696962390.77
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.33114981651
+  unit: "s"
+  time: 1696962392.1
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 2.56673979759
+  unit: "s"
+  time: 1696962394.67
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 5.29844713211
+  unit: "s"
+  time: 1696962399.97
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 396.21875
+  unit: "Mio"
+  time: 1696962609.11
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 952.92578125
+  unit: "Mio"
+  time: 1696962609.11
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 6921.9921875
+  unit: "Mio"
+  time: 1696962609.11
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 11017.9882812
+  unit: "Mio"
+  time: 1696962609.11
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 6283.578125
+  unit: "Mio"
+  time: 1696962609.11
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 6285.08984375
+  unit: "Mio"
+  time: 1696962609.11
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2209.
+  unit: "functions"
+  time: 1696962616.87
+
+- name: "protocols"
+  category: "language"
+  value: 19.
+  unit: "protocols"
+  time: 1696962616.87
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.19100499153
+  unit: "s"
+  time: 1696963015.99
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 5.91735601425
+  unit: "s"
+  time: 1696963273.89
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 7.42635297775
+  unit: "s"
+  time: 1696963281.32
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1696963287.08
+  min: 0.
+
+- commit: 5c18a440ad7ef6349e59d78895fb69a9705c4084
+  branch: main
+  time: 1696963287
