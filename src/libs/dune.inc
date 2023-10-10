@@ -4,7 +4,7 @@
   (deps
    audio.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -18,7 +18,7 @@
   (deps
    clock.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -32,7 +32,7 @@
   (deps
    error.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -46,7 +46,7 @@
   (deps
    fades.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -60,7 +60,7 @@
   (deps
    ffmpeg.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -74,7 +74,7 @@
   (deps
    file.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -88,7 +88,7 @@
   (deps
    getter.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -102,7 +102,7 @@
   (deps
    hls.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -116,7 +116,7 @@
   (deps
    http.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -130,7 +130,7 @@
   (deps
    http_codes.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -144,7 +144,7 @@
   (deps
    icecast.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -158,7 +158,7 @@
   (deps
    io.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -172,7 +172,7 @@
   (deps
    liquidsoap.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -186,7 +186,7 @@
   (deps
    list.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -200,7 +200,7 @@
   (deps
    log.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -214,7 +214,7 @@
   (deps
    math.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -228,7 +228,7 @@
   (deps
    medialib.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -242,7 +242,7 @@
   (deps
    metadata.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -256,7 +256,7 @@
   (deps
    null.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -270,7 +270,7 @@
   (deps
    playlist.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -284,7 +284,7 @@
   (deps
    predicate.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -298,7 +298,7 @@
   (deps
    process.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -312,7 +312,7 @@
   (deps
    profiler.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -326,7 +326,7 @@
   (deps
    protocols.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -340,7 +340,7 @@
   (deps
    ref.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -354,7 +354,7 @@
   (deps
    replaygain.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -368,7 +368,7 @@
   (deps
    request.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -382,7 +382,7 @@
   (deps
    resolvers.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -396,7 +396,7 @@
   (deps
    runtime.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -410,7 +410,7 @@
   (deps
    server.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -424,7 +424,7 @@
   (deps
    settings.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -438,7 +438,7 @@
   (deps
    socket.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -452,7 +452,7 @@
   (deps
    source.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -466,7 +466,7 @@
   (deps
    stdlib.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -480,7 +480,7 @@
   (deps
    string.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -494,7 +494,7 @@
   (deps
    switches.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -508,7 +508,7 @@
   (deps
    testing.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -522,7 +522,7 @@
   (deps
    thread.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -536,7 +536,7 @@
   (deps
    tracks.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -550,7 +550,7 @@
   (deps
    utils.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
@@ -564,7 +564,7 @@
   (deps
    video.liq
    ./../tooling/test-prettier
-   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   ./../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn

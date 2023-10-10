@@ -2063,7 +2063,7 @@
   (run %{run_test} "pcm_f32_decode.liq" liquidsoap %{test_liq} pcm_f32_decode.liq -- "")))
 (rule
   (alias fmt)
-  (deps ffmpeg_add_text.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_add_text.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_add_text.liq.prettier
@@ -2073,7 +2073,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_audio_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_audio_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_audio_decoder.liq.prettier
@@ -2083,7 +2083,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_complex_filter.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_complex_filter.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_complex_filter.liq.prettier
@@ -2093,7 +2093,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_copy_and_encode_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_copy_and_encode_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_copy_and_encode_decoder.liq.prettier
@@ -2103,7 +2103,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_copy_concat.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_copy_concat.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_copy_concat.liq.prettier
@@ -2113,7 +2113,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_copy_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_copy_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_copy_decoder.liq.prettier
@@ -2123,7 +2123,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_distributed_hls.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_distributed_hls.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_distributed_hls.liq.prettier
@@ -2133,7 +2133,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_filter.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_filter.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_filter.liq.prettier
@@ -2143,7 +2143,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_filter_changing_rate.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_filter_changing_rate.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_filter_changing_rate.liq.prettier
@@ -2153,7 +2153,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_inline_encode_decode.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_inline_encode_decode.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_inline_encode_decode.liq.prettier
@@ -2163,7 +2163,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_inline_encode_decode_audio.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_inline_encode_decode_audio.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_inline_encode_decode_audio.liq.prettier
@@ -2173,7 +2173,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_inline_encode_decode_video.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_inline_encode_decode_video.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_inline_encode_decode_video.liq.prettier
@@ -2183,7 +2183,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_raw_and_copy_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_raw_and_copy_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_raw_and_copy_decoder.liq.prettier
@@ -2193,7 +2193,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_raw_and_encode_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_raw_and_encode_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_raw_and_encode_decoder.liq.prettier
@@ -2203,7 +2203,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_raw_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_raw_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_raw_decoder.liq.prettier
@@ -2213,7 +2213,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_raw_hls.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_raw_hls.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_raw_hls.liq.prettier
@@ -2223,7 +2223,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_transparency_filter.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_transparency_filter.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_transparency_filter.liq.prettier
@@ -2233,7 +2233,7 @@
 
 (rule
   (alias fmt)
-  (deps ffmpeg_video_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps ffmpeg_video_decoder.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to ffmpeg_video_decoder.liq.prettier
@@ -2243,7 +2243,7 @@
 
 (rule
   (alias fmt)
-  (deps mono.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps mono.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to mono.liq.prettier
@@ -2253,7 +2253,7 @@
 
 (rule
   (alias fmt)
-  (deps multitrack.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps multitrack.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to multitrack.liq.prettier
@@ -2263,7 +2263,7 @@
 
 (rule
   (alias fmt)
-  (deps pcm_f32_decode.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps pcm_f32_decode.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to pcm_f32_decode.liq.prettier
@@ -2273,7 +2273,7 @@
 
 (rule
   (alias fmt)
-  (deps pcm_s16_decode.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps pcm_s16_decode.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to pcm_s16_decode.liq.prettier
@@ -2283,7 +2283,7 @@
 
 (rule
   (alias fmt)
-  (deps stereo.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps stereo.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to stereo.liq.prettier
@@ -2293,7 +2293,7 @@
 
 (rule
   (alias fmt)
-  (deps taglib.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps taglib.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to taglib.liq.prettier
@@ -2303,7 +2303,7 @@
 
 (rule
   (alias fmt)
-  (deps video_size.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  (deps video_size.liq ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
   (action
     (progn
       (with-stdout-to video_size.liq.prettier

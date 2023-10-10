@@ -18,7 +18,7 @@
  (deps
   test.liq
   ../src/tooling/test-prettier
-  ../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs)
+  ../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
  (action
   (progn
    (with-stdout-to

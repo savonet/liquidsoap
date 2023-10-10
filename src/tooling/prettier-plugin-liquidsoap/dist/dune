@@ -2,7 +2,7 @@
  (mode
   (promote (until-clean)))
  (deps ../src/liquidsoap_js.bc.js)
- (target liquidsoap.cjs)
+ (target liquidsoap.js)
  (action
   (copy %{deps} %{target})))
 
@@ -14,7 +14,7 @@
   ../node_modules
   ../src/base.mjs
   ../webpack.web.js
-  ./liquidsoap.cjs)
+  ./liquidsoap.js)
  (action
   (chdir
    ..
@@ -29,7 +29,7 @@
   ../src/base.mjs
   ../src/index.mjs
   ../webpack.node.js
-  ./liquidsoap.cjs)
+  ./liquidsoap.js)
  (action
   (chdir
    ..

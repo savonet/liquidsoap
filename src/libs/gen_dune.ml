@@ -6,7 +6,7 @@ let mk_prettify_rule ~location ~path f =
   (deps
    %s
    %s/../tooling/test-prettier
-   %s/../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.cjs
+   %s/../tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
  )
   (action
     (progn
