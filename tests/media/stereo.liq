@@ -15,13 +15,13 @@ def on_close(filename) =
   then
     j =
       process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{process.quote(
-          filename
-        )}"
+        "ffprobe -v quiet -print_format json -show_streams #{
+          process.quote(filename)
+        }"
       )
 
-    let json.parse (
-      parsed : {streams: [{channels: int, sample_rate: string}]}
+    let json.parse (parsed :
+      {streams: [{channels: int, sample_rate: string}]}
     ) = j
 
     let [stream] = parsed.streams

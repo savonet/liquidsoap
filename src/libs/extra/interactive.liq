@@ -354,8 +354,8 @@ end
 # @param fname Name of the file.
 def interactive.load(fname) =
   vars = file.contents(fname)
-  let json.parse (
-    vars : {
+  let json.parse (vars :
+    {
       float: [(string*float)],
       int: [(string*int)],
       bool: [(string*bool)],
@@ -504,7 +504,9 @@ def interactive.harbor(
       }
       console.log('Posting: ' + data);
       let xmlHttp = new XMLHttpRequest();
-      xmlHttp.open('POST', '#{uri}');
+      xmlHttp.open('POST', '#{
+        uri
+      }');
       xmlHttp.onreadystatechange = function () {
         if(xmlHttp.readyState === XMLHttpRequest.DONE) {
           var status = xmlHttp.status;
@@ -520,7 +522,9 @@ def interactive.harbor(
     function sendUnit(name) {
       const body = name + '=';
       console.log('Posting: ' + body);
-      fetch('#{uri}', {method: 'POST', body: body});
+      fetch('#{
+        uri
+      }', {method: 'POST', body: body});
     }
     </script>"
     )
@@ -556,7 +560,15 @@ def interactive.harbor(
           value = http.string_of_float(v.ref())
           unit = if v.unit == "" then "" else " " ^ v.unit end
           add(
-            "<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{step}' value='#{value}' oninput='document.getElementById(\"#{name}-value\").innerHTML = this.value+\"#{unit}\"'><text id='#{name}-value' style='inline'>#{value}#{unit}</text></div>"
+            "<div><input type='range' #{common} min='#{min}' max='#{
+              max
+            }' step='#{step}' value='#{
+              value
+            }' oninput='document.getElementById(\"#{
+              name
+            }-value\").innerHTML = this.value+\"#{unit}\"'><text id='#{
+              name
+            }-value' style='inline'>#{value}#{unit}</text></div>"
           )
         end
       elsif
@@ -582,7 +594,9 @@ def interactive.harbor(
         v.type == "unit"
       then
         add(
-          "<button type='button' #{common} onclick=\"sendUnit('#{name}')\">#{name}</button>"
+          "<button type='button' #{common} onclick=\"sendUnit('#{name}')\">#{
+            name
+          }</button>"
         )
       else
         ()

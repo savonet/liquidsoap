@@ -59,8 +59,8 @@ def on_stop() =
       "ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}"
     )
 
-  let json.parse (
-    parsed : {
+  let json.parse (parsed :
+    {
       streams: [
         {
           channel_layout: string?,

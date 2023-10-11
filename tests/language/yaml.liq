@@ -17,8 +17,8 @@ baz: 3.14
 '
   )
 
-  let yaml.parse (
-    x : {
+  let yaml.parse (x :
+    {
       bla: string,
       baz: float,
       key_with_methods: string,

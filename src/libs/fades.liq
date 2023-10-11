@@ -114,7 +114,9 @@ def fade.out(
 
   def start_fade(d, _) =
     log(
-      "Fading out with type #{type()}, duration: #{duration()} and #{d}s remaining."
+      "Fading out with type #{type()}, duration: #{duration()} and #{
+        d
+      }s remaining."
     )
 
     start_time := source.time(s)

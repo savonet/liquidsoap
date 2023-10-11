@@ -38,13 +38,13 @@ def on_done(_) =
   then
     j =
       process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{process.quote(
-          out
-        )}"
+        "ffprobe -v quiet -print_format json -show_streams #{
+          process.quote(out)
+        }"
       )
 
-    let json.parse (
-      parsed : {
+    let json.parse (parsed :
+      {
         streams: [
           {
             channel_layout: string?,

@@ -165,23 +165,21 @@ def f() =
   (noise() : source(audio=pcm(mono)))
   (noise() : source(audio=pcm("5.1")))
   (noise() : source)
-  (single("annotate:foo=\"bla\":/nonexistent") : source(
-    audio=ffmpeg.copy,
-    video=ffmpeg.copy,
-    midi=midi
-  ))
+  (single("annotate:foo=\"bla\":/nonexistent") :
+    source(audio=ffmpeg.copy, video=ffmpeg.copy, midi=midi)
+  )
 
-  (single("annotate:foo=\"bla\":/nonexistent") : source(
-    audio=ffmpeg.audio.raw,
-    video=ffmpeg.video.raw,
-    midi=midi
-  ))
+  (single("annotate:foo=\"bla\":/nonexistent") :
+    source(audio=ffmpeg.audio.raw, video=ffmpeg.video.raw, midi=midi)
+  )
 
-  (single("annotate:foo=\"bla\":/nonexistent") : source(
-    audio=ffmpeg.audio.raw(sample_rate=44100, channel_layout="5.1"),
-    video=ffmpeg.video.raw(pixel_format=yuva420p),
-    midi=midi
-  ))
+  (single("annotate:foo=\"bla\":/nonexistent") :
+    source(
+      audio=ffmpeg.audio.raw(sample_rate=44100, channel_layout="5.1"),
+      video=ffmpeg.video.raw(pixel_format=yuva420p),
+      midi=midi
+    )
+  )
 
   let ([x] : [int]) = [123]
   ([] : [(string*int)] as json.object)
@@ -190,27 +188,26 @@ def f() =
   ({foo=123} : {"✨ name ✨" as foo: int})
   (123.{foo=3.14, gni="aabbcc"} : int.{ foo: float, gni: string })
   (123.{foo=3.14, gni="aabbcc"} : int.{ foo: float }.{ gni: string })
-  (123.{foo=3.14, gni="aabbcc"} : int.{ foo: float }.{ gni: int }.{
-    gni: string
-  })
+  (123.{foo=3.14, gni="aabbcc"} :
+    int.{ foo: float }.{ gni: int }.{ gni: string }
+  )
 
-  (source.tracks(single("")).audio.{foo=3.14, gni="aabbcc"} : ffmpeg.copy.{
-    foo: float
-  }.{ gni: int }.{ gni: string })
+  (source.tracks(single("")).audio.{foo=3.14, gni="aabbcc"} :
+    ffmpeg.copy.{ foo: float }.{ gni: int }.{ gni: string }
+  )
 
-  (blank().{foo=3.14, gni="aabbcc"} : source(audio=pcm).{ foo: float }.{
-    gni: int
-  }.{ gni: string })
+  (blank().{foo=3.14, gni="aabbcc"} :
+    source(audio=pcm).{ foo: float }.{ gni: int }.{ gni: string }
+  )
 
-  (blank().{foo=3.14, gni="aabbcc"} : source.{ foo: float }.{ gni: int }.{
-    gni: string
-  })
+  (blank().{foo=3.14, gni="aabbcc"} :
+    source.{ foo: float }.{ gni: int }.{ gni: string }
+  )
 
   (123 : {foo: int}.foo)
-  (123.{foo=3.14, gni="aabbcc"} : int.{
-    "✨ name ✨" as foo: float,
-    gni: string
-  })
+  (123.{foo=3.14, gni="aabbcc"} :
+    int.{ "✨ name ✨" as foo: float, gni: string }
+  )
 
   (() : {})
   (() : unit.{  })

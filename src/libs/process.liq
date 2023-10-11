@@ -17,7 +17,9 @@ def process.read(
     log_errors and (p.status != "exit" or p.status.code != 0)
   then
     log.important(
-      "Failed to execute `#{command}`: #{p.status} (#{p.status.code}) #{p.stdout} #{p.stderr}"
+      "Failed to execute `#{command}`: #{p.status} (#{p.status.code}) #{
+        p.stdout
+      } #{p.stderr}"
     )
   end
 

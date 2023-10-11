@@ -27,10 +27,8 @@ def f() =
         "ffprobe -v quiet -print_format json -show_streams ffmpeg-naming-convention.mkv"
       )
 
-    let json.parse (
-      {streams = [s1, s2, s3, s4, s5, s6]} : {
-        streams: [{codec_type: string, channels?: int}]
-      }
+    let json.parse ({streams = [s1, s2, s3, s4, s5, s6]} :
+      {streams: [{codec_type: string, channels?: int}]}
     ) = j
 
     test.equals(s1.channels, 2)

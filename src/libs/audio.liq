@@ -167,9 +167,9 @@ def replaces normalize(
         every=null.get(debug),
         {
           log.debug(
-            "rms: #{rms()} / #{lin_of_dB(
-              getter.get(target)
-            )}\tgain: #{v()} / #{target_gain()}"
+            "rms: #{rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{v()} / #{
+              target_gain()
+            }"
           )
         }
       )

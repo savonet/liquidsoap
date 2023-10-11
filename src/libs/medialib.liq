@@ -291,9 +291,9 @@ def medialib(
   load()
   log.important(
     label=id,
-    "Loaded library from #{persistency} in #{dt(t)}s: #{list.length(
-      db()
-    )} entries"
+    "Loaded library from #{persistency} in #{dt(t)}s: #{
+      list.length(db())
+    } entries"
   )
 
   t = time()

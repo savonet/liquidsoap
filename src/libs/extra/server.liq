@@ -95,7 +95,9 @@ def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet") =
           var data = line;
           console.log('send ' + line);
           var xmlHttp = new XMLHttpRequest();
-          xmlHttp.open('POST', '#{uri}');
+          xmlHttp.open('POST', '#{
+        uri
+      }');
           xmlHttp.onreadystatechange = function () {
             if(xmlHttp.readyState === XMLHttpRequest.DONE) {
               var status = xmlHttp.status;

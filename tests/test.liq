@@ -77,9 +77,9 @@ def test.equals(v, v') =
   then
     error.raise(
       error.failure,
-      "expected:\r\n#{string.quote(string(v'))}\r\ngot:\r\n#{string.quote(
-        string(v)
-      )}"
+      "expected:\r\n#{string.quote(string(v'))}\r\ngot:\r\n#{
+        string.quote(string(v))
+      }"
     )
 
     test.fail()
@@ -100,7 +100,9 @@ def test.raises(fn, e=null()) =
       then
         error.raise(
           error.failure,
-          "An exception #{exn} of kind #{exn.kind} was raised instead of an error of kind #{e.kind}."
+          "An exception #{exn} of kind #{
+            exn.kind
+          } was raised instead of an error of kind #{e.kind}."
         )
       end
     end
@@ -121,7 +123,11 @@ end
 def test.metric(~category, ~name, ~value, ~unit, ~min=null()) =
   min = null.defined(min) ? "\n  min: #{(null.get(min) : float)}" : ""
   data =
-    "- name: \"#{(name : string)}\"\n  category: \"#{(category : string)}\"\n  value: #{(value : float)}\n  unit: \"#{(unit : string)}\"\n  time: #{(time() : float)}#{min}\n\n"
+    "- name: \"#{(name : string)}\"\n  category: \"#{
+      (category : string)
+    }\"\n  value: #{(value : float)}\n  unit: \"#{(unit : string)}\"\n  time: #{
+      (time() : float)
+    }#{min}\n\n"
 
   file.write(append=true, data=data, "/tmp/metrics.yaml")
 end

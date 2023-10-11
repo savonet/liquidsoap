@@ -13,13 +13,13 @@ def on_close(_) =
   def check(out) =
     j =
       process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{process.quote(
-          out
-        )}"
+        "ffprobe -v quiet -print_format json -show_streams #{
+          process.quote(out)
+        }"
       )
 
-    let json.parse (
-      parsed : {streams: [{codec_name: string, pix_fmt: string}]}
+    let json.parse (parsed :
+      {streams: [{codec_name: string, pix_fmt: string}]}
     ) = j
 
     let [stream] = parsed.streams

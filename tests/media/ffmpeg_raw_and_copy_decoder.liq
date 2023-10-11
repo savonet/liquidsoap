@@ -13,20 +13,20 @@ def on_close(encoded_fname) =
   then
     ijson =
       process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{process.quote(
-          fname
-        )}"
+        "ffprobe -v quiet -print_format json -show_streams #{
+          process.quote(fname)
+        }"
       )
 
     ojson =
       process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{process.quote(
-          encoded_fname
-        )}"
+        "ffprobe -v quiet -print_format json -show_streams #{
+          process.quote(encoded_fname)
+        }"
       )
 
-    let json.parse (
-      iparsed : {
+    let json.parse (iparsed :
+      {
         streams: [
           {
             index: int,
@@ -40,8 +40,8 @@ def on_close(encoded_fname) =
       }
     ) = ijson
 
-    let json.parse (
-      oparsed : {
+    let json.parse (oparsed :
+      {
         streams: [
           {
             index: int,

@@ -8,7 +8,9 @@ def test_parse_error(name, f, msg) =
       err.kind != "json"
     then
       print(
-        "parse error test #{name} failed: wrong error kind, got: #{err.kind}, expected: json"
+        "parse error test #{name} failed: wrong error kind, got: #{
+          err.kind
+        }, expected: json"
       )
 
       test.fail()
@@ -18,7 +20,9 @@ def test_parse_error(name, f, msg) =
       err.message != msg
     then
       print(
-        "parse error test #{name} failed: wrong error message, got: #{err.message}, expected: #{msg}"
+        "parse error test #{name} failed: wrong error message, got: #{
+          err.message
+        }, expected: #{msg}"
       )
 
       test.fail()
@@ -70,8 +74,8 @@ def f() =
      "extra": "ignored"
   }'
 
-  let json.parse (
-    x : {
+  let json.parse (x :
+    {
       foo: float,
       "gni gno" as gni_gno: bool,
       nested: {
@@ -146,8 +150,8 @@ def f() =
   )
 
   def nested_tuple() =
-    let json.parse (
-      x : {
+    let json.parse (x :
+      {
         nested: {
           tuple: (int*float*int*bool),
           list: [float],
@@ -169,8 +173,8 @@ def f() =
   )
 
   def nested_list() =
-    let json.parse (
-      x : {
+    let json.parse (x :
+      {
         nested: {
           tuple: (int*float*bool),
           list: [int],
@@ -192,8 +196,8 @@ def f() =
   )
 
   def nested_object() =
-    let json.parse (
-      x : {
+    let json.parse (x :
+      {
         nested: {
           tuple: (int*float*bool),
           list: [float],

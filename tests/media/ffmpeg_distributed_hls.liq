@@ -49,11 +49,13 @@ def check_stream() =
     is_done := true
     ojson =
       process.read(
-        "ffprobe -v quiet -print_format json -show_streams #{output_dir}/mp4.m3u8"
+        "ffprobe -v quiet -print_format json -show_streams #{
+          output_dir
+        }/mp4.m3u8"
       )
 
-    let json.parse (
-      parsed : {
+    let json.parse (parsed :
+      {
         streams: [
           {
             channel_layout: string?,

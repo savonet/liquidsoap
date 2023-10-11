@@ -11,6 +11,7 @@ const {
     line,
     softline,
     ifBreak,
+    lineSuffix,
   },
 } = prettierDoc;
 
@@ -49,11 +50,8 @@ const print = (path, options, print) => {
 
     return group([
       "(",
-      indent([softline, print("pat")]),
-      " ",
-      ":",
-      " ",
-      indent(print("cast")),
+      group([indent([softline, print("pat")]), line, ":"]),
+      indent([line, print("cast")]),
       softline,
       ")",
     ]);
@@ -94,7 +92,7 @@ const print = (path, options, print) => {
           ],
           comment.position,
         ],
-        [[content], node.position]
+        [[content], node.position],
       );
 
     const [contentWithAfterComments, afterPosition] = afterComments.reduce(
@@ -104,11 +102,11 @@ const print = (path, options, print) => {
           ...(position === node.position
             ? [hardline, ...newLine(position, comment.position)]
             : [hardline, hardline]),
-          join(hardline, comment.value),
+          lineSuffix(join(hardline, comment.value)),
         ],
         comment.position,
       ],
-      [contentWithBeforeComments, node.position]
+      [contentWithBeforeComments, node.position],
     );
 
     return [[beforePosition[0], afterPosition[1]], contentWithAfterComments];
@@ -150,7 +148,7 @@ const print = (path, options, print) => {
 
         const [nextPosition, contentWithComments] = printComments(
           nodes[idx],
-          joinedContent
+          joinedContent,
         );
 
         const separator = nodes[idx].ast_comments?.after?.length
@@ -167,7 +165,7 @@ const print = (path, options, print) => {
           ],
         ];
       },
-      [node.position, []]
+      [node.position, []],
     )[1];
   };
 
@@ -186,7 +184,7 @@ const print = (path, options, print) => {
             group([
               node.label,
               ...(node.as_variable ? ["=", node.as_variable] : []),
-            ])
+            ]),
           ),
         ];
 
@@ -282,7 +280,7 @@ const print = (path, options, print) => {
                   [
                     ...path.map(print, "value"),
                     ...(node.extensible ? ["..."] : []),
-                  ]
+                  ],
                 ),
               ]),
               softline,
@@ -360,14 +358,14 @@ const print = (path, options, print) => {
         return printIfDef(
           node.negative ? "%ifndef" : "%ifdef",
           " ",
-          node.condition
+          node.condition,
         );
       case "if_encoder":
         return printIfDef(
           node.negative ? "%ifnencoder" : "%ifencoder",
           " ",
           "%",
-          node.condition
+          node.condition,
         );
       case "if_version":
         return printIfDef("%ifversion", " ", node.opt, " ", node.version);
@@ -398,7 +396,7 @@ const print = (path, options, print) => {
                     softline,
                     join(
                       [",", softline],
-                      [...node.only, ...node.except.map((s) => `!${s}`)]
+                      [...node.only, ...node.except.map((s) => `!${s}`)],
                     ),
                     "]",
                   ]),
@@ -447,7 +445,7 @@ const print = (path, options, print) => {
                 ...path.map(print, "left"),
                 ...(node.middle ? [group(["...", node.middle])] : []),
                 ...path.map(print, "right"),
-              ]
+              ],
             ),
           ]),
           softline,
@@ -472,7 +470,13 @@ const print = (path, options, print) => {
       case "block":
         return group(["begin", indent([line, print("value")]), line, "end"]);
       case "cast":
-        return group(["(", print("left"), " ", ":", " ", print("right"), ")"]);
+        return group([
+          "(",
+          group([indent([softline, print("left")]), line, ":"]),
+          indent([line, print("right")]),
+          softline,
+          ")",
+        ]);
       case "fun":
         return group([
           "fun",
@@ -511,7 +515,7 @@ const print = (path, options, print) => {
           node.left.position,
           print("left"),
           node.right.position,
-          print("right")
+          print("right"),
         );
       case "def":
         return printDef(
@@ -535,8 +539,8 @@ const print = (path, options, print) => {
               " ",
               "=",
               group([indent([hardline, print("definition")]), hardline, "end"]),
-            ])
-          )
+            ]),
+          ),
         );
       case "let":
         return printDef(
@@ -550,8 +554,8 @@ const print = (path, options, print) => {
               " ",
               "=",
               group([indent([line, print("definition")])]),
-            ])
-          )
+            ]),
+          ),
         );
       case "binding":
         return printDef(
@@ -562,8 +566,8 @@ const print = (path, options, print) => {
               " ",
               "=",
               group([indent([line, print("definition")])]),
-            ])
-          )
+            ]),
+          ),
         );
       case "simple_fun":
         return group(["{", indent([softline, print("value")]), softline, "}"]);
@@ -611,16 +615,16 @@ const print = (path, options, print) => {
             [dedent(line), node.op, line],
             path.map(
               (v) => group([indent([softline, print(v)]), softline]),
-              "value"
-            )
-          )
+              "value",
+            ),
+          ),
         );
       case "string_interpolation":
         return group(path.map(print, "value"));
       case "interpolated_string":
         return node.value;
       case "interpolated_term":
-        return ["#{", print("value"), "}"];
+        return group(["#{", indent([softline, print("value")]), softline, "}"]);
       case "coalesce":
         return group([
           print("left"),

@@ -394,11 +394,11 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
     register_server_commands
   then
     def status(input) =
-      "ready=#{source.is_ready(
-        input.source
-      )} selected=#{input.selected()} single=#{input.single()} volume=#{int_of_float(
-        input.volume() * 100.
-      )}% remaining=#{source.remaining(input.source)}"
+      "ready=#{source.is_ready(input.source)} selected=#{
+        input.selected()
+      } single=#{input.single()} volume=#{
+        int_of_float(input.volume() * 100.)
+      }% remaining=#{source.remaining(input.source)}"
     end
 
     server.register(
