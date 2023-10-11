@@ -23,6 +23,12 @@
 (** Module to expose and hook up actions that need to happen
     over the lifecycle of the application. *)
 
+(** Initial load. Used for registering stuff that needs
+	  all OCaml modules to have been registered. *)
+val on_load : (unit -> unit) -> unit
+
+val load : unit -> unit
+
 (** {1 Initialization} *)
 
 (** Initialization proceeds in 3 phases:
