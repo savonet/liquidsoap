@@ -64,8 +64,6 @@ let audio_video_formats =
     {|%ffmpeg(format="mp4",%audio(codec="aac",channels=1),%video(codec="libx264")).mp4|};
     {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%video(codec="libx264")).mp4|};
     {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%video(codec="libx264",r=12)).mp4|};
-    {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%audio_2(codec="aac",channels=1),%video(codec="libx264"),%video_2(codec="libx264")).mp4|};
-    {|%ffmpeg(format="mp4",%gno(audio_content,codec="aac",channels=2),%gni(audio_content,codec="aac",channels=1),%bar(video_content,codec="libx264"),%foo(video_content,codec="libx264")).mp4|};
   ]
 
 let formats = audio_formats @ audio_video_formats @ video_formats
@@ -95,11 +93,11 @@ let mk_encoder source format =
   (target %s)
   (deps
     (:mk_encoder_test ./mk_encoder_test.sh)
-    (:encoder_in ./encoder.liq.in))
+    (:encoder_in ./encoder_%s.liq.in))
   (action
     (with-stdout-to %%{target}
       (run %%{mk_encoder_test} %S %s %S))))|}
-    (encoder_script format) (encoder_format format) source
+    (encoder_script format) source (encoder_format format) source
     (escaped_format format)
 
 let mk_encoded_file format =
@@ -121,8 +119,9 @@ let mk_encoded_file format =
     (escaped_format format) (encoder_script format) (encoder_format format)
 
 let () =
-  List.iter (mk_encoder "sine") audio_formats;
-  List.iter (mk_encoder "noise") (audio_video_formats @ video_formats);
+  List.iter (mk_encoder "audio_only") audio_formats;
+  List.iter (mk_encoder "video_only") video_formats;
+  List.iter (mk_encoder "audio_video") audio_video_formats;
   List.iter mk_encoded_file formats;
   Printf.printf
     {|
