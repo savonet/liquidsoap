@@ -166,9 +166,10 @@ jobs:
           apt-get update
           apt-get install -y npm
       - name: Build doc
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
@@ -221,9 +222,10 @@ jobs:
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
       - name: Build
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
@@ -234,6 +236,8 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/stats-posix.sh
       - name: Run tests
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
