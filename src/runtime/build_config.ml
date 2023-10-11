@@ -1,5 +1,7 @@
 open Liquidsoap_lang
 
+let deprecated_features = [("GStreamer", Gstreamer_option.enabled)]
+
 let build_config =
   let path_mode =
     match Liquidsoap_paths.mode with
@@ -7,10 +9,22 @@ let build_config =
       | `Standalone -> "standalone"
       | `Posix -> "posix"
   in
+  let deprecated_features =
+    List.filter_map
+      (fun (name, enabled) -> if enabled then Some ("   - " ^ name) else None)
+      deprecated_features
+  in
+  let deprecated_features =
+    if deprecated_features <> [] then
+      Printf.sprintf " * Deprecated features:\n%s\n"
+        (String.concat "\n" deprecated_features)
+    else ""
+  in
   [%string
     {|
  * Liquidsoap version  : %{Build_config.version}
 
+%{deprecated_features}
  * Compilation options
    - Release build       : %{string_of_bool (not Build_config.is_snapshot)}
    - Git SHA             : %{Option.value ~default:"(none)" Build_config.git_sha}
