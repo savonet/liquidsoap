@@ -6,7 +6,7 @@ if file.exists(out) then file.remove(out) end
 s = single(fname)
 s = once(s)
 
-clock.assign_new(sync='none', [s])
+#clock.assign_new(sync='none', [s])
 def on_close(encoded_fname) =
   if
     not test.done()

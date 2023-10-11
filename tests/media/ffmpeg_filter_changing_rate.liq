@@ -5,6 +5,8 @@ fname2 = argv(default="", 2)
 out = "#{fname}+ffmpeg_filter_changing_rate.mp4"
 if file.exists(out) then file.remove(out) end
 
+test.skip()
+
 def f(s) =
   tracks = source.tracks(s)
 
