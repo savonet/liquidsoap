@@ -21,6 +21,14 @@
  *****************************************************************************)
 
 let log = Log.make ["lifecycle"]
+let on_load_callbacks = ref []
+let on_load fn = on_load_callbacks := fn :: !on_load_callbacks
+let loaded = ref false
+
+let load () =
+  if not !loaded then (
+    List.iter (fun fn -> fn ()) !on_load_callbacks;
+    loaded := true)
 
 let action_atom name =
   let is_done = Atomic.make false in

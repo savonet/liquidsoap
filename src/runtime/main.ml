@@ -88,6 +88,7 @@ let log = Log.make ["main"]
     documentation, to make sure that pervasive libraries have been loaded,
     unless the user explicitly opposed to it. *)
 let load_libs =
+  Lifecycle.load ();
   (* Register settings module. Needs to be done last to make sure every
      dependent OCaml module has been linked. *)
   Lazy.force Builtins_settings.settings_module;
