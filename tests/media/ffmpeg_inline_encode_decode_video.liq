@@ -44,7 +44,7 @@ s = ffmpeg.encode.video(%ffmpeg(%video(codec = "libx264")), s)
 output.file(fallible=true, on_close=on_close, %ffmpeg(%video.copy), out_copy, s)
 s = ffmpeg.decode.video(s)
 
-#clock.assign_new(sync='none',[s])
+clock.assign_new(sync='none',[s])
 output.file(
   fallible=true,
   on_close=on_close,

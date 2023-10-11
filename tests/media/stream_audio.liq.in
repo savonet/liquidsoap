@@ -13,7 +13,7 @@ s = noise(duration=2.)
 
 s = once(s)
 
-#clock.assign_new(sync='none',[s])
+clock.assign_new(sync='none',[s])
 
 output.udp(id="output",port=5001,host="localhost",fallible=true,@FORMAT@,s)
 
@@ -21,7 +21,7 @@ s = input.udp(id="input",port=5001,host="localhost",buffer=0.1,"application/ffmp
 
 s = (s:source(1,0,0))
 
-#clock.assign_new(sync='none',[s])
+clock.assign_new(sync='none',[s])
 
 def on_done () =
   if not test.done() then

@@ -82,7 +82,7 @@ output.file(
 
 s = ffmpeg.decode.audio_video(id="decoder", s)
 
-#clock.assign_new(sync='none',[s])
+clock.assign_new(sync='none',[s])
 output.file(
   fallible=true,
   on_close=on_close,
