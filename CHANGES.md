@@ -14,6 +14,8 @@ Fixed:
 
 - Fixed pop/clicks in crossfade and source with caching (#3318)
 - Fixed pop/clicks when resampling using `libsamplerate` (#3429)
+- Fixed gstreamer compilation. Remember that gstreamer features are
+  DEPRECATED! (#3459)
 - Fixed html character escaping in `interactive.harbor` (#3418, @ghostnumber7)
 - Fixed icecast not reconnecting after erroring out while closing connection
   in some circumstances (#3427)
