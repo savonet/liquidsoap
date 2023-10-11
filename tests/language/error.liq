@@ -63,9 +63,16 @@ def f() =
     end
 
   pos =
-    string.concat(separator=", ", list.map(fun (pos) -> pos.to_string(), trace))
+    string.concat(
+      separator=
+        ", ",
+      list.map(fun (pos) -> pos.to_string(), trace)
+    )
 
-  test.equals(pos, "At error.liq, line 58 char 4 - line 63 char 7")
+  test.equals(
+    pos,
+    "At error.liq, line 58 char 4 - line 63 char 7"
+  )
   e' = error.register("bla")
   test.equals(false, (e == e'))
 
@@ -116,13 +123,21 @@ def f() =
   on_error = ref(error.register("dummy"))
   error.on_error(fun (e) -> on_error := e)
   try
-    error.raise(e, "On done callback")
+    error.raise(
+      e,
+      "On done callback"
+    )
   catch _ : [e] do
     ()
   end
 
   if (on_error()).kind != e.kind then test.fail() end
-  if (on_error()).message != "On done callback" then test.fail() end
+  if
+    (on_error()).message !=
+      "On done callback"
+  then
+    test.fail()
+  end
 
   def on_done() =
     test.pass()
@@ -130,12 +145,20 @@ def f() =
 
   # Catches error
   def on_error(~backtrace, e) =
-    print("caught error #{e} from thread and backtrace:\n#{backtrace}")
+    print(
+      "caught error #{e} from thread and backtrace:\n#{backtrace}"
+    )
     if e.kind == "foo" then on_done() else test.fail() end
   end
 
   thread.on_error(e, on_error)
-  thread.run(fun () -> error.raise(e, "Asynchronous error"))
+  thread.run(
+    fun () ->
+      error.raise(
+        e,
+        "Asynchronous error"
+      )
+  )
 end
 
 test.check(f)

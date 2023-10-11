@@ -9,7 +9,9 @@ def liquidsoap.chroot.make(chroot) =
   end
 
   def mkdir(p) =
-    process.run("mkdir -p #{process.quote(p)}")
+    process.run(
+      "mkdir -p #{process.quote(p)}"
+    )
   end
 
   def cp(source) =

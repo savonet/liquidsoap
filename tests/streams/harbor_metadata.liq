@@ -1,7 +1,15 @@
 def fn() =
   def on_metadata(m) =
     if
-      m["title"] == "song title" and m["metadata_url"] == "metadata url"
+
+        m["title"] ==
+          "song title"
+
+    and
+
+        m["metadata_url"] ==
+          "metadata url"
+
     then
       test.pass()
     end
@@ -27,7 +35,16 @@ def fn() =
         host="localhost",
         port=9834,
         mount="test",
-        [("song", "song title"), ("url", "metadata url")]
+        [
+          (
+            "song",
+            "song title"
+          ),
+          (
+            "url",
+            "metadata url"
+          )
+        ]
       )
     }
   )

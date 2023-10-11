@@ -5,7 +5,10 @@ log.level.set(4)
 
 def f() =
   n = 1000
-  print(newline=false, "Loading #{n} playlists... ")
+  print(
+    newline=false,
+    "Loading #{n} playlists... "
+  )
   l =
     list.init(
       100, fun (i) -> playlist(id="playlist#{i}", mode="normal", "playlist")

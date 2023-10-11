@@ -67,9 +67,27 @@ end
 # @category System
 # @param ~hide Hide typed characters (for passwords).
 def read(~hide=false) =
-  if hide then process.run("stty -echo") end
-  s = list.hd(default="", process.read.lines("read BLA && echo $BLA"))
-  if hide then process.run("stty echo") end
+  if
+    hide
+  then
+    process.run(
+      "stty -echo"
+    )
+  end
+  s =
+    list.hd(
+      default="",
+      process.read.lines(
+        "read BLA && echo $BLA"
+      )
+    )
+  if
+    hide
+  then
+    process.run(
+      "stty echo"
+    )
+  end
   print("")
   s
 end

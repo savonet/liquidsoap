@@ -8,7 +8,12 @@ def f() =
   test.equals(string.concat(["ab", "c", "d"]), "abcd")
   test.equals(r/.*ab.*/.test("cccabc"), true)
   test.equals(r/.*ab.*/.test("cccbac"), false)
-  test.equals(string.trim("    abc  "), "abc")
+  test.equals(
+    string.trim(
+      "    abc  "
+    ),
+    "abc"
+  )
   test.equals(string.sub("abcd", start=1, length=2), "bc")
   test.equals(string.sub("ab", start=0, length=10), "")
   test.equals(string.sub("ab", start=10, length=5), "")
@@ -37,7 +42,10 @@ def f() =
   )
 
   test.equals(
-    string.escape(encoding="ascii", "\\foo \"😅 o"),
+    string.escape(
+      encoding="ascii",
+      "\\foo \"😅 o"
+    ),
     "\\\\foo \\\"\\xF0\\x9F\\x98\\x85 o"
   )
 
@@ -52,11 +60,19 @@ def f() =
   test.equals(string.unescape("\\xE2\\x9C\\xA8"), "✨")
   test.equals(string.unescape("\\342\\234\\250"), "✨")
   test.equals(
-    string.quote(encoding="ascii", "foo \"😅 o"),
+    string.quote(
+      encoding="ascii",
+      "foo \"😅 o"
+    ),
     "\"foo \\\"\\xF0\\x9F\\x98\\x85 o\""
   )
 
-  test.equals(string.quote("foo \"😅 o"), "\"foo \\\"😅 o\"")
+  test.equals(
+    string.quote(
+      "foo \"😅 o"
+    ),
+    "\"foo \\\"😅 o\""
+  )
   test.equals(string.quote("aa'bb"), "\"aa'bb\"")
   test.equals(string.residual(prefix="ab", "abcd"), "cd")
   test.equals(string.residual(prefix="xx", "abcd"), null())
@@ -106,9 +122,20 @@ def f() =
     string.data_uri.decode("data:foo/bar,✨"), null("✨".{mime="foo/bar"})
   )
 
-  test.equals(url.encode("foo bla blo"), "foo+bla+blo")
-  test.equals(url.decode("foo%20bla%20blo"), "foo bla blo")
-  test.equals("blo#{(1, 2, 3)}", "blo(1, 2, 3)")
+  test.equals(
+    url.encode(
+      "foo bla blo"
+    ),
+    "foo+bla+blo"
+  )
+  test.equals(
+    url.decode("foo%20bla%20blo"),
+    "foo bla blo"
+  )
+  test.equals(
+    "blo#{(1, 2, 3)}",
+    "blo(1, 2, 3)"
+  )
   test.pass()
 end
 
@@ -121,9 +148,16 @@ def test_escape_html() =
   test.equals(string.escape.html('"'), "&quot;")
   test.equals(string.escape.html("'"), "&#39;")
   test.equals(string.escape.html("&<>\"'"), "&amp;&lt;&gt;&quot;&#39;")
-  test.equals(string.escape.html("not escaped"), "not escaped")
   test.equals(
-    string.escape.html("&quot;double escape&quot;"),
+    string.escape.html(
+      "not escaped"
+    ),
+    "not escaped"
+  )
+  test.equals(
+    string.escape.html(
+      "&quot;double escape&quot;"
+    ),
     "&amp;quot;double escape&amp;quot;"
   )
 

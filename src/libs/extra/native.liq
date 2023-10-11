@@ -149,11 +149,15 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
       if
         s.resolve()
       then
-        log.info("Added request on queue: #{request.uri(r)}.")
+        log.info(
+          "Added request on queue: #{request.uri(r)}."
+        )
         queue := [...queue(), s]
         true
       else
-        log.important("Failed to resolve request #{request.uri(r)}.")
+        log.important(
+          "Failed to resolve request #{request.uri(r)}."
+        )
         false
       end
     else

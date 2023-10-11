@@ -6,7 +6,11 @@ out = "#{fname}+ffmpeg_filter.mp4"
 if file.exists(out) then file.remove(out) end
 s = single(fname)
 s = sequence([s, s, s, s, s, source.fail()])
-s = video.add_text.ffmpeg("bla blo", s)
+s =
+  video.add_text.ffmpeg(
+    "bla blo",
+    s
+  )
 started = ref(false)
 
 def on_track(_) =

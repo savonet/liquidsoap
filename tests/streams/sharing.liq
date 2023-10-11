@@ -8,7 +8,9 @@ rms = s.rms
 output.dummy(s)
 
 def on_done() =
-  print("RMS: #{rms()}")
+  print(
+    "RMS: #{rms()}"
+  )
   if rms() > 0.5 then test.pass() else test.fail() end
 end
 

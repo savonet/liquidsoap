@@ -24,7 +24,8 @@ def f() =
   def on_stop() =
     j =
       process.read(
-        "ffprobe -v quiet -print_format json -show_streams ffmpeg-naming-convention.mkv"
+        "ffprobe -v quiet -print_format json -show_streams \
+         ffmpeg-naming-convention.mkv"
       )
 
     let json.parse ({streams = [s1, s2, s3, s4, s5, s6]} :

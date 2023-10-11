@@ -5,7 +5,9 @@ detected = ref("")
 def f(k) =
   # Skip test for now.
   # test.skip()
-  print("Detected key #{k}")
+  print(
+    "Detected key #{k}"
+  )
   detected := !detected ^ k
   if
     k == "D"

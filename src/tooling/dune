@@ -15,22 +15,22 @@
 (rule
  (target test-prettier)
  (deps
-  (source_tree prettier-plugin-liquidsoap)
+  prettier-plugin-liquidsoap/package.json
+  prettier-plugin-liquidsoap/dist/node.js
   prettier-plugin-liquidsoap/dist/liquidsoap.js)
  (action
   (progn
-   (run mkdir -p test-prettier)
+   (run rm -rf test-prettier-build)
+   (run mkdir -p test-prettier-build)
    (chdir
-    prettier-plugin-liquidsoap
-    (run npm install))
-   (chdir
-    test-prettier
+    test-prettier-build
     (ignore-stdout
      (progn
       (run npm init -y)
       (run npm install --save ../prettier-plugin-liquidsoap prettier)
       (bash
-       "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" > config.json")))))))
+       "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" >| config.json"))))
+   (run mv test-prettier-build test-prettier))))
 
 (rule
  (target tree-sitter-liquidsoap)

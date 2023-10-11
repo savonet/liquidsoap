@@ -7,8 +7,12 @@ s = sequence([a, b])
 
 def t(a, b) =
   log.important("Crossing!")
-  log.important("Levels: #{a.db_level} / #{b.db_level}")
-  log.important("Metadata: #{a.metadata} / #{b.metadata}")
+  log.important(
+    "Levels: #{a.db_level} / #{b.db_level}"
+  )
+  log.important(
+    "Metadata: #{a.metadata} / #{b.metadata}"
+  )
   sequence([a.source, b.source])
 end
 

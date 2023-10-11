@@ -242,7 +242,9 @@ def f() =
     test.equals(req.data(), "")
     test.equals(req.query, [])
     test.equals(req.path, "/custom")
-    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n")
+    req.socket.write(
+      "HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n"
+    )
     req.socket.close()
     null()
   end
@@ -278,7 +280,8 @@ def f() =
     test.fail()
   catch err : [error.http] do
     test.equals(
-      err.message, "Port is already opened with a different transport"
+      err.message,
+      "Port is already opened with a different transport"
     )
   end
 
@@ -298,7 +301,10 @@ def f() =
     fn(timeout=10.)
     test.fail()
   catch err : [error.http] do
-    test.equals(err.message, "Response ended!")
+    test.equals(
+      err.message,
+      "Response ended!"
+    )
   end
 
   # Register output on the same port

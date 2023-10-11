@@ -25,7 +25,8 @@ def f() =
   t(
     parse_apic_data,
     expected_apic_string_data.{
-      description="Album cover",
+      description=
+        "Album cover",
       picture_type=3,
       mime="image/png"
     }
@@ -106,7 +107,8 @@ def test_metadata_json_stringify() =
       ("artist", "Artist")
     ]
 
-  expected_json_string = '{ "artist": "Artist" }'
+  expected_json_string =
+    '{ "artist": "Artist" }'
   json_string = metadata.json.stringify(file_metadata)
   t(json_string, expected_json_string)
   empty_file_metadata = []
@@ -117,7 +119,8 @@ def test_metadata_json_stringify() =
 end
 
 def test_metadata_json_parse() =
-  metadata_json_string = '{"artist": "Artist"}'
+  metadata_json_string =
+    '{"artist": "Artist"}'
   expected_parsed_metadata = [("artist", "Artist")]
   parsed_metadata = metadata.json.parse(metadata_json_string)
   t(parsed_metadata, expected_parsed_metadata)

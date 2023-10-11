@@ -35,7 +35,10 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
   if
     file.is_directory(uri)
   then
-    log.info(label=id, "Playlist is a directory.")
+    log.info(
+      label=id,
+      "Playlist is a directory."
+    )
     files = file.ls(absolute=true, recursive=true, sorted=true, uri)
     files = list.filter(fun (f) -> not (file.is_directory(f)), files)
     files
@@ -62,7 +65,8 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
         list.map.right(file_request, files)
       else
         log.important(
-          label=id, "Couldn't read playlist: request resolution failed."
+          label=id,
+          "Couldn't read playlist: request resolution failed."
         )
 
         []
@@ -121,7 +125,10 @@ def playlist.list(
     if
       not list.mem(mode, ["normal", "random", "randomize"])
     then
-      log.severe(label=id, "Invalid mode: #{mode}")
+      log.severe(
+        label=id,
+        "Invalid mode: #{mode}"
+      )
       "randomize"
     else
       mode
@@ -181,7 +188,10 @@ def playlist.list(
 
   # The reload function
   def reload(~empty_queue=true, p) =
-    log.debug(label=id, "Reloading playlist.")
+    log.debug(
+      label=id,
+      "Reloading playlist."
+    )
     playlist_orig := p
     playlist := randomize(playlist_orig())
     has_stopped := false
@@ -235,7 +245,10 @@ def playlist.list(
           not has_stopped()
         then
           has_stopped := true
-          log.info(label=id, "Playlist stopped.")
+          log.info(
+            label=id,
+            "Playlist stopped."
+          )
           on_done()
         end
 
@@ -248,12 +261,18 @@ def playlist.list(
       # Playlist failed too many times recently, don't try next for now.
       null()
     else
-      log.debug(label=id, "Next song will be \"#{file}\".")
+      log.debug(
+        label=id,
+        "Next song will be \"#{file}\"."
+      )
       r = request.create(file)
       if
         not request.resolve(content_type=s, r)
       then
-        log.info(label=id, "Could not resolve request: #{request.uri(r)}.")
+        log.info(
+          label=id,
+          "Could not resolve request: #{request.uri(r)}."
+        )
         request.destroy(r)
         ref.incr(failed_count)
 
@@ -261,7 +280,10 @@ def playlist.list(
         if
           failed_count() < max_fail
         then
-          log.info(label=id, "Playlist failed.")
+          log.info(
+            label=id,
+            "Playlist failed."
+          )
           if
             null.defined(on_fail)
           then
@@ -280,7 +302,8 @@ def playlist.list(
           r
         else
           log.info(
-            label=id, "Request #{request.uri(r)} rejected by check_next."
+            label=id,
+            "Request #{request.uri(r)} rejected by check_next."
           )
 
           request.destroy(r)
@@ -353,7 +376,10 @@ def replaces playlist(
     if
       not list.mem(reload_mode, ["never", "rounds", "seconds", "watch"])
     then
-      log.severe(label=id, "Invalid reload mode: #{mode}")
+      log.severe(
+        label=id,
+        "Invalid reload mode: #{mode}"
+      )
       "seconds"
     else
       reload_mode
@@ -373,7 +399,10 @@ def replaces playlist(
   # The load function
   def load_playlist() =
     playlist_uri = path.home.unrelate(playlist_uri())
-    log.info(label=id, "Reloading playlist.")
+    log.info(
+      label=id,
+      "Reloading playlist."
+    )
     files =
       playlist.files(id=id, mime_type=mime_type, timeout=timeout, playlist_uri)
 
@@ -386,12 +415,16 @@ def replaces playlist(
     if
       l == []
     then
-      log.info("Failed to reload playlist after failure.")
+      log.info(
+        "Failed to reload playlist after failure."
+      )
 
       # We add a dummy request in order for the playlist not to stop.
       ["???failed???"]
     else
-      log.info("Successfully reload playlist after failure.")
+      log.info(
+        "Successfully reload playlist after failure."
+      )
       l
     end
   end
@@ -442,7 +475,10 @@ def replaces playlist(
   # The reload function
   def s.reload(~empty_queue=true, ~uri=null()) =
     if null.defined(uri) then playlist_uri := null.get(uri) end
-    log(label=id, "Reloading playlist with URI #{playlist_uri()}.")
+    log(
+      label=id,
+      "Reloading playlist with URI #{playlist_uri()}."
+    )
     files := load_playlist()
     s.reload(empty_queue=empty_queue, files())
     on_reload(playlist_uri())
@@ -501,7 +537,8 @@ def replaces playlist(
   # Set up telnet commands
   server.register(
     namespace=id,
-    description="Skip current song in the playlist.",
+    description=
+      "Skip current song in the playlist.",
     usage="skip",
     "skip",
     fun (_) ->
@@ -513,7 +550,8 @@ def replaces playlist(
 
   server.register(
     namespace=id,
-    description="Return up to 10 next URIs to be played.",
+    description=
+      "Return up to 10 next URIs to be played.",
     usage="next",
     "next",
     fun (n) ->
@@ -547,7 +585,8 @@ def replaces playlist(
 
   server.register(
     namespace=id,
-    description="Reload the playlist, unless already being loaded.",
+    description=
+      "Reload the playlist, unless already being loaded.",
     usage="reload",
     "reload",
     fun (_) ->
@@ -568,7 +607,8 @@ def replaces playlist(
       then
         log.important(
           label=id,
-          "Warning: the watched file is not updated for now when changing the uri!"
+          "Warning: the watched file is not updated for now when changing the \
+           uri!"
         )
       end
 
@@ -581,8 +621,11 @@ def replaces playlist(
 
   server.register(
     namespace=id,
-    description="Print playlist URI if called without an argument, otherwise set a new one and load it.",
-    usage="uri [<uri>]",
+    description=
+      "Print playlist URI if called without an argument, otherwise set a new one \
+       and load it.",
+    usage=
+      "uri [<uri>]",
     "uri",
     uri_cmd
   )

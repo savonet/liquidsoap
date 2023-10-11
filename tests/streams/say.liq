@@ -4,10 +4,14 @@ s =
   and
     file.which(null.get(settings.protocol.text2wave.path())) == null()
   then
-    print("Could not test gtts")
+    print(
+      "Could not test gtts"
+    )
     chop(every=1., sine())
   else
-    single("say:Hello, world!")
+    single(
+      "say:Hello, world!"
+    )
   end
 
 n = ref(0)

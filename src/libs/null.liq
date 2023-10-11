@@ -11,7 +11,14 @@ end
 def null.get(~default=null(), x) =
   null.case(
     x,
-    {default ?? error.raise(error.not_found, "no default value for null.get")},
+    {
+      default
+        ??
+          error.raise(
+            error.not_found,
+            "no default value for null.get"
+          )
+    },
     fun (x) -> x
   )
 end
@@ -46,7 +53,8 @@ def null.find(~default=null(), f, l) =
           default
             ??
               error.raise(
-                error.not_found, "no default value for list.find_defined"
+                error.not_found,
+                "no default value for list.find_defined"
               )
         },
         fun (x, l) ->

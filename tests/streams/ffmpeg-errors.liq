@@ -1,7 +1,10 @@
 def f() =
   def on_error(e) =
     test.equals(e.kind, "ffmpeg")
-    test.equals(e.message, "Avutil.Error(No such file or directory)")
+    test.equals(
+      e.message,
+      "Avutil.Error(No such file or directory)"
+    )
     let [..._, {position_start = {filename}}] = e.trace
     test.equals(filename, "src/core/io/ffmpeg_io.ml")
     test.pass()

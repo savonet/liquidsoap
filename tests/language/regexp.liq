@@ -2,7 +2,9 @@ def t(x, y) =
   if
     x != y
   then
-    print("#{x} != #{y}!")
+    print(
+      "#{x} != #{y}!"
+    )
     test.fail()
   end
 end

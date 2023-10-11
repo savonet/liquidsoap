@@ -166,13 +166,21 @@ def source.say_metadata =
     artist = m["artist"]
     title = m["title"]
     artist_predicate =
-      if artist != "" then "It was #{artist} playing " else "" end
+      if
+        artist != ""
+      then
+        "It was #{artist} playing "
+      else
+        ""
+      end
 
     say_metadata = "#{artist_predicate}#{title}"
     say_metadata = r/:/g.replace(fun (_) -> '$(colon)', say_metadata)
     say_metadata =
       say_metadata == ""
-      ? "Sorry, I do not know what this song title was" : say_metadata
+      ?
+        "Sorry, I do not know what this song title was"
+      : say_metadata
 
     "say:#{say_metadata}"
   end

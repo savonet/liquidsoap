@@ -18,7 +18,14 @@ end
 def list.hd(~default=null(), l) =
   list.dcase(
     l,
-    {default ?? error.raise(error.not_found, "no default value for list.hd")},
+    {
+      default
+        ??
+          error.raise(
+            error.not_found,
+            "no default value for list.hd"
+          )
+    },
     fun (x, _) -> x
   )
 end
@@ -179,7 +186,11 @@ def list.assoc(~default=null(), key, l) =
 
     null.case(
       default,
-      fun () -> error.raise(error.not_found, "no default value for list.assoc"),
+      fun () ->
+        error.raise(
+          error.not_found,
+          "no default value for list.assoc"
+        ),
       fun (v) -> v
     )
   catch _ : [err] do
@@ -292,7 +303,11 @@ def list.find(~default=null(), p, l) =
 
     null.case(
       default,
-      fun () -> error.raise(error.not_found, "no default value for list.find"),
+      fun () ->
+        error.raise(
+          error.not_found,
+          "no default value for list.find"
+        ),
       fun (v) -> v
     )
   catch _ : [err] do
@@ -352,7 +367,10 @@ def list.insert(index, new_element, l) =
   if
     list.length(l) < index
   then
-    error.raise(error.not_found, "List should have at least #{index} elemments")
+    error.raise(
+      error.not_found,
+      "List should have at least #{index} elemments"
+    )
   end
 
   if
@@ -389,7 +407,12 @@ def list.pick(~default=null(), l) =
   if
     list.is_empty(l)
   then
-    default ?? error.raise(error.not_found, "empty list in list.pick")
+    default
+      ??
+        error.raise(
+          error.not_found,
+          "empty list in list.pick"
+        )
   else
     list.nth(l, random.int(min=0, max=list.length(l)))
   end

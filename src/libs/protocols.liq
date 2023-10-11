@@ -1,13 +1,20 @@
 # @flag hidden
 def settings.make.protocol(name) =
-  settings.make.void("Settings for the #{name} protocol")
+  settings.make.void(
+    "Settings for the #{name} protocol"
+  )
 end
 
-let settings.protocol = settings.make.void("Settings for registered protocols")
+let settings.protocol =
+  settings.make.void(
+    "Settings for registered protocols"
+  )
 let settings.protocol.replaygain = settings.make.protocol("ReplayGain")
 let settings.protocol.replaygain.tag =
   settings.make(
-    description="Tag used to annotate ReplayGain", "replaygain_track_gain"
+    description=
+      "Tag used to annotate ReplayGain",
+    "replaygain_track_gain"
   )
 
 # Register the replaygain protocol.
@@ -18,7 +25,9 @@ def protocol.replaygain(~rlog=_, ~maxtime=_, arg) =
   if
     null.defined(gain)
   then
-    ["annotate:#{tag}=\"#{null.get(gain)} dB\":#{arg}"]
+    [
+      "annotate:#{tag}=\"#{null.get(gain)} dB\":#{arg}"
+    ]
   else
     [arg]
   end
@@ -28,21 +37,23 @@ protocol.add(
   "replaygain",
   protocol.replaygain,
   syntax="replaygain:uri",
-  doc="Compute ReplayGain value. \
-                  Adds returned value as `\"replaygain_track_gain\"` metadata"
+  doc=
+    "Compute ReplayGain value. Adds returned value as \
+     `\"replaygain_track_gain\"` metadata"
 )
 
 let settings.protocol.process = settings.make.protocol("process")
 let settings.protocol.process.env =
   settings.make(
-    description="List of environment variables \
-               passed down to the executed process.",
+    description=
+      "List of environment variables passed down to the executed process.",
     []
   )
 
 let settings.protocol.process.inherit_env =
   settings.make(
-    description="Inherit calling process's environment when `env` parameter is empty.",
+    description=
+      "Inherit calling process's environment when `env` parameter is empty.",
     true
   )
 
@@ -78,7 +89,9 @@ end
 # See say: protocol for an example.
 # @flag hidden
 def replaces protocol.process(~rlog=_, ~maxtime, arg) =
-  log.info("Processing #{arg}")
+  log.info(
+    "Processing #{arg}"
+  )
   let {uri, timeout, extname, cmd} =
     protocol.process.parse(default_timeout=maxtime - time(), arg)
 
@@ -93,7 +106,9 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
           ("colon", ":")
         ]
 
-    log.info("Executing #{cmd}")
+    log.info(
+      "Executing #{cmd}"
+    )
     env_vars = settings.protocol.process.env()
     env = environment()
 
@@ -109,10 +124,18 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
     then
       [output]
     else
-      log.important("Failed to execute #{cmd}: #{p.status} (#{p.status.code})")
-      log.info("Standard output:\n#{p.stdout}")
-      log.info("Error output:\n#{p.stderr}")
-      log.info("Removing #{output}.")
+      log.important(
+        "Failed to execute #{cmd}: #{p.status} (#{p.status.code})"
+      )
+      log.info(
+        "Standard output:\n#{p.stdout}"
+      )
+      log.info(
+        "Error output:\n#{p.stderr}"
+      )
+      log.info(
+        "Removing #{output}."
+      )
       file.remove(output)
       []
     end
@@ -132,7 +155,10 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
       request.destroy(r)
       res
     else
-      log(level=3, "Failed to resolve #{uri}")
+      log(
+        level=3,
+        "Failed to resolve #{uri}"
+      )
       []
     end
   end
@@ -142,13 +168,12 @@ protocol.add(
   temporary=true,
   "process",
   protocol.process,
-  doc="Resolve a request using an arbitrary process. \
-                  `<cmd>` is interpolated with: \
-                  `[(\"input\",<input>),(\"output\",<output>),\
-                  (\"colon\",\":\")]`. `uri` is an optional child request, \
-                  `<output>` is the name of a fresh temporary file and has \
-                  extension `.<extname>`. `<input>` is an optional input \
-                  file name as returned while resolving `uri`.",
+  doc=
+    "Resolve a request using an arbitrary process. `<cmd>` is interpolated with: \
+     `[(\"input\",<input>),(\"output\",<output>),(\"colon\",\":\")]`. `uri` is \
+     an optional child request, `<output>` is the name of a fresh temporary file \
+     and has extension `.<extname>`. `<input>` is an optional input file name as \
+     returned while resolving `uri`.",
   syntax="process:<extname>,<cmd>[:uri]"
 )
 
@@ -194,9 +219,9 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
           then
             begin
               content_type = null.get(content_type).mime
-              " Response has unknown mime-type: #{
-                string.quote(content_type)
-              } you may want to add it to `settings.http.mime.extnames` and report to us if it is a common one."
+              " Response has unknown mime-type: #{string.quote(content_type)} \
+               you may want to add it to `settings.http.mime.extnames` and \
+               report to us if it is a common one."
             end
           else
             ""
@@ -233,7 +258,10 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
       []
     end
   catch err do
-    log(level=3, "Error while fetching http data: #{err}")
+    log(
+      level=3,
+      "Error while fetching http data: #{err}"
+    )
     []
   end
 end
@@ -248,7 +276,8 @@ def protocol.add.http(proto) =
   protocol.add(
     temporary=true,
     syntax="#{proto}://...",
-    doc="Download http URLs using curl",
+    doc=
+      "Download http URLs using curl",
     proto,
     protocol.http
   )
@@ -258,12 +287,16 @@ list.iter(protocol.add.http, ["http", "https"])
 let settings.protocol.youtube_dl = settings.make.protocol("youtube-dl")
 let settings.protocol.youtube_dl.path =
   settings.make(
-    description="Path of the youtube-dl (or yt-dlp) binary.", "yt-dlp"
+    description=
+      "Path of the youtube-dl (or yt-dlp) binary.",
+    "yt-dlp"
   )
 
 let settings.protocol.youtube_dl.timeout =
   settings.make(
-    description="Timeout (in seconds) for youtube-dl executions.", 300.
+    description=
+      "Timeout (in seconds) for youtube-dl executions.",
+    300.
   )
 
 # Register the youtube-dl protocol, using youtube-dl.
@@ -279,8 +312,12 @@ def protocol.youtube_dl(~rlog, ~maxtime, arg) =
   end
 
   delay = maxtime - time()
-  cmd = "#{binary} --get-title --get-filename -- #{process.quote(arg)}"
-  log(level=4, "Executing #{cmd}")
+  cmd =
+    "#{binary} --get-title --get-filename -- #{process.quote(arg)}"
+  log(
+    level=4,
+    "Executing #{cmd}"
+  )
   x = process.read.lines(timeout=delay, cmd)
   x = if list.length(x) >= 2 then x else ["", ".osb"] end
   title = list.hd(default="", x)
@@ -303,7 +340,8 @@ end
 protocol.add(
   "youtube-dl",
   protocol.youtube_dl,
-  doc="Resolve a request using youtube-dl.",
+  doc=
+    "Resolve a request using youtube-dl.",
   syntax="youtube-dl:uri"
 )
 
@@ -313,8 +351,12 @@ protocol.add(
 def protocol.youtube_pl(~rlog=_, ~maxtime, arg) =
   binary = settings.protocol.youtube_dl.path()
   delay = maxtime - time()
-  cmd = "#{binary} -i -s --get-id --flat-playlist -- #{process.quote(arg)}"
-  log(level=4, "Executing #{cmd}")
+  cmd =
+    "#{binary} -i -s --get-id --flat-playlist -- #{process.quote(arg)}"
+  log(
+    level=4,
+    "Executing #{cmd}"
+  )
   l = process.read.lines(timeout=delay, cmd)
   l = list.map(fun (s) -> "youtube-dl:https://www.youtube.com/watch?v=" ^ s, l)
   l = string.concat(separator="\n", l) ^ "\n"
@@ -326,7 +368,9 @@ end
 protocol.add(
   "youtube-pl",
   protocol.youtube_pl,
-  doc="Resolve a request as a youtube playlist using youtube-dl. You typically want to use this as `playlist(\"youtube-pl:...\")`.",
+  doc=
+    "Resolve a request as a youtube playlist using youtube-dl. You typically \
+     want to use this as `playlist(\"youtube-pl:...\")`.",
   temporary=true,
   syntax="youtube-pl:uri"
 )
@@ -340,20 +384,33 @@ end
 protocol.add(
   "tmp",
   protocol.tmp,
-  doc="Mark the given uri as temporary. Useful when chaining protocols",
+  doc=
+    "Mark the given uri as temporary. Useful when chaining protocols",
   temporary=true,
   syntax="tmp:uri"
 )
 
 let settings.protocol.ffmpeg = settings.make.protocol("FFmpeg")
 let settings.protocol.ffmpeg.path =
-  settings.make(description="Path to the ffmpeg binary", "ffmpeg")
+  settings.make(
+    description=
+      "Path to the ffmpeg binary",
+    "ffmpeg"
+  )
 
 let settings.protocol.ffmpeg.metadata =
-  settings.make(description="Should the protocol extract metadata", true)
+  settings.make(
+    description=
+      "Should the protocol extract metadata",
+    true
+  )
 
 let settings.protocol.ffmpeg.replaygain =
-  settings.make(description="Should the protocol adjust ReplayGain", false)
+  settings.make(
+    description=
+      "Should the protocol adjust ReplayGain",
+    false
+  )
 
 # Register ffmpeg
 # @flag hidden
@@ -379,12 +436,14 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
 
   def parse_metadata(file) =
     cmd =
-      "#{ffmpeg} -i #{
-        process.quote(file)
-      } -f ffmetadata - 2>/dev/null | grep -v '^;'"
+      "#{ffmpeg} -i #{process.quote(file)} -f ffmetadata - 2>/dev/null | grep -v \
+       '^;'"
 
     delay = maxtime - time()
-    log(level=4, "Executing #{cmd}")
+    log(
+      level=4,
+      "Executing #{cmd}"
+    )
     lines = process.read.lines(timeout=delay, cmd)
 
     def f(cur, line) =
@@ -427,8 +486,21 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
     cue_out =
       float_of_string(default=0., list.assoc(default="", "liq_cue_out", m))
 
-    args = if cue_in > 0. then "-ss #{cue_in}" else "" end
-    if cue_out > cue_in then "#{args} -t #{cue_out - cue_in}" else args end
+    args =
+      if
+        cue_in > 0.
+      then
+        "-ss #{cue_in}"
+      else
+        ""
+      end
+    if
+      cue_out > cue_in
+    then
+      "#{args} -t #{cue_out - cue_in}"
+    else
+      args
+    end
   end
 
   def fades(r) =
@@ -536,11 +608,17 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
       request.destroy(wav_r)
       ["#{annotate}tmp:#{wav}"]
     else
-      log(level=3, "Failed to resolve #{uri}")
+      log(
+        level=3,
+        "Failed to resolve #{uri}"
+      )
       []
     end
   else
-    log(level=3, "Failed to resolve #{arg}")
+    log(
+      level=3,
+      "Failed to resolve #{arg}"
+    )
     []
   end
 end
@@ -548,7 +626,8 @@ end
 protocol.add(
   "ffmpeg",
   protocol.ffmpeg,
-  doc="Decode any file to wave using ffmpeg",
+  doc=
+    "Decode any file to wave using ffmpeg",
   syntax="ffmpeg:uri"
 )
 
@@ -561,7 +640,9 @@ def protocol.stereo(~rlog=_, ~maxtime=_, arg) =
   if
     not request.resolve(r)
   then
-    log.info("Stereo: failed to resolve request #{arg}")
+    log.info(
+      "Stereo: failed to resolve request #{arg}"
+    )
     []
   else
     # TODO: the following sometimes hangs, so we resolve twice...
@@ -576,14 +657,19 @@ protocol.add(
   temporary=true,
   "stereo",
   protocol.stereo,
-  doc="Convert a file to stereo (currently decodes to wav).",
+  doc=
+    "Convert a file to stereo (currently decodes to wav).",
   syntax="stereo:<uri>"
 )
 
 # Text2wave
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 let settings.protocol.text2wave.path =
-  settings.make(description="Path to the text2wave binary", "text2wave")
+  settings.make(
+    description=
+      "Path to the text2wave binary",
+    "text2wave"
+  )
 
 # Register the text2wave: protocol using text2wave
 # @flag hidden
@@ -601,18 +687,26 @@ protocol.add(
   static=true,
   "text2wave",
   protocol.text2wave,
-  doc="Generate speech synthesis using text2wave. Result may be mono.",
-  syntax="text2wave:Text to read"
+  doc=
+    "Generate speech synthesis using text2wave. Result may be mono.",
+  syntax=
+    "text2wave:Text to read"
 )
 
 # Pico2wave
 let settings.protocol.pico2wave = settings.make.protocol("pico2wave")
 let settings.protocol.pico2wave.path =
-  settings.make(description="Path to the pico2wave binary", "pico2wave")
+  settings.make(
+    description=
+      "Path to the pico2wave binary",
+    "pico2wave"
+  )
 
 let settings.protocol.pico2wave.lang =
   settings.make(
-    description="pico2wave language. One of: `\"en-US\"`, `\"en-GB\"`, `\"es-ES\"`, `\"de-DE\"`, `\"fr-FR\"` or `\"it-IT\"`.",
+    description=
+      "pico2wave language. One of: `\"en-US\"`, `\"en-GB\"`, `\"es-ES\"`, \
+       `\"de-DE\"`, `\"fr-FR\"` or `\"it-IT\"`.",
     "en-US"
   )
 
@@ -622,7 +716,8 @@ def protocol.pico2wave(~rlog=_, ~maxtime=_, arg) =
   lang = settings.protocol.pico2wave.lang()
   [
     process.uri(
-      extname="wav", "#{binary} -l #{lang} -w $(output) #{process.quote(arg)}"
+      extname="wav",
+      "#{binary} -l #{lang} -w $(output) #{process.quote(arg)}"
     )
   ]
 end
@@ -631,20 +726,34 @@ protocol.add(
   static=true,
   "pico2wave",
   protocol.pico2wave,
-  doc="Generate speech synthesis using pico2wave. Result may be mono.",
-  syntax="pico2wave:Text to read"
+  doc=
+    "Generate speech synthesis using pico2wave. Result may be mono.",
+  syntax=
+    "pico2wave:Text to read"
 )
 
 # GTTS
 let settings.protocol.gtts = settings.make.protocol("gtts")
 let settings.protocol.gtts.path =
-  settings.make(description="Path to the gtts binary", "gtts-cli")
+  settings.make(
+    description=
+      "Path to the gtts binary",
+    "gtts-cli"
+  )
 
 let settings.protocol.gtts.lang =
-  settings.make(description="Language to speak in.", "en")
+  settings.make(
+    description=
+      "Language to speak in.",
+    "en"
+  )
 
 let settings.protocol.gtts.options =
-  settings.make(description="Command line options.", "")
+  settings.make(
+    description=
+      "Command line options.",
+    ""
+  )
 
 # Register the gtts: protocol using gtts
 # @flag hidden
@@ -664,8 +773,11 @@ protocol.add(
   static=true,
   "gtts",
   protocol.gtts,
-  doc="Generate speech synthesis using Google translate's text-to-speech API. This requires the `gtts-cli` binary.  Result may be mono.",
-  syntax="gtts:Text to read"
+  doc=
+    "Generate speech synthesis using Google translate's text-to-speech API. This \
+     requires the `gtts-cli` binary.  Result may be mono.",
+  syntax=
+    "gtts:Text to read"
 )
 
 # Say
@@ -680,34 +792,55 @@ protocol.add(
   static=true,
   "say",
   protocol.say,
-  doc="Generate speech synthesis using text2wave. Result is always stereo.",
-  syntax="say:Text to read"
+  doc=
+    "Generate speech synthesis using text2wave. Result is always stereo.",
+  syntax=
+    "say:Text to read"
 )
 
 let settings.protocol.aws = settings.make.protocol("AWS")
 let settings.protocol.aws.profile =
   settings.make(
-    description="Use a specific profile from your credential file.", null()
+    description=
+      "Use a specific profile from your credential file.",
+    null()
   )
 
 let settings.protocol.aws.endpoint =
   settings.make(
-    description="Alternative endpoint URL (useful for other S3 implementations).",
+    description=
+      "Alternative endpoint URL (useful for other S3 implementations).",
     null()
   )
 
 let settings.protocol.aws.region =
-  settings.make(description="AWS Region", null())
+  settings.make(
+    description=
+      "AWS Region",
+    null()
+  )
 
 let settings.protocol.aws.path =
-  settings.make(description="Path to aws CLI binary", "aws")
+  settings.make(
+    description=
+      "Path to aws CLI binary",
+    "aws"
+  )
 
 let settings.protocol.aws.polly = settings.make.protocol("polly")
 let settings.protocol.aws.polly.format =
-  settings.make(description="Output format", "mp3")
+  settings.make(
+    description=
+      "Output format",
+    "mp3"
+  )
 
 let settings.protocol.aws.polly.voice =
-  settings.make(description="Voice ID", "Joanna")
+  settings.make(
+    description=
+      "Voice ID",
+    "Joanna"
+  )
 
 # Build a aws base call
 # @flag hidden
@@ -748,13 +881,19 @@ end
 def s3_protocol(~rlog=_, ~maxtime=_, arg) =
   extname = file.extension(leading_dot=false, dir_sep="/", arg)
   arg = process.quote("s3:#{arg}")
-  [process.uri(extname=extname, "#{aws_base()} s3 cp #{arg} $(output)")]
+  [
+    process.uri(
+      extname=extname,
+      "#{aws_base()} s3 cp #{arg} $(output)"
+    )
+  ]
 end
 
 protocol.add(
   "s3",
   s3_protocol,
-  doc="Fetch files from s3 using the AWS CLI",
+  doc=
+    "Fetch files from s3 using the AWS CLI",
   syntax="s3://uri"
 )
 
@@ -774,7 +913,8 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
       "wav"
     end
 
-  aws = "#{aws} polly synthesize-speech --output-format #{format}"
+  aws =
+    "#{aws} polly synthesize-speech --output-format #{format}"
   voice_id = settings.protocol.aws.polly.voice()
   cmd =
     "#{aws} --text #{process.quote(text)} --voice-id #{
@@ -788,15 +928,20 @@ protocol.add(
   static=true,
   "polly",
   polly_protocol,
-  doc="Generate speech synthesis using AWS polly service. \
-                  Result might be mono, needs aws binary in the path.",
-  syntax="polly:Text to read"
+  doc=
+    "Generate speech synthesis using AWS polly service. Result might be mono, \
+     needs aws binary in the path.",
+  syntax=
+    "polly:Text to read"
 )
 
 # Protocol to synthesize audio.
 # @flag hidden
 def synth_protocol(~rlog=_, ~maxtime=_, text) =
-  log.debug(label="synth", "Synthesizing request: #{text}")
+  log.debug(
+    label="synth",
+    "Synthesizing request: #{text}"
+  )
   args = r/,/.split(text)
   args = list.map(r/=/.split, args)
   if
@@ -832,7 +977,10 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
 
     def synth(s) =
       file = file.temp("liq-synth", ".wav")
-      log.info(label="synth", "Synthesizing #{shape()} in #{file}.")
+      log.info(
+        label="synth",
+        "Synthesizing #{shape()} in #{file}."
+      )
       source.dump(%wav, file, once(s))
       [file]
     end
@@ -858,7 +1006,8 @@ protocol.add(
   temporary=true,
   "synth",
   synth_protocol,
-  doc="Syntesize audio. Parameters are optional.",
+  doc=
+    "Syntesize audio. Parameters are optional.",
   syntax="synth:shape=sine,frequency=440.,duration=10."
 )
 
@@ -888,6 +1037,7 @@ protocol.add(
   temporary=false,
   "file",
   file_protocol,
-  doc="File protocol. Only local files are supported",
+  doc=
+    "File protocol. Only local files are supported",
   syntax="file:///path/to/file"
 )

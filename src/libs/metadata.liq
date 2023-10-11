@@ -114,7 +114,9 @@ def metadata.cover(~coverart_mime=null(), m) =
     if
       not null.defined(cover)
     then
-      log.info("Failed to read cover metadata for #{fname}.")
+      log.info(
+        "Failed to read cover metadata for #{fname}."
+      )
       null()
     else
       null.get(cover)
@@ -142,14 +144,20 @@ def metadata.cover(~coverart_mime=null(), m) =
     if
       apic != ""
     then
-      log.debug(label="metadata.cover", "Found APIC for #{fname}.")
+      log.debug(
+        label="metadata.cover",
+        "Found APIC for #{fname}."
+      )
 
       # TODO: we could use file type in order to select cover if there are many
       string.apic.parse(apic)
     elsif
       pic != ""
     then
-      log.debug(label="metadata.cover", "Found APIC for #{fname}.")
+      log.debug(
+        label="metadata.cover",
+        "Found APIC for #{fname}."
+      )
 
       # TODO: we could use file type in order to select cover if there are many
       pic = string.pic.parse(pic)
@@ -165,7 +173,9 @@ def metadata.cover(~coverart_mime=null(), m) =
 
       pic.{mime=mime}
     else
-      log.info("No cover found for #{fname}.")
+      log.info(
+        "No cover found for #{fname}."
+      )
       null()
     end
   end

@@ -134,11 +134,15 @@ def video.cover(s) =
       cover = null.get(cover)
       ext = if cover.mime == "image/png" then ".png" else ".jpg" end
       f = file.temp("cover", ext)
-      log.debug("Found cover for #{filename}.")
+      log.debug(
+        "Found cover for #{filename}."
+      )
       file.write(data=cover, f)
       video.set(request.once(request.create(temporary=true, f)))
     else
-      log.debug("No cover for #{filename}.")
+      log.debug(
+        "No cover for #{filename}."
+      )
       video.set(source.fail())
     end
   end
@@ -221,7 +225,11 @@ def output.youtube.live.hls(
       try
         ignore(http.post(data=file.read(fname), file_url(path.basename(fname))))
       catch err do
-        log(label=id, level=3, "Error while uploading: #{err}")
+        log(
+          label=id,
+          level=3,
+          "Error while uploading: #{err}"
+        )
       end
   end
 
@@ -438,7 +446,8 @@ end
 
 let settings.video.text =
   settings.make(
-    description="`video.text` implementation.",
+    description=
+      "`video.text` implementation.",
     fst(list.hd(video.text.available()))
   )
 
@@ -450,13 +459,14 @@ thread.run(
         if
           list.assoc.mem(text, video.text.available())
         then
-          log.important(label="video.text", "Using #{text} implementation")
+          log.important(
+            label="video.text",
+            "Using #{text} implementation"
+          )
         else
           log.severe(
             label="video.text",
-            "Cannot find #{
-              text
-            } implementation for `video.text`, using default #{
+            "Cannot find #{text} implementation for `video.text`, using default #{
               fst(list.hd(video.text.available()))
             }"
           )
@@ -604,7 +614,10 @@ def video.slideshow(
   end
 
   def next() =
-    log.debug(label=id, "Going to next file")
+    log.debug(
+      label=id,
+      "Going to next file"
+    )
     n' = n() + 1
     n' =
       if
@@ -619,7 +632,10 @@ def video.slideshow(
   end
 
   def prev() =
-    log.debug(label=id, "Going to previous file")
+    log.debug(
+      label=id,
+      "Going to previous file"
+    )
     n' = n() - 1
     n' =
       if

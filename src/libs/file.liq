@@ -196,7 +196,9 @@ def file.metadata.flac.cover.decode(s) =
   if
     data == ""
   then
-    log.info("Failed to read cover metadata")
+    log.info(
+      "Failed to read cover metadata"
+    )
     null()
   else
     null(
@@ -231,7 +233,10 @@ def file.metadata.flac.cover.encode(
     if
       string.length(str_len) > 4
     then
-      error.raise(error.invalid, "Data length too long for APIC format!")
+      error.raise(
+        error.invalid,
+        "Data length too long for APIC format!"
+      )
     end
 
     pad = string.make(char_code=0, len * 8 - string.length(s))

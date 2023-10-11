@@ -58,7 +58,10 @@ def request.queue(
   end
 
   def push(r) =
-    log.info(label=id, "Pushing #{r} on the queue.")
+    log.info(
+      label=id,
+      "Pushing #{r} on the queue."
+    )
     queue := [...queue(), r]
     fn = fetch()
     ignore(fn())
@@ -108,7 +111,8 @@ def request.queue(
           begin
             server.register(
               namespace=source.id(s),
-              description="Flush the queue and skip the current track",
+              description=
+                "Flush the queue and skip the current track",
               "flush_and_skip",
               fun (_) ->
                 try
@@ -122,8 +126,10 @@ def request.queue(
 
             server.register(
               namespace=source.id(s),
-              description="Push a new request in the queue.",
-              usage="push <uri>",
+              description=
+                "Push a new request in the queue.",
+              usage=
+                "push <uri>",
               "push",
               push
             )
@@ -131,13 +137,16 @@ def request.queue(
             def show_queue(_) =
               queue = [...s.queue(), ...(queue())]
               string.concat(
-                separator=" ", list.map(fun (r) -> string(request.id(r)), queue)
+                separator=
+                  " ",
+                list.map(fun (r) -> string(request.id(r)), queue)
               )
             end
 
             server.register(
               namespace=source.id(s),
-              description="Display current queue content.",
+              description=
+                "Display current queue content.",
               usage="queue",
               "queue",
               show_queue
@@ -150,7 +159,8 @@ def request.queue(
 
             server.register(
               namespace=source.id(s),
-              description="Skip current song.",
+              description=
+                "Skip current song.",
               usage="skip",
               "skip",
               skip
@@ -163,7 +173,8 @@ def request.queue(
 
   def add(r) =
     log.severe(
-      label=s.id(), "Please use #{s.id()}.push instead of #{s.id()}.add()"
+      label=s.id(),
+      "Please use #{s.id()}.push instead of #{s.id()}.add()"
     )
 
     s.add(r)

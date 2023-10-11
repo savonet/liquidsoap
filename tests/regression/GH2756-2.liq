@@ -21,20 +21,31 @@ def f() =
   callstack = ref([])
 
   def reopen_on_metadata(_) =
-    print("Got metadata!")
+    print(
+      "Got metadata!"
+    )
     callstack := [...(callstack()), "metadata"]
     false
   end
 
   def reopen_on_error(_) =
-    print("Got error!")
+    print(
+      "Got error!"
+    )
     callstack := [...(callstack()), "error"]
     null()
   end
 
   clock.assign_new(
-    on_error=fun (_) ->
-      begin callstack := [...(callstack()), "streaming error"] end,
+    on_error=
+      fun (_) ->
+        begin
+          callstack :=
+            [
+              ...(callstack()),
+              "streaming error"
+            ]
+        end,
     [s]
   )
 
@@ -52,7 +63,12 @@ def f() =
     delay=6.,
     {
       if
-        callstack() == ["metadata", "error", "streaming error"]
+        callstack() ==
+          [
+            "metadata",
+            "error",
+            "streaming error"
+          ]
       then
         test.pass()
       else

@@ -20,7 +20,11 @@ def input.hls.native(~id=null(), ~reload=10., uri) =
       pl = request.filename(pl)
       m = r/#EXT-X-MEDIA-SEQUENCE:(\d+)/.exec(file.contents(pl))
       pl_sequence = m[1]
-      log.info(label=id, "Sequence: " ^ pl_sequence)
+      log.info(
+        label=id,
+        "Sequence: " ^
+          pl_sequence
+      )
       pl_sequence = int_of_string(default=0, pl_sequence)
       files = playlist.parse(path=path.dirname(playlist_uri()) ^ "/", pl)
 
@@ -56,7 +60,10 @@ def input.hls.native(~id=null(), ~reload=10., uri) =
 
       playlistr := list.fold(add_file, playlistr(), files)
     else
-      log.severe(label=id, "Couldn't read playlist: request resolution failed.")
+      log.severe(
+        label=id,
+        "Couldn't read playlist: request resolution failed."
+      )
       playlistr := []
     end
 
@@ -92,7 +99,11 @@ def input.hls.native(~id=null(), ~reload=10., uri) =
         playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ playlist_uri()
       end
 
-      log(label=id, "Playlist: " ^ playlist_uri())
+      log(
+        label=id,
+        "Playlist: " ^
+          playlist_uri()
+      )
     end
   end
 

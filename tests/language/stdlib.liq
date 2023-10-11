@@ -4,7 +4,9 @@ def t(x, y) =
   if
     x != y
   then
-    print("Failure: got #{x} instead of #{y}")
+    print(
+      "Failure: got #{x} instead of #{y}"
+    )
     success := false
   end
 end

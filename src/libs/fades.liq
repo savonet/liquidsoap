@@ -46,7 +46,9 @@ def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
     elsif type == "log" then log_shape
     elsif type == "lin" then lin_shape
     else
-      log("Invalid type #{type}, using \"lin\"")
+      log(
+        "Invalid type #{type}, using \"lin\""
+      )
       lin_shape
     end
 
@@ -114,9 +116,8 @@ def fade.out(
 
   def start_fade(d, _) =
     log(
-      "Fading out with type #{type()}, duration: #{duration()} and #{
-        d
-      }s remaining."
+      "Fading out with type #{type()}, duration: #{duration()} and #{d}s \
+       remaining."
     )
 
     start_time := source.time(s)
@@ -144,14 +145,18 @@ def fade.out(
       m[override_duration] != ""
     then
       duration := float_of_string(default=duration(), m[override_duration])
-      log("New fade duration: #{duration()}s.")
+      log(
+        "New fade duration: #{duration()}s."
+      )
     end
 
     if
       m[override_type] != ""
     then
       type := m[override_type]
-      log("New fade type: #{type()}.")
+      log(
+        "New fade type: #{type()}."
+      )
     end
   end
 
@@ -222,7 +227,9 @@ def fade.skip(
   end
 
   def skip() =
-    log("Fade finished executing. Calling skip now")
+    log(
+      "Fade finished executing. Calling skip now"
+    )
     source.skip(s)
   end
 
@@ -232,7 +239,9 @@ def fade.skip(
     then
       remaining = source.remaining(s)
       duration = if remaining < duration() then remaining else duration() end
-      log("Skip fade executed for: #{duration}s")
+      log(
+        "Skip fade executed for: #{duration}s"
+      )
       fn :=
         mkfade(
           start=1., stop=0., type=type(), duration=duration, on_done=skip, s
@@ -243,14 +252,18 @@ def fade.skip(
       m[override_duration] != ""
     then
       duration := float_of_string(default=duration(), m[override_duration])
-      log("New fade duration: #{duration()}")
+      log(
+        "New fade duration: #{duration()}"
+      )
     end
 
     if
       m[override_type] != ""
     then
       type := m[override_type]
-      log("New fade type: #{type()}")
+      log(
+        "New fade type: #{type()}"
+      )
     end
   end
 
@@ -304,7 +317,9 @@ def fade.in(
   end
 
   def start_fade(_) =
-    log("Fading in with type: #{type()} and duration: #{duration()}s.")
+    log(
+      "Fading in with type: #{type()} and duration: #{duration()}s."
+    )
     fn := mkfade(start=0., stop=1., type=type(), duration=duration(), s)
   end
 
@@ -313,14 +328,18 @@ def fade.in(
       m[override_duration] != ""
     then
       duration := float_of_string(default=duration(), m[override_duration])
-      log("New fade duration: #{duration()}s.")
+      log(
+        "New fade duration: #{duration()}s."
+      )
     end
 
     if
       m[override_type] != ""
     then
       type := m[override_type]
-      log("New fade type: #{type()}.")
+      log(
+        "New fade type: #{type()}."
+      )
     end
   end
 
@@ -410,9 +429,15 @@ def cross.smart(
   and
     abs(a.db_level - b.db_level) <= margin
   then
-    log("Old <= medium, new <= medium and |old-new| <= margin.")
-    log("Old and new source are not too loud and close.")
-    log("Transition: crossed, fade-in, fade-out.")
+    log(
+      "Old <= medium, new <= medium and |old-new| <= margin."
+    )
+    log(
+      "Old and new source are not too loud and close."
+    )
+    log(
+      "Transition: crossed, fade-in, fade-out."
+    )
     add(fade.out(a.source), fade.in(b.source))
   elsif
     # If B is significantly louder than A, only fade-out A.
@@ -423,9 +448,15 @@ def cross.smart(
   and
     b.db_level <= high
   then
-    log("new >= old + margin, old >= medium and new <= high.")
-    log("New source is significantly louder than old one.")
-    log("Transition: crossed, fade-out.")
+    log(
+      "new >= old + margin, old >= medium and new <= high."
+    )
+    log(
+      "New source is significantly louder than old one."
+    )
+    log(
+      "Transition: crossed, fade-out."
+    )
     add(fade.out(a.source), b.source)
   elsif
     # Opposite as the previous one.
@@ -435,9 +466,15 @@ def cross.smart(
   and
     a.db_level <= high
   then
-    log("old >= new + margin, new >= medium and old <= high")
-    log("Old source is significantly louder than new one.")
-    log("Transition: crossed, fade-in.")
+    log(
+      "old >= new + margin, new >= medium and old <= high"
+    )
+    log(
+      "Old source is significantly louder than new one."
+    )
+    log(
+      "Transition: crossed, fade-in."
+    )
     add(a.source, fade.in(b.source))
   elsif
     # Do not fade if it's already very low.
@@ -447,9 +484,15 @@ def cross.smart(
   and
     b.db_level <= high
   then
-    log("new >= old + margin, old <= medium and new <= high.")
-    log("Do not fade if it's already very low.")
-    log("Transition: crossed, no fade.")
+    log(
+      "new >= old + margin, old <= medium and new <= high."
+    )
+    log(
+      "Do not fade if it's already very low."
+    )
+    log(
+      "Transition: crossed, no fade."
+    )
     add(a.source, b.source)
 
     # What to do with a loud end and a quiet beginning ?
@@ -459,7 +502,9 @@ def cross.smart(
     # Otherwise, A and B are just too loud to overlap nicely, or the
     # difference between them is too large and overlapping would completely
     # mask one of them.
-    log("No transition: using default.")
+    log(
+      "No transition: using default."
+    )
     default(a.source, b.source)
   end
 end
@@ -521,24 +566,46 @@ def crossfade(
 
   def simple_transition(a, b) =
     list.iter(
-      fun (x) -> log(level=4, "Before: #{x}"), metadata.cover.remove(a.metadata)
+      fun (x) ->
+        log(
+          level=4,
+          "Before: #{x}"
+        ),
+      metadata.cover.remove(a.metadata)
     )
 
     list.iter(
-      fun (x) -> log(level=4, "After : #{x}"), metadata.cover.remove(b.metadata)
+      fun (x) ->
+        log(
+          level=4,
+          "After : #{x}"
+        ),
+      metadata.cover.remove(b.metadata)
     )
 
-    log("Simple transition: crossed, fade-in, fade-out.")
+    log(
+      "Simple transition: crossed, fade-in, fade-out."
+    )
     cross.simple(fade_in=fade_in, fade_out=fade_out, a.source, b.source)
   end
 
   def smart_transition(a, b) =
     list.iter(
-      fun (x) -> log(level=4, "Before: #{x}"), metadata.cover.remove(a.metadata)
+      fun (x) ->
+        log(
+          level=4,
+          "Before: #{x}"
+        ),
+      metadata.cover.remove(a.metadata)
     )
 
     list.iter(
-      fun (x) -> log(level=4, "After : #{x}"), metadata.cover.remove(b.metadata)
+      fun (x) ->
+        log(
+          level=4,
+          "After : #{x}"
+        ),
+      metadata.cover.remove(b.metadata)
     )
 
     cross.smart(

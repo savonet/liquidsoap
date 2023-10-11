@@ -130,7 +130,9 @@ def compress.multiband(~limit=true, ~wet=getter(1.), s, l) =
       getter.get(list.nth(l, i + 1).frequency) <
         getter.get(list.nth(l, i).frequency)
     then
-      failwith("Bands should be sorted.")
+      failwith(
+        "Bands should be sorted."
+      )
     end
   end
 
@@ -394,16 +396,15 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
     register_server_commands
   then
     def status(input) =
-      "ready=#{source.is_ready(input.source)} selected=#{
-        input.selected()
-      } single=#{input.single()} volume=#{
-        int_of_float(input.volume() * 100.)
-      }% remaining=#{source.remaining(input.source)}"
+      "ready=#{source.is_ready(input.source)} selected=#{input.selected()} \
+       single=#{input.single()} volume=#{int_of_float(input.volume() * 100.)}% \
+       remaining=#{source.remaining(input.source)}"
     end
 
     server.register(
       namespace=source.id(s),
-      description="Skip current track on all enabled sources.",
+      description=
+        "Skip current track on all enabled sources.",
       "skip",
       fun (_) ->
         begin
@@ -419,8 +420,10 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
 
     server.register(
       namespace=source.id(s),
-      description="Set volume for a given source.",
-      usage="volume <source nb> <vol%>",
+      description=
+        "Set volume for a given source.",
+      usage=
+        "volume <source nb> <vol%>",
       "volume",
       fun (v) ->
         begin
@@ -437,8 +440,10 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
 
     server.register(
       namespace=source.id(s),
-      description="Enable/disable a source.",
-      usage="select <source nb> <true|false>",
+      description=
+        "Enable/disable a source.",
+      usage=
+        "select <source nb> <true|false>",
       "select",
       fun (arg) ->
         begin
@@ -455,8 +460,10 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
 
     server.register(
       namespace=source.id(s),
-      description="Enable/disable automatic stop at the end of track.",
-      usage="single <source nb> <true|false>",
+      description=
+        "Enable/disable automatic stop at the end of track.",
+      usage=
+        "single <source nb> <true|false>",
       "single",
       fun (arg) ->
         begin
@@ -473,7 +480,8 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
 
     server.register(
       namespace=source.id(s),
-      description="Display current status.",
+      description=
+        "Display current status.",
       "status",
       fun (i) ->
         begin
@@ -487,11 +495,13 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
 
     server.register(
       namespace=source.id(s),
-      description="Print the list of input sources.",
+      description=
+        "Print the list of input sources.",
       "inputs",
       fun (_) ->
         string.concat(
-          separator=" ",
+          separator=
+            " ",
           list.map(fun (input) -> source.id(input.source), inputs)
         )
     )

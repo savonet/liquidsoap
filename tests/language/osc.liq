@@ -11,7 +11,9 @@ def f() =
       if
         x == 42.
       then
-        print("got float")
+        print(
+          "got float"
+        )
         success := true
       end
   )
@@ -28,7 +30,9 @@ def f() =
       if
         x == 42.
       then
-        print("got float")
+        print(
+          "got float"
+        )
         success := true
       end
   )
@@ -46,7 +50,9 @@ def f() =
       if
         x == "xxx"
       then
-        print("got string")
+        print(
+          "got string"
+        )
         success := true
       end
   )

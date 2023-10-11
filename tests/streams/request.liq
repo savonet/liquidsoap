@@ -6,7 +6,9 @@ test.check(
       if
         request.duration("file1.mp3") != 5.06
       then
-        print("Invalid duration!")
+        print(
+          "Invalid duration!"
+        )
         test.fail()
       end
 
@@ -14,7 +16,9 @@ test.check(
       if
         not r.add(request.create("file2.mp3"))
       then
-        print("Failed to add request")
+        print(
+          "Failed to add request"
+        )
         test.fail()
       end
 
@@ -23,7 +27,9 @@ test.check(
       if
         list.length(q) != 2
       then
-        print("Invalid request queue")
+        print(
+          "Invalid request queue"
+        )
         test.fail()
       end
 
@@ -44,7 +50,9 @@ test.check(
             if
               not null.defined(c)
             then
-              print("Invalid current track")
+              print(
+                "Invalid current track"
+              )
               test.fail()
             end
 
@@ -52,7 +60,9 @@ test.check(
             if
               request.filename(c) != "file1.mp3"
             then
-              print("Invalid filename")
+              print(
+                "Invalid filename"
+              )
               test.fail()
             end
 

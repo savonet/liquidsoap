@@ -15,7 +15,10 @@ let http.codes =
     #Continue status code is received in response before continuing (or receive 417
     #Expectation Failed and not continue).
 
-    (101, "Switching Protocols"),
+    (
+      101,
+      "Switching Protocols"
+    ),
     #This means the requester has asked the server to switch protocols and the server
     #is acknowledging that it will do so.
 
@@ -26,7 +29,10 @@ let http.codes =
     #yet. This prevents the client from timing out and assuming the request was
     #lost.
 
-    (122, "Request-URI too long"),
+    (
+      122,
+      "Request-URI too long"
+    ),
     #This is a non-standard IE7-only code which means the URI is longer than a
     #maximum of 2083 characters. (See code 414.),
 
@@ -49,20 +55,32 @@ let http.codes =
     #completed. The request might or might not eventually be acted upon, as it might
     #be disallowed when processing actually takes place.
 
-    (203, "Non-Authoritative Information"),
+    (
+      203,
+      "Non-Authoritative Information"
+    ),
     #The server successfully processed the request, but is returning information that
     #may be from another source.
 
-    (204, "No Content"),
+    (
+      204,
+      "No Content"
+    ),
     #The server successfully processed the request, but is not returning any
     #content.
 
-    (205, "Reset Content"),
+    (
+      205,
+      "Reset Content"
+    ),
     #The server successfully processed the request, but is not returning any content.
     #Unlike a 204 response, this response requires that the requester reset the
     #document view.
 
-    (206, "Partial Content"),
+    (
+      206,
+      "Partial Content"
+    ),
     #The server is delivering only part of the resource due to a range header sent by
     #the client. The range header is used by tools like wget to enable resuming of
     #interrupted downloads, or split a download into multiple simultaneous
@@ -72,7 +90,10 @@ let http.codes =
     #The message body that follows is an XML message and can contain a number of
     #separate response codes, depending on how many sub-requests were made.
 
-    (226, "IM Used"),
+    (
+      226,
+      "IM Used"
+    ),
     #The server has fulfilled a GET request for the resource, and the response is a
     #representation of the result of one or more instance-manipulations applied to
     #the current instance.
@@ -87,12 +108,18 @@ let http.codes =
     #automatically redirect a request more than five times, since such redirections
     #usually indicate an infinite loop.
 
-    (300, "Multiple Choices"),
+    (
+      300,
+      "Multiple Choices"
+    ),
     #Indicates multiple options for the resource that the client may follow. It, for
     #instance, could be used to present different format options for video, list
     #files with different extensions, or word sense disambiguation.
 
-    (301, "Moved Permanently"),
+    (
+      301,
+      "Moved Permanently"
+    ),
     #This and all future requests should be directed to the given URI.
 
     (302, "Found"),
@@ -104,13 +131,19 @@ let http.codes =
     #two behaviours. However, the majority of Web applications and frameworks
     #still[as of?] use the 302 status code as if it were the 303.[citation needed]
 
-    (303, "See Other"),
+    (
+      303,
+      "See Other"
+    ),
     #The response to the request can be found under another URI using a GET method.
     #When received in response to a POST (or PUT/DELETE), it should be assumed that
     #the server has received the data and the redirect should be issued with a
     #separate GET message.
 
-    (304, "Not Modified"),
+    (
+      304,
+      "Not Modified"
+    ),
     #Indicates the resource has not been modified since last requested. Typically,
     #the HTTP client provides a header like the If-Modified-Since header to provide a
     #time against which to compare. Using this saves bandwidth and reprocessing on
@@ -118,14 +151,23 @@ let http.codes =
     #comparison to the entirety of the page being re-processed by the server, then
     #sent again using more bandwidth of the server and client.
 
-    (305, "Use Proxy"),
+    (
+      305,
+      "Use Proxy"
+    ),
     #Many HTTP clients (such as Mozilla and Internet Explorer) do not correctly
     #handle responses with this status code, primarily for security reasons.
 
-    (306, "Switch Proxy"),
+    (
+      306,
+      "Switch Proxy"
+    ),
     #No longer used.
 
-    (307, "Temporary Redirect"),
+    (
+      307,
+      "Temporary Redirect"
+    ),
     #In this occasion, the request should be repeated with another URI, but future
     #requests can still use the original URI. In contrast to 303, the request
     #method should not be changed when reissuing the original request. For instance,
@@ -140,7 +182,10 @@ let http.codes =
     #request method. User agents should display any included entity to the user.
     #These are typically the most common error codes encountered while online.
 
-    (400, "Bad Request"),
+    (
+      400,
+      "Bad Request"
+    ),
     #The request cannot be fulfilled due to bad syntax.
 
     (401, "Unauthorized"),
@@ -149,7 +194,10 @@ let http.codes =
     #WWW-Authenticate header field containing a challenge applicable to the requested
     #resource. See Basic access authentication and Digest access authentication.
 
-    (402, "Payment Required"),
+    (
+      402,
+      "Payment Required"
+    ),
     #Reserved for future use. The original intention was that this code might be
     #used as part of some form of digital cash or micropayment scheme, but that has
     #not happened, and this code is not usually used. As an example of its use,
@@ -160,22 +208,37 @@ let http.codes =
     #The request was a legal request, but the server is refusing to respond to it.
     #Unlike a 401 Unauthorized response, authenticating will make no difference.
 
-    (404, "Not Found"),
+    (
+      404,
+      "Not Found"
+    ),
     #The requested resource could not be found but may be available again in the
     #future. Subsequent requests by the client are permissible.
 
-    (405, "Method Not Allowed"),
+    (
+      405,
+      "Method Not Allowed"
+    ),
     #A request was made of a resource using a request method not supported by that
     #resource; for example, using GET on a form which requires data to be
     #presented via POST, or using PUT on a read-only resource.
 
-    (406, "Not Acceptable"),
+    (
+      406,
+      "Not Acceptable"
+    ),
     #The requested resource is only capable of generating content not acceptable
     #according to the Accept headers sent in the request.
 
-    (407, "Proxy Authentication Required"),
+    (
+      407,
+      "Proxy Authentication Required"
+    ),
 
-    (408, "Request Timeout"),
+    (
+      408,
+      "Request Timeout"
+    ),
     #The server timed out waiting for the request. According to W3 HTTP
     #specifications: "The client did not produce a request within the time that the
     #server was prepared to wait. The client MAY repeat the request without
@@ -194,69 +257,117 @@ let http.codes =
     #not require clients and search engines to purge the resource, and a "404 Not
     #Found" may be used instead.
 
-    (411, "Length Required"),
+    (
+      411,
+      "Length Required"
+    ),
     #The request did not specify the length of its content, which is required by the
     #requested resource.
 
-    (412, "Precondition Failed"),
+    (
+      412,
+      "Precondition Failed"
+    ),
     #The server does not meet one of the preconditions that the requester put on the
     #request.
 
-    (413, "Request Entity Too Large"),
+    (
+      413,
+      "Request Entity Too Large"
+    ),
     #The request is larger than the server is willing or able to process.
 
-    (414, "Request-URI Too Long"),
+    (
+      414,
+      "Request-URI Too Long"
+    ),
     #The URI provided was too long for the server to process.
 
-    (415, "Unsupported Media Type"),
+    (
+      415,
+      "Unsupported Media Type"
+    ),
     #The request entity has a media type which the server or resource does not
     #support. For example, the client uploads an image as image/svg+xml, but the
     #server requires that images use a different format.
 
-    (416, "Requested Range Not Satisfiable"),
+    (
+      416,
+      "Requested Range Not Satisfiable"
+    ),
     #The client has asked for a portion of the file, but the server cannot supply
     #that portion. For example, if the client asked for a part of the file that
     #lies beyond the end of the file.
 
-    (417, "Expectation Failed"),
+    (
+      417,
+      "Expectation Failed"
+    ),
     #The server cannot meet the requirements of the Expect request-header field.
 
-    (418, "I'm a teapot"),
+    (
+      418,
+      "I'm a teapot"
+    ),
     #This code was defined in 1998 as one of the traditional IETF April Fools' jokes,
     #in RFC 2324, Hyper Text Coffee Pot Control Protocol, and is not expected to be
     #implemented by actual HTTP servers.
 
-    (422, "Unprocessable Entity"),
+    (
+      422,
+      "Unprocessable Entity"
+    ),
     #The request was well-formed but was unable to be followed due to semantic
     #errors.
 
     (423, "Locked"),
     #The resource that is being accessed is locked.
 
-    (424, "Failed Dependency"),
+    (
+      424,
+      "Failed Dependency"
+    ),
     #The request failed due to failure of a previous request (e.g. a PROPPATCH).
 
-    (425, "Unordered Collection"),
+    (
+      425,
+      "Unordered Collection"
+    ),
     #Defined in drafts of "WebDAV Advanced Collections Protocol", but not present
     #in "Web Distributed Authoring and Versioning (WebDAV) Ordered Collections
     #Protocol".
 
-    (426, "Upgrade Required"),
+    (
+      426,
+      "Upgrade Required"
+    ),
     #The client should switch to a different protocol such as TLS/1.0.
 
-    (444, "No Response"),
+    (
+      444,
+      "No Response"
+    ),
     #A Nginx HTTP server extension. The server returns no information to the client
     #and closes the connection (useful as a deterrent for malware).
 
-    (449, "Retry With"),
+    (
+      449,
+      "Retry With"
+    ),
     #A Microsoft extension. The request should be retried after performing the
     #appropriate action.
 
-    (450, "Blocked by Windows Parental Controls"),
+    (
+      450,
+      "Blocked by Windows Parental Controls"
+    ),
     #A Microsoft extension. This error is given when Windows Parental Controls are
     #turned on and are blocking access to the given webpage.
 
-    (499, "Client Closed Request"),
+    (
+      499,
+      "Client Closed Request"
+    ),
     #An Nginx HTTP server extension. This code is introduced to log the case when the
     #connection is closed by client while HTTP server is processing its request,
     #making server unable to send the HTTP header back.
@@ -272,37 +383,67 @@ let http.codes =
     #should display any included entity to the user. These response codes are
     #applicable to any request method.
 
-    (500, "Internal Server Error"),
+    (
+      500,
+      "Internal Server Error"
+    ),
     #A generic error message, given when no more specific message is suitable.
 
-    (501, "Not Implemented"),
+    (
+      501,
+      "Not Implemented"
+    ),
     #The server either does not recognise the request method, or it lacks the ability
     #to fulfill the request.
 
-    (502, "Bad Gateway"),
+    (
+      502,
+      "Bad Gateway"
+    ),
     #The server was acting as a gateway or proxy and received an invalid response
     #from the upstream server.
 
-    (503, "Service Unavailable"),
+    (
+      503,
+      "Service Unavailable"
+    ),
     #The server is currently unavailable (because it is overloaded or down for
     #maintenance). Generally, this is a temporary state.
 
-    (504, "Gateway Timeout"),
+    (
+      504,
+      "Gateway Timeout"
+    ),
     #The server was acting as a gateway or proxy and did not receive a timely
     #response from the upstream server.
 
-    (505, "HTTP Version Not Supported"),
+    (
+      505,
+      "HTTP Version Not Supported"
+    ),
     #The server does not support the HTTP protocol version used in the request.
 
-    (506, "Variant Also Negotiates"),
+    (
+      506,
+      "Variant Also Negotiates"
+    ),
     #Transparent content negotiation for the request results in a circular
     #reference.
 
-    (507, "Insufficient Storage"),
+    (
+      507,
+      "Insufficient Storage"
+    ),
 
-    (509, "Bandwidth Limit Exceeded"),
+    (
+      509,
+      "Bandwidth Limit Exceeded"
+    ),
     #This status code, while used by many servers, is not specified in any RFCs.
 
-    (510, "Not Extended")
+    (
+      510,
+      "Not Extended"
+    )
     #Further extensions to the request are required for the server to fulfill it.
   ]

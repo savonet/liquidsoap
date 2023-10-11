@@ -115,8 +115,7 @@ def audioscrobbler.submit.full(
         log(
           label="audioscrobbler.submit.full",
           level=4,
-          "Remaining time null: \
-                     will not submit song (song skipped ?)"
+          "Remaining time null: will not submit song (song skipped ?)"
         )
       end
   source_on_end(s, delay=delay, f)

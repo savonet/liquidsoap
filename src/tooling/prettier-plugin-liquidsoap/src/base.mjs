@@ -9,9 +9,11 @@ const {
     join,
     hardline,
     line,
+    litteralline,
     softline,
     ifBreak,
     lineSuffix,
+    fill,
   },
 } = prettierDoc;
 
@@ -31,6 +33,20 @@ export const parsers = {
     locStart: () => 0,
     locEnd: () => 0,
   },
+};
+
+const printString = (str) => {
+  if (/(?<!\\)\n/.test(str)) return str;
+  if (!/\s/.test(str)) return str;
+
+  return fill(
+    str
+      .replace(/\\\n\s*/g, "")
+      .split(/(\s)/)
+      .map((s) =>
+        s === " " ? ifBreak(group([" ", "\\", hardline, " "]), " ") : s,
+      ),
+  );
 };
 
 const print = (path, options, print) => {
@@ -151,17 +167,13 @@ const print = (path, options, print) => {
           joinedContent,
         );
 
-        const separator = nodes[idx].ast_comments?.after?.length
-          ? hardline
-          : line;
-
         return [
           [position[0], nextPosition[1]],
           [
             ...result,
             ...newLine(position, nextPosition),
             contentWithComments,
-            ...(isLast ? [] : [separator]),
+            ...(isLast ? [] : [line]),
           ],
         ];
       },
@@ -191,8 +203,11 @@ const print = (path, options, print) => {
   const printFunArg = () =>
     group([...printLabel(), ...(node.default ? ["=", print("default")] : [])]);
 
-  const printAppArg = () =>
-    group([...(node.label !== "" ? [node.label, "="] : []), print("value")]);
+  const printAppArg = () => {
+    if (node.label)
+      return group([node.label, "=", indent([softline, print("value")])]);
+    return print("value");
+  };
 
   const printTypeAnnotation = () => {
     switch (node.subtype) {
@@ -377,6 +392,8 @@ const print = (path, options, print) => {
         return group(["not", " ", print("value")]);
       case "var":
         return node.value;
+      case "string":
+        return printString(node.value);
       case "ground":
         return node.value;
       case "term":
@@ -622,7 +639,7 @@ const print = (path, options, print) => {
       case "string_interpolation":
         return group(path.map(print, "value"));
       case "interpolated_string":
-        return node.value;
+        return printString(node.value);
       case "interpolated_term":
         return group(["#{", indent([softline, print("value")]), softline, "}"]);
       case "coalesce":

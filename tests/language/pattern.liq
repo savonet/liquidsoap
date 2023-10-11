@@ -2,7 +2,9 @@ def c(x, y) =
   if
     x != y
   then
-    print("#{x} != #{y}")
+    print(
+      "#{x} != #{y}"
+    )
     test.fail()
   end
 end
@@ -83,11 +85,18 @@ def f() =
   c(foo, 123)
   c(gni, "gnu")
   c(bla, 4.24)
-  let ({foo = [{foo}, {gni}, ..._, {bla}]}, z) = ({foo=l}, "the letter z")
+  let ({foo = [{foo}, {gni}, ..._, {bla}]}, z) =
+    (
+      {foo=l},
+      "the letter z"
+    )
   c(foo, 123)
   c(gni, "gnu")
   c(bla, 4.24)
-  c(z, "the letter z")
+  c(
+    z,
+    "the letter z"
+  )
   test.pass()
 end
 

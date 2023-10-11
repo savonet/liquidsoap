@@ -5,7 +5,11 @@ def f() =
 
   # Test string.trim on url input.
   output.dummy(
-    input.ffmpeg(on_connect=test.pass, on_error=on_error, " ./file1.mp3\n"),
+    input.ffmpeg(
+      on_connect=test.pass,
+      on_error=on_error,
+      " ./file1.mp3\n"
+    ),
     fallible=true
   )
 end

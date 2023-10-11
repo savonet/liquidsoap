@@ -1,6 +1,5 @@
 (rule
- (target node_modules)
- (mode fallback)
+ (target package-lock.json)
  (deps package.json)
  (action
   (run npm install)))

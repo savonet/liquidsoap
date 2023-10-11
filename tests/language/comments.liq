@@ -64,7 +64,8 @@ This comment is not terminated"
     ()
   end
 
-  let eval _ = "# single line comment can be followed by EOF"
+  let eval _ =
+    "# single line comment can be followed by EOF"
   test.equals("a#b", string.base64.decode("YSNi"))
   test.equals(string(r/a#b/), "r/a#b/")
   test.equals("a#<b>#c", string.base64.decode("YSM8Yj4jYw=="))
