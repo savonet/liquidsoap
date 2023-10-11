@@ -5,9 +5,9 @@ fname = argv(default="", 1)
 out = "#{fname}+ffmpeg_raw_and_encode_decoder.mp4"
 if file.exists(out) then file.remove(out) end
 s = single(fname)
-s = sequence([s, s, once(s)])
+s = once(s)
 
-clock.assign_new(sync='none',[s])
+clock.assign_new(sync='none', [s])
 def on_close(filename) =
   if
     not test.done()

@@ -66,7 +66,13 @@ let audio_video_formats =
     {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%video(codec="libx264",r=12)).mp4|};
   ]
 
-let formats = audio_formats @ audio_video_formats @ video_formats
+let multitrack_formats =
+  [
+    {|%ffmpeg(format="mp4",%audio(codec="aac",channels=2),%audio_2(codec="aac",channels=1),%video(codec="libx264"),%video_2(codec="libx264")).mp4|};
+  ]
+
+let formats =
+  audio_formats @ audio_video_formats @ video_formats @ multitrack_formats
 
 let encoder_format format =
   match List.rev (String.split_on_char '.' format) with
@@ -122,6 +128,7 @@ let () =
   List.iter (mk_encoder "audio_only") audio_formats;
   List.iter (mk_encoder "video_only") video_formats;
   List.iter (mk_encoder "audio_video") audio_video_formats;
+  List.iter (mk_encoder "multitrack") multitrack_formats;
   List.iter mk_encoded_file formats;
   Printf.printf
     {|

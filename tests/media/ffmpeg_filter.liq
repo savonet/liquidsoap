@@ -22,7 +22,7 @@ def f(s) =
 end
 
 s = single(fname)
-s = sequence([s, s, s, s, s, source.fail()])
+s = once(s)
 s = f(s)
 started = ref(false)
 
@@ -32,7 +32,7 @@ end
 
 s.on_track(on_track)
 
-clock.assign_new(id='test_clock',sync='none',[s])
+clock.assign_new(id='test_clock', sync='none', [s])
 def on_close(filename) =
   if
     !started and not test.done()

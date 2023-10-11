@@ -31,7 +31,7 @@ s = f(s)
 done = ref(false)
 passed = ref(false)
 
-clock.assign_new(id='test_clock',sync='none',[s])
+clock.assign_new(id='test_clock', sync='none', [s])
 def on_done(_) =
   if
     done() and not passed()

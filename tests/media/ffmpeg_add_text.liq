@@ -5,7 +5,7 @@ fname = argv(default="", 1)
 out = "#{fname}+ffmpeg_filter.mp4"
 if file.exists(out) then file.remove(out) end
 s = single(fname)
-s = sequence([s, s, s, s, s, source.fail()])
+s = once(s)
 s =
   video.add_text.ffmpeg(
     "bla blo",
@@ -19,7 +19,7 @@ end
 
 s.on_track(on_track)
 
-clock.assign_new(id='test_clock',sync='none',[s])
+clock.assign_new(id='test_clock', sync='none', [s])
 def on_close(filename) =
   if
     !started

@@ -230,6 +230,16 @@
     (with-stdout-to %{target}
       (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%video(codec=\"libx264\",r=12))" audio_video "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4"))))
 (rule
+  (alias mediatest)
+  (package liquidsoap)
+  (target @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']]_encoder.liq)
+  (deps
+    (:mk_encoder_test ./mk_encoder_test.sh)
+    (:encoder_in ./encoder_multitrack.liq.in))
+  (action
+    (with-stdout-to %{target}
+      (run %{mk_encoder_test} "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%audio_2(codec=\"aac\",channels=1),%video(codec=\"libx264\"),%video_2(codec=\"libx264\"))" multitrack "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4"))))
+(rule
  (alias mediatest)
  (package liquidsoap)
  (target @fdkaac[aot='mpeg4_aac_lc',channels=1].aac)
@@ -529,6 +539,19 @@
  (action
    (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%video(codec=\"libx264\"))")))
 (rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4)
+ (deps
+  (:encoder @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']]_encoder.liq)
+  (package liquidsoap)
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+   (run %{run_test} %{encoder} liquidsoap %{test_liq} %{encoder} -- "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%audio_2(codec=\"aac\",channels=1),%video(codec=\"libx264\"),%video_2(codec=\"libx264\"))")))
+(rule
   (alias mediatest)
   (package liquidsoap)
   (target all_media_files)
@@ -555,7 +578,8 @@
 @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
 @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4
-@ffmpeg[format='mp4',@video[codec='libx264']].mp4)
+@ffmpeg[format='mp4',@video[codec='libx264']].mp4
+@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@audio_2[codec='aac',channels=1],@video[codec='libx264'],@video_2[codec='libx264']].mp4)
   (action (run touch %{target})))
 (rule
  (alias mediatest)

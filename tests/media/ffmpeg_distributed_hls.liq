@@ -104,7 +104,7 @@ def segment_name(~position, ~extname, stream_name) =
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
 
-clock.assign_new(id='test_clock',sync='none',[encoded])
+clock.assign_new(id='test_clock', sync='none', [encoded])
 output.file.hls(
   playlist="live.m3u8",
   segment_duration=2.0,
