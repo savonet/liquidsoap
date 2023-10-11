@@ -3,7 +3,7 @@ log.level.set(4)
 
 file = "@FILE@"
 
-s = once(@SOURCE@(duration=0.5))
+s = once(@SOURCE@(duration=3.))
 
 #clock.assign_new(sync="none",[s])
 
