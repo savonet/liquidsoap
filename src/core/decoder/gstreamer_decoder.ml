@@ -170,7 +170,7 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
     GU.flush ~log gst.bin
   in
-  ({ Decoder.decode; seek }, close, gst.bin)
+  ({ Decoder.decode; seek; eof = (fun _ -> ()) }, close, gst.bin)
 
 let mime_types =
   Dtools.Conf.list
@@ -297,7 +297,7 @@ let () =
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
       file_type =
-        (fun ~ctype:_ filename ->
+        (fun ~metadata:_ ~ctype:_ filename ->
           let channels = Lazy.force Frame.audio_channels in
           Some (get_type ~channels filename));
       file_decoder = Some file_decoder;
@@ -308,7 +308,7 @@ let () =
 
 (* See
    http://gstreamer.freedesktop.org/data/doc/gstreamer/head/manual/html/chapter-metadata.html *)
-let get_tags file =
+let get_tags ~metadata:_ file =
   if
     not
       (Decoder.test_file ~log ~mimes:mime_types#get

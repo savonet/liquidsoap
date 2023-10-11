@@ -487,7 +487,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     (* Source is ready when ready = true and gst has some audio or some video. *)
     val mutable ready = true
 
-    method private _is_ready =
+    method private _is_ready ?frame:_ () =
       let pending = function
         | Some sink -> sink.pending () > 0
         | None -> false
@@ -502,7 +502,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string e);
         false
 
-    method self_sync = (`Dynamic, self#is_ready)
+    method self_sync = (`Dynamic, self#is_ready ())
     method abort_track = ()
 
     method! wake_up activations =

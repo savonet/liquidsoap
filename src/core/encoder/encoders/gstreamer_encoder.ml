@@ -134,7 +134,7 @@ let encoder ext =
         Gstreamer.Tag_setter.of_element
           (Gstreamer.Bin.get_by_name gst.bin ext.metadata)
       in
-      Hashtbl.iter
+      Liquidsoap_lang.Methods.iter
         (Gstreamer.Tag_setter.add_tag meta Gstreamer.Tag_setter.Replace)
         m;
       GU.flush ~log gst.bin
@@ -200,7 +200,7 @@ let encoder ext =
 let () =
   Plug.register Encoder.plug "gstreamer" ~doc:"" (function
     | Encoder.GStreamer params ->
-        let f _ m =
+        let f ~pos:_ _ m =
           let encoder = encoder params in
           encoder.Encoder.insert_metadata m;
           encoder
