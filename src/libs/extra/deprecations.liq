@@ -9,7 +9,9 @@ def deprecated(old, new) =
   new = if new == "" then "" else " Please use \"#{new}\" instead." end
   log.severe(
     label="lang.deprecated",
-    "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{new}"
+    "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{
+      new
+    }"
   )
 end
 
@@ -254,7 +256,9 @@ def register_flow(
     answer = http.get(url)
     log(
       level=4,
-      "Response status: #{answer.http_version} #{answer.status_code} #{answer.status_message}"
+      "Response status: #{answer.http_version} #{answer.status_code} #{
+        answer.status_message
+      }"
     )
 
     log(level=4, "Response headers:")

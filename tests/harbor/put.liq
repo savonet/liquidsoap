@@ -44,16 +44,22 @@ def f() =
 
   test.equals(
     string.getter.flush(data.contents),
-    "--#{data.boundary}\r\n\
+    "--#{
+      data.boundary
+    }\r\n\
      Content-Disposition: form-data; name=\"the name\"; filename=\"the filename\"\r\n\
      some: headers\r\n\
      \r\n\
      foobarlol\r\n\
-     --#{data.boundary}\r\n\
+     --#{
+      data.boundary
+    }\r\n\
      Content-Disposition: form-data; name=\"namez\"\r\n\
      \r\n\
      gnigno\r\n\
-     --#{data.boundary}--\r\n"
+     --#{
+      data.boundary
+    }--\r\n"
   )
 
   # Test file upload
@@ -81,13 +87,17 @@ def f() =
     test.equals(req.path, "/large_non_chunked")
     test.equals(
       req.body(timeout=5.0),
-      "--#{boundary}\r\n\
-       Content-Disposition: form-data; name=\"file\"; filename=\"#{fname}\"\r\n\
+      "--#{
+        boundary
+      }\r\n\
+       Content-Disposition: form-data; name=\"file\"; filename=\"#{
+        fname
+      }\"\r\n\
        Content-Type: text/plain\r\n\
        \r\n\
-       #{file.contents(
-        fname
-      )}\r\n\
+       #{
+        file.contents(fname)
+      }\r\n\
        --#{boundary}--\r\n"
     )
   end
@@ -131,12 +141,16 @@ def f() =
     test.equals(req.path, "/in_memory_file_upload")
     test.equals(
       req.body(timeout=5.0),
-      "--#{boundary}\r\n\
+      "--#{
+        boundary
+      }\r\n\
        Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"\r\n\
        Content-Type: text/plain\r\n\
        \r\n\
        foobarlol\r\n\
-       --#{boundary}--\r\n"
+       --#{
+        boundary
+      }--\r\n"
     )
   end
 

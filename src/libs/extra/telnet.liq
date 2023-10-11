@@ -137,7 +137,9 @@ def replaces input.external.avi(%argsof(input.external.avi), s) =
               audio = list.assoc(default=0., "audio", buffered)
               video = list.assoc(default=0., "video", buffered)
               total = min(audio, video)
-              "audio buffer length: #{audio}\nvideo buffer length: #{video}\ntotal buffer length: #{total}"
+              "audio buffer length: #{audio}\nvideo buffer length: #{
+                video
+              }\ntotal buffer length: #{total}"
             end
         )
       }

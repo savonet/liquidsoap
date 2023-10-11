@@ -248,7 +248,9 @@ def file.metadata.flac.cover.encode(
     string.binary.of_int(little_endian=false, pad=4, number_of_colors ?? 0)
 
   let (data_len, data) = encode_string(data)
-  "#{pic_type}#{mime_len}#{mime}#{desc_len}#{description}#{width}#{height}#{color_depth}#{number_of_colors}#{data_len}#{data}"
+  "#{pic_type}#{mime_len}#{mime}#{desc_len}#{description}#{width}#{height}#{
+    color_depth
+  }#{number_of_colors}#{data_len}#{data}"
 end
 
 # Download file using a regular http.get request. Returns `true` on success.

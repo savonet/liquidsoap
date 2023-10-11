@@ -194,9 +194,9 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
           then
             begin
               content_type = null.get(content_type).mime
-              " Response has unknown mime-type: #{string.quote(
-                content_type
-              )} you may want to add it to `settings.http.mime.extnames` and report to us if it is a common one."
+              " Response has unknown mime-type: #{
+                string.quote(content_type)
+              } you may want to add it to `settings.http.mime.extnames` and report to us if it is a common one."
             end
           else
             ""
@@ -204,9 +204,9 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
 
         log(
           level=3,
-          "Failed to find a file extension for #{string.quote(
-            uri
-          )}.#{extra_log}"
+          "Failed to find a file extension for #{string.quote(uri)}.#{
+            extra_log
+          }"
         )
 
         ".osb"
@@ -225,7 +225,9 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
     else
       log(
         level=3,
-        "Error while fetching http data: #{response.status_code} - #{response.status_message}"
+        "Error while fetching http data: #{response.status_code} - #{
+          response.status_message
+        }"
       )
 
       []
@@ -284,9 +286,9 @@ def protocol.youtube_dl(~rlog, ~maxtime, arg) =
   title = list.hd(default="", x)
   ext = file.extension(leading_dot=false, list.nth(default="", x, 1))
   cmd =
-    "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{process.quote(
-      arg
-    )}"
+    "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{
+      process.quote(arg)
+    }"
 
   cmd = process.uri(timeout=timeout, extname=ext, cmd)
   if
@@ -377,9 +379,9 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
 
   def parse_metadata(file) =
     cmd =
-      "#{ffmpeg} -i #{process.quote(
-        file
-      )} -f ffmetadata - 2>/dev/null | grep -v '^;'"
+      "#{ffmpeg} -i #{
+        process.quote(file)
+      } -f ffmetadata - 2>/dev/null | grep -v '^;'"
 
     delay = maxtime - time()
     log(level=4, "Executing #{cmd}")
@@ -521,9 +523,9 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
     fades = fades(r)
     replaygain_filter = replaygain_filter(filename)
     cmd =
-      "#{ffmpeg} -y -i $(input) #{cue_points} #{fades} #{replaygain_filter} #{process.quote(
-        wav
-      )}"
+      "#{ffmpeg} -y -i $(input) #{cue_points} #{fades} #{replaygain_filter} #{
+        process.quote(wav)
+      }"
 
     uri = process.uri(extname="wav", uri=filename, cmd)
     wav_r = request.create(uri)
@@ -775,9 +777,9 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
   aws = "#{aws} polly synthesize-speech --output-format #{format}"
   voice_id = settings.protocol.aws.polly.voice()
   cmd =
-    "#{aws} --text #{process.quote(text)} --voice-id #{process.quote(
-      voice_id
-    )} $(output)"
+    "#{aws} --text #{process.quote(text)} --voice-id #{
+      process.quote(voice_id)
+    } $(output)"
 
   [process.uri(extname=extname, cmd)]
 end

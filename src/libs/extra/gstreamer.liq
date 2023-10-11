@@ -129,7 +129,9 @@ let gstreamer.rtp = ()
 # @flag extra
 def gstreamer.rtp.mpeg4(~host="127.0.0.1", ~port=5000, source) =
   output.gstreamer.video(
-    pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{host} port=#{port}",
+    pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{
+      host
+    } port=#{port}",
     source
   )
 end
@@ -155,7 +157,9 @@ def output.youtube.live.gstreamer(
 ) =
   video_pipeline =
     "videoconvert ! \
-      x264enc bitrate=#{video_bitrate} byte-stream=false key-int-max=60 bframes=0 aud=true tune=zerolatency ! \
+      x264enc bitrate=#{
+      video_bitrate
+    } byte-stream=false key-int-max=60 bframes=0 aud=true tune=zerolatency ! \
       video/x-h264,profile=main ! queue ! mux."
 
   audio_pipeline =
@@ -163,7 +167,9 @@ def output.youtube.live.gstreamer(
 
   key = (key : string)
   pipeline =
-    "flvmux streamable=true name=mux ! rtmpsink location=\"#{url}/#{key} app=live2\""
+    "flvmux streamable=true name=mux ! rtmpsink location=\"#{url}/#{
+      key
+    } app=live2\""
 
   output.gstreamer.audio_video(
     id=id,

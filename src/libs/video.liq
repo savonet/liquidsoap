@@ -454,9 +454,11 @@ thread.run(
         else
           log.severe(
             label="video.text",
-            "Cannot find #{text} implementation for `video.text`, using default #{fst(
-              list.hd(video.text.available())
-            )}"
+            "Cannot find #{
+              text
+            } implementation for `video.text`, using default #{
+              fst(list.hd(video.text.available()))
+            }"
           )
         end
       end

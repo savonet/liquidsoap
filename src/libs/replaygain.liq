@@ -63,9 +63,9 @@ def file.replaygain(~id=null(), ~ratio=50., fname) =
       gain = s.gain()
       log.important(
         label=id,
-        "Computed replay gain #{gain} dB for #{string.quote(
-          fname
-        )} (time: #{time() - t} s)."
+        "Computed replay gain #{gain} dB for #{string.quote(fname)} (time: #{
+          time() - t
+        } s)."
       )
 
       gain
@@ -90,9 +90,9 @@ def enable_replaygain_metadata(~ratio=50.) =
     then
       log.important(
         label="decoder.replaygain.metadata",
-        "Detected replaygain metadata #{replaygain_meta} for #{string.quote(
-          fname
-        )}"
+        "Detected replaygain metadata #{replaygain_meta} for #{
+          string.quote(fname)
+        }"
       )
 
       [("replaygain_track_gain", replaygain_meta)]

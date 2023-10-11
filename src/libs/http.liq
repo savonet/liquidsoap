@@ -899,12 +899,14 @@ def http.headers.content_disposition(headers) =
         args = list.map(parse_arg, args)
         let (filename, args) = parse_filename(args)
         let (name, args) = parse_name(args)
-        ({type=type, filename=filename, name=name, args=args} : {
-          type: string,
-          filename?: string,
-          name?: string,
-          args: [(string*string?)]
-        })
+        ({type=type, filename=filename, name=name, args=args} :
+          {
+            type: string,
+            filename?: string,
+            name?: string,
+            args: [(string*string?)]
+          }
+        )
       end,
     content_disposition
   )
