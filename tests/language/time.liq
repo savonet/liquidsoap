@@ -3,7 +3,9 @@ def check_value(v, v') =
   if
     v != v'
   then
-    print("Expected: #{v}, got: #{v'}")
+    print(
+      "Expected: #{v}, got: #{v'}"
+    )
     test.fail()
   end
 end
@@ -13,7 +15,8 @@ def f() =
   check_value(int_of_float(time()), int_of_float(time.make(time.local())))
   time.zone.set("Europe/Paris")
   check_value(
-    time.string(time=1662367396.), "Monday, 05 September 2022 10:43:16"
+    time.string(time=1662367396.),
+    "Monday, 05 September 2022 10:43:16"
   )
 
   test.pass()

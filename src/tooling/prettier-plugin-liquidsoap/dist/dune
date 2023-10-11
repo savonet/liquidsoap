@@ -10,7 +10,11 @@
  (mode
   (promote (until-clean)))
  (target web.mjs)
- (deps ../node_modules ../src/base.mjs ../webpack.web.js ./liquidsoap.js)
+ (deps
+  ../package-lock.json
+  ../src/base.mjs
+  ../webpack.web.js
+  ./liquidsoap.js)
  (action
   (chdir
    ..
@@ -21,7 +25,7 @@
   (promote (until-clean)))
  (target node.js)
  (deps
-  ../node_modules
+  ../package-lock.json
   ../src/base.mjs
   ../src/index.mjs
   ../webpack.node.js

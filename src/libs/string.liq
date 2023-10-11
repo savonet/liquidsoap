@@ -44,7 +44,10 @@ def string.split.first(~separator, s) =
   if
     i < 0
   then
-    error.raise(error.not_found, "String does not contain the separator.")
+    error.raise(
+      error.not_found,
+      "String does not contain the separator."
+    )
   end
 
   (

@@ -6,7 +6,8 @@
 # @param ~device V4L2 device to use.
 # @param ~on_error Callback executed when an error happens.
 def input.v4l2(~id=null(), ~device="/dev/video0", ~on_error=fun (_) -> 3.) =
-  pipeline = "v4l2src device=#{device}"
+  pipeline =
+    "v4l2src device=#{device}"
   input.gstreamer.video(id=id, pipeline=pipeline, on_error=on_error)
 end
 
@@ -22,7 +23,8 @@ def input.v4l2_with_audio(
   ~on_error=fun (_) -> 3.
 ) =
   audio_pipeline = "autoaudiosrc"
-  video_pipeline = "v4l2src device=#{device}"
+  video_pipeline =
+    "v4l2src device=#{device}"
   input.gstreamer.audio_video(
     id=id,
     audio_pipeline=audio_pipeline,
@@ -43,7 +45,12 @@ let gstreamer.single = ()
 def gstreamer.single.audio(~id=null(), ~on_error=fun (_) -> 3., uri) =
   uri = getter.function(uri)
   input.gstreamer.audio(
-    id=id, on_error=on_error, pipeline={"filesrc location=\"#{uri()}\""}
+    id=id,
+    on_error=on_error,
+    pipeline=
+      {
+        "filesrc location=\"#{uri()}\""
+      }
   )
 end
 
@@ -55,9 +62,14 @@ end
 # @param uri URI of the HLS stream index.
 def output.file.hls.gstreamer(~id=null(), ~on_error=fun (_) -> 3., uri) =
   uri = getter.function(uri)
-  pipeline = {"souphttpsrc location=\"#{uri()}\" ! tee name=t"}
-  audio_pipeline = "t. ! queue"
-  video_pipeline = "t. ! queue"
+  pipeline =
+    {
+      "souphttpsrc location=\"#{uri()}\" ! tee name=t"
+    }
+  audio_pipeline =
+    "t. ! queue"
+  video_pipeline =
+    "t. ! queue"
   input.gstreamer.audio_video(
     id=id,
     pipeline=pipeline,
@@ -75,7 +87,10 @@ end
 # @param uri URI of the HLS stream index.
 def output.file.hls.gstreamer.audio(~id=null(), ~on_error=fun (_) -> 3., uri) =
   uri = getter.function(uri)
-  pipeline = {"souphttpsrc location=\"#{uri()}\""}
+  pipeline =
+    {
+      "souphttpsrc location=\"#{uri()}\""
+    }
   input.gstreamer.audio(id=id, pipeline=pipeline, on_error=on_error)
 end
 
@@ -86,7 +101,8 @@ end
 # @param source Source
 def gstreamer.encode_x264_avi(fname, source) =
   output.gstreamer.video(
-    pipeline="videoconvert ! x264enc ! avimux ! filesink location=\"#{fname}\"",
+    pipeline=
+      "videoconvert ! x264enc ! avimux ! filesink location=\"#{fname}\"",
     source
   )
 end
@@ -98,7 +114,8 @@ end
 # @param source Source
 def gstreamer.encode_jpeg_avi(fname, source) =
   output.gstreamer.video(
-    pipeline="videoconvert ! jpegenc ! avimux ! filesink location=\"#{fname}\"",
+    pipeline=
+      "videoconvert ! jpegenc ! avimux ! filesink location=\"#{fname}\"",
     source
   )
 end
@@ -110,7 +127,8 @@ end
 # @param source Source
 def gstreamer.encode_mp3(fname, source) =
   output.gstreamer.audio(
-    pipeline="audioconvert ! lamemp3enc ! filesink location=\"#{fname}\"",
+    pipeline=
+      "audioconvert ! lamemp3enc ! filesink location=\"#{fname}\"",
     source
   )
 end
@@ -129,9 +147,10 @@ let gstreamer.rtp = ()
 # @flag extra
 def gstreamer.rtp.mpeg4(~host="127.0.0.1", ~port=5000, source) =
   output.gstreamer.video(
-    pipeline="videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{
-      host
-    } port=#{port}",
+    pipeline=
+      "videoconvert ! avenc_mpeg4 ! rtpmp4vpay config-interval=2 ! udpsink host=#{
+        host
+      } port=#{port}",
     source
   )
 end
@@ -156,20 +175,17 @@ def output.youtube.live.gstreamer(
   source
 ) =
   video_pipeline =
-    "videoconvert ! \
-      x264enc bitrate=#{
-      video_bitrate
-    } byte-stream=false key-int-max=60 bframes=0 aud=true tune=zerolatency ! \
-      video/x-h264,profile=main ! queue ! mux."
+    "videoconvert ! x264enc bitrate=#{video_bitrate} byte-stream=false \
+     key-int-max=60 bframes=0 aud=true tune=zerolatency ! \
+     video/x-h264,profile=main ! queue ! mux."
 
   audio_pipeline =
     "audioconvert ! #{audio_encoder} bitrate=#{audio_bitrate} ! queue ! mux."
 
   key = (key : string)
   pipeline =
-    "flvmux streamable=true name=mux ! rtmpsink location=\"#{url}/#{
-      key
-    } app=live2\""
+    "flvmux streamable=true name=mux ! rtmpsink location=\"#{url}/#{key} \
+     app=live2\""
 
   output.gstreamer.audio_video(
     id=id,

@@ -4,7 +4,8 @@ def f() =
       channels=1,
       samplerate=44100,
       restart=true,
-      "ffmpeg -re -f lavfi -i sine=frequency=1000:duration=60 -f s16le -acodec pcm_s16le -ar 44100 -"
+      "ffmpeg -re -f lavfi -i sine=frequency=1000:duration=60 -f s16le -acodec \
+       pcm_s16le -ar 44100 -"
     )
 
   s =

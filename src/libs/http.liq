@@ -21,9 +21,18 @@ def http.multipart_form_data(~boundary=null(), data) =
         fun (v) -> "#{string(fst(v))}=#{string.quote(snd(v))}", attributes
       )
 
-    attributes = string.concat(separator="; ", attributes)
+    attributes =
+      string.concat(
+        separator=
+          "; ",
+        attributes
+      )
     headers =
-      list.map(fun (v) -> "#{string(fst(v))}: #{string(snd(v))}", entry.headers)
+      list.map(
+        fun (v) ->
+          "#{string(fst(v))}: #{string(snd(v))}",
+        entry.headers
+      )
 
     headers = string.concat(separator="\r\n", headers)
     headers = headers == "" ? "" : "#{headers}\r\n"
@@ -33,7 +42,9 @@ def http.multipart_form_data(~boundary=null(), data) =
     [
       ...contents,
       getter("--#{boundary}\r\n"),
-      getter("Content-Disposition: form-data; #{attributes}\r\n"),
+      getter(
+        "Content-Disposition: form-data; #{attributes}\r\n"
+      ),
       getter(headers),
       getter("\r\n"),
       data,
@@ -148,7 +159,12 @@ def http.response(
         headers
       end
 
-    headers = list.map(fun (v) -> "#{fst(v)}: #{snd(v)}", headers)
+    headers =
+      list.map(
+        fun (v) ->
+          "#{fst(v)}: #{snd(v)}",
+        headers
+      )
     headers = string.concat(separator="\r\n", headers)
     headers = if headers != "" then "#{headers}\r\n" else "" end
     "#{headers}\r\n"
@@ -187,7 +203,8 @@ def http.response(
         sent()
       then
         error.raise(
-          error.invalid, "HTTP response has already been sent for this value!"
+          error.invalid,
+          "HTTP response has already been sent for this value!"
         )
       end
 
@@ -212,7 +229,8 @@ def http.response(
       status_sent()
     then
       error.raise(
-        error.invalid, "HTTP response has already been sent for this value!"
+        error.invalid,
+        "HTTP response has already been sent for this value!"
       )
     end
 
@@ -225,11 +243,13 @@ def http.response(
       headers_sent()
     then
       error.raise(
-        error.invalid, "HTTP response has already been sent for this value!"
+        error.invalid,
+        "HTTP response has already been sent for this value!"
       )
     end
 
-    content_type := "application/json; charset=utf-8"
+    content_type :=
+      "application/json; charset=utf-8"
     data := json.stringify(v, compact=compact) ^ "\n"
   end
 
@@ -238,7 +258,8 @@ def http.response(
       headers_sent()
     then
       error.raise(
-        error.invalid, "HTTP response has already been sent for this value!"
+        error.invalid,
+        "HTTP response has already been sent for this value!"
       )
     end
 
@@ -255,12 +276,14 @@ def http.response(
       headers_sent()
     then
       error.raise(
-        error.invalid, "HTTP response has already been sent for this value!"
+        error.invalid,
+        "HTTP response has already been sent for this value!"
       )
     end
 
     form_data = http.multipart_form_data(boundary=boundary, contents)
-    content_type := "multipart/form-data; boundary=#{form_data.boundary}"
+    content_type :=
+      "multipart/form-data; boundary=#{form_data.boundary}"
     data := form_data.contents
   end
 
@@ -393,7 +416,14 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
     end
 
     def data(~timeout=10.) =
-      if is_response_done() then error.raise(error.http, "Response ended!") end
+      if
+        is_response_done()
+      then
+        error.raise(
+          error.http,
+          "Response ended!"
+        )
+      end
       if
         response.status_code.current() == 100 and not response.status_sent()
       then
@@ -496,7 +526,9 @@ def harbor.http.static.base(
     else
       rpath = null.get(rpath)
       fname = path.concat(directory, rpath)
-      log.debug("Serving static file: #{fname}")
+      log.debug(
+        "Serving static file: #{fname}"
+      )
       if
         not file.exists(fname)
       then
@@ -525,7 +557,9 @@ def harbor.http.static.base(
             add("<html><body><ul>")
             list.iter(add_file, file.ls(sorted=true, fname))
             add("</ul></body>")
-            response.content_type("text/html; charset=UTF-8")
+            response.content_type(
+              "text/html; charset=UTF-8"
+            )
             response.data(string.getter.single(page()))
           end
         else
@@ -557,7 +591,12 @@ end
 # @flag hidden
 def get_mime_process(file) =
   mime =
-    list.hd(default="", process.read.lines("file -b -I #{process.quote(file)}"))
+    list.hd(
+      default="",
+      process.read.lines(
+        "file -b -I #{process.quote(file)}"
+      )
+    )
 
   if mime == "" then null() else mime end
 end
@@ -627,7 +666,8 @@ upload_file_fn =
         not null.defined(filename) and not null.defined(file)
       then
         error.raise(
-          error.http, "At least one of: `file` or `filename` must be defined!"
+          error.http,
+          "At least one of: `file` or `filename` must be defined!"
         )
       end
 
@@ -635,7 +675,8 @@ upload_file_fn =
         null.defined(file) and null.defined(contents)
       then
         error.raise(
-          error.http, "Only one of: `contents` or `file` must be defined!"
+          error.http,
+          "Only one of: `contents` or `file` must be defined!"
         )
       end
 
@@ -761,13 +802,19 @@ def http.put.file(
 end
 
 let harbor.http.request = ()
-let settings.http = settings.make.void("Settings for HTTP requests")
+let settings.http =
+  settings.make.void(
+    "Settings for HTTP requests"
+  )
 let settings.http.mime =
-  settings.make.void("MIME-related settings for HTTP requests")
+  settings.make.void(
+    "MIME-related settings for HTTP requests"
+  )
 
 let settings.http.mime.extnames =
   settings.make(
-    description="MIME to file extension mappings",
+    description=
+      "MIME to file extension mappings",
     [
       ("audio/mp3", ".mp3"),
       ("audio/mpeg", ".mp3"),

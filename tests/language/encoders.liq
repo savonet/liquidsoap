@@ -3,7 +3,12 @@ def f() =
     enc = %wav(samplesize = 123456)
   catch err do
     if
-      err.kind != "encoder" or err.message != "invalid sample size"
+      err.kind != "encoder"
+    or
+
+        err.message !=
+          "invalid sample size"
+
     then
       test.fail()
     end

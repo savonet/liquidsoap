@@ -1,22 +1,37 @@
 # Decoders, enabled when the binary is detected and the os is not Win32.
-let settings.decoder.external = settings.make.void("External decoders settings")
+let settings.decoder.external =
+  settings.make.void(
+    "External decoders settings"
+  )
 
 # @flag hidden
 def settings.make.external(name) =
-  settings.make.void("Settings for the #{name} external decoder")
+  settings.make.void(
+    "Settings for the #{name} external decoder"
+  )
 end
 
 let settings.decoder.external.ffmpeg = settings.make.external("FFmpeg")
 let settings.decoder.external.ffmpeg.path =
-  settings.make(description="Path to ffmpeg binary", "ffmpeg#{exe_ext}")
+  settings.make(
+    description=
+      "Path to ffmpeg binary",
+    "ffmpeg#{exe_ext}"
+  )
 
 let settings.decoder.external.ffprobe = settings.make.external("FFprobe")
 let settings.decoder.external.ffprobe.path =
-  settings.make(description="Path to ffprobe binary", "ffprobe#{exe_ext}")
+  settings.make(
+    description=
+      "Path to ffprobe binary",
+    "ffprobe#{exe_ext}"
+  )
 
 let settings.decoder.external.ffmpeg.mime_types =
   settings.make(
-    description="Mime types supported by the external ffmpeg stream decoder", []
+    description=
+      "Mime types supported by the external ffmpeg stream decoder",
+    []
   )
 
 # Enable ffmpeg decoder.
@@ -50,10 +65,14 @@ def enable_external_ffmpeg_decoder() =
   if
     file.which(ffmpeg) != null() and file.which(ffprobe) != null()
   then
-    log(label="external.decoder", "Enabling FFMPEG decoder")
+    log(
+      label="external.decoder",
+      "Enabling FFMPEG decoder"
+    )
     decoder.add(
       name="FFMPEG",
-      description="Decode files using the ffmpeg decoder binary",
+      description=
+        "Decode files using the ffmpeg decoder binary",
       mimes=mime_types,
       test=ffprobe_test,
       "#{ffmpeg} -i - -f wav - "
@@ -61,14 +80,19 @@ def enable_external_ffmpeg_decoder() =
   else
     log(
       label="external.decoder",
-      "Could not find ffmpeg or ffprobe binary. Please adjust using the \"decoder.external.ffmpeg.path\" setting."
+      "Could not find ffmpeg or ffprobe binary. Please adjust using the \
+       \"decoder.external.ffmpeg.path\" setting."
     )
   end
 end
 
 let settings.decoder.external.mpcdec = settings.make.external("mpcdec")
 let settings.decoder.external.mpcdec.path =
-  settings.make(description="Path to mpcdec binary", "mpcdec#{exe_ext}")
+  settings.make(
+    description=
+      "Path to mpcdec binary",
+    "mpcdec#{exe_ext}"
+  )
 
 # Enable external Musepack decoder.
 # @category Liquidsoap
@@ -85,10 +109,8 @@ def enable_external_mpc_decoder() =
         list.hd(
           default="",
           process.read.lines(
-            "#{mpcdec} -i #{
-              process.quote(f)
-            } 2>&1 \
-                             | grep channels | cut -d' ' -f 2"
+            "#{mpcdec} -i #{process.quote(f)} 2>&1 | grep channels | cut -d' ' \
+             -f 2"
           )
         )
       )
@@ -119,30 +141,44 @@ def enable_external_mpc_decoder() =
   if
     file.which(mpcdec) != null()
   then
-    log(label="external.decoder", "Enabling MPCDEC external decoder.")
-    mpcdec_p = fun (f) -> "#{mpcdec} #{process.quote(f)} -"
+    log(
+      label="external.decoder",
+      "Enabling MPCDEC external decoder."
+    )
+    mpcdec_p =
+      fun (f) ->
+        "#{mpcdec} #{process.quote(f)} -"
     decoder.oblivious.add(
       name="MPCDEC",
-      description="Decode files using the mpcdec \
-                musepack decoder binary",
+      description=
+        "Decode files using the mpcdec musepack decoder binary",
       test=test_mpc,
       mpcdec_p
     )
   else
     log(
       label="external.decoder",
-      "Could not find mpcdec binary, please adjust using the \"decoder.external.mpcdec.path\" setting."
+      "Could not find mpcdec binary, please adjust using the \
+       \"decoder.external.mpcdec.path\" setting."
     )
   end
 end
 
 let settings.decoder.external.flac = settings.make.external("flac")
 let settings.decoder.external.flac.path =
-  settings.make(description="Path to flac binary", "flac#{exe_ext}")
+  settings.make(
+    description=
+      "Path to flac binary",
+    "flac#{exe_ext}"
+  )
 
 let settings.decoder.external.metaflac = settings.make.external("metaflac")
 let settings.decoder.external.metaflac.path =
-  settings.make(description="Path to metaflac binary", "metaflac#{exe_ext}")
+  settings.make(
+    description=
+      "Path to metaflac binary",
+    "metaflac#{exe_ext}"
+  )
 
 # Enable external FLAC decoders. Please note that built-in support for
 # FLAC is available in liquidsoap if compiled and should be preferred
@@ -154,8 +190,12 @@ def enable_external_flac_decoder() =
   if
     file.which(flac) != null()
   then
-    log(label="external.decoder", "Enabling EXTERNAL_FLAC external decoder.")
-    flac_p = "#{flac} -d -c -"
+    log(
+      label="external.decoder",
+      "Enabling EXTERNAL_FLAC external decoder."
+    )
+    flac_p =
+      "#{flac} -d -c -"
 
     def test_flac(fname) =
       if
@@ -165,12 +205,7 @@ def enable_external_flac_decoder() =
           list.hd(
             default="",
             process.read.lines(
-              "#{
-                metaflac
-              } \
-                                              --show-channels #{
-                process.quote(fname)
-              }"
+              "#{metaflac} --show-channels #{process.quote(fname)}"
             )
           )
 
@@ -192,8 +227,8 @@ def enable_external_flac_decoder() =
 
     decoder.add(
       name="EXTERNAL_FLAC",
-      description="Decode files using the flac \
-                decoder binary.",
+      description=
+        "Decode files using the flac decoder binary.",
       mimes=["audio/flac", "audio/x-flac"],
       test=test_flac,
       flac_p
@@ -201,7 +236,8 @@ def enable_external_flac_decoder() =
   else
     log(
       label="decoder.external",
-      "Did not find flac binary, please adjust using the \"decoder.external.flac.path\" setting."
+      "Did not find flac binary, please adjust using the \
+       \"decoder.external.flac.path\" setting."
     )
   end
 
@@ -210,17 +246,13 @@ def enable_external_flac_decoder() =
   then
     log(
       label="decoder.external",
-      "Enabling EXTERNAL_FLAC metadata \
-                resolver."
+      "Enabling EXTERNAL_FLAC metadata resolver."
     )
 
     def flac_meta(~metadata=_, fname) =
       ret =
         process.read.lines(
-          "#{metaflac} --export-tags-to=- \
-                   #{
-            process.quote(fname)
-          }"
+          "#{metaflac} --export-tags-to=- #{process.quote(fname)}"
         )
 
       ret = list.map(r/=/.split, ret)
@@ -251,14 +283,19 @@ def enable_external_flac_decoder() =
   else
     log(
       label="decoder.external",
-      "Did not find metaflac binary. Please adjust using the \"decoder.external.metaflac.path\" setting."
+      "Did not find metaflac binary. Please adjust using the \
+       \"decoder.external.metaflac.path\" setting."
     )
   end
 end
 
 let settings.decoder.external.faad = settings.make.external("faad")
 let settings.decoder.external.faad.path =
-  settings.make(description="Path to faad binary", "faad#{exe_ext}")
+  settings.make(
+    description=
+      "Path to faad binary",
+    "faad#{exe_ext}"
+  )
 
 # Enable or disable external FAAD (AAC/AAC+/M4A) decoders. Does not work
 # on Win32.
@@ -315,11 +352,14 @@ def enable_external_faad_decoder() =
   then
     log(
       label="decoder.external",
-      "Enabling EXTERNAL_FAAD decoder and \
-                 metadata resolver."
+      "Enabling EXTERNAL_FAAD decoder and metadata resolver."
     )
 
-    faad_p = (fun (f) -> "#{faad} -w #{process.quote(f)}")
+    faad_p =
+      (
+        fun (f) ->
+          "#{faad} -w #{process.quote(f)}"
+      )
 
     def test_faad(file) =
       if
@@ -329,10 +369,7 @@ def enable_external_faad_decoder() =
           list.hd(
             default="",
             process.read.lines(
-              "#{faad} -i #{
-                process.quote(file)
-              } 2>&1 | \
-                                              grep 'ch,'"
+              "#{faad} -i #{process.quote(file)} 2>&1 | grep 'ch,'"
             )
           )
 
@@ -356,8 +393,8 @@ def enable_external_faad_decoder() =
 
     decoder.oblivious.add(
       name="EXTERNAL_FAAD",
-      description="Decode files using \
-                          the faad binary.",
+      description=
+        "Decode files using the faad binary.",
       test=test_faad,
       faad_p
     )
@@ -366,7 +403,10 @@ def enable_external_faad_decoder() =
       if
         faad_test(file)
       then
-        ret = process.read.lines("#{faad} -i #{process.quote(file)} 2>&1")
+        ret =
+          process.read.lines(
+            "#{faad} -i #{process.quote(file)} 2>&1"
+          )
 
         # Yea, this is ugly programming (again)!
         def get_meta(l, s) =
@@ -390,7 +430,8 @@ def enable_external_faad_decoder() =
   else
     log(
       label="external.decoder",
-      "Did not find faad binary. Please adjust using the \"decoder.external.faad.path\" setting."
+      "Did not find faad binary. Please adjust using the \
+       \"decoder.external.faad.path\" setting."
     )
   end
 end
@@ -422,10 +463,15 @@ def osd_metadata(
   s
 ) =
   osd =
-    'osd_cat -p #{position} --font #{process.quote(font)}' ^ ' --color #{color}'
+    'osd_cat -p #{position} --font #{process.quote(font)}' ^
+      ' --color #{color}'
 
   def feedback(m) =
-    ignore(process.run("echo #{process.quote(display(m))} | #{osd} &"))
+    ignore(
+      process.run(
+        "echo #{process.quote(display(m))} | #{osd} &"
+      )
+    )
   end
 
   s.on_metadata(feedback)
@@ -481,16 +527,9 @@ def input.mplayer(
     restart_on_error=restart_on_error,
     buffer=buffer,
     max=max,
-    "mplayer -really-quiet \
-                       -af resample=#{
-      audio.samplerate()
-    },channels=#{
+    "mplayer -really-quiet -af resample=#{audio.samplerate()},channels=#{
       audio.channels()
-    } \
-                       -ao pcm:file=/dev/stdout \
-                       -vc null -vo null #{
-      process.quote(s)
-    } 2>/dev/null"
+    } -ao pcm:file=/dev/stdout -vc null -vo null #{process.quote(s)} 2>/dev/null"
   )
 end
 %endif
@@ -515,27 +554,23 @@ def input.external.ffmpeg(
   inputopts = (inputopts : string)
   ffmpeg = null.get(settings.decoder.external.ffmpeg.path())
   cmd =
-    "#{ffmpeg} #{inputopts} -f avi \
-         -vf \"scale=#{
-      video.frame.width()
-    }:#{
+    "#{ffmpeg} #{inputopts} -f avi -vf \"scale=#{video.frame.width()}:#{
       video.frame.height()
-    }:\
-               force_original_aspect_ratio=decrease,pad=#{
-      video.frame.width()
-    }:\
-               #{
+    }:force_original_aspect_ratio=decrease,pad=#{video.frame.width()}:#{
       video.frame.height()
-    }:(ow-iw)/2:(oh-ih)/2\",\
-               format=yuv420p,fps=fps=#{
-      video.frame.rate()
-    } \
-         -c:v rawvideo -r #{
-      video.frame.rate()
-    } -c:a pcm_s16le -ac 2 \
-         -ar #{audio.samplerate()} pipe:1"
+    }:(ow-iw)/2:(oh-ih)/2\",format=yuv420p,fps=fps=#{video.frame.rate()} -c:v \
+     rawvideo -r #{video.frame.rate()} -c:a pcm_s16le -ac 2 -ar #{
+      audio.samplerate()
+    } pipe:1"
 
-  if show_command then log.important(label=id, "command: #{cmd}") end
+  if
+    show_command
+  then
+    log.important(
+      label=id,
+      "command: #{cmd}"
+    )
+  end
   (
     input.external.avi(
       id=id,
@@ -569,12 +604,8 @@ def video.external.testsrc(
   cmd =
     "-f lavfi -i testsrc=size=#{video.frame.width()}x#{
       video.frame.height()
-    }:rate=#{
-      framerate
-    } \
-         -f lavfi -i sine=frequency=440:beep_factor=2:sample_rate=#{
-      audio.samplerate()
-    }"
+    }:rate=#{framerate} -f lavfi -i \
+     sine=frequency=440:beep_factor=2:sample_rate=#{audio.samplerate()}"
 
   input.external.ffmpeg(
     id=id,
@@ -617,14 +648,16 @@ def output.external.ffmpeg(
 ) =
   outputopts = (outputopts : string)
   cmd =
-    "ffmpeg -f avi -vcodec rawvideo -r #{
-      video.frame.rate()
-    } -acodec pcm_s16le -i pipe:0 #{outputopts}"
+    "ffmpeg -f avi -vcodec rawvideo -r #{video.frame.rate()} -acodec pcm_s16le \
+     -i pipe:0 #{outputopts}"
 
   if
     show_command
   then
-    log.important(label="output.external.ffmpeg", "command: #{cmd}")
+    log.important(
+      label="output.external.ffmpeg",
+      "command: #{cmd}"
+    )
   end
 
   output.external(
@@ -681,9 +714,8 @@ def output.file.hls.ffmpeg(
   height = video.frame.height()
   directory = (directory : string)
   cmd =
-    "-profile:v baseline -pix_fmt yuv420p -level 3.0 -s #{width}x#{
-      height
-    } -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{directory}/#{
+    "-profile:v baseline -pix_fmt yuv420p -level 3.0 -s #{width}x#{height} \
+     -start_number 0 -hls_time 10 -hls_list_size 0 -f hls #{directory}/#{
       playlist
     }"
 
@@ -744,13 +776,10 @@ def output.file.dash.ffmpeg(
   cmd =
     "-map 0 -map 0 -c:a libfdk_aac -c:v libx264 -b:v:0 800k -b:v:1 300k -s:v:1 #{
       width
-    }x#{
-      height
-    } -profile:v:1 baseline -profile:v:0 main -bf 1 -keyint_min 120 -g 120 -sc_threshold 0 -b_strategy 0 -ar:a:1 #{
-      samplerate
-    } -use_timeline 1 -use_template 1 -window_size 5 -adaptation_sets \"id=0,streams=v id=1,streams=a\" -f dash #{
-      (directory : string)
-    }/#{playlist}"
+    }x#{height} -profile:v:1 baseline -profile:v:0 main -bf 1 -keyint_min 120 -g \
+     120 -sc_threshold 0 -b_strategy 0 -ar:a:1 #{samplerate} -use_timeline 1 \
+     -use_template 1 -window_size 5 -adaptation_sets \"id=0,streams=v \
+     id=1,streams=a\" -f dash #{(directory : string)}/#{playlist}"
 
   output.external.ffmpeg(
     id=id,

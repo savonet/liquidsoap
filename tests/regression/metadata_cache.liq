@@ -4,7 +4,9 @@ thread.run(
   every=1.,
   {
     begin
-      print("Inserting metadata")
+      print(
+        "Inserting metadata"
+      )
       s.insert_metadata(new_track=true, [("foo", "bla")])
     end
   }

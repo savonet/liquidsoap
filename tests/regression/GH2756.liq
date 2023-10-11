@@ -23,13 +23,17 @@ def f() =
   callstack = ref([])
 
   def reopen_on_metadata(_) =
-    print("Got metadata!")
+    print(
+      "Got metadata!"
+    )
     callstack := [...(callstack()), "metadata"]
     true
   end
 
   def reopen_on_error(_) =
-    print("Got error!")
+    print(
+      "Got error!"
+    )
     callstack := [...(callstack()), "error"]
     2.
   end
@@ -39,7 +43,9 @@ def f() =
     if
       r
     then
-      print("Got reopen!")
+      print(
+        "Got reopen!"
+      )
       callstack := [...(callstack()), "reload"]
       reopen_when_ref := false
     end

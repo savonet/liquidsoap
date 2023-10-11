@@ -15,7 +15,10 @@ def youtube_playlist_parser(~pwd="", url) =
   then
     uri = list.nth(default="", r/:/.split(url), 1)
     list.map(
-      parse_line, process.read.lines("#{binary} -j --flat-playlist #{uri}")
+      parse_line,
+      process.read.lines(
+        "#{binary} -j --flat-playlist #{uri}"
+      )
     )
   else
     []

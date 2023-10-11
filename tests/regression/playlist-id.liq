@@ -3,7 +3,9 @@ def t(file, expected) =
   if
     id != expected
   then
-    print("Test fail: #{file} maps to: #{id} instead of #{expected}")
+    print(
+      "Test fail: #{file} maps to: #{id} instead of #{expected}"
+    )
     test.fail()
   end
 end

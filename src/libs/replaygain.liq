@@ -54,7 +54,8 @@ def file.replaygain(~id=null(), ~ratio=50., fname) =
       request.resolve(r)
     then
       log.important(
-        label=id, "Computing replay gain for #{string.quote(fname)}"
+        label=id,
+        "Computing replay gain for #{string.quote(fname)}"
       )
 
       t = time()
@@ -101,7 +102,12 @@ def enable_replaygain_metadata(~ratio=50.) =
       if
         null.defined(gain)
       then
-        [("replaygain_track_gain", "#{null.get(gain)} dB")]
+        [
+          (
+            "replaygain_track_gain",
+            "#{null.get(gain)} dB"
+          )
+        ]
       else
         []
       end

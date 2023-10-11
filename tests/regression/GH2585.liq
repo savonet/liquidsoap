@@ -7,8 +7,12 @@ thread.run.recurrent(
       count() == 5
     then
       begin
-        print("sending kill -s INT #{process.pid()}")
-        process.run("kill -s INT #{process.pid()}")
+        print(
+          "sending kill -s INT #{process.pid()}"
+        )
+        process.run(
+          "kill -s INT #{process.pid()}"
+        )
         (-1.)
       end
     else

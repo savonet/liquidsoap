@@ -10,7 +10,8 @@ def f() =
   def on_stop() =
     j =
       process.read(
-        "ffprobe -v quiet -print_format json -show_streams ffmpeg-copy-encode.mkv"
+        "ffprobe -v quiet -print_format json -show_streams \
+         ffmpeg-copy-encode.mkv"
       )
 
     let json.parse ({streams = [s1, s2]} : {streams: [{channels?: int}]}) = j

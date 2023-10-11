@@ -8,21 +8,34 @@ def test.pass() =
     not test.done()
   then
     test.done := true
-    print("Test passed!")
+    print(
+      "Test passed!"
+    )
     shutdown()
   end
 end
 
 # End test with a failure.
 def test.fail(reason=null()) =
-  reason = if null.defined(reason) then ": #{null.get(reason)}" else "!" end
-  print("Test failed#{reason}")
+  reason =
+    if
+      null.defined(reason)
+    then
+      ": #{null.get(reason)}"
+    else
+      "!"
+    end
+  print(
+    "Test failed#{reason}"
+  )
   exit(1)
 end
 
 # End test with signal 2
 def test.skip() =
-  print("Test skipped..")
+  print(
+    "Test skipped.."
+  )
   exit(2)
 end
 
@@ -42,11 +55,15 @@ def test.check_non_repeating(~nb_files, ~nb_rounds, s) =
 
   def check(m) =
     fname = m["filename"]
-    print("I: Playing #{fname}")
+    print(
+      "I: Playing #{fname}"
+    )
     if
       iterations() < nb_rounds and already(fname)
     then
-      print("I: Already seen #{fname}")
+      print(
+        "I: Already seen #{fname}"
+      )
       test.fail()
     else
       if
@@ -54,13 +71,17 @@ def test.check_non_repeating(~nb_files, ~nb_rounds, s) =
       then
         seen := list.add((fname, true), seen())
       else
-        print("I: ===")
+        print(
+          "I: ==="
+        )
         seen := []
         iterations := iterations() + 1
         if
           iterations() == nb_rounds
         then
-          print("I: Test passed")
+          print(
+            "I: Test passed"
+          )
           test.pass()
         end
       end
@@ -89,7 +110,10 @@ end
 def test.raises(fn, e=null()) =
   try
     ignore(fn())
-    error.raise(error.failure, "Exception #{e} was not raised!")
+    error.raise(
+      error.failure,
+      "Exception #{e} was not raised!"
+    )
   catch exn do
     if
       null.defined(e)
@@ -100,9 +124,8 @@ def test.raises(fn, e=null()) =
       then
         error.raise(
           error.failure,
-          "An exception #{exn} of kind #{
-            exn.kind
-          } was raised instead of an error of kind #{e.kind}."
+          "An exception #{exn} of kind #{exn.kind} was raised instead of an \
+           error of kind #{e.kind}."
         )
       end
     end
@@ -121,11 +144,14 @@ end
 
 # Add a metric
 def test.metric(~category, ~name, ~value, ~unit, ~min=null()) =
-  min = null.defined(min) ? "\n  min: #{(null.get(min) : float)}" : ""
+  min =
+    null.defined(min)
+    ?
+      "\n  min: #{(null.get(min) : float)}"
+    : ""
   data =
-    "- name: \"#{(name : string)}\"\n  category: \"#{
-      (category : string)
-    }\"\n  value: #{(value : float)}\n  unit: \"#{(unit : string)}\"\n  time: #{
+    "- name: \"#{(name : string)}\"\n  category: \"#{(category : string)}\"\n  \
+     value: #{(value : float)}\n  unit: \"#{(unit : string)}\"\n  time: #{
       (time() : float)
     }#{min}\n\n"
 
@@ -133,7 +159,9 @@ def test.metric(~category, ~name, ~value, ~unit, ~min=null()) =
 end
 
 def on_error(~backtrace, error) =
-  print("Uncaught error while running test: #{error}\n#{backtrace}")
+  print(
+    "Uncaught error while running test: #{error}\n#{backtrace}"
+  )
   test.fail()
 end
 

@@ -36,7 +36,9 @@ def f() =
           {
             begin
               if not !has_connected then test.fail() end
-              print("Shutting down initial source")
+              print(
+                "Shutting down initial source"
+              )
               s.shutdown()
               error_count := 0
               thread.run(
@@ -45,7 +47,9 @@ def f() =
                   begin
                     if error_count() == 0 then test.fail() end
                     has_connected := false
-                    print("Starting new source")
+                    print(
+                      "Starting new source"
+                    )
                     input.harbor(port=8005, password="hackme", "test")
                     thread.run(
                       delay=1.,

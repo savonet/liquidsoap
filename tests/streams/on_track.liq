@@ -1,7 +1,9 @@
 log.level.set(4)
 
 def f(_) =
-  print("Got track!")
+  print(
+    "Got track!"
+  )
   test.pass()
 end
 

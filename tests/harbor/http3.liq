@@ -1,11 +1,23 @@
 def f() =
   content_type =
-    http.headers.content_type([("Content-Type", "text/html; charset=utf-8")])
+    http.headers.content_type(
+      [
+        (
+          "Content-Type",
+          "text/html; charset=utf-8"
+        )
+      ]
+    )
 
   test.equals(content_type, {mime="text/html", args=[("charset", "utf-8")]})
   content_type =
     http.headers.content_type(
-      [("coNtent-tYpe", "multipart/form-data; boundary=something")]
+      [
+        (
+          "coNtent-tYpe",
+          "multipart/form-data; boundary=something"
+        )
+      ]
     )
 
   test.equals(
@@ -14,7 +26,12 @@ def f() =
 
   extname =
     http.headers.extname(
-      [("Content-Disposition", 'attachment; filename="filename.jpg"')]
+      [
+        (
+          "Content-Disposition",
+          'attachment; filename="filename.jpg"'
+        )
+      ]
     )
 
   test.equals(extname, ".jpg")
@@ -22,7 +39,10 @@ def f() =
     http.headers.extname(
       [
         ("Content-type", "audio/mpeg"),
-        ("Content-Disposition", 'attachment; filename="filename.jpg"')
+        (
+          "Content-Disposition",
+          'attachment; filename="filename.jpg"'
+        )
       ]
     )
 

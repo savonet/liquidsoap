@@ -4,10 +4,17 @@ def f() =
       boundary="foobar",
       [
         {
-          name="the name",
+          name=
+            "the name",
           contents=getter("foobarlol"),
           headers=[("some", "headers")],
-          attributes=[("filename", "the filename")]
+          attributes=
+            [
+              (
+                "filename",
+                "the filename"
+              )
+            ]
         },
         {name="namez", contents=getter("gnigno"), headers=[], attributes=[]}
       ]
@@ -15,16 +22,10 @@ def f() =
 
   test.equals(
     string.getter.flush(data.contents),
-    "--foobar\r\n\
-     Content-Disposition: form-data; name=\"the name\"; filename=\"the filename\"\r\n\
-     some: headers\r\n\
-     \r\n\
-     foobarlol\r\n\
-     --foobar\r\n\
-     Content-Disposition: form-data; name=\"namez\"\r\n\
-     \r\n\
-     gnigno\r\n\
-     --foobar--\r\n"
+    "--foobar\r\nContent-Disposition: form-data; name=\"the name\"; \
+     filename=\"the filename\"\r\nsome: \
+     headers\r\n\r\nfoobarlol\r\n--foobar\r\nContent-Disposition: form-data; \
+     name=\"namez\"\r\n\r\ngnigno\r\n--foobar--\r\n"
   )
 
   test.equals(data.boundary, "foobar")
@@ -33,10 +34,17 @@ def f() =
       boundary="foobar",
       [
         {
-          name="the name",
+          name=
+            "the name",
           contents=getter("foobarlol"),
           headers=[("some", "headers")],
-          attributes=[("filename", "the filename")]
+          attributes=
+            [
+              (
+                "filename",
+                "the filename"
+              )
+            ]
         },
         {name="namez", contents=getter("gnigno"), headers=[], attributes=[]}
       ]
@@ -44,20 +52,10 @@ def f() =
 
   test.equals(
     string.getter.flush(data.contents),
-    "--#{
+    "--#{data.boundary}\r\nContent-Disposition: form-data; name=\"the name\"; \
+     filename=\"the filename\"\r\nsome: headers\r\n\r\nfoobarlol\r\n--#{
       data.boundary
-    }\r\n\
-     Content-Disposition: form-data; name=\"the name\"; filename=\"the filename\"\r\n\
-     some: headers\r\n\
-     \r\n\
-     foobarlol\r\n\
-     --#{
-      data.boundary
-    }\r\n\
-     Content-Disposition: form-data; name=\"namez\"\r\n\
-     \r\n\
-     gnigno\r\n\
-     --#{
+    }\r\nContent-Disposition: form-data; name=\"namez\"\r\n\r\ngnigno\r\n--#{
       data.boundary
     }--\r\n"
   )
@@ -79,7 +77,10 @@ def f() =
         ("user-agent", http.user_agent),
         ("accept", "*/*"),
         ("transfer-encoding", "chunked"),
-        ("content-type", "multipart/form-data; boundary=#{boundary}"),
+        (
+          "content-type",
+          "multipart/form-data; boundary=#{boundary}"
+        ),
         ("expect", "100-continue")
       ]
     )
@@ -87,18 +88,10 @@ def f() =
     test.equals(req.path, "/file_upload")
     test.equals(
       req.body(timeout=5.0),
-      "--#{
-        boundary
-      }\r\n\
-       Content-Disposition: form-data; name=\"file\"; filename=\"#{
-        fname
-      }\"\r\n\
-       Content-Type: text/plain\r\n\
-       \r\n\
-       #{
+      "--#{boundary}\r\nContent-Disposition: form-data; name=\"file\"; \
+       filename=\"#{fname}\"\r\nContent-Type: text/plain\r\n\r\n#{
         file.contents(fname)
-      }\r\n\
-       --#{boundary}--\r\n"
+      }\r\n--#{boundary}--\r\n"
     )
   end
 
@@ -132,7 +125,10 @@ def f() =
         ("host", "localhost:6543"),
         ("user-agent", http.user_agent),
         ("accept", "*/*"),
-        ("content-type", "multipart/form-data; boundary=#{boundary}"),
+        (
+          "content-type",
+          "multipart/form-data; boundary=#{boundary}"
+        ),
         ("content-length", "138")
       ]
     )
@@ -140,14 +136,8 @@ def f() =
     test.equals(req.path, "/in_memory_file_upload")
     test.equals(
       req.body(timeout=5.0),
-      "--#{
-        boundary
-      }\r\n\
-       Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"\r\n\
-       Content-Type: text/plain\r\n\
-       \r\n\
-       foobarlol\r\n\
-       --#{
+      "--#{boundary}\r\nContent-Disposition: form-data; name=\"file\"; \
+       filename=\"foo.txt\"\r\nContent-Type: text/plain\r\n\r\nfoobarlol\r\n--#{
         boundary
       }--\r\n"
     )
@@ -200,10 +190,8 @@ def f() =
   harbor.http.register("/json_post", method="POST", port=6543, handler)
   resp =
     http.post(
-      headers=[
-        ("Content-Type", "application/json"),
-        ("Accept", "application/json")
-      ],
+      headers=
+        [("Content-Type", "application/json"), ("Accept", "application/json")],
       data=data,
       "http://localhost:6543/json_post"
     )

@@ -41,7 +41,8 @@ end
 
 server.register(
   usage="list",
-  description="List available interactive variables.",
+  description=
+    "List available interactive variables.",
   namespace="var",
   "list",
   interactive.list
@@ -185,7 +186,10 @@ def interactive.create(~name, ~description="", ~osc="", ~type) =
   if
     list.assoc.mem(name, variables())
   then
-    error.raise(interactive.error, "variable already registered")
+    error.raise(
+      interactive.error,
+      "variable already registered"
+    )
   end
 
   variables := (name, {type=type, description=description})::variables()
@@ -260,7 +264,8 @@ end
 
 server.register(
   namespace="var",
-  description="Get the value of a variable.",
+  description=
+    "Get the value of a variable.",
   "get",
   interactive.get
 )
@@ -291,8 +296,10 @@ def interactive.set(arg) =
 end
 
 server.register(
-  usage="set <name> = <value>",
-  description="Set the value of a variable.",
+  usage=
+    "set <name> = <value>",
+  description=
+    "Set the value of a variable.",
   namespace="var",
   "set",
   interactive.set
@@ -369,7 +376,8 @@ def interactive.load(fname) =
         interactive.float.set(fst(nv), snd(nv))
       catch _ do
         log.important(
-          label="interactive.load", "Variable #{fst(nv)} not found."
+          label="interactive.load",
+          "Variable #{fst(nv)} not found."
         )
       end,
     vars.float
@@ -381,7 +389,8 @@ def interactive.load(fname) =
         interactive.int.set(fst(nv), snd(nv))
       catch _ do
         log.important(
-          label="interactive.load", "Variable #{fst(nv)} not found."
+          label="interactive.load",
+          "Variable #{fst(nv)} not found."
         )
       end,
     vars.int
@@ -393,7 +402,8 @@ def interactive.load(fname) =
         interactive.bool.set(fst(nv), snd(nv))
       catch _ do
         log.important(
-          label="interactive.load", "Variable #{fst(nv)} not found."
+          label="interactive.load",
+          "Variable #{fst(nv)} not found."
         )
       end,
     vars.bool
@@ -405,7 +415,8 @@ def interactive.load(fname) =
         interactive.string.set(fst(nv), snd(nv))
       catch _ do
         log.important(
-          label="interactive.load", "Variable #{fst(nv)} not found."
+          label="interactive.load",
+          "Variable #{fst(nv)} not found."
         )
       end,
     vars.string
@@ -452,9 +463,14 @@ def interactive.harbor(
       data := data() ^ s ^ "\n"
     end
 
-    title = "Interactive values"
-    add("<!DOCTYPE html><html><head>")
-    add("<meta charset='utf-8'/>")
+    title =
+      "Interactive values"
+    add(
+      "<!DOCTYPE html><html><head>"
+    )
+    add(
+      "<meta charset='utf-8'/>"
+    )
     add("<title>#{title}</title>")
     add(
       "<style>
@@ -536,9 +552,17 @@ def interactive.harbor(
       let (name, v) = nv
       description = interactive.description(name)
       description =
-        if description == "" then name else "#{description} (#{name})" end
+        if
+          description == ""
+        then
+          name
+        else
+          "#{description} (#{name})"
+        end
 
-      add("<label for=#{name}>#{string.escape.html(description)}</label>")
+      add(
+        "<label for=#{name}>#{string.escape.html(description)}</label>"
+      )
       common =
         "id='#{name}' name='#{name}' class='interactive' onchange=\"send()\""
 
@@ -558,13 +582,19 @@ def interactive.harbor(
           max = http.string_of_float(v.max)
           step = http.string_of_float(v.step)
           value = http.string_of_float(v.ref())
-          unit = if v.unit == "" then "" else " " ^ v.unit end
+          unit =
+            if
+              v.unit == ""
+            then
+              ""
+            else
+              " " ^
+                v.unit
+            end
           add(
-            "<div><input type='range' #{common} min='#{min}' max='#{
-              max
-            }' step='#{step}' value='#{
-              value
-            }' oninput='document.getElementById(\"#{
+            "<div><input type='range' #{common} min='#{min}' max='#{max}' step='#{
+              step
+            }' value='#{value}' oninput='document.getElementById(\"#{
               name
             }-value\").innerHTML = this.value+\"#{unit}\"'><text id='#{
               name
@@ -576,13 +606,17 @@ def interactive.harbor(
       then
         v = list.assoc(name, variables_int())
         value = string(v.ref())
-        add("<input type='number' #{common} step='1' value='#{value}'>")
+        add(
+          "<input type='number' #{common} step='1' value='#{value}'>"
+        )
       elsif
         v.type == "bool"
       then
         v = list.assoc(name, variables_bool())
         c = (v.ref()) ? "checked" : ""
-        add("<input type='checkbox' #{common} value='true' #{c}>")
+        add(
+          "<input type='checkbox' #{common} value='true' #{c}>"
+        )
       elsif
         v.type == "string"
       then
@@ -768,7 +802,10 @@ def compress.multiband.interactive(~id=null(), ~bands=5, s) =
           ln(min_freq)
       )
 
-    log.important(label=id, "Adding a band at #{frequency} Hz.")
+    log.important(
+      label=id,
+      "Adding a band at #{frequency} Hz."
+    )
     frequency =
       interactive.float(
         "#{prefix}frequency#{i}",

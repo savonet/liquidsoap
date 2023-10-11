@@ -6,7 +6,14 @@
 # @param old Old function name.
 # @param new New function name.
 def deprecated(old, new) =
-  new = if new == "" then "" else " Please use \"#{new}\" instead." end
+  new =
+    if
+      new == ""
+    then
+      ""
+    else
+      " Please use \"#{new}\" instead."
+    end
   log.severe(
     label="lang.deprecated",
     "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{
@@ -209,7 +216,10 @@ def register_flow(
       server
     end
 
-  log(level=4, "Flows server: #{server}")
+  log(
+    level=4,
+    "Flows server: #{server}"
+  )
 
   # Initial variables
   ping_period = 600.
@@ -232,11 +242,17 @@ def register_flow(
       log(label=radio, level=level, x)
     end
 
-    log(level=4, "Processing command #{cmd} with arguments:")
+    log(
+      level=4,
+      "Processing command #{cmd} with arguments:"
+    )
 
     def log_arg(x) =
       let (label, value) = x
-      log(level=4, "  #{label}: #{value}")
+      log(
+        level=4,
+        "  #{label}: #{value}"
+      )
     end
 
     list.iter(log_arg, params)
@@ -261,9 +277,15 @@ def register_flow(
       }"
     )
 
-    log(level=4, "Response headers:")
+    log(
+      level=4,
+      "Response headers:"
+    )
     list.iter(log_arg, answer.headers)
-    log(level=4, "Response content: #{answer}")
+    log(
+      level=4,
+      "Response content: #{answer}"
+    )
   end
 
   # Register radio
@@ -274,11 +296,21 @@ def register_flow(
       ("radio_genre", genre)
     ]
 
-  request(cmd="add radio", params=params)
+  request(
+    cmd=
+      "add radio",
+    params=params
+  )
 
   # Ping
   def ping() =
-    ignore(request(cmd="ping radio", params=[]))
+    ignore(
+      request(
+        cmd=
+          "ping radio",
+        params=[]
+      )
+    )
     ping_period
   end
 
@@ -288,10 +320,18 @@ def register_flow(
   def register_stream(format_url) =
     let (format, url) = format_url
     params = [("stream_format", format), ("stream_url", url)]
-    request(cmd="add stream", params=params)
+    request(
+      cmd=
+        "add stream",
+      params=params
+    )
   end
 
-  request(cmd="clear streams", params=[])
+  request(
+    cmd=
+      "clear streams",
+    params=[]
+  )
   list.iter(register_stream, streams)
 
   # Metadata update

@@ -8,9 +8,8 @@ def test_parse_error(name, f, msg) =
       err.kind != "json"
     then
       print(
-        "parse error test #{name} failed: wrong error kind, got: #{
-          err.kind
-        }, expected: json"
+        "parse error test #{name} failed: wrong error kind, got: #{err.kind}, \
+         expected: json"
       )
 
       test.fail()
@@ -34,7 +33,9 @@ def test_parse_error(name, f, msg) =
   if
     not error_caught()
   then
-    print("parse error test #{name} failed: no error caught")
+    print(
+      "parse error test #{name} failed: no error caught"
+    )
     test.fail()
   end
 end
@@ -52,7 +53,10 @@ def f() =
   let b = json()
   b.add("b", 1)
   s = json.stringify({a=null({a=1}), b=null(b)})
-  test.equals(s, "{ \"a\": { \"a\": 1 }, \"b\": { \"b\": 1 } }")
+  test.equals(
+    s,
+    "{ \"a\": { \"a\": 1 }, \"b\": { \"b\": 1 } }"
+  )
   data = "123"
   let json.parse (x : int) = data
   test.equals(x, 123)
@@ -146,7 +150,8 @@ def f() =
   test_parse_error(
     "failed runtime",
     failed_runtime,
-    "Parsing error: json value cannot be parsed as type {nested: {tuple: (string,_,_), _}, _}"
+    "Parsing error: json value cannot be parsed as type {nested: {tuple: \
+     (string,_,_), _}, _}"
   )
 
   def nested_tuple() =
@@ -169,7 +174,8 @@ def f() =
   test_parse_error(
     "nested tuple",
     nested_tuple,
-    "Parsing error: json value cannot be parsed as type {nested: {tuple: (_,_,int,_), _}, _}"
+    "Parsing error: json value cannot be parsed as type {nested: {tuple: \
+     (_,_,int,_), _}, _}"
   )
 
   def nested_list() =
@@ -192,7 +198,8 @@ def f() =
   test_parse_error(
     "nested list",
     nested_list,
-    "Parsing error: json value cannot be parsed as type {nested: {list: [int], _}, _}"
+    "Parsing error: json value cannot be parsed as type {nested: {list: [int], \
+     _}, _}"
   )
 
   def nested_object() =
@@ -215,22 +222,27 @@ def f() =
   test_parse_error(
     "nested object",
     nested_object,
-    'Parsing error: json value cannot be parsed as type {nested: {nullable_list: [int], _}, _}'
+    'Parsing error: json value cannot be parsed as type {nested: {nullable_list: \
+     [int], _}, _}'
   )
 
-  data = '{"aabbcc": 34, "ddeerr": 54 }'
+  data =
+    '{"aabbcc": 34, "ddeerr": 54 }'
   let json.parse (x : [(string*int)] as json.object) = data
   test.equals(list.assoc("aabbcc", x), 34)
   test.equals(list.assoc("ddeerr", x), 54)
-  data = '{ "foo": 123 }'
+  data =
+    '{ "foo": 123 }'
   let json.parse (x : {foo: string}?) = data
   test.equals(x, null())
-  data = '[ "gni", 123 ]'
+  data =
+    '[ "gni", 123 ]'
   let json.parse (x : [int]?) = data
   test.equals(x, null())
   let json.parse (x : (string*int*bool)?) = data
   test.equals(x, null())
-  data = '[ "gni", 123, "gno" ]'
+  data =
+    '[ "gni", 123, "gno" ]'
   let json.parse (x : (string*int)) = data
   test.equals(x, ("gni", 123))
   data = '{
@@ -253,11 +265,13 @@ def f() =
 
   # Test escaping of invalid utf8 strings.
   s =
-    "S\x00e\x00k\x00e\x00r\x00n\x00u\x00p\x00 \x00K\x00i\x00n\x00g\x00e\x00r\x00p\x00\xE2\x00"
+    "S\x00e\x00k\x00e\x00r\x00n\x00u\x00p\x00 \
+     \x00K\x00i\x00n\x00g\x00e\x00r\x00p\x00\xE2\x00"
 
   test.equals(
     json.stringify(s),
-    "\"S\\u0000e\\u0000k\\u0000e\\u0000r\\u0000n\\u0000u\\u0000p\\u0000 \\u0000K\\u0000i\\u0000n\\u0000g\\u0000e\\u0000r\\u0000p\\u0000\\uFFFD\""
+    "\"S\\u0000e\\u0000k\\u0000e\\u0000r\\u0000n\\u0000u\\u0000p\\u0000 \
+     \\u0000K\\u0000i\\u0000n\\u0000g\\u0000e\\u0000r\\u0000p\\u0000\\uFFFD\""
   )
 
   j = json()

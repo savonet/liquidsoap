@@ -1,9 +1,22 @@
 log.level.set(4)
 
 def f(m) =
-  print("Got metadata!")
+  print(
+    "Got metadata!"
+  )
   if
-    m == [("s", "That's me!"), ("s'", "That's me!"), ("test", "bla")]
+    m ==
+      [
+        (
+          "s",
+          "That's me!"
+        ),
+        (
+          "s'",
+          "That's me!"
+        ),
+        ("test", "bla")
+      ]
   then
     test.pass()
   else
@@ -17,9 +30,27 @@ s' = sine()
 s' = insert_metadata(s')
 
 def insert() =
-  print("Inserting metadata")
-  s.insert_metadata([("test", "bla"), ("s", "That's me!")])
-  s'.insert_metadata([("test", "blo"), ("s'", "That's me!")])
+  print(
+    "Inserting metadata"
+  )
+  s.insert_metadata(
+    [
+      ("test", "bla"),
+      (
+        "s",
+        "That's me!"
+      )
+    ]
+  )
+  s'.insert_metadata(
+    [
+      ("test", "blo"),
+      (
+        "s'",
+        "That's me!"
+      )
+    ]
+  )
 end
 
 s =

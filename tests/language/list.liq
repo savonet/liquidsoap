@@ -5,7 +5,9 @@ def t(x, y) =
   if
     x != y
   then
-    print("Failure: got #{x} instead of #{y}")
+    print(
+      "Failure: got #{x} instead of #{y}"
+    )
     success := false
   end
 end
@@ -108,7 +110,10 @@ def f() =
     test.fail()
   catch err : [error.not_found] do
     t(err.kind, "not_found")
-    t(err.message, "List should have at least 23 elemments")
+    t(
+      err.message,
+      "List should have at least 23 elemments"
+    )
   end
 
   # Test huge lists, see #2162.

@@ -14,7 +14,14 @@ let error.string = error.register("string")
 # @category Programming
 # @param c Condition which should be satisfied.
 def assert(c) =
-  if not c then error.raise(error.assertion, "Assertion failed.") end
+  if
+    not c
+  then
+    error.raise(
+      error.assertion,
+      "Assertion failed."
+    )
+  end
 end
 
 let error.failure = error.register("failure")

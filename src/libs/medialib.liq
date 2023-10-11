@@ -41,13 +41,22 @@ def medialib(
 
     # Add more metadata
     m = ("basename", path.basename(f))::m
-    m = ("last scan", string.float(time()))::m
+    m =
+      (
+        "last scan",
+        string.float(time())
+      )::m
     m
   end
 
   # Whether an entry needs ot be updated.
   def needs_update(f, m) =
-    file.mtime(f) > string.to_float(m["last scan"])
+    file.mtime(f) >
+      string.to_float(
+        m[
+          "last scan"
+        ]
+      )
   end
 
   # Add a file to the database.
@@ -92,7 +101,10 @@ def medialib(
     end
 
     db := list.filter_map(u, db())
-    log.debug(label=id, "Updated #{nu()} files.")
+    log.debug(
+      label=id,
+      "Updated #{nu()} files."
+    )
   end
 
   # Make sure that new files from directories are registered.
@@ -155,18 +167,27 @@ def medialib(
       f = null.get(persistency)
       data = json.stringify(compact=true, (db_version, db()))
       file.write(data=data, f)
-      log.info(label=id, "Wrote persistent file #{f}")
+      log.info(
+        label=id,
+        "Wrote persistent file #{f}"
+      )
     end
   end
 
   # Refresh the library.
   def refresh() =
-    log.info(label=id, "Refreshing the library...")
+    log.info(
+      label=id,
+      "Refreshing the library..."
+    )
     t = time()
     update()
     scan()
     store()
-    log.info(label=id, "Refreshed the library in #{dt(t)}s.")
+    log.info(
+      label=id,
+      "Refreshed the library in #{dt(t)}s."
+    )
   end
 
   # Find all files matching given criteria.
@@ -291,9 +312,8 @@ def medialib(
   load()
   log.important(
     label=id,
-    "Loaded library from #{persistency} in #{dt(t)}s: #{
-      list.length(db())
-    } entries"
+    "Loaded library from #{persistency} in #{dt(t)}s: #{list.length(db())} \
+     entries"
   )
 
   t = time()
@@ -301,14 +321,19 @@ def medialib(
     if
       initial_progress
     then
-      fun (n, l) -> print(newline=false, "#{id}: updating #{n * 100 / l}%...\r")
+      fun (n, l) ->
+        print(
+          newline=false,
+          "#{id}: updating #{n * 100 / l}%...\r"
+        )
     else
       fun (_, _) -> ()
     end
 
   update(progress=progress)
   log.important(
-    label=id, "Updated library in #{dt(t)}s: #{list.length(db())} entries"
+    label=id,
+    "Updated library in #{dt(t)}s: #{list.length(db())} entries"
   )
 
   t = time()
@@ -316,18 +341,26 @@ def medialib(
     if
       initial_progress
     then
-      fun (n, l) -> print(newline=false, "#{id}: scanning #{n * 100 / l}%...\r")
+      fun (n, l) ->
+        print(
+          newline=false,
+          "#{id}: scanning #{n * 100 / l}%...\r"
+        )
     else
       fun (_, _) -> ()
     end
 
   scan(progress=progress)
   log.important(
-    label=id, "Scanned new files in #{dt(t)}s: #{list.length(db())} entries"
+    label=id,
+    "Scanned new files in #{dt(t)}s: #{list.length(db())} entries"
   )
 
   store()
-  log.important(label=id, "Stored library")
+  log.important(
+    label=id,
+    "Stored library"
+  )
   if
     null.defined(refresh_time)
   then
