@@ -25,6 +25,8 @@ s = (s:source(1,0,0))
 
 def on_done () =
   if not test.done() then
+	  process.run("sync")
+
     j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
     let json.parse ( parsed: {

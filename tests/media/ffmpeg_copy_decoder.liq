@@ -11,6 +11,8 @@ def on_close(encoded_fname) =
   if
     not test.done()
   then
+    process.run("sync")
+
     ijson =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{

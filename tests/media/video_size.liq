@@ -21,6 +21,8 @@ def on_close(filename) =
   if
     not test.done()
   then
+    process.run("sync")
+
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{

@@ -11,6 +11,8 @@ def on_close(encoded_fname) =
   if
     not test.done()
   then
+    process.run("sync")
+
     ijson =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
@@ -60,10 +62,11 @@ def on_close(encoded_fname) =
       fun (l) ->
         list.sort(fun (s1, s2) -> if s1.index < s2.index then -1 else 1 end, l)
 
-    let [{index, ...iaudio}] = sort(filter("audio", iparsed.streams))
-    let [{index, ...ivideo}] = sort(filter("video", iparsed.streams))
-    let [{index, ...oaudio}] = sort(filter("audio", oparsed.streams))
-    let [{index, ...ovideo}] = sort(filter("video", oparsed.streams))
+    let [{index = _, ...iaudio}] = sort(filter("audio", iparsed.streams))
+    let [{index = _, ...ivideo}] = sort(filter("video", iparsed.streams))
+    let [{index = _, ...oaudio}] = sort(filter("audio", oparsed.streams))
+    let [{index = _, ...ovideo}] = sort(filter("video", oparsed.streams))
+
     if
       iaudio == oaudio and ivideo == ovideo
     then

@@ -54,6 +54,9 @@ def on_stop() =
   test.equals(track_seen(), true)
   test.equals(file_no_meta_seen(), true)
   test.equals(file_track_seen(), 1)
+
+  process.run("sync")
+
   ojson =
     process.read(
       "ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}"

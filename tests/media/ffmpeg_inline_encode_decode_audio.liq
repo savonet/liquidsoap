@@ -9,6 +9,8 @@ todo = ref(2)
 
 def on_close(_) =
   def check(out) =
+    process.run("sync")
+
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{

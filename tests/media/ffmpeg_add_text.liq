@@ -24,6 +24,8 @@ def on_close(filename) =
   if
     !started
   then
+    process.run("sync")
+
     ojson =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{

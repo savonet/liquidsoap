@@ -38,6 +38,8 @@ def on_done(_) =
   if
     done() and not passed()
   then
+    process.run("sync")
+
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{

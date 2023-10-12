@@ -43,6 +43,9 @@ def check_stream() =
     not !is_done
   then
     is_done := true
+
+    process.run("sync")
+
     ojson =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
