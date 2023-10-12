@@ -7,7 +7,7 @@ s = sine(duration=10.)
 
 s = once(s)
 
-clock.assign_new(sync="none",[s])
+#clock.assign_new(sync="none",[s])
 
 output.file(
   fallible=true,on_close=fun (_) -> test.pass(),
