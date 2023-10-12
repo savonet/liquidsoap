@@ -1,11 +1,7 @@
 log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
-
-test.skip()
-
 out_copy = "ffmpeg_inline_encode_decode_video_copy.mp4"
 if file.exists(out_copy) then file.remove(out_copy) end
-
 out_encode = "ffmpeg_inline_encode_decode_video_encode.mp4"
 if file.exists(out_encode) then file.remove(out_encode) end
 
@@ -48,7 +44,6 @@ end
 
 s = ffmpeg.encode.video(%ffmpeg(%video(codec = "libx264")), s)
 output.file(fallible=true, on_close=on_close, %ffmpeg(%video.copy), out_copy, s)
-
 s = ffmpeg.decode.video(s)
 
 clock.assign_new(sync='none', [s])
