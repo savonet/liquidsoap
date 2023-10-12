@@ -3,17 +3,24 @@ audio.samplerate.set(48000)
 settings.audio.converter.samplerate.converters.set(["native"])
 video.frame.rate.set(45)
 settings.decoder.decoders.set(["ffmpeg"])
+
 fname = argv(default="", 1)
 out = "#{fname}+ffmpeg_video_decoder.mp4"
+
 if file.exists(out) then file.remove(out) end
+
 s = single(fname)
 s = once(s)
+
+done = ref(false)
 
 ##clock.assign_new(sync='none', [s])
 def on_close(filename) =
   if
-    not test.done()
+    not done()
   then
+    done := true
+
     process.run("sync")
 
     j =
