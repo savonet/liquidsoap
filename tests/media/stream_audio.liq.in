@@ -1,6 +1,7 @@
 log.level.set(4)
 settings.ffmpeg.log.level.set(12)
 audio.samplerate.set(48000)
+settings.audio.converter.samplerate.converters.set(["native"])
 
 out = "stream_audio.wav"
 
@@ -24,6 +25,8 @@ s = (s:source(1,0,0))
 
 def on_done () =
   if not test.done() then
+	  process.run("sync")
+
     j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
 
     let json.parse ( parsed: {
