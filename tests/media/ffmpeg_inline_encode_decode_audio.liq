@@ -57,7 +57,7 @@ s = ffmpeg.encode.audio(%ffmpeg(%audio(codec = "aac")), s)
 output.file(fallible=true, on_close=on_close, %ffmpeg(%audio.copy), out_copy, s)
 s = ffmpeg.decode.audio(s)
 
-clock.assign_new(sync='none', [s])
+#clock.assign_new(sync='none', [s])
 output.file(
   fallible=true,
   on_close=on_close,

@@ -52,7 +52,7 @@ audio = filter(source.tracks(s).audio, source.tracks(s').audio)
 s = source({audio=audio, metadata=track.metadata(audio)})
 s.on_metadata(fun (m) -> if m["tag"] == "test" then test.pass() end)
 
-clock.assign_new(sync="none", [s])
+#clock.assign_new(sync="none", [s])
 enc = %ffmpeg(%audio.raw(codec = "aac"))
 filename = file.temp("tmp", ".aac")
 on_cleanup({file.remove(filename)})

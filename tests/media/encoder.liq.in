@@ -5,7 +5,7 @@ file = "@FILE@"
 
 s = once(@SOURCE@(duration=0.5))
 
-#clock.assign_new(sync="none",[s])
+##clock.assign_new(sync="none",[s])
 
 output.file(
   fallible=true,on_close=fun (_) -> test.pass(),
