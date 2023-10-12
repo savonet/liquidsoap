@@ -5,9 +5,7 @@ video.frame.rate.set(45)
 settings.decoder.decoders.set(["ffmpeg"])
 
 fname = argv(default="", 1)
-out = "#{fname}+ffmpeg_video_decoder.mp4"
-
-if file.exists(out) then file.remove(out) end
+out = {"#{fname}+ffmpeg_video_decoder-#{random.int()}.mp4"}
 
 s = single(fname)
 s = once(s)

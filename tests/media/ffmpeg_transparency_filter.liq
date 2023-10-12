@@ -1,8 +1,9 @@
 log.level.set(4)
+
 background = single("background.jpg")
 playlist = single("@mp3[stereo].mp3")
 logo = single("logo.png")
-out = "transparency.mp4"
+out = {"transparency-#{random.int()}.mp4"}
 
 def logo_overlay(background, logo) =
   def mkfilter(graph) =
@@ -26,17 +27,21 @@ end
 
 s.on_track(on_track)
 
+done = ref(false)
+
 #clock.assign_new(id='test_clock', sync='none', [s])
-def on_close(_) =
+def on_close(filename) =
   if
-    not test.done() and !started
+    not done() and !started
   then
+    done := true
+
     process.run("sync")
 
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(out)
+          process.quote(filename)
         }"
       )
 

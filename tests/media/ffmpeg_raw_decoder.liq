@@ -1,8 +1,9 @@
 log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
+
 fname = argv(default="", 1)
-out = "#{fname}+ffmpeg_raw_decoder.mp4"
-if file.exists(out) then file.remove(out) end
+out = {"#{fname}+ffmpeg_raw_decoder-#{random.int()}.mp4"}
+
 s = single(fname)
 s = once(s)
 

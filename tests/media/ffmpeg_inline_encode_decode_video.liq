@@ -14,6 +14,7 @@ let {video} = source.tracks(video.testsrc.ffmpeg(duration=10.))
 s = source({audio=audio, video=video})
 
 todo = ref(2)
+done = ref(false)
 
 def on_close(_) =
   def check(out) =
@@ -36,8 +37,10 @@ def on_close(_) =
 
   todo := !todo - 1
   if
-    not test.done() and !todo == 0
+    not done() and !todo == 0
   then
+    done := true
+
     if
       check(out_copy) and check(out_encode)
     then

@@ -3,11 +3,7 @@ settings.ffmpeg.log.level.set(12)
 audio.samplerate.set(48000)
 settings.audio.converter.samplerate.converters.set(["native"])
 
-out = "stream_video.mp4"
-
-if file.exists(out) then
-  file.remove(out)
-end
+out = {"stream_video-#{random.int()}.mp4"}
 
 s = noise(duration=2.)
 
@@ -23,11 +19,15 @@ s = (s:source(1,1,0))
 
 #clock.assign_new(sync='none',[s])
 
-def on_done () =
-  if not test.done() then
+done = ref(false)
+
+def on_close (filename) =
+  if not done() then
+	  done := true
+
     process.run("sync")
 
-    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}")
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
 
     let json.parse ( parsed: {
       streams: [{

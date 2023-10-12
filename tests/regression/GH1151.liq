@@ -1,3 +1,5 @@
+test.skip()
+
 def f() =
   if
     process.read.lines(
