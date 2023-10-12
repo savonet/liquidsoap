@@ -1,5 +1,6 @@
 log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
+
 out_copy = "ffmpeg_inline_encode_decode_copy.mp4"
 if file.exists(out_copy) then file.remove(out_copy) end
 out_encode = "ffmpeg_inline_encode_decode_encode.mp4"
@@ -11,6 +12,7 @@ s = source({audio=audio, video=video})
 
 s = once(s)
 todo = ref(2)
+done = ref(false)
 
 def on_close(_) =
   def check(out) =
@@ -58,8 +60,10 @@ def on_close(_) =
 
   todo := !todo - 1
   if
-    not test.done() and !todo == 0
+    not done() and !todo == 0
   then
+    done := true
+
     if
       check(out_copy) and check(out_encode)
     then

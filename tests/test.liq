@@ -4,6 +4,8 @@ test = ()
 
 let test.done = ref(false)
 
+runtime.gc.set(runtime.gc.get().{space_overhead=20, allocation_policy=2})
+
 # End test successfully.
 def test.pass()
   if not test.done() then

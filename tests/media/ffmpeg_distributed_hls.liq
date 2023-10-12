@@ -1,6 +1,7 @@
 log.level.set(5)
 audio.samplerate.set(48000)
 settings.audio.converter.samplerate.converters.set(["native"])
+
 debian_version =
   string.trim(
     process.run(
@@ -9,7 +10,9 @@ debian_version =
   )
 
 if debian_version == "10" then test.skip() end
+
 fname = argv(default="", 1)
+
 main_encoder =
   %ffmpeg(
     %audio(codec = "aac", b = "128k", channels = 2, ar = 44100),

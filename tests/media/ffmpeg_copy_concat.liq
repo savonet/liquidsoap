@@ -1,14 +1,19 @@
-out = "concat.mp4"
+out = {"concat-#{random.int()}.mp4"}
+
 s1 = single("first-concat.mp4")
 s2 = single("second-concat.mp4")
 s3 = single("third-concat.mp4")
 s = sequence([s1, s2, s3, switch([])])
 
+done = ref(false)
+
 #clock.assign_new(sync='none', [s])
 def on_close(filename) =
   if
-    not test.done()
+    not done()
   then
+    done := true
+
     process.run("sync")
 
     ojson =
