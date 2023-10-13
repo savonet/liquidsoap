@@ -34,6 +34,39 @@ type mode =
 
 type parsed_encoder = Frame.field * mode
 
+let channels_of_channel_layout args =
+  match List.assoc "channel_layout" args with
+    (* 5.1 as float. *)
+    | { Term.term = `Ground (Float layout) } ->
+        let layout = Printf.sprintf "%.1f" layout in
+        Avutil.Channel_layout.(get_nb_channels (find layout))
+    | { Term.term = `Ground (String layout) } ->
+        Avutil.Channel_layout.(get_nb_channels (find layout))
+    | { t = { Type.pos } } as tm ->
+        Lang_encoder.raise_error ~pos
+          (Printf.sprintf
+             "Invalid value %s for channel_layout parameter. Only static \
+              numbers are allowed."
+             (Term.to_string tm))
+
+let channels args =
+  try channels_of_channel_layout args
+  with _ -> (
+    try
+      let name, channels =
+        try ("channels", List.assoc "channels" args)
+        with Not_found -> ("ac", List.assoc "ac" args)
+      in
+      match channels with
+        | { Term.term = `Ground (Int n) } -> n
+        | { t = { Type.pos } } as tm ->
+            Lang_encoder.raise_error ~pos
+              (Printf.sprintf
+                 "Invalid value %s for %s parameter. Only static numbers are \
+                  allowed."
+                 name (Term.to_string tm))
+    with Not_found -> 2)
+
 let to_int t =
   match t.value with
     | Ground (Int i) -> i
@@ -193,22 +226,7 @@ let type_of_encoder =
                         ~to_static_string:to_static_string_term name args
                     with
                       | `Audio ->
-                          let channels =
-                            try
-                              let name, channels =
-                                try ("channels", List.assoc "channels" args)
-                                with Not_found -> ("ac", List.assoc "ac" args)
-                              in
-                              match channels with
-                                | { Term.term = `Ground (Int n) } -> n
-                                | { t = { Type.pos } } as tm ->
-                                    Lang_encoder.raise_error ~pos
-                                      (Printf.sprintf
-                                         "Invalid value %s for %s parameter. \
-                                          Only static numbers are allowed."
-                                         name (Term.to_string tm))
-                            with Not_found -> 2
-                          in
+                          let channels = channels args in
                           let pcm_kind =
                             List.fold_left
                               (fun pcm_kind -> function
@@ -306,6 +324,22 @@ let ffmpeg_gen params =
     | ("", t) :: args when to_string t = "pcm_f32" ->
         parse_audio_args ~opts
           { options with Ffmpeg_format.pcm_kind = Content_pcm_f32.kind }
+          args
+    (* Set channels but keep argument for encoders. *)
+    | (("channel_layout", t) as arg) :: args ->
+        (* Handle 5.1 as float *)
+        let layout =
+          match t.value with
+            | Ground (Float f) -> Printf.sprintf "%.1f" f
+            | _ -> to_string t
+        in
+        parse_opts opts arg;
+        parse_audio_args ~opts
+          {
+            options with
+            Ffmpeg_format.channels =
+              Avutil.Channel_layout.(get_nb_channels (find layout));
+          }
           args
     | ("channels", t) :: args ->
         parse_audio_args ~opts
