@@ -31,12 +31,3 @@
       (bash
        "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" >| config.json"))))
    (run mv test-prettier-build test-prettier))))
-
-(rule
- (target tree-sitter-liquidsoap)
- (action
-  (progn
-   (run git clone https://github.com/savonet/tree-sitter-liquidsoap.git)
-   (chdir
-    tree-sitter-liquidsoap
-    (run npm install)))))

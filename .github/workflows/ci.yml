@@ -126,20 +126,16 @@ jobs:
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v3
-      - name: Setup OCaml
-        uses: ocaml/setup-ocaml@v2
-        with:
-          ocaml-compiler: 4.14.x
-          opam-pin: false
-          opam-depext: false
       - name: Setup node
         uses: actions/setup-node@v3
         with:
           node-version: latest
       - name: Parse using tree-sitter
         run: |
-          opam install -y dune
-          opam exec dune build @tree-sitter-parse
+          git clone https://github.com/savonet/tree-sitter-liquidsoap.git
+          cd tree-sitter-liquidsoap
+          npm install
+          npm exec tree-sitter -- parse -q -s ../**/*.liq
 
   update_doc:
     runs-on: ubuntu-latest
