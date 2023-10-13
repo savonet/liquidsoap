@@ -14,7 +14,11 @@ def f() =
     director_cut_video = video
   })
 
-  def on_stop() =
+  s = once(s)
+
+  def on_close(_) =
+    process.run("sync")
+
     j = process.read("ffprobe -v quiet -print_format json -show_streams ffmpeg-naming-convention.mkv")
 
     let json.parse ( {streams = [s1, s2, s3, s4, s5, s6]}: {
@@ -36,7 +40,7 @@ def f() =
 
   output.file(
     fallible=true,
-    on_stop=on_stop,
+    on_close=on_close,
     %ffmpeg(
       %en.copy,
       %fr(audio_content,channels=1,codec=audio_codec),

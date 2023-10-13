@@ -1,35 +1,39 @@
 log.level.set(5)
 audio.samplerate.set(48000)
+settings.audio.converter.samplerate.converters.set(["native"])
 video.frame.rate.set(45)
 settings.decoder.decoders.set(["ffmpeg"])
 
-fname = argv(default="",1)
-out = "#{fname}+ffmpeg_video_decoder.mp4"
-
-if file.exists(out) then
-  file.remove(out)
-end
+fname = argv(default="", 1)
+out = {"#{fname}+ffmpeg_video_decoder-#{random.int()}.mp4"}
 
 s = single(fname)
-
 s = once(s)
 
-#clock.assign_new(sync='none',[s])
+done = ref(false)
 
-def on_close (filename) =
-  if not test.done() then
-    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
+##clock.assign_new(sync='none', [s])
+def on_close(filename) =
+  if
+    not done()
+  then
+    done := true
 
-    let json.parse ( parsed: {
-      streams: [{
-        r_frame_rate: string,
-        codec_name: string
-      }]
-    }) = j
+    process.run("sync")
+
+    j =
+      process.read(
+        "ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}"
+      )
+
+    let json.parse (parsed :
+      {streams: [{r_frame_rate: string, codec_name: string}]}
+    ) = j
 
     let [stream] = parsed.streams
-
-    if stream.r_frame_rate == "45/1" and stream.codec_name == "h264" then
+    if
+      stream.r_frame_rate == "45/1" and stream.codec_name == "h264"
+    then
       test.pass()
     else
       test.fail()
@@ -37,4 +41,10 @@ def on_close (filename) =
   end
 end
 
-output.file(fallible=true, on_close=on_close, %ffmpeg(format="mp4",%video(codec="libx264")), out, s)
+output.file(
+  fallible=true,
+  on_close=on_close,
+  %ffmpeg(format = "mp4", %video(codec = "libx264")),
+  out,
+  s
+)
