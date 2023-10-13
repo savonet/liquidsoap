@@ -350,10 +350,13 @@ ty_content_args:
 
 ty_content_arg:
   | VAR                  { "",$1 }
+  | INT                  { "", string_of_int $1 }
+  | FLOAT                { "", string_of_float $1 }
   | STRING               { "",$1 }
   | VAR GETS VAR         { $1,$3 }
   | VAR GETS STRING      { $1,$3}
   | VAR GETS INT         { $1,string_of_int $3}
+  | VAR GETS FLOAT       { $1,string_of_float $3}
 
 ty_tuple:
   | ty TIMES ty { [$1; $3] }

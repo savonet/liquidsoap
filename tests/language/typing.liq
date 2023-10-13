@@ -194,6 +194,8 @@ def f() =
   s = (sine():source(video=none))
   s = (sine():source(video=none,...))
 
+  # Allow float params.
+  s = (sine() : source(audio=pcm(5.1)))
   test.pass()
 end
 

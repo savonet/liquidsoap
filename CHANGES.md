@@ -4,6 +4,8 @@ New:
 
 - Added `string.escape.html` (#3418, @ghostnumber7)
 - Add support for getters in arguments of `blank.detect` (#3452).
+- Allow float in source content type annotation so that it possible
+  to write: `source(audio=pcm(5.1))`
 
 Changed:
 
