@@ -1,11 +1,12 @@
 log.level.set(4)
 settings.decoder.decoders.set(["ffmpeg"])
 test.skip()
+
 fname = argv(default="", 1)
-out = "#{fname}+ffmpeg_filter.mp4"
-if file.exists(out) then file.remove(out) end
+out = {"#{fname}+ffmpeg_filter-#{random.int()}.mp4"}
+
 s = single(fname)
-s = sequence([s, s, s, s, s, source.fail()])
+s = once(s)
 s =
   video.add_text.ffmpeg(
     "bla blo",
@@ -19,11 +20,13 @@ end
 
 s.on_track(on_track)
 
-#clock.assign_new(id='test_clock',sync='none',[s])
+#clock.assign_new(id='test_clock', sync='none', [s])
 def on_close(filename) =
   if
     !started
   then
+    process.run("sync")
+
     ojson =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{

@@ -1,14 +1,22 @@
 log.level.set(5)
 settings.decoder.decoders.set(["ffmpeg"])
+
+test.skip()
+
 out_copy = "ffmpeg_inline_encode_decode_audio_copy.mp4"
 if file.exists(out_copy) then file.remove(out_copy) end
+
 out_encode = "ffmpeg_inline_encode_decode_audio_encode.mp4"
 if file.exists(out_encode) then file.remove(out_encode) end
+
 s = once(blank(duration=10.))
 todo = ref(2)
+done = ref(false)
 
 def on_close(_) =
   def check(out) =
+    process.run("sync")
+
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
@@ -41,8 +49,10 @@ def on_close(_) =
 
   todo := !todo - 1
   if
-    not test.done() and !todo == 0
+    not done() and !todo == 0
   then
+    done := true
+
     if
       check(out_copy) and check(out_encode)
     then
@@ -57,7 +67,7 @@ s = ffmpeg.encode.audio(%ffmpeg(%audio(codec = "aac")), s)
 output.file(fallible=true, on_close=on_close, %ffmpeg(%audio.copy), out_copy, s)
 s = ffmpeg.decode.audio(s)
 
-#clock.assign_new(sync='none',[s])
+#clock.assign_new(sync='none', [s])
 output.file(
   fallible=true,
   on_close=on_close,

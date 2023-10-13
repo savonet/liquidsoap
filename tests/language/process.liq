@@ -1,8 +1,3 @@
-#!../../liquidsoap ../test.liq
-def t(x, y) =
-  if x != y then test.fail() end
-end
-
 first = ref(true)
 thread.run.recurrent(
   {
@@ -11,29 +6,31 @@ thread.run.recurrent(
     then
       begin
         first := false
-        1.
+        2.
       end
     else
       begin
-        t(
+        test.equals(
           process.read(
             "printf toto"
           ),
           "toto"
         )
+
         p =
           process.run(
             "exit 2"
           )
-        t(p.status, "exit")
-        t(p.status.code, 2)
+        test.equals(p.status, "exit")
+        test.equals(p.status.code, 2)
+
         p =
           process.run(
             timeout=0.5,
             "sleep 1"
           )
-        t(p.status, "timeout")
-        t(
+        test.equals(p.status, "timeout")
+        test.equals(
           process.quote.command(
             stdin="bla",
             stdout="blo",

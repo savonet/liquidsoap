@@ -10,17 +10,23 @@ fname =
     1
   )
 
-out = "#{fname}+test_videos_size.avi"
-if file.exists(out) then file.remove(out) end
+out = {"#{fname}+test_videos_size-#{random.int()}.avi"}
+
 s = (single(fname) : source(video=canvas(width=47, height=52)))
 s = once(s)
 s = source({audio=source.tracks(blank()).audio, video=source.tracks(s).video})
 
-#clock.assign_new(sync='none',[s])
+done = ref(false)
+
+#clock.assign_new(sync='none', [s])
 def on_close(filename) =
   if
-    not test.done()
+    not done()
   then
+    done := true
+
+    process.run("sync")
+
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{

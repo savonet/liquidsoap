@@ -166,9 +166,10 @@ jobs:
           apt-get update
           apt-get install -y npm
       - name: Build doc
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
@@ -192,10 +193,10 @@ jobs:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
   run_tests:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, citest]
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ci:debian_bookworm_arm64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
@@ -221,9 +222,10 @@ jobs:
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
       - name: Build
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
-          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
@@ -234,6 +236,8 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/stats-posix.sh
       - name: Run tests
+        env:
+          CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}

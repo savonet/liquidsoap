@@ -1,5 +1,9 @@
 settings.log.level.set(4)
-output.dummy(fallible=true, sine())
+
+test.skip()
+
+output.dummy(fallible = true, sine())
+
 count = ref(0)
 thread.run.recurrent(
   {

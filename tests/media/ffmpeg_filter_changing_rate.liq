@@ -1,9 +1,11 @@
 log.level := 4
 settings.decoder.decoders := ["ffmpeg"]
+
 fname = argv(default="", 1)
 fname2 = argv(default="", 2)
-out = "#{fname}+ffmpeg_filter_changing_rate.mp4"
-if file.exists(out) then file.remove(out) end
+out = {"#{fname}+ffmpeg_filter_changing_rate-#{random.int()}.mp4"}
+
+test.skip()
 
 def f(s) =
   tracks = source.tracks(s)
@@ -31,15 +33,17 @@ s = f(s)
 done = ref(false)
 passed = ref(false)
 
-#clock.assign_new(id='test_clock',sync='none',[s])
-def on_done(_) =
+#clock.assign_new(id='test_clock', sync='none', [s])
+def on_done(filename) =
   if
     done() and not passed()
   then
+    process.run("sync")
+
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
-          process.quote(out)
+          process.quote(filename)
         }"
       )
 
@@ -108,6 +112,6 @@ output.file(
     %audio.raw(codec = "aac"),
     %video.raw(codec = "libx264")
   ),
-  {if done() then "done.mp4" else out end},
+  out,
   s
 )

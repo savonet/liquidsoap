@@ -1,6 +1,8 @@
 s1 = sine(440.)
 audio = source.tracks(s1).audio
-out = "test-multistream.mp4"
+
+out = {"test-multistream-#{random.int()}.mp4"}
+
 s2 = sine(880.)
 audio_2 = source.tracks(s2).audio
 s3 =
@@ -49,14 +51,17 @@ enc =
     %video.copy
   )
 
-def on_stop() =
+def on_close(filename) =
   test.equals(meta_seen(), true)
   test.equals(track_seen(), true)
   test.equals(file_no_meta_seen(), true)
   test.equals(file_track_seen(), 1)
+
+  process.run("sync")
+
   ojson =
     process.read(
-      "ffprobe -v quiet -print_format json -show_streams #{process.quote(out)}"
+      "ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}"
     )
 
   let json.parse (parsed :
@@ -90,7 +95,7 @@ def on_stop() =
   test.pass()
 end
 
-output.file(fallible=true, on_stop=on_stop, enc, out, s)
+output.file(fallible=true, on_close=on_close, enc, out, s)
 meta_count = ref(0)
 thread.run(
   every=2.,

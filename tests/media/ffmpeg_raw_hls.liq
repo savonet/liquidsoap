@@ -43,6 +43,9 @@ def check_stream() =
     not !is_done
   then
     is_done := true
+
+    process.run("sync")
+
     ojson =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
@@ -98,7 +101,7 @@ def segment_name(~position, ~extname, stream_name) =
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
 
-#clock.assign_new(sync='none',[raw])
+##clock.assign_new(sync='none',[raw])
 output.file.hls(
   playlist="live.m3u8",
   segment_duration=2.0,

@@ -2,17 +2,24 @@ log.level.set(5)
 audio.samplerate.set(48000)
 settings.audio.converter.samplerate.converters.set(["native"])
 settings.decoder.priorities.ffmpeg.set(-1)
-fname = argv(default="", 1)
-out = "#{fname}+mono.wav"
-if file.exists(out) then file.remove(out) end
-s = single(fname)
-s = sequence([s, s, once(s)])
 
-#clock.assign_new(sync='none',[s])
+fname = argv(default="", 1)
+out = {"#{fname}+mono-#{random.int()}.wav"}
+
+s = single(fname)
+s = once(s)
+
+done = ref(false)
+
+#clock.assign_new(sync='none', [s])
 def on_close(filename) =
   if
-    not test.done()
+    not done()
   then
+    done := true
+
+    process.run("sync")
+
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{

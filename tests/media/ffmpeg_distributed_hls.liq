@@ -1,6 +1,7 @@
 log.level.set(5)
 audio.samplerate.set(48000)
 settings.audio.converter.samplerate.converters.set(["native"])
+
 debian_version =
   string.trim(
     process.run(
@@ -9,7 +10,9 @@ debian_version =
   )
 
 if debian_version == "10" then test.skip() end
+
 fname = argv(default="", 1)
+
 main_encoder =
   %ffmpeg(
     %audio(codec = "aac", b = "128k", channels = 2, ar = 44100),
@@ -49,6 +52,8 @@ def check_stream() =
     not !is_done
   then
     is_done := true
+    process.run("sync")
+
     ojson =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
@@ -104,7 +109,7 @@ def segment_name(~position, ~extname, stream_name) =
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
 
-#clock.assign_new(id='test_clock',sync='none',[encoded])
+#clock.assign_new(id='test_clock', sync='none', [encoded])
 output.file.hls(
   playlist="live.m3u8",
   segment_duration=2.0,
