@@ -135,7 +135,8 @@ jobs:
           git clone https://github.com/savonet/tree-sitter-liquidsoap.git
           cd tree-sitter-liquidsoap
           npm install
-          npm exec tree-sitter -- parse -q -s ../**/*.liq
+          ls -l ../
+          npm exec tree-sitter -- parse -q -s ../../**/*.liq
 
   update_doc:
     runs-on: ubuntu-latest
