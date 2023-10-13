@@ -1,4 +1,11 @@
 def f() =
+  def five_point_one(s) =
+    if false then
+      output.file(%ffmpeg(%audio(channel_layout=5.1)), "", s)
+    end
+  end
+  five_point_one((sine():source(audio=pcm(5.1))))
+
   try
     enc = %wav(samplesize=123456)
   catch err do
