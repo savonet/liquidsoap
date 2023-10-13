@@ -14,6 +14,8 @@ Changed:
 
 Fixed:
 
+- Allow `channel_layout` argument in ffmpeg encoder to set the
+  number of channels.
 - Fixed pop/clicks in crossfade and source with caching (#3318)
 - Fixed pop/clicks when resampling using `libsamplerate` (#3429)
 - Fixed gstreamer compilation. Remember that gstreamer features are
