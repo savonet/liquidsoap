@@ -16,14 +16,13 @@ let build_config =
   in
   let deprecated_features =
     if deprecated_features <> [] then
-      Printf.sprintf " * Deprecated features:\n%s\n"
+      Printf.sprintf "\n * Deprecated features:\n%s\n"
         (String.concat "\n" deprecated_features)
     else ""
   in
   [%string
     {|
  * Liquidsoap version  : %{Build_config.version}
-
 %{deprecated_features}
  * Compilation options
    - Release build       : %{string_of_bool (not Build_config.is_snapshot)}
