@@ -301,8 +301,11 @@ let find_cmd cmds =
 
 let print_string ?(pager = false) s =
   let pager =
-    if Sys.getenv_opt "TERM" = None || Sys.getenv_opt "PAGER" = Some "none" then
-      false
+    if
+      Sys.win32
+      || Sys.getenv_opt "TERM" = None
+      || Sys.getenv_opt "PAGER" = Some "none"
+    then false
     else pager
   in
   let default = output_string stdout in
