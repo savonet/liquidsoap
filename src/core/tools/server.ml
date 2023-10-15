@@ -396,7 +396,7 @@ let start_socket () =
   end;
   log#f conf_log_level#get "Socket created at %s." socket_path;
   Unix.listen sock max_conn;
-  Lifecycle.after_scheduler_shutdown (fun () ->
+  Lifecycle.after_scheduler_shutdown ~name:"server socket cleanup" (fun () ->
       log#f conf_log_level#get "Unlink %s" socket_name;
       Unix.unlink socket_path);
   Unix.chmod socket_path rights;
@@ -416,7 +416,7 @@ let start_telnet () =
   let () =
     (* The socket has to be closed for restart to work, and this has to be
        done after duppy has stopped using it. *)
-    Lifecycle.after_scheduler_shutdown (fun () ->
+    Lifecycle.after_scheduler_shutdown ~name:"telnet cleanup" (fun () ->
         log#f conf_log_level#get "Closing socket.";
         Unix.close sock)
   in

@@ -351,7 +351,7 @@ module Poll = struct
 end
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start ~name:"srt initialization" (fun () ->
       Srt.startup ();
       if conf_log#get then (
         let level =
@@ -367,7 +367,7 @@ let () =
         in
         Srt.Log.setloglevel level;
         Srt.Log.set_handler log_handler));
-  Lifecycle.on_final_cleanup (fun () ->
+  Lifecycle.on_final_cleanup ~name:"set cleanup" (fun () ->
       Srt.Poll.release Poll.t.Poll.p;
       Srt.cleanup ())
 
@@ -395,7 +395,8 @@ class virtual base =
     method private set_should_stop = self#mutexify (fun b -> should_stop <- b)
 
     initializer
-      Lifecycle.before_core_shutdown (fun () -> self#set_should_stop true)
+      Lifecycle.on_core_shutdown ~name:(Printf.sprintf "%s shutdown" self#id)
+        (fun () -> self#set_should_stop true)
   end
 
 class virtual networking_agent =
@@ -426,11 +427,15 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~payload_size ~messageapi ~hostname ~port ~connection_timeout
   ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
   object (self)
+    method virtual id : string
     method virtual should_stop : bool
     val mutable connect_task = None
     val mutable task_should_stop = false
     val mutable socket = None
-    initializer Lifecycle.on_core_shutdown (fun () -> self#disconnect)
+
+    initializer
+      Lifecycle.on_core_shutdown ~name:(Printf.sprintf "%s shutdown" self#id)
+        (fun () -> self#disconnect)
 
     method private get_socket =
       self#mutexify
@@ -527,11 +532,15 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
   ~write_timeout ~on_connect ~on_disconnect () =
   object (self)
     val mutable client_sockets = []
+    method virtual id : string
     method virtual log : Log.t
     method virtual should_stop : bool
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     val listening_socket = Atomic.make None
-    initializer Lifecycle.on_core_shutdown (fun () -> self#disconnect)
+
+    initializer
+      Lifecycle.on_core_shutdown ~name:(Printf.sprintf "%s shutdown" self#id)
+        (fun () -> self#disconnect)
 
     method private is_connected =
       self#mutexify (fun () -> client_sockets <> []) ()

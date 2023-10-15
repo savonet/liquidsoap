@@ -72,7 +72,7 @@ let _ =
               if delay >= 0. then [task delay] else []);
         }
       in
-      Lifecycle.after_start (fun () ->
+      Lifecycle.after_start ~name:"thread start" (fun () ->
           Duppy.Task.add Tutils.scheduler (task delay));
       Lang.unit)
 

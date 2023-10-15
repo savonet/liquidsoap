@@ -70,7 +70,9 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     val shutdown = Atomic.make false
 
     initializer
-      Lifecycle.before_core_shutdown (fun () -> Atomic.set shutdown true)
+      Lifecycle.before_core_shutdown
+        ~name:(Printf.sprintf "%s shutdown" self#id) (fun () ->
+          Atomic.set shutdown true)
 
     method seek_source = (self :> Source.source)
     method remaining = -1

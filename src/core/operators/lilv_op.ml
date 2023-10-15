@@ -362,6 +362,6 @@ let register_plugins () =
   Plugins.iter register_plugin (World.plugins world)
 
 let () =
-  Lifecycle.before_init (fun () ->
+  Lifecycle.on_load ~name:"lilv plugin registration" (fun () ->
       if lilv_enabled then
         Startup.time "Lilv plugins registration" register_plugins)

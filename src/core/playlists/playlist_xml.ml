@@ -55,4 +55,6 @@ let register mimetype =
   Plug.register Playlist_parser.parsers mimetype ~doc:""
     { Playlist_parser.strict = true; Playlist_parser.parser = tracks }
 
-let () = Lifecycle.on_start (fun () -> List.iter register conf_xml#get)
+let () =
+  Lifecycle.on_start ~name:"playlist parsers registration" (fun () ->
+      List.iter register conf_xml#get)

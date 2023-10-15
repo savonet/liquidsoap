@@ -452,7 +452,7 @@ let absolute s =
 
 let () =
   (* Startup *)
-  Lifecycle.before_init (fun () ->
+  Lifecycle.before_init ~name:"main application init" (fun () ->
       Random.self_init ();
 
       (* Set the default values. *)
@@ -487,7 +487,7 @@ We hope you enjoy this snapshot build of Liquidsoap!
 |}
          |> String.split_on_char '\n'));
 
-  Lifecycle.on_script_parse (fun () ->
+  Lifecycle.on_script_parse ~name:"main application script parse" (fun () ->
       (* Parse command-line, and notably load scripts. *)
       parse Shebang.argv (expand_options !options)
         (fun s -> eval (`Expr_or_File s))
@@ -502,7 +502,8 @@ We hope you enjoy this snapshot build of Liquidsoap!
         Dtools.Log.conf_file_path#set_d (Some default_log);
         Dtools.Log.conf_file#set true;
         Dtools.Log.conf_stdout#set false;
-        Lifecycle.after_core_shutdown (fun _ -> Sys.remove default_log));
+        Lifecycle.after_core_shutdown ~name:"remove logs" (fun _ ->
+            Sys.remove default_log));
 
       (* Allow frame settings to be evaluated here: *)
       Frame_settings.lazy_config_eval := true;
@@ -530,13 +531,14 @@ let sync_cleanup () =
 
 let () =
   (* Shutdown *)
-  Lifecycle.before_core_shutdown (fun () -> log#important "Shutdown started!");
+  Lifecycle.before_core_shutdown ~name:"log shutdown" (fun () ->
+      log#important "Shutdown started!");
 
-  Lifecycle.on_core_shutdown initial_cleanup;
+  Lifecycle.on_core_shutdown ~name:"initial cleanup" initial_cleanup;
 
-  Lifecycle.on_final_cleanup final_cleanup;
+  Lifecycle.on_final_cleanup ~name:"final cleanup" final_cleanup;
 
-  Lifecycle.after_final_cleanup (fun () ->
+  Lifecycle.after_final_cleanup ~name:"main application exit" (fun () ->
       match (Tutils.exit_code (), !Configure.restart) with
         | 0, true ->
             log#important "Restarting...";
@@ -647,7 +649,7 @@ let daemonize () =
   reopen_out stderr "/dev/null"
 
 let () =
-  Lifecycle.before_start (fun () ->
+  Lifecycle.before_start ~name:"main application before start" (fun () ->
       if not !run_streams then (
         final_cleanup ();
         flush_all ();
@@ -678,7 +680,7 @@ let () =
       check_directories ();
       Dtools.Init.exec Dtools.Log.start);
 
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start ~name:"main application start" (fun () ->
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
          this: we want Unix EPIPE error and not SIGPIPE, which crashes the
          program... *)
@@ -722,7 +724,7 @@ let () =
                Tutils.shutdown 0)
              ())));
 
-  Lifecycle.on_main_loop Tutils.main
+  Lifecycle.on_main_loop ~name:"main application main loop" Tutils.main
 
 (* Here we go! *)
 let start = Lifecycle.init

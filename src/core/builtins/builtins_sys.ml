@@ -55,7 +55,7 @@ let conf_strip_types_types =
     ~d:true "Strip runtime types whenever possible to optimize memory usage."
 
 let () =
-  Lifecycle.before_start (fun () ->
+  Lifecycle.after_script_parse ~name:"strip types and cleanup memory" (fun () ->
       if conf_strip_types_types#get then (
         Liquidsoap_lang.Term.trim_runtime_types ();
         Gc.full_major ()))

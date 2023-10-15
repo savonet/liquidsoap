@@ -408,6 +408,6 @@ let register_plugins () =
   List.iter add ladspa_dirs
 
 let () =
-  Lifecycle.before_init (fun () ->
+  Lifecycle.on_load ~name:"ladspa plugin registration" (fun () ->
       if ladspa_enabled then
         Startup.time "LADSPA plugins registration" register_plugins)
