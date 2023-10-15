@@ -351,7 +351,7 @@ module Poll = struct
 end
 
 let () =
-  Lifecycle.before_start (fun () ->
+  Lifecycle.on_start (fun () ->
       Srt.startup ();
       if conf_log#get then (
         let level =
