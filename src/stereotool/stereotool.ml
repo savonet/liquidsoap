@@ -10,7 +10,6 @@ module type Config = sig
 end
 
 exception Library_not_found
-exception Initialization_failed
 
 let strnlen = foreign "strnlen" (ocaml_bytes @-> int @-> returning int)
 
@@ -87,7 +86,7 @@ let init ?license_key ~filename () =
     let handler = C.create license_key in
     Gc.finalise C.delete handler;
     { handler; _module = (module C : C) }
-  with _ -> raise Initialization_failed
+  with _ -> raise Library_not_found
 
 let api_version { _module; _ } =
   let module C = (val _module : C) in
