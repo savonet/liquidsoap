@@ -63,8 +63,9 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       else (
         let len = AFrame.position s - p0 in
         let rms = AFrame.rms s p0 len in
+        let threshold = threshold () in
         let noise =
-          Array.fold_left (fun noise r -> noise || r > threshold ()) false rms
+          Array.fold_left (fun noise r -> noise || r > threshold) false rms
         in
         match state with
           | `Noise blank_len ->
@@ -248,9 +249,11 @@ let extract p =
   let threshold =
     let v = f "threshold" in
     let t = Lang.to_float_getter v in
-    if t () > 0. then
-      raise (Error.Invalid_value (v, "threshold should be negative"));
-    fun () -> Audio.lin_of_dB (t ())
+    fun () ->
+      let t = t () in
+      if t > 0. then
+        raise (Error.Invalid_value (v, "threshold should be negative"));
+      Audio.lin_of_dB t
   in
   let ts = Lang.to_bool_getter (f "track_sensitive") in
   (start_blank, max_blank, min_noise, threshold, ts, s)
