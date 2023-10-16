@@ -99,7 +99,7 @@ let init l =
     logging_conf_list
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start ~name:"SDL initialization" (fun () ->
       match !options with Some o -> check Sdl.init o | None -> ())
 
 module Surface = struct

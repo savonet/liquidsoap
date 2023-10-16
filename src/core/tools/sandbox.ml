@@ -85,7 +85,7 @@ let has_binary =
   lazy (Utils.which_opt ~path:(Configure.path ()) conf_binary#get <> None)
 
 let () =
-  Lifecycle.before_start (fun () ->
+  Lifecycle.before_start ~name:"sandbox start" (fun () ->
       if Lazy.force Utils.is_docker then (
         log#important "Running inside a docker container, disabling sandboxing.";
         conf_sandbox#set false)

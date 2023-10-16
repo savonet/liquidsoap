@@ -44,7 +44,7 @@ let conf_add_borders =
 let add_borders () = conf_add_borders#get
 
 let () =
-  Lifecycle.on_init (fun () ->
+  Lifecycle.on_start ~name:"Gstreamer init" (fun () ->
       let debug =
         try int_of_string (Sys.getenv "LIQ_GST_DEBUG_LEVEL") with _ -> 0
       in
@@ -192,9 +192,9 @@ let flush ~log ?(types = [`Error; `Warning; `Info; `State_changed])
 let () =
   let loop = Gstreamer.Loop.create () in
   let main () = Gstreamer.Loop.run loop in
-  Lifecycle.on_start (fun () ->
+  Lifecycle.after_start ~name:"gstreamer loop start" (fun () ->
       log#info "Starting gstreamer event loop";
       ignore (Tutils.create main () "gstreamer_main_loop"));
-  Lifecycle.on_core_shutdown (fun () ->
+  Lifecycle.on_core_shutdown ~name:"gstreamer loop stop" (fun () ->
       log#info "Stopping streamer event loop";
       Gstreamer.Loop.quit loop)

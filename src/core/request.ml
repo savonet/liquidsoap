@@ -627,7 +627,10 @@ type resolve_flag = Resolved | Failed | Timeout
 exception ExnTimeout
 
 let should_fail = Atomic.make false
-let () = Lifecycle.before_core_shutdown (fun () -> Atomic.set should_fail true)
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"Requests shutdown" (fun () ->
+      Atomic.set should_fail true)
 
 let resolve ~ctype t timeout =
   assert (

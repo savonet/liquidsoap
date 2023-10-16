@@ -42,7 +42,7 @@ let time_implementation () =
   with Not_found -> Liq_time.unix
 
 let () =
-  Lifecycle.on_init (fun () ->
+  Lifecycle.on_init ~name:"Clock initialization" (fun () ->
       let module Time = (val time_implementation () : Liq_time.T) in
       log#important "Using %s implementation for latency control"
         Time.implementation)

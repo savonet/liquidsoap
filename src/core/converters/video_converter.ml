@@ -61,7 +61,7 @@ exception Exit of converter
 
 (** Only log preferred decoder availability once at start. *)
 let () =
-  Lifecycle.before_start (fun () ->
+  Lifecycle.on_start ~name:"video converter initialization" (fun () ->
       let preferred = preferred_converter_conf#get in
       match Plug.get video_converters preferred with
         | None ->

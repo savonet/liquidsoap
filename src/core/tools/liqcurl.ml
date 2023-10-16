@@ -117,14 +117,14 @@ let () =
 
 let fail ~pos message = Lang.raise_error ~pos ~message "http"
 let interrupt = Atomic.make false
-let () = Lifecycle.before_core_shutdown (fun () -> Atomic.set interrupt true)
 
-let mk_read =
-  let interrupt = Atomic.make false in
-  Lifecycle.before_core_shutdown (fun () -> Atomic.set interrupt true);
-  fun fn len ->
-    if Atomic.get interrupt then Curl.Abort
-    else (try Proceed (fn len) with _ -> Curl.Abort)
+let () =
+  Lifecycle.before_core_shutdown ~name:"libcurl shutdown" (fun () ->
+      Atomic.set interrupt true)
+
+let mk_read fn len =
+  if Atomic.get interrupt then Curl.Abort
+  else (try Proceed (fn len) with _ -> Curl.Abort)
 
 let parse_http_answer ~pos s =
   let f v c s = (v, c, s) in
@@ -132,15 +132,7 @@ let parse_http_answer ~pos s =
     | Scanf.Scan_failure s -> fail ~pos s
     | _ -> fail ~pos "Unknown error"
 
-let should_stop =
-  let should_stop = ref false in
-  let m = Mutex.create () in
-  let () =
-    Lifecycle.before_core_shutdown
-      (Tutils.mutexify m (fun () -> should_stop := true))
-  in
-  let should_stop = Tutils.mutexify m (fun () -> !should_stop) in
-  fun _ _ _ _ -> should_stop ()
+let should_stop _ _ _ _ = Atomic.get interrupt
 
 let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     ~request ~on_body_data ~pos () =

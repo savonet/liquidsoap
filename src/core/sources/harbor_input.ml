@@ -35,7 +35,9 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     val should_shutdown = Atomic.make false
 
     initializer
-      Lifecycle.before_core_shutdown (fun () -> Atomic.set should_shutdown true)
+      Lifecycle.before_core_shutdown
+        ~name:(Printf.sprintf "%s shutdown" self#id) (fun () ->
+          Atomic.set should_shutdown true)
 
     val mutable relay_socket = None
 

@@ -92,7 +92,8 @@ module Samplerate = struct
 
   (** Log which converter is used at start. *)
   let () =
-    Lifecycle.before_start (fun () ->
+    Lifecycle.on_start ~name:"audio samplerate converter initialization"
+      (fun () ->
         let rec f = function
           | conv :: _ when Plug.get converters conv <> None ->
               log#important "Using samplerate converter: %s." conv

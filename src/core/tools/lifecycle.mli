@@ -25,7 +25,7 @@
 
 (** Initial load. Used for registering stuff that needs
 	  all OCaml modules to have been registered. *)
-val on_load : (unit -> unit) -> unit
+val on_load : name:string -> (unit -> unit) -> unit
 
 val load : unit -> unit
 
@@ -39,27 +39,27 @@ val load : unit -> unit
 (** {2 Init start} *)
 
 val init : unit -> unit
-val before_init : (unit -> unit) -> unit
-val on_init : (unit -> unit) -> unit
-val after_init : (unit -> unit) -> unit
+val before_init : name:string -> (unit -> unit) -> unit
+val on_init : name:string -> (unit -> unit) -> unit
+val after_init : name:string -> (unit -> unit) -> unit
 
 (** {2 Script parse} *)
 
-val before_script_parse : (unit -> unit) -> unit
-val on_script_parse : (unit -> unit) -> unit
-val after_script_parse : (unit -> unit) -> unit
+val before_script_parse : name:string -> (unit -> unit) -> unit
+val on_script_parse : name:string -> (unit -> unit) -> unit
+val after_script_parse : name:string -> (unit -> unit) -> unit
 
 (** {2 Application start} *)
 
-val before_start : (unit -> unit) -> unit
-val on_start : (unit -> unit) -> unit
-val after_start : (unit -> unit) -> unit
+val before_start : name:string -> (unit -> unit) -> unit
+val on_start : name:string -> (unit -> unit) -> unit
+val after_start : name:string -> (unit -> unit) -> unit
 
 (** {2 Application main loop} *)
-val before_main_loop : (unit -> unit) -> unit
+val before_main_loop : name:string -> (unit -> unit) -> unit
 
-val on_main_loop : (unit -> unit) -> unit
-val after_main_loop : (unit -> unit) -> unit
+val on_main_loop : name:string -> (unit -> unit) -> unit
+val after_main_loop : name:string -> (unit -> unit) -> unit
 
 (** {1 Shutdown} *)
 
@@ -71,18 +71,18 @@ val after_main_loop : (unit -> unit) -> unit
 
 (** {2 Core shutdown} *)
 
-val before_core_shutdown : (unit -> unit) -> unit
-val on_core_shutdown : (unit -> unit) -> unit
-val after_core_shutdown : (unit -> unit) -> unit
+val before_core_shutdown : name:string -> (unit -> unit) -> unit
+val on_core_shutdown : name:string -> (unit -> unit) -> unit
+val after_core_shutdown : name:string -> (unit -> unit) -> unit
 
 (** {2 Scheduler shutdown} *)
 
-val before_scheduler_shutdown : (unit -> unit) -> unit
-val on_scheduler_shutdown : (unit -> unit) -> unit
-val after_scheduler_shutdown : (unit -> unit) -> unit
+val before_scheduler_shutdown : name:string -> (unit -> unit) -> unit
+val on_scheduler_shutdown : name:string -> (unit -> unit) -> unit
+val after_scheduler_shutdown : name:string -> (unit -> unit) -> unit
 
 (** {2 Final cleanup} *)
 
-val before_final_cleanup : (unit -> unit) -> unit
-val on_final_cleanup : (unit -> unit) -> unit
-val after_final_cleanup : (unit -> unit) -> unit
+val before_final_cleanup : name:string -> (unit -> unit) -> unit
+val on_final_cleanup : name:string -> (unit -> unit) -> unit
+val after_final_cleanup : name:string -> (unit -> unit) -> unit

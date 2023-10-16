@@ -1,4 +1,6 @@
-log.level.set(4)
+log.level := 4
+settings.log.level.lifecycle := 5
+
 test = ()
 let test.done = ref(false)
 
