@@ -44,7 +44,7 @@ let server () =
   Server.create ~mode:(`TCP (`Port conf_port#get)) (Server.make ~callback ())
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start ~name:"prometheus initialization" (fun () ->
       if conf_server#get then
         ignore
           (Thread.create

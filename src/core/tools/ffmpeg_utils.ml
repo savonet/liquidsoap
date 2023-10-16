@@ -61,7 +61,7 @@ let conf_scaling_algorithm =
       ]
 
 let () =
-  Lifecycle.before_start (fun () ->
+  Lifecycle.on_start ~name:"ffmpeg utils initialization" (fun () ->
       let verbosity =
         match conf_verbosity#get with
           | "quiet" -> `Quiet

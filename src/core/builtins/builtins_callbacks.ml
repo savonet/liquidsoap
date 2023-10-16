@@ -27,7 +27,8 @@ let _ =
     ~descr:"Register a function to be called when Liquidsoap shuts down."
     (fun p ->
       let f = List.assoc "" p in
-      Lifecycle.before_core_shutdown (fun () -> ignore (Lang.apply f []));
+      Lifecycle.before_core_shutdown ~name:"on shutdown execution" (fun () ->
+          ignore (Lang.apply f []));
       Lang.unit)
 
 let _ =
@@ -36,7 +37,8 @@ let _ =
     Lang.unit_t ~descr:"Register a function to be called for the final cleanup."
     (fun p ->
       let f = List.assoc "" p in
-      Lifecycle.on_final_cleanup (fun () -> ignore (Lang.apply f []));
+      Lifecycle.on_final_cleanup ~name:"on cleanup execution" (fun () ->
+          ignore (Lang.apply f []));
       Lang.unit)
 
 let _ =
@@ -47,5 +49,5 @@ let _ =
     (fun p ->
       let f = List.assoc "" p in
       let wrap_f () = ignore (Lang.apply f []) in
-      Lifecycle.after_start wrap_f;
+      Lifecycle.after_start ~name:"on start execution" wrap_f;
       Lang.unit)

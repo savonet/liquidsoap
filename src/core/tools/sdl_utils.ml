@@ -46,7 +46,7 @@ let init l =
   List.iter (fun e -> options := Some Sdl.Init.(Option.get !options + e)) l
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start ~name:"SDL initialization" (fun () ->
       match !options with Some o -> check Sdl.init o | None -> ())
 
 module Surface = struct

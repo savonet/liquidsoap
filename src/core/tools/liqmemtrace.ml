@@ -20,4 +20,6 @@
 
  *****************************************************************************)
 
-let () = Lifecycle.before_init (fun () -> Memtrace.trace_if_requested ())
+let () =
+  Lifecycle.on_load ~name:"memtrace init" (fun () ->
+      Memtrace.trace_if_requested ())

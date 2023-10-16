@@ -92,13 +92,13 @@ let start_server () =
        ())
 
 let () =
-  Lifecycle.on_start
+  Lifecycle.on_start ~name:"osc initialization"
     (Tutils.mutexify started_m (fun () ->
          if !should_start && !server = None then start_server ()
          else started := true))
 
 let () =
-  Lifecycle.on_core_shutdown
+  Lifecycle.on_core_shutdown ~name:"osc shutdown"
     (Tutils.mutexify started_m (fun () ->
          match !server with
            | Some s ->

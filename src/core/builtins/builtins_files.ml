@@ -484,7 +484,7 @@ let file_metadata =
       Lang.metadata metadata)
 
 let () =
-  Lifecycle.on_load (fun () ->
+  Lifecycle.on_load ~name:"metadata resolvers registration" (fun () ->
       Plug.iter Request.mresolvers (fun name decoder ->
           let name = String.lowercase_ascii name in
           ignore

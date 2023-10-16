@@ -22,7 +22,14 @@
 
 let log = Log.make ["lifecycle"]
 let on_load_callbacks = ref []
-let on_load fn = on_load_callbacks := fn :: !on_load_callbacks
+
+let on_load ~name fn =
+  let fn () =
+    log#debug "Executing action %s (stage: load)" name;
+    fn ()
+  in
+  on_load_callbacks := fn :: !on_load_callbacks
+
 let loaded = ref false
 
 let load () =
@@ -30,16 +37,21 @@ let load () =
     List.iter (fun fn -> fn ()) !on_load_callbacks;
     loaded := true)
 
-let action_atom name =
+let action_atom stage =
   let is_done = Atomic.make false in
-  let actions = Atomic.make [(fun () -> log#debug "At stage: %S" name)] in
-  let on_action fn =
-    if Atomic.get is_done then fn ()
+  let actions = Atomic.make [(fun _ -> log#debug "At stage: %S" stage)] in
+  let on_action ~name fn =
+    let fn is_done =
+      log#debug "Executing action %s (stage: %s%s)" name stage
+        (if is_done then ", done" else "");
+      fn ()
+    in
+    if Atomic.get is_done then fn true
     else Atomic.set actions (fn :: Atomic.get actions)
   in
   let action () =
     if not (Atomic.exchange is_done true) then
-      List.iter (fun fn -> fn ()) (Atomic.get actions)
+      List.iter (fun fn -> fn false) (Atomic.get actions)
   in
   (on_action, action)
 
@@ -80,9 +92,9 @@ let final_cleanup, before_final_cleanup, on_final_cleanup, after_final_cleanup =
   make_action "Liquidsoap final cleanup"
 
 let () =
-  after_init script_parse;
-  after_script_parse start;
-  after_start main_loop;
-  after_main_loop core_shutdown;
-  after_core_shutdown scheduler_shutdown;
-  after_scheduler_shutdown final_cleanup
+  after_init ~name:"script large" script_parse;
+  after_script_parse ~name:"start" start;
+  after_start ~name:"main loop" main_loop;
+  after_main_loop ~name:"core shutdown" core_shutdown;
+  after_core_shutdown ~name:"scheduler shutdown" scheduler_shutdown;
+  after_scheduler_shutdown ~name:"final cleanup" final_cleanup

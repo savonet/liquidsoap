@@ -115,7 +115,7 @@ let delayed f =
   ret
 
 let () =
-  Lifecycle.after_script_parse (fun () ->
+  Lifecycle.after_script_parse ~name:"frame settings eval" (fun () ->
       Queue.iter (fun f -> f ()) delayed_eval)
 
 let delayed_conf ~to_string x =

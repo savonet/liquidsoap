@@ -363,6 +363,6 @@ let register_plugins () =
   List.iter add plugin_dirs
 
 let () =
-  Lifecycle.before_init (fun () ->
+  Lifecycle.on_load ~name:"frei0r plugin registration" (fun () ->
       if frei0r_enable then
         Startup.time "Frei0r plugin registration" register_plugins)
