@@ -45,11 +45,13 @@ module Sys_time = struct
     else x.tv_sec <= y.tv_sec
 
   let rec sleep_until t =
-    try
-      clock_nanosleep
-        ~clock:(if Sys.os_type = "Unix" then `Monotonic else `Realtime)
-        ~absolute:true t
-    with Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t
+    if t |<=| time () then ()
+    else (
+      try
+        clock_nanosleep
+          ~clock:(if Sys.os_type = "Unix" then `Monotonic else `Realtime)
+          ~absolute:true t
+      with Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t)
 end
 
 let posix_time : (module Liq_time.T) = (module Sys_time)
