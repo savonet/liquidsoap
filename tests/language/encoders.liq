@@ -20,6 +20,34 @@ def f() =
   end
 
   try
+    let eval _ = "l = [%wav(channels=1), %wav(channels=2)]"
+    test.fail()
+  catch _ do
+    ()
+  end
+
+  try
+    let eval _ = "l = [%mp3(stereo), %wav(channels=1)]"
+    test.fail()
+  catch _ do
+    ()
+  end
+
+  try
+    let eval _ = "l = [(blank():source(audio=pcm(stereo))), (blank():source(audio=pcm(mono)))]"
+    test.fail()
+  catch _ do
+    ()
+  end
+
+  try
+    let eval _ = "l = [(blank():source(audio=pcm(mono))), (blank():source(audio=pcm(stereo)))]"
+    test.fail()
+  catch _ do
+    ()
+  end
+
+  try
     let eval _ = "n = false
                   ignore(%mp3(stereo=n))"
     test.fail()
