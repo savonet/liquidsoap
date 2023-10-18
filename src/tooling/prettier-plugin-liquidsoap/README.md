@@ -1,8 +1,23 @@
-A [Prettier](https://prettier.io/) plugin for Liquidsoap code
+A [Prettier](https://prettier.io/) plugin and binary for Liquidsoap code
+
+This package provides a [Prettier](https://prettier.io/) plugin for liquidsoap code
+as well as a `liquidsoap-prettier` binary for formatting liquidsoap scripts.
 
 ## Installation
 
-### Locally
+### `liquidsoap-prettier`
+
+The `liquidsoap-prettier` command-line utility should be installed with this
+package and should be available following the usual node package binary
+conventions.
+
+It works as follows:
+
+```shell
+$ liquidsoap-prettier [-w|--write] /path/to/file.liq
+```
+
+### Local prettier plugin
 
 In general, `prettier` works better when installed locally but this requires a `package.json` at the
 root of your project.
@@ -22,9 +37,9 @@ Then add the plugin to your Prettier config:
 }
 ```
 
-### Globally
+### Global prettier plugin
 
-Installing globally works but currently requires a couple of workarounds. You need to install the plugin
+Installing the plugin globally works but currently requires a couple of workarounds. You need to install the plugin
 and the `prettier` module globally:
 
 ```shell
