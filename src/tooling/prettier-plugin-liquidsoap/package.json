@@ -1,6 +1,6 @@
 {
   "name": "prettier-plugin-liquidsoap",
-  "version": "1.3.8",
+  "version": "1.3.9",
   "description": "Liquidsoap language prettier plugin",
   "main": "dist/node.js",
   "scripts": {
@@ -10,6 +10,11 @@
   },
   "author": "",
   "license": "ISC",
+  "prettier": {
+    "plugins": [
+      "./dist/node.js"
+    ]
+  },
   "dependencies": {
     "prettier": "^3.0.0"
   },

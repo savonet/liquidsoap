@@ -1,4 +1,4 @@
-A [Prettier v3+](https://prettier.io/) plugin for Liquidsoap code
+A [Prettier](https://prettier.io/) plugin for Liquidsoap code
 
 ## Installation
 
@@ -35,7 +35,7 @@ Next, you need to create a prettier configuration file in your home directory. T
 to the plugin entrypoint:
 
 ```json
-// $HOME/.prettierc
+// $HOME/.prettierrc
 {
   "plugins": ["/path/to/prettier-plugin-liquidsoap/dist/node.js"],
   "overrides": [
