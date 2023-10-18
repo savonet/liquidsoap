@@ -25,6 +25,8 @@ Fixed:
   in some circumstances (#3427)
 - Fixed parse-only mode (#3423)
 - Fixed ffmpeg decoding failing on files with unknown codecs.
+- Fixed a crash due to `wait_until` timestamp being in the past when
+  using `posix-time2`
 
 ---
 
