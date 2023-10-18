@@ -253,6 +253,11 @@ let rec sup ~pos a b =
           with _ -> raise Incompatible)
       | Meth (m, a), _ -> meth_sup m a b
       | _, Meth (m, b) -> meth_sup m b a
+      | Constr { constructor = "source" }, _
+      | _, Constr { constructor = "source" }
+      | Constr { constructor = "format" }, _
+      | _, Constr { constructor = "format" } ->
+          b
       | ( Constr { constructor = c; params = a },
           Constr { constructor = d; params = b } ) ->
           if c <> d || List.length a <> List.length b then raise Incompatible;
@@ -422,8 +427,10 @@ and ( <: ) a b =
              bad choices. For instance, if we took int, but then have a 'a?, we
              change our mind and use int? instead. *)
           let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
-          (try b' <: b''
-           with e ->
+          (try
+             b' <: b''
+             (* The sup is allowed to return something invalid. See: https://github.com/savonet/liquidsoap/pull/3472 *)
+           with e when !debug ->
              failwith
                (Printf.sprintf "invalid sup: %s !< %s (%s)" (Type.to_string b')
                   (Type.to_string b'') (Printexc.to_string e)));
