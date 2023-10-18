@@ -30,7 +30,7 @@ type encoder_params =
   decode_type * content_type * (string * Liquidsoap_lang.Value.t) list
 
 type mode =
-  [ `Copy of Liquidsoap_lang.Value.t option | `Encode of encoder_params ]
+  [ `Drop | `Copy of Liquidsoap_lang.Value.t option | `Encode of encoder_params ]
 
 type parsed_encoder = Frame.field * mode
 
@@ -154,6 +154,7 @@ let parse_encoder_name name =
     match mode with
       | "copy" -> `Copy
       | "raw" -> `Raw
+      | "drop" -> `Drop
       | "" -> `Internal
       | _ -> failwith "invalid content field"
   in
@@ -167,6 +168,7 @@ let parse_encoder_params ~to_pos (name, p) : parsed_encoder =
   let field, mode = parse_encoder_name name in
   let mode =
     match mode with
+      | `Drop -> `Drop
       | `Copy -> `Copy (copy_param p)
       | `Raw ->
           `Encode
@@ -207,47 +209,70 @@ let type_of_encoder =
             let field, mode = parse_encoder_name name in
             let format =
               match mode with
+                | `Drop -> Type.var ~constraints:[Format_type.track] ()
                 | `Copy ->
-                    Content.(default_format (kind_of_string "ffmpeg.copy"))
-                | `Raw -> (
-                    match
-                      stream_media_type ~to_pos:term_pos
-                        ~to_static_string:to_static_string_term name args
-                    with
-                      | `Audio ->
-                          Content.(
-                            default_format (kind_of_string "ffmpeg.audio.raw"))
-                      | `Video ->
-                          Content.(
-                            default_format (kind_of_string "ffmpeg.video.raw")))
-                | `Internal -> (
-                    match
-                      stream_media_type ~to_pos:term_pos
-                        ~to_static_string:to_static_string_term name args
-                    with
-                      | `Audio ->
-                          let channels = channels args in
-                          let pcm_kind =
-                            List.fold_left
-                              (fun pcm_kind -> function
-                                | "", { Term.term = `Ground (String "pcm") } ->
-                                    Content.Audio.kind
-                                | "", { Term.term = `Ground (String "pcm_s16") }
-                                  ->
-                                    Content_pcm_s16.kind
-                                | "", { Term.term = `Ground (String "pcm_f32") }
-                                  ->
-                                    Content_pcm_f32.kind
-                                | _ -> pcm_kind)
-                              Content.Audio.kind args
-                          in
-                          Frame_base.format_of_channels ~pcm_kind channels
-                      | `Video -> Content.(default_format Video.kind))
+                    Type.make
+                      (Format_type.descr
+                         (`Format
+                           Content.(
+                             default_format (kind_of_string "ffmpeg.copy"))))
+                | `Raw ->
+                    Type.make
+                      (Format_type.descr
+                         (`Format
+                           (match
+                              stream_media_type ~to_pos:term_pos
+                                ~to_static_string:to_static_string_term name
+                                args
+                            with
+                             | `Audio ->
+                                 Content.(
+                                   default_format
+                                     (kind_of_string "ffmpeg.audio.raw"))
+                             | `Video ->
+                                 Content.(
+                                   default_format
+                                     (kind_of_string "ffmpeg.video.raw")))))
+                | `Internal ->
+                    Type.make
+                      (Format_type.descr
+                         (`Format
+                           (match
+                              stream_media_type ~to_pos:term_pos
+                                ~to_static_string:to_static_string_term name
+                                args
+                            with
+                             | `Audio ->
+                                 let channels = channels args in
+                                 let pcm_kind =
+                                   List.fold_left
+                                     (fun pcm_kind -> function
+                                       | ( "",
+                                           {
+                                             Term.term = `Ground (String "pcm");
+                                           } ) ->
+                                           Content.Audio.kind
+                                       | ( "",
+                                           {
+                                             Term.term =
+                                               `Ground (String "pcm_s16");
+                                           } ) ->
+                                           Content_pcm_s16.kind
+                                       | ( "",
+                                           {
+                                             Term.term =
+                                               `Ground (String "pcm_f32");
+                                           } ) ->
+                                           Content_pcm_f32.kind
+                                       | _ -> pcm_kind)
+                                     Content.Audio.kind args
+                                 in
+                                 Frame_base.format_of_channels ~pcm_kind
+                                   channels
+                             | `Video -> Content.(default_format Video.kind))))
             in
             let field = Frame.Fields.register field in
-            Frame.Fields.add field
-              (Type.make (Format_type.descr (`Format format)))
-              content_type
+            Frame.Fields.add field format content_type
         | _ -> content_type)
     Frame.Fields.empty
 
@@ -450,6 +475,11 @@ let ffmpeg_gen params =
 
   List.fold_left
     (fun f -> function
+      | `Encoder (field, `Drop) ->
+          {
+            f with
+            Ffmpeg_format.streams = f.Ffmpeg_format.streams @ [(field, `Drop)];
+          }
       | `Encoder (field, `Copy None) ->
           {
             f with

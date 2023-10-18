@@ -61,7 +61,7 @@ type encoded_stream = {
   opts : opts;
 }
 
-type stream = [ `Copy of copy_opt | `Encode of encoded_stream ]
+type stream = [ `Copy of copy_opt | `Encode of encoded_stream | `Drop ]
 
 type t = {
   format : string option;
@@ -101,11 +101,13 @@ let to_string m =
         let name = Frame.Fields.string_of_field field in
         let name =
           match stream with
+            | `Drop -> "%" ^ name ^ ".drop"
             | `Copy _ -> "%" ^ name ^ ".copy"
             | `Encode { mode = `Raw } -> "%" ^ name ^ ".raw"
             | _ -> "%" ^ name
         in
         match stream with
+          | `Drop -> name :: opts
           | `Copy opt ->
               Printf.sprintf "%s(%s)" name (string_of_copy_opt opt) :: opts
           | `Encode { codec; options = `Video options; opts = stream_opts } ->

@@ -67,43 +67,49 @@ let type_of_format f =
         List.fold_left
           (fun ctype (field, c) ->
             Frame.Fields.add field
-              (Type.make
-                 (Format_type.descr
-                    (match c with
-                      | `Copy _ ->
-                          `Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.copy"))
-                      | `Encode
-                          { Ffmpeg_format.mode = `Raw; options = `Audio _ } ->
-                          `Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.audio.raw"))
-                      | `Encode
-                          { Ffmpeg_format.mode = `Raw; options = `Video _ } ->
-                          `Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.video.raw"))
-                      | `Encode
-                          Ffmpeg_format.
-                            {
-                              mode = `Internal;
-                              options = `Audio { pcm_kind; channels };
-                            } ->
-                          assert (channels > 0);
-                          let params =
-                            {
-                              Content.channel_layout =
-                                lazy
-                                  (Audio_converter.Channel_layout
-                                   .layout_of_channels channels);
-                            }
-                          in
-                          `Format (Frame_base.audio_format ~pcm_kind params)
-                      | `Encode
-                          { Ffmpeg_format.mode = `Internal; options = `Video _ }
-                        ->
-                          `Format Content.(default_format Video.kind))))
+              (match c with
+                | `Drop -> Type.var ~constraints:[Format_type.track] ()
+                | `Copy _ ->
+                    Type.make
+                      (Format_type.descr
+                         (`Format
+                           Content.(
+                             default_format (kind_of_string "ffmpeg.copy"))))
+                | `Encode { Ffmpeg_format.mode = `Raw; options = `Audio _ } ->
+                    Type.make
+                      (Format_type.descr
+                         (`Format
+                           Content.(
+                             default_format (kind_of_string "ffmpeg.audio.raw"))))
+                | `Encode { Ffmpeg_format.mode = `Raw; options = `Video _ } ->
+                    Type.make
+                      (Format_type.descr
+                         (`Format
+                           Content.(
+                             default_format (kind_of_string "ffmpeg.video.raw"))))
+                | `Encode
+                    Ffmpeg_format.
+                      {
+                        mode = `Internal;
+                        options = `Audio { pcm_kind; channels };
+                      } ->
+                    assert (channels > 0);
+                    let params =
+                      {
+                        Content.channel_layout =
+                          lazy
+                            (Audio_converter.Channel_layout.layout_of_channels
+                               channels);
+                      }
+                    in
+                    Type.make
+                      (Format_type.descr
+                         (`Format (Frame_base.audio_format ~pcm_kind params)))
+                | `Encode { Ffmpeg_format.mode = `Internal; options = `Video _ }
+                  ->
+                    Type.make
+                      (Format_type.descr
+                         (`Format Content.(default_format Video.kind))))
               ctype)
           Frame.Fields.empty m.streams
     | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
