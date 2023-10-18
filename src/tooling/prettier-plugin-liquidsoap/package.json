@@ -10,11 +10,6 @@
   },
   "author": "",
   "license": "ISC",
-  "prettier": {
-    "plugins": [
-      "./dist/node.js"
-    ]
-  },
   "dependencies": {
     "prettier": "^3.0.0"
   },
