@@ -10,7 +10,7 @@
  (modules init_js regexp_js)
  (preprocess
   (pps js_of_ocaml-ppx))
- (libraries liquidsoap_lang liquidsoap_tooling))
+ (libraries liquidsoap_lang))
 
 (install
  (files index.html)
