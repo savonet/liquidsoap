@@ -1113,6 +1113,13 @@ let _.{foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
 # Record capture with sub-patterns. Same works for module!
 let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
 # foo = [1, 2, 3], x = 1, y = 2, z = 3, gni = "baz"
+
+# Record capture with optional methods:
+let { foo? } = ()
+# foo = null()
+
+let { foo? } = { foo = 123 }
+# foo = 123
 ```
 
 ## Combining patterns

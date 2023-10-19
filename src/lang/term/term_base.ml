@@ -208,8 +208,9 @@ let rec string_of_pat = function
           (List.map
              (fun (lbl, pat) ->
                match pat with
-                 | None -> lbl
-                 | Some pat -> lbl ^ ": " ^ string_of_pat pat)
+                 | `None -> lbl
+                 | `Nullable -> lbl ^ "?"
+                 | `Pattern pat -> lbl ^ ": " ^ string_of_pat pat)
              l)
       ^ "}"
 
@@ -292,7 +293,9 @@ let rec free_vars_pat = function
            (List.fold_left
               (fun cur (lbl, pat) ->
                 [`PVar [lbl]]
-                @ (match pat with None -> [] | Some pat -> [pat])
+                @ (match pat with
+                    | `None | `Nullable -> []
+                    | `Pattern pat -> [pat])
                 @ cur)
               [] l))
 
@@ -313,7 +316,9 @@ let rec bound_vars_pat = function
            (List.fold_left
               (fun cur (lbl, pat) ->
                 [`PVar [lbl]]
-                @ (match pat with None -> [] | Some pat -> [pat])
+                @ (match pat with
+                    | `None | `Nullable -> []
+                    | `Pattern pat -> [pat])
                 @ cur)
               [] l))
 

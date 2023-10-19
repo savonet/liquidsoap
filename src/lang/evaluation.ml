@@ -95,8 +95,15 @@ let rec eval_pat pat v =
           let env = match pat with None -> env | Some pat -> aux env pat v in
           List.fold_left
             (fun env (lbl, pat) ->
-              let v = List.assoc lbl m in
-              (match pat with None -> [] | Some pat -> eval_pat pat v)
+              let v =
+                try List.assoc lbl m
+                with Not_found when pat = `Nullable ->
+                  Value.
+                    { pos = v.Value.pos; value = Null; methods = Methods.empty }
+              in
+              (match pat with
+                | `None | `Nullable -> []
+                | `Pattern pat -> eval_pat pat v)
               @ [([lbl], v)]
               @ env)
             env l

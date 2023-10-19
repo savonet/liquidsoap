@@ -248,6 +248,14 @@ def f() =
   # Allow optional trailing comma
   x = {foo="bar", gni=123}
   x = "aabb".{foo="bar", gni=123}
+
+  # Allow optional method extraction
+  let { x? } = ()
+  test.equals(x, null())
+
+  let { x? } = { x = 123 }
+  test.equals(x, 123)
+
   test.pass()
 end
 

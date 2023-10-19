@@ -14,8 +14,10 @@ type pattern =
   [ `PVar of string list  (** a field *)
   | `PTuple of pattern list  (** a tuple *)
   | `PList of pattern list * string option * pattern list  (** a list *)
-  | `PMeth of pattern option * (string * pattern option) list
+  | `PMeth of pattern option * (string * meth_term_default) list
     (** a value with methods *) ]
+
+and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
 
 type 'a term = { mutable t : Type.t; term : 'a; methods : 'a term Methods.t }
 

@@ -436,8 +436,9 @@ list_pattern:
   | LBRA pattern_list_with_spread RBRA { `PList $2 }
 
 meth_pattern_el:
-  | VAR              { $1, None }
-  | VAR GETS pattern { $1, Some $3 }
+  | VAR              { $1, `None }
+  | VAR QUESTION     { $1, `Nullable }
+  | VAR GETS pattern { $1, `Pattern $3 }
 
 meth_pattern_list:
   |                                         { [] }
@@ -456,12 +457,12 @@ record_spread_pattern:
   | LCUR meth_spread_list RCUR { $2 }
 
 meth_pattern:
-  | record_spread_pattern            { `PMeth $1                      }
-  | record_pattern                   { `PMeth (None,              $1) }
+  | record_spread_pattern            { `PMeth $1                       }
+  | record_pattern                   { `PMeth (None,               $1) }
   | VAR DOT record_pattern           { `PMeth (Some (`PVar [$1]),  $3) }
   | UNDERSCORE DOT record_pattern    { `PMeth (Some (`PVar ["_"]), $3) }
-  | tuple_pattern DOT record_pattern { `PMeth (Some $1,           $3) }
-  | list_pattern DOT record_pattern  { `PMeth (Some $1,           $3) }
+  | tuple_pattern DOT record_pattern { `PMeth (Some $1,            $3) }
+  | list_pattern DOT record_pattern  { `PMeth (Some $1,            $3) }
 
 var_pattern:
   | optvar { `PVar [$1] }

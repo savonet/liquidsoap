@@ -168,7 +168,8 @@ let mk_json_assoc_object_ty ~pos = function
   | _ -> raise (Term_base.Parse_error (pos, "Invalid type constructor"))
 
 type let_opt_el = string * Term.t
-type meth_pattern_el = string * Term.pattern option
+type meth_term_default = [ `Nullable | `Pattern of Term.pattern | `None ]
+type meth_pattern_el = string * meth_term_default
 
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
