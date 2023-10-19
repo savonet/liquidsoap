@@ -190,27 +190,3 @@ let () =
     audio_video_formats
 
 let () = List.iter (fun test -> file_test ~label:test ~test "") standalone_tests
-
-let mk_prettify_rule f =
-  Printf.printf
-    {|
-(rule
-  (alias fmt)
-  (deps %s ../../src/tooling/test-prettier ../../src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js)
-  (action
-    (progn
-      (with-stdout-to %s.prettier
-       (chdir ../../src/tooling/test-prettier
-         (run pnpm prettier --config ./config.json ../../../tests/media/%s)))
-      (diff %s %s.prettier))))
-|}
-    f f f f f
-
-let () =
-  let liq_files =
-    List.sort compare
-      (List.filter
-         (fun f -> Filename.extension f = ".liq")
-         (Build_tools.read_files ~location:"." "."))
-  in
-  List.iter mk_prettify_rule liq_files

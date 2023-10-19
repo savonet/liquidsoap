@@ -13,7 +13,7 @@
  (libraries liquidsoap_lang liquidsoap_tooling))
 
 (install
- (files prettier-plugin-liquidsoap.mjs filesystem.js index.html)
+ (files index.html)
  (section share)
  (package liquidsoap-js))
 
@@ -43,22 +43,3 @@
   (glob_files ../libs/*.liq))
  (action
   (run js_of_ocaml build-fs -I . -I ../libs -o %{target} %{deps})))
-
-(rule
- (target prettier-plugin-liquidsoap.mjs)
- (enabled_if
-  (or
-   (not %{bin-available:npm})
-   (= %{profile} release)))
- (action
-  (write-file %{target} "console.log(\"npm is not installed!\")")))
-
-(rule
- (target prettier-plugin-liquidsoap.mjs)
- (enabled_if
-  (and
-   %{bin-available:npm}
-   (not
-    (= %{profile} release))))
- (action
-  (copy ../tooling/prettier-plugin-liquidsoap/dist/web.mjs %{target})))

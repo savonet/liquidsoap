@@ -1,7 +1,0 @@
-(rule
- (mode
-  (promote (until-clean)))
- (target package-lock.json)
- (deps package.json node_modules/.keep)
- (action
-  (run npm install)))

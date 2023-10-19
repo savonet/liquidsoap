@@ -8,26 +8,6 @@
 
 (library
  (name liquidsoap_tooling)
- (package liquidsoap-lang)
+ (public_name liquidsoap-lang.tooling)
  (modules parsed_json)
  (libraries sedlex liquidsoap_lang))
-
-(rule
- (target test-prettier)
- (deps
-  prettier-plugin-liquidsoap/package.json
-  prettier-plugin-liquidsoap/dist/node.js
-  prettier-plugin-liquidsoap/dist/liquidsoap.js)
- (action
-  (progn
-   (run rm -rf test-prettier-build)
-   (run mkdir -p test-prettier-build)
-   (chdir
-    test-prettier-build
-    (ignore-stdout
-     (progn
-      (run npm init -y)
-      (run npm install --save ../prettier-plugin-liquidsoap prettier)
-      (bash
-       "echo \"{\\\"plugins\\\": [\\\"prettier-plugin-liquidsoap\\\"]}\" >| config.json"))))
-   (run mv test-prettier-build test-prettier))))

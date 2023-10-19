@@ -1,29 +1,3 @@
-; Regenerate using dune build @gendune --auto-promote
-
-(include dune.inc)
-
-(executable
- (name gen_dune)
- (preprocess
-  (pps ppx_string))
- (libraries pcre liquidsoap_build_tools)
- (modules gen_dune))
-
-(rule
- (alias gendune)
- (target dune.inc.gen)
- (deps
-  (source_tree .))
- (action
-  (with-stdout-to
-   dune.inc.gen
-   (run ./gen_dune.exe . .))))
-
-(rule
- (alias gendune)
- (action
-  (diff dune.inc dune.inc.gen)))
-
 (install
  (section
   (site
