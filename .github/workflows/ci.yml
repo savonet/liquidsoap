@@ -250,7 +250,7 @@ jobs:
           name: metrics
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Upload metrics
-        if: matrix.target != '@mediatest'
+        if: needs.build_details.outputs.is_fork != 'true' && matrix.target != '@mediatest'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
