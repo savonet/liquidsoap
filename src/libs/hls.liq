@@ -1,3 +1,69 @@
+let hls = {playlist=()}
+
+# Generate a main HLS playlist
+# @category String
+def hls.playlist.main(~extra_tags=[], ~prefix="", ~version, streams) =
+  prefix = prefix == "" or r/\/$/.test(prefix) ? prefix : "#{prefix}/"
+
+  streams =
+    list.fold(
+      fun (streams, s) ->
+        begin
+          let ({bandwidth, codecs, video_size?, ...s} :
+            string.{ bandwidth: int, codecs: string, video_size?: (int*int) }
+          ) = s
+          resolution =
+            if
+              null.defined(video_size)
+            then
+              let (w, h) = null.get(video_size)
+              ",RESOLUTION=#{w}x#{h}"
+            else
+              ""
+            end
+
+          [
+            ...streams,
+            "#EXT-X-STREAM-INF:BANDWIDTH=#{bandwidth},CODECS=#{
+              string.quote(codecs)
+            }#{resolution}",
+            "#{prefix}#{s}.m3u8"
+          ]
+        end,
+      [],
+      streams
+    )
+
+  string.concat(
+    separator="\r\n",
+    [
+      "#EXTM3U",
+      "#EXT-X-VERSION:#{(version : int)}",
+      ...extra_tags,
+      ...streams,
+
+      ""
+    ]
+  )
+end
+
+# @docof output.file.hls
+def replaces output.file.hls(
+  %argsof(output.file.hls[!main_playlist_writer]),
+  ~main_playlist_writer=null(hls.playlist.main),
+  dir,
+  streams,
+  s
+) =
+  output.file.hls(
+    %argsof(output.file.hls[!main_playlist_writer]),
+    main_playlist_writer=main_playlist_writer,
+    dir,
+    streams,
+    s
+  )
+end
+
 let input.hls = ()
 
 # Play an HLS stream.
