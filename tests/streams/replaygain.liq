@@ -1,12 +1,11 @@
 #!../../liquidsoap ../test.liq
-g = file.replaygain("file1.mp3")
-print(
-  "Replay gain: #{g} dB"
-)
-if
-  null.defined(g) and abs(null.get(g) - 7.37) < 0.05
-then
+
+def test_file_replaygain() =
+  g = file.replaygain("file1.mp3")
+  test.not_equals(g, null())
+  test.almost_equals(null.get(g), 7.39)
+
   test.pass()
-else
-  test.fail()
 end
+
+test.check(test_file_replaygain)
