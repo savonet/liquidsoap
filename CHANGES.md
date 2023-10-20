@@ -5,6 +5,9 @@ New:
 - Allow trailing commas in record definition (#3300).
 - Add `metadata.getter.source.float` (#3356).
 - Added `is_nan`, `is_infinite`, `ceil`, `floor`, `sign` and `round` (#3407)
+- Added `%track.drop` to the `%ffmpeg` encoder to allow partial encoding
+  of a source's available tracks (#3480)
+- Added `let { foo? } = ...` pattern matching (#3481)
 
 Changed:
 
