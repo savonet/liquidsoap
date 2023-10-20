@@ -109,10 +109,13 @@ let rec type_of_pat ~level ~pos = function
       let env, ty =
         List.fold_left
           (fun (env, ty) (lbl, p) ->
-            let env', a =
+            let env', a, optional =
               match p with
-                | None -> ([], Type.var ~level ?pos ())
-                | Some pat -> type_of_pat ~level ~pos pat
+                | `None -> ([], Type.var ~level ?pos (), false)
+                | `Nullable -> ([], Type.var ~level ?pos (), true)
+                | `Pattern pat ->
+                    let env', a = type_of_pat ~level ~pos pat in
+                    (env', a, false)
             in
             let ty =
               Type.make ?pos
@@ -120,14 +123,17 @@ let rec type_of_pat ~level ~pos = function
                   Meth
                     ( {
                         meth = lbl;
-                        optional = false;
+                        optional;
                         scheme = ([], a);
                         doc = "";
                         json_name = None;
                       },
                       ty ))
             in
-            (env' @ [([lbl], a)] @ env, ty))
+            let lbl_ty =
+              if optional then Type.(make ?pos (Nullable a)) else a
+            in
+            (env' @ [([lbl], lbl_ty)] @ env, ty))
           (env, ty) l
       in
       (env, ty)

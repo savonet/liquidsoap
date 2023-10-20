@@ -220,9 +220,12 @@ let rec base_json_of_pat = function
             `Tuple
               (List.map
                  (function
-                   | var, None ->
+                   | var, `None ->
                        `Assoc (ast_node ~typ:"var" [("value", `String var)])
-                   | var, Some pat ->
+                   | var, `Nullable ->
+                       `Assoc
+                         (ast_node ~typ:"var" [("value", `String (var ^ "?"))])
+                   | var, `Pattern pat ->
                        `Assoc
                          (ast_node ~typ:"infix"
                             [

@@ -153,6 +153,12 @@ def f() =
   incorrect(
     "let v.{foo=123} = {foo=123}"
   )
+  incorrect("def f(x) =
+      let { foo? } = x
+      foo
+    end
+    f(()) + 123")
+
   section("ENCODERS")
   correct('%ffmpeg(%video(codec="h264_nvenc"))')
   correct('%ffmpeg(%video(codec="h264_nvenc",hwaccel="none"))')

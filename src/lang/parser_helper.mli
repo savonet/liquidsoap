@@ -33,7 +33,8 @@ type lexer_let_decoration =
 type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
 type binding = [ explicit_binding | `Binding of Term._let ]
 type let_opt_el = string * Term.t
-type meth_pattern_el = string * Term.pattern option
+type meth_term_default = [ `Nullable | `Pattern of Term.pattern | `None ]
+type meth_pattern_el = string * meth_term_default
 
 val clear_comments : unit -> unit
 val append_comment : pos:Pos.t -> string -> unit
