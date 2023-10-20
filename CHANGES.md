@@ -4,6 +4,8 @@ New:
 
 - Allow trailing commas in record definition (#3300).
 - Add `metadata.getter.source.float` (#3356).
+- Added optional `main_playlist_writer` to `output.file.hls` and
+  derivated operator (#3484)
 - Added `is_nan`, `is_infinite`, `ceil`, `floor`, `sign` and `round` (#3407)
 
 Changed:

@@ -27,7 +27,34 @@ exception Invalid_state
 let default_id3_version = 3
 let log = Log.make ["hls"; "output"]
 
+let default_name =
+  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+    {|fun (~position, ~extname, base) -> "#{base}_#{position}.#{extname}"|}
+
 let hls_proto frame_t =
+  let main_playlist_writer_t =
+    Lang.fun_t
+      [
+        (true, "extra_tags", Lang.list_t Lang.string_t);
+        (true, "prefix", Lang.string_t);
+        (false, "version", Lang.int_t);
+        ( false,
+          "",
+          Lang.list_t
+            (Lang.optional_method_t
+               (Lang.method_t Lang.string_t
+                  [
+                    ("bandwidth", ([], Lang.int_t), "Stream bandwidth");
+                    ("codecs", ([], Lang.string_t), "Stream codecs");
+                  ])
+               [
+                 ( "video_size",
+                   ([], Lang.product_t Lang.int_t Lang.int_t),
+                   "Stream video size" );
+               ]) );
+      ]
+      Lang.string_t
+  in
   let segment_name_t =
     Lang.fun_t
       [
@@ -36,19 +63,6 @@ let hls_proto frame_t =
         (false, "", Lang.string_t);
       ]
       Lang.string_t
-  in
-  let default_name =
-    Lang.val_fun
-      [
-        ("position", "position", None);
-        ("extname", "extname", None);
-        ("", "", None);
-      ]
-      (fun p ->
-        let position = Lang.to_int (List.assoc "position" p) in
-        let extname = Lang.to_string (List.assoc "extname" p) in
-        let sname = Lang.to_string (List.assoc "" p) in
-        Lang.string (Printf.sprintf "%s_%d.%s" sname position extname))
   in
   let stream_info_t =
     Lang.product_t Lang.string_t
@@ -89,6 +103,12 @@ let hls_proto frame_t =
         Lang.string_t,
         Some (Lang.string ""),
         Some "Prefix for each files in playlists." );
+      ( "main_playlist_writer",
+        Lang.nullable_t main_playlist_writer_t,
+        Some Lang.null,
+        Some
+          "Main playlist writer. Main playlist writing is disabled when `null`."
+      );
       ( "segment_duration",
         Lang.float_t,
         Some (Lang.float 10.),
@@ -305,8 +325,40 @@ class hls_output p =
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let prefix = Lang.to_string (List.assoc "prefix" p) in
+  let main_playlist_writer =
+    Option.map
+      (fun fn ~extra_tags ~version ~prefix streams ->
+        let extra_tags = Lang.list (List.map Lang.string extra_tags) in
+        let version = Lang.int version in
+        let prefix = Lang.string prefix in
+        let streams =
+          Lang.list
+            (List.map
+               (fun stream ->
+                 Lang.meth (Lang.string stream.name)
+                   [
+                     ("bandwidth", Lang.int (Lazy.force stream.bandwidth));
+                     ("codecs", Lang.string (Lazy.force stream.codecs));
+                     ( "video_size",
+                       match Lazy.force stream.video_size with
+                         | None -> Lang.null
+                         | Some (w, h) -> Lang.product (Lang.int w) (Lang.int h)
+                     );
+                   ])
+               streams)
+        in
+        Lang.to_string
+          (Lang.apply fn
+             [
+               ("extra_tags", extra_tags);
+               ("prefix", prefix);
+               ("version", version);
+               ("", streams);
+             ]))
+      (Lang.to_option (List.assoc "main_playlist_writer" p))
+  in
   let directory_val = Lang.assoc "" 1 p in
-  let directory = Lang.to_string directory_val in
+  let directory = Lang_string.home_unrelate (Lang.to_string directory_val) in
   let perms = Lang.to_int (List.assoc "perm" p) in
   let dir_perm = Lang.to_int (List.assoc "dir_perm" p) in
   let temp_dir =
@@ -737,32 +789,16 @@ class hls_output p =
     val mutable main_playlist_written = false
 
     method private write_main_playlist =
-      if not main_playlist_written then (
-        self#log#debug "Writing playlist %s.." main_playlist_filename;
-        let oc = self#open_out main_playlist_filename in
-        oc#output_string "#EXTM3U\r\n";
-        oc#output_string
-          (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (Lazy.force x_version));
-        List.iter
-          (fun tag ->
-            oc#output_string tag;
-            oc#output_string "\r\n")
-          main_playlist_extra_tags;
-        List.iter
-          (fun s ->
-            let line =
-              Printf.sprintf "#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=%S%s\r\n"
-                (Lazy.force s.bandwidth) (Lazy.force s.codecs)
-                (match Lazy.force s.video_size with
-                  | None -> ""
-                  | Some (w, h) -> Printf.sprintf ",RESOLUTION=%dx%d" w h)
-            in
-
-            oc#output_string line;
-            oc#output_string (Printf.sprintf "%s%s.m3u8\r\n" prefix s.name))
-          streams;
-        oc#close);
-      main_playlist_written <- true
+      match (main_playlist_writer, main_playlist_written) with
+        | None, _ | Some _, true -> ()
+        | Some main_playlist_writter, false ->
+            self#log#debug "Writing playlist %s.." main_playlist_filename;
+            let oc = self#open_out main_playlist_filename in
+            oc#output_string
+              (main_playlist_writter ~version:(Lazy.force x_version)
+                 ~extra_tags:main_playlist_extra_tags ~prefix streams);
+            oc#close;
+            main_playlist_written <- true
 
     method private cleanup_playlists =
       List.iter (fun s -> self#unlink (self#playlist_name s)) streams;
