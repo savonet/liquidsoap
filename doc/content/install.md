@@ -97,6 +97,17 @@ This will install `opus` and its dependencies and recompile `liquidsoap` to take
 `opam info liquidsoap` should give you the list of all optional dependencies
 that you may enable in liquidsoap.
 
+**Note**
+
+`opam` handles external dependencies via your system's packaging. In order to build
+some of the associated OCaml modules, macos users using `homebrew` might need to add
+the following to their environment/shell configuration:
+
+```shell
+export CPATH=/opt/homebrew/include
+export LIBRARY_PATH=/opt/homebrew/lib
+```
+
 ## Installing from source
 
 See the [build instructions](build.html)
