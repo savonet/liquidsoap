@@ -50,7 +50,14 @@ end
 # @docof output.file.hls
 def replaces output.file.hls(
   %argsof(output.file.hls[!main_playlist_writer]),
-  ~main_playlist_writer=null(hls.playlist.main),
+  ~main_playlist_writer=null(
+    fun (~extra_tags, ~prefix, ~version, streams) ->
+      null(
+        hls.playlist.main(
+          extra_tags=extra_tags, prefix=prefix, version=version, streams
+        )
+      )
+  ),
   dir,
   streams,
   s

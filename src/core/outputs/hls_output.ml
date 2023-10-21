@@ -35,8 +35,8 @@ let hls_proto frame_t =
   let main_playlist_writer_t =
     Lang.fun_t
       [
-        (true, "extra_tags", Lang.list_t Lang.string_t);
-        (true, "prefix", Lang.string_t);
+        (false, "extra_tags", Lang.list_t Lang.string_t);
+        (false, "prefix", Lang.string_t);
         (false, "version", Lang.int_t);
         ( false,
           "",
@@ -53,7 +53,7 @@ let hls_proto frame_t =
                    "Stream video size" );
                ]) );
       ]
-      Lang.string_t
+      (Lang.nullable_t Lang.string_t)
   in
   let segment_name_t =
     Lang.fun_t
@@ -107,8 +107,8 @@ let hls_proto frame_t =
         Lang.nullable_t main_playlist_writer_t,
         Some Lang.null,
         Some
-          "Main playlist writer. Main playlist writing is disabled when `null`."
-      );
+          "Main playlist writer. Main playlist writing is disabled when `null` \
+           or when returning `null`." );
       ( "segment_duration",
         Lang.float_t,
         Some (Lang.float 10.),
@@ -347,7 +347,7 @@ class hls_output p =
                    ])
                streams)
         in
-        Lang.to_string
+        Lang.to_valued_option Lang.to_string
           (Lang.apply fn
              [
                ("extra_tags", extra_tags);
@@ -790,14 +790,25 @@ class hls_output p =
 
     method private write_main_playlist =
       match (main_playlist_writer, main_playlist_written) with
-        | None, _ | Some _, true -> ()
-        | Some main_playlist_writter, false ->
-            self#log#debug "Writing playlist %s.." main_playlist_filename;
-            let oc = self#open_out main_playlist_filename in
-            oc#output_string
-              (main_playlist_writter ~version:(Lazy.force x_version)
-                 ~extra_tags:main_playlist_extra_tags ~prefix streams);
-            oc#close;
+        | None, _ | Some _, true ->
+            self#log#debug
+              "`main_playlist_writer` is `null`: skipping main playlist"
+        | Some main_playlist_writer, false ->
+            let main_playlist =
+              main_playlist_writer ~version:(Lazy.force x_version)
+                ~extra_tags:main_playlist_extra_tags ~prefix streams
+            in
+            (match main_playlist with
+              | None ->
+                  self#log#debug
+                    "main_playlist_writer returned `null`: skipping main \
+                     playlist"
+              | Some playlist ->
+                  self#log#debug "Writing main playlist %s.."
+                    main_playlist_filename;
+                  let oc = self#open_out main_playlist_filename in
+                  oc#output_string playlist;
+                  oc#close);
             main_playlist_written <- true
 
     method private cleanup_playlists =
