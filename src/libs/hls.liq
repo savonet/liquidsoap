@@ -2,7 +2,7 @@ let hls = {playlist=()}
 
 # Generate a main HLS playlist
 # @category String
-def hls.playlist.main(~extra_tags=[], ~prefix="", ~version, streams) =
+def hls.playlist.main(~extra_tags=[], ~prefix="", ~version=7, streams) =
   prefix = prefix == "" or r/\/$/.test(prefix) ? prefix : "#{prefix}/"
 
   streams =
@@ -38,7 +38,7 @@ def hls.playlist.main(~extra_tags=[], ~prefix="", ~version, streams) =
     separator="\r\n",
     [
       "#EXTM3U",
-      "#EXT-X-VERSION:#{(version : int)}",
+      "#EXT-X-VERSION:#{version}",
       ...extra_tags,
       ...streams,
 
