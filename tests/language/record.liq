@@ -250,11 +250,26 @@ def f() =
   x = "aabb".{foo="bar", gni=123}
 
   # Allow optional method extraction
-  let { x? } = ()
+  let {x?} = ()
   test.equals(x, null())
 
-  let { x? } = { x = 123 }
+  let {x?} = {x=123}
   test.equals(x, 123)
+
+  # The following is allowed:
+  def json.parse =
+    true
+  end
+
+  def json.parse.foo =
+    false
+  end
+
+  def json.parse.gni(x) =
+    true
+  end
+
+  let json.parse.foo = 456
 
   test.pass()
 end
