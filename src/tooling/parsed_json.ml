@@ -582,9 +582,9 @@ let rec to_json { pos; term; comments } : Json.t =
     ([("ast_comments", ast_comments); ("position", json_of_positions pos)]
     @ to_ast_json ~to_json term)
 
-let parse_string content =
+let parse_string ?(formatter=Format.err_formatter) content =
   let lexbuf = Sedlexing.Utf8.from_string content in
-  let throw = Runtime.throw ~formatter:Format.err_formatter lexbuf in
+  let throw = Runtime.throw ~formatter lexbuf in
   try
     let tokenizer = Preprocessor.mk_tokenizer lexbuf in
     let term = Runtime.program tokenizer in
