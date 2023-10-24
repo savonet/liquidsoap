@@ -851,7 +851,7 @@ end
 # Deprecated: use `source.stereo`
 # @flag deprecated
 def audio_to_stereo(~id=null(), s) =
-  deprecated("audio_to_sterep", "stereo")
+  deprecated("audio_to_stereo", "stereo")
   stereo(id=id, s)
 end
 
