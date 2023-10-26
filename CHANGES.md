@@ -27,6 +27,7 @@ Fixed:
 - Fixed ffmpeg decoding failing on files with unknown codecs.
 - Fixed a crash due to `wait_until` timestamp being in the past when
   using `posix-time2`
+- Make sure that temporary files are always cleaned up in HLS outputs (#3493)
 
 ---
 

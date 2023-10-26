@@ -564,7 +564,8 @@ class hls_output p =
                     on a different file system. Please set it to the same one \
                     using `temp_dir` argument to guarantee atomic file \
                     operations!";
-                 Utils.copy ~mode ~perms tmp_file filename);
+                 Utils.copy ~mode ~perms tmp_file filename;
+                 Sys.remove tmp_file);
               on_file_change ~state filename)
       end
 
@@ -663,7 +664,7 @@ class hls_output p =
           ignore
             (Option.map
                (fun segment ->
-                 (Option.get segment.out_channel)#close;
+                 (try (Option.get segment.out_channel)#close with _ -> ());
                  ignore
                    (Option.map
                       (fun filename ->
@@ -692,50 +693,52 @@ class hls_output p =
       let filename = self#playlist_name s in
       self#log#debug "Writing playlist %s.." s.name;
       let oc = self#open_out filename in
-      oc#output_string "#EXTM3U\r\n";
-      oc#output_string
-        (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n"
-           (int_of_float (ceil segment_duration)));
-      oc#output_string
-        (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (Lazy.force x_version));
-      oc#output_string
-        (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" media_sequence);
-      oc#output_string
-        (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n"
-           discontinuity_sequence);
-      List.iter
-        (fun tag ->
-          oc#output_string tag;
-          oc#output_string "\r\n")
-        s.stream_extra_tags;
-      List.iteri
-        (fun pos segment ->
-          if segment.discontinuous then
-            oc#output_string "#EXT-X-DISCONTINUITY\r\n";
-          if pos = 0 || segment.discontinuous then (
-            match segment.init_filename with
-              | Some filename ->
-                  let filename =
-                    Printf.sprintf "%s%s" prefix (Filename.basename filename)
-                  in
-                  oc#output_string
-                    (Printf.sprintf "#EXT-X-MAP:URI=%s\r\n"
-                       (Lang_string.quote_string filename))
-              | _ -> ());
+      Fun.protect
+        ~finally:(fun () -> oc#close)
+        (fun () ->
+          oc#output_string "#EXTM3U\r\n";
           oc#output_string
-            (Printf.sprintf "#EXTINF:%.03f,\r\n"
-               (Frame.seconds_of_main segment.len));
+            (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n"
+               (int_of_float (ceil segment_duration)));
+          oc#output_string
+            (Printf.sprintf "#EXT-X-VERSION:%d\r\n" (Lazy.force x_version));
+          oc#output_string
+            (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" media_sequence);
+          oc#output_string
+            (Printf.sprintf "#EXT-X-DISCONTINUITY-SEQUENCE:%d\r\n"
+               discontinuity_sequence);
           List.iter
             (fun tag ->
               oc#output_string tag;
               oc#output_string "\r\n")
-            segment.segment_extra_tags;
-          oc#output_string
-            (Printf.sprintf "%s%s\r\n" prefix
-               (Filename.basename segment.filename)))
-        segments;
-
-      oc#close
+            s.stream_extra_tags;
+          List.iteri
+            (fun pos segment ->
+              if segment.discontinuous then
+                oc#output_string "#EXT-X-DISCONTINUITY\r\n";
+              if pos = 0 || segment.discontinuous then (
+                match segment.init_filename with
+                  | Some filename ->
+                      let filename =
+                        Printf.sprintf "%s%s" prefix
+                          (Filename.basename filename)
+                      in
+                      oc#output_string
+                        (Printf.sprintf "#EXT-X-MAP:URI=%s\r\n"
+                           (Lang_string.quote_string filename))
+                  | _ -> ());
+              oc#output_string
+                (Printf.sprintf "#EXTINF:%.03f,\r\n"
+                   (Frame.seconds_of_main segment.len));
+              List.iter
+                (fun tag ->
+                  oc#output_string tag;
+                  oc#output_string "\r\n")
+                segment.segment_extra_tags;
+              oc#output_string
+                (Printf.sprintf "%s%s\r\n" prefix
+                   (Filename.basename segment.filename)))
+            segments)
 
     val mutable main_playlist_written = false
 
@@ -897,8 +900,9 @@ class hls_output p =
               segment_name ~position:init_position ~extname name
             in
             let oc = self#open_out init_filename in
-            Strings.iter oc#output_substring data;
-            oc#close;
+            Fun.protect
+              ~finally:(fun () -> oc#close)
+              (fun () -> Strings.iter oc#output_substring data);
             segment.init_filename <- Some init_filename;
             s.init_state <- `Has_init init_filename
         | Some _ -> raise Encoder.Not_enough_data
