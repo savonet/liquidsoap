@@ -135,8 +135,26 @@ jobs:
           git clone https://github.com/savonet/tree-sitter-liquidsoap.git
           cd tree-sitter-liquidsoap
           npm install
-          ls -l ../
           npm exec tree-sitter -- parse -q -s ../../**/*.liq
+
+  lezer_parse:
+    runs-on: ubuntu-latest
+    needs: build_details
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v3
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: latest
+      - name: Parse using liquidsoap-lezer-print-tree
+        run: |
+          # This one has unicode variable name that isn't supported yet.
+          rm -rf src/libs/list.liq
+          git clone https://github.com/savonet/codemirror-lang-liquidsoap.git
+          cd codemirror-lang-liquidsoap
+          npm install
+          npm exec liquidsoap-lezer-print-tree -- -q ../../**/*.liq
 
   update_doc:
     runs-on: ubuntu-latest
