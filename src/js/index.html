@@ -14,12 +14,25 @@
     }
   </style>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "codemirror": "https://esm.sh/codemirror@v6.0.1?external=@codemirror/state,@codemirror/language",
+        "@uiw/codemirror-theme-github": "https://esm.sh/@uiw/codemirror-theme-github@4.21.20",
+        "@codemirror/state": "https://esm.sh/@codemirror/state@6.3.1",
+        "@codemirror/language": "https://esm.sh/@codemirror/language@6.9.1",
+        "codemirror-lang-liquidsoap": "https://esm.sh/codemirror-lang-liquidsoap@0.2.1?external=@codemirror/state,@codemirror/language",
+        "prettier": "https://esm.sh/prettier@3.0.2/standalone.mjs",
+        "liquidsoap-prettier": "https://esm.sh/liquidsoap-prettier/src/index.js"
+      }
+    }
+  </script>
   <script type="module">
     import { basicSetup, EditorView } from "https://esm.sh/codemirror@v6.0.1";
-    import { basicLight } from "https://esm.sh/cm6-theme-basic-light@0.2.0";
-    import { liquidsoap } from "https://esm.sh/codemirror-lang-liquidsoap";
-    import * as prettier from "https://esm.sh/prettier@3.0.2/standalone.mjs";
-    import prettierPluginLiquidsoap from "https://esm.sh/liquidsoap-prettier/src/index.js";
+    import { githubLight } from "@uiw/codemirror-theme-github";
+    import { liquidsoap } from "codemirror-lang-liquidsoap";
+    import * as prettier from "prettier";
+    import prettierPluginLiquidsoap from "liquidsoap-prettier";
 
     const prettierPlugin = {
       ...prettierPluginLiquidsoap,
@@ -58,8 +71,8 @@
 
     window.onLiqLoaded = (version) => {
       const input = document.getElementById("input");
-      const height = input.offsetHeight;
-      const width = input.offsetWidth;
+      const height = document.getElementById("input").clientHeight;
+      const width = document.getElementById("input").clientWidth;
       input.innerHTML = null;
       input.style.minHeight = `${height}px`;
       input.style.maxHeight = `${height}px`;
@@ -75,7 +88,7 @@
         extensions: [
           basicSetup,
           liquidsoap(),
-          basicLight
+          githubLight
         ],
         parent: input
       });
