@@ -17,19 +17,21 @@
   <script type="importmap">
     {
       "imports": {
-        "codemirror": "https://esm.sh/codemirror@v6.0.1?external=@codemirror/state,@codemirror/language",
-        "@uiw/codemirror-theme-github": "https://esm.sh/@uiw/codemirror-theme-github@4.21.20",
-        "@codemirror/state": "https://esm.sh/@codemirror/state@6.3.1",
+        "codemirror": "https://esm.sh/codemirror@v6.0.1?external=@codemirror/state,@codemirror/language,@codemirror/view",
+        "@uiw/codemirror-themes-all": "https://esm.sh/@uiw/codemirror-themes-all@4.21.20",
+        "@codemirror/state": "https://esm.sh/@codemirror/state@6.2.1",
         "@codemirror/language": "https://esm.sh/@codemirror/language@6.9.1",
-        "codemirror-lang-liquidsoap": "https://esm.sh/codemirror-lang-liquidsoap@0.2.1?external=@codemirror/state,@codemirror/language",
+        "@codemirror/view": "https://esm.sh/@codemirror/view@6.21.3",
+        "codemirror-lang-liquidsoap": "https://esm.sh/codemirror-lang-liquidsoap@0.2.1?external=@codemirror/state,@codemirror/language,@codemirror/view",
         "prettier": "https://esm.sh/prettier@3.0.2/standalone.mjs",
         "liquidsoap-prettier": "https://esm.sh/liquidsoap-prettier/src/index.js"
       }
     }
   </script>
   <script type="module">
-    import { basicSetup, EditorView } from "https://esm.sh/codemirror@v6.0.1";
-    import { githubLight } from "@uiw/codemirror-theme-github";
+    import { basicSetup, EditorView } from "codemirror";
+    import { Compartment } from "@codemirror/state";
+    import * as allThemes from "@uiw/codemirror-themes-all";
     import { liquidsoap } from "codemirror-lang-liquidsoap";
     import * as prettier from "prettier";
     import prettierPluginLiquidsoap from "liquidsoap-prettier";
@@ -44,6 +46,35 @@
         }
       }
     };
+
+    const themes = Object.keys(allThemes).reduce(
+      (themes, key) => {
+        if (/Init/.test(key) || /Settings/.test(key)) return themes;
+
+        return { ...themes, [key]: allThemes[key] };
+      }, {});
+
+    const defaultTheme = "monokai";
+
+    const themeConfig = new Compartment;
+
+    const select = document.getElementById("themes");
+
+    Object.keys(themes).forEach((name) => {
+      const option = document.createElement("option");
+      option.text = name;
+      option.value = name;
+      select.appendChild(option);
+    });
+
+    select.value = defaultTheme;
+
+    select.onchange = () => editor.dispatch({
+      effects: themeConfig.reconfigure([
+        liquidsoap(),
+        themes[select.value]
+      ])
+    });
 
     window.formatLiqCode = (code, cb) =>
       prettier
@@ -62,11 +93,13 @@
 
     window.setLiqCode = (code) => {
       if (!editor) return;
-      editor.dispatch({changes: {
-        from: 0,
-        to: editor.state.doc.length,
-        insert: code
-      }});
+      editor.dispatch({
+        changes: {
+          from: 0,
+          to: editor.state.doc.length,
+          insert: code
+        }
+      });
     };
 
     window.onLiqLoaded = (version) => {
@@ -87,8 +120,10 @@
 `,
         extensions: [
           basicSetup,
-          liquidsoap(),
-          githubLight
+          themeConfig.of([
+            liquidsoap(),
+            themes[defaultTheme]
+          ])
         ],
         parent: input
       });
@@ -151,8 +186,9 @@
             </button>
           </div>
         </div>
-        <div id="input" class="caret-cyan-500 box-border w-full h-full" style="background-color: rgb(229, 231, 235);">
+        <div id="input" class="caret-cyan-500 box-border w-full h-full">
           <textarea class="p-4 caret-cyan-500 box-border w-full" style="
+                background-color: #272822;
                 text-shadow: 0px 0px 0px #000;
                 border: none;
                 outline: none;
@@ -162,18 +198,25 @@
 # Interpreter loading.. ⏳
 </textarea>
         </div>
-        <div class="justify-self-end">
-          <button class="my-2 px-4 py-2 font-semibold text-sm bg-red-700 text-white rounded-full shadow-sm" id="clear">
-            Clear
-          </button>
-          <button class="my-2 px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
-            id="format">
-            Format
-          </button>
-          <button class="my-2 px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
-            id="execute">
-            Execute
-          </button>
+        <div class="w-full grid grid-cols-2 grid-flow-col">
+          <div class="justify-self-start flex my-2 px-4 py-2 font-semibold text-sm text-white">
+            <span class="pr-3">Theme:</span>
+            <select id="themes" class="flex text-sm text-black"></select>
+          </div>
+          <div class="justify-self-end">
+            <button class="my-2 px-4 py-2 font-semibold text-sm bg-red-700 text-white rounded-full shadow-sm"
+              id="clear">
+              Clear
+            </button>
+            <button class="my-2 px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
+              id="format">
+              Format
+            </button>
+            <button class="my-2 px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
+              id="execute">
+              Execute
+            </button>
+          </div>
         </div>
       </div>
       <div class="hidden lg:!grid grid grid-flow-row w-full" id="results">
