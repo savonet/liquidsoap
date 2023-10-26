@@ -71,8 +71,8 @@
 
     window.onLiqLoaded = (version) => {
       const input = document.getElementById("input");
-      const height = document.getElementById("input").clientHeight;
-      const width = document.getElementById("input").clientWidth;
+      const height = input.clientHeight;
+      const width = input.clientWidth;
       input.innerHTML = null;
       input.style.minHeight = `${height}px`;
       input.style.maxHeight = `${height}px`;
