@@ -121,8 +121,6 @@ required for `mp4` are `movflags` and `frag_duration`.
 radio = ...
 
 aac_lofi = %ffmpeg(format="mp4",
-                   movflags="+dash+skip_sidx+skip_trailer+frag_custom",
-                   frag_duration=10,
                    %audio(
                      codec="aac",
                      channels=2,
@@ -131,8 +129,6 @@ aac_lofi = %ffmpeg(format="mp4",
                    ))
 
 flac_hifi = %ffmpeg(format="mp4",
-                    movflags="+dash+skip_sidx+skip_trailer+frag_custom",
-                    frag_duration=10,
                     strict="-2",
                     %audio(
                       codec="flac",
@@ -141,8 +137,6 @@ flac_hifi = %ffmpeg(format="mp4",
                     ))
 
 flac_hires = %ffmpeg(format="mp4",
-                     movflags="+dash+skip_sidx+skip_trailer+frag_custom",
-                     frag_duration=10,
                      strict="-2",
                      %audio(
                        codec="flac",

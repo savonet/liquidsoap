@@ -421,6 +421,28 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  hls_global_headers.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} hls_global_headers.liq liquidsoap %{test_liq} hls_global_headers.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   hls_id3v2.liq
   ./file1.mp3
   ./file2.mp3
