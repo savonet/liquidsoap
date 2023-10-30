@@ -11,11 +11,14 @@ Changed:
 
 - Trim urls in `input.ffmpeg` by default. Disable using
   `trim_url=false` (#3424)
+- Automatically add HLS-specific ffmpeg parameters to
+  `%ffmpeg` encoder (#3483)
 
 Fixed:
 
 - Allow `channel_layout` argument in ffmpeg encoder to set the
   number of channels.
+- Fixed main HLS playlist codecs when using `mpegts` (#3483)
 - Fixed pop/clicks in crossfade and source with caching (#3318)
 - Fixed pop/clicks when resampling using `libsamplerate` (#3429)
 - Fixed gstreamer compilation. Remember that gstreamer features are

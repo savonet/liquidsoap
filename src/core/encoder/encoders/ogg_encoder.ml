@@ -142,5 +142,5 @@ let encoder ~pos { Ogg_format.audio; video } =
 
 let () =
   Plug.register Encoder.plug "ogg" ~doc:"ogg encoder." (function
-    | Encoder.Ogg m -> Some (encoder m)
+    | Encoder.Ogg m -> Some (fun ?hls:_ ~pos v -> encoder ~pos m v)
     | _ -> None)
