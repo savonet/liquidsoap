@@ -24,5 +24,5 @@ package() {
         rm -rf "$pkgdir/usr/share/man"
 
         mv "$pkgdir/usr/share/liquidsoap-lang" "$pkgdir/usr/share/liquidsoap"
-        cp -rf "$(opam config var share)/camomile" "$pkgdir/usr/share/liquidsoap"
+        cp -rf "$(opam var share)/camomile" "$pkgdir/usr/share/liquidsoap"
 }
