@@ -61,3 +61,30 @@ let () =
           | [{ Type.meth = "foo"; optional = true; _ }] -> ()
           | _ -> assert false)
     | _ -> assert false
+
+exception Failed
+
+let () =
+  (* term = (1 : int.{opt?: string}).foo *)
+  let typ = Type.meth ~optional:true "opt" ([], Lang.string_t) Lang.int_t in
+  let term =
+    {
+      Term.t = typ;
+      term = `Ground (Term.Ground.Int 1);
+      methods = Term.Methods.empty;
+    }
+  in
+  let invoke =
+    {
+      Term.t = Lang.univ_t ();
+      term =
+        `Invoke { Term.invoked = term; invoke_default = None; meth = "opt" };
+      methods = Term.Methods.empty;
+    }
+  in
+  try
+    Typechecking.check ~throw:(fun exn -> raise exn) invoke;
+    raise Failed
+  with
+    | Failed -> raise Failed
+    | _ -> ()

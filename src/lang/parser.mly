@@ -45,6 +45,7 @@ open Parser_helper
 %token <Parser_helper.lexer_let_decoration> LET
 %token <Parser_helper.lexer_let_decoration> LETLBRA
 %token BEGIN END GETS TILD QUESTION
+%token QUESTION_DOT
 (* name, arguments, methods *)
 %token <Parser_helper.lexer_let_decoration> DEF
 %token REPLACES
@@ -85,6 +86,7 @@ open Parser_helper
 %nonassoc QUESTION     (* x ? y : z *)
 %left AND             (* ((x+(y*z))==3) or ((not a)==b) *)
 %left OR
+%left QUESTION_DOT
 %nonassoc NOT
 %left BIN1
 %left BIN2 MINUS
@@ -97,6 +99,8 @@ open Parser_helper
 (* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg *)
 %nonassoc no_app
 %nonassoc LPAR
+
+%nonassoc UMINUS
 
 %start program
 %type <Term.t> program
@@ -200,9 +204,6 @@ simple_fun_body:
   | explicit_binding s       { mk_let ~pos:$loc($1) $1 (mk ~pos:$loc unit) }
   | explicit_binding s exprs { mk_let ~pos:$loc($1) $1 $3 }
 
-parenthesis_expr:
-  | LPAR expr RPAR           { mk ~pos:$loc (`Parenthesis $2) }
-
 (* General expressions. *)
 expr:
   | INCLUDE                          { mk ~pos:$loc (`Include $1) }
@@ -210,13 +211,8 @@ expr:
   | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
   | if_version                       { mk ~pos:$loc (`If_version $1) }
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
-  | UMINUS FLOAT                     {
-      let (ipart, fpart) = $2 in
-      mk ~pos:$loc (`Float (false, ipart, fpart))
-  }
-  | UMINUS INT                       { mk ~pos:$loc (`Int ("-" ^ $2)) }
-  | UMINUS parenthesis_expr          { mk ~pos:$loc (`Negative $2) }
-  | parenthesis_expr                 { $1 }
+  | UMINUS expr                      { mk ~pos:$loc (`Negative $2) }
+  | LPAR expr RPAR                   { mk ~pos:$loc (`Parenthesis $2) }
   | INT                              { mk ~pos:$loc (`Int $1) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
   | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
@@ -237,7 +233,7 @@ expr:
                                      { mk ~pos:$loc (`Methods { base = `Spread $5; methods = $2 }) }
   | LCUR record optional_comma RCUR  { mk ~pos:$loc (`Methods { base = `None; methods = $2 }) }
   | LCUR RCUR                        { mk ~pos:$loc (`Methods {base = `None; methods = []}) }
-  | expr QUESTION DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $4; optional = true }) }
+  | expr QUESTION_DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = true }) }
   | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = false }) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var $1), $2)) }
   | expr COLONCOLON expr             { mk ~pos:$loc (`Append ($1, $3)) }

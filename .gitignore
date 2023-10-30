@@ -14,3 +14,4 @@ package-lock.json
 src/tooling/prettier-plugin-liquidsoap/dist/liquidsoap.js
 src/tooling/prettier-plugin-liquidsoap/dist/web.mjs
 src/tooling/prettier-plugin-liquidsoap/dist/node.js
+*.conflicts

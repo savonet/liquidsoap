@@ -15,7 +15,7 @@ def f() =
       )
 
     let json.parse ({streams = [s1, s2]} : {streams: [{channels?: int}]}) = j
-    if s1.channels != 2 or s2.channels != 1 then test.fail() end
+    if s1?.channels != 2 or s2?.channels != 1 then test.fail() end
     test.pass()
   end
 

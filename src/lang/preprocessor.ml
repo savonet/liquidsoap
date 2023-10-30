@@ -133,8 +133,11 @@ let uminus tokenizer =
   let no_uminus = ref false in
   let token () =
     match tokenizer () with
-      | (Parser.INT _, _ | Parser.FLOAT _, _ | Parser.VAR _, _ | Parser.RPAR, _)
-        as t ->
+      | ( Parser.INT _, _
+        | Parser.FLOAT _, _
+        | Parser.VAR _, _
+        | Parser.RPAR, _
+        | Parser.RCUR, _ ) as t ->
           no_uminus := true;
           t
       | Parser.MINUS, pos when not !no_uminus ->
