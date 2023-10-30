@@ -16,6 +16,8 @@ cd /tmp/liquidsoap-full/liquidsoap
 APK_VERSION=$(opam show -f version ./liquidsoap.opam | cut -d'-' -f 1)
 COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
+export LIQUIDSOAP_BUILD_TARGET=posix
+
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
   APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_ARCH}"
 elif [ -n "${IS_RELEASE}" ]; then
