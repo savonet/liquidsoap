@@ -13,11 +13,13 @@ Changed:
   `trim_url=false` (#3424)
 - Automatically add HLS-specific ffmpeg parameters to
   `%ffmpeg` encoder (#3483)
+- BREAKING: default `on_fail` removed on `playlist` (#3479)
 
 Fixed:
 
 - Allow `channel_layout` argument in ffmpeg encoder to set the
   number of channels.
+- Fixed reloading loop in playlists with invalid files (#3479)
 - Fixed main HLS playlist codecs when using `mpegts` (#3483)
 - Fixed pop/clicks in crossfade and source with caching (#3318)
 - Fixed pop/clicks when resampling using `libsamplerate` (#3429)

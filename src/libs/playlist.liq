@@ -258,6 +258,7 @@ end
 #  whole round ("randomize" mode), or pick a random file in the playlist each time \
 #  ("random" mode).
 # @param ~native Use native implementation.
+# @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
 # @param ~on_reload Callback called after playlist has reloaded.
 # @param ~prefix Add a constant prefix to all requests. Useful for passing extra \
 #  information using annotate, or for resolution through a particular protocol, \
@@ -273,9 +274,21 @@ end
 # @method length Length of the of the playlist (the number of songs it contains).
 # @method remaining_files Songs remaining to be played.
 def replaces playlist(
-  ~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
-  ~mime_type=null(), ~mode="randomize", ~native=false, ~on_reload=(fun (_) -> ()),
-  ~prefix="", ~reload=0, ~reload_mode="seconds", ~timeout=20., uri) =
+  ~id=null(),
+  ~check_next=null(),
+  ~prefetch=1,
+  ~loop=true,
+  ~mime_type=null(),
+  ~mode="randomize",
+  ~native=false,
+  ~on_fail=null(),
+  ~on_reload=(fun (_) -> ()),
+  ~prefix="",
+  ~reload=0,
+  ~reload_mode="seconds",
+  ~timeout=20.,
+  uri
+) =
   id = id ?? playlist.id(default="playlist", uri)
 
   reload_mode =
@@ -302,20 +315,6 @@ def replaces playlist(
     files = playlist.files(id=id, mime_type=mime_type, timeout=timeout, playlist_uri)
     list.map.right(fun(file) -> prefix^file, files)
   end
-
-  # Try to reload playlist when the playlist is looped and has failed.
-  def on_fail()
-    l = load_playlist()
-    if l == [] then
-      log.info("Failed to reload playlist after failure.")
-      # We add a dummy request in order for the playlist not to stop.
-      ["???failed???"]
-    else
-      log.info("Successfully reload playlist after failure.")
-      l
-    end
-  end
-  on_fail = if loop then on_fail else null() end
 
   # Create the source
   files := load_playlist()
