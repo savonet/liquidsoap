@@ -10,6 +10,9 @@ New:
 - Added `%track.drop` to the `%ffmpeg` encoder to allow partial encoding
   of a source's available tracks (#3480)
 - Added `let { foo? } = ...` pattern matching (#3481)
+- Add `metadata.replaygain` method to extract unified replay gain value from metadata (#3438).
+- Add `compute` parameter to `file.replaygain` to control gain calculation (#3438).
+- Add `compute` parameter to `enable_replaygain_metadata` to control replay gain calculation (#3438).
 
 Changed:
 
@@ -21,6 +24,8 @@ Changed:
   mechanism for updating it (#3355).
 - Disable output paging when `TERM` environment variable is not set.
 - Allow running as `root` user inside `docker` container by default (#3406).
+- BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
+- BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
 
 # 2.2.0 (2023-07-21)
 
