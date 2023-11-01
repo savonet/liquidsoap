@@ -335,8 +335,22 @@ and read_regexp_flags flags lexbuf =
         Sedlexing.rollback lexbuf;
         flags
 
+and read_comment_end ((startp, _) as pos) buf lexbuf =
+  match%sedlex lexbuf with
+    | '\n', Star white_space ->
+        Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
+        let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
+        (startp, endp)
+    | _ ->
+        raise
+          (Term_base.Parse_error
+             (pos, "Illegal character: " ^ Sedlexing.Utf8.lexeme lexbuf))
+
 and read_comment ((startp, _) as pos) buf lexbuf =
   match%sedlex lexbuf with
+    | '\n', Star white_space, '#', '<' ->
+        Sedlexing.rollback lexbuf;
+        read_comment_end pos buf lexbuf
     | '\n', Star white_space, '#', Star white_space ->
         Buffer.add_string buf (Sedlexing.Utf8.lexeme lexbuf);
         let _, endp = Sedlexing.lexing_bytes_positions lexbuf in
