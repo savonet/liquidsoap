@@ -10,6 +10,15 @@ these characters in it.
 # form of multiline comment
  ---------------->#
 
+# A one line comment
+#<
+can be
+followed
+by
+multiple
+lines comment
+>#
+
    #<
 multiline comment can start and end
 in the middle of a line
