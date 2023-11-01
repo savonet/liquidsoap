@@ -80,7 +80,7 @@ module Fps = struct
                 `Pair
                   ("expr", `String (Printf.sprintf "%Ld+PTS-STARTPTS" start_pts));
               ]
-          | None -> [`Pair ("expr", `String "PTS-min(STARTPTS, 0)")]
+          | None -> [`Pair ("expr", `String "PTS-max(STARTPTS, 0)")]
       in
       Avfilter.attach ~name:"setpts" ~args setpts config
     in
@@ -138,7 +138,6 @@ module Fps = struct
     match converter with
       | `Pass_through _ -> cb frame
       | `Filter { input; output } ->
-          Avutil.Frame.set_pts frame (Avutil.Frame.pts frame);
           input (`Frame frame);
           flush cb output
 
