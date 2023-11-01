@@ -793,16 +793,17 @@ class hls_output p =
     val mutable main_playlist_written = false
 
     method private write_main_playlist =
-      match (main_playlist_writer, main_playlist_written) with
-        | None, _ | Some _, true ->
+      (match (main_playlist_writer, main_playlist_written) with
+        | _, true -> ()
+        | None, false ->
             self#log#debug
               "`main_playlist_writer` is `null`: skipping main playlist"
-        | Some main_playlist_writer, false ->
+        | Some main_playlist_writer, false -> (
             let main_playlist =
               main_playlist_writer ~version:(Lazy.force x_version)
                 ~extra_tags:main_playlist_extra_tags ~prefix streams
             in
-            (match main_playlist with
+            match main_playlist with
               | None ->
                   self#log#debug
                     "main_playlist_writer returned `null`: skipping main \
@@ -812,8 +813,8 @@ class hls_output p =
                     main_playlist_filename;
                   let oc = self#open_out main_playlist_filename in
                   oc#output_string playlist;
-                  oc#close);
-            main_playlist_written <- true
+                  oc#close));
+      main_playlist_written <- true
 
     method private cleanup_playlists =
       List.iter (fun s -> self#unlink (self#playlist_name s)) streams;
