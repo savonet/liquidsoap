@@ -284,12 +284,14 @@ let qp2lambda = ref 0
 let set_global_quality q opts =
   let flags =
     match Hashtbl.find_opt opts "flags" with
-      | Some (`Int f) -> f
+      | Some (`Int i) -> `Int (i lor Avcodec.flag_qscale)
+      | Some (`Int64 i) ->
+          `Int64 (Int64.logor i (Int64.of_int Avcodec.flag_qscale))
+      | Some (`String s) -> `String (s ^ "+qscale")
       | Some _ -> assert false
-      | None -> 0
+      | None -> `Int Avcodec.flag_qscale
   in
-  let flags = flags lor Avcodec.flag_qscale in
-  Hashtbl.replace opts "flags" (`Int flags);
+  Hashtbl.replace opts "flags" flags;
   Hashtbl.replace opts "global_quality" (`Float (float Avutil.qp2lambda *. q))
 
 let ffmpeg_gen params =

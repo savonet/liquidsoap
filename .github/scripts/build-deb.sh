@@ -17,6 +17,7 @@ COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export DEBFULLNAME="The Savonet Team"
 export DEBEMAIL="savonet-users@lists.sourceforge.net"
+export LIQUIDSOAP_BUILD_TARGET=posix
 
 cd /tmp/liquidsoap-full/liquidsoap
 

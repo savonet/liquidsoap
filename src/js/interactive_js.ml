@@ -17,10 +17,19 @@ let execute ~throw expr =
           (Printexc.to_string exn));
   Format.flush_str_formatter ()
 
+let setOutput s =
+  let output = Js.Unsafe.coerce (Dom_html.getElementById_exn "output") in
+  output##.value := s
+
 let onLiqLoaded (version : Js.js_string Js.t) : unit =
   Js.Unsafe.fun_call
     (Js.Unsafe.js_expr "onLiqLoaded")
     [| Js.Unsafe.inject version |]
+
+let getLiqCode () = Js.Unsafe.fun_call (Js.Unsafe.js_expr "getLiqCode") [||]
+
+let setLiqCode s =
+  Js.Unsafe.fun_call (Js.Unsafe.js_expr "setLiqCode") [| Js.Unsafe.inject s |]
 
 let formatLiqCode (s : Js.js_string Js.t) (cb : Js.js_string Js.t -> unit) :
     unit =
@@ -30,19 +39,20 @@ let formatLiqCode (s : Js.js_string Js.t) (cb : Js.js_string Js.t -> unit) :
 
 let on_format =
   Dom_html.handler (fun _ ->
-      let input = Js.Unsafe.coerce (Dom_html.getElementById_exn "input") in
-      let expr = Js.to_string input##.value in
-      let json = Liquidsoap_tooling.Parsed_json.parse_string expr in
-      let json = Liquidsoap_lang.Json.to_string json in
-      formatLiqCode (Js.string json) (fun formatted ->
-          let input = Js.Unsafe.coerce (Dom_html.getElementById_exn "input") in
-          input##.value := Js.to_bytestring formatted);
+      let expr = Js.to_string (getLiqCode ()) in
+      (try
+         let json =
+           Liquidsoap_tooling.Parsed_json.parse_string
+             ~formatter:Format.str_formatter expr
+         in
+         let json = Liquidsoap_lang.Json.to_string json in
+         formatLiqCode (Js.string json) setLiqCode
+       with _ -> setOutput (Format.flush_str_formatter ()));
       Js._true)
 
 let on_execute =
   Dom_html.handler (fun _ ->
-      let input = Js.Unsafe.coerce (Dom_html.getElementById_exn "input") in
-      let expr = Js.to_string input##.value in
+      let expr = Js.to_string (getLiqCode ()) in
       let lexbuf = Sedlexing.Utf8.from_string expr in
       let throw = Runtime.throw ~formatter:Format.str_formatter lexbuf in
       let tokenizer = Preprocessor.mk_tokenizer lexbuf in
@@ -52,13 +62,10 @@ let on_execute =
       let term = Term_reducer.to_term parsed_term in
       let result = execute ~throw term in
       formatLiqCode (Js.string json) (fun formatted ->
-          let output =
-            Js.Unsafe.coerce (Dom_html.getElementById_exn "output")
-          in
-          output##.value :=
-            Printf.sprintf "%s\n%s\n"
-              (String.trim (Js.to_bytestring formatted))
-              (String.trim result));
+          setOutput
+            (Printf.sprintf "%s\n%s\n"
+               (String.trim (Js.to_bytestring formatted))
+               (String.trim result)));
       Js._true)
 
 let on_clear =

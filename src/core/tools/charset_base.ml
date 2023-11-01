@@ -49,7 +49,10 @@ include C
 exception Unknown_encoding of string
 exception Unsupported_encoding of t
 
-let of_string s = try C.of_name s with Not_found -> raise (Unknown_encoding s)
+let of_string s =
+  try C.of_name (String.uppercase_ascii s)
+  with Not_found -> raise (Unknown_encoding s)
+
 let to_string = C.name_of
 let custom_encoding = ref None
 

@@ -618,7 +618,7 @@ let get_type ~ctype ~format ~url container =
           let bt = Printexc.get_raw_backtrace () in
           Utils.log_exception ~log
             ~bt:(Printexc.raw_backtrace_to_string bt)
-            (Printf.sprintf "Failed to get video stream info: %s"
+            (Printf.sprintf "Failed to get an audio stream info: %s"
                (Printexc.to_string exn));
           (audio_streams, descriptions))
       ([], [])
@@ -976,21 +976,29 @@ let mk_streams ~ctype ~decode_first_metadata container =
   let streams, _ =
     List.fold_left
       (fun (streams, pos) (idx, stream, params) ->
-        if Avcodec.Unknown.get_params_id params = `Timed_id3 then
-          ( Streams.add idx
-              (`Data_packet
-                ( stream,
-                  fun ~buffer p ->
-                    let metadata =
-                      try parse_timed_id3 (Avcodec.Packet.content p)
-                      with _ -> []
-                    in
-                    if metadata <> [] then
-                      Generator.add_metadata buffer.Decoder.generator
-                        (Frame.Metadata.from_list metadata) ))
-              streams,
-            pos + 1 )
-        else (streams, pos + 1))
+        try
+          if Avcodec.Unknown.get_params_id params = `Timed_id3 then
+            ( Streams.add idx
+                (`Data_packet
+                  ( stream,
+                    fun ~buffer p ->
+                      let metadata =
+                        try parse_timed_id3 (Avcodec.Packet.content p)
+                        with _ -> []
+                      in
+                      if metadata <> [] then
+                        Generator.add_metadata buffer.Decoder.generator
+                          (Frame.Metadata.from_list metadata) ))
+                streams,
+              pos + 1 )
+          else (streams, pos + 1)
+        with Avutil.Error _ as exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Failed to get stream info: %s"
+               (Printexc.to_string exn));
+          (streams, pos + 1))
       (streams, 0)
       (Av.get_data_streams container)
   in
