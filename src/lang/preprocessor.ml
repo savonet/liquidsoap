@@ -516,8 +516,11 @@ let uminus tokenizer =
   let was_number = ref false in
   let token () =
     match tokenizer () with
-      | (Parser.INT _, _ | Parser.FLOAT _, _ | Parser.VAR _, _ | Parser.RPAR, _)
-        as t ->
+      | ( Parser.INT _, _
+        | Parser.FLOAT _, _
+        | Parser.VAR _, _
+        | Parser.RPAR, _
+        | Parser.RCUR, _ ) as t ->
           was_number := true;
           t
       | Parser.MINUS, pos when not !was_number ->
