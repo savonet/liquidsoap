@@ -229,6 +229,11 @@ def f() =
   end
   g({blo="bla"})
 
+  x = 1
+  y = x.{foo=123} - 3
+  test.equals("#{y}", "#{-2}")
+
+
   test.pass()
 end
 

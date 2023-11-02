@@ -9,7 +9,7 @@ def f() =
       streams: [{channels?: int}]
     }) = j
 
-    if s1.channels != 2 or s2.channels != 1 then
+    if s1?.channels != 2 or s2?.channels != 1 then
       test.fail()
     end
 

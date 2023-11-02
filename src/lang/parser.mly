@@ -44,6 +44,7 @@ open Parser_helper
 %token <Parser_helper.lexer_let_decoration> LET
 %token <Parser_helper.lexer_let_decoration> LETLBRA
 %token BEGIN END GETS TILD QUESTION
+%token QUESTION_DOT
 (* name, arguments, methods *)
 %token <Doc.Value.t option*Parser_helper.let_decoration> DEF
 %token REPLACES
@@ -84,6 +85,7 @@ open Parser_helper
 %nonassoc QUESTION     (* x ? y : z *)
 %left BINB             (* ((x+(y*z))==3) or ((not a)==b) *)
 %left BIN1
+%left QUESTION_DOT
 %nonassoc NOT
 %left BIN2 MINUS
 %left BIN3 TIMES
@@ -95,6 +97,8 @@ open Parser_helper
 (* Read %ogg(...) as one block, shifting LPAR rather than reducing %ogg *)
 %nonassoc no_app
 %nonassoc LPAR
+
+%nonassoc UMINUS
 
 %start program
 %type <Term.t> program
@@ -204,9 +208,7 @@ simple_fun_body:
 (* General expressions. *)
 expr:
   | LPAR expr COLON ty RPAR          { mk ~pos:$loc (Cast ($2, $4)) }
-  | UMINUS FLOAT                     { mk ~pos:$loc (Ground (Float (-. $2))) }
-  | UMINUS INT                       { mk ~pos:$loc (Ground (Int (- $2))) }
-  | UMINUS LPAR expr RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "~-"), ["", $3])) }
+  | UMINUS expr                      { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "~-"), ["", $2])) }
   | LPAR expr RPAR                   { $2 }
   | INT                              { mk ~pos:$loc (Ground (Int $1)) }
   | NOT expr                         { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var "not"), ["", $2])) }
@@ -226,7 +228,7 @@ expr:
                                      { $2 ~pos:$loc $5 }
   | LCUR record RCUR                 { $2 ~pos:$loc (mk ~pos:$loc (Tuple [])) }
   | LCUR RCUR                        { mk ~pos:$loc (Tuple []) }
-  | expr QUESTION DOT invoke         { mk_invoke ~pos:$loc ~default:(mk ~pos:$loc Null) $1 $4 }
+  | expr QUESTION_DOT invoke         { mk_invoke ~pos:$loc ~default:(mk ~pos:$loc Null) $1 $3 }
   | expr DOT invoke                  { mk_invoke ~pos:$loc $1 $3 }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (App (mk ~pos:$loc($1) (Var $1), $2)) }
   | expr COLONCOLON expr             { mk ~pos:$loc (App (mk ~pos:$loc($2) (Var "_::_"), ["", $1; "", $3])) }
