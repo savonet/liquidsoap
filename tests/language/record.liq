@@ -271,6 +271,10 @@ def f() =
 
   let json.parse.foo = 456
 
+  x = 1
+  y = x.{foo=123} - 3
+  test.equals("#{y}", "#{-2}")
+
   test.pass()
 end
 

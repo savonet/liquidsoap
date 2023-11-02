@@ -249,6 +249,7 @@ let rec token lexbuf =
     | ';' -> SEQ
     | ";;" -> SEQSEQ
     | "~" -> TILD
+    | "?." -> QUESTION_DOT
     | "?" -> QUESTION
     | "-" -> MINUS
     | "while" -> WHILE

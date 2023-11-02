@@ -224,7 +224,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           check ~level ~env a;
           let rec aux t =
             match (Type.deref t).Type.descr with
-              | Type.(Meth ({ meth = l'; scheme = s }, _)) when l = l' ->
+              | Type.(Meth ({ meth = l'; scheme = s; optional = false }, _))
+                when l = l' ->
                   (fst s, Typing.instantiate ~level s)
               | Type.(Meth (_, c)) -> aux c
               | _ ->
