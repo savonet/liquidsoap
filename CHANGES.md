@@ -21,6 +21,7 @@ Fixed:
   number of channels.
 - Improved support for unitary minus, fix runtime call of optional
   methods (#3498)
+- Fixed `map.metadata` mutating existing metadata.
 - Fixed reloading loop in playlists with invalid files (#3479)
 - Fixed main HLS playlist codecs when using `mpegts` (#3483)
 - Fixed pop/clicks in crossfade and source with caching (#3318)

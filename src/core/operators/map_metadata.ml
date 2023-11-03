@@ -63,8 +63,10 @@ class map_metadata source rewrite_f insert_missing update strip =
       List.iter
         (fun (t, m) ->
           if t >= p then (
+            let m = Hashtbl.copy m in
             self#rewrite m;
-            if strip && Hashtbl.length m = 0 then Frame.free_metadata buf t))
+            if strip && Hashtbl.length m = 0 then Frame.free_metadata buf t
+            else Frame.set_metadata buf t m))
         (Frame.get_all_metadata buf)
   end
 
