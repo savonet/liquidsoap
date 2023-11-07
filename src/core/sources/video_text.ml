@@ -96,7 +96,7 @@ let register name init render_text =
           Some Lang.null,
           Some
             (Printf.sprintf "Path to ttf font file (default is `\"%s\"`)."
-               Configure.default_font) );
+               Configure.conf_default_font#get) );
         ("size", Lang.getter_t Lang.int_t, Some (Lang.int 18), Some "Font size.");
         ( "color",
           Lang.getter_t Lang.int_t,
@@ -113,7 +113,7 @@ let register name init render_text =
         let ttf =
           List.assoc "font" p |> Lang.to_option
           |> Option.map Lang.to_string_getter
-          |> Option.value ~default:(fun () -> Configure.default_font)
+          |> Option.value ~default:(fun () -> Configure.conf_default_font#get)
         in
         let ttf_size = List.assoc "size" p |> Lang.to_int_getter in
         let color = List.assoc "color" p |> Lang.to_int_getter in

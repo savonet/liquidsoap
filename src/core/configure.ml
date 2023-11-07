@@ -5,10 +5,18 @@ include Liquidsoap_paths
 let git_snapshot = git_sha <> None
 let requests_max_id = 50
 let requests_table_size = 50
-let default_font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 (** General configuration *)
 let conf = Dtools.Conf.void "Liquidsoap configuration"
+
+let conf_default_font =
+  Dtools.Conf.string
+    ~d:
+      (match (Sys.os_type, Build_config.system) with
+        | _, "macosx" -> "/System/Library/Fonts/Times.ttc"
+        | "Win32", _ -> {|C:\\Windows\WinSxS\calibri.ttf|}
+        | _ -> "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    ~p:(conf#plug "default_font") "Default font"
 
 let libs_versions () =
   Build_info.V1.Statically_linked_libraries.to_list ()

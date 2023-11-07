@@ -549,7 +549,7 @@ let _ =
         Some "Copy file hierarchies." );
       ( "force",
         Lang.bool_t,
-        Some (Lang.bool false),
+        Some (Lang.bool true),
         Some
           "If a file descriptor for a destination file cannot be obtained \
            attempt to unlink the destination file and proceed." );
