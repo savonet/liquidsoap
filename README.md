@@ -67,6 +67,16 @@ We also provide **rolling releases**. A rolling release is a snapshot of a curre
 
 For both types of releases, we reserve the right to update, delete and add assets to the release at any time. If you are looking for permanent links to release assets, you should grab them from https://github.com/savonet/liquidsoap-release-assets/releases, which reflects all our releases but whose artifacts are never modified/deleted.
 
+## Tooling
+
+|             |                                                                                                                                                    |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Formatting  | [liquidsoap-prettier](https://github.com/savonet/liquidsoap-prettier)                                                                              |
+| VSCode      | [vscode-liquidsoap](https://marketplace.visualstudio.com/items?itemName=savonet.vscode-liquidsoap)                                                 |
+| Tree Sitter | [tree-sitter-liquidsoap](https://github.com/savonet/tree-sitter-liquidsoap), [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) |
+| CodeMirror  | [codemirror-lang-liquidsoap](https://github.com/savonet/codemirror-lang-liquidsoap)                                                                |
+| Playground  | [https://www.liquidsoap.info/try/](https://www.liquidsoap.info/try/)                                                                               |
+
 ## Documentation
 
 HTML documentation is available on our [website](http://liquidsoap.info)
