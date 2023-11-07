@@ -4,6 +4,7 @@ val conf : Dtools.Conf.ut
 val conf_init : Dtools.Conf.ut
 val conf_debug : bool Dtools.Conf.t
 val conf_debug_errors : bool Dtools.Conf.t
+val conf_default_font : string Dtools.Conf.t
 
 (** String describing the OS *)
 val host : string
@@ -25,9 +26,6 @@ val bin_dir : unit -> string
 
 (** Standard path. *)
 val path : unit -> string list
-
-(** Default font file *)
-val default_font : string
 
 (** Maximal id for a request. *)
 val requests_max_id : int
