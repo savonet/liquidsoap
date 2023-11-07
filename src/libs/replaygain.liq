@@ -19,7 +19,9 @@ let file.replaygain = ()
 # @flag hidden
 def file.replaygain.compute(~ratio=50., file_name) =
   _request = request.create(resolve_metadata=false, file_name)
-  if request.resolve(_request) then
+  if
+    request.resolve(_request)
+  then
     _source = source.replaygain.compute(request.once(_request))
     source.drop(ratio=ratio, _source)
     _source.gain()
@@ -32,13 +34,17 @@ end
 # @category Metadata
 # @param _metadata Metadata from which the ReplayGain should be extracted.
 def metadata.replaygain(_metadata) =
-  if list.assoc.mem("r128_track_gain", _metadata) then
+  if
+    list.assoc.mem("r128_track_gain", _metadata)
+  then
     try
       float_of_string(_metadata["r128_track_gain"]) / 256.
     catch _ do
       null()
     end
-  elsif list.assoc.mem("replaygain_track_gain", _metadata) then
+  elsif
+    list.assoc.mem("replaygain_track_gain", _metadata)
+  then
     replaygain_metadata = _metadata["replaygain_track_gain"]
     match = r/([+-]?\d*\.?\d*)/.exec(replaygain_metadata)
     try
@@ -65,16 +71,33 @@ def replaces file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name) =
   _metadata = file.metadata(exclude=["replaygain_track_gain"], file_name)
   gain = metadata.replaygain(_metadata)
 
-  if gain != null() then
-    log.info(label=id, "Detected track replaygain #{gain} dB for #{file_name_quoted}.")
+  if
+    gain != null()
+  then
+    log.info(
+      label=id,
+      "Detected track replaygain #{gain} dB for #{file_name_quoted}."
+    )
     gain
-  elsif compute then
-    log.info(label=id, "Computing replay gain for #{file_name_quoted}.")
+  elsif
+    compute
+  then
+    log.info(
+      label=id,
+      "Computing replay gain for #{file_name_quoted}."
+    )
     start_time = time()
     gain = file.replaygain.compute(ratio=ratio, file_name)
     elapsed_time = time() - start_time
-    if gain != null() then
-      log.info(label=id, "Computed replay gain #{gain} dB for #{file_name_quoted} (time: #{elapsed_time} s).")
+    if
+      gain != null()
+    then
+      log.info(
+        label=id,
+        "Computed replay gain #{gain} dB for #{file_name_quoted} (time: #{
+          elapsed_time
+        } s)."
+      )
     end
     gain
   else
@@ -93,8 +116,15 @@ end
 def enable_replaygain_metadata(~compute=true, ~ratio=50.) =
   def replaygain_metadata(~metadata=_, file_name) =
     gain = file.replaygain(compute=compute, ratio=ratio, file_name)
-    if gain != null() then
-      [("replaygain_track_gain", "#{null.get(gain)} dB")]
+    if
+      gain != null()
+    then
+      [
+        (
+          "replaygain_track_gain",
+          "#{null.get(gain)} dB"
+        )
+      ]
     else
       []
     end

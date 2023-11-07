@@ -9,7 +9,7 @@ jingle = playlist("files/jingles")
 # id). The inference thus thinks that a.source has methods. And the function f
 # thus cannot be passed to cross because it is not general enough.
 
-def f(a, b)
+def f(a, b) =
   sequence([a.source, once(jingle), b.source])
 end
 

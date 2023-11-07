@@ -2,7 +2,7 @@ settings.log.level.set(4)
 
 test.skip()
 
-output.dummy(fallible = true, sine())
+output.dummy(fallible=true, sine())
 
 count = ref(0)
 thread.run.recurrent(
