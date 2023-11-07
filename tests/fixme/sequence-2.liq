@@ -17,20 +17,16 @@
 # Create a fallible source. We use the experimental operator source.dynamic()
 # which is bit fragile for a test.
 
-flag = ref true
-thread.run(delay=1., { flag:=false })
+flag = ref(true)
+thread.run(delay=1., {flag := false})
 on = sine()
 off = fail()
-s = source.dynamic({ if !flag then [on] else [off] end })
+s = source.dynamic({if !flag then [on] else [off] end})
 
-test = sequence([ s, fail() ])
+test = sequence([s, fail()])
 
-def check()
-  if source.is_up(s) then
-    test.fail()
-  else
-    test.pass()
-  end
+def check() =
+  if source.is_up(s) then test.fail() else test.pass() end
 end
 
-output.dummy(fallback([test,on_track(fun(_)->check(),sine())]))
+output.dummy(fallback([test, on_track(fun (_) -> check(), sine())]))

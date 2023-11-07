@@ -25,17 +25,17 @@ s = once(sine(duration=1.))
 # behavior at this point is to go back to seq2, which will notice that s has
 # become unavailable and end its track and cleanup s. (By then s will be free,
 # because seq1 will have also move away from it.)
-test = fallback(track_sensitive=false,
-                [ delay(initial=true,0.5,
-                        sequence(id="seq1",[s,fail()])),
-                  sequence(id="seq2",[s,fail()]) ])
+test =
+  fallback(
+    track_sensitive=false,
+    [
+      delay(initial=true, 0.5, sequence(id="seq1", [s, fail()])),
+      sequence(id="seq2", [s, fail()])
+    ]
+  )
 
-def check()
-  if source.is_up(s) then
-    test.fail()
-  else
-    test.pass()
-  end
+def check() =
+  if source.is_up(s) then test.fail() else test.pass() end
 end
 
-output.dummy(fallback([test,on_track(fun(_)->check(),sine())]))
+output.dummy(fallback([test, on_track(fun (_) -> check(), sine())]))

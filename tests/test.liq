@@ -118,7 +118,9 @@ def test.not_equals(first, second) =
     error.raise(
       error.failure,
       "expected\r\n
-      #{string.quote(string(first))} == #{string.quote(string(second))}\r\n
+      #{string.quote(string(first))} == #{
+        string.quote(string(second))
+      }\r\n
       to be false.\r\n"
     )
 
@@ -148,10 +150,14 @@ end
 # @param ~digits The number of decimal digits to compare. Default is 7.
 def test.almost_equals(~digits=7, first, second) =
   is_almost_equals = test._almost_equals(digits=digits, first, second)
-  if not is_almost_equals then
+  if
+    not is_almost_equals
+  then
     error.raise(
       error.failure,
-      "#{string.quote(string(first))} != #{string.quote(string(second))}
+      "#{string.quote(string(first))} != #{
+        string.quote(string(second))
+      }
        up to #{digits} digits, diff = #{is_almost_equals.diff}."
     )
 
@@ -165,10 +171,14 @@ end
 # @param ~digits The number of decimal digits to compare. Default is 7.
 def test.not_almost_equals(~digits=7, first, second) =
   is_almost_equals = test._almost_equals(digits=digits, first, second)
-  if is_almost_equals then
+  if
+    is_almost_equals
+  then
     error.raise(
       error.failure,
-      "#{string.quote(string(first))} == #{string.quote(string(second))}
+      "#{string.quote(string(first))} == #{
+        string.quote(string(second))
+      }
        up to #{digits} digits, diff = #{is_almost_equals.diff}."
     )
 
