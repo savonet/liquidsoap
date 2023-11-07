@@ -662,6 +662,25 @@ protocol.add(
   syntax="stereo:<uri>"
 )
 
+# Copy
+
+# @flag hidden
+def protocol.copy(~rlog=_, ~maxtime=_, arg) =
+  extname = file.extension(arg)
+  tmpfile = file.temp("tmp", extname)
+  file.copy(force=true, arg, tmpfile)
+  [tmpfile]
+end
+
+protocol.add(
+  static=true,
+  "copy",
+  protocol.copy,
+  doc=
+    "Copy file to a temporary destination",
+  syntax="copy:/path/to/file.extname"
+)
+
 # Text2wave
 let settings.protocol.text2wave = settings.make.protocol("text2wave")
 let settings.protocol.text2wave.path =
