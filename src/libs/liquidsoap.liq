@@ -23,7 +23,7 @@ def liquidsoap.chroot.make(chroot) =
 
   cp(configure.libdir)
   cp(configure.bindir)
-  if file.exists(configure.default_font) then cp(configure.default_font) end
+  if file.exists(settings.default_font()) then cp(settings.default_font()) end
   mkdir(chroot(configure.logdir))
   mkdir(chroot(configure.rundir))
   cp(liquidsoap.executable)

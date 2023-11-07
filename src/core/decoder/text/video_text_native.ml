@@ -25,7 +25,7 @@ open Mm
 let log = Log.make ["video"; "text"; "native"]
 
 let render_text ~font ~size text =
-  if font <> Configure.default_font then
+  if font <> Configure.conf_default_font#get then
     log#important "video.text.native does not support custom fonts yet!";
   let () = ignore font in
   let font = Image.Bitmap.Font.native in
