@@ -24,6 +24,8 @@ Changed:
   mechanism for updating it (#3355).
 - Disable output paging when `TERM` environment variable is not set.
 - Allow running as `root` user inside `docker` container by default (#3406).
+- Set `force` to `true` by default in `file.copy` to make operator behave
+  as expected.
 - BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
 - BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
 
