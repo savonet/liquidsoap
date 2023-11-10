@@ -275,6 +275,14 @@ def f() =
   y = x.{foo=123} - 3
   test.equals("#{y}", "#{-2}")
 
+  x = {foo=123}
+  y = {gni="aabb"}
+  test.equals({...x, ...y}, {foo=123, gni="aabb"})
+  test.equals({...x, gna=3.14, ...y}, {foo=123, bla=3.14, gni="aabb"})
+  test.equals(
+    {...x, gna=3.14, ...y, foo="bar"}, {foo="bar", bla=3.14, gni="aabb"}
+  )
+
   test.pass()
 end
 
