@@ -97,19 +97,15 @@ class virtual switch ~name ~override_meta ~transition_length
       activation <- (self :> source) :: activator;
       List.iter
         (fun { transition; source = s; _ } ->
-          s#get_ready ~dynamic:true activation;
-          Lang.iter_sources
-            (fun s -> s#get_ready ~dynamic:true activation)
-            transition)
+          s#get_ready activation;
+          Lang.iter_sources (fun s -> s#get_ready activation) transition)
         cases
 
     method! private sleep =
       List.iter
         (fun { transition; source = s; _ } ->
-          s#leave ~dynamic:true (self :> source);
-          Lang.iter_sources
-            (fun s -> s#leave ~dynamic:true (self :> source))
-            transition)
+          s#leave (self :> source);
+          Lang.iter_sources (fun s -> s#leave (self :> source)) transition)
         cases;
       if self#is_selected_generated then
         (Option.get selected).effective_source#leave (self :> source)

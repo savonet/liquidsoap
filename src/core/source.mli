@@ -125,7 +125,7 @@ class virtual source :
        method private set_clock : unit
 
        (** The operator says to the source that he will ask it frames. It may be called multiple times. *)
-       method get_ready : ?dynamic:bool -> source list -> unit
+       method get_ready : source list -> unit
 
        (** Register a callback when wake_up is called. *)
        method on_wake_up : (unit -> unit) -> unit
@@ -137,7 +137,7 @@ class virtual source :
        method private wake_up : source list -> unit
 
        (** Opposite of [get_ready] : the operator no longer needs the source. it may be called multiple times. *)
-       method leave : ?failed_to_start:bool -> ?dynamic:bool -> source -> unit
+       method leave : ?failed_to_start:bool -> source -> unit
 
        (** Register a callback when sleep is called. *)
        method on_sleep : (unit -> unit) -> unit

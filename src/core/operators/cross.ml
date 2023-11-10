@@ -116,7 +116,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private prepare_transition_source s =
       let s = (s :> source) in
-      s#get_ready ~dynamic:true [(self :> source)];
+      s#get_ready [(self :> source)];
       Clock.unify ~pos:self#pos source#clock s#clock;
       transition_source <- Some s
 
@@ -124,24 +124,20 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       match transition_source with
         | None -> ()
         | Some s ->
-            s#leave ~dynamic:true (self :> source);
+            s#leave (self :> source);
             transition_source <- None
 
     method! private wake_up a =
       self#reset_analysis;
       super#wake_up a;
-      source#get_ready ~dynamic:true [(self :> source)];
       source#get_ready [(self :> source)];
-      Lang.iter_sources
-        (fun s -> s#get_ready ~dynamic:true [(self :> source)])
-        transition
+      source#get_ready [(self :> source)];
+      Lang.iter_sources (fun s -> s#get_ready [(self :> source)]) transition
 
     method! private sleep =
       source#leave (self :> source);
-      s#leave ~dynamic:true (self :> source);
-      Lang.iter_sources
-        (fun s -> s#leave ~dynamic:true (self :> source))
-        transition;
+      s#leave (self :> source);
+      Lang.iter_sources (fun s -> s#leave (self :> source)) transition;
       self#cleanup_transition_source
 
     (* in main time *)
