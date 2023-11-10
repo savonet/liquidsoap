@@ -16,10 +16,5 @@ logrotate configuration is also installed so that log files
 in the standard directory are truncated and compressed if they grow too big.
 
 It is not very convenient to detect errors when using the init script.
-We advise users to check their scripts after modification (use
-
-````
-liquidsoap --check /etc/liquidsoap/script.liq```
-)
-before effectively restarting the daemon.
-````
+We advise users to check their scripts after modification
+(use `liquidsoap --check /etc/liquidsoap/script.liq`) before effectively restarting the daemon.

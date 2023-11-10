@@ -283,20 +283,15 @@ It is sometimes useful (or even legally necessary) to keep a backup of an audio
 stream. Storing all the stream in one file can be very impractical. In order to
 save a file per hour in wav format, the following script can be used:
 
-```liquidsoap
-# A source to dump
-# s = ...
+```{.liquidsoap include="content/liq/dump-hourly.liq" from=1}
 
-# Dump the stream
-output.file(%wav, {time.string("/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3")}, s, reopen_when={0m})
 ```
 
 In the following variant we write a new mp3 file each time new metadata is
 coming from `s`:
 
-```liquidsoap
-filename = {time.string('/archive/$(if $(title),"$(title)","Unknown archive")-%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3')}
-output.file(%mp3, filename, s, reopen_on_metadata=true)
+```{.liquidsoap include="content/liq/dump-hourly2.liq" from=1}
+
 ```
 
 In the two examples we use [string interpolation](language.html) and time
@@ -331,37 +326,10 @@ One limitation of these transitions, however, is that if the transition happen r
 
 Crossfade-based transitions are more complex and involve buffering source data in advance to be able to compute a transition where ending and starting track potentially overlap. This does not work with all type of sources since some of them, such as `input.http` may only receive data at real-time rate and cannot be accelerated to buffer their data or else we risk running out of data.
 
-We provide a default operator named `smart_cross` which may be suitable for most usage. But you can also create your own customized crossfade transitions. This is in particular true if you are expecting crossfade transitions between tracks of your `music` source but not between a `music` track and e.g. some jingles. Here's how to do it in this case:
+We provide a default operator named `cross.smart` which may be suitable for most usage. But you can also create your own customized crossfade transitions. This is in particular true if you are expecting crossfade transitions between tracks of your `music` source but not between a `music` track and e.g. some jingles. Here's how to do it in this case:
 
-```liquidsoap
-# A function to add a source_tag metadata to a source:
-def source_tag(s,tag) =
-  def f(_)
-    [("source_tag",(tag:string))]
-  end
-  metadata.map(id=tag,insert_missing=true,f,s)
-end
+```{.liquidsoap include="content/liq/cross.smart.liq" from=1 to=-1}
 
-# Tag our sources
-music = source_tag(..., "music")
-jingles = source_tag(..., "jingles")
-
-# Combine them with one jingle every 3 music tracks
-radio = rotate(weights = [1,3],[jingles,music])
-
-# Now a custom crossfade transition:
-def transition(a,b)
-  # If old or new source is not music, no fade
-  if a.metadata["source_tag"] != "music" or a.metadata["source_tag"] != "music" then
-    sequence([a.source, b.source])
-  else
-    # Else, apply the standard smart transition
-    cross.smart(a, b)
-  end
-end
-
-# Apply it!
-radio = cross(duration=5., transition, radio)
 ```
 
 ## Alsa unbuffered output
@@ -384,17 +352,8 @@ Could not set buffer size to 'frame.size' (1920 samples), got 2048.
 
 The solution is then to set liquidsoap's internal frame size to this value, which is most likely specific to your hardware. Let's try this script:
 
-```liquidsoap
-# Set correct frame size:
-# This makes it possible to set any audio frame size.
-# Make sure that you do NOT use video in this case!
-video.frame.rate := 0
+```{.liquidsoap include="content/liq/frame-size.liq"}
 
-# Now set the audio frame size exactly as required:
-settings.frame.audio.size := 2048
-
-input = input.alsa(bufferize=false)
-output.alsa(bufferize=false,input)
 ```
 
 The setting will be acknowledged in the log as follows:

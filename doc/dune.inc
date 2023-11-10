@@ -68,11 +68,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md protocols.md))
   (target protocols.html)
@@ -94,11 +116,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md reference.md))
   (target reference.html)
@@ -120,11 +164,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md reference-extras.md))
   (target reference-extras.html)
@@ -146,11 +212,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md reference-deprecated.md))
   (target reference-deprecated.html)
@@ -172,11 +260,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md settings.md))
   (target settings.html)
@@ -198,11 +308,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/beets.md))
   (target beets.html)
@@ -224,11 +356,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/blank.md))
   (target blank.html)
@@ -250,11 +404,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/book.md))
   (target book.html)
@@ -276,11 +452,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/build.md))
   (target build.html)
@@ -302,11 +500,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/clocks.md))
   (target clocks.html)
@@ -328,11 +548,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/complete_case.md))
   (target complete_case.html)
@@ -354,11 +596,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/cookbook.md))
   (target cookbook.html)
@@ -380,11 +644,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/crossfade.md))
   (target crossfade.html)
@@ -406,11 +692,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/custom-path.md))
   (target custom-path.html)
@@ -432,11 +740,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/documentation.md))
   (target documentation.html)
@@ -458,11 +788,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/dynamic_sources.md))
   (target dynamic_sources.html)
@@ -484,11 +836,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/encoding_formats.md))
   (target encoding_formats.html)
@@ -510,11 +884,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/external_decoders.md))
   (target external_decoders.html)
@@ -536,11 +932,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/external_encoders.md))
   (target external_encoders.html)
@@ -562,11 +980,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/external_streams.md))
   (target external_streams.html)
@@ -588,11 +1028,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/faq.md))
   (target faq.html)
@@ -614,11 +1076,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/ffmpeg.md))
   (target ffmpeg.html)
@@ -640,11 +1124,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/ffmpeg_cookbook.md))
   (target ffmpeg_cookbook.html)
@@ -666,11 +1172,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/ffmpeg_encoder.md))
   (target ffmpeg_encoder.html)
@@ -692,11 +1220,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/ffmpeg_filters.md))
   (target ffmpeg_filters.html)
@@ -718,11 +1268,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/flows_devel.md))
   (target flows_devel.html)
@@ -744,11 +1316,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/frequence3.md))
   (target frequence3.html)
@@ -770,11 +1364,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/geekradio.md))
   (target geekradio.html)
@@ -796,11 +1412,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/gstreamer_encoder.md))
   (target gstreamer_encoder.html)
@@ -822,11 +1460,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/harbor.md))
   (target harbor.html)
@@ -848,11 +1508,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/harbor_http.md))
   (target harbor_http.html)
@@ -874,11 +1556,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/help.md))
   (target help.html)
@@ -900,11 +1604,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/hls_output.md))
   (target hls_output.html)
@@ -926,11 +1652,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/http_input.md))
   (target http_input.html)
@@ -952,11 +1700,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/icy_metadata.md))
   (target icy_metadata.html)
@@ -978,11 +1748,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/in_production.md))
   (target in_production.html)
@@ -1004,11 +1796,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/index.md))
   (target index.html)
@@ -1030,11 +1844,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/install.md))
   (target install.html)
@@ -1056,11 +1892,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/json.md))
   (target json.html)
@@ -1082,11 +1940,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/ladspa.md))
   (target ladspa.html)
@@ -1108,11 +1988,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/language.md))
   (target language.html)
@@ -1134,11 +2036,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/memory.md))
   (target memory.html)
@@ -1160,11 +2084,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/metadata.md))
   (target metadata.html)
@@ -1186,11 +2132,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/migrating.md))
   (target migrating.html)
@@ -1212,11 +2180,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/multitrack.md))
   (target multitrack.html)
@@ -1238,11 +2228,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/on2.md))
   (target on2.html)
@@ -1264,11 +2276,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/on2_part1.md))
   (target on2_part1.html)
@@ -1290,11 +2324,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/on2_part2.md))
   (target on2_part2.html)
@@ -1316,11 +2372,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/on2_part3.md))
   (target on2_part3.html)
@@ -1342,11 +2420,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/phases.md))
   (target phases.html)
@@ -1368,11 +2468,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/playlist_parsers.md))
   (target playlist_parsers.html)
@@ -1394,11 +2516,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/presentations.md))
   (target presentations.html)
@@ -1420,11 +2564,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/profiling.md))
   (target profiling.html)
@@ -1446,11 +2612,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/prometheus.md))
   (target prometheus.html)
@@ -1472,11 +2660,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/protocols-presentation.md))
   (target protocols-presentation.html)
@@ -1498,11 +2708,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/publications.md))
   (target publications.html)
@@ -1524,11 +2756,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/quick_start.md))
   (target quick_start.html)
@@ -1550,11 +2804,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/radiopi.md))
   (target radiopi.html)
@@ -1576,11 +2852,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/reference-header.md))
   (target reference-header.html)
@@ -1602,11 +2900,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/release-assets.md))
   (target release-assets.html)
@@ -1628,11 +2948,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/replay_gain.md))
   (target replay_gain.html)
@@ -1654,11 +2996,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/request_sources.md))
   (target request_sources.html)
@@ -1680,11 +3044,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/requests.md))
   (target requests.html)
@@ -1706,11 +3092,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/rolling-release.md))
   (target rolling-release.html)
@@ -1732,11 +3140,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/script_loading.md))
   (target script_loading.html)
@@ -1758,11 +3188,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/seek.md))
   (target seek.html)
@@ -1784,11 +3236,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/server.md))
   (target server.html)
@@ -1810,11 +3284,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/shoutcast.md))
   (target shoutcast.html)
@@ -1836,11 +3332,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/sources.md))
   (target sources.html)
@@ -1862,11 +3380,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/split-cue.md))
   (target split-cue.html)
@@ -1888,11 +3428,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/stereotool.md))
   (target stereotool.html)
@@ -1914,11 +3476,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/stream_content.md))
   (target stream_content.html)
@@ -1940,11 +3524,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/strings_encoding.md))
   (target strings_encoding.html)
@@ -1966,11 +3572,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/video-static.md))
   (target video-static.html)
@@ -1992,11 +3620,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/video.md))
   (target video.html)
@@ -2018,11 +3668,33 @@
     liquidsoap.xml
     language.dtd
     template.html
+    content/liq/append-silence.liq
+    content/liq/complete-case.liq
+    content/liq/cross.smart.liq
+    content/liq/dump-hourly.liq
+    content/liq/dump-hourly2.liq
+    content/liq/dynamic-source.liq
+    content/liq/ffmpeg-live-switch.liq
+    content/liq/ffmpeg-relay-ondemand.liq
+    content/liq/ffmpeg-relay.liq
+    content/liq/ffmpeg-shared-encoding-rtmp.liq
+    content/liq/ffmpeg-shared-encoding.liq
+    content/liq/frame-size.liq
+    content/liq/http-input.liq
+    content/liq/icy-update.liq
+    content/liq/medialib.liq
     content/liq/radiopi.liq
+    content/liq/re-encode.liq
+    content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/rtmp.liq
+    content/liq/scheduling.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
+    content/liq/srt-receiver.liq
+    content/liq/srt-sender.liq
+    content/liq/transcoding.liq
     content/liq/video-static.liq
     (:md content/yaml.md))
   (target yaml.html)
@@ -2035,7 +3707,177 @@
   (package liquidsoap)
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/append-silence.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/complete-case.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/cross.smart.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/dump-hourly.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/dump-hourly2.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/dynamic-source.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/ffmpeg-live-switch.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/ffmpeg-relay-ondemand.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/ffmpeg-relay.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/ffmpeg-shared-encoding-rtmp.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/ffmpeg-shared-encoding.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/frame-size.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/http-input.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/icy-update.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/medialib.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/radiopi.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/re-encode.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/regular.liq)
   )
   (action (run %{liquidsoap} --check %{test_liq}))
 )
@@ -2065,6 +3907,26 @@
   (package liquidsoap)
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/rtmp.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/scheduling.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/space_overhead.liq)
   )
   (action (run %{liquidsoap} --check %{test_liq}))
@@ -2076,6 +3938,36 @@
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/split-cue.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/srt-receiver.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/srt-sender.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/transcoding.liq)
   )
   (action (run %{liquidsoap} --check %{test_liq}))
 )
