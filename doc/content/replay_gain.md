@@ -75,8 +75,6 @@ For replay gain implementation, the `amplify` operator would typically be added 
 For convenience, we added the `replaygain` operator which performs the
 amplification on the right metadata so that this can further be simplified to
 
-```liquidsoap
-enable_replaygain_metadata()
+```{.liquidsoap include="content/liq/replaygain-playlist.liq" to=-1}
 
-s = replaygain(playlist("~/playlist"))
 ```

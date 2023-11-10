@@ -69,7 +69,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md protocols.md))
   (target protocols.html)
   (action
@@ -91,7 +93,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md reference.md))
   (target reference.html)
   (action
@@ -113,7 +117,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md reference-extras.md))
   (target reference-extras.html)
   (action
@@ -135,7 +141,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md reference-deprecated.md))
   (target reference-deprecated.html)
   (action
@@ -157,7 +165,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md settings.md))
   (target settings.html)
   (action
@@ -179,7 +189,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/beets.md))
   (target beets.html)
   (action
@@ -201,7 +213,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/blank.md))
   (target blank.html)
   (action
@@ -223,7 +237,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/book.md))
   (target book.html)
   (action
@@ -245,7 +261,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/build.md))
   (target build.html)
   (action
@@ -267,7 +285,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/clocks.md))
   (target clocks.html)
   (action
@@ -289,7 +309,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/complete_case.md))
   (target complete_case.html)
   (action
@@ -311,7 +333,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/cookbook.md))
   (target cookbook.html)
   (action
@@ -333,7 +357,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/crossfade.md))
   (target crossfade.html)
   (action
@@ -355,7 +381,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/custom-path.md))
   (target custom-path.html)
   (action
@@ -377,7 +405,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/documentation.md))
   (target documentation.html)
   (action
@@ -399,7 +429,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/dynamic_sources.md))
   (target dynamic_sources.html)
   (action
@@ -421,7 +453,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/encoding_formats.md))
   (target encoding_formats.html)
   (action
@@ -443,7 +477,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/external_decoders.md))
   (target external_decoders.html)
   (action
@@ -465,7 +501,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/external_encoders.md))
   (target external_encoders.html)
   (action
@@ -487,7 +525,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/external_streams.md))
   (target external_streams.html)
   (action
@@ -509,7 +549,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/faq.md))
   (target faq.html)
   (action
@@ -531,7 +573,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/ffmpeg.md))
   (target ffmpeg.html)
   (action
@@ -553,7 +597,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/ffmpeg_cookbook.md))
   (target ffmpeg_cookbook.html)
   (action
@@ -575,7 +621,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/ffmpeg_encoder.md))
   (target ffmpeg_encoder.html)
   (action
@@ -597,7 +645,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/ffmpeg_filters.md))
   (target ffmpeg_filters.html)
   (action
@@ -619,7 +669,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/flows_devel.md))
   (target flows_devel.html)
   (action
@@ -641,7 +693,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/frequence3.md))
   (target frequence3.html)
   (action
@@ -663,7 +717,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/geekradio.md))
   (target geekradio.html)
   (action
@@ -685,7 +741,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/gstreamer_encoder.md))
   (target gstreamer_encoder.html)
   (action
@@ -707,7 +765,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/harbor.md))
   (target harbor.html)
   (action
@@ -729,7 +789,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/harbor_http.md))
   (target harbor_http.html)
   (action
@@ -751,7 +813,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/help.md))
   (target help.html)
   (action
@@ -773,7 +837,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/hls_output.md))
   (target hls_output.html)
   (action
@@ -795,7 +861,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/http_input.md))
   (target http_input.html)
   (action
@@ -817,7 +885,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/icy_metadata.md))
   (target icy_metadata.html)
   (action
@@ -839,7 +909,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/in_production.md))
   (target in_production.html)
   (action
@@ -861,7 +933,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/index.md))
   (target index.html)
   (action
@@ -883,7 +957,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/install.md))
   (target install.html)
   (action
@@ -905,7 +981,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/json.md))
   (target json.html)
   (action
@@ -927,7 +1005,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/ladspa.md))
   (target ladspa.html)
   (action
@@ -949,7 +1029,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/language.md))
   (target language.html)
   (action
@@ -971,7 +1053,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/memory.md))
   (target memory.html)
   (action
@@ -993,7 +1077,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/metadata.md))
   (target metadata.html)
   (action
@@ -1015,7 +1101,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/migrating.md))
   (target migrating.html)
   (action
@@ -1037,7 +1125,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/multitrack.md))
   (target multitrack.html)
   (action
@@ -1059,7 +1149,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/on2.md))
   (target on2.html)
   (action
@@ -1081,7 +1173,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/on2_part1.md))
   (target on2_part1.html)
   (action
@@ -1103,7 +1197,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/on2_part2.md))
   (target on2_part2.html)
   (action
@@ -1125,7 +1221,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/on2_part3.md))
   (target on2_part3.html)
   (action
@@ -1147,7 +1245,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/phases.md))
   (target phases.html)
   (action
@@ -1169,7 +1269,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/playlist_parsers.md))
   (target playlist_parsers.html)
   (action
@@ -1191,7 +1293,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/presentations.md))
   (target presentations.html)
   (action
@@ -1213,7 +1317,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/profiling.md))
   (target profiling.html)
   (action
@@ -1235,7 +1341,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/prometheus.md))
   (target prometheus.html)
   (action
@@ -1257,7 +1365,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/protocols-presentation.md))
   (target protocols-presentation.html)
   (action
@@ -1279,7 +1389,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/publications.md))
   (target publications.html)
   (action
@@ -1301,7 +1413,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/quick_start.md))
   (target quick_start.html)
   (action
@@ -1323,7 +1437,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/radiopi.md))
   (target radiopi.html)
   (action
@@ -1345,7 +1461,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/reference-header.md))
   (target reference-header.html)
   (action
@@ -1367,7 +1485,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/release-assets.md))
   (target release-assets.html)
   (action
@@ -1389,7 +1509,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/replay_gain.md))
   (target replay_gain.html)
   (action
@@ -1411,7 +1533,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/request_sources.md))
   (target request_sources.html)
   (action
@@ -1433,7 +1557,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/requests.md))
   (target requests.html)
   (action
@@ -1455,7 +1581,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/rolling-release.md))
   (target rolling-release.html)
   (action
@@ -1477,7 +1605,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/script_loading.md))
   (target script_loading.html)
   (action
@@ -1499,7 +1629,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/seek.md))
   (target seek.html)
   (action
@@ -1521,7 +1653,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/server.md))
   (target server.html)
   (action
@@ -1543,7 +1677,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/shoutcast.md))
   (target shoutcast.html)
   (action
@@ -1565,7 +1701,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/sources.md))
   (target sources.html)
   (action
@@ -1587,7 +1725,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/split-cue.md))
   (target split-cue.html)
   (action
@@ -1609,7 +1749,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/stereotool.md))
   (target stereotool.html)
   (action
@@ -1631,7 +1773,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/stream_content.md))
   (target stream_content.html)
   (action
@@ -1653,7 +1797,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/strings_encoding.md))
   (target strings_encoding.html)
   (action
@@ -1675,7 +1821,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/video-static.md))
   (target video-static.html)
   (action
@@ -1697,7 +1845,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/video.md))
   (target video.html)
   (action
@@ -1719,7 +1869,9 @@
     language.dtd
     template.html
     content/liq/replaygain-metadata.liq
+    content/liq/replaygain-playlist.liq
     content/liq/space_overhead.liq
+    content/liq/split-cue.liq
     (:md content/yaml.md))
   (target yaml.html)
   (action
@@ -1741,7 +1893,27 @@
   (package liquidsoap)
   (deps
     (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/replaygain-playlist.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/space_overhead.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/split-cue.liq)
   )
   (action (run %{liquidsoap} --check %{test_liq}))
 )
