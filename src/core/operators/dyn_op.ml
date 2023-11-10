@@ -73,14 +73,12 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
       Lang.iter_sources
         (fun s ->
           Typing.(s#frame_type <: self#frame_type);
-          s#get_ready ~dynamic:true activation)
+          s#get_ready activation)
         f;
       self#select
 
     method! private sleep =
-      Lang.iter_sources
-        (fun s -> s#leave ~dynamic:true (self :> Source.source))
-        f;
+      Lang.iter_sources (fun s -> s#leave (self :> Source.source)) f;
       self#unregister_source ~already_locked:false
 
     method private _is_ready ?frame () =
