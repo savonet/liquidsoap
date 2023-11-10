@@ -479,13 +479,9 @@ let rec to_ast_json ~to_json = function
           ("optional", `Bool optional);
           ("meth", `Assoc (json_of_invoke_meth ~to_json meth));
         ]
-  | `Methods { base; methods } ->
+  | `Methods (base, methods) ->
       let base, base_methods =
-        match base with
-          | `None -> (`Null, [])
-          | `Term t -> (to_json t, [])
-          | `Spread t ->
-              (`Null, [`Assoc (ast_node ~typ:"ellipsis" [("value", to_json t)])])
+        match base with None -> (`Null, []) | Some t -> (to_json t, [])
       in
       ast_node ~typ:"methods"
         [
@@ -493,10 +489,13 @@ let rec to_ast_json ~to_json = function
           ( "methods",
             `Tuple
               (List.map
-                 (fun (k, v) ->
-                   `Assoc
-                     (ast_node ~typ:"method"
-                        [("name", `String k); ("value", to_json v)]))
+                 (function
+                   | `Ellipsis v ->
+                       `Assoc (ast_node ~typ:"ellipsis" [("value", to_json v)])
+                   | `Method (k, v) ->
+                       `Assoc
+                         (ast_node ~typ:"method"
+                            [("name", `String k); ("value", to_json v)]))
                  methods
               @ base_methods) );
         ]

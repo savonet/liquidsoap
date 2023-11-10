@@ -835,46 +835,46 @@ and to_term (tm : Parsed_term.t) : Term.t =
     | `Seq (({ term = `If_version _ } as t), t') ->
         concat_term (to_term t) (to_term t')
     | `Parenthesis tm | `Block tm -> to_term tm
-    | `Methods { base; methods } ->
-        let term, base_methods =
-          match base with
-            | `None -> (`Tuple [], Methods.empty)
-            | `Term tm ->
-                let { term; methods } = to_term tm in
-                (term, methods)
-            | `Spread tm ->
-                let term = to_term tm in
-                (* let _ = tm in let replaces _ = () in _ *)
-                let { term; methods } =
+    | `Methods (base, methods) ->
+        (* let _ = src in
+           let replaces _ = dst in
+           _ *)
+        let replace_methods ~src dst =
+          mk ~pos:tm.pos
+            (`Let
+              {
+                doc = None;
+                replace = false;
+                pat = `PVar ["_"];
+                gen = [];
+                def = src;
+                body =
                   mk ~pos:tm.pos
                     (`Let
                       {
                         doc = None;
-                        replace = false;
+                        replace = true;
                         pat = `PVar ["_"];
                         gen = [];
-                        def = term;
-                        body =
-                          mk ~pos:tm.pos
-                            (`Let
-                              {
-                                doc = None;
-                                replace = true;
-                                pat = `PVar ["_"];
-                                gen = [];
-                                def = mk ~pos:tm.pos (`Tuple []);
-                                body = mk ~pos:tm.pos (`Var "_");
-                              });
-                      })
-                in
-                (term, methods)
+                        def = dst;
+                        body = mk ~pos:tm.pos (`Var "_");
+                      });
+              })
         in
-        let methods =
-          List.fold_left
-            (fun methods (k, v) -> Methods.add k (to_term v) methods)
-            base_methods methods
+        let term =
+          match base with
+            | None -> mk ~pos:tm.pos (`Tuple [])
+            | Some tm -> to_term tm
         in
-        { t = Type.var ~pos:tm.pos (); term; methods }
+        List.fold_left
+          (fun term -> function
+            | `Ellipsis src -> replace_methods ~src:(to_term src) term
+            | `Method (name, tm) ->
+                {
+                  term with
+                  methods = Methods.add name (to_term tm) term.methods;
+                })
+          term methods
     | term ->
         let comments =
           List.filter_map
