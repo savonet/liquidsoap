@@ -33,26 +33,38 @@ let mk_tokenizer ?(fname = "") lexbuf =
 (* The expander turns "bla #{e} bli" into ("bla "^string(e)^" bli"). *)
 type exp_item = String of string | Expr of tokenizer | End
 
+exception Found_interpolation
+
 let expand_string ?fname tokenizer =
   let state = Queue.create () in
   let add pos x = Queue.add (x, pos) state in
   let pop () = ignore (Queue.take state) in
   let clear () = Queue.clear state in
+  let is_interpolating () =
+    try
+      Queue.iter
+        (function Expr _, _ -> raise Found_interpolation | _ -> ())
+        state;
+      false
+    with Found_interpolation -> true
+  in
   let parse ~sep s pos =
-    let l = Regexp.split (Regexp.regexp "#{([^}]*)}") s in
-    let l = if l = [] then [""] else l in
+    let rex = Re.Pcre.regexp "#\\{([^}]*)\\}" in
+    let l = Re.Pcre.full_split ~rex s in
+    let l = if l = [] then [Re.Pcre.Text s] else l in
     let add = add pos in
     let rec parse = function
-      | s :: x :: l ->
+      | Re.Pcre.Group (_, x) :: l ->
           let x = Lexer.render_string ~pos ~sep x in
           let lexbuf = Sedlexing.Utf8.from_string x in
           let tokenizer = mk_tokenizer ?fname lexbuf in
           let tokenizer () = (fst (tokenizer ()), pos) in
-          List.iter add [String s; Expr tokenizer];
+          add (Expr tokenizer);
           parse l
-      | x :: l ->
+      | Re.Pcre.Text x :: l ->
           add (String x);
           parse l
+      | Re.Pcre.NoGroup :: l | Re.Pcre.Delim _ :: l -> parse l
       | [] -> add End
     in
     parse l
@@ -62,7 +74,7 @@ let expand_string ?fname tokenizer =
       match tokenizer () with
         | (Parser.STRING (sep, s), pos) as tok ->
             parse ~sep s pos;
-            if Queue.length state > 2 then (Parser.BEGIN_INTERPOLATION sep, pos)
+            if is_interpolating () then (Parser.BEGIN_INTERPOLATION sep, pos)
             else (
               clear ();
               tok)

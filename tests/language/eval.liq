@@ -3,22 +3,14 @@ count = ref(1)
 fail = ref(false)
 
 def echo(s) =
+  print(s)
   if s != string(count()) then fail := true end
   count := count() + 1
   ()
 end
 
 def t(lbl, f) =
-  if
-    f()
-  then
-    echo(lbl)
-  else
-    echo(
-      "fail " ^
-        lbl
-    )
-  end
+  if f() then echo(lbl) else echo("fail #{lbl}") end
 end
 
 def f() =
@@ -36,29 +28,28 @@ def f() =
   t("11", {2 == list.length(r//.split(l["blo"]))})
   echo("1#{1 + 1}")
   echo(string(int_of_float(float_of_string(default=13., "blah"))))
+
   f = fun (x) -> x
 
   # Checking that the following is not recursive:
   f = fun (x) -> f(x)
+
   echo(string(f(14)))
   t("15", {list.remove(2, [2]) == []})
   t("16", {"bla" == (true ? "bla" : "foo" )})
   t("17", {"foo" == (false ? "bla" : "foo" )})
 
   # Generic eval
-  let eval x =
-    "{foo = 123, gni = \"aabbcc\"}"
+  let eval x = "{foo = 123, gni = \"aabbcc\"}"
   t("18", {x.foo == 123})
   t("19", {x.gni == "aabbcc"})
 
   # Eval with sources!
-  let eval x =
-    "output.dummy(id='bla', blank())"
+  let eval x = "output.dummy(id='bla', blank())"
   t("20", {x.id() == "bla"})
 
   # Eval with patterns
-  let eval {foo, gni = [x, y]} =
-    "{foo = 123, gni = [1,2]}"
+  let eval {foo, gni = [x, y]} = "{foo = 123, gni = [1,2]}"
   t("21", {foo == 123})
   t("22", {gni == [1, 2]})
   t("23", {x == 1})

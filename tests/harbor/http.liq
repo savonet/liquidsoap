@@ -35,7 +35,7 @@ def f() =
     test.equals(req.http_version, "1.1")
     test.equals(req.method, "GET")
     test.equals(req.body(timeout=5.0), "")
-    test.equals(req.query, [("gni", "gno"), ("bla", "blo")])
+    test.equals(req.query, [("bla", "blo"), ("gni", "gno")])
     test.equals(req.path, "/path/gno/blo")
   end
 
@@ -53,7 +53,7 @@ def f() =
     test.equals(req.method, "POST")
     test.equals(
       req.query,
-      [("foo", "with"), ("bla", "in"), ("gnu", "gno"), ("gni", "gno")]
+      [("bla", "in"), ("foo", "with"), ("gnu", "gno"), ("gni", "gno")]
     )
 
     test.equals(

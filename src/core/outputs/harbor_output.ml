@@ -349,7 +349,11 @@ class output p =
   let uri =
     match mount.[0] with '/' -> mount | _ -> Printf.sprintf "%c%s" '/' mount
   in
-  let uri = Lang.Regexp.regexp [%string {|^%{uri}$|}] in
+  let uri =
+    let regexp = [%string {|^%{uri}$|}] in
+    Liquidsoap_lang.Builtins_regexp.
+      { descr = regexp; flags = []; regexp = Re.Pcre.regexp regexp }
+  in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
   let on_start =

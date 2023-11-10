@@ -27,7 +27,7 @@ type t = Type.t
 
 type module_name
 type scheme = Type.scheme
-type regexp
+type regexp = Builtins_regexp.regexp
 
 (** {2 Values} *)
 
@@ -244,12 +244,3 @@ val descr_of_regexp : regexp -> string
 
 (** Return a string description of a regexp value i.e. r/^foo\/bla$/g *)
 val string_of_regexp : regexp -> string
-
-module Regexp : sig
-  include Regexp.T with type t := regexp
-
-  type sub = Regexp.sub = {
-    matches : string option list;
-    groups : (string * string) list;
-  }
-end

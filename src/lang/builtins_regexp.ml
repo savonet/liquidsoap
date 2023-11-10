@@ -23,10 +23,10 @@
 type regexp = {
   descr : string;
   flags : [ `i | `g | `s | `m ] list;
-  regexp : Regexp.t;
+  regexp : Re.re;
 }
 
-let all_regexp_flags = [`i; `g; `s; `m]
+let all_regexp_flags = [`i; `g; `m]
 
 let string_of_regexp_flag = function
   | `i -> "i"
@@ -77,24 +77,33 @@ end)
 
 let test_t = Lang_core.fun_t [(false, "", Lang_core.string_t)] Lang_core.bool_t
 
-let test_fun rex =
+let test_fun ~flags:_ ~descr:_ rex =
   Lang_core.val_fun
     [("", "", None)]
     (fun p ->
       let string = Lang_core.to_string (List.assoc "" p) in
-      Lang_core.bool (Regexp.test rex string))
+      Lang_core.bool (Re.Pcre.pmatch ~rex string))
 
 let split_t =
   Lang_core.fun_t
     [(false, "", Lang_core.string_t)]
     (Lang_core.list_t Lang_core.string_t)
 
-let split_fun rex =
+let split_fun ~flags:_ ~descr rex =
   Lang_core.val_fun
     [("", "", None)]
     (fun p ->
       let string = Lang_core.to_string (List.assoc "" p) in
-      Lang_core.list (List.map Lang_core.string (Regexp.split rex string)))
+      Lang_core.list
+        (match (descr, string) with
+          (* See: https://github.com/ocaml/ocaml-re/issues/232 *)
+          | "", _ ->
+              List.map
+                (fun c -> Lang_core.string (Printf.sprintf "%c" c))
+                (List.of_seq (String.to_seq string))
+          (* See: https://github.com/ocaml/ocaml-re/issues/215 *)
+          | _, "" -> [Lang_core.string ""]
+          | _ -> List.map Lang_core.string (Re.Pcre.split ~rex string)))
 
 let exec_t =
   let matches_t =
@@ -111,14 +120,18 @@ let exec_t =
            "Named captures" );
        ])
 
-let exec_fun regexp =
+let exec_fun ~flags:_ ~descr:_ rex =
   Lang_core.val_fun
     [("", "", None)]
     (fun p ->
       let string = Lang_core.to_string (List.assoc "" p) in
       try
-        let { Regexp.matches; groups } = Regexp.exec regexp string in
+        let sub = Re.Pcre.exec ~rex string in
         let matches =
+          let matches =
+            Array.to_list
+            @@ Array.init (Re.Group.nb_groups sub + 1) (Re.Group.get_opt sub)
+          in
           Lang_core.list
             (List.fold_left
                (fun matches (pos, value) ->
@@ -135,11 +148,16 @@ let exec_fun regexp =
           [
             ( "groups",
               Lang_core.list
-                (List.map
-                   (fun (name, value) ->
-                     Lang_core.product (Lang_core.string name)
-                       (Lang_core.string value))
-                   groups) );
+                (List.fold_left
+                   (fun groups name ->
+                     try
+                       Lang_core.product (Lang_core.string name)
+                         (Lang_core.string
+                            (Re.Pcre.get_named_substring rex name sub))
+                       :: groups
+                     with Not_found -> groups)
+                   []
+                   (Array.to_list (Re.Pcre.names rex))) );
           ]
       with
         | Not_found ->
@@ -161,7 +179,7 @@ let replace_t =
     ]
     Lang_core.string_t
 
-let replace_fun regexp =
+let replace_fun ~flags ~descr:_ regexp =
   Lang_core.val_fun
     [("", "", None); ("", "", None)]
     (fun p ->
@@ -172,7 +190,10 @@ let replace_fun regexp =
       in
       let string = Lang_core.to_string (Lang_core.assoc "" 2 p) in
       let string =
-        try Regexp.substitute regexp ~subst string
+        try
+          Re.replace ~all:(List.mem `g flags)
+            ~f:(fun g -> subst (Re.Group.get g 0))
+            regexp string
         with exn ->
           Runtime_error.raise
             ~message:
@@ -233,7 +254,18 @@ let _ =
       in
       let descr = Lang_core.to_string (List.assoc "" p) in
       let regexp =
-        match Regexp.regexp ~flags descr with
+        let flags =
+          List.fold_left
+            (fun l f ->
+              match f with
+                | `i -> `CASELESS :: l
+                (* `g is handled at the call level. *)
+                | `g -> l
+                | `s -> `DOTALL :: l
+                | `m -> `MULTILINE :: l)
+            [] flags
+        in
+        match Re.Pcre.regexp ~flags descr with
           | v -> v
           | exception exn ->
               Runtime_error.raise
@@ -243,5 +275,7 @@ let _ =
                 ~pos:(Lang_core.pos p) "string"
       in
       let v = RegExp.to_value { descr; flags; regexp } in
-      let meth = List.map (fun (name, _, _, fn) -> (name, fn regexp)) meth in
+      let meth =
+        List.map (fun (name, _, _, fn) -> (name, fn ~flags ~descr regexp)) meth
+      in
       Lang_core.meth v meth)

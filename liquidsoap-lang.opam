@@ -11,6 +11,7 @@ depends: [
   "dune" {>= "3.6"}
   "ocaml" {>= "4.14.0"}
   "dune-site"
+  "re" {>= "1.11.0"}
   "ppx_string" {build}
   "sedlex" {>= "3.2"}
   "menhir" {>= "20180703"}

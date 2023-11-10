@@ -82,7 +82,7 @@
  (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx ppx_string))
- (libraries liquidsoap-lang.console dune-site str unix menhirLib)
+ (libraries liquidsoap-lang.console dune-site re str unix menhirLib)
  (modules
   build_config
   builtins_bool
@@ -126,7 +126,6 @@
   profiler
   repr
   ref_type
-  regexp
   runtime
   runtime_error
   runtime_term

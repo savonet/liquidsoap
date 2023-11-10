@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Pcre = Re.Pcre
+
 let conf_scheduler =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "scheduler")
@@ -216,7 +218,7 @@ let create ~queue f x s =
                       (Printexc.to_string e);
                     Printexc.raise_with_backtrace e raw_bt
             with e ->
-              let l = Pcre.split ~pat:"\n" bt in
+              let l = Pcre.split ~rex:(Pcre.regexp "\n") bt in
               List.iter (log#info "%s") l;
               mutexify lock
                 (fun () ->
