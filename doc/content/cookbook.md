@@ -48,27 +48,8 @@ When building your stream, you'll often need to make it unfallible. Usually, you
 
 [Liquidsoap](index.html) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. If you want to get the best use of CPUs (multicore, memory footprint etc.) when encoding media with Liquidsoap, we recommend using the `%ffmpeg` encoders.
 
-```liquidsoap
-# Input the stream,
-# from an Icecast server or any other source
-url = "https://icecast.radiofrance.fr/fip-hifi.aac"
-input = mksafe(input.http(url))
+```{.liquidsoap include="content/liq/transcoding.liq"}
 
-# First transcoder: MP3 32 kbps
-# We also degrade the samplerate, and encode in mono
-# Accordingly, a mono conversion is performed on the input stream
-output.icecast(
-  %mp3(bitrate=32, samplerate=22050, stereo=false),
-  mount="/your-stream-32.mp3",
-  host="streaming.example.com", port=8000, password="xxx",
-  mean(input))
-
-# Second transcoder : MP3 128 kbps using %ffmpeg
-output.icecast(
-  %ffmpeg(format="mp3", %audio(codec="libmp3lame", b="128k")),
-  mount="/your-stream-128.mp3",
-  host="streaming.example.com", port=8000, password="xxx",
-  input)
 ```
 
 ## Re-encoding a file
@@ -83,41 +64,16 @@ to encode the file as quickly as possible.
 Finally, we use the `on_stop` handler to shutdown
 liquidsoap when streaming is finished.
 
-```liquidsoap
-# The input file,
-# any format supported by liquidsoap
-input = "/tmp/input.mp3"
+```{.liquidsoap include="content/liq/re-encode.liq"}
 
-# The output file
-output = "/tmp/output.ogg"
-
-# A source that plays the file once
-source = once(single(input))
-
-# We use a clock with disabled synchronization
-clock.assign_new(sync="none",[source])
-
-# Finally, we output the source to an
-# ogg/vorbis file
-output.file(%vorbis, output,fallible=true,
-                     on_stop=shutdown,source)
 ```
 
 ## RTMP server
 
 With our [FFmpeg support](ffmpeg.html), it is possible to create a simple RTMP server with no re-encoding:
 
-```liquidsoap
-s = playlist("...")
+```{.liquidsoap include="content/liq/rtmp.liq"}
 
-enc = %ffmpeg(
-  format="flv",
-  listen=1,
-  %audio.copy,
-  %video.copy
-)
-
-output.url(url="rtmp://host/app/instance", enc, s)
 ```
 
 ## Transmitting signal
@@ -127,36 +83,20 @@ the SRT transport protocol:
 
 Sender:
 
-```liquidsoap
-enc = %ffmpeg(
-  format="s16le",
-  %audio(
-    codec="pcm_s16le",
-    ac=2,
-    ar=48000
-  )
-)
-output.srt(enc, s)
+```{.liquidsoap include="content/liq/srt-sender.liq"}
+
 ```
 
 Receiver:
 
-```liquidsoap
-s = input.srt(
-  content_type="application/ffmpeg;format=s16le,ch_layout=stereo,sample_rate=48000"
-)
+```{.liquidsoap include="content/liq/srt-receiver.liq"}
+
 ```
 
 ## Scheduling
 
-```liquidsoap
-# A fallback switch
-fallback([playlist("http://my/playlist"),
-          single("/my/jingle.ogg")])
+```{.liquidsoap include="content/liq/scheduling.liq"}
 
-# A scheduler,
-# assuming you have defined the night and day sources
-switch([ ({0h-7h}, night), ({7h-24h}, day) ])
 ```
 
 ## Generating playlists from a media library
@@ -170,11 +110,8 @@ stored to avoid reindexing at each run). The resulting object can then
 be queried with the `find` method in order to return all files matching the given
 conditions and thus generate a playlist:
 
-```liquidsoap
-m = medialib(persistency="/tmp/medialib.json", "~/Music/")
-l = m.find(artist_contains="Brassens")
-l = list.shuffle(l)
-output(playlist.list(l))
+```{.liquidsoap include="content/liq/medialib.liq"}
+
 ```
 
 The parameter of the `find` method follow the following convention:
@@ -219,10 +156,8 @@ It can be useful to have a special playlist that is played at least every 20 min
 You may think of a promotional playlist for instance.
 Here is the recipe:
 
-```liquidsoap
-# (1200 sec = 20 min)
-timed_promotions = delay(1200.,promotions)
-main_source = fallback([timed_promotions,other_source])
+```{.liquidsoap include="content/liq/regular.liq"}
+
 ```
 
 Where promotions is a source selecting the file to be promoted.
@@ -338,53 +273,8 @@ to add an extra `5s` of silence when transitioning out of a live `input.harbor` 
 
 This can be done with the `append` operator:
 
-```liquidsoap
-# The live source. We use a short buffer to switch
-# more quickly to the source when reconnecting
-live_source = input.harbor("mount-point-name", buffer=3.)
+```{.liquidsoap include="content/liq/append-silence.liq"}
 
-# A playlist source.
-playlist_source = playlist("/path/to/playlist")
-
-# Set to `true` when we should be adding
-# silence
-should_append = ref(false)
-
-# Append 5. of silence when needed.
-fallback_source = append(
-  playlist_source, fun (_) ->
-    if should_append() then
-      should_append := false
-      blank(duration=5.)
-    else
-      source.fail()
-    end
-)
-
-# Transition to live
-def to_live(playlist, live) =
-  sequence([playlist,live])
-end
-
-# Transition back to playlist
-def to_playlist(live, playlist) =
-  # Ask to insert a silent track.
-  should_append := true
-
-  # Cancel current track. This will also set the playlist
-  # to play a new track. If needed, `cancel_pending` can
-  # be used to for a new silent track without skipping the
-  # playlist current track.
-  fallback_source.skip()
-
-  sequence([live, playlist])
-end
-
-radio = fallback(
-  track_sensitive=false,
-  transitions=[to_live, to_playlist],
-  [live_source, fallback_source]
-)
 ```
 
 ## Dump a stream into segmented files
