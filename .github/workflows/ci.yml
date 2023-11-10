@@ -216,7 +216,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: ["@citest", "@mediatest"]
+        target: ["@citest", "@doctest", "@mediatest"]
     env:
       HOME: /home/opam
     steps:
@@ -268,7 +268,7 @@ jobs:
           name: metrics
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Upload metrics
-        if: needs.build_details.outputs.is_fork != 'true' && matrix.target != '@mediatest'
+        if: needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
