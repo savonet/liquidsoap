@@ -243,7 +243,7 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E opam install -y ssl.0.7.0
+          sudo -u opam -E opam install -y ssl.0.7.0 pandoc-include
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Compute stats
