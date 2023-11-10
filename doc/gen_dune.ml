@@ -88,6 +88,21 @@ let mk_generated_rule (file, option, header) =
 |}
     header_deps file file header_action option header_close
 
+let mk_test_rule file =
+  Printf.printf
+    {|
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq %s)
+  )
+  (action (run %%{liquidsoap} --check %%{test_liq}))
+)
+|}
+    file
+
 let mk_html_install f =
   Printf.sprintf {|    (%s as html/%s)|} (mk_html f) (mk_html f)
 
@@ -123,6 +138,7 @@ let () =
     (fun (file, _, _) -> mk_html_rule ~liq ~content:false file)
     generated_md;
   List.iter (mk_html_rule ~liq ~content:true) md;
+  List.iter mk_test_rule liq;
   let files =
     List.map
       (fun f -> Printf.sprintf {|    (orig/%s as html/%s)|} f f)

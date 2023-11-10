@@ -1650,6 +1650,16 @@
     (ignore-outputs
       (run pandoc --filter=pandoc-include --syntax-definition=liquidsoap.xml --highlight=pygments %{md} --metadata pagetitle=yaml --template=template.html -o %{target}))))
 
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/space_overhead.liq)
+  )
+  (action (run %{liquidsoap} --check %{test_liq}))
+)
+
 (install
   (section doc)
   (package liquidsoap)
