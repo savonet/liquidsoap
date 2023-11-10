@@ -1,5 +1,4 @@
-# Input the stream,
-# from an Icecast server or any other source
+# Input the stream, from an Icecast server or any other source
 source = input.http("https://icecast.radiofrance.fr/fip-hifi.aac")
 
 # Make it infallible:

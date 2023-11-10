@@ -31,4 +31,4 @@ end
 
 # Apply it!
 radio = cross(duration=5., transition, radio)
-output.dummy(radio)
+output.dummy(fallible=true, radio)

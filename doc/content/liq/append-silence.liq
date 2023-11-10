@@ -42,3 +42,4 @@ radio = fallback(
   transitions=[to_live, to_playlist],
   [live_source, fallback_source]
 )
+output.dummy(fallible=true, radio)

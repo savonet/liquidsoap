@@ -156,7 +156,7 @@ It can be useful to have a special playlist that is played at least every 20 min
 You may think of a promotional playlist for instance.
 Here is the recipe:
 
-```{.liquidsoap include="content/liq/regular.liq"}
+```{.liquidsoap include="content/liq/regular.liq" from=1 to=-1}
 
 ```
 
@@ -273,7 +273,7 @@ to add an extra `5s` of silence when transitioning out of a live `input.harbor` 
 
 This can be done with the `append` operator:
 
-```{.liquidsoap include="content/liq/append-silence.liq"}
+```{.liquidsoap include="content/liq/append-silence.liq" to=-1}
 
 ```
 

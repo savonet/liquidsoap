@@ -1,5 +1,5 @@
-# An audio source
-audio = ...
+# An audio source...
+audio = sine()
 
 # Encode it in mp3
 audio = ffmpeg.encode.audio(
@@ -16,7 +16,7 @@ output.icecast(
 )
 
 # A video source, for instance a static image
-video = ...
+video = single("image.png")
 
 # Encode it in h264 format
 video = ffmpeg.encode.video(

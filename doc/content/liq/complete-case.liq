@@ -2,20 +2,17 @@
 
 # Lines starting with # are comments, they are ignored.
 
-# Put the log file in some directory where
-# you have permission to write.
+# Put the log file in some directory where you have permission to write.
 log.file.path := "/tmp/<script>.log"
 
-# Print log messages to the console,
-# can also be done by passing the -v option to liquidsoap.
+# Print log messages to the console, can also be done by passing the -v option
+# to Liquidsoap.
 log.stdout := true
 
 # Use the telnet server for requests
 settings.server.telnet := true
 
-# A bunch of files and playlists,
-# supposedly all located in the same base dir.
-
+# A bunch of files and playlists, supposedly all located in the same base dir.
 default = single("~/radio/default.ogg")
 
 day = playlist("~/radio/day.pls")
@@ -23,9 +20,8 @@ night = playlist("~/radio/night.pls")
 jingles = playlist("~/radio/jingles.pls")
 clock = single("~/radio/clock.ogg")
 
-# Play user requests if there are any,
-# otherwise one of our playlists,
-# and the default file if anything goes wrong.
+# Play user requests if there are any, otherwise one of our playlists, and the
+# default file if anything goes wrong.
 radio =
   fallback(
     [
@@ -39,7 +35,9 @@ radio =
 radio = random(weights=[1, 5], [jingles, radio])
 
 # And the clock jingle
-radio = add([radio, switch([({}, clock)])])
+radio = add([radio, switch([({true}, clock)])])
+
+radio = mksafe(radio)
 
 # Add the ability to relay live shows
 full =
