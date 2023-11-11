@@ -95,7 +95,7 @@ Receiver:
 
 ## Scheduling
 
-```{.liquidsoap include="content/liq/scheduling.liq"}
+```{.liquidsoap include="content/liq/scheduling.liq" from=1 to=-1}
 
 ```
 

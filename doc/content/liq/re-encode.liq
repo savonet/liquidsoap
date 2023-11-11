@@ -2,7 +2,7 @@
 input = "/tmp/input.mp3"
 
 # The output file
-output = "/tmp/output.ogg"
+target = "/tmp/output.ogg"
 
 # A source that plays the file once
 source = once(single(input))
@@ -11,4 +11,4 @@ source = once(single(input))
 clock.assign_new(sync="none", [source])
 
 # Finally, we output the source to an ogg/vorbis file
-output.file(%vorbis, output, fallible=true, on_stop=shutdown, source)
+output.file(%vorbis, target, fallible=true, on_stop=shutdown, source)
