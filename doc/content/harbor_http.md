@@ -20,19 +20,8 @@ memory. Make sure to only use it if you know that the response should be small e
 
 For convenience, a HTTP response builder is provided via `harbor.http.response`. Here's an example:
 
-```liquidsoap
-def handler(request) =
-  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
-       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       body: #{request.body()}")
+```{.liquidsoap include="content/liq/harbor.http.response.liq"}
 
-  harbor.http.response(
-    content_type="text/html",
-    data="<p>ok, this works!</p>"
-  )
-end
-
-harbor.http.register.simple(port=8080, method="GET", path, handler)
 ```
 
 where:
@@ -195,19 +184,8 @@ harbor.http.register.regexp(
 You can use harbor to register HTTP services to
 fecth/set the metadata of a source.
 
-```liquidsoap
-meta = ref([])
+```{.liquidsoap inlucde="content/liq/harbor-metadata.liq" from=1}
 
-# s = some source
-s.on_metadata(fun (m) -> meta := m)
-
-# Return the json content of meta
-def get_meta(_, response) =
-  response.json(!meta)
-end
-
-# Register get_meta at port 700
-harbor.http.register(port=7000,method="GET","/getmeta",get_meta)
 ```
 
 Once the script is running,
@@ -231,31 +209,8 @@ Content-Type: application/json; charset=utf-8
 Using `insert_metadata`, you can register a GET handler that
 updates the metadata of a given source. For instance:
 
-```liquidsoap
-# s = some source
+```{.liquidsoap include="content/liq/harbor-insert-metadata.liq" from=1}
 
-# Create a source equipped with a `insert_metadata` method:
-s = insert_metadata(s)
-
-# The handler
-def set_meta(request, response) =
-  # Filter out unusual metadata
-  meta = metadata.export(request.query)
-
-  # Grab the returned message
-  ret =
-    if meta != [] then
-      s.insert_metadata(meta)
-      "OK!"
-    else
-      "No metadata to add!"
-  end
-
-  response.html("<html><body><b>#{ret}</b></body></html>")
-end
-
-# Register handler on port 700
-harbor.http.register(port=7000,method="GET","/setmeta",set_meta)
 ```
 
 Now, a request of the form `http://server:7000/setmeta?title=foo`
