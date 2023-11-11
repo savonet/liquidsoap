@@ -182,9 +182,18 @@ let parse_common_options p =
            ( List.assoc "bind_address" p,
              Printf.sprintf "Invalid address: %s" (Printexc.to_string exn) ))
   in
-  let passphrase =
-    Lang.to_valued_option Lang.to_string (List.assoc "passphrase" p)
-  in
+  let passphrase_v = List.assoc "passphrase" p in
+  let passphrase = Lang.to_valued_option Lang.to_string passphrase_v in
+  (match passphrase with
+    | Some s when String.length s < 10 ->
+        raise
+          (Error.Invalid_value
+             (passphrase_v, "Passphrase must be at least 10 characters long!"))
+    | Some s when String.length s > 79 ->
+        raise
+          (Error.Invalid_value
+             (passphrase_v, "Passphrase must be at most 79 characters long!"))
+    | _ -> ());
   let streamid =
     Lang.to_valued_option Lang.to_string (List.assoc "streamid" p)
   in
