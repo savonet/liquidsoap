@@ -5,7 +5,7 @@ be a distant file or playlist, or an icecast or shoutcast stream.
 
 To use it in your script, simply create a source that way:
 
-```{.liquidsoap include="content/liq/http-input.liq"}
+```{.liquidsoap include="content/liq/http-input.liq" from=1 to=-1}
 
 ```
 

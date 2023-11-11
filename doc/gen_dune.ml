@@ -95,10 +95,9 @@ let mk_test_rule file =
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq %s)
   )
-  (action (run %%{liquidsoap} --check %%{test_liq}))
+  (action (run %%{bin:liquidsoap} --check %%{test_liq}))
 )
 |}
     file

@@ -90,6 +90,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -138,6 +139,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -186,6 +188,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -234,6 +237,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -282,6 +286,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -330,6 +335,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -378,6 +384,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -426,6 +433,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -474,6 +482,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -522,6 +531,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -570,6 +580,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -618,6 +629,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -666,6 +678,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -714,6 +727,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -762,6 +776,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -810,6 +825,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -858,6 +874,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -906,6 +923,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -954,6 +972,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1002,6 +1021,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1050,6 +1070,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1098,6 +1119,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1146,6 +1168,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1194,6 +1217,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1242,6 +1266,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1290,6 +1315,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1338,6 +1364,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1386,6 +1413,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1434,6 +1462,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1482,6 +1511,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1530,6 +1560,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1578,6 +1609,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1626,6 +1658,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1674,6 +1707,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1722,6 +1756,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1770,6 +1805,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1818,6 +1854,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1866,6 +1903,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1914,6 +1952,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -1962,6 +2001,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2010,6 +2050,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2058,6 +2099,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2106,6 +2148,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2154,6 +2197,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2202,6 +2246,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2250,6 +2295,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2298,6 +2344,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2346,6 +2393,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2394,6 +2442,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2442,6 +2491,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2490,6 +2540,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2538,6 +2589,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2586,6 +2638,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2634,6 +2687,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2682,6 +2736,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2730,6 +2785,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2778,6 +2834,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2826,6 +2883,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2874,6 +2932,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2922,6 +2981,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -2970,6 +3030,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3018,6 +3079,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3066,6 +3128,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3114,6 +3177,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3162,6 +3226,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3210,6 +3275,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3258,6 +3324,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3306,6 +3373,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3354,6 +3422,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3402,6 +3471,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3450,6 +3520,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3498,6 +3569,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3546,6 +3618,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3594,6 +3667,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3642,6 +3716,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3690,6 +3765,7 @@
     content/liq/replaygain-playlist.liq
     content/liq/rtmp.liq
     content/liq/scheduling.liq
+    content/liq/shoutcast.liq
     content/liq/space_overhead.liq
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
@@ -3706,280 +3782,261 @@
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/append-silence.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/complete-case.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/cross.smart.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/dump-hourly.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/dump-hourly2.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/dynamic-source.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/ffmpeg-live-switch.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/ffmpeg-relay-ondemand.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/ffmpeg-relay.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/ffmpeg-shared-encoding-rtmp.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/ffmpeg-shared-encoding.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/frame-size.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/http-input.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/icy-update.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/medialib.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/radiopi.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/re-encode.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/regular.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/replaygain-metadata.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/replaygain-playlist.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/rtmp.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/scheduling.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
+    (:test_liq content/liq/shoutcast.liq)
+  )
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
     (:test_liq content/liq/space_overhead.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/split-cue.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/srt-receiver.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/srt-sender.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/transcoding.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:liquidsoap ../src/bin/liquidsoap.exe)
     (:test_liq content/liq/video-static.liq)
   )
-  (action (run %{liquidsoap} --check %{test_liq}))
+  (action (run %{bin:liquidsoap} --check %{test_liq}))
 )
 
 (install
