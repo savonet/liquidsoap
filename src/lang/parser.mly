@@ -293,7 +293,8 @@ time_predicate:
 
 ty:
   | UNDERSCORE                   { `Named "_" }
-  | VAR                          { `Named $1 }
+  | VAR                          { if $1 = "univ" then `Univ None else `Named $1 }
+  | VARLPAR VAR RPAR             { mk_univ_term ~pos:$loc ($1, $2) }
   | ty QUESTION                  { `Nullable $1 }
   | LBRA ty RBRA                 { `List $2 }
   | LBRA ty RBRA VAR VAR DOT VAR { mk_json_assoc_object_ty ~pos:$loc ($2,$4,$5,$7) }

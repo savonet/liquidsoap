@@ -76,21 +76,6 @@ let excerpt (start, stop) =
 
 let excerpt_opt = function Some pos -> excerpt pos | None -> None
 
-(** Given a strictly positive integer, generate a name in [a-z]+:
-    a, b, ... z, aa, ab, ... az, ba, ... *)
-let name =
-  let base = 26 in
-  let c i = char_of_int (int_of_char 'a' + i - 1) in
-  let add i suffix = Printf.sprintf "%c%s" (c i) suffix in
-  let rec n suffix i =
-    if i <= base then add i suffix
-    else (
-      let head = i mod base in
-      let head = if head = 0 then base else head in
-      n (add head suffix) ((i - head) / base))
-  in
-  n ""
-
 (** Compute the structure that a term represents, given the list of universally
     quantified variables. Also takes care of computing the printing name of
     variables, including constraint symbols, which are removed from constraint
@@ -100,7 +85,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
   let uvar g var =
     let rec index n = function
       | v :: tl ->
-          if Var.eq v var then Printf.sprintf "'%s" (name n)
+          if Var.eq v var then Printf.sprintf "univ(%s)" (Type_base.var_name n)
           else index (n + 1) tl
       | [] -> assert false
     in
@@ -119,11 +104,11 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     let s =
       try Hashtbl.find evars var.name
       with Not_found ->
-        let name = String.uppercase_ascii (name (counter ())) in
+        let name = String.uppercase_ascii (Type_base.var_name (counter ())) in
         Hashtbl.add evars var.name name;
         name
     in
-    `EVar (Printf.sprintf "'%s" s, var.constraints)
+    `EVar (Printf.sprintf "univ(%s)" s, var.constraints)
   in
   let rec repr g t =
     if filter_out t then `Ellipsis

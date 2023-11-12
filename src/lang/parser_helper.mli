@@ -39,6 +39,7 @@ type meth_pattern_el = string * meth_term_default
 val clear_comments : unit -> unit
 val append_comment : pos:Pos.t -> string -> unit
 val attach_comments : Term.t -> unit
+val mk_univ_term : pos:Pos.t -> string * string -> Parsed_term.type_annotation
 val mk_ty : ?pos:Pos.t -> Parsed_term.type_annotation -> Type.t
 
 val mk_let :

@@ -54,6 +54,7 @@ and source_annotation = {
 
 and type_annotation =
   [ `Named of string
+  | `Univ of string option
   | `Nullable of type_annotation
   | `List of type_annotation
   | `Json_object of type_annotation

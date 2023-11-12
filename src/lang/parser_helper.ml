@@ -121,8 +121,23 @@ let mk_named_ty ?pos = function
               (Term_base.Parse_error
                  (pos, "Unknown type constructor: " ^ name ^ ".")))
 
+let mk_univ_ty ?pos = function
+  | None -> Type.var ()
+  | Some name ->
+      Type.make ?pos
+        Type_base.(
+          Var
+            (ref
+               (Free
+                  {
+                    name = var_index name;
+                    level = max_int;
+                    constraints = Constraints.empty;
+                  })))
+
 let rec mk_ty ?pos = function
   | `Named s -> mk_named_ty ?pos s
+  | `Univ v -> mk_univ_ty ?pos v
   | `Nullable t -> Type.(make (Nullable (mk_ty ?pos t)))
   | `List t -> Type.(make (List { t = mk_ty ?pos t; json_repr = `Tuple }))
   | `Json_object t ->
@@ -170,6 +185,21 @@ let mk_json_assoc_object_ty ~pos = function
 type let_opt_el = string * Term.t
 type meth_term_default = [ `Nullable | `Pattern of Term.pattern | `None ]
 type meth_pattern_el = string * meth_term_default
+
+let mk_univ_term ~pos = function
+  | "univ", v ->
+      String.iter
+        (fun c ->
+          let c = int_of_char c in
+          if c < int_of_char 'a' || int_of_char 'z' < c then
+            raise
+              (Term_base.Parse_error
+                 ( pos,
+                   "universal variable names should only be made of a-z letters"
+                 )))
+        v;
+      `Univ (Some v)
+  | _ -> raise (Term_base.Parse_error (pos, "Invalid type constructor"))
 
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
