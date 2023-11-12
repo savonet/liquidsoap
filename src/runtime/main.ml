@@ -423,6 +423,9 @@ See <http://liquidsoap.info> for more information.
         ( ["--safe"],
           Arg.Unit (fun () -> Typing.do_occur_check := true),
           "Disable the effects of --unsafe." );
+        ( ["--no-fallible-check"],
+          Arg.Unit (fun () -> Output.fallibility_check := false),
+          "Ignore fallible sources." );
       ])
 
 let expand_options options =

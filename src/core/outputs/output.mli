@@ -22,6 +22,8 @@
 
 (** Abstract classes for easy creation of output nodes. *)
 
+val fallibility_check : bool ref
+
 (** Parameters needed to instantiate an output. *)
 val proto : (string * Lang.t * Lang.value option * string option) list
 
