@@ -12,7 +12,7 @@ using FDK-AAC or using an [external encoder](external_encoders.html). The recomm
 Shoutcast output are done using the `output.shoutcast` operator with the appropriate parameters.
 An example is:
 
-```{.liquidsoap include="content/liq/shoutcast.liq" from=1}
+```{.liquidsoap include="content/liq/shoutcast.liq"}
 
 ```
 

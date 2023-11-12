@@ -1,4 +1,3 @@
-file.touch("audiofile.ogg")
 source = single("audiofile.ogg")
 
 output.shoutcast(%mp3, host="shoutcast.example.org",
