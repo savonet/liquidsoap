@@ -18,9 +18,9 @@ to e.g. write the request data to a file using `file.write.stream`.
 The `body` method can be used to read all of the request's data and store it in
 memory. Make sure to only use it if you know that the response should be small enough!
 
-For convenience, a HTTP response builder is provided via `harbor.http.response`. Here's an example:
+For convenience, a HTTP response builder is provided via `http.response`. Here's an example:
 
-```{.liquidsoap include="content/liq/harbor.http.response.liq"}
+```{.liquidsoap include="content/liq/harbor.http.response.liq" from=1}
 
 ```
 
