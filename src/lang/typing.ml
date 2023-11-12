@@ -27,7 +27,6 @@ open Type
 let () = Type.debug := false
 let () = Type.debug_levels := false
 let () = Type.debug_variance := false
-let () = Repr.global_evar_names := false
 let debug_subtyping = ref false
 
 (** Allow functions to forget arguments during subtyping. This would not be a

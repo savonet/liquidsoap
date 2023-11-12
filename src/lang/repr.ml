@@ -25,9 +25,6 @@
 (** Show generalized variables in records. *)
 let show_record_schemes = ref true
 
-(** Use globally unique names for existential variables. *)
-let global_evar_names = ref false
-
 open Type_base
 include R
 
@@ -94,40 +91,22 @@ let name =
   in
   n ""
 
-(** Generate a globally unique name for evars (used for debugging only). *)
-let evar_global_name =
-  let evars = Hashtbl.create 10 in
-  let n = ref 0 in
-  fun i ->
-    try Hashtbl.find evars i
-    with Not_found ->
-      incr n;
-      let name = String.uppercase_ascii (name !n) in
-      Hashtbl.add evars i name;
-      name
-
 (** Compute the structure that a term represents, given the list of universally
     quantified variables. Also takes care of computing the printing name of
     variables, including constraint symbols, which are removed from constraint
     lists. It supports a mechanism for filtering out parts of the type, which are
     then translated as `Ellipsis. *)
 let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
-  let split_constr c =
-    List.fold_left (fun (s, constraints) c -> (s, c :: constraints)) ("", []) c
-  in
   let uvar g var =
-    let constr_symbols, c =
-      split_constr (Constraints.elements var.constraints)
-    in
     let rec index n = function
       | v :: tl ->
-          if Var.eq v var then Printf.sprintf "'%s%s" constr_symbols (name n)
+          if Var.eq v var then Printf.sprintf "'%s" (name n)
           else index (n + 1) tl
       | [] -> assert false
     in
     let v = index 1 (List.rev g) in
     (* let v = Printf.sprintf "'%d" i in *)
-    `UVar (v, Constraints.of_list c)
+    `UVar (v, var.constraints)
   in
   let counter =
     let c = ref 0 in
@@ -136,31 +115,15 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
       !c
   in
   let evars = Hashtbl.create 10 in
-  let evar var =
-    let constr_symbols, c =
-      split_constr (Constraints.elements var.constraints)
+  let evar (var : Type_base.var) =
+    let s =
+      try Hashtbl.find evars var.name
+      with Not_found ->
+        let name = String.uppercase_ascii (name (counter ())) in
+        Hashtbl.add evars var.name name;
+        name
     in
-    if !global_evar_names || !debug || !debug_levels then (
-      let v =
-        Printf.sprintf "'%s%s" constr_symbols (evar_global_name var.name)
-      in
-      let v =
-        if !debug_levels then (
-          let level = var.level in
-          let level = if level = max_int then "∞" else string_of_int level in
-          Printf.sprintf "%s[%s]" v level)
-        else v
-      in
-      `EVar (v, Constraints.of_list c))
-    else (
-      let s =
-        try Hashtbl.find evars var.name
-        with Not_found ->
-          let name = String.uppercase_ascii (name (counter ())) in
-          Hashtbl.add evars var.name name;
-          name
-      in
-      `EVar (Printf.sprintf "'%s%s" constr_symbols s, Constraints.of_list c))
+    `EVar (Printf.sprintf "'%s" s, var.constraints)
   in
   let rec repr g t =
     if filter_out t then `Ellipsis
