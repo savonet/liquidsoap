@@ -1,11 +1,11 @@
 #!/usr/bin/liquidsoap
 
 # Standard settings
-log.file.set(true)
-log.file.path.set("/var/log/liquidsoap/pi.log")
-log.stdout.set(false)
-init.daemon.set(true)
-init.daemon.pidfile.path.set("/var/run/liquidsoap/pi.pid")
+log.file := true
+log.file.path := "/var/log/liquidsoap/pi.log"
+log.stdout := false
+init.daemon := true
+init.daemon.pidfile.path := "/var/run/liquidsoap/pi.pid"
 
 # Enable telnet server
 settings.server.telnet.set(true)
@@ -43,15 +43,15 @@ url = "http://radiopi.org"
 # === Live ===
 
 # A live source, on which we strip blank (make the source unavailable when
-# streaming blank)
+# streaming blank).
 live =
   blank.strip(
     input.harbor(id="live", port=8000, password=pass,
                  buffer=8.,max=20.,"live.ogg"),
-    length=10., threshold=-50.)
+    max_blank=10., threshold=-50.)
 
 # This source relays the live data, when available, to the other streamer, in
-# uncompressed format (WAV)
+# uncompressed format (WAV).
 output.icecast(%wav, host=stream,
                port=8005, password=pass,
                mount="live.ogg", fallible=true,
@@ -68,19 +68,18 @@ output.icecast(%vorbis, host="127.0.0.1",
 title = '$(if $(title),"$(title)",\
          "Emission inconnue")$(if $(artist), \
          " par  $(artist)") - %m-%d-%Y, %H:%M:%S'
-output.file(%vorbis, reopen_on_metadata=true,
+output.file(%vorbis, reopen_on_metadata=fun(_)->true,
             fallible=true,
             "/data/archives/brutes/" ^ title ^ ".ogg",
             live)
 
 # === Channels ===
 
-# Specialize the output functions by partial application
-output.icecast = output.icecast(description=descr, url=url)
-out = output.icecast(host=ice_host,port=8080,password=pass,fallible=true)
-out_aac32 = out(%fdkaac(bitrate=32))
-out_aac = out(%fdkaac(bitrate=64))
-out = out(%mp3)
+# Specialize the output functions
+def out(fmt,~mount,s) = output.icecast(fmt, description=descr, url=url, host=ice_host, port=8080, password=pass, fallible=true, mount=mount, s) end
+def out_aac32(~mount,s) = out(%fdkaac(bitrate=32), mount=mount, s) end
+def out_aac(~mount,s) = out(%fdkaac(bitrate=64), mount=mount, s) end
+def out(~mount,s) = out(%mp3, mount=mount, s) end
 
 # A file for playing during failures
 interlude = single("/home/radiopi/fallback.mp3")
@@ -108,10 +107,10 @@ def crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
                ~default=(fun (a,b) -> sequence([a, b])),
                ~high=-15., ~medium=-32., ~margin=4.,
                ~width=2.,~conservative=false,s)
-  fade.out = fade.out(type="sin",duration=fade_out)
-  fade.in  = fade.in(type="sin",duration=fade_in)
+  fade_out = fun(s) -> fade.out(type="sin",duration=fade_out,s)
+  fade_in  = fun(s) -> fade.in(type="sin",duration=fade_in,s)
   add = fun (a,b) -> add(normalize=false,[b, a])
-  log = log(label="crossfade")
+  log = fun (~level=3, x) -> log(label="crossfade", level=level, x)
 
   def transition(a,b,ma,mb,sa,sb)
 
@@ -128,7 +127,7 @@ def crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
       log("Old <= medium, new <= medium and |old-new| <= margin.")
       log("Old and new source are not too loud and close.")
       log("Transition: crossed, fade-in, fade-out.")
-      add(fade.out(sa),fade.in(sb))
+      add(fade_out(sa),fade_in(sb))
 
     elsif
       # If B is significantly louder than A, only fade-out A.
@@ -138,7 +137,7 @@ def crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
       log("new >= old + margin, old >= medium and new <= high.")
       log("New source is significantly louder than old one.")
       log("Transition: crossed, fade-out.")
-      add(fade.out(sa),sb)
+      add(fade_out(sa),sb)
 
     elsif
       # Opposite as the previous one.
@@ -147,7 +146,7 @@ def crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
       log("old >= new + margin, new >= medium and old <= high")
       log("Old source is significantly louder than new one.")
       log("Transition: crossed, fade-in.")
-      add(sa,fade.in(sb))
+      add(sa,fade_in(sb))
 
     elsif
       # Do not fade if it's already very low.
@@ -171,8 +170,7 @@ def crossfade (~start_next=5.,~fade_in=3.,~fade_out=3.,
     end
   end
 
-  cross(width=width, duration=start_next, conservative=conservative,
-              transition,s)
+  cross(width=width, duration=start_next, conservative=conservative, transition, s)
 end
 
 # Create a radiopilote-driven source

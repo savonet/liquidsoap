@@ -1,4 +1,4 @@
-s = playlist("...")
+s = playlist("my_playlist")
 
 enc = %ffmpeg(
   format="flv",

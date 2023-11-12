@@ -83,7 +83,7 @@ the SRT transport protocol:
 
 Sender:
 
-```{.liquidsoap include="content/liq/srt-sender.liq"}
+```{.liquidsoap include="content/liq/srt-sender.liq" from=1}
 
 ```
 
