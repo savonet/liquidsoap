@@ -68,6 +68,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -154,6 +155,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -240,6 +242,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -326,6 +329,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -412,6 +416,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -498,6 +503,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -584,6 +590,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -670,6 +677,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -756,6 +764,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -842,6 +851,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -928,6 +938,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1014,6 +1025,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1100,6 +1112,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1186,6 +1199,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1272,6 +1286,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1358,6 +1373,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1444,6 +1460,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1530,6 +1547,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1616,6 +1634,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1702,6 +1721,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1788,6 +1808,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1874,6 +1895,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -1960,6 +1982,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2046,6 +2069,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2132,6 +2156,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2218,6 +2243,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2304,6 +2330,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2390,6 +2417,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2476,6 +2504,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2562,6 +2591,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2648,6 +2678,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2734,6 +2765,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2820,6 +2852,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2906,6 +2939,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -2992,6 +3026,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3078,6 +3113,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3164,6 +3200,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3250,6 +3287,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3336,6 +3374,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3422,6 +3461,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3508,6 +3548,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3594,6 +3635,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3680,6 +3722,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3766,6 +3809,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3852,6 +3896,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -3938,6 +3983,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4024,6 +4070,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4110,6 +4157,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4196,6 +4244,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4282,6 +4331,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4368,6 +4418,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4454,6 +4505,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4540,6 +4592,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4626,6 +4679,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4712,6 +4766,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4798,6 +4853,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4884,6 +4940,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -4970,6 +5027,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5056,6 +5114,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5142,6 +5201,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5228,6 +5288,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5314,6 +5375,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5400,6 +5462,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5486,6 +5549,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5572,6 +5636,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5658,6 +5723,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5744,6 +5810,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5830,6 +5897,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -5916,6 +5984,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -6002,6 +6071,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -6088,6 +6158,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -6174,6 +6245,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -6260,6 +6332,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -6346,6 +6419,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -6432,6 +6506,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -6518,6 +6593,7 @@
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
+    content/liq/blank-sorry.liq
     content/liq/complete-case.liq
     content/liq/cross.smart.liq
     content/liq/dump-hourly.liq
@@ -6788,6 +6864,57 @@
     (:test_liq content/liq/beets-source.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/beets-source.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/blank-sorry.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/blank-sorry.liq))
 )
 
 (rule
