@@ -75,22 +75,8 @@ We rely on `request.dynamic` to call `beet random`
 (with `-f '$path'` option so beets only returns the matching track's path)
 every time the source must prepare a new track:
 
-```liquidsoap
-def beets(id, query) =
-  beets_src =
-    request.dynamic(id=id, retry_delay=1., {
-      request.create(
-        string.trim(
-          process.read("#{BEET} random -f '$path' #{query}")
-        )
-      )
-    })
-  (beets_src:source)
-end
+```{.liquidsoap include="content/liq/beets-source.liq" from=1 to=-1}
 
-all_music = beets("all_music", "")
-recent_music = beets("recent_music", "added:-1m..")
-rock_music = beets("rock_music", "genre:Rock")
 ```
 
 Note that
@@ -115,22 +101,8 @@ import:
 
 Then we only need to add `amplify` to our source creation function. In the example below we also add `blank.eat`, to automatically cut silence at the beginning or end of tracks.
 
-```liquidsoap
-def beets(id, query) =
-  beets_src =
-    blank.eat(id="#{id}_", start_blank=true, max_blank=1.0, threshold=-45.0,
-      amplify(override="replaygain_track_gain", 1.0,
-        request.dynamic(id=id, retry_delay=1., {
-          request.create(
-            string.trim(
-              process.read("#{BEET} random -f '$path' #{query}")
-            )
-          )
-        })
-      )
-    )
-  (beets_src:source)
-end
+```{.liquidsoap include="content/liq/beets-amplify.liq"}
+
 ```
 
 This is the recommended Beets integration ;
@@ -145,21 +117,8 @@ In that case,
 the list of paths returned by `beet random -f '$path'` fits directly
 what's needed by protocol resolution:
 
-```liquidsoap
-def beets_protocol(~rlog,~maxtime,arg) =
-  timeout = maxtime - time()
-  command = "#{BEET} random -f '$path' #{arg}"
-  p = process.run(timeout=timeout, command)
-  if p.status == "exit" and p.status.code == 0 then
-    [string.trim(p.stdout)]
-  else
-    rlog("Failed to execute #{command}: #{p.status} (#{p.status.code}) #{p.stderr}")
-    []
-  end
-end
-protocol.add("beets", beets_protocol,
-  syntax = "same arguments as beet's random module, see https://beets.readthedocs.io/en/stable/reference/query.html"
-)
+```{.liquidsoap include="content/liq/beets-protocol.liq" from=1}
+
 ```
 
 Once this is done,
