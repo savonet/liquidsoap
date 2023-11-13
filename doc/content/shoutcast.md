@@ -12,12 +12,8 @@ using FDK-AAC or using an [external encoder](external_encoders.html). The recomm
 Shoutcast output are done using the `output.shoutcast` operator with the appropriate parameters.
 An example is:
 
-```liquidsoap
-source = single("audiofile.ogg")
+```{.liquidsoap include="content/liq/shoutcast.liq"}
 
-output.shoutcast(%mp3, host="shoutcast.example.org",
-                     port=8000, password="changeme",
-                     source)
 ```
 
 As usual, `liquidsoap -h output.shoutcast` gives you the full list of options for this operator.

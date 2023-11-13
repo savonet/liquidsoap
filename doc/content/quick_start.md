@@ -61,7 +61,7 @@ fallback([your_fallible_source_here, single("failure.ogg")])
 ```
 
 Finally, if you do not care about failures, you can pass the parameter
-`fallible=true` to most outputs. In that case, the output
+`fallible=true` to most outputs (or pass the option `--no-fallible-check` to Liquidsoap). In that case, the output
 will accept a fallible source, and stop whenever the source fails
 and restart when it is ready to produce data again.
 
