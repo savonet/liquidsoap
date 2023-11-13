@@ -6,7 +6,7 @@ def hflip(s) =
     video_track = ffmpeg.filter.hflip(graph, video_track)
 
     audio_track = ffmpeg.filter.audio.input(graph, audio_track)
-    audio_track = ffmpeg.filter.acopy(graph, audio)
+    audio_track = ffmpeg.filter.acopy(graph, audio_track)
 
     video_track = ffmpeg.filter.video.output(graph, video_track)
     audio_track = ffmpeg.filter.audio.output(graph, audio_track)

@@ -13,11 +13,14 @@ def dynamic_volume(s) =
     audio_track = filter.output
     audio_track = ffmpeg.filter.audio.output(graph, audio_track)
 
-    s = source({
-      audio = audio_track,
-      metadata = track.metadata(audio_track),
-      track_marks = track.track_marks(audio_track)
-    }
+    s =
+      source(
+        {
+          audio=audio_track,
+          metadata=track.metadata(audio_track),
+          track_marks=track.track_marks(audio_track)
+        }
+      )
 
     (s, set_volume)
   end
@@ -25,4 +28,8 @@ def dynamic_volume(s) =
   ffmpeg.filter.create(mkfilter)
 end
 
+s = playlist("my_playlist")
+
 let (s, set_volume) = dynamic_volume(s)
+output.dummy(fallible=true, s)
+ignore(set_volume)
