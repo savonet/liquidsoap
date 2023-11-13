@@ -4,49 +4,8 @@ Starting with liquidsoap `1.4.0`, it is possible to send your streams as [HLS ou
 
 The main operator is `output.file.hls`. Here's an example using it, courtesy of [srt2hls](https://github.com/mbugeia/srt2hls):
 
-```liquidsoap
-aac_lofi = %ffmpeg(format="mpegts",
-                   %audio(
-                     codec="aac",
-                     channels=2,
-                     ar=44100
-                   ))
+```{.liquidsoap include="content/liq/output.file.hls.liq"}
 
-aac_midfi = %ffmpeg(format="mpegts",
-                    %audio(
-                      codec="aac",
-                      channels=2,
-                      ar=44100,
-                      b="96k"
-                    ))
-
-aac_hifi = %ffmpeg(format="mpegts",
-                   %audio(
-                     codec="aac",
-                     channels=2,
-                     ar=44100,
-                     b="192k"
-                   ))
-
-streams = [("aac_lofi",aac_lofi),
-           ("aac_midfi", aac_midfi),
-           ("aac_hifi", aac_hifi)]
-
-def segment_name(~position,~extname,stream_name) =
-  timestamp = int_of_float(time())
-  duration = 2
-  "#{stream_name}_#{duration}_#{timestamp}_#{position}.#{extname}"
-end
-
-output.file.hls(playlist="live.m3u8",
-                segment_duration=2.0,
-                segments=5,
-                segments_overhead=5,
-                segment_name=segment_name,
-                persist_at="/path/to/state.config",
-                "/path/to/hls/directory",
-                streams,
-                source)
 ```
 
 Let's see what's important here:
@@ -79,29 +38,8 @@ HLS outputs supports metadata in two ways:
 
 Metadata parameters are passed through the record methods of the streams' encoders. Here's an example
 
-```liquidsoap
-output.file.hls(
-  "/path/to/directory",
-  [
-   ("aac",
-      %ffmpeg(format="adts", %audio(codec="aac")).{
-        id3_version = 3
-       }),
-   ("ts-with-meta",
-      %ffmpeg(format="mpegts", %audio(codec="aac")).{
-        id3_version = 4
-     }),
-   ("ts",
-      %ffmpeg(format="mpegts", %audio(codec="aac")).{
-        id3 = false
-      }),
-   ("mp3",
-      %ffmpeg(format="mp3", %audio(codec="libmp3lame")).{
-        replay_id3 = false
-      })
-  ],
-  source
-)
+```{.liquidsoap include="content/liq/hls-metadata.liq"}
+
 ```
 
 Parameters are:
@@ -117,40 +55,6 @@ Metadata for these formats are activated by default. If you are experiencing any
 `mp4` container is supported by requires specific parameters. Here's an example that mixes `aac` and `flac` audio, The parameters
 required for `mp4` are `movflags` and `frag_duration`.
 
-```liquidsoap
-radio = ...
+```{.liquidsoap include="content/liq/hls-mp4.liq"}
 
-aac_lofi = %ffmpeg(format="mp4",
-                   %audio(
-                     codec="aac",
-                     channels=2,
-                     ar=44100,
-                     b="192k"
-                   ))
-
-flac_hifi = %ffmpeg(format="mp4",
-                    strict="-2",
-                    %audio(
-                      codec="flac",
-                      channels=2,
-                      ar=44100
-                    ))
-
-flac_hires = %ffmpeg(format="mp4",
-                     strict="-2",
-                     %audio(
-                       codec="flac",
-                       channels=2,
-                       ar=48000
-                     ))
-
-streams = [("aac_lofi", aac_lofi),
-           ("flac_hifi", flac_hifi),
-           ("flac_hires", flac_hires)]
-
-
-output.file.hls(playlist="live.m3u8",
-                "/path/to/directory",
-                streams,
-                radio)
 ```

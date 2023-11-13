@@ -153,7 +153,9 @@ let video_opacity =
       ( "",
         Lang.getter_t Lang.float_t,
         None,
-        Some "Coefficient to scale opacity with." );
+        Some
+          "Coefficient to scale opacity with: from 0 (fully transparent) to 1 \
+           (fully opaque)." );
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:`Video ~descr:"Scale opacity of video."

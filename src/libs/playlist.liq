@@ -342,6 +342,7 @@ end
 #  whole round ("randomize" mode), or pick a random file in the playlist each time \
 #  ("random" mode).
 # @param ~native Use native implementation.
+# @param ~on_done Function executed when the playlist is finished.
 # @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
 # @param ~on_reload Callback called after playlist has reloaded.
 # @param ~prefix Add a constant prefix to all requests. Useful for passing extra \
@@ -365,6 +366,7 @@ def replaces playlist(
   ~mime_type=null(),
   ~mode="randomize",
   ~native=false,
+  ~on_done={()},
   ~on_fail=null(),
   ~on_reload=(fun (_) -> ()),
   ~prefix="",
@@ -446,6 +448,7 @@ def replaces playlist(
       loop=loop,
       mode=mode,
       native=native,
+      on_done=on_done,
       on_loop=on_loop,
       on_fail=on_fail,
       timeout=timeout,

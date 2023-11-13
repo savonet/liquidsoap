@@ -218,7 +218,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: ["@citest", "@mediatest"]
+        target: ["@citest", "@doctest", "@mediatest"]
     env:
       HOME: /home/opam
     steps:
@@ -245,13 +245,18 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E opam install -y ssl.0.7.0
+          sudo -u opam -E opam install -y ssl.0.7.0 pandoc-include
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Compute stats
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/stats-posix.sh
+      - name: Install additional packages
+        if: matrix.target == '@doctest'
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install frei0r-plugins
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -270,7 +275,7 @@ jobs:
           name: metrics
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
       - name: Upload metrics
-        if: needs.build_details.outputs.is_fork != 'true' && matrix.target != '@mediatest'
+        if: needs.build_details.outputs.is_fork != 'true' && matrix.target == '@citest'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
