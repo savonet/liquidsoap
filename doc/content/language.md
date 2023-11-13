@@ -699,7 +699,7 @@ for such arguments, the default value will be used. For instance, if for some
 reason we tend to generally measure samples over a period of 2.5 seconds, we can
 make this become the value for the `duration` parameter:
 
-```{.liquidsoap include="liq/samplerate3.liq" from=0 to=0}
+```{.liquidsoap include="content/liq/samplerate3.liq" from=0 to=0}
 
 ```
 

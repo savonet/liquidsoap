@@ -23,7 +23,7 @@ s = single("/path/to/movie.mkv")
 By default, `liquidsoap` decodes _only_ the track that you tell it to pick. So,
 if you output this source as an output with only one audio track, it will happily do so:
 
-```{.liquidsoap include="multitrack.liq"}
+```{.liquidsoap include="content/liq/multitrack.liq"}
 
 ```
 
@@ -45,7 +45,7 @@ Eventually, we picked up only first `audio` and first `video` track and reported
 
 Now, let's say that we want to also keep the second audio track but convert it to stereo and re-encode it into `aac`. We can then do:
 
-```{.liquidsoap include="multitrack2.liq"}
+```{.liquidsoap include="content/liq/multitrack2.liq"}
 
 ```
 
@@ -140,7 +140,7 @@ can also overload the existing tracks from the first source as follows:
 
 You can also check if a source has a certain track and do something accordingly:
 
-```{.liquidsoap include="content/liq/default-video-track.liq to=-1}
+```{.liquidsoap include="content/liq/multitrack-default-video-track.liq" to=-1}
 
 ```
 

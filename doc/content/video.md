@@ -8,7 +8,7 @@ you just have to use video files instead of sound files! For instance, if you
 want to stream a single file to an icecast server in ogg format (with theora and
 vorbis as codecs for audio and video) you can simply type:
 
-```{.liquidsoap include="contents/liq/video-simple.liq"}
+```{.liquidsoap include="content/liq/video-simple.liq"}
 
 ```
 
