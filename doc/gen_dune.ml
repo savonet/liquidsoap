@@ -73,6 +73,12 @@ let mk_generated_rule (file, option, header) =
             {|(progn (cat %{header}) (echo "\n")|},
             ")" )
   in
+  let header_action =
+    if header_action = "" then "" else "\n      " ^ header_action
+  in
+  let header_close =
+    if header_close = "" then "" else "\n      " ^ header_close
+  in
   Printf.printf
     {|
 (rule
@@ -80,11 +86,9 @@ let mk_generated_rule (file, option, header) =
   (deps %s)
   (target %s)
   (action
-    (with-stdout-to %s
-      %s
+    (with-stdout-to %s%s
       (setenv PAGER none
-        (run %%{bin:liquidsoap} %s)))))
-      %s
+        (run %%{bin:liquidsoap} %s)))))%s
 |}
     header_deps file file header_action option header_close
 
@@ -165,5 +169,5 @@ let () =
 %s
   )
 )
-  |}
+|}
     files

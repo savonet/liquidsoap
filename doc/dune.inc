@@ -5,10 +5,8 @@
   (target protocols.md)
   (action
     (with-stdout-to protocols.md
-
       (setenv PAGER none
         (run %{bin:liquidsoap} --list-protocols-md)))))
-
 
 (rule
   (alias doc)
@@ -49,10 +47,8 @@
   (target settings.md)
   (action
     (with-stdout-to settings.md
-
       (setenv PAGER none
         (run %{bin:liquidsoap} --list-settings)))))
-
 
 (rule
   (alias doc)
