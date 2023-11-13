@@ -252,6 +252,10 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E ./.github/scripts/stats-posix.sh
+      - name: Install additional packages
+        if: matrix.target == '@doctest'
+        run: |
+          sudo apt-get -y install frei0r-plugins
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
