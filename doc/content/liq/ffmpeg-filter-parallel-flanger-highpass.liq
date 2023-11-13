@@ -1,6 +1,6 @@
 def parallel_flanger_highpass(s) =
   def mkfilter(graph) =
-    audio_track = ffmpeg.filter.audio.input(graph, audio_track)
+    audio_track = ffmpeg.filter.audio.input(graph, s.tracks.audio)
 
     let (audio, _) = ffmpeg.filter.asplit(outputs=2, graph, audio_track)
 
