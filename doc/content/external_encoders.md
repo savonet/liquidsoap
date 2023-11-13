@@ -53,8 +53,6 @@ Videos can also be encoded by programs able to read files in avi format from
 standard input. To use it, the flag `video=true` of `%external` should be
 used. For instance, a compressed avi file can be generated with `ffmpeg` using
 
-```liquidsoap
-output.file(
-  %external(process="ffmpeg -i pipe:0 -f avi pipe:1",video=true),
-  "/tmp/test.avi", s)
+```{.liquidsoap include="content/liq/external-output.file.liq" from=1}
+
 ```
