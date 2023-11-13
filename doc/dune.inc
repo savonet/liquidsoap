@@ -82,6 +82,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -134,6 +135,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -186,6 +188,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -238,6 +241,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -290,6 +294,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -342,6 +347,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -394,6 +400,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -446,6 +453,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -498,6 +506,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -550,6 +559,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -602,6 +612,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -654,6 +665,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -706,6 +718,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -758,6 +771,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -810,6 +824,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -862,6 +877,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -914,6 +930,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -966,6 +983,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1018,6 +1036,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1070,6 +1089,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1122,6 +1142,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1174,6 +1195,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1226,6 +1248,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1278,6 +1301,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1330,6 +1354,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1382,6 +1407,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1434,6 +1460,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1486,6 +1513,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1538,6 +1566,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1590,6 +1619,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1642,6 +1672,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1694,6 +1725,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1746,6 +1778,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1798,6 +1831,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1850,6 +1884,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1902,6 +1937,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -1954,6 +1990,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2006,6 +2043,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2058,6 +2096,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2110,6 +2149,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2162,6 +2202,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2214,6 +2255,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2266,6 +2308,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2318,6 +2361,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2370,6 +2414,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2422,6 +2467,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2474,6 +2520,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2526,6 +2573,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2578,6 +2626,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2630,6 +2679,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2682,6 +2732,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2734,6 +2785,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2786,6 +2838,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2838,6 +2891,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2890,6 +2944,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2942,6 +2997,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -2994,6 +3050,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3046,6 +3103,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3098,6 +3156,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3150,6 +3209,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3202,6 +3262,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3254,6 +3315,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3306,6 +3368,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3358,6 +3421,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3410,6 +3474,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3462,6 +3527,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3514,6 +3580,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3566,6 +3633,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3618,6 +3686,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3670,6 +3739,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3722,6 +3792,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3774,6 +3845,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3826,6 +3898,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3878,6 +3951,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3930,6 +4004,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -3982,6 +4057,7 @@
     content/liq/frame-size.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
+    content/liq/harbor.http.register.liq
     content/liq/harbor.http.response.liq
     content/liq/http-input.liq
     content/liq/icy-update.liq
@@ -4054,7 +4130,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/append-silence.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/append-silence.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/append-silence.liq))
 )
 
 (rule
@@ -4105,7 +4181,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/complete-case.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/complete-case.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/complete-case.liq))
 )
 
 (rule
@@ -4156,7 +4232,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/cross.smart.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/cross.smart.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/cross.smart.liq))
 )
 
 (rule
@@ -4207,7 +4283,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/dump-hourly.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/dump-hourly.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/dump-hourly.liq))
 )
 
 (rule
@@ -4258,7 +4334,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/dump-hourly2.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/dump-hourly2.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/dump-hourly2.liq))
 )
 
 (rule
@@ -4309,7 +4385,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/dynamic-source.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/dynamic-source.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/dynamic-source.liq))
 )
 
 (rule
@@ -4360,7 +4436,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/ffmpeg-live-switch.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/ffmpeg-live-switch.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-live-switch.liq))
 )
 
 (rule
@@ -4411,7 +4487,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/ffmpeg-relay-ondemand.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/ffmpeg-relay-ondemand.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-relay-ondemand.liq))
 )
 
 (rule
@@ -4462,7 +4538,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/ffmpeg-relay.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/ffmpeg-relay.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-relay.liq))
 )
 
 (rule
@@ -4513,7 +4589,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/ffmpeg-shared-encoding-rtmp.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/ffmpeg-shared-encoding-rtmp.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-shared-encoding-rtmp.liq))
 )
 
 (rule
@@ -4564,7 +4640,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/ffmpeg-shared-encoding.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/ffmpeg-shared-encoding.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-shared-encoding.liq))
 )
 
 (rule
@@ -4615,7 +4691,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/frame-size.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/frame-size.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/frame-size.liq))
 )
 
 (rule
@@ -4666,7 +4742,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/harbor-insert-metadata.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/harbor-insert-metadata.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-insert-metadata.liq))
 )
 
 (rule
@@ -4717,7 +4793,58 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/harbor-metadata.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/harbor-metadata.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-metadata.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/harbor.http.register.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor.http.register.liq))
 )
 
 (rule
@@ -4768,7 +4895,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/harbor.http.response.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/harbor.http.response.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor.http.response.liq))
 )
 
 (rule
@@ -4819,7 +4946,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/http-input.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/http-input.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/http-input.liq))
 )
 
 (rule
@@ -4870,7 +4997,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/icy-update.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/icy-update.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/icy-update.liq))
 )
 
 (rule
@@ -4921,7 +5048,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/medialib.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/medialib.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/medialib.liq))
 )
 
 (rule
@@ -4972,7 +5099,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/radiopi.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/radiopi.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/radiopi.liq))
 )
 
 (rule
@@ -5023,7 +5150,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/re-encode.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/re-encode.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/re-encode.liq))
 )
 
 (rule
@@ -5074,7 +5201,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/regular.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/regular.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/regular.liq))
 )
 
 (rule
@@ -5125,7 +5252,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/replaygain-metadata.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/replaygain-metadata.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/replaygain-metadata.liq))
 )
 
 (rule
@@ -5176,7 +5303,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/replaygain-playlist.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/replaygain-playlist.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/replaygain-playlist.liq))
 )
 
 (rule
@@ -5227,7 +5354,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/rtmp.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/rtmp.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/rtmp.liq))
 )
 
 (rule
@@ -5278,7 +5405,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/scheduling.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/scheduling.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/scheduling.liq))
 )
 
 (rule
@@ -5329,7 +5456,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/shoutcast.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/shoutcast.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/shoutcast.liq))
 )
 
 (rule
@@ -5380,7 +5507,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/space_overhead.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/space_overhead.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/space_overhead.liq))
 )
 
 (rule
@@ -5431,7 +5558,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/split-cue.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/split-cue.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/split-cue.liq))
 )
 
 (rule
@@ -5482,7 +5609,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/srt-receiver.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/srt-receiver.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/srt-receiver.liq))
 )
 
 (rule
@@ -5533,7 +5660,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/srt-sender.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/srt-sender.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/srt-sender.liq))
 )
 
 (rule
@@ -5584,7 +5711,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/transcoding.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/transcoding.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/transcoding.liq))
 )
 
 (rule
@@ -5635,7 +5762,7 @@
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/video-static.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check content/liq/video-static.liq))
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-static.liq))
 )
 
 (install

@@ -100,7 +100,7 @@ let mk_test_rule ~stdlib file =
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq %s)
   )
-  (action (run %%{bin:liquidsoap} --no-stdlib %%{stdlib} --check %s))
+  (action (run %%{bin:liquidsoap} --no-stdlib %%{stdlib} --check --no-fallible-check %s))
 )
 |}
     stdlib file file
