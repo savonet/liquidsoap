@@ -64,8 +64,8 @@ class keyboard =
     method self_sync = (`Static, false)
 
     method output =
-      if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
-        self#get self#memo
+      if self#is_ready ~frame:self#cache () && AFrame.is_partial self#cache then
+        self#get self#cache
 
     val mutable ev = MIDI.create (MFrame.size ())
     val ev_m = Mutex.create ()

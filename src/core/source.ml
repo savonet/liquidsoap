@@ -438,12 +438,7 @@ class virtual operator ?pos ?(name = "src") sources =
     (** Startup/shutdown.
 
       Get the source ready for streaming on demand, have it release resources
-      when it's not used any more, and decide whether the source should run in
-      caching mode.
-
-      A source may be accessed by several sources, and must switch to caching
-      mode when it may be accessed by more than one source, in order to ensure
-      consistency of the delivered stream chunk.
+      when it's not used any more.
 
       Before that a source P accesses another source S it must activate it. The
       An activation is identified by the path to the source which required it.
@@ -453,35 +448,7 @@ class virtual operator ?pos ?(name = "src") sources =
       It is assumed that all streaming is done in one thread for a given clock,
       so the activation management API is not thread-safe. *)
 
-    val mutable caching = false
     val mutable activations : operator list list = []
-
-    method private update_caching_mode =
-      let string_of activations =
-        String.concat ", "
-          (List.map
-             (fun l -> String.concat ":" (List.map (fun s -> s#id) l))
-             activations)
-      in
-      self#log#debug "Activations changed: static=[%s]." (string_of activations);
-
-      (* Decide whether caching mode is needed, and why *)
-      match
-        if self#is_active then Some "active source"
-        else (
-          match activations with
-            | [] | _ :: [] -> None
-            | _ -> Some "two static activations")
-      with
-        | None ->
-            if caching then (
-              caching <- false;
-              self#log#debug "Disabling caching mode.")
-        | Some msg ->
-            if not caching then (
-              caching <- true;
-              self#log#debug "Enabling caching mode: %s." msg)
-
     val mutable on_wake_up = []
 
     method on_wake_up =
@@ -510,8 +477,7 @@ class virtual operator ?pos ?(name = "src") sources =
           (Frame.string_of_content_type self#content_type);
         self#wake_up activation;
         List.iter (fun fn -> fn ()) on_wake_up);
-      activations <- activation :: activations;
-      self#update_caching_mode
+      activations <- activation :: activations
 
     val mutable on_sleep = []
     method on_sleep = self#mutexify (fun fn -> on_sleep <- on_sleep @ [fn])
@@ -533,7 +499,6 @@ class virtual operator ?pos ?(name = "src") sources =
         | h :: tl -> remove (h :: acc) tl
       in
       activations <- remove [] activations;
-      self#update_caching_mode;
       if activations = [] then (
         source_log#info "Source %s gets down." id;
         self#sleep;
@@ -587,25 +552,21 @@ class virtual operator ?pos ?(name = "src") sources =
       match frame with
         | None -> self#_is_ready ?frame ()
         | Some frame ->
-            (caching && Frame.position frame < Frame.position self#memo)
+            Frame.position frame < Frame.position self#cache
             || self#_is_ready ~frame ()
 
     (* If possible, end the current track.
        Typically, that signal is just re-routed, or makes the next file
        to be played if there's anything like a file. *)
     method virtual abort_track : unit
+    val mutable cache = None
 
-    (* In caching mode, remember what has been given during the current
-       tick. The generation is deferred until we actually have computed the kind
-       by unfication. *)
-    val mutable memo = None
-
-    method memo =
-      match memo with
-        | Some memo -> memo
+    method cache =
+      match cache with
+        | Some cache -> cache
         | None ->
             let m = Frame.create self#content_type in
-            memo <- Some m;
+            cache <- Some m;
             m
 
     val mutable buffer = None
@@ -693,7 +654,7 @@ class virtual operator ?pos ?(name = "src") sources =
     method on_after_output fn = on_after_output <- fn :: on_after_output
 
     initializer
-      self#on_after_output (fun () -> Frame.clear self#memo);
+      self#on_after_output (fun () -> Frame.clear self#cache);
       self#on_after_output (fun () ->
           self#iter_watchers (fun w -> w.after_output ()))
 
@@ -713,9 +674,6 @@ class virtual operator ?pos ?(name = "src") sources =
           | _ -> assert false)
 
     (* [#get buf] completes the frame with the next data in the stream.
-       Depending on whether caching is enabled or not,
-       it calls [#get_frame] directly or tries to get data from the cache frame,
-       filling it if needed.
        Any source calling [other_source#get should] thus take care of clearing
        the cache of the other source ([#advance]) at the end of the output
        round ([#after_output]). *)
@@ -743,38 +701,25 @@ class virtual operator ?pos ?(name = "src") sources =
          This fix makes it really important to keep #is_ready = true during a
          track, otherwise the track will be ended without the source noticing! *)
       let silent_end_track () = Frame.add_break buf (Frame.position buf) in
-      if not caching then
+      let cache = self#cache in
+      try Frame.get_chunk buf cache
+      with Frame.No_chunk ->
         if not (self#_is_ready ~frame:buf ()) then silent_end_track ()
         else (
-          let b = Frame.breaks buf in
-          self#instrumented_get_frame buf;
-          if List.length b + 1 > List.length (Frame.breaks buf) then (
-            self#log#severe "#get_frame added too many breaks!";
-            assert false);
-          if List.length b + 1 < List.length (Frame.breaks buf) then (
-            self#log#severe
-              "#get_frame returned a buffer without enough breaks!";
-            assert false))
-      else (
-        let memo = self#memo in
-        try Frame.get_chunk buf memo
-        with Frame.No_chunk ->
-          if not (self#_is_ready ~frame:buf ()) then silent_end_track ()
-          else (
-            (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
-            let b = Frame.breaks memo in
-            let p = Frame.position memo in
-            self#instrumented_get_frame memo;
-            if List.length b + 1 <> List.length (Frame.breaks memo) then (
-              self#log#severe "#get_frame didn't add exactly one break!";
-              assert false)
-            else if Frame.is_partial buf then
-              if p < Frame.position memo then self#get buf
-              else Frame.add_break buf (Frame.position buf)))
+          (* [cache] has nothing new for [buf]. Feed [cache] and try again *)
+          let b = Frame.breaks cache in
+          let p = Frame.position cache in
+          self#instrumented_get_frame cache;
+          if List.length b + 1 <> List.length (Frame.breaks cache) then (
+            self#log#severe "#get_frame didn't add exactly one break!";
+            assert false)
+          else if Frame.is_partial buf then
+            if p < Frame.position cache then self#get buf
+            else Frame.add_break buf (Frame.position buf))
 
     (* That's the way the source produces audio data.
-       It cannot be called directly, but [#get] should be used instead, for
-       dealing with caching if needed. *)
+       It cannot be called directly, but [#get] should be used instead, to
+       deal with caching. *)
     method virtual private get_frame : Frame.t -> unit
   end
 

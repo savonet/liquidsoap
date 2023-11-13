@@ -96,11 +96,11 @@ class virtual active_source ?get_clock ~name ~clock_safe
           (Clock.create_known (self#get_clock :> Source.clock))
 
     method virtual private get_frame : Frame.t -> unit
-    method virtual private memo : Frame.t
+    method virtual private cache : Frame.t
 
     method private output =
-      if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
-        self#get self#memo
+      if self#is_ready ~frame:self#cache () && AFrame.is_partial self#cache then
+        self#get self#cache
   end
 
 let base_proto ~label =

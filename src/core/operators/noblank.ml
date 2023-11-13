@@ -151,10 +151,10 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
          lost. (Because of granularity issues, the change of #is_ready only
          takes effect at the end of the clock cycle). *)
       if
-        source#is_ready ~frame:self#memo ()
+        source#is_ready ~frame:self#cache ()
         && self#is_blank
-        && AFrame.is_partial self#memo
-      then self#get_frame self#memo
+        && AFrame.is_partial self#cache
+      then self#get_frame self#cache
 
     method reset = ()
   end

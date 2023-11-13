@@ -167,7 +167,7 @@ class virtual source :
        method private video_dimensions : int * int
 
        (** Retrieve the frame currently being filled. *)
-       method memo : Frame.t
+       method cache : Frame.t
 
        (** A buffer that can be used by the source. *)
        method buffer : Generator.t

@@ -138,7 +138,7 @@ let _ =
         else 0
       in
       let frame_position = Lazy.force Frame.duration *. float ticks in
-      let in_frame_position = Frame.seconds_of_main (Frame.position s#memo) in
+      let in_frame_position = Frame.seconds_of_main (Frame.position s#cache) in
       Lang.float (frame_position +. in_frame_position))
 
 let _ =

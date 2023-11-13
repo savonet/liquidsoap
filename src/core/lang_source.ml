@@ -238,7 +238,7 @@ let source_methods =
               Lazy.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
-              Frame.seconds_of_main (Frame.position s#memo)
+              Frame.seconds_of_main (Frame.position s#cache)
             in
             float (frame_position +. in_frame_position)) );
   ]

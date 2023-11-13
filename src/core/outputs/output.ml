@@ -162,25 +162,27 @@ class virtual output ~output_kind ?(name = "") ~infallible
 
     method private output =
       self#has_ticked;
-      if self#is_ready ~frame:self#memo () && state <> `Stopped then
+      if self#is_ready ~frame:self#cache () && state <> `Stopped then
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         (* Complete filling of the frame *)
         let get_count = ref 0 in
-        while Frame.is_partial self#memo && self#is_ready ~frame:self#memo () do
+        while
+          Frame.is_partial self#cache && self#is_ready ~frame:self#cache ()
+        do
           incr get_count;
           if !get_count > Lazy.force Frame.size then
             self#log#severe
               "Warning: there may be an infinite sequence of empty tracks!";
-          source#get self#memo
+          source#get self#cache
         done;
         List.iter
           (fun (_, m) -> self#add_metadata m)
-          (Frame.get_all_metadata self#memo);
+          (Frame.get_all_metadata self#cache);
 
         (* Output that frame if it has some data *)
-        if Frame.position self#memo > 0 then self#send_frame self#memo;
-        if Frame.is_partial self#memo then (
+        if Frame.position self#cache > 0 then self#send_frame self#cache;
+        if Frame.is_partial self#cache then (
           self#log#important "Source failed (no more tracks) stopping output...";
           self#transition_to `Idle))
 
