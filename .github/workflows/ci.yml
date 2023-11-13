@@ -255,6 +255,7 @@ jobs:
       - name: Install additional packages
         if: matrix.target == '@doctest'
         run: |
+          sudo apt-get -y update
           sudo apt-get -y install frei0r-plugins
       - name: Run tests
         env:
