@@ -23,18 +23,8 @@ s = single("/path/to/movie.mkv")
 By default, `liquidsoap` decodes _only_ the track that you tell it to pick. So,
 if you output this source as an output with only one audio track, it will happily do so:
 
-```liquidsoap
-s = single("/path/to/movie.mkv")
+```{.liquidsoap include="content/liq/multitrack.liq"}
 
-# Copy first audio track and video:
-output.file(
-  %ffmpeg(
-    %audio.copy,
-    %video.copy
-  ),
-  "/path/to/copy.mkv",
-  s
-)
 ```
 
 Resulting in the following logs:
@@ -55,23 +45,8 @@ Eventually, we picked up only first `audio` and first `video` track and reported
 
 Now, let's say that we want to also keep the second audio track but convert it to stereo and re-encode it into `aac`. We can then do:
 
-```liquidsoap
-s = single("/path/to/movie.mkv")
+```{.liquidsoap include="content/liq/multitrack2.liq"}
 
-# Copy first audio track and video track
-# and re-encode second audio track:
-output.file(
-  %ffmpeg(
-    %audio.copy,
-    %audio_2(
-      channels=2,
-      codec="aac"
-    ),
-    %video.copy
-  ),
-  "/path/to/copy.mkv",
-  s
-)
 ```
 
 And now we see the following logs:
@@ -87,24 +62,8 @@ Now, we are actually using both audio tracks from `movie.mkv` and one of them is
 
 One thing to keep in mind, however, is that **expected content-type drives the input decoder**. Typically, if, instead of a `single`, you use a `playlist`:
 
-```liquidsoap
-s = playlist("/path/to/playlist")
+```{.liquidsoap include="content/liq/multitrack3.liq"}
 
-# Copy first audio track and video track
-# and re-encode second audio track:
-output.file(
-  fallible=true,
-  %ffmpeg(
-    %audio.copy,
-    %audio_2(
-      channels=2,
-      codec="aac"
-    ),
-    %video.copy
-  ),
-  "/path/to/copy.mkv",
-  s
-)
 ```
 
 Then all the files in the playlist who do not have at least two `audio` tracks and one `video` track will be rejected by the decoder!
@@ -166,57 +125,23 @@ Tracks can be muxed using the `source` operator. The operator takes a record of 
 
 Here's how to add a video track to a source
 
-```liquidsoap
-# A playlist of audio files
-s = playlist(...)
+```{.liquidsoap include="content/liq/multitrack-add-video-track.liq" to=-1}
 
-# A static image
-image = single("/path/to/image.png")
-
-# Get the playlist's audio track, metadata and track marks
-let {audio = playlist_audio, metadata, track_marks} = source.track(s)
-
-# Get the video track from our static image
-let {video = image_video} = source.tracks(image)
-
-# Mux the audio tracks with the image
-s = source({
-  audio=playlist_audio,
-  video=image_video,
-  metadata=metadata,
-  track_marks=track_marks
-})
 ```
 
 The above example was purposely written in a longer form to make it more explicit. However, if you wish to just add/replace a track, you
 can also overload the existing tracks from the first source as follows:
 
-```liquidsoap
-# A playlist of audio files
-s = playlist(...)
+```{.liquidsoap include="content/liq/multitrack-add-video-track2.liq" to=-1}
 
-# A static image
-image = single("/path/to/image.png")
-
-# Mux the audio tracks with the image
-s = source(source.tracks(s).{video=source.tracks(image).video})
 ```
 
 ### Add a default video track
 
 You can also check if a source has a certain track and do something accordingly:
 
-```liquidsoap
-s = playlist(...)
+```{.liquidsoap include="content/liq/multitrack-default-video-track.liq" to=-1}
 
-# A default video source:
-image = single("/path/to/image.png")
-
-# Pick `s` video track if it has one, otherwise use the default one:
-video = source.tracks(s).video ?? source.tracks(image).video
-
-# Return a source that always has video:
-s = source(source.tracks(s).{video=video})
 ```
 
 Please note, however, that **tracks available in the playlist sources are determined based on the first decoded file**. If the first file in the playlist is audio-only then the playlist content-type is assumed to be audio-only for the whole playlist and the default video is added to _all decoded files_.

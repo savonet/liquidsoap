@@ -46,7 +46,7 @@ end
 #              must return `null` or `""` when it has finished sending all its data.
 # @param ~append Append data if file exists.
 # @param ~perms Default file rights if created. Default: `0o644`.
-# @param path Path to write to
+# @param path Path to write to.
 def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
   cb = file.write.stream(append=append, perms=perms, path)
 
@@ -57,6 +57,13 @@ def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
   end
 
   write()
+end
+
+# Ensure that a file exists, creating it empty if it does not.
+# @category File
+# @param path Path of the file.
+def file.touch(~perms=0o644, path) =
+  file.write(data="", perms=perms, append=true, path)
 end
 
 # Read the whole contents of a file.

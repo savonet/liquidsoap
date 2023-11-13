@@ -18,21 +18,10 @@ to e.g. write the request data to a file using `file.write.stream`.
 The `body` method can be used to read all of the request's data and store it in
 memory. Make sure to only use it if you know that the response should be small enough!
 
-For convenience, a HTTP response builder is provided via `harbor.http.response`. Here's an example:
+For convenience, a HTTP response builder is provided via `http.response`. Here's an example:
 
-```liquidsoap
-def handler(request) =
-  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
-       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       body: #{request.body()}")
+```{.liquidsoap include="content/liq/harbor.http.response.liq" from=1}
 
-  harbor.http.response(
-    content_type="text/html",
-    data="<p>ok, this works!</p>"
-  )
-end
-
-harbor.http.register.simple(port=8080, method="GET", path, handler)
 ```
 
 where:
@@ -46,47 +35,8 @@ where:
 The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation.
 Its API is very similar to the node/express API. Here's an example:
 
-```liquidsoap
-def handler(request, response) =
-  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
-       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       body: #{request.body()}")
+```{.liquidsoap content="harbor.http.register.liq" from=1}
 
-  # Set response code. Defaults to 200
-  response.status_code(201)
-
-  # Set response status message. Uses `status_code` if not specified
-  response.status_message("Created")
-
-  # Replaces response headers
-  response.headers(["X-Foo", "bar"])
-
-  # Set a single header
-  response.header("X-Foo", "bar")
-
-  # Set http protocol version
-  response.http_version("1.1")
-
-  # Same as setting the "Content-Type" header
-  response.content_type("application/liquidsoap")
-
-  # Set response data. Can be a `string` or a function of type `()->string` returning an empty string
-  # when done such as `file.read`
-  response.data("foo")
-
-  # Advanced wrappers:
-
-  # Sets content-type to json and data to `json.stringify({foo = "bla"})`
-  response.json({foo = "bla"})
-
-  # Sets `status_code` and `Location:` header for a HTTP redirect response. Takes an optional `status_code` argument.
-  response.redirect("http://...")
-
-  # Sets content-type to html and data to `"<p>It works!</p>"`
-  response.html("<p>It works!</p>")
-end
-
-harbor.http.register(port=8080, method="GET", path, handler)
 ```
 
 where:
@@ -195,19 +145,8 @@ harbor.http.register.regexp(
 You can use harbor to register HTTP services to
 fecth/set the metadata of a source.
 
-```liquidsoap
-meta = ref([])
+```{.liquidsoap inlucde="content/liq/harbor-metadata.liq" from=1}
 
-# s = some source
-s.on_metadata(fun (m) -> meta := m)
-
-# Return the json content of meta
-def get_meta(_, response) =
-  response.json(!meta)
-end
-
-# Register get_meta at port 700
-harbor.http.register(port=7000,method="GET","/getmeta",get_meta)
 ```
 
 Once the script is running,
@@ -231,31 +170,8 @@ Content-Type: application/json; charset=utf-8
 Using `insert_metadata`, you can register a GET handler that
 updates the metadata of a given source. For instance:
 
-```liquidsoap
-# s = some source
+```{.liquidsoap include="content/liq/harbor-insert-metadata.liq" from=1}
 
-# Create a source equipped with a `insert_metadata` method:
-s = insert_metadata(s)
-
-# The handler
-def set_meta(request, response) =
-  # Filter out unusual metadata
-  meta = metadata.export(request.query)
-
-  # Grab the returned message
-  ret =
-    if meta != [] then
-      s.insert_metadata(meta)
-      "OK!"
-    else
-      "No metadata to add!"
-  end
-
-  response.html("<html><body><b>#{ret}</b></body></html>")
-end
-
-# Register handler on port 700
-harbor.http.register(port=7000,method="GET","/setmeta",set_meta)
 ```
 
 Now, a request of the form `http://server:7000/setmeta?title=foo`

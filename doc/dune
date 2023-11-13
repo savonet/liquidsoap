@@ -2,6 +2,12 @@
 
 (include dune.inc)
 
+(rule
+  (alias dummytest)
+  (package liquidsoap)
+  (action (run %{bin:liquidsoap} --version))
+)
+
 (executable
  (name gen_dune)
  (preprocess

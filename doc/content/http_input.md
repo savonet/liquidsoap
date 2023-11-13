@@ -5,10 +5,8 @@ be a distant file or playlist, or an icecast or shoutcast stream.
 
 To use it in your script, simply create a source that way:
 
-```liquidsoap
-# url is a HTTP location, like
-# http://radiopi.org:8080/reggae
-source = input.http(url)
+```{.liquidsoap include="content/liq/http-input.liq" from=1 to=-1}
+
 ```
 
 This operator will pull regularly the given location for its data, so it should be used for
