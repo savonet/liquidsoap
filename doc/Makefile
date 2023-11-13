@@ -1,7 +1,7 @@
 all: dune
 	@dune build @doc
 
-test:
+test: dune
 	@dune build @doctest
 
 dune:
