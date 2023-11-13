@@ -88,6 +88,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -101,7 +107,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md protocols.md))
   (target protocols.html)
   (action
@@ -142,6 +158,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -155,7 +177,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md reference.md))
   (target reference.html)
   (action
@@ -196,6 +228,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -209,7 +247,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md reference-extras.md))
   (target reference-extras.html)
   (action
@@ -250,6 +298,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -263,7 +317,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md reference-deprecated.md))
   (target reference-deprecated.html)
   (action
@@ -304,6 +368,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -317,7 +387,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md settings.md))
   (target settings.html)
   (action
@@ -358,6 +438,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -371,7 +457,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/beets.md))
   (target beets.html)
   (action
@@ -412,6 +508,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -425,7 +527,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/blank.md))
   (target blank.html)
   (action
@@ -466,6 +578,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -479,7 +597,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/book.md))
   (target book.html)
   (action
@@ -520,6 +648,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -533,7 +667,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/build.md))
   (target build.html)
   (action
@@ -574,6 +718,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -587,7 +737,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/clocks.md))
   (target clocks.html)
   (action
@@ -628,6 +788,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -641,7 +807,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/complete_case.md))
   (target complete_case.html)
   (action
@@ -682,6 +858,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -695,7 +877,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/cookbook.md))
   (target cookbook.html)
   (action
@@ -736,6 +928,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -749,7 +947,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/crossfade.md))
   (target crossfade.html)
   (action
@@ -790,6 +998,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -803,7 +1017,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/custom-path.md))
   (target custom-path.html)
   (action
@@ -844,6 +1068,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -857,7 +1087,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/documentation.md))
   (target documentation.html)
   (action
@@ -898,6 +1138,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -911,7 +1157,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/dynamic_sources.md))
   (target dynamic_sources.html)
   (action
@@ -952,6 +1208,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -965,7 +1227,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/encoding_formats.md))
   (target encoding_formats.html)
   (action
@@ -1006,6 +1278,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1019,7 +1297,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/external_decoders.md))
   (target external_decoders.html)
   (action
@@ -1060,6 +1348,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1073,7 +1367,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/external_encoders.md))
   (target external_encoders.html)
   (action
@@ -1114,6 +1418,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1127,7 +1437,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/external_streams.md))
   (target external_streams.html)
   (action
@@ -1168,6 +1488,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1181,7 +1507,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/faq.md))
   (target faq.html)
   (action
@@ -1222,6 +1558,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1235,7 +1577,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/ffmpeg.md))
   (target ffmpeg.html)
   (action
@@ -1276,6 +1628,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1289,7 +1647,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/ffmpeg_cookbook.md))
   (target ffmpeg_cookbook.html)
   (action
@@ -1330,6 +1698,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1343,7 +1717,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/ffmpeg_encoder.md))
   (target ffmpeg_encoder.html)
   (action
@@ -1384,6 +1768,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1397,7 +1787,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/ffmpeg_filters.md))
   (target ffmpeg_filters.html)
   (action
@@ -1438,6 +1838,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1451,7 +1857,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/flows_devel.md))
   (target flows_devel.html)
   (action
@@ -1492,6 +1908,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1505,7 +1927,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/frequence3.md))
   (target frequence3.html)
   (action
@@ -1546,6 +1978,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1559,7 +1997,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/geekradio.md))
   (target geekradio.html)
   (action
@@ -1600,6 +2048,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1613,7 +2067,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/gstreamer_encoder.md))
   (target gstreamer_encoder.html)
   (action
@@ -1654,6 +2118,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1667,7 +2137,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/harbor.md))
   (target harbor.html)
   (action
@@ -1708,6 +2188,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1721,7 +2207,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/harbor_http.md))
   (target harbor_http.html)
   (action
@@ -1762,6 +2258,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1775,7 +2277,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/help.md))
   (target help.html)
   (action
@@ -1816,6 +2328,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1829,7 +2347,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/hls_output.md))
   (target hls_output.html)
   (action
@@ -1870,6 +2398,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1883,7 +2417,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/http_input.md))
   (target http_input.html)
   (action
@@ -1924,6 +2468,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1937,7 +2487,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/icy_metadata.md))
   (target icy_metadata.html)
   (action
@@ -1978,6 +2538,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -1991,7 +2557,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/in_production.md))
   (target in_production.html)
   (action
@@ -2032,6 +2608,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2045,7 +2627,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/index.md))
   (target index.html)
   (action
@@ -2086,6 +2678,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2099,7 +2697,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/install.md))
   (target install.html)
   (action
@@ -2140,6 +2748,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2153,7 +2767,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/json.md))
   (target json.html)
   (action
@@ -2194,6 +2818,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2207,7 +2837,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/ladspa.md))
   (target ladspa.html)
   (action
@@ -2248,6 +2888,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2261,7 +2907,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/language.md))
   (target language.html)
   (action
@@ -2302,6 +2958,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2315,7 +2977,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/memory.md))
   (target memory.html)
   (action
@@ -2356,6 +3028,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2369,7 +3047,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/metadata.md))
   (target metadata.html)
   (action
@@ -2410,6 +3098,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2423,7 +3117,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/migrating.md))
   (target migrating.html)
   (action
@@ -2464,6 +3168,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2477,7 +3187,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/multitrack.md))
   (target multitrack.html)
   (action
@@ -2518,6 +3238,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2531,7 +3257,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/on2.md))
   (target on2.html)
   (action
@@ -2572,6 +3308,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2585,7 +3327,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/on2_part1.md))
   (target on2_part1.html)
   (action
@@ -2626,6 +3378,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2639,7 +3397,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/on2_part2.md))
   (target on2_part2.html)
   (action
@@ -2680,6 +3448,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2693,7 +3467,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/on2_part3.md))
   (target on2_part3.html)
   (action
@@ -2734,6 +3518,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2747,7 +3537,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/phases.md))
   (target phases.html)
   (action
@@ -2788,6 +3588,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2801,7 +3607,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/playlist_parsers.md))
   (target playlist_parsers.html)
   (action
@@ -2842,6 +3658,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2855,7 +3677,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/presentations.md))
   (target presentations.html)
   (action
@@ -2896,6 +3728,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2909,7 +3747,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/profiling.md))
   (target profiling.html)
   (action
@@ -2950,6 +3798,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -2963,7 +3817,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/prometheus.md))
   (target prometheus.html)
   (action
@@ -3004,6 +3868,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3017,7 +3887,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/protocols-presentation.md))
   (target protocols-presentation.html)
   (action
@@ -3058,6 +3938,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3071,7 +3957,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/publications.md))
   (target publications.html)
   (action
@@ -3112,6 +4008,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3125,7 +4027,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/quick_start.md))
   (target quick_start.html)
   (action
@@ -3166,6 +4078,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3179,7 +4097,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/radiopi.md))
   (target radiopi.html)
   (action
@@ -3220,6 +4148,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3233,7 +4167,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/reference-header.md))
   (target reference-header.html)
   (action
@@ -3274,6 +4218,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3287,7 +4237,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/release-assets.md))
   (target release-assets.html)
   (action
@@ -3328,6 +4288,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3341,7 +4307,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/replay_gain.md))
   (target replay_gain.html)
   (action
@@ -3382,6 +4358,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3395,7 +4377,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/request_sources.md))
   (target request_sources.html)
   (action
@@ -3436,6 +4428,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3449,7 +4447,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/requests.md))
   (target requests.html)
   (action
@@ -3490,6 +4498,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3503,7 +4517,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/rolling-release.md))
   (target rolling-release.html)
   (action
@@ -3544,6 +4568,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3557,7 +4587,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/script_loading.md))
   (target script_loading.html)
   (action
@@ -3598,6 +4638,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3611,7 +4657,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/seek.md))
   (target seek.html)
   (action
@@ -3652,6 +4708,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3665,7 +4727,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/server.md))
   (target server.html)
   (action
@@ -3706,6 +4778,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3719,7 +4797,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/shoutcast.md))
   (target shoutcast.html)
   (action
@@ -3760,6 +4848,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3773,7 +4867,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/sources.md))
   (target sources.html)
   (action
@@ -3814,6 +4918,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3827,7 +4937,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/split-cue.md))
   (target split-cue.html)
   (action
@@ -3868,6 +4988,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3881,7 +5007,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/stereotool.md))
   (target stereotool.html)
   (action
@@ -3922,6 +5058,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3935,7 +5077,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/stream_content.md))
   (target stream_content.html)
   (action
@@ -3976,6 +5128,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -3989,7 +5147,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/strings_encoding.md))
   (target strings_encoding.html)
   (action
@@ -4030,6 +5198,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -4043,7 +5217,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/video-static.md))
   (target video-static.html)
   (action
@@ -4084,6 +5268,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -4097,7 +5287,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/video.md))
   (target video.html)
   (action
@@ -4138,6 +5338,12 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/medialib.liq
+    content/liq/multitrack-add-video-track.liq
+    content/liq/multitrack-add-video-track2.liq
+    content/liq/multitrack-default-video-track.liq
+    content/liq/multitrack.liq
+    content/liq/multitrack2.liq
+    content/liq/multitrack3.liq
     content/liq/radiopi.liq
     content/liq/re-encode.liq
     content/liq/regular.liq
@@ -4151,7 +5357,17 @@
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
     content/liq/transcoding.liq
+    content/liq/video-anonymizer.liq
+    content/liq/video-bluescreen.liq
+    content/liq/video-in-video.liq
+    content/liq/video-logo.liq
+    content/liq/video-osc.liq
+    content/liq/video-simple.liq
     content/liq/video-static.liq
+    content/liq/video-text.liq
+    content/liq/video-transition.liq
+    content/liq/video-weather.liq
+    content/liq/video-webcam.liq
     (:md content/yaml.md))
   (target yaml.html)
   (action
@@ -5224,6 +6440,312 @@
     ../src/libs/utils.liq
     ../src/libs/video.liq
     (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/multitrack-add-video-track.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack-add-video-track.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/multitrack-add-video-track2.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack-add-video-track2.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/multitrack-default-video-track.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack-default-video-track.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/multitrack.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/multitrack2.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack2.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/multitrack3.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack3.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/radiopi.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/radiopi.liq))
@@ -5887,9 +7409,519 @@
     ../src/libs/utils.liq
     ../src/libs/video.liq
     (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-anonymizer.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-anonymizer.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-bluescreen.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-bluescreen.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-in-video.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-in-video.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-logo.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-logo.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-osc.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-osc.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-simple.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-simple.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/video-static.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-static.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-text.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-text.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-transition.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-transition.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-weather.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-weather.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/video-webcam.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-webcam.liq))
 )
 
 (install
