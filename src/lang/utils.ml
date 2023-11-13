@@ -39,11 +39,11 @@ let readable f =
 let check_readable ?current_dir ~pos path =
   let resolved_path = resolve_path ?current_dir path in
   let details =
-    if path = resolved_path then ""
-    else " Given path: " ^ path ^ ", resolved path: " ^ resolved_path
+    if path = resolved_path then "Given path: " ^ path
+    else "Given path: " ^ path ^ ", resolved path: " ^ resolved_path
   in
   if not (Sys.file_exists resolved_path) then
-    Runtime_error.raise ~pos ~message:("File not found!" ^ details) "not_found";
+    Runtime_error.raise ~pos ~message:("File not found! " ^ details) "not_found";
   if not (readable resolved_path) then
     Runtime_error.raise ~pos
       ~message:("File is not readable!" ^ details)
