@@ -21,9 +21,9 @@
   *****************************************************************************)
 
 open Harbor_base
+module Pcre = Re.Pcre
 module Monad = Duppy.Monad
 module Type = Liquidsoap_lang.Type
-module Regexp = Liquidsoap_lang.Regexp
 module Http_base = Http
 
 let ( let* ) = Duppy.Monad.bind
@@ -362,7 +362,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let websocket_error n msg = Websocket.to_string (`Close (Some (n, msg)))
 
   let parse_icy_request_line ~port h r =
-    let auth_data = Pcre.split ~pat:":" r in
+    let auth_data = Pcre.split ~rex:(Pcre.regexp ":") r in
     let requested_user, password =
       match auth_data with
         | user :: password :: _ -> (user, password)
@@ -453,7 +453,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") auth in
           match data with
             | "Basic" :: x :: _ -> (
-                let auth_data = Pcre.split ~pat:":" (Lang_string.decode64 x) in
+                let auth_data =
+                  Pcre.split ~rex:(Pcre.regexp ":") (Lang_string.decode64 x)
+                in
                 match auth_data with
                   | x :: y :: _ -> (x, y)
                   | _ -> raise Not_found)
@@ -788,11 +790,22 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
     (* First, try with a registered handler. *)
     let { handler; _ } = find_handler port in
-    let f (verb, rex, handler) =
-      if (verb :> verb) = hmethod && Lang.Regexp.test rex base_uri then (
-        let { Lang.Regexp.groups } = Lang.Regexp.exec rex base_uri in
+    let f (verb, regex, handler) =
+      let rex = regex.Liquidsoap_lang.Builtins_regexp.regexp in
+      let sub = lazy (try Some (Re.Pcre.exec ~rex base_uri) with _ -> None) in
+      if (verb :> verb) = hmethod && Lazy.force sub <> None then (
+        let sub = Option.get (Lazy.force sub) in
+        let groups =
+          List.fold_left
+            (fun groups name ->
+              try (name, Re.Pcre.get_named_substring rex name sub) :: groups
+              with Not_found -> groups)
+            []
+            (Array.to_list (Re.Pcre.names rex))
+        in
         log#info "Found handler '%s %s' on port %d%s." smethod
-          (Lang.descr_of_regexp rex) port
+          (Lang.descr_of_regexp regex)
+          port
           (match groups with
             | [] -> ""
             | groups ->

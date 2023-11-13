@@ -48,7 +48,7 @@
     (dtools (>= 0.4.5))
     (duppy (>= 0.9.3))
     (mm (>= 0.8.4))
-    (pcre (>= 7.5.0))
+    (re (>= 1.11.0))
     (ocurl (>= 0.9.2))
     (cry (>= 1.0.0))
     (camomile (>= 2.0.0))
@@ -151,6 +151,7 @@
   (depends
     (ocaml (>= 4.14.0))
     dune-site
+    (re (>= 1.11.0))
     (ppx_string :build)
     (sedlex (>= 3.2))
     (menhir (>= 20180703)))

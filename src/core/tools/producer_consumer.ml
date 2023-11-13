@@ -107,14 +107,13 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
       List.iter
         (fun c ->
           c#set_producer_buffer self#buffer;
-          c#get_ready ?dynamic:None [(self :> Source.source)])
+          c#get_ready [(self :> Source.source)])
         consumers
 
     method! sleep =
       super#sleep;
       List.iter
-        (fun c ->
-          c#leave ?failed_to_start:None ?dynamic:None (self :> Source.source))
+        (fun c -> c#leave ?failed_to_start:None (self :> Source.source))
         consumers
 
     method private get_frame buf =

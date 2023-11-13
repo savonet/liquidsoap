@@ -491,10 +491,7 @@ let parse_doc ~pos doc =
   let doc =
     List.map
       (fun x ->
-        Regexp.substitute
-          (Regexp.regexp ~flags:[`g] "^\\s*#\\s?")
-          ~subst:(fun _ -> "")
-          x)
+        Re.replace ~all:true ~f:(fun _ -> "") (Re.Pcre.regexp "^\\s*#\\s?") x)
       doc
   in
   if doc = [] then None
@@ -504,13 +501,14 @@ let parse_doc ~pos doc =
       | line :: lines -> (
           try
             let sub =
-              Regexp.exec
-                (Regexp.regexp
-                   "^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$")
+              Re.Pcre.exec
+                ~rex:
+                  (Re.Pcre.regexp
+                     "^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$")
                 line
             in
-            let s = Option.get (List.nth sub.Regexp.matches 2) in
-            match Option.get (List.nth sub.Regexp.matches 1) with
+            let s = Re.Pcre.get_substring sub 2 in
+            match Re.Pcre.get_substring sub 1 with
               | "docof" ->
                   let doc = Value.get s in
                   let main =
@@ -539,17 +537,18 @@ let parse_doc ~pos doc =
                   let s, only, except =
                     try
                       let sub =
-                        Regexp.exec
-                          (Regexp.regexp "^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$")
+                        Re.Pcre.exec
+                          ~rex:
+                            (Re.Pcre.regexp "^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$")
                           s
                       in
-                      let s = Option.get (List.nth sub.Regexp.matches 1) in
+                      let s = Re.Pcre.get_substring sub 1 in
                       let args =
                         List.filter
                           (fun s -> s <> "")
                           (List.map String.trim
                              (String.split_on_char ','
-                                (Option.get (List.nth sub.Regexp.matches 2))))
+                                (Re.Pcre.get_substring sub 2)))
                       in
                       let only, except =
                         List.fold_left
@@ -592,10 +591,12 @@ let parse_doc ~pos doc =
                   parse_doc (main, `Flag s :: special, params, methods) lines
               | "param" ->
                   let sub =
-                    Regexp.exec (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$") s
+                    Re.Pcre.exec
+                      ~rex:(Re.Pcre.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
+                      s
                   in
-                  let label = Option.get (List.nth sub.Regexp.matches 1) in
-                  let descr = Option.get (List.nth sub.Regexp.matches 2) in
+                  let label = Re.Pcre.get_substring sub 1 in
+                  let descr = Re.Pcre.get_substring sub 2 in
                   let label =
                     if label.[0] = '~' then
                       Some (String.sub label 1 (String.length label - 1))
@@ -606,10 +607,9 @@ let parse_doc ~pos doc =
                       | [] -> raise Not_found
                       | line :: lines ->
                           let line =
-                            Regexp.substitute
-                              (Regexp.regexp ~flags:[`g] "^ *")
-                              ~subst:(fun _ -> "")
-                              line
+                            Re.replace ~all:true
+                              ~f:(fun _ -> "")
+                              (Re.Pcre.regexp "^ *") line
                           in
                           let n = String.length line - 1 in
                           if line.[n] = '\\' then (
@@ -625,10 +625,12 @@ let parse_doc ~pos doc =
                     lines
               | "method" ->
                   let sub =
-                    Regexp.exec (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$") s
+                    Re.Pcre.exec
+                      ~rex:(Re.Pcre.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
+                      s
                   in
-                  let label = Option.get (List.nth sub.Regexp.matches 1) in
-                  let descr = Option.get (List.nth sub.Regexp.matches 2) in
+                  let label = Re.Pcre.get_substring sub 1 in
+                  let descr = Re.Pcre.get_substring sub 2 in
                   parse_doc
                     (main, special, params, (label, descr) :: methods)
                     lines

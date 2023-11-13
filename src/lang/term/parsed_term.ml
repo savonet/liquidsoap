@@ -168,7 +168,7 @@ and parsed_ast =
   | `Not of t
   | `Get of t
   | `Set of t * t
-  | `Methods of methods
+  | `Methods of t option * methods list
   | `Negative of t
   | `Append of t * t
   | `Assoc of t * t
@@ -193,11 +193,7 @@ and t = {
   mutable comments : (Pos.t * comment) list;
 }
 
-and methods = {
-  base : [ `None | `Spread of t | `Term of t ];
-  methods : (string * t) list;
-}
-
+and methods = [ `Ellipsis of t | `Method of string * t ]
 and string_interpolation = [ `String of string | `Term of t ]
 
 and encoder_params =
@@ -304,11 +300,11 @@ let rec iter_term fn ({ term } as tm) =
         iter_term fn tm'
     | `Parenthesis tm -> iter_term fn tm
     | `Block tm -> iter_term fn tm
-    | `Methods { base; methods } ->
-        (match base with
-          | `None -> ()
-          | `Spread tm | `Term tm -> iter_term fn tm);
-        List.iter (fun (_, tm) -> iter_term fn tm) methods
+    | `Methods (base, methods) ->
+        (match base with None -> () | Some tm -> iter_term fn tm);
+        List.iter
+          (function `Method (_, tm) | `Ellipsis tm -> iter_term fn tm)
+          methods
     | `Int _ -> ()
     | `Float _ -> ()
     | `String _ -> ()

@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Pcre = Re.Pcre
+
 let address_resolver s =
   let s = Harbor.file_descr_of_socket s in
   Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
@@ -175,7 +177,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     method register_decoder mime =
       let mime =
         try
-          let sub = Pcre.exec ~pat:"^([^;]+);.*$" mime in
+          let sub = Pcre.exec ~rex:(Pcre.regexp "^([^;]+);.*$") mime in
           Pcre.get_substring sub 1
         with Not_found -> mime
       in

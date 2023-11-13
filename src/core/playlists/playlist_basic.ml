@@ -20,8 +20,10 @@
 
  *****************************************************************************)
 
+module Pcre = Re.Pcre
+
 let log = Log.make ["playlist"; "basic"]
-let split_lines buf = Pcre.split ~pat:"[\r\n]+" buf
+let split_lines buf = Pcre.split ~rex:(Pcre.regexp "[\r\n]+") buf
 
 let parse_meta =
   let processor =
@@ -61,7 +63,7 @@ let parse_extinf s =
         | "" -> meta
         | duration -> ("extinf_duration", duration) :: meta
     in
-    let lines = Pcre.split ~pat:"\\s*-\\s*" song in
+    let lines = Pcre.split ~rex:(Pcre.regexp "\\s*-\\s*") song in
     meta
     @
     match lines with
@@ -75,7 +77,7 @@ let parse_extinf s =
 (* This parser cannot detect the format !! *)
 let parse_mpegurl ?pwd string =
   let lines = List.filter (fun x -> x <> "") (split_lines string) in
-  let is_info line = Pcre.pmatch ~pat:"^#EXTINF" line in
+  let is_info line = Pcre.pmatch ~rex:(Pcre.regexp "^#EXTINF") line in
   let skip_line line = line.[0] == '#' in
   let rec get_urls cur lines =
     match lines with
@@ -90,10 +92,16 @@ let parse_mpegurl ?pwd string =
   get_urls [] lines
 
 let parse_scpls ?pwd string =
-  let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
+  let string =
+    Pcre.substitute
+      ~rex:(Pcre.regexp "#[^\\r\\n]*[\\n\\r]+")
+      ~subst:(fun _ -> "")
+      string
+  in
   (* Format check, raise Not_found if invalid *)
   ignore
-    (Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]"
+    (Pcre.exec
+       ~rex:(Pcre.regexp "^[\\r\\n\\s]*\\[playlist\\]")
        (String.lowercase_ascii string));
   let lines = split_lines string in
   let urls =
@@ -226,7 +234,8 @@ let parse_cue ?pwd string =
   let strings = split_lines string in
   let strings =
     List.map
-      (fun string -> Pcre.replace ~rex:(Pcre.regexp "^\\s+") string)
+      (fun string ->
+        Pcre.substitute ~rex:(Pcre.regexp "^\\s+") ~subst:(fun _ -> "") string)
       strings
   in
   let strings = List.filter (fun s -> s <> "") strings in

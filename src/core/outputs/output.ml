@@ -24,6 +24,8 @@
 
 open Source
 
+let fallibility_check = ref true
+
 let proto =
   Start_stop.output_proto
   @ [
@@ -48,8 +50,8 @@ class virtual output ~output_kind ?(name = "") ~infallible
     initializer
       (* This should be done before the active_operator initializer attaches us
          to a clock. *)
-      if infallible && source#stype <> `Infallible then
-        raise (Error.Invalid_value (val_source, "That source is fallible"))
+      if !fallibility_check && infallible && source#stype <> `Infallible then
+        raise (Error.Invalid_value (val_source, "That source is fallible."))
 
     initializer Typing.(source#frame_type <: self#frame_type)
     inherit active_operator ~name:output_kind [source]

@@ -23,6 +23,8 @@
 (** Plug for resolving, that is obtaining a file from an URI. [src/protocols]
     plugins provide ways to resolve URIs: fetch, generate, ... *)
 
+module Pcre = Re.Pcre
+
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 
@@ -32,9 +34,11 @@ let log = Log.make ["request"]
 
 let remove_file_proto s =
   (* First remove file:// 🤮 *)
-  let s = Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s in
+  let s =
+    Pcre.substitute ~rex:(Pcre.regexp "^file://") ~subst:(fun _ -> "") s
+  in
   (* Then remove file: 😇 *)
-  Pcre.substitute ~pat:"^file:" ~subst:(fun _ -> "") s
+  Pcre.substitute ~rex:(Pcre.regexp "^file:") ~subst:(fun _ -> "") s
 
 let home_unrelate s = Lang_string.home_unrelate (remove_file_proto s)
 

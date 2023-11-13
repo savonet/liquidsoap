@@ -234,9 +234,10 @@ let unescape_char = function
   | s when String.length s = 4 -> unescape_octal_char s
   | _ -> assert false
 
-let unescape_string s =
-  let rex = Regexp.regexp ~flags:[`g] (String.concat "|" unescape_patterns) in
-  Regexp.substitute rex ~subst:unescape_char s
+let unescape_string =
+  Re.replace ~all:true
+    ~f:(fun g -> unescape_char (Re.Group.get g 0))
+    (Re.Pcre.regexp (String.concat "|" unescape_patterns))
 
 (** String representation of a matrix of strings. *)
 let string_of_matrix a =
@@ -345,10 +346,10 @@ module Version = struct
 
   (* We assume something like, 2.0.0+git@7e211ffd *)
   let of_string s : t =
-    let rex = Regexp.regexp "([\\.\\d]+)([^\\.]+)?" in
-    let sub = Regexp.exec rex s in
-    let num = Option.get (List.nth sub.Regexp.matches 1) in
-    let str = Option.value ~default:"" (List.nth sub.Regexp.matches 2) in
+    let rex = Re.Pcre.regexp "([\\.\\d]+)([^\\.]+)?" in
+    let sub = Re.Pcre.exec ~rex s in
+    let num = Re.Pcre.get_substring sub 1 in
+    let str = try Re.Pcre.get_substring sub 2 with _ -> "" in
     let num = String.split_on_char '.' num |> List.map int_of_string in
     (num, str)
 
@@ -532,13 +533,14 @@ let to_hex2 =
     Bytes.unsafe_to_string s
 
 let url_encode ?(plus = true) s =
-  Regexp.substitute
-    (Regexp.regexp ~flags:[`g] "[^A-Za-z0-9_.!*-]")
-    ~subst:(fun x ->
+  Re.replace ~all:true
+    ~f:(fun g ->
+      let x = Re.Group.get g 0 in
       if plus && x = " " then "+"
       else (
         let k = Char.code x.[0] in
         "%" ^ to_hex2 k))
+    (Re.Pcre.regexp "[^A-Za-z0-9_.!*-]")
     s
 
 let of_hex1 c =
@@ -549,10 +551,10 @@ let of_hex1 c =
     | _ -> failwith "invalid url"
 
 let url_decode ?(plus = true) s =
-  Regexp.substitute
-    (Regexp.regexp ~flags:[`g] "\\+|%..|%.|%")
-    (* TODO why do we match %. and % and seem to exclude them below ? *)
-    ~subst:(fun s ->
+  let rex = Re.Pcre.regexp "\\+|%..|%.|%" in
+  Re.replace ~all:true
+    ~f:(fun g ->
+      let s = Re.Group.get g 0 in
       if s = "+" then if plus then " " else "+"
       else (
         (* Assertion: s.[0] = '%' *)
@@ -560,4 +562,4 @@ let url_decode ?(plus = true) s =
         let k1 = of_hex1 s.[1] in
         let k2 = of_hex1 s.[2] in
         String.make 1 (Char.chr ((k1 lsl 4) lor k2))))
-    s
+    rex s

@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+module Pcre = Re.Pcre
 include Liquidsoap_lang.Utils
 
 let select = if Sys.win32 then Unix.select else Duppy.poll
@@ -287,7 +288,7 @@ let strftime ?time str : string =
     let key = Pcre.get_substring sub 1 in
     try List.assoc key assoc with _ -> "%" ^ key
   in
-  Pcre.substitute_substrings ~pat:"%(.)" ~subst str
+  Re.replace (Pcre.regexp "%(.)") ~f:subst str
 
 (** Check if a directory exists. *)
 let is_dir d =
@@ -347,17 +348,22 @@ let uptime =
 (** Generate a string which can be used as a parameter name. *)
 let normalize_parameter_string s =
   let s =
-    Pcre.substitute ~pat:"( *\\([^\\)]*\\)| *\\[[^\\]]*\\])"
+    Pcre.substitute
+      ~rex:(Pcre.regexp "( *\\([^\\)]*\\)| *\\[[^\\]]*\\])")
       ~subst:(fun _ -> "")
       s
   in
-  let s = Pcre.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
-  let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
+  let s =
+    Pcre.substitute ~rex:(Pcre.regexp "(\\.+|\\++)") ~subst:(fun _ -> "") s
+  in
+  let s = Pcre.substitute ~rex:(Pcre.regexp " +$") ~subst:(fun _ -> "") s in
+  let s =
+    Pcre.substitute ~rex:(Pcre.regexp "( +|/+|-+)") ~subst:(fun _ -> "_") s
+  in
+  let s = Pcre.substitute ~rex:(Pcre.regexp "\"") ~subst:(fun _ -> "") s in
   let s = String.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
-  let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_" ^ s else s in
+  let s = if Pcre.pmatch ~rex:(Pcre.regexp "^[0-9]") s then "_" ^ s else s in
   s
 
 (** A function to reopen a file descriptor
@@ -435,35 +441,6 @@ let self_sync_type sources =
               | (`Static, Some v), (`Static, v') when v = v' -> (`Static, Some v)
               | _ -> (`Dynamic, None))
           (`Static, None) sources))
-
-let string_of_pcre_error =
-  Pcre.(
-    function
-    | Partial -> "String only matched the pattern partially"
-    | BadPartial ->
-        "Pattern contains items that cannot be used together with partial \
-         matching."
-    | BadPattern (msg, pos) ->
-        Printf.sprintf "Malformed regular expression. Error: %s, position: %i"
-          msg pos
-    | BadUTF8 -> "UTF8 string being matched is invalid"
-    | BadUTF8Offset -> "A UTF8 string being matched with offset is invalid."
-    | MatchLimit ->
-        "Maximum allowed number of match attempts with backtracking or \
-         recursion is reached during matching."
-    | RecursionLimit -> "Maximum allowed number of recursion reached"
-    | InternalError msg -> Printf.sprintf "Internal error: %s" msg
-    (* This is a hack to be extensible here and enable warning 11 *)
-    | exn ->
-        if exn == WorkspaceSize then "Provided workspace array is too small"
-        else "Unknown error")
-
-let () =
-  Printexc.register_printer
-    Pcre.(
-      function
-      | Error err -> Some (Printf.sprintf "Pcre(%s)" (string_of_pcre_error err))
-      | _ -> None)
 
 let var_script = ref "default"
 

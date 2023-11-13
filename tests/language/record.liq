@@ -275,6 +275,39 @@ def f() =
   y = x.{foo=123} - 3
   test.equals("#{y}", "#{-2}")
 
+  x = {foo=123}
+  y = {gni="aabb"}
+  test.equals({...x, ...y}, {foo=123, gni="aabb"})
+  test.equals({...x, gna=3.14, ...y}, {foo=123, bla=3.14, gni="aabb"})
+  test.equals(
+    {...x, gna=3.14, ...y, foo="bar"}, {foo="bar", bla=3.14, gni="aabb"}
+  )
+
+  x = {foo=1}
+  y = {foo=2}
+  test.equals({...x, ...y}, {foo=2})
+  test.equals({...y, ...x}, {foo=1})
+
+  x = {foo=1}
+  y = {foo=null()}
+  test.equals({...x, ...y}, {foo=null()})
+  test.equals({...y, ...x}, {foo=1})
+
+  x = {foo=null()}
+  y = {foo=null()}
+  test.equals({...x, ...y}, {foo=null()})
+  test.equals({...y, ...x}, {foo=null()})
+
+  x = {foo=1}
+  y = {foo="a"}
+  test.equals({...x, ...y}, {foo="a"})
+  test.equals({...y, ...x}, {foo=1})
+
+  x = {foo=1}
+  y = {foo={bar=1}}
+  test.equals({...x, ...y}, {foo={bar=1}})
+  test.equals({...y, ...x}, {foo=1})
+
   test.pass()
 end
 

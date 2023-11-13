@@ -155,7 +155,7 @@ open Parser_helper
 %type <Term.pattern> pattern
 %type <Term.pattern list> pattern_list
 %type <Term.pattern list * string option * Term.pattern list> pattern_list_with_spread
-%type <(string * Parsed_term.t) list> record
+%type <Parsed_term.methods list> record
 %type <Parser_helper.meth_pattern_el list> record_pattern
 %type <Term.meth_annotation list> record_ty
 %type <unit> s
@@ -226,13 +226,12 @@ expr:
   | ENCODER encoder_opt              { mk_encoder ~pos:$loc $1 $2 }
   | LPAR RPAR                        { mk ~pos:$loc (`Tuple []) }
   | LPAR inner_tuple RPAR            { mk ~pos:$loc (`Tuple $2) }
+  | expr DOT LCUR record RCUR        { mk ~pos:$loc (`Methods (Some $1, $4)) }
   | expr DOT LCUR record optional_comma RCUR
-                                     { mk ~pos:$loc (`Methods { base = `Term $1; methods = $4 }) }
-  | LCUR DOTDOTDOT expr RCUR         { mk ~pos:$loc (`Methods { base = `Spread $3; methods = [] }) }
-  | LCUR record COMMA DOTDOTDOT expr RCUR
-                                     { mk ~pos:$loc (`Methods { base = `Spread $5; methods = $2 }) }
-  | LCUR record optional_comma RCUR  { mk ~pos:$loc (`Methods { base = `None; methods = $2 }) }
-  | LCUR RCUR                        { mk ~pos:$loc (`Methods {base = `None; methods = []}) }
+                                     { mk ~pos:$loc (`Methods (Some $1, $4)) }
+  | LCUR record RCUR                 { mk ~pos:$loc (`Methods (None, $2)) }
+  | LCUR record optional_comma RCUR  { mk ~pos:$loc (`Methods (None, $2)) }
+  | LCUR RCUR                        { mk ~pos:$loc (`Methods (None, [])) }
   | expr QUESTION_DOT invoke         { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = true }) }
   | expr DOT invoke                  { mk ~pos:$loc (`Invoke { invoked = $1; meth = $3; optional = false }) }
   | VARLPAR app_list RPAR            { mk ~pos:$loc (`App (mk ~pos:$loc($1) (`Var $1), $2)) }
@@ -583,12 +582,13 @@ plain_encoder_params:
   | LPAR encoder_params RPAR { $2 }
 
 optional_comma:
-  |       {}
   | COMMA {}
 
 record:
-  | VAR GETS expr { [($1, $3)] }
-  | record COMMA VAR GETS expr { $1@[($3,$5)] }
+  | VAR GETS expr  { [`Method ($1, $3)] }
+  | DOTDOTDOT expr { [`Ellipsis $2] }
+  | record COMMA VAR GETS expr  { $1@[`Method ($3,$5)] }
+  | record COMMA DOTDOTDOT expr { $1@[`Ellipsis $4] }
 
 string_interpolation:
   | BEGIN_INTERPOLATION string_interpolation_elems END_INTERPOLATION { $1, $2 }
