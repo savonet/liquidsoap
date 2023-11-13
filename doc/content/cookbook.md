@@ -89,7 +89,7 @@ Sender:
 
 Receiver:
 
-```{.liquidsoap include="content/liq/srt-receiver.liq"}
+```{.liquidsoap include="content/liq/srt-receiver.liq" to=-1}
 
 ```
 
