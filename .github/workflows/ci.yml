@@ -88,6 +88,7 @@ jobs:
           opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
           cd liquidsoap
+          apt-get -y install rsync
           ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
         env:
           LIQ_BUILD_MIN: true
@@ -190,6 +191,7 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
+          apt-get -y install rsync
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cd /tmp/liquidsoap-full/liquidsoap/
           eval $(opam config env)
@@ -246,6 +248,7 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
+          apt-get -y install rsync
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Compute stats
@@ -390,6 +393,7 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
+          apt-get -y install rsync
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}" ${{ matrix.platform }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
