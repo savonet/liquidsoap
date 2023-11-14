@@ -7,7 +7,6 @@ eval "$(opam config env)"
 OCAMLPATH="$(cat ../.ocamlpath)"
 export OCAMLPATH
 
-sudo apt-get -y install rsync
 git clone https://github.com/smimram/ocaml-pandoc.git
 cd ocaml-pandoc
 opam pin -y add pandoc-include .
