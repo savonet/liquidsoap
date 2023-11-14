@@ -50,10 +50,12 @@ def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
   def rec write() =
     s = getter.get(data) ?? ""
     cb(s)
-    if getter.is_constant(data) then
-      cb("")
-    elsif s != "" then
-      write()
+    if
+      s == ""
+    then
+      ()
+    elsif getter.is_constant(data) then cb("")
+    elsif s != "" then write()
     end
   end
   write()

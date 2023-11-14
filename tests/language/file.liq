@@ -24,22 +24,24 @@ def f() =
   targetdir = path.concat(tmpdir2, path.basename(tmpdir))
   test.equals(file.exists(path.concat(targetdir, "test-src-file")), true)
 
-   non_existent = path.concat(tmpdir, "non-existent")
-   dst_file2 = path.concat(tmpdir2, "another_dst")
+  non_existent = path.concat(tmpdir, "non-existent")
+  dst_file2 = path.concat(tmpdir2, "another_dst")
 
-   try
-     file.copy(non_existent, dst_file2)
-     test.fail()
-   catch e : [error.file] do
-     ()
-   end
+  try
+    file.copy(non_existent, dst_file2)
+    test.fail()
+  catch e : [error.file] do
+    ()
+  end
 
-   dst_file3 = path.concat(tmpdir, "test-dst-file3")
-   file.move(src_file, dst_file3)
+  dst_file3 = path.concat(tmpdir, "test-dst-file3")
+  file.move(src_file, dst_file3)
+  test.equals(file.exists(dst_file3), true)
 
-   test.equals(file.exists(dst_file3), true)
+  file.touch("test-dst-file4")
+  test.equals(file.exists("test-dst-file4"), true)
 
-   test.pass()
+  test.pass()
 end
 
 test.check(f)

@@ -1,3 +1,11 @@
+# 2.2.3 (unreleased)
+
+Fixed:
+
+- Fixed `file.touch` (#3529)
+
+---
+
 # 2.2.2 (2023-11-02)
 
 New:
