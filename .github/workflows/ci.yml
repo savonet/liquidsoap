@@ -398,7 +398,10 @@ jobs:
           apk -U --force-overwrite upgrade
       - name: Install pandoc
         run: |
-          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
+          apt-get -y install rsync
+          mkdir -p ocaml-pandoc
+          chown -R opam ocaml-pandoc
+          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
           sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         run: |
