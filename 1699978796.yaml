@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 1.10160803795
+  unit: "s"
+  time: 1699978404.34
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.96149086952
+  unit: "s"
+  time: 1699978406.3
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.44185185432
+  unit: "s"
+  time: 1699978407.74
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 2.96939611435
+  unit: "s"
+  time: 1699978410.71
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 341.
+  unit: "Mio"
+  time: 1699978525.32
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 850.625
+  unit: "Mio"
+  time: 1699978525.32
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1699978525.32
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1699978525.32
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 5779.375
+  unit: "Mio"
+  time: 1699978525.32
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 5779.375
+  unit: "Mio"
+  time: 1699978525.32
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2208.
+  unit: "functions"
+  time: 1699978527.99
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1699978527.99
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.19368481636
+  unit: "s"
+  time: 1699978688.38
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.55653095245
+  unit: "s"
+  time: 1699978788.71
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.96714091301
+  unit: "s"
+  time: 1699978792.68
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1699978796.56
+  min: 0.
+
+- commit: e71e378bc094014e64331ceae46379c3c414fbb7
+  branch: git-pandoc-include
+  time: 1699978796
