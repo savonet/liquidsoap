@@ -39,7 +39,12 @@ export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 opam update
 opam install -y re.1.11.0
-opam install -y pandoc-include
+
+# opam install -y pandoc-include
+git clone https://github.com/smimram/ocaml-pandoc.git
+cd ocaml-pandoc
+opam pin -y add pandoc-include .
+cd ..
 
 echo "::endgroup::"
 
