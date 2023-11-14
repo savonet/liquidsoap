@@ -88,7 +88,6 @@ jobs:
           opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
           cd liquidsoap
-          apt-get -y install rsync
           ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
         env:
           LIQ_BUILD_MIN: true
@@ -183,6 +182,11 @@ jobs:
         run: |
           apt-get update
           apt-get install -y npm
+      - name: Install pandoc
+        run: |
+          apt-get -y install rsync
+          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
+          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build doc
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -191,7 +195,6 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
-          apt-get -y install rsync
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cd /tmp/liquidsoap-full/liquidsoap/
           eval $(opam config env)
@@ -240,6 +243,11 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
+      - name: Install pandoc
+        run: |
+          apt-get -y install rsync
+          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
+          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -248,7 +256,6 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
-          apt-get -y install rsync
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Compute stats
@@ -382,10 +389,15 @@ jobs:
           sudo apt-get update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
+          sudo apt-get -y install rsync
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
           apk -U --force-overwrite upgrade
+      - name: Install pandoc
+        run: |
+          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
+          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -393,7 +405,6 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0
-          apt-get -y install rsync
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}" ${{ matrix.platform }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
