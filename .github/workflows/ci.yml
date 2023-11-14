@@ -246,9 +246,11 @@ jobs:
       - name: Install pandoc
         run: |
           apt-get -y install rsync
-          mkdir -p ocaml-pandoc
-          chown -R opam ocaml-pandoc
-          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
+          if [ ! -d ocaml-pandoc ]; then
+            mkdir -p ocaml-pandoc;
+            chown -R opam ocaml-pandoc;
+            sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
+          fi
           sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         env:
@@ -267,8 +269,8 @@ jobs:
       - name: Install additional packages
         if: matrix.target == '@doctest'
         run: |
-          sudo apt-get -y update
-          sudo apt-get -y install frei0r-plugins
+          apt-get -y update
+          apt-get -y install frei0r-plugins
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
