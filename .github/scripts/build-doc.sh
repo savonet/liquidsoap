@@ -9,7 +9,7 @@ export OCAMLPATH
 
 git clone https://github.com/smimram/ocaml-pandoc.git
 cd ocaml-pandoc
-opam pin -y add pandoc-include .
+opam pin -y add .
 cd ..
 
 opam install -y odoc
