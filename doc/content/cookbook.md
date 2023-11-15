@@ -83,23 +83,23 @@ the SRT transport protocol:
 
 Sender:
 
-```{.liquidsoap include="srt-sender.liq" from=1}
+```{.liquidsoap include="srt-sender.liq" from="BEGIN"}
 
 ```
 
 Receiver:
 
-```{.liquidsoap include="srt-receiver.liq" to=-1}
+```{.liquidsoap include="srt-receiver.liq" to="END"}
 
 ```
 
 ## Scheduling
 
-```{.liquidsoap include="fallback.liq" to=-1}
+```{.liquidsoap include="fallback.liq" to="END"}
 
 ```
 
-```{.liquidsoap include="scheduling.liq" from=1 to=-1}
+```{.liquidsoap include="scheduling.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -160,7 +160,7 @@ It can be useful to have a special playlist that is played at least every 20 min
 You may think of a promotional playlist for instance.
 Here is the recipe:
 
-```{.liquidsoap include="regular.liq" from=1 to=-1}
+```{.liquidsoap include="regular.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -277,7 +277,7 @@ to add an extra `5s` of silence when transitioning out of a live `input.harbor` 
 
 This can be done with the `append` operator:
 
-```{.liquidsoap include="append-silence.liq" to=-1}
+```{.liquidsoap include="append-silence.liq" to="END"}
 
 ```
 
@@ -287,14 +287,14 @@ It is sometimes useful (or even legally necessary) to keep a backup of an audio
 stream. Storing all the stream in one file can be very impractical. In order to
 save a file per hour in wav format, the following script can be used:
 
-```{.liquidsoap include="dump-hourly.liq" from=1}
+```{.liquidsoap include="dump-hourly.liq" from="BEGIN"}
 
 ```
 
 In the following variant we write a new mp3 file each time new metadata is
 coming from `s`:
 
-```{.liquidsoap include="dump-hourly2.liq" from=1}
+```{.liquidsoap include="dump-hourly2.liq" from="BEGIN"}
 
 ```
 
@@ -332,7 +332,7 @@ Crossfade-based transitions are more complex and involve buffering source data i
 
 We provide a default operator named `cross.smart` which may be suitable for most usage. But you can also create your own customized crossfade transitions. This is in particular true if you are expecting crossfade transitions between tracks of your `music` source but not between a `music` track and e.g. some jingles. Here's how to do it in this case:
 
-```{.liquidsoap include="cross.smart.liq" from=1 to=-1}
+```{.liquidsoap include="cross.smart.liq" from="BEGIN" to="END"}
 
 ```
 

@@ -1,4 +1,6 @@
 path = "/bla"
+
+# BEGIN
 def handler(request) =
   log(
     "Got a request on path #{request.path}, protocol version: #{

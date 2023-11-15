@@ -1,4 +1,5 @@
 BEET = "/usr/bin/beet"
+# BEGIN
 def beets(id, query) =
   beets_src =
     blank.eat(

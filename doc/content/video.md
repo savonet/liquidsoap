@@ -81,7 +81,7 @@ Transitions at the beginning or at the end of video can be achieved using
 `video.fade.in` and `video.fade.out`. For instance, fading at the beginning of
 videos is done by
 
-```{.liquidsoap include="video-transition.liq" from=1 to=-1}
+```{.liquidsoap include="video-transition.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -89,7 +89,7 @@ videos is done by
 
 You can add a logo (any image) using the `video.add_image` operator, as follows:
 
-```{.liquidsoap include="video-logo.liq" from=1 to=-1}
+```{.liquidsoap include="video-logo.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -107,7 +107,7 @@ If your computer has a webcam, it can be used as a source thanks to the
 Suppose that you have two video sources `s` and `s2` and you want to display a
 small copy of `s2` on top of `s`. This can be achieved by
 
-```{.liquidsoap include="video-in-video.liq" from=1 to=-1}
+```{.liquidsoap include="video-in-video.liq" from="BEGIN" to="END"}
 
 ```
 

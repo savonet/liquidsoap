@@ -20,7 +20,7 @@ memory. Make sure to only use it if you know that the response should be small e
 
 For convenience, a HTTP response builder is provided via `http.response`. Here's an example:
 
-```{.liquidsoap include="harbor.http.response.liq" from=1}
+```{.liquidsoap include="harbor.http.response.liq" from="BEGIN"}
 
 ```
 
@@ -35,7 +35,7 @@ where:
 The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation.
 Its API is very similar to the node/express API. Here's an example:
 
-```{.liquidsoap content="harbor.http.register.liq" from=1}
+```{.liquidsoap include="harbor.http.register.liq" from="BEGIN"}
 
 ```
 
@@ -121,7 +121,7 @@ In this case, you can register the following handler:
 You can use harbor to register HTTP services to
 fecth/set the metadata of a source.
 
-```{.liquidsoap inlucde="harbor-metadata.liq" from=1}
+```{.liquidsoap include="harbor-metadata.liq" from="BEGIN"}
 
 ```
 
@@ -146,7 +146,7 @@ Content-Type: application/json; charset=utf-8
 Using `insert_metadata`, you can register a GET handler that
 updates the metadata of a given source. For instance:
 
-```{.liquidsoap include="harbor-insert-metadata.liq" from=1}
+```{.liquidsoap include="harbor-insert-metadata.liq" from="BEGIN"}
 
 ```
 
