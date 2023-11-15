@@ -62,7 +62,6 @@ module type ContentSpecs = sig
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
-  val clear : data -> unit
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -171,7 +170,6 @@ type data_handler = {
   is_empty : data -> bool;
   copy : data -> data;
   format : data -> format;
-  clear : data -> unit;
   append : data -> data -> data;
 }
 
@@ -185,7 +183,6 @@ let dummy_handler =
     is_empty = (fun _ -> raise Invalid);
     copy = (fun _ -> raise Invalid);
     format = (fun _ -> raise Invalid);
-    clear = (fun _ -> raise Invalid);
     append = (fun _ _ -> raise Invalid);
   }
 
@@ -207,7 +204,6 @@ let length c = (get_data_handler c)._length c
 let append c c' = (get_data_handler c).append c c'
 let copy c = (get_data_handler c).copy c
 let format c = (get_data_handler c).format c
-let clear c = (get_data_handler c).clear c
 let kind p = (get_format_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
 let string_of_format k = (get_format_handler k).string_of_format ()
@@ -347,10 +343,6 @@ module MkContentBase (C : ContentSpecs) :
       @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
     assert (dst_len = length dst)
 
-  let clear =
-    let clear_content { data } = C.clear data in
-    fun d -> List.iter clear_content (content d).chunks
-
   let make ?length params =
     { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
 
@@ -417,7 +409,6 @@ module MkContentBase (C : ContentSpecs) :
         copy = (fun d -> (_type, Content (copy (content d))));
         format = (fun d -> Format (Unifier.make (params (content d))));
         _length = (fun d -> length (content d));
-        clear;
         append;
       }
     in

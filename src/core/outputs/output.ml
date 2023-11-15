@@ -110,11 +110,11 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
           ["skip"; "metadata"; "remaining"];
       registered_telnet <- false
 
-    method private _is_ready ?frame () =
+    method private can_generate_data =
       if infallible then (
-        assert (source#is_ready ?frame ());
+        assert source#is_ready;
         true)
-      else source#is_ready ?frame ()
+      else source#is_ready
 
     method remaining = source#remaining
     method abort_track = source#abort_track
@@ -141,11 +141,6 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
       (* Get our source ready. This can take a while (preparing playlists,
          etc). *)
       source#get_ready ((self :> operator) :: activation);
-      if infallible then
-        while not (source#is_ready ()) do
-          self#log#important "Waiting for %S to be ready..." source#id;
-          Thread.delay 1.
-        done;
 
       if source#stype = `Infallible then
         start_stop#transition_to (if autostart then `Started else `Stopped);
@@ -169,31 +164,24 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
     (* The output process *)
     val mutable skip = false
     method private skip = skip <- true
-    method private get_frame buf = if Frame.is_partial buf then source#get buf
+    method private generate_data = source#get_data
 
     method private output =
       self#has_ticked;
-      if self#is_ready ~frame:self#memo () && state <> `Stopped then
+      if self#is_ready && state <> `Stopped then
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
-        (* Complete filling of the frame *)
-        let get_count = ref 0 in
-        while Frame.is_partial self#memo && self#is_ready ~frame:self#memo () do
-          incr get_count;
-          if !get_count > Lazy.force Frame.size then
-            self#log#severe
-              "Warning: there may be an infinite sequence of empty tracks!";
-          source#get self#memo
-        done;
+        let data = source#get_data in
+        Printf.printf "Got frame of length: %d\n%!" (Frame.position data);
         List.iter
           (fun (_, m) ->
             self#add_metadata
               (Frame.Metadata.Export.from_metadata ~cover:false m))
-          (Frame.get_all_metadata self#memo);
+          (Frame.get_all_metadata data);
 
         (* Output that frame if it has some data *)
-        if Frame.position self#memo > 0 then self#send_frame self#memo;
-        if Frame.is_partial self#memo then (
+        if Frame.position data > 0 then self#send_frame data;
+        if Frame.is_partial data then (
           self#log#important "Source failed (no more tracks) stopping output...";
           self#transition_to `Idle))
 
@@ -274,6 +262,6 @@ class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
       output_chunks frame
         (0
         :: List.sort compare
-             (List.map fst (Frame.get_all_metadata frame) @ Frame.breaks frame)
-        )
+             (List.map fst (Frame.get_all_metadata frame)
+             @ [Frame.position frame]))
   end

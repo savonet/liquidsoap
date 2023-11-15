@@ -70,10 +70,6 @@ module type ContentSpecs = sig
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
 
-  (* TODO: this will be removed when rewriting
-     streaming API. *)
-  val clear : data -> unit
-
   (** Params *)
 
   val params : data -> params
@@ -133,7 +129,6 @@ val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val truncate : data -> int -> data
 val copy : data -> data
-val clear : data -> unit
 val length : data -> int
 val append : data -> data -> data
 val is_empty : data -> bool
@@ -197,6 +192,7 @@ module Metadata : sig
   val format : format
   val get_data : Contents.data -> (int * Frame_base.metadata) list
   val set_data : Contents.data -> (int * Frame_base.metadata) list -> unit
+  val lift_data : (int * Frame_base.metadata) list -> Contents.data
 end
 
 module Track_marks : sig
@@ -205,6 +201,7 @@ module Track_marks : sig
   val format : format
   val get_data : Contents.data -> int list
   val set_data : Contents.data -> int list -> unit
+  val lift_data : int list -> Contents.data
 end
 
 (* Some tools *)

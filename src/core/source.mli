@@ -45,6 +45,11 @@ type self_sync = [ `Static | `Dynamic ] * bool
   * A `Infallible source never fails; it is always ready. *)
 type source_t = [ `Fallible | `Infallible ]
 
+exception Unavailable
+
+type streaming_state =
+  [ `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+
 (** Instrumentation. *)
 
 type metadata = (int * Frame.metadata) list
@@ -60,11 +65,10 @@ type watcher = {
     clock_sync_mode:clock_sync_mode ->
     unit;
   sleep : unit -> unit;
-  get_frame :
+  generate_data :
     start_time:float ->
     end_time:float ->
-    start_position:int ->
-    end_position:int ->
+    length:int ->
     is_partial:bool ->
     metadata:metadata ->
     unit;
@@ -166,11 +170,11 @@ class virtual source :
 
        method private video_dimensions : int * int
 
-       (** Retrieve the frame currently being filled. *)
-       method memo : Frame.t
-
        (** A buffer that can be used by the source. *)
        method buffer : Generator.t
+
+       (** An empty frame that can be used by the source. *)
+       method frame : Frame.t
 
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
        method virtual remaining : int
@@ -191,36 +195,24 @@ class virtual source :
            with [#get], so they should not interfere. *)
        method seek : int -> int
 
-       (** [is_ready] tells you if [get] can be called.
-           Frame argument is optional. With no frame, the
-	   function tells you if the source can produce
-	   fresh data. With a frame, it tells you if the
-	   source can fill the frame from its current position,
-	   potentially using cached data when the source is
-	   caching. *)
-       method is_ready : ?frame:Frame.t -> unit -> bool
-
-       (* Internal implementation of [is_ready]. *)
-       method virtual private _is_ready : ?frame:Frame.t -> unit -> bool
-
-       (** [get buf] asks the source to fill the buffer [buf] if possible.
-           The [get] call is partial when the buffer is not completely filled.
-           [get] should never be called with a full buffer,
-           and without checking that the source is ready. *)
-       method get : Frame.t -> unit
-
        (** The source's last metadata. *)
        method last_metadata : Frame.metadata option
 
        (** Register a callback to be called on new metadata *)
        method on_metadata : (Frame.metadata -> unit) -> unit
 
-       (** Register a callback to be called on new track *)
+       (** Register a callback to be called on new track. Callback
+           is called with the most recent metadata before a given
+           track mark. *)
        method on_track : (Frame.metadata -> unit) -> unit
 
-       method virtual private get_frame : Frame.t -> unit
+       method streaming_state : streaming_state
+       method get_data : Frame.t
+       method virtual private can_generate_data : bool
+       method virtual private generate_data : Frame.t
+       method is_ready : bool
 
-       (** Tells the source to finish the reading of current track. *)
+       (** Tells the source to end its current track. *)
        method virtual abort_track : unit
 
        method is_active : bool

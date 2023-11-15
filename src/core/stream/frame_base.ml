@@ -90,6 +90,8 @@ type field = Fields.field
 (** Precise description of the channel types for the current track. *)
 type content_type = Content_base.format Fields.t
 
+type t = Content_base.data Fields.t
+
 module Metadata = struct
   include Liquidsoap_lang.Methods
 

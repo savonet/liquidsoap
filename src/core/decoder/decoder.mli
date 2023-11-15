@@ -62,7 +62,8 @@ type decoder = {
 }
 
 type file_decoder_ops = {
-  fill : Frame.t -> int;
+  fread : int -> Frame.t;
+  remaining : unit -> int;
   fseek : int -> int;
   close : unit -> unit;
 }

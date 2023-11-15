@@ -49,28 +49,28 @@
  (library_flags -linkall)
  (modules
   aFrame
-  accelerate
-  add
-  amplify
+  ;accelerate
+  ;add
+  ;amplify
   annotate
   audio_converter
-  audio_gen
-  available
+  ;audio_gen
+  ;available
   avi
-  avi_encoder
+  ;avi_encoder
   avi_format
-  biquad_filter
-  blank
+  ;biquad_filter
+  ;blank
   charset_base
   charset
   child_support
-  chord
-  clip
+  ;chord
+  ;clip
   clock
-  comb
-  compand
-  compress
-  compress_exp
+  ;comb
+  ;compand
+  ;compress
+  ;compress_exp
   content
   content_audio
   content_pcm_base
@@ -80,66 +80,66 @@
   content_midi
   content_timed
   content_video
-  conversion
+  ;conversion
   configure
-  cross
-  cuepoint
-  debug_sources
+  ;cross
+  ;cuepoint
+  ;debug_sources
   decoder
   decoder_utils
-  defer
-  delay
-  delay_line
+  ;defer
+  ;delay
+  ;delay_line
   doc
-  dtmf
-  dyn_op
-  echo
+  ;dtmf
+  ;dyn_op
+  ;echo
   encoder
   encoder_formats
   error
-  external_decoder
-  external_encoder
+  ;external_decoder
+  ;external_encoder
   external_encoder_format
   external_input
-  external_input_audio
-  external_input_video
+  ;external_input_audio
+  ;external_input_video
   extralib
   extra_args
   fdkaac_format
   ffmpeg_format
   file_watcher
-  filter
-  filter_rc
-  fir_filter
+  ;filter
+  ;filter_rc
+  ;fir_filter
   flac_format
   flac_metadata_plug
-  flanger
+  ;flanger
   frame
   frame_base
   frame_settings
   frame_type
   format_type
-  gate
-  generated
+  ;gate
+  ;generated
   generator
   gstreamer_format
   harbor
   harbor_base
-  harbor_input
-  harbor_output
+  ;harbor_input
+  ;harbor_output
   hooks_implementations
-  hls_output
+  ;hls_output
   http
   icecast_utils
-  icecast2
+  ;icecast2
   id3_plug
-  iir_filter
-  image_decoder
+  ;iir_filter
+  ;image_decoder
   image_plug
-  insert_metadata
+  ;insert_metadata
   ioRing
   json
-  keyboard
+  ;keyboard
   lang
   lang_avi
   lang_encoder
@@ -157,63 +157,63 @@
   lang_theora
   lang_vorbis
   lang_wav
-  latest_metadata
+  ;latest_metadata
   liqcurl
   lifecycle
   liq_time
   liqmagic
   liquidsoap_paths
   log
-  lufs
-  mFrame
-  map_metadata
-  map_op
-  max_duration
-  mean
-  merge_metadata
-  midi_decoder
-  midi_routing
-  midimeter
+  ;lufs
+  ;mFrame
+  ;map_metadata
+  ;map_op
+  ;max_duration
+  ;mean
+  ;merge_metadata
+  ;midi_decoder
+  ;midi_routing
+  ;midimeter
   modules
   mp3_format
   mpd
-  ms_stereo
-  muxer
+  ;ms_stereo
+  ;muxer
   native_audio_converter
   native_video_converter
-  noblank
-  noise
-  normalize
+  ;noblank
+  ;noise
+  ;normalize
   ogg_format
   ogg_metadata_plug
-  on_end
-  on_frame
-  on_metadata
-  on_offset
-  on_track
+  ;on_end
+  ;on_frame
+  ;on_metadata
+  ;on_offset
+  ;on_track
   opus_format
   output
-  pan
-  pipe
-  pipe_output
-  pitch
+  ;pan
+  ;pipe
+  ;pipe_output
+  ;pitch
   playlist_parser
   plug
   pool
   pos
   ppm_decoder
   process_handler
-  producer_consumer
+  ;producer_consumer
   raw_audio_decoder
-  replaygain_op
+  ;replaygain_op
   request
   request_dynamic
-  resample
-  rms_smooth
+  ;resample
+  ;rms_smooth
   rqueue
   runtime_error
   sandbox
-  sequence
+  ;sequence
   server
   server_builtins
   sha1
@@ -221,47 +221,48 @@
   shine_format
   source
   speex_format
-  srt_decoder
-  srt_parser
+  ;srt_decoder
+  ;srt_parser
   start_stop
   startup
-  stereo
-  still_frame
+  ;stereo
+  ;still_frame
   stringView
   strings
-  swap
-  switch
-  synth_op
-  synthesized
+  ;swap
+  ;switch
+  ;synth_op
+  ;synthesized
   term
   theora_format
-  time_warp
+  ;time_warp
   track
-  track_map
+  ;track_map
   tutils
   type
   typing
   unifier
-  udp_io
+  ;udp_io
   utils
   value
-  vFrame
-  video_board
+  ;vFrame
+  ;video_board
   video_converter
-  video_effects
-  video_fade
+  ;video_effects
+  ;video_fade
   video_plug
-  video_testsrc
-  video_text
-  video_text_native
-  video_volume
+  ;video_testsrc
+  ;video_text
+  ;video_text_native
+  ;video_volume
   vorbis_format
   wav_aiff
   wav_aiff_decoder
-  wav_encoder
+  ;wav_encoder
   wav_format
   websocket
-  window_op))
+  ;window_op
+  ))
 
 (library
  (name liquidsoap_builtins)
@@ -280,15 +281,15 @@
   builtins_metadata
   builtins_process
   builtins_request
-  builtins_resolvers
-  playlist_basic
+  ;builtins_resolvers
+  ;playlist_basic
   builtins_runtime
   builtins_server
   builtins_settings
   builtins_socket
-  builtins_source
+  ;builtins_source
   builtins_string_extra
-  builtins_sys
+  ;builtins_sys
   builtins_thread
   builtins_time))
 
@@ -679,6 +680,7 @@
  (libraries stereotool liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
+ (enabled_if false)
  (optional)
  (modules stereotool_op))
 

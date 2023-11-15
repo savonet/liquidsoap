@@ -69,6 +69,10 @@ val remaining : t -> int
 (* Drop given length of content at the beginning of the generator. *)
 val truncate : t -> int -> unit
 
+(* Return at most the given len of data from the start of the generator
+   and truncate the generator of that data. *)
+val slice : t -> int -> Frame.t
+
 (* Empty the generator. *)
 val clear : t -> unit
 

@@ -88,8 +88,9 @@ end
 (** Metadata of a frame. *)
 type metadata = Metadata.t
 
-(** A frame. *)
-type t = Generator.t
+(** A frame is a chunk of data which should be
+    at most [size] *)
+type t = Content.data Fields.t
 
 (** {2 Content-independent frame operations} *)
 
@@ -98,39 +99,28 @@ type t = Generator.t
 (** Create a frame of a given content type. *)
 val create : content_type -> t
 
-(** A dummy frame which should never written to or read from. This is however
-    useful as a placeholder before initialization of references. *)
-val dummy : unit -> t
+(** Get at most length data from the start of the given frame. *)
+val slice : t -> int -> t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type
 
+(** Append data to a frame. *)
+val append : t -> t -> t
+
 (** Get a frame's content. *)
 val get : t -> field -> Content.data
-
-(** Set a frame's content. *)
-val set : t -> field -> Content.data -> unit
 
 (** Get a frame's audio content. *)
 val audio : t -> Content.data
 
-(** Set a frame's audio content. *)
-val set_audio : t -> Content.data -> unit
-
 (** Get a frame's video content. *)
 val video : t -> Content.data
-
-(** Set a frame's video content. *)
-val set_video : t -> Content.data -> unit
 
 (** Get a frame's midi content. *)
 val midi : t -> Content.data
 
-(** Set a frame's midi content. *)
-val set_midi : t -> Content.data -> unit
-
-(** Position of the end of the last chunk of the frame (i.e. the offset of the
-    end of the frame). *)
+(* Position in the frame. *)
 val position : t -> int
 
 (** Remaining data length in the frame. *)
@@ -140,47 +130,29 @@ val remaining : t -> int
     its size? *)
 val is_partial : t -> bool
 
-(** Make the frame empty. *)
-val clear : t -> unit
+(** {3 Track marks} *)
 
-(** {3 Breaks} *)
+(** List of track marks in a frame. *)
+val track_marks : t -> int list
 
-(** List of breaks in a frame. *)
-val breaks : t -> int list
-
-(** Set all the breaks of a frame. *)
-val set_breaks : t -> int list -> unit
-
-(** Add a break to a frame (which should be past its current end position). *)
-val add_break : t -> int -> unit
+(** Add a track_mark to a frame *)
+val add_track_mark : t -> int -> t
 
 (** {3 Metadata} *)
 
 exception No_metadata
 
 (** Attach metadata at a given position in the frame. *)
-val set_metadata : t -> int -> metadata -> unit
+val add_metadata : t -> int -> metadata -> t
 
 (** Retrieve metadata at a given position. *)
 val get_metadata : t -> int -> metadata option
 
-(** Remove all metadata at given position. *)
-val free_metadata : t -> int -> unit
-
-(** Remove all metadata. *)
-val free_all_metadata : t -> unit
-
 (** Retrieve all metadata. *)
 val get_all_metadata : t -> (int * metadata) list
 
-(** Set all metadata. *)
-val set_all_metadata : t -> (int * metadata) list -> unit
-
 (** {2 Content operations} *)
 
-exception No_chunk
-
-val get_chunk : t -> t -> unit
 val string_of_content_type : content_type -> string
 val compatible : content_type -> content_type -> bool
 

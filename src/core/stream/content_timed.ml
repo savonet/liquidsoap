@@ -101,6 +101,13 @@ module Metadata = struct
 
   let format = lift_params ()
 
+  let lift_data m =
+    lift_data
+      {
+        Specs.length = Finite (List.fold_left (fun l (p, _) -> max l p) 0 m);
+        data = m;
+      }
+
   let set_data d m =
     let d = get_data d in
     d.Specs.data <- m
@@ -135,6 +142,13 @@ module Track_marks = struct
   include Content_base.MkContentBase (Track_marks_specs)
 
   let format = lift_params ()
+
+  let lift_data p =
+    lift_data
+      {
+        Specs.length = Finite (List.fold_left (fun l p -> max l p) 0 p);
+        data = List.map (fun p -> (p, ())) p;
+      }
 
   let set_data d b =
     let d = get_data d in

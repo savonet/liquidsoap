@@ -78,7 +78,7 @@ class virtual active_source ?get_clock ~name ~clock_safe
     method stype = if fallible then `Fallible else `Infallible
     method! private wake_up _ = if autostart then base#transition_to `Started
     method! private sleep = base#transition_to `Stopped
-    method private _is_ready ?frame:_ _ = state = `Started
+    method private can_generate_data = state = `Started
     val mutable clock = None
 
     method private get_clock =
@@ -95,13 +95,9 @@ class virtual active_source ?get_clock ~name ~clock_safe
         Clock.unify ~pos:self#pos self#clock
           (Clock.create_known (self#get_clock :> Source.clock))
 
-    method virtual private get_frame : Frame.t -> unit
-    method virtual private memo : Frame.t
-
     method private output =
       self#has_ticked;
-      if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
-        self#get self#memo
+      match self#streaming_state with `Ready fn -> fn () | _ -> ()
   end
 
 let base_proto ~label =

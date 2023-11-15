@@ -41,7 +41,6 @@ module Specs = struct
     Video.Canvas.make length (width, height)
 
   let length d = main_of_video (Video.Canvas.length d)
-  let clear _ = ()
 
   let string_of_params { width; height } =
     print_optional

@@ -69,7 +69,7 @@ let source_methods =
       "Indicate if a source is ready to stream. This does not mean that the \
        source is currently streaming, just that its resources are all properly \
        initialized.",
-      fun (s : Source.source) -> val_fun [] (fun _ -> bool (s#is_ready ())) );
+      fun (s : Source.source) -> val_fun [] (fun _ -> bool s#is_ready) );
     ( "buffered",
       ([], fun_t [] (list_t (product_t string_t float_t))),
       "Length of buffered data.",
@@ -241,7 +241,9 @@ let source_methods =
               Lazy.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
-              Frame.seconds_of_main (Frame.position s#memo)
+              match s#streaming_state with
+                | `Done d -> Frame.seconds_of_main (Frame.position d)
+                | _ -> 0.
             in
             float (frame_position +. in_frame_position)) );
   ]

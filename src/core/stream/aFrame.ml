@@ -39,28 +39,32 @@ let to_s16le b =
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
 let position t = sot (position t)
-let breaks t = List.map sot (breaks t)
-let add_break t i = add_break t (tos i)
-let set_breaks t l = set_breaks t (List.map tos l)
+let track_marks t = List.map sot (track_marks t)
 let is_partial = is_partial
-let clear = clear
 
 exception No_metadata
 
 type metadata = Frame.metadata
 
-let set_metadata t i m = set_metadata t (tos i) m
 let get_metadata t i = get_metadata t (tos i)
 
 let get_all_metadata t =
   List.map (fun (x, y) -> (sot x, y)) (get_all_metadata t)
 
-let set_all_metadata t l =
-  set_all_metadata t (List.map (fun (x, y) -> (tos x, y)) l)
+let blankify b off len =
+  let pcm = pcm b in
+  Audio.clear pcm off len;
+  Frame.Fields.add Frame.Fields.audio (Content.Audio.lift_data pcm) b
 
-let free_metadata = free_metadata
-let free_all_metadata = free_all_metadata
-let blankify b off len = Audio.clear (pcm b) off len
-let multiply b off len c = Audio.amplify c (pcm b) off len
-let add b1 off1 b2 off2 len = Audio.add (pcm b1) off1 (pcm b2) off2 len
+let multiply b off len c =
+  let pcm = pcm b in
+  Audio.amplify c pcm off len;
+  Frame.Fields.add Frame.Fields.audio (Content.Audio.lift_data pcm) b
+
+let add b1 off1 b2 off2 len =
+  let pcm1 = pcm b1 in
+  let pcm2 = pcm b2 in
+  Audio.add pcm1 off1 pcm2 off2 len;
+  Frame.Fields.add Frame.Fields.audio (Content.Audio.lift_data pcm1) b1
+
 let rms b off len = Audio.Analyze.rms (pcm b) off len

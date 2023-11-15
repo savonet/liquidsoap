@@ -78,8 +78,6 @@ module Specs = struct
   let default_params _ =
     param_of_channels (Lazy.force Frame_settings.audio_channels)
 
-  let clear _ = ()
-
   let make ?(length = 0) { channel_layout } =
     let channels =
       match !!channel_layout with

@@ -50,6 +50,11 @@ module Pcre = Re.Pcre
     since those are structural, not nominal like a variant type.) *)
 type source_t = [ `Fallible | `Infallible ]
 
+exception Unavailable
+
+type streaming_state =
+  [ `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+
 (** {1 Proto clocks}
 
     Roughly describe what a clock is, and build a notion of clock variable
@@ -283,11 +288,10 @@ type watcher = {
     clock_sync_mode:clock_sync_mode ->
     unit;
   sleep : unit -> unit;
-  get_frame :
+  generate_data :
     start_time:float ->
     end_time:float ->
-    start_position:int ->
-    end_position:int ->
+    length:int ->
     is_partial:bool ->
     metadata:metadata ->
     unit;
@@ -574,36 +578,37 @@ class virtual operator ?pos ?(name = "src") sources =
       if (s :> < seek : int -> int >) == (self :> < seek : int -> int >) then 0
       else s#seek n
 
-    (* Underlying source implementation for [is_ready].
-       should return [true] when the source can produce
-       fresh data. *)
-    method virtual private _is_ready : ?frame:Frame.t -> unit -> bool
+    method virtual private can_generate_data : bool
+    method virtual private generate_data : Frame.t
+    val mutable streaming_state : streaming_state = `Unavailable
+    method streaming_state = streaming_state
 
-    method is_ready ?frame () =
-      match frame with
-        | None -> self#_is_ready ?frame ()
-        | Some frame ->
-            (caching && Frame.position frame < Frame.position self#memo)
-            || self#_is_ready ~frame ()
+    method is_ready =
+      self#has_ticked;
+      match streaming_state with `Ready _ -> true | _ -> false
+
+    (* This is the implementation of the main streaming logic. *)
+    initializer
+      self#on_before_output (fun () ->
+          if self#can_generate_data then
+            streaming_state <-
+              `Ready
+                (fun () ->
+                  streaming_state <- `Done self#instrumented_generate_data)
+          else streaming_state <- `Unavailable)
+
+    method get_data =
+      match streaming_state with
+        | `Unavailable -> raise Unavailable
+        | `Ready fn ->
+            fn ();
+            self#get_data
+        | `Done data -> data
 
     (* If possible, end the current track.
        Typically, that signal is just re-routed, or makes the next file
        to be played if there's anything like a file. *)
     method virtual abort_track : unit
-
-    (* In caching mode, remember what has been given during the current
-       tick. The generation is deferred until we actually have computed the kind
-       by unfication. *)
-    val mutable memo = None
-
-    method memo =
-      match memo with
-        | Some memo -> memo
-        | None ->
-            let m = Frame.create self#content_type in
-            memo <- Some m;
-            m
-
     val mutable buffer = None
 
     method buffer =
@@ -615,6 +620,16 @@ class virtual operator ?pos ?(name = "src") sources =
             in
             buffer <- Some buf;
             buf
+
+    val mutable frame = None
+
+    method frame =
+      match frame with
+        | Some frame -> frame
+        | None ->
+            let f = Frame.create self#content_type in
+            frame <- Some f;
+            f
 
     val mutable last_metadata = None
     method last_metadata = self#mutexify (fun () -> last_metadata) ()
@@ -630,20 +645,14 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable was_partial = true
     method on_track = self#mutexify (fun fn -> on_track <- on_track @ [fn])
 
-    method private instrumented_get_frame buf =
+    method private instrumented_generate_data =
       let start_time = Unix.gettimeofday () in
-      let start_position = Frame.position buf in
-      self#get_frame buf;
+      let buf = self#generate_data in
       let end_time = Unix.gettimeofday () in
-      let end_position = Frame.position buf in
+      let length = Frame.position buf in
       let is_partial = Frame.is_partial buf in
-      if is_partial then elapsed <- 0
-      else elapsed <- elapsed + end_position - start_position;
-      let metadata =
-        List.filter
-          (fun (pos, _) -> start_position <= pos)
-          (Frame.get_all_metadata buf)
-      in
+      if is_partial then elapsed <- 0 else elapsed <- elapsed + length;
+      let metadata = Frame.get_all_metadata buf in
       let on_metadata = self#mutexify (fun () -> on_metadata) () in
       List.iter
         (fun (i, m) ->
@@ -653,21 +662,20 @@ class virtual operator ?pos ?(name = "src") sources =
       (match List.rev metadata with
         | (_, m) :: _ -> self#mutexify (fun () -> last_metadata <- Some m) ()
         | [] -> ());
-      self#mutexify
-        (fun () ->
-          if was_partial then (
-            was_partial <- false;
-            let m =
-              match Frame.get_metadata buf start_position with
-                | None -> Frame.Metadata.empty
-                | Some m -> m
-            in
-            List.iter (fun fn -> fn m) on_track);
-          was_partial <- is_partial)
-        ();
+      List.iter
+        (fun pos ->
+          let m =
+            match
+              List.rev (List.filter (fun (pos', _) -> pos' <= pos) metadata)
+            with
+              | (_, m) :: _ -> m
+              | [] -> Frame.Metadata.empty
+          in
+          List.iter (fun fn -> fn m) on_track)
+        (Frame.track_marks buf);
       self#iter_watchers (fun w ->
-          w.get_frame ~start_time ~start_position ~end_time ~end_position
-            ~is_partial ~metadata)
+          w.generate_data ~start_time ~end_time ~length ~is_partial ~metadata);
+      buf
 
     (* Set to [true] when we're inside an output cycle. *)
     val mutable in_output = false
@@ -689,7 +697,6 @@ class virtual operator ?pos ?(name = "src") sources =
     method on_after_output fn = on_after_output <- fn :: on_after_output
 
     initializer
-      self#on_after_output (fun () -> Frame.clear self#memo);
       self#on_after_output (fun () ->
           self#iter_watchers (fun w -> w.after_output ()))
 
@@ -707,71 +714,6 @@ class virtual operator ?pos ?(name = "src") sources =
               c#on_output (fun () -> List.iter (fun fn -> fn ()) on_output);
               c#on_after_output (fun () -> self#after_output)
           | _ -> assert false)
-
-    (* [#get buf] completes the frame with the next data in the stream.
-       Depending on whether caching is enabled or not,
-       it calls [#get_frame] directly or tries to get data from the cache frame,
-       filling it if needed.
-       Any source calling [other_source#get should] thus take care of clearing
-       the cache of the other source ([#advance]) at the end of the output
-       round ([#after_output]). *)
-    method get buf =
-      assert (Frame.is_partial buf);
-      self#has_ticked;
-
-      (* In some cases we can't avoid #get being called on a non-ready
-         source, for example:
-         - A starts pumping B, stops in the middle of the track
-         - B finishes its track, becomes unavailable
-         - A starts streaming again, needs to receive an EOT before
-           having to worry about availability.
-
-           Another important example is crossfade, if e.g. a transition
-           returns a failling source.
-
-         So we add special cases where, instead of calling #get_frame, we
-         call silent_end_track to properly end a track by inserting a break.
-
-         This makes the whole protocol a bit sloppy as it weakens constraints
-         tying #is_ready and #get, preventing the detection of "bad" calls
-         of #get without prior check of #is_ready.
-
-         This fix makes it really important to keep #is_ready = true during a
-         track, otherwise the track will be ended without the source noticing! *)
-      let silent_end_track () = Frame.add_break buf (Frame.position buf) in
-      if not caching then
-        if not (self#_is_ready ~frame:buf ()) then silent_end_track ()
-        else (
-          let b = Frame.breaks buf in
-          self#instrumented_get_frame buf;
-          if List.length b + 1 > List.length (Frame.breaks buf) then (
-            self#log#severe "#get_frame added too many breaks!";
-            assert false);
-          if List.length b + 1 < List.length (Frame.breaks buf) then (
-            self#log#severe
-              "#get_frame returned a buffer without enough breaks!";
-            assert false))
-      else (
-        let memo = self#memo in
-        try Frame.get_chunk buf memo
-        with Frame.No_chunk ->
-          if not (self#_is_ready ~frame:buf ()) then silent_end_track ()
-          else (
-            (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
-            let b = Frame.breaks memo in
-            let p = Frame.position memo in
-            self#instrumented_get_frame memo;
-            if List.length b + 1 <> List.length (Frame.breaks memo) then (
-              self#log#severe "#get_frame didn't add exactly one break!";
-              assert false)
-            else if Frame.is_partial buf then
-              if p < Frame.position memo then self#get buf
-              else Frame.add_break buf (Frame.position buf)))
-
-    (* That's the way the source produces audio data.
-       It cannot be called directly, but [#get] should be used instead, for
-       dealing with caching if needed. *)
-    method virtual private get_frame : Frame.t -> unit
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
