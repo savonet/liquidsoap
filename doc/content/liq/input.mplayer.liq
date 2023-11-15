@@ -13,7 +13,7 @@ def input.mplayer(
   ~max=10.,
   s
 ) =
-  input.external(
+  input.external.rawaudio(
     id=id,
     restart=restart,
     restart_on_error=restart_on_error,

@@ -101,7 +101,7 @@ import:
 
 Then we only need to add `amplify` to our source creation function. In the example below we also add `blank.eat`, to automatically cut silence at the beginning or end of tracks.
 
-```{.liquidsoap include="content/liq/beets-amplify.liq"}
+```{.liquidsoap include="content/liq/beets-amplify.liq" from=1}
 
 ```
 

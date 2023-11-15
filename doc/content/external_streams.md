@@ -10,7 +10,10 @@ though it should work too.
 
 ## Basic operator
 
-The basic operator for creating an external stream is `input.external`. Its parameters are:
+The basic operators for creating an external stream are `input.external.wav`,
+`input.external.rawaudio`, `input.external.avi` and `input.external.rawvideo`
+(depending on the format of the data produced by the external program). The
+parameters for the two first are
 
 - `buffer`: Duration of the pre-buffered data.
 - `max`: Maximum duration of the buffered data.
