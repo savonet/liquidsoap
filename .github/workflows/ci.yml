@@ -69,19 +69,20 @@ jobs:
         id: cpu_cores
       - name: Checkout code
         run: |
+          chown -R opam /tmp/liquidsoap-full
           cd /tmp/liquidsoap-full/liquidsoap
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
       - name: Install pandoc
         run: |
+          cd /tmp/liquidsoap-full
           apt-get -y install rsync
           sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
           sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         run: |
           echo "::group::Preparing build"
-          chown -R opam /tmp/liquidsoap-full
           cd /tmp/liquidsoap-full
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap-full.git
           sudo -u opam -E git fetch --recurse-submodules=no
