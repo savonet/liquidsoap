@@ -63,7 +63,7 @@ let mk_html_rule ~liq ~content f =
   (action
     (pipe-stdout
       (run pandoc %%{md} -t json)
-      (run pandoc-include)
+      (run pandoc-include --directory content/liq)
       (run pandoc -f json --syntax-definition=liquidsoap.xml --highlight=pygments --metadata pagetitle=%s --template=template.html -o %%{target})
     )
   )

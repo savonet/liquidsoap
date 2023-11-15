@@ -6,7 +6,7 @@ Here are some examples of what is possible to do with the ffmpeg support in liqu
 
 With ffmpeg support, Liquidsoap can relay encoded streams without re-encoding them, making it possible to re-send a stream to multiple destinations. Here's an example:
 
-```{.liquidsoap include="content/liq/ffmpeg-relay.liq"}
+```{.liquidsoap include="ffmpeg-relay.liq"}
 
 ```
 
@@ -25,7 +25,7 @@ In the script below, you need to match the encoded format of the stream with a b
 The `output.harbor` will then relay the data from the file if no one is connected and start/stop the underlying
 input when there are listeners:
 
-```{.liquidsoap include="content/liq/ffmpeg-relay-ondemand.liq"}
+```{.liquidsoap include="ffmpeg-relay-ondemand.liq"}
 
 ```
 
@@ -34,7 +34,7 @@ input when there are listeners:
 Liquidsoap can also encode in one place and share the encoded with data with multiple outputs, making it possible to
 minimize CPU resources. Here's an example adapted from the previous one:
 
-```{.liquidsoap include="content/liq/ffmpeg-shared-encoding.liq"}
+```{.liquidsoap include="ffmpeg-shared-encoding.liq"}
 
 ```
 
@@ -42,7 +42,7 @@ Shared encoding is even more useful when dealing with video encoding, which is v
 sharing audio and video encoding and sending to different destinations, both via Icecast and to YouTube/Facebook
 via the rtmp protocol:
 
-```{.liquidsoap include="content/liq/ffmpeg-shared-encoding-rtmp.liq"}
+```{.liquidsoap include="ffmpeg-shared-encoding-rtmp.liq"}
 
 ```
 
@@ -63,7 +63,7 @@ to adapt the binary data and, it's possible some new filters will need to be wri
 
 Here's a use case that has been tested: live switch between a playlist of mp4 files and a rtmp flv input:
 
-```{.liquidsoap include="content/liq/live-switch.liq"}
+```{.liquidsoap include="live-switch.liq"}
 
 ```
 

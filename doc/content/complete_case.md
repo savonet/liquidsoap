@@ -15,7 +15,7 @@ Once you've managed to describe what you want in such a modular way, you're half
 
 Now here is how to write that in [Liquidsoap](index.html).
 
-```{.liquidsoap include="content/liq/complete-case.liq"}
+```{.liquidsoap include="complete-case.liq"}
 
 ```
 

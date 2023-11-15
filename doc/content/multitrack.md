@@ -23,7 +23,7 @@ s = single("/path/to/movie.mkv")
 By default, `liquidsoap` decodes _only_ the track that you tell it to pick. So,
 if you output this source as an output with only one audio track, it will happily do so:
 
-```{.liquidsoap include="content/liq/multitrack.liq"}
+```{.liquidsoap include="multitrack.liq"}
 
 ```
 
@@ -45,7 +45,7 @@ Eventually, we picked up only first `audio` and first `video` track and reported
 
 Now, let's say that we want to also keep the second audio track but convert it to stereo and re-encode it into `aac`. We can then do:
 
-```{.liquidsoap include="content/liq/multitrack2.liq"}
+```{.liquidsoap include="multitrack2.liq"}
 
 ```
 
@@ -62,7 +62,7 @@ Now, we are actually using both audio tracks from `movie.mkv` and one of them is
 
 One thing to keep in mind, however, is that **expected content-type drives the input decoder**. Typically, if, instead of a `single`, you use a `playlist`:
 
-```{.liquidsoap include="content/liq/multitrack3.liq"}
+```{.liquidsoap include="multitrack3.liq"}
 
 ```
 
@@ -125,14 +125,14 @@ Tracks can be muxed using the `source` operator. The operator takes a record of 
 
 Here's how to add a video track to a source
 
-```{.liquidsoap include="content/liq/multitrack-add-video-track.liq" to=-1}
+```{.liquidsoap include="multitrack-add-video-track.liq" to=-1}
 
 ```
 
 The above example was purposely written in a longer form to make it more explicit. However, if you wish to just add/replace a track, you
 can also overload the existing tracks from the first source as follows:
 
-```{.liquidsoap include="content/liq/multitrack-add-video-track2.liq" to=-1}
+```{.liquidsoap include="multitrack-add-video-track2.liq" to=-1}
 
 ```
 
@@ -140,7 +140,7 @@ can also overload the existing tracks from the first source as follows:
 
 You can also check if a source has a certain track and do something accordingly:
 
-```{.liquidsoap include="content/liq/multitrack-default-video-track.liq" to=-1}
+```{.liquidsoap include="multitrack-default-video-track.liq" to=-1}
 
 ```
 

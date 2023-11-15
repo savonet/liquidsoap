@@ -5,7 +5,7 @@ When compiled with optional support for [mirage/prometheus](https://github.com/m
 
 The basic settings to enable exports are:
 
-```{.liquidsoap include="content/liq/prometheus-settings.liq"}
+```{.liquidsoap include="prometheus-settings.liq"}
 
 ```
 
@@ -37,13 +37,13 @@ This type can be a little confusing. Here's how it works:
 
 1. First, one has to create a metric factory of a given type. For instance:
 
-```{.liquidsoap include="content/liq/prometheus-callback.liq" from=0 to=0}
+```{.liquidsoap include="prometheus-callback.liq" from=0 to=0}
 
 ```
 
 2. Then, the metric factory can be used to instantiate speific metrics by passing the label's values:
 
-```{.liquidsoap include="content/liq/prometheus-callback.liq" from=1 to=2}
+```{.liquidsoap include="prometheus-callback.liq" from=1 to=2}
 
 ```
 
@@ -55,7 +55,7 @@ The returned function is a setter for this metric, i.e.
 
 Finally, the programmer can now use that callback to set the metric as desired. For instance here:
 
-```{.liquidsoap include="content/liq/prometheus-callback.liq" from=3}
+```{.liquidsoap include="prometheus-callback.liq" from=3}
 
 ```
 

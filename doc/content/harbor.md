@@ -63,7 +63,7 @@ source clients should set their connection port to `n+1`.
 The `auth` function is a function, that takes a record `{user, password, address}` and returns a boolean representing whether the user
 should be granted access or not. Typical example can be:
 
-```{.liquidsoap include="content/liq/harbor-auth.liq"}
+```{.liquidsoap include="harbor-auth.liq"}
 
 ```
 
@@ -85,6 +85,6 @@ The source client may use any of the recognized audio input codec. Hence, when u
 
 A sample code can be:
 
-```{.liquidsoap include="content/liq/harbor-usage.liq" to=-1}
+```{.liquidsoap include="harbor-usage.liq" to=-1}
 
 ```

@@ -75,7 +75,7 @@ We rely on `request.dynamic` to call `beet random`
 (with `-f '$path'` option so beets only returns the matching track's path)
 every time the source must prepare a new track:
 
-```{.liquidsoap include="content/liq/beets-source.liq" from=1 to=-1}
+```{.liquidsoap include="beets-source.liq" from=1 to=-1}
 
 ```
 
@@ -101,7 +101,7 @@ import:
 
 Then we only need to add `amplify` to our source creation function. In the example below we also add `blank.eat`, to automatically cut silence at the beginning or end of tracks.
 
-```{.liquidsoap include="content/liq/beets-amplify.liq" from=1}
+```{.liquidsoap include="beets-amplify.liq" from=1}
 
 ```
 
@@ -117,7 +117,7 @@ In that case,
 the list of paths returned by `beet random -f '$path'` fits directly
 what's needed by protocol resolution:
 
-```{.liquidsoap include="content/liq/beets-protocol.liq" from=1}
+```{.liquidsoap include="beets-protocol.liq" from=1}
 
 ```
 

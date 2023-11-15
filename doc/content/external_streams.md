@@ -30,6 +30,6 @@ run the external program.
 A wrapper, `input.mplayer`, is defined to use mplayer as the external decoder.
 Its code is:
 
-```{.liquidsoap include="content/liq/input.mplayer.liq"}
+```{.liquidsoap include="input.mplayer.liq"}
 
 ```

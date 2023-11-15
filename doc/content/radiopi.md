@@ -32,7 +32,7 @@ annotate:file_id="3541",length="400.613877551",\
 
 Note that we use annotate to pass some variables to liquidsoap...
 
-```{.liquidsoap include="content/liq/radiopi.liq"}
+```{.liquidsoap include="radiopi.liq"}
 
 ```
 

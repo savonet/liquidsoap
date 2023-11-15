@@ -44,7 +44,7 @@ Conversely, tracks can be created from them using `ffmpeg.filter.audio.output` a
 
 Filters are configured within the closure of a function. Here's an example:
 
-```{.liquidsoap include="content/liq/ffmpeg-filter-flanger-highpass.liq"}
+```{.liquidsoap include="ffmpeg-filter-flanger-highpass.liq"}
 
 ```
 
@@ -53,7 +53,7 @@ to filters, applies a flanger effect and then a high pass effect, creates an aud
 
 Here's another example for video:
 
-```{.liquidsoap include="content/liq/ffmpeg-filter-hflip.liq"}
+```{.liquidsoap include="ffmpeg-filter-hflip.liq"}
 
 ```
 
@@ -70,7 +70,7 @@ if they are simply copied.
 
 Here's an example with the previous filter:
 
-```{.liquidsoap include="content/liq/ffmpeg-filter-hflip2.liq"}
+```{.liquidsoap include="ffmpeg-filter-hflip2.liq"}
 
 ```
 
@@ -84,7 +84,7 @@ supported in liquidsoap.
 
 In order to do so, you have to use a slightly different API:
 
-```{.liquidsoap include="content/liq/ffmpeg-filter-dynamic-volume.liq" to=-1}
+```{.liquidsoap include="ffmpeg-filter-dynamic-volume.liq" to=-1}
 
 ```
 
@@ -159,6 +159,6 @@ This filter receives an array of possible `audio` inputs as well as an array of 
 
 Put together, this can be used as such:
 
-```{.liquidsoap include="content/liq/ffmpeg-filter-parallel-flanger-highpass.liq"}
+```{.liquidsoap include="ffmpeg-filter-parallel-flanger-highpass.liq"}
 
 ```
