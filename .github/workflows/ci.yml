@@ -76,7 +76,6 @@ jobs:
           sudo -u opam -E git checkout ${{ github.sha }}
       - name: Install pandoc
         run: |
-          apt-get -y install rsync
           cd /tmp
           sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
           sudo -u opam -E opam pin -y add ocaml-pandoc
@@ -191,7 +190,6 @@ jobs:
           apt-get install -y npm
       - name: Install pandoc
         run: |
-          apt-get -y install rsync
           cd /tmp
           sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
           sudo -u opam -E opam pin -y add ocaml-pandoc
@@ -253,7 +251,6 @@ jobs:
           sudo -u opam -E git checkout ${{ github.sha }}
       - name: Install pandoc
         run: |
-          apt-get -y install rsync
           cd /tmp
           if [ ! -d ocaml-pandoc ]; then
             mkdir -p ocaml-pandoc;
@@ -403,7 +400,6 @@ jobs:
           sudo apt-get update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
-          sudo apt-get -y install rsync
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
