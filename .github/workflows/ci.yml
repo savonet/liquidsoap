@@ -73,6 +73,11 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
+      - name: Install pandoc
+        run: |
+          apt-get -y install rsync
+          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
+          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         run: |
           echo "::group::Preparing build"
@@ -85,7 +90,6 @@ jobs:
           sudo -u opam -E git reset --hard
           sudo -u opam -E git pull
           sudo -u opam -E cp PACKAGES.minimal PACKAGES
-          # sudo -u opam -E eval $(opam env)
           sudo -u opam -E opam pin -yn .
           sudo -u opam -E opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs sudo -u opam -E opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
