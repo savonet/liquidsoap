@@ -398,9 +398,9 @@ jobs:
         if: matrix.os == 'alpine'
         run: |
           apk -U --force-overwrite upgrade
+          # apk add rsync
       - name: Install pandoc
         run: |
-          apt-get -y install rsync
           mkdir -p ocaml-pandoc
           chown -R opam ocaml-pandoc
           sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
