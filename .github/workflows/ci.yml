@@ -76,8 +76,8 @@ jobs:
           sudo -u opam -E git checkout ${{ github.sha }}
       - name: Install pandoc
         run: |
-          cd /tmp/liquidsoap-full
           apt-get -y install rsync
+          cd /tmp
           sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
           sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
@@ -192,6 +192,7 @@ jobs:
       - name: Install pandoc
         run: |
           apt-get -y install rsync
+          cd /tmp
           sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
           sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build doc
@@ -253,6 +254,7 @@ jobs:
       - name: Install pandoc
         run: |
           apt-get -y install rsync
+          cd /tmp
           if [ ! -d ocaml-pandoc ]; then
             mkdir -p ocaml-pandoc;
             chown -R opam ocaml-pandoc;
@@ -405,11 +407,9 @@ jobs:
         if: matrix.os == 'alpine'
         run: |
           apk -U --force-overwrite upgrade
-          # apk add rsync
       - name: Install pandoc
         run: |
-          mkdir -p ocaml-pandoc
-          chown -R opam ocaml-pandoc
+          cd /tmp
           sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
           sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
