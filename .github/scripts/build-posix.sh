@@ -37,10 +37,6 @@ sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
-opam update
-opam install -y re.1.11.0
-opam install -y pandoc-include
-
 echo "::endgroup::"
 
 echo "::group::Checking out CI commit"
