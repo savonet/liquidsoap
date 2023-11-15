@@ -79,14 +79,21 @@ jobs:
           # sudo -u opam -E git config --global --add safe.directory /tmp/liquidsoap-full
           chown -R opam /tmp/liquidsoap-full
           cd /tmp/liquidsoap-full
+          echo "Set url"
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap-full.git
+          echo "Fetch"
           sudo -u opam -E git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
+          echo "Make public"
           sudo -u opam -E make public
+          echo "Reset"
           sudo -u opam -E git reset --hard
+          echo "Pull"
           sudo -u opam -E git pull
           sudo -u opam -E cp PACKAGES.minimal PACKAGES
           # sudo -u opam -E eval $(opam env)
+          echo "Pin"
           sudo -u opam -E opam pin -yn .
+          echo "Info"
           sudo -u opam -E opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
           cd liquidsoap
