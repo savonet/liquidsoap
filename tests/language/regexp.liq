@@ -27,6 +27,8 @@ def f() =
   t(r/bla$/m.test("bla\ngni"), true)
   t(r/./.test("\n"), false)
   t(r/./s.test("\n"), true)
+  t(r/^\/bla/.test("/blabla"), true)
+  t(r/^\/bla/.test("blabla"), false)
 
   # Test replace
   t(r/gni/.replace(fun (_) -> "gno", "blagniblagnibla"), "blagnoblagnibla")
