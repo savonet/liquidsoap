@@ -77,7 +77,8 @@ jobs:
         run: |
           echo "::group::Preparing build"
           cd /tmp/liquidsoap-full
-          sudo -u opam -E git config --global --add safe.directory /tmp/liquidsoap-full
+          # sudo -u opam -E git config --global --add safe.directory /tmp/liquidsoap-full
+          chown -R opam /tmp/liquidsoap-full
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap-full.git
           sudo -u opam -E git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
           sudo -u opam -E make public
