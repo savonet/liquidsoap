@@ -8,10 +8,8 @@ Liquidsoap supports importing JSON values through a special `let` syntax. Using 
 makes it relatively natural to parse JSON data in your script while keeping type-safety at runtime.
 Here's an example:
 
-```liquidsoap
-let json.parse v = '{"foo": "abc"}'
+```{.liquidsoap include="content/liq/json1.liq"}
 
-print("We parsed a JSON object and got value " ^ v.foo ^ " for attribute foo!")
 ```
 
 This prints:
@@ -250,36 +248,13 @@ end
 
 Here's a full example. Feel free to refer to `tests/language/json.liq` in the source code for more of them.
 
-```liquidsoap
-  data = '{
-    "foo": 34.24,
-    "gni gno": true,
-    "nested": {
-       "tuple": [123, 3.14, false],
-       "list":  [44.0, 55, 66.12],
-       "nullable_list": [12.33, 23, "aabb"],
-       "object_as_list": {
-         "foo": 123,
-         "gni": 456.0,
-         "gno": 3.14
-       },
-       "arbitrary object key ✨": true
-     },
-     "extra": "ignored"
-  }'
+```{.liquidsoap include="content/liq/json-ex.liq"}
 
-  let json.parse ( x : {
-    foo: float,
-    "gni gno" as gni_gno: bool,
-    nested: {
-      tuple: (_ * float),
-      list: [float],
-      nullable_list: [int?],
-      object_as_list: [(string * float)] as json.object,
-      "arbitrary object key ✨" as arbitrary_object_key: bool,
-      not_present: bool?
-    }
-  }) = data
+```
+
+It returns
+
+```
   - x : {
     foo = 34.24,
     gni_gno = true,
@@ -308,9 +283,8 @@ If a `json5` variable is in scope, you can also simply use `let json.parse[json5
 
 Exporting JSON values can be done using the `json.stringify` function:
 
-```liquidsoap
-r = {artist = "Bla", title = "Blo"}
-print(json.stringify(r))
+```{.liquidsoap include="content/liq/json-stringify.liq"}
+
 ```
 
 Please note that not all values are exportable as JSON, for instance function. In such cases the function will raise an `error.json` exception.
