@@ -30,6 +30,10 @@ def f() =
   dst_file3 = path.concat(tmpdir, "test-dst-file3")
   file.move(src_file, dst_file3)
   test.equals(file.exists(dst_file3), true)
+
+  file.touch("test-dst-file4")
+  test.equals(file.exists("test-dst-file4"), true)
+
   test.pass()
 end
 
