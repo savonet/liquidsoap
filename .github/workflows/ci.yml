@@ -280,6 +280,7 @@ jobs:
         run: |
           apt-get -y update
           apt-get -y install frei0r-plugins
+          sudo -u opam -E opam install -y prometheus-liquidsoap
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}

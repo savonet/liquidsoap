@@ -113,15 +113,7 @@ application.
 
 Some common settings have shortcut for convenience. These are all shortcuts to their respective `settings` values:
 
-```liquidsoap
-log.level := 4
-log.file := true
-log.stdout := true
-init.daemon := true
-audio.samplerate := 48000
-audio.channels := 2
-video.frame.width := 720
-video.frame.height := 1280
+```{.liquidsoap include="content/liq/settings.liq"}
 
 ```
 

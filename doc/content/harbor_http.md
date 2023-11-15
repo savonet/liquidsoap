@@ -97,17 +97,8 @@ parameter.
 
 It is also possible to directly interact with the underlying socket using the `simple` API:
 
-```liquidsoap
-  # Custom response
-  def handler(req) =
-    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n")
-    req.socket.close()
+```{.liquidsoap include="content/liq/harbor-simple.liq"}
 
-    # Null indicates that we're using the socket directly.
-    null()
-  end
-
-  harbor.http.register.simple("/custom", port=3456, handler)
 ```
 
 ## Examples
@@ -121,23 +112,8 @@ Some source clients using the harbor may also request pages that
 are served by an icecast server, for instance listeners statistics.
 In this case, you can register the following handler:
 
-```liquidsoap
-# Redirect all files other
-# than /admin.* to icecast,
-# located at localhost:8000
-def redirect_icecast(request, response) =
-  response.redirect("http://localhost:8000#{request.path}")
-end
+```{.liquidsoap include="content/liq/harbor-redirect.liq"}
 
-# Register this handler at port 8005
-# (provided harbor sources are also served
-#  from this port).
-harbor.http.register.regexp(
-  port=8005,
-  method="GET",
-  r/^\/(?!admin)/,
-  redirect_icecast
-)
 ```
 
 ## Get metadata
