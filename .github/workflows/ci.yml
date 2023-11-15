@@ -82,7 +82,8 @@ jobs:
           echo "Set url"
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap-full.git
           echo "Fetch"
-          sudo -u opam -E git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
+          sudo -u opam -E git fetch --recurse-submodules=no
+          sudo -u opam -E git checkout origin/master -- Makefile.git
           echo "Make public"
           sudo -u opam -E make public
           echo "Reset"
