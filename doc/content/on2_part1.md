@@ -15,7 +15,7 @@ Simply execute the following command,
 and you should hear a 440Hz sound on your soundcard:
 
 ```
-liquidsoap 'out(sine())'
+liquidsoap 'output(sine())'
 ```
 
 Did it work? If so, try to modify it:
@@ -27,24 +27,24 @@ Did it work? If so, try to modify it:
 
 Try to execute the liquidsoap expression:
 
-```liquidsoap
-out(input.http("http://ice.rosebud-media.de:8000/88vier"))
+```{.liquidsoap include="on2-remote.liq"}
+
 ```
 
 You should now be listening to [Pi-Radio](http://piradio.de),
 unless you have no network connection, in which case the
 `input.http(...)` source _fails_.
 
-The output operator `out` is okay with failure: it simply plays silence
+The output operator `output` is okay with failure: it simply plays silence
 when the source fails, waiting for it to be ready again.
 But some operators are stricter.
 If you try
 
-```liquidsoap
-output.ao(input.http("http://ice.rosebud-media.de:8000/88vier"))
+```{.liquidsoap include="on2-fallible.liq"}
+
 ```
 
-the AO output (which uses libao to access your soundcard)
+the pulseaudio output (which uses libao to access your soundcard)
 warns you that there might be a failure.
 To ignore this problem, pass `fallible=true` to the output.
 
@@ -68,8 +68,8 @@ instead of the automatically chosen files of the playlist.
 This is achieved by wrapping the playlist in a fallback choice
 with a request queue:
 
-```liquidsoap
-out(fallback([request.queue(id="q"),playlist("music")]))
+```{.liquidsoap include="on2-interactive.liq"}
+
 ```
 
 If you run this example, you'll hear your playlist, because the queue
@@ -90,8 +90,8 @@ from a remote stream or from a list of files. Now, instead of playing the
 stream directly to your soundcard, we'll encode it and save it to a local
 file:
 
-```liquidsoap
-output.file(%vorbis,"test.ogg",source)
+```{.liquidsoap include="on2-file-output.liq" from="BEGIN"}
+
 ```
 
 Here `source` is whatever you want, for example `sine()`.
@@ -169,9 +169,8 @@ it has no source to stream.
 
 Run the following script:
 
-```liquidsoap
-x = 42
-print(x)
+```{.liquidsoap include="on2-print.liq"}
+
 ```
 
 As follows:
@@ -193,23 +192,16 @@ Try to obtain the following types (some help can be found [there](language.html)
 
 You can redefine a variable:
 
-```liquidsoap
-x = 42
-y = "42"
-x = (y,y)
-z = (x,y)
-print(z)
+```{.liquidsoap include="on2-redefine.liq"}
+
 ```
 
 ## Defining a function
 
 Try this:
 
-```liquidsoap
-def double(s)
-  s ^ s
-end
-print(double("foo"))
+```{.liquidsoap include="on2-function.liq"}
+
 ```
 
 Change `^` for `+`. Liquidsoap will complain that it cannot add strings;
@@ -220,23 +212,14 @@ to fix that problem.
 
 A simple example:
 
-```liquidsoap
-if "foo"=="bar" then
-  print("This is madness.")
-else
-  print("Phew.")
-end
+```{.liquidsoap include="on2-if.liq"}
+
 ```
 
 It can also be written as follows:
 
-```liquidsoap
-print(
-  if "foo"=="bar" then
-    "This is madness."
-  else
-    "Phew."
-  end)
+```{.liquidsoap include="on2-if2.liq"}
+
 ```
 
 Now, define the variable `message` to be the correct message depending
@@ -253,21 +236,15 @@ You'll learn later how to use assignments when you really need them.
 
 Here is a function that prints the date and returns 42:
 
-```liquidsoap
-def f()
-  print(get_process_output("date"))
-  42
-end
-# Let's use it:
-print(f())
-print(1+f())
+```{.liquidsoap include="on2-seq.liq"}
+
 ```
 
 Note that there is no return statement in liquidsoap (in fact there is
 no "statement" at all). Every expression evaluates to a value. A sequence
 evaluates to the value of its last expression (`42` in the body of the function
 `f`, and `print(1+f())` in the full program).
-The value ``returned'' by a function is simply the result of evaluating its
+The value "returned" by a function is simply the result of evaluating its
 body.
 
 ## Labels and optional parameters

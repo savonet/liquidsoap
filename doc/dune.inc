@@ -66,6 +66,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -117,6 +118,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -175,6 +202,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -226,6 +254,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -284,6 +338,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -335,6 +390,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -393,6 +474,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -444,6 +526,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -502,6 +610,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -553,6 +662,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -611,6 +746,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -662,6 +798,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -720,6 +882,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -771,6 +934,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -829,6 +1018,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -880,6 +1070,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -938,6 +1154,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -989,6 +1206,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1047,6 +1290,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1098,6 +1342,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1156,6 +1426,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1207,6 +1478,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1265,6 +1562,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1316,6 +1614,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1374,6 +1698,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1425,6 +1750,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1483,6 +1834,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1534,6 +1886,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1592,6 +1970,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1643,6 +2022,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1701,6 +2106,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1752,6 +2158,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1810,6 +2242,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1861,6 +2294,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -1919,6 +2378,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -1970,6 +2430,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2028,6 +2514,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2079,6 +2566,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2137,6 +2650,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2188,6 +2702,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2246,6 +2786,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2297,6 +2838,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2355,6 +2922,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2406,6 +2974,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2464,6 +3058,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2515,6 +3110,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2573,6 +3194,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2624,6 +3246,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2682,6 +3330,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2733,6 +3382,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2791,6 +3466,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2842,6 +3518,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -2900,6 +3602,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -2951,6 +3654,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3009,6 +3738,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3060,6 +3790,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3118,6 +3874,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3169,6 +3926,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3227,6 +4010,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3278,6 +4062,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3336,6 +4146,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3387,6 +4198,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3445,6 +4282,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3496,6 +4334,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3554,6 +4418,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3605,6 +4470,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3663,6 +4554,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3714,6 +4606,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3772,6 +4690,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3823,6 +4742,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3881,6 +4826,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -3932,6 +4878,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -3990,6 +4962,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4041,6 +5014,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4099,6 +5098,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4150,6 +5150,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4208,6 +5234,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4259,6 +5286,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4317,6 +5370,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4368,6 +5422,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4426,6 +5506,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4477,6 +5558,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4535,6 +5642,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4586,6 +5694,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4644,6 +5778,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4695,6 +5830,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4753,6 +5914,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4804,6 +5966,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4862,6 +6050,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -4913,6 +6102,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -4971,6 +6186,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5022,6 +6238,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5080,6 +6322,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5131,6 +6374,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5189,6 +6458,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5240,6 +6510,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5298,6 +6594,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5349,6 +6646,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5407,6 +6730,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5458,6 +6782,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5516,6 +6866,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5567,6 +6918,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5625,6 +7002,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5676,6 +7054,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5734,6 +7138,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5785,6 +7190,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5843,6 +7274,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -5894,6 +7326,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -5952,6 +7410,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6003,6 +7462,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6061,6 +7546,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6112,6 +7598,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6170,6 +7682,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6221,6 +7734,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6279,6 +7818,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6330,6 +7870,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6388,6 +7954,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6439,6 +8006,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6497,6 +8090,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6548,6 +8142,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6606,6 +8226,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6657,6 +8278,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6715,6 +8362,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6766,6 +8414,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6824,6 +8498,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6875,6 +8550,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -6933,6 +8634,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -6984,6 +8686,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7042,6 +8770,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7093,6 +8822,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7151,6 +8906,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7202,6 +8958,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7260,6 +9042,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7311,6 +9094,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7369,6 +9178,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7420,6 +9230,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7478,6 +9314,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7529,6 +9366,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7587,6 +9450,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7638,6 +9502,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7696,6 +9586,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7747,6 +9638,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7805,6 +9722,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7856,6 +9774,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -7914,6 +9858,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -7965,6 +9910,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -8023,6 +9994,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -8074,6 +10046,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -8132,6 +10130,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -8183,6 +10182,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -8241,6 +10266,7 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
@@ -8292,6 +10318,32 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
+    content/liq/on2-crossfade.liq
+    content/liq/on2-fallible.liq
+    content/liq/on2-file-output.liq
+    content/liq/on2-function.liq
+    content/liq/on2-if.liq
+    content/liq/on2-if2.liq
+    content/liq/on2-initial.liq
+    content/liq/on2-interactive.liq
+    content/liq/on2-log.liq
+    content/liq/on2-login.liq
+    content/liq/on2-metadata.liq
+    content/liq/on2-multiple.liq
+    content/liq/on2-notify.liq
+    content/liq/on2-overloaded.liq
+    content/liq/on2-print.liq
+    content/liq/on2-redefine.liq
+    content/liq/on2-remote.liq
+    content/liq/on2-replaygain.liq
+    content/liq/on2-safe.liq
+    content/liq/on2-scheduling.liq
+    content/liq/on2-seq.liq
+    content/liq/on2-slideshow.liq
+    content/liq/on2-smooth-add.liq
+    content/liq/on2-transition.liq
+    content/liq/on2-volume.liq
+    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/prometheus-callback.liq
     content/liq/prometheus-settings.liq
@@ -8383,6 +10435,57 @@
     (:test_liq content/liq/append-silence.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/append-silence.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/basic-radio.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/basic-radio.liq))
 )
 
 (rule
@@ -10984,6 +13087,1332 @@
     (:test_liq content/liq/multitrack3.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack3.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-crossfade.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-crossfade.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-fallible.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-fallible.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-file-output.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-file-output.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-function.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-function.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-if.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-if.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-if2.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-if2.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-initial.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-initial.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-interactive.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-interactive.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-log.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-log.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-login.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-login.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-metadata.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-metadata.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-multiple.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-multiple.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-notify.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-notify.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-overloaded.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-overloaded.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-print.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-print.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-redefine.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-redefine.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-remote.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-remote.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-replaygain.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-replaygain.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-safe.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-safe.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-scheduling.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-scheduling.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-seq.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-seq.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-slideshow.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-slideshow.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-smooth-add.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-smooth-add.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-transition.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-transition.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-volume.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-volume.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/on2-volume2.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-volume2.liq))
 )
 
 (rule
