@@ -9,5 +9,5 @@ output.file(
   %wav,
   {time.string("/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3")},
   s,
-  reopen_when={}
+  reopen_when={0m}
 )
