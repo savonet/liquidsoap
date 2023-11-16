@@ -139,13 +139,16 @@ class visu source =
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
+  let base_t = Lang.univ_t () in
+  let audio_t = Format_type.audio () in
+  let frame_t = Lang.frame_t base_t (Frame.Fields.make ~audio:audio_t ()) in
+  let video_t = Format_type.video () in
+  let return_t =
+    Lang.frame_t base_t (Frame.Fields.make ~audio:audio_t ~video:video_t ())
   in
   Lang.add_operator ~base:Modules.video "volume"
     [("", Lang.source_t frame_t, None, None)]
-    ~return_t:frame_t ~category:`Visualization
+    ~return_t ~category:`Visualization
     ~descr:"Graphical visualization of the sound."
     (fun p ->
       let f v = List.assoc v p in
