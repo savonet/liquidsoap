@@ -8,4 +8,7 @@ video = source.tracks(s).video ?? source.tracks(image).video
 
 # Return a source that always has video:
 s = source(source.tracks(s).{video=video})
-output.dummy(fallible=true, s)output.dummy(image)
+
+# END
+output.dummy(fallible=true, s)
+output.dummy(image)

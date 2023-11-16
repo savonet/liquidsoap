@@ -125,14 +125,14 @@ Tracks can be muxed using the `source` operator. The operator takes a record of 
 
 Here's how to add a video track to a source
 
-```{.liquidsoap include="multitrack-add-video-track.liq" to=-1}
+```{.liquidsoap include="multitrack-add-video-track.liq" to="END"}
 
 ```
 
 The above example was purposely written in a longer form to make it more explicit. However, if you wish to just add/replace a track, you
 can also overload the existing tracks from the first source as follows:
 
-```{.liquidsoap include="multitrack-add-video-track2.liq" to=-1}
+```{.liquidsoap include="multitrack-add-video-track2.liq" to="END"}
 
 ```
 
@@ -140,7 +140,7 @@ can also overload the existing tracks from the first source as follows:
 
 You can also check if a source has a certain track and do something accordingly:
 
-```{.liquidsoap include="multitrack-default-video-track.liq" to=-1}
+```{.liquidsoap include="multitrack-default-video-track.liq" to="END"}
 
 ```
 

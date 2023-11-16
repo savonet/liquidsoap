@@ -33,6 +33,6 @@ more about liquidsoap's notion of [source](sources.html).
 Finally, if you need to do some custom action when there's too much blank, we
 have `blank.detect`:
 
-```{.liquidsoap include="blank-detect.liq" from=1 to=-1}
+```{.liquidsoap include="blank-detect.liq" from="BEGIN" to="END"}
 
 ```

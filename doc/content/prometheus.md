@@ -37,13 +37,13 @@ This type can be a little confusing. Here's how it works:
 
 1. First, one has to create a metric factory of a given type. For instance:
 
-```{.liquidsoap include="prometheus-callback.liq" from=0 to=0}
+```{.liquidsoap include="prometheus-callback.liq" from="A0" to="A1"}
 
 ```
 
 2. Then, the metric factory can be used to instantiate speific metrics by passing the label's values:
 
-```{.liquidsoap include="prometheus-callback.liq" from=1 to=2}
+```{.liquidsoap include="prometheus-callback.liq" from="B0" to="B1"}
 
 ```
 
@@ -55,7 +55,7 @@ The returned function is a setter for this metric, i.e.
 
 Finally, the programmer can now use that callback to set the metric as desired. For instance here:
 
-```{.liquidsoap include="prometheus-callback.liq" from=3}
+```{.liquidsoap include="prometheus-callback.liq" from="C0"}
 
 ```
 

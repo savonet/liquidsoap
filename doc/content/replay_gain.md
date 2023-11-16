@@ -68,13 +68,13 @@ done using the `override` parameter.
 
 For replay gain implementation, the `amplify` operator would typically be added immediately on top of the basic tracks source, before transitions or other audio processing operators. Typically:
 
-```{.liquidsoap include="replaygain-metadata.liq" to=-1}
+```{.liquidsoap include="replaygain-metadata.liq" to="END"}
 
 ```
 
 For convenience, we added the `replaygain` operator which performs the
 amplification on the right metadata so that this can further be simplified to
 
-```{.liquidsoap include="replaygain-playlist.liq" to=-1}
+```{.liquidsoap include="replaygain-playlist.liq" to="END"}
 
 ```

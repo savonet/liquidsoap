@@ -84,7 +84,7 @@ supported in liquidsoap.
 
 In order to do so, you have to use a slightly different API:
 
-```{.liquidsoap include="ffmpeg-filter-dynamic-volume.liq" to=-1}
+```{.liquidsoap include="ffmpeg-filter-dynamic-volume.liq" to="END"}
 
 ```
 

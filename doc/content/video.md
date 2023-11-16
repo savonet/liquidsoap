@@ -138,7 +138,7 @@ You can say that a specific color should be transparent using
 screen (whose RGB color should be around 0x0000ff) and replace the blue screen
 by an image of the weather using
 
-```{.liquidsoap include="video-weather.liq" to=-1}
+```{.liquidsoap include="video-weather.liq" to="END"}
 
 ```
 
