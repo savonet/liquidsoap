@@ -11,6 +11,6 @@ Well, that is fairly easy!
 
 Here is the code:
 
-```{.liquidsoap include="content/liq/video-static.liq"}
+```{.liquidsoap include="video-static.liq"}
 
 ```

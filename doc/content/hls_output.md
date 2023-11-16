@@ -4,7 +4,7 @@ Starting with liquidsoap `1.4.0`, it is possible to send your streams as [HLS ou
 
 The main operator is `output.file.hls`. Here's an example using it, courtesy of [srt2hls](https://github.com/mbugeia/srt2hls):
 
-```{.liquidsoap include="content/liq/output.file.hls.liq"}
+```{.liquidsoap include="output.file.hls.liq"}
 
 ```
 
@@ -38,7 +38,7 @@ HLS outputs supports metadata in two ways:
 
 Metadata parameters are passed through the record methods of the streams' encoders. Here's an example
 
-```{.liquidsoap include="content/liq/hls-metadata.liq"}
+```{.liquidsoap include="hls-metadata.liq"}
 
 ```
 
@@ -55,6 +55,6 @@ Metadata for these formats are activated by default. If you are experiencing any
 `mp4` container is supported by requires specific parameters. Here's an example that mixes `aac` and `flac` audio, The parameters
 required for `mp4` are `movflags` and `frag_duration`.
 
-```{.liquidsoap include="content/liq/hls-mp4.liq"}
+```{.liquidsoap include="hls-mp4.liq"}
 
 ```

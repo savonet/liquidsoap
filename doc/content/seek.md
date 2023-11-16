@@ -25,7 +25,7 @@ Since seeking is currently only supported by request-based sources, it is recomm
 to hook the function as close as possible to the original source. Here is an example
 that implements a server/telnet seek function:
 
-```{.liquidsoap include="content/liq/seek-telnet.liq"}
+```{.liquidsoap include="seek-telnet.liq"}
 
 ```
 

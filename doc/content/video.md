@@ -8,7 +8,7 @@ you just have to use video files instead of sound files! For instance, if you
 want to stream a single file to an icecast server in ogg format (with theora and
 vorbis as codecs for audio and video) you can simply type:
 
-```{.liquidsoap include="content/liq/video-simple.liq"}
+```{.liquidsoap include="video-simple.liq"}
 
 ```
 
@@ -81,7 +81,7 @@ Transitions at the beginning or at the end of video can be achieved using
 `video.fade.in` and `video.fade.out`. For instance, fading at the beginning of
 videos is done by
 
-```{.liquidsoap include="content/liq/video-transition.liq" from=1 to=-1}
+```{.liquidsoap include="video-transition.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -89,7 +89,7 @@ videos is done by
 
 You can add a logo (any image) using the `video.add_image` operator, as follows:
 
-```{.liquidsoap include="content/liq/video-logo.liq" from=1 to=-1}
+```{.liquidsoap include="video-logo.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -98,7 +98,7 @@ You can add a logo (any image) using the `video.add_image` operator, as follows:
 If your computer has a webcam, it can be used as a source thanks to the
 `input.v4l2` operator. For instance:
 
-```{.liquidsoap include="content/liq/video-webcam.liq"}
+```{.liquidsoap include="video-webcam.liq"}
 
 ```
 
@@ -107,7 +107,7 @@ If your computer has a webcam, it can be used as a source thanks to the
 Suppose that you have two video sources `s` and `s2` and you want to display a
 small copy of `s2` on top of `s`. This can be achieved by
 
-```{.liquidsoap include="content/liq/video-in-video.liq" from=1 to=-1}
+```{.liquidsoap include="video-in-video.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -115,7 +115,7 @@ small copy of `s2` on top of `s`. This can be achieved by
 
 Adding scrolling text at the bottom of your video is as easy as
 
-```{.liquidsoap include="content/liq/video-text.liq"}
+```{.liquidsoap include="video-text.liq"}
 
 ```
 
@@ -138,7 +138,7 @@ You can say that a specific color should be transparent using
 screen (whose RGB color should be around 0x0000ff) and replace the blue screen
 by an image of the weather using
 
-```{.liquidsoap include="content/liq/video-weather.liq" to=-1}
+```{.liquidsoap include="video-weather.liq" to=-1}
 
 ```
 
@@ -152,7 +152,7 @@ video. Here is what we are going to achieve:
 
 <center><iframe width="560" height="315" src="//www.youtube.com/embed/E7Fb0wV3h5Q" frameborder="0" allowfullscreen></iframe></center>This video was produced thanks to the following script:
 
-```{.liquidsoap include="content/liq/video-anonymizer.liq"}
+```{.liquidsoap include="video-anonymizer.liq"}
 
 ```
 
@@ -164,7 +164,7 @@ parameters in realtime. There are many OSC clients around, for instance I used
 
 <center><iframe width="560" height="315" src="//www.youtube.com/embed/EX1PTjiuuXY" frameborder="0" allowfullscreen></iframe></center>Here is how the video was made:
 
-```{.liquidsoap content="content/liq/video-osc.liq"}
+```{.liquidsoap content="video-osc.liq"}
 
 ```
 
@@ -176,6 +176,6 @@ You want to show yourself in front of a video of a bunny, as in
 transparent and put the resulting video in front of the bunny video (actually, I
 don't have a blue screen at home, only a white wall but it still kinda works).
 
-```{.liquidsoap include="content/liq/video-bluescreen.liq"}
+```{.liquidsoap include="video-bluescreen.liq"}
 
 ```

@@ -1,4 +1,5 @@
 s = sine()
+# BEGIN
 # A source to dump
 # s = ...
 

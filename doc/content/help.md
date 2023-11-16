@@ -113,7 +113,7 @@ application.
 
 Some common settings have shortcut for convenience. These are all shortcuts to their respective `settings` values:
 
-```{.liquidsoap include="content/liq/settings.liq"}
+```{.liquidsoap include="settings.liq"}
 
 ```
 

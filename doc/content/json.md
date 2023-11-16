@@ -8,7 +8,7 @@ Liquidsoap supports importing JSON values through a special `let` syntax. Using 
 makes it relatively natural to parse JSON data in your script while keeping type-safety at runtime.
 Here's an example:
 
-```{.liquidsoap include="content/liq/json1.liq"}
+```{.liquidsoap include="json1.liq"}
 
 ```
 
@@ -248,7 +248,7 @@ end
 
 Here's a full example. Feel free to refer to `tests/language/json.liq` in the source code for more of them.
 
-```{.liquidsoap include="content/liq/json-ex.liq"}
+```{.liquidsoap include="json-ex.liq"}
 
 ```
 
@@ -283,7 +283,7 @@ If a `json5` variable is in scope, you can also simply use `let json.parse[json5
 
 Exporting JSON values can be done using the `json.stringify` function:
 
-```{.liquidsoap include="content/liq/json-stringify.liq"}
+```{.liquidsoap include="json-stringify.liq"}
 
 ```
 

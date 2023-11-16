@@ -28,7 +28,7 @@ Inside liquidsoap scripts, the operations that the OCaml compiler provides to co
 
 Typically, to change the garbage collector parameters, one can do:
 
-```{.liquidsoap include="content/liq/space_overhead.liq" from=1}
+```{.liquidsoap include="space_overhead.liq" from=1}
 
 ```
 

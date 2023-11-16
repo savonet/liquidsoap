@@ -46,7 +46,8 @@ let mk_html_rule ~liq ~content f =
   (enabled_if (not %%{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
   (target %s)
-  (action (run cp %%{no_pandoc} %%{target})))
+  (action (run cp %%{no_pandoc} %%{target}))
+)
 
 (rule
   (alias doc)
@@ -56,11 +57,17 @@ let mk_html_rule ~liq ~content f =
     language.dtd
     template.html
 %s
-    (:md %s))
+    (:md %s)
+  )
   (target %s)
   (action
-    (ignore-outputs
-      (run pandoc --filter=pandoc-include --syntax-definition=liquidsoap.xml --highlight=pygments %%{md} --metadata pagetitle=%s --template=template.html -o %%{target}))))
+    (pipe-stdout
+      (run pandoc %%{md} -t json)
+      (run pandoc-include --directory content/liq)
+      (run pandoc -f json --syntax-definition=liquidsoap.xml --highlight=pygments --metadata pagetitle=%s --template=template.html -o %%{target})
+    )
+  )
+)
 |}
     (mk_html f) liq (mk_md ~content f) (mk_html f) (mk_title f)
 

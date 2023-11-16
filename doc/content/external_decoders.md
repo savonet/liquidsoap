@@ -79,13 +79,13 @@ The flac decoder uses the `flac` command line. It is enabled if the binary can b
 
 Its code is the following:
 
-```{.liquidsoap include="content/liq/decoder-flac.liq"}
+```{.liquidsoap include="decoder-flac.liq"}
 
 ```
 
 Additionally, a metadata resolver is registered when the `metaflac` command can be found in the `$PATH`:
 
-```{.liquidsoap include="content/liq/decoder-metaflac.liq"}
+```{.liquidsoap include="decoder-metaflac.liq"}
 
 ```
 
@@ -98,6 +98,6 @@ registered using `decoder.oblivious.add`.
 
 Its code is the following:
 
-```{.liquidsoap include="content/liq/decoder-faad.liq"}
+```{.liquidsoap include="decoder-faad.liq"}
 
 ```

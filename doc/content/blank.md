@@ -23,7 +23,7 @@ listeners get some silence again. To avoid that problem we made the
 (i.e. declare it as unavailable), which perfectly suits the typical setup used
 for live shows:
 
-```{.liquidsoap include="content/liq/blank-sorry.liq"}
+```{.liquidsoap include="blank-sorry.liq"}
 
 ```
 
@@ -33,6 +33,6 @@ more about liquidsoap's notion of [source](sources.html).
 Finally, if you need to do some custom action when there's too much blank, we
 have `blank.detect`:
 
-```{.liquidsoap include="content/liq/blank-detect.liq" from=1 to=-1}
+```{.liquidsoap include="blank-detect.liq" from=1 to=-1}
 
 ```

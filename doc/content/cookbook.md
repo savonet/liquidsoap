@@ -48,7 +48,7 @@ When building your stream, you'll often need to make it unfallible. Usually, you
 
 [Liquidsoap](index.html) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. If you want to get the best use of CPUs (multicore, memory footprint etc.) when encoding media with Liquidsoap, we recommend using the `%ffmpeg` encoders.
 
-```{.liquidsoap include="content/liq/transcoding.liq"}
+```{.liquidsoap include="transcoding.liq"}
 
 ```
 
@@ -64,7 +64,7 @@ to encode the file as quickly as possible.
 Finally, we use the `on_stop` handler to shutdown
 liquidsoap when streaming is finished.
 
-```{.liquidsoap include="content/liq/re-encode.liq"}
+```{.liquidsoap include="re-encode.liq"}
 
 ```
 
@@ -72,7 +72,7 @@ liquidsoap when streaming is finished.
 
 With our [FFmpeg support](ffmpeg.html), it is possible to create a simple RTMP server with no re-encoding:
 
-```{.liquidsoap include="content/liq/rtmp.liq"}
+```{.liquidsoap include="rtmp.liq"}
 
 ```
 
@@ -83,23 +83,23 @@ the SRT transport protocol:
 
 Sender:
 
-```{.liquidsoap include="content/liq/srt-sender.liq" from=1}
+```{.liquidsoap include="srt-sender.liq" from="BEGIN"}
 
 ```
 
 Receiver:
 
-```{.liquidsoap include="content/liq/srt-receiver.liq" to=-1}
+```{.liquidsoap include="srt-receiver.liq" to="END"}
 
 ```
 
 ## Scheduling
 
-```{.liquidsoap include="content/liq/fallback.liq" to=-1}
+```{.liquidsoap include="fallback.liq" to="END"}
 
 ```
 
-```{.liquidsoap include="content/liq/scheduling.liq" from=1 to=-1}
+```{.liquidsoap include="scheduling.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -114,7 +114,7 @@ stored to avoid reindexing at each run). The resulting object can then
 be queried with the `find` method in order to return all files matching the given
 conditions and thus generate a playlist:
 
-```{.liquidsoap include="content/liq/medialib.liq"}
+```{.liquidsoap include="medialib.liq"}
 
 ```
 
@@ -160,7 +160,7 @@ It can be useful to have a special playlist that is played at least every 20 min
 You may think of a promotional playlist for instance.
 Here is the recipe:
 
-```{.liquidsoap include="content/liq/regular.liq" from=1 to=-1}
+```{.liquidsoap include="regular.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -277,7 +277,7 @@ to add an extra `5s` of silence when transitioning out of a live `input.harbor` 
 
 This can be done with the `append` operator:
 
-```{.liquidsoap include="content/liq/append-silence.liq" to=-1}
+```{.liquidsoap include="append-silence.liq" to="END"}
 
 ```
 
@@ -287,14 +287,14 @@ It is sometimes useful (or even legally necessary) to keep a backup of an audio
 stream. Storing all the stream in one file can be very impractical. In order to
 save a file per hour in wav format, the following script can be used:
 
-```{.liquidsoap include="content/liq/dump-hourly.liq" from=1}
+```{.liquidsoap include="dump-hourly.liq" from="BEGIN"}
 
 ```
 
 In the following variant we write a new mp3 file each time new metadata is
 coming from `s`:
 
-```{.liquidsoap include="content/liq/dump-hourly2.liq" from=1}
+```{.liquidsoap include="dump-hourly2.liq" from="BEGIN"}
 
 ```
 
@@ -332,7 +332,7 @@ Crossfade-based transitions are more complex and involve buffering source data i
 
 We provide a default operator named `cross.smart` which may be suitable for most usage. But you can also create your own customized crossfade transitions. This is in particular true if you are expecting crossfade transitions between tracks of your `music` source but not between a `music` track and e.g. some jingles. Here's how to do it in this case:
 
-```{.liquidsoap include="content/liq/cross.smart.liq" from=1 to=-1}
+```{.liquidsoap include="cross.smart.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -356,7 +356,7 @@ Could not set buffer size to 'frame.size' (1920 samples), got 2048.
 
 The solution is then to set liquidsoap's internal frame size to this value, which is most likely specific to your hardware. Let's try this script:
 
-```{.liquidsoap include="content/liq/frame-size.liq"}
+```{.liquidsoap include="frame-size.liq"}
 
 ```
 

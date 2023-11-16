@@ -20,7 +20,7 @@ memory. Make sure to only use it if you know that the response should be small e
 
 For convenience, a HTTP response builder is provided via `http.response`. Here's an example:
 
-```{.liquidsoap include="content/liq/harbor.http.response.liq" from=1}
+```{.liquidsoap include="harbor.http.response.liq" from="BEGIN"}
 
 ```
 
@@ -35,7 +35,7 @@ where:
 The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation.
 Its API is very similar to the node/express API. Here's an example:
 
-```{.liquidsoap content="harbor.http.register.liq" from=1}
+```{.liquidsoap include="harbor.http.register.liq" from="BEGIN"}
 
 ```
 
@@ -97,7 +97,7 @@ parameter.
 
 It is also possible to directly interact with the underlying socket using the `simple` API:
 
-```{.liquidsoap include="content/liq/harbor-simple.liq"}
+```{.liquidsoap include="harbor-simple.liq"}
 
 ```
 
@@ -112,7 +112,7 @@ Some source clients using the harbor may also request pages that
 are served by an icecast server, for instance listeners statistics.
 In this case, you can register the following handler:
 
-```{.liquidsoap include="content/liq/harbor-redirect.liq"}
+```{.liquidsoap include="harbor-redirect.liq"}
 
 ```
 
@@ -121,7 +121,7 @@ In this case, you can register the following handler:
 You can use harbor to register HTTP services to
 fecth/set the metadata of a source.
 
-```{.liquidsoap inlucde="content/liq/harbor-metadata.liq" from=1}
+```{.liquidsoap include="harbor-metadata.liq" from="BEGIN"}
 
 ```
 
@@ -146,7 +146,7 @@ Content-Type: application/json; charset=utf-8
 Using `insert_metadata`, you can register a GET handler that
 updates the metadata of a given source. For instance:
 
-```{.liquidsoap include="content/liq/harbor-insert-metadata.liq" from=1}
+```{.liquidsoap include="harbor-insert-metadata.liq" from="BEGIN"}
 
 ```
 

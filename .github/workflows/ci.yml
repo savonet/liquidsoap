@@ -16,7 +16,7 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
@@ -73,17 +73,22 @@ jobs:
           git remote set-url origin https://github.com/savonet/liquidsoap.git
           git fetch origin ${{ github.sha }}
           git checkout ${{ github.sha }}
+      - name: Install pandoc
+        run: |
+          cd /tmp
+          git clone https://github.com/smimram/ocaml-pandoc.git
+          opam pin -y add ocaml-pandoc
       - name: Build
         run: |
           echo "::group::Preparing build"
           cd /tmp/liquidsoap-full
           git remote set-url origin https://github.com/savonet/liquidsoap-full.git
-          git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
+          git fetch --recurse-submodules=no
+          git checkout origin/master -- Makefile.git
           make public
           git reset --hard
           git pull
           cp PACKAGES.minimal PACKAGES
-          eval $(opam env)
           opam pin -yn .
           opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           echo "::endgroup::"
@@ -180,6 +185,11 @@ jobs:
         run: |
           apt-get update
           apt-get install -y npm
+      - name: Install pandoc
+        run: |
+          cd /tmp
+          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git
+          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build doc
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -235,6 +245,15 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
+      - name: Install pandoc
+        run: |
+          cd /tmp
+          if [ ! -d ocaml-pandoc ]; then
+            mkdir -p ocaml-pandoc;
+            chown -R opam ocaml-pandoc;
+            sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
+          fi
+          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}
@@ -251,8 +270,8 @@ jobs:
       - name: Install additional packages
         if: matrix.target == '@doctest'
         run: |
-          sudo apt-get -y update
-          sudo apt-get -y install frei0r-plugins
+          apt-get -y update
+          apt-get -y install frei0r-plugins
           sudo -u opam -E opam install -y prometheus-liquidsoap
       - name: Run tests
         env:
@@ -380,6 +399,11 @@ jobs:
         if: matrix.os == 'alpine'
         run: |
           apk -U --force-overwrite upgrade
+      - name: Install pandoc
+        run: |
+          cd /tmp
+          sudo -u opam -E git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc
+          sudo -u opam -E opam pin -y add ocaml-pandoc
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap

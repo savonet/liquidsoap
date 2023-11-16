@@ -1,6 +1,7 @@
 music = sine()
 jingles = sine()
 
+# BEGIN
 # A function to add a source_tag metadata to a source:
 def source_tag(s, tag) =
   def f(_) =
@@ -31,4 +32,6 @@ end
 
 # Apply it!
 radio = cross(duration=5., transition, radio)
+
+# END
 output.dummy(fallible=true, radio)

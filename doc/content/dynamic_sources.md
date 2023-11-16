@@ -14,7 +14,7 @@ a dynamic restreaming platform.
 
 Here's the code:
 
-```{.liquidsoap include="content/liq/dynamic-source.liq"}
+```{.liquidsoap include="dynamic-source.liq"}
 
 ```
 
