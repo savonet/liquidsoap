@@ -23,6 +23,4 @@ output.sdl(fallible=true, clock(id="video", images))
 # You can also combine the two in a Theora file.  Play the result in VLC rather
 # than mplayer (or even liquidsoap) as it is a sequentialized ogg stream.
 
-
-# output.file(%ogg(%vorbis,%theora),"slideshow.ogg",
-#   mksafe(source.mux.video(video=images,sound)))
+# output.file(%ogg(%vorbis,%theora),"slideshow.ogg", mksafe(source.mux.video(video=images,sound)))
