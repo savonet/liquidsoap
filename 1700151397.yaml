@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.492455005646
+  unit: "s"
+  time: 1700150971.97
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.879958868027
+  unit: "s"
+  time: 1700150972.85
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.51452112198
+  unit: "s"
+  time: 1700150974.37
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 3.16441488266
+  unit: "s"
+  time: 1700150977.53
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 344.
+  unit: "Mio"
+  time: 1700151109.58
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 850.40625
+  unit: "Mio"
+  time: 1700151109.58
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1700151109.58
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1700151109.58
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 5776.984375
+  unit: "Mio"
+  time: 1700151109.58
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 5776.984375
+  unit: "Mio"
+  time: 1700151109.58
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2208.
+  unit: "functions"
+  time: 1700151113.02
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1700151113.02
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.26140093803
+  unit: "s"
+  time: 1700151289.41
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.78652095795
+  unit: "s"
+  time: 1700151390.37
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.74597883224
+  unit: "s"
+  time: 1700151394.11
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1700151397.6
+  min: 0.
+
+- commit: 01fdaf2f49f268821b800f8d4b5af707bf93b6f6
+  branch: split-doc
+  time: 1700151397
