@@ -4,4 +4,4 @@ s =
   fade.in(
     duration=d, type=t, fade.out(duration=d, type=t, sine(duration=3. * d))
   )
-output.sdl(drop_audio(video.volume(s)))
+output.sdl(source.drop.audio(video.volume(s)))

@@ -398,7 +398,7 @@ Solutions:
 The `smart_crossfade` is a crossfade operator that decides the crossfading to apply depending
 on the volume and metadata of the old and new track.
 
-It is defined using a generic `smart_cross`
+It is defined using a generic `cross.smart`
 operator, that takes a function of type `(float, float, metadata, metadata, source, source) -> source`,
 i.e. a function that take the volume level (in decibels) of, respectively, the old and new
 tracks, the metadata of, resp. the old and new tracks and, finally, the old and new tracks,
