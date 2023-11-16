@@ -9,20 +9,20 @@ s = sine()
 # plays the new source.
 def to_live(jingle, old, new) =
   # Fade out old source
-  old = fade.out((old:source))
+  old = fade.out(old)
 
   # Superpose the jingle
-  s = add([(jingle:source), old])
+  s = add([(jingle : source), old])
 
   # Compose this in sequence with the new source
-  sequence([s, new])
+  sequence([s, (new : source)])
 end
 
 # A transition when switching back to files.
 def to_file(old, new) =
   # We skip the file currently in new in order to being with a fresh file.
-  source.skip((new:source))
-  sequence([(old:source), new])
+  source.skip(new)
+  sequence([old, new])
 end
 
 # END
@@ -32,14 +32,14 @@ jingle1 =
   single(
     "say:And now, we present the awesome show number one!!"
   )
-to_live1 = fun(old, new) -> to_live(jingle1, old, new)
+to_live1 = fun (old, new) -> to_live(jingle1, old, new)
 
 # Transition to live2
 jingle2 =
   single(
     "say:Welcome guys, this is show two on My Awesome Radio!"
   )
-to_live2 = fun(old, new) -> to_live(jingle2, old, new)
+to_live2 = fun (old, new) -> to_live(jingle2, old, new)
 
 # Combine lives and files:
 s =
@@ -48,5 +48,6 @@ s =
     transitions=[to_live1, to_live2, to_file],
     [live1, live2, s]
   )
+
 # END2
 output.dummy(fallible=true, s)
