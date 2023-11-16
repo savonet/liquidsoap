@@ -123,8 +123,6 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           eval "$(opam config env)"
-          opam update
-          opam install -y re.1.11.0
           dune build --profile release ./src/js/interactive_js.bc.js
 
   tree_sitter_parse:
@@ -199,7 +197,6 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E opam install -y ssl.0.7.0
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cd /tmp/liquidsoap-full/liquidsoap/
           eval $(opam config env)
@@ -264,7 +261,6 @@ jobs:
           cd /tmp/liquidsoap-full/liquidsoap
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E opam install -y ssl.0.7.0
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
       - name: Compute stats
@@ -414,7 +410,6 @@ jobs:
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E opam install -y ssl.0.7.0
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}" ${{ matrix.platform }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
