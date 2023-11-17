@@ -66,8 +66,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -97,6 +99,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -109,6 +112,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -156,6 +160,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -167,6 +172,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -207,8 +213,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -238,6 +246,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -250,6 +259,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -297,6 +307,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -308,6 +319,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -348,8 +360,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -379,6 +393,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -391,6 +406,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -438,6 +454,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -449,6 +466,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -489,8 +507,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -520,6 +540,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -532,6 +553,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -579,6 +601,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -590,6 +613,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -630,8 +654,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -661,6 +687,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -673,6 +700,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -720,6 +748,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -731,6 +760,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -771,8 +801,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -802,6 +834,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -814,6 +847,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -861,6 +895,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -872,6 +907,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -912,8 +948,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -943,6 +981,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -955,6 +994,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -1002,6 +1042,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -1013,6 +1054,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -1053,8 +1095,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -1084,6 +1128,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -1096,6 +1141,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -1143,6 +1189,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -1154,6 +1201,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -1194,8 +1242,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -1225,6 +1275,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -1237,6 +1288,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -1284,6 +1336,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -1295,6 +1348,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -1335,8 +1389,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -1366,6 +1422,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -1378,6 +1435,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -1425,6 +1483,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -1436,6 +1495,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -1476,8 +1536,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -1507,6 +1569,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -1519,6 +1582,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -1566,6 +1630,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -1577,6 +1642,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -1617,8 +1683,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -1648,6 +1716,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -1660,6 +1729,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -1707,6 +1777,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -1718,6 +1789,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -1758,8 +1830,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -1789,6 +1863,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -1801,6 +1876,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -1848,6 +1924,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -1859,6 +1936,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -1899,8 +1977,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -1930,6 +2010,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -1942,6 +2023,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -1989,6 +2071,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -2000,6 +2083,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -2040,8 +2124,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -2071,6 +2157,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -2083,6 +2170,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -2130,6 +2218,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -2141,6 +2230,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -2181,8 +2271,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -2212,6 +2304,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -2224,6 +2317,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -2271,6 +2365,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -2282,6 +2377,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -2322,8 +2418,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -2353,6 +2451,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -2365,6 +2464,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -2412,6 +2512,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -2423,6 +2524,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -2463,8 +2565,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -2494,6 +2598,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -2506,6 +2611,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -2553,6 +2659,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -2564,6 +2671,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -2604,8 +2712,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -2635,6 +2745,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -2647,6 +2758,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -2694,6 +2806,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -2705,6 +2818,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -2745,8 +2859,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -2776,6 +2892,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -2788,6 +2905,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -2835,6 +2953,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -2846,6 +2965,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -2886,8 +3006,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -2917,6 +3039,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -2929,6 +3052,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -2976,6 +3100,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -2987,6 +3112,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -3027,8 +3153,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -3058,6 +3186,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -3070,6 +3199,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -3117,6 +3247,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -3128,6 +3259,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -3168,8 +3300,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -3199,6 +3333,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -3211,6 +3346,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -3258,6 +3394,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -3269,6 +3406,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -3309,8 +3447,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -3340,6 +3480,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -3352,6 +3493,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -3399,6 +3541,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -3410,6 +3553,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -3450,8 +3594,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -3481,6 +3627,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -3493,6 +3640,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -3540,6 +3688,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -3551,6 +3700,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -3591,8 +3741,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -3622,6 +3774,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -3634,6 +3787,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -3681,6 +3835,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -3692,6 +3847,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -3732,8 +3888,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -3763,6 +3921,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -3775,6 +3934,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -3822,6 +3982,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -3833,6 +3994,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -3873,8 +4035,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -3904,6 +4068,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -3916,6 +4081,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -3963,6 +4129,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -3974,6 +4141,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -4014,8 +4182,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -4045,6 +4215,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -4057,6 +4228,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -4104,6 +4276,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -4115,6 +4288,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -4155,8 +4329,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -4186,6 +4362,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -4198,6 +4375,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -4245,6 +4423,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -4256,6 +4435,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -4296,8 +4476,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -4327,6 +4509,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -4339,6 +4522,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -4386,6 +4570,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -4397,6 +4582,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -4437,8 +4623,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -4468,6 +4656,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -4480,6 +4669,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -4527,6 +4717,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -4538,6 +4729,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -4578,8 +4770,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -4609,6 +4803,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -4621,6 +4816,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -4668,6 +4864,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -4679,6 +4876,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -4719,8 +4917,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -4750,6 +4950,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -4762,6 +4963,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -4809,6 +5011,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -4820,6 +5023,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -4860,8 +5064,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -4891,6 +5097,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -4903,6 +5110,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -4950,6 +5158,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -4961,6 +5170,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -5001,8 +5211,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -5032,6 +5244,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -5044,6 +5257,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -5091,6 +5305,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -5102,6 +5317,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -5142,8 +5358,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -5173,6 +5391,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -5185,6 +5404,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -5232,6 +5452,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -5243,6 +5464,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -5283,8 +5505,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -5314,6 +5538,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -5326,6 +5551,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -5373,6 +5599,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -5384,6 +5611,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -5424,8 +5652,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -5455,6 +5685,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -5467,6 +5698,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -5514,6 +5746,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -5525,6 +5758,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -5565,8 +5799,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -5596,6 +5832,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -5608,6 +5845,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -5655,6 +5893,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -5666,6 +5905,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -5706,8 +5946,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -5737,6 +5979,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -5749,6 +5992,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -5796,6 +6040,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -5807,6 +6052,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -5847,8 +6093,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -5878,6 +6126,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -5890,6 +6139,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -5937,6 +6187,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -5948,6 +6199,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -5988,8 +6240,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -6019,6 +6273,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -6031,6 +6286,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -6078,6 +6334,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -6089,6 +6346,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -6129,8 +6387,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -6160,6 +6420,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -6172,6 +6433,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -6219,6 +6481,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -6230,6 +6493,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -6270,8 +6534,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -6301,6 +6567,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -6313,6 +6580,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -6360,6 +6628,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -6371,6 +6640,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -6411,8 +6681,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -6442,6 +6714,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -6454,6 +6727,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -6501,6 +6775,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -6512,6 +6787,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -6552,8 +6828,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -6583,6 +6861,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -6595,6 +6874,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -6642,6 +6922,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -6653,6 +6934,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -6693,8 +6975,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -6724,6 +7008,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -6736,6 +7021,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -6783,6 +7069,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -6794,6 +7081,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -6834,8 +7122,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -6865,6 +7155,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -6877,6 +7168,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -6924,6 +7216,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -6935,6 +7228,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -6975,8 +7269,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -7006,6 +7302,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -7018,6 +7315,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -7065,6 +7363,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -7076,6 +7375,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -7116,8 +7416,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -7147,6 +7449,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -7159,6 +7462,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -7206,6 +7510,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -7217,6 +7522,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -7257,8 +7563,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -7288,6 +7596,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -7300,6 +7609,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -7347,6 +7657,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -7358,6 +7669,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -7398,8 +7710,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -7429,6 +7743,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -7441,6 +7756,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -7488,6 +7804,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -7499,6 +7816,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -7539,8 +7857,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -7570,6 +7890,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -7582,6 +7903,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -7629,6 +7951,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -7640,6 +7963,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -7680,8 +8004,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -7711,6 +8037,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -7723,6 +8050,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -7770,6 +8098,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -7781,6 +8110,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -7821,8 +8151,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -7852,6 +8184,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -7864,6 +8197,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -7911,6 +8245,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -7922,6 +8257,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -7962,8 +8298,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -7993,6 +8331,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -8005,6 +8344,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -8052,6 +8392,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -8063,6 +8404,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -8103,8 +8445,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -8134,6 +8478,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -8146,6 +8491,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -8193,6 +8539,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -8204,6 +8551,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -8244,8 +8592,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -8275,6 +8625,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -8287,6 +8638,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -8334,6 +8686,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -8345,6 +8698,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -8385,8 +8739,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -8416,6 +8772,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -8428,6 +8785,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -8475,6 +8833,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -8486,6 +8845,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -8526,8 +8886,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -8557,6 +8919,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -8569,6 +8932,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -8616,6 +8980,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -8627,6 +8992,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -8667,8 +9033,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -8698,6 +9066,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -8710,6 +9079,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -8757,6 +9127,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -8768,6 +9139,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -8808,8 +9180,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -8839,6 +9213,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -8851,6 +9226,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -8898,6 +9274,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -8909,6 +9286,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -8949,8 +9327,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -8980,6 +9360,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -8992,6 +9373,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -9039,6 +9421,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -9050,6 +9433,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -9090,8 +9474,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -9121,6 +9507,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -9133,6 +9520,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -9180,6 +9568,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -9191,6 +9580,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -9231,8 +9621,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -9262,6 +9654,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -9274,6 +9667,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -9321,6 +9715,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -9332,6 +9727,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -9372,8 +9768,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -9403,6 +9801,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -9415,6 +9814,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -9462,6 +9862,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -9473,6 +9874,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -9513,8 +9915,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -9544,6 +9948,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -9556,6 +9961,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -9603,6 +10009,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -9614,6 +10021,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -9654,8 +10062,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -9685,6 +10095,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -9697,6 +10108,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -9744,6 +10156,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -9755,6 +10168,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -9795,8 +10209,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -9826,6 +10242,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -9838,6 +10255,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -9885,6 +10303,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -9896,6 +10315,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -9936,8 +10356,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -9967,6 +10389,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -9979,6 +10402,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -10026,6 +10450,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -10037,6 +10462,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -10077,8 +10503,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -10108,6 +10536,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -10120,6 +10549,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -10167,6 +10597,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -10178,6 +10609,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -10218,8 +10650,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -10249,6 +10683,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -10261,6 +10696,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -10308,6 +10744,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -10319,6 +10756,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -10359,8 +10797,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -10390,6 +10830,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -10402,6 +10843,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -10449,6 +10891,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -10460,6 +10903,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -10500,8 +10944,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -10531,6 +10977,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -10543,6 +10990,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -10590,6 +11038,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -10601,6 +11050,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -10641,8 +11091,10 @@
     language.dtd
     template.html
     content/liq/append-silence.liq
+    content/liq/archive-cleaner.liq
     content/liq/basic-radio.liq
     content/liq/beets-amplify.liq
+    content/liq/beets-protocol-short.liq
     content/liq/beets-protocol.liq
     content/liq/beets-source.liq
     content/liq/blank-detect.liq
@@ -10672,6 +11124,7 @@
     content/liq/fixed-time2.liq
     content/liq/frame-size.liq
     content/liq/harbor-auth.liq
+    content/liq/harbor-dynamic.liq
     content/liq/harbor-insert-metadata.liq
     content/liq/harbor-metadata.liq
     content/liq/harbor-redirect.liq
@@ -10684,6 +11137,7 @@
     content/liq/http-input.liq
     content/liq/icy-update.liq
     content/liq/input.mplayer.liq
+    content/liq/jingle-hour.liq
     content/liq/json-ex.liq
     content/liq/json-stringify.liq
     content/liq/json1.liq
@@ -10731,6 +11185,7 @@
     content/liq/regular.liq
     content/liq/replaygain-metadata.liq
     content/liq/replaygain-playlist.liq
+    content/liq/request.dynamic.liq
     content/liq/rtmp.liq
     content/liq/samplerate3.liq
     content/liq/scheduling.liq
@@ -10742,6 +11197,7 @@
     content/liq/split-cue.liq
     content/liq/srt-receiver.liq
     content/liq/srt-sender.liq
+    content/liq/switch-show.liq
     content/liq/transcoding.liq
     content/liq/video-anonymizer.liq
     content/liq/video-bluescreen.liq
@@ -10863,6 +11319,57 @@
     ../src/libs/utils.liq
     ../src/libs/video.liq
     (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/archive-cleaner.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/archive-cleaner.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/basic-radio.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/basic-radio.liq))
@@ -10917,6 +11424,57 @@
     (:test_liq content/liq/beets-amplify.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/beets-amplify.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/beets-protocol-short.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/beets-protocol-short.liq))
 )
 
 (rule
@@ -12444,6 +13002,57 @@
     ../src/libs/utils.liq
     ../src/libs/video.liq
     (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/harbor-dynamic.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-dynamic.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/harbor-insert-metadata.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-insert-metadata.liq))
@@ -13008,6 +13617,57 @@
     (:test_liq content/liq/input.mplayer.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/input.mplayer.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/jingle-hour.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/jingle-hour.liq))
 )
 
 (rule
@@ -15453,6 +16113,57 @@
     ../src/libs/utils.liq
     ../src/libs/video.liq
     (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/request.dynamic.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/request.dynamic.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
     (:test_liq content/liq/rtmp.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/rtmp.liq))
@@ -15966,6 +16677,57 @@
     (:test_liq content/liq/srt-sender.liq)
   )
   (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/srt-sender.liq))
+)
+
+(rule
+  (alias doctest)
+  (package liquidsoap)
+  (deps
+    ../src/libs/audio.liq
+    ../src/libs/clock.liq
+    ../src/libs/error.liq
+    ../src/libs/fades.liq
+    ../src/libs/ffmpeg.liq
+    ../src/libs/file.liq
+    ../src/libs/getter.liq
+    ../src/libs/hls.liq
+    ../src/libs/http.liq
+    ../src/libs/http_codes.liq
+    ../src/libs/icecast.liq
+    ../src/libs/io.liq
+    ../src/libs/liquidsoap.liq
+    ../src/libs/list.liq
+    ../src/libs/log.liq
+    ../src/libs/math.liq
+    ../src/libs/medialib.liq
+    ../src/libs/metadata.liq
+    ../src/libs/null.liq
+    ../src/libs/playlist.liq
+    ../src/libs/predicate.liq
+    ../src/libs/process.liq
+    ../src/libs/profiler.liq
+    ../src/libs/protocols.liq
+    ../src/libs/ref.liq
+    ../src/libs/replaygain.liq
+    ../src/libs/request.liq
+    ../src/libs/resolvers.liq
+    ../src/libs/runtime.liq
+    ../src/libs/server.liq
+    ../src/libs/settings.liq
+    ../src/libs/socket.liq
+    ../src/libs/source.liq
+    ../src/libs/stdlib.liq
+    ../src/libs/string.liq
+    ../src/libs/switches.liq
+    ../src/libs/testing.liq
+    ../src/libs/thread.liq
+    ../src/libs/tracks.liq
+    ../src/libs/utils.liq
+    ../src/libs/video.liq
+    (:stdlib ../src/libs/stdlib.liq)
+    (:test_liq content/liq/switch-show.liq)
+  )
+  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/switch-show.liq))
 )
 
 (rule
