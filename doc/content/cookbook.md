@@ -26,20 +26,14 @@ See also the [ffmpeg cookbook](ffmpeg_cookbook.html) for examples specific to th
 
 A source which infinitely repeats the same URI:
 
-```liquidsoap
-single("/my/default.ogg")
+```{.liquidsoap include="single.liq"}
+
 ```
 
 A source which plays a playlist of requests -- a playlist is a file with an URI per line.
 
-```liquidsoap
-# Shuffle, play every URI, start over.
-playlist("/my/playlist.txt")
-# Do not randomize
-playlist(mode="normal", "/my/pl.m3u")
-# The playlist can come from any URI,
-# can be reloaded every 10 minutes.
-playlist(reload=600,"http://my/playlist.txt")
+```{.liquidsoap include="playlists.liq" to="END"}
+
 ```
 
 When building your stream, you'll often need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe `single`. Roughly, a single is safe when it is given a valid local audio file.
@@ -147,11 +141,8 @@ metadata of a file and returning whether the file should be selected. For
 instance, the following looks for files where the name of the artist is of
 length 5:
 
-```liquidsoap
-def p(m)
-  string.length(m["artist"]) == 5
-end
-l = m.find(predicate=p)
+```{.liquidsoap include="medialib-predicate.liq" from="BEGIN" to="END"}
+
 ```
 
 ## Force a file/playlist to be played at least every XX minutes
@@ -172,34 +163,30 @@ Suppose that we have a playlist `jingles` of jingles and we want to play one
 within the 5 first minutes of every hour, without interrupting the current
 song. We can think of doing something like
 
-```liquidsoap
-radio = switch([({ 0m-5m }, jingles), ({ true }, playlist)])
+```{.liquidsoap include="fixed-time1.liq" from="BEGIN" to="END"}
+
 ```
 
 but the problem is that it is likely to play many jingles. In order to play
 exactly one jingle, we can use the function `predicate.activates` which detects
 when a predicate (here `{ 0m-5m }`) becomes true:
 
-```liquidsoap
-radio = switch([(predicate.activates({ 0m-5m }), jingles), ({ true }, playlist)])
+```{.liquidsoap include="fixed-time2.liq" from="BEGIN" to="END"}
+
 ```
 
 ## Handle special events: mix or switch
 
-```liquidsoap
-# Add a jingle to your normal source
-# at the beginning of every hour:
-add([normal,switch([({0m0s},jingle)])])
+Add a jingle to your normal source at the beginning of every hour:
+
+```{.liquidsoap include="jingle-hour.liq" from="BEGIN" to="END"}
+
 ```
 
 Switch to a live show as soon as one is available. Make the show unavailable when it is silent, and skip tracks from the normal source if they contain too much silence.
 
-```liquidsoap
-stripped_stream =
-  blank.strip(input.http("http://myicecast:8080/live.ogg"))
+```{.liquidsoap include="switch-show.liq" from="BEGIN" to="END"}
 
-fallback(track_sensitive=false,
-         [stripped_stream,blank.strip(normal)])
 ```
 
 Without the `track_sensitive=false` the fallback would wait the end of a track to switch to the live. When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
@@ -211,23 +198,16 @@ This is explained in the documentation for [request-based sources](request_sourc
 
 For instance, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
 
-```liquidsoap
-request.dynamic.list(
-  { [request.create("bar:foo",
-      indicators=
-        process.read.lines("cat "^quote("playlist.pls")))] })
+```{.liquidsoap include="request.dynamic.liq" to="END"}
+
 ```
 
 Of course a more interesting behaviour is obtained with a more interesting program than `cat`, see [Beets](beet.html) for example.
 
 Another way of using an external program is to define a new protocol which uses it to resolve URIs. `protocol.add` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program ; it is another way to integrate [Beets](beet.html), for example:
 
-```liquidsoap
-protocol.add("beets", fun(~rlog,~maxtime,arg) ->
-  process.read.lines(
-    "/home/me/path/to/beet random -f '$path' #{arg}"
-  )
-)
+```{.liquidsoap include="beets-protocol-short.liq"}
+
 ```
 
 When resolving the URI `beets:David Bowie`, liquidsoap will call the function, which will call `beet random -f '$path' David Bowie` which will output the path to a David Bowie song.
@@ -242,29 +222,8 @@ This can be very useful to relay a live stream without polling the Icecast serve
 
 An example can be:
 
-```liquidsoap
-# Serveur settings
-settings.harbor.bind_addrs := ["0.0.0.0"]
+```{.liquidsoap include="harbor-dynamic.liq"}
 
-# An emergency file
-emergency = single("/path/to/emergency/single.ogg")
-
-# A playlist
-playlist = playlist("/path/to/playlist")
-
-# A live source
-live = input.harbor("live",port=8080,password="hackme")
-
-# fallback
-radio = fallback(track_sensitive=false,
-                 [live,playlist,emergency])
-
-# output it
-output.icecast(
-  %vorbis,
-  mount="test",
-  host="host",
-  radio)
 ```
 
 This script, when launched, will start a local server, here bound to "0.0.0.0". This means that it will listen on any IP address available on the machine for a connection coming from any IP address. The server will wait for any source stream on mount point "/live" to login.
@@ -305,15 +264,8 @@ In order to limit the disk space used by this archive, on unix systems we can
 regularly call `find` to cleanup the folder ; if we can to keep 31 days of
 recording :
 
-```liquidsoap
-thread.when(every=3600., pred={ true },
-    fun () -> list.iter(fun(msg) -> log(msg, label="archive_cleaner"),
-        list.append(
-            process.read.lines("find /archive/* -type f -mtime +31 -delete"),
-            process.read.lines("find /archive/* -type d -empty -delete")
-        )
-    )
-)
+```{liquidsoap include="archive-cleaner.liq"}
+
 ```
 
 ## Transitions
