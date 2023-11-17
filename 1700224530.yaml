@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.373203992844
+  unit: "s"
+  time: 1700224148.19
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.743205070496
+  unit: "s"
+  time: 1700224148.93
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.36291694641
+  unit: "s"
+  time: 1700224150.3
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 3.00808691978
+  unit: "s"
+  time: 1700224153.3
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 342.5
+  unit: "Mio"
+  time: 1700224270.17
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 850.40625
+  unit: "Mio"
+  time: 1700224270.17
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1700224270.17
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1700224270.17
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 4579.0625
+  unit: "Mio"
+  time: 1700224270.17
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 4579.0625
+  unit: "Mio"
+  time: 1700224270.17
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2208.
+  unit: "functions"
+  time: 1700224272.78
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1700224272.78
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.32127213478
+  unit: "s"
+  time: 1700224431.5
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.46662998199
+  unit: "s"
+  time: 1700224523.28
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.65585398674
+  unit: "s"
+  time: 1700224526.93
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1700224530.28
+  min: 0.
+
+- commit: ee39926e68f7e6868933ab4cb700c81d650d5190
+  branch: split-cookbook
+  time: 1700224530
