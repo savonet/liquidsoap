@@ -26,20 +26,14 @@ See also the [ffmpeg cookbook](ffmpeg_cookbook.html) for examples specific to th
 
 A source which infinitely repeats the same URI:
 
-```liquidsoap
-single("/my/default.ogg")
+```{.liquidsoap include="single.liq"}
+
 ```
 
 A source which plays a playlist of requests -- a playlist is a file with an URI per line.
 
-```liquidsoap
-# Shuffle, play every URI, start over.
-playlist("/my/playlist.txt")
-# Do not randomize
-playlist(mode="normal", "/my/pl.m3u")
-# The playlist can come from any URI,
-# can be reloaded every 10 minutes.
-playlist(reload=600,"http://my/playlist.txt")
+```{.liquidsoap include="playlists.liq" to="END"}
+
 ```
 
 When building your stream, you'll often need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe `single`. Roughly, a single is safe when it is given a valid local audio file.
@@ -147,11 +141,8 @@ metadata of a file and returning whether the file should be selected. For
 instance, the following looks for files where the name of the artist is of
 length 5:
 
-```liquidsoap
-def p(m)
-  string.length(m["artist"]) == 5
-end
-l = m.find(predicate=p)
+```{.liquidsoap include="medialib-predicate.liq" from="BEGIN" to="END"}
+
 ```
 
 ## Force a file/playlist to be played at least every XX minutes
@@ -172,16 +163,16 @@ Suppose that we have a playlist `jingles` of jingles and we want to play one
 within the 5 first minutes of every hour, without interrupting the current
 song. We can think of doing something like
 
-```liquidsoap
-radio = switch([({ 0m-5m }, jingles), ({ true }, playlist)])
+```{.liquidsoap include="fixed-time1.liq" to="END"}
+
 ```
 
 but the problem is that it is likely to play many jingles. In order to play
 exactly one jingle, we can use the function `predicate.activates` which detects
 when a predicate (here `{ 0m-5m }`) becomes true:
 
-```liquidsoap
-radio = switch([(predicate.activates({ 0m-5m }), jingles), ({ true }, playlist)])
+```{.liquidsoap include="fixed-time2.liq" to="END"}
+
 ```
 
 ## Handle special events: mix or switch
