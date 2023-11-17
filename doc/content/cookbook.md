@@ -163,7 +163,7 @@ Suppose that we have a playlist `jingles` of jingles and we want to play one
 within the 5 first minutes of every hour, without interrupting the current
 song. We can think of doing something like
 
-```{.liquidsoap include="fixed-time1.liq" to="END"}
+```{.liquidsoap include="fixed-time1.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -171,7 +171,7 @@ but the problem is that it is likely to play many jingles. In order to play
 exactly one jingle, we can use the function `predicate.activates` which detects
 when a predicate (here `{ 0m-5m }`) becomes true:
 
-```{.liquidsoap include="fixed-time2.liq" to="END"}
+```{.liquidsoap include="fixed-time2.liq" from="BEGIN" to="END"}
 
 ```
 
