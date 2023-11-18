@@ -861,6 +861,13 @@ let settings.protocol.aws.polly.voice =
     "Joanna"
   )
 
+let settings.protocol.aws.polly.extra_args =
+  settings.make(
+    description=
+      "Extra command line arguments",
+    ([] : [string])
+  )
+
 # Build a aws base call
 # @flag hidden
 def aws_base() =
@@ -935,10 +942,16 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
   aws =
     "#{aws} polly synthesize-speech --output-format #{format}"
   voice_id = settings.protocol.aws.polly.voice()
+  extra_args =
+    string.concat(
+      separator=
+        " ",
+      settings.protocol.aws.polly.extra_args()
+    )
   cmd =
     "#{aws} --text #{process.quote(text)} --voice-id #{
       process.quote(voice_id)
-    } $(output)"
+    } #{extra_args} $(output)"
 
   [process.uri(extname=extname, cmd)]
 end
