@@ -26,7 +26,8 @@ open Mm
 
 open Alsa
 
-class output ~clock_safe ~infallible ~on_stop ~on_start ~start dev source =
+class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start ~start
+  dev source =
   let buffer_length = AFrame.size () in
   let alsa_buffer = Alsa_settings.alsa_buffer#get in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
@@ -36,8 +37,8 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~start dev source =
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~name ~output_kind:"output.alsa" source
-          start as super
+        ~infallible ~register_telnet ~on_stop ~on_start ~name
+          ~output_kind:"output.alsa" source start as super
 
     inherit [Content.Audio.data] IoRing.output ~nb_blocks as ioring
     val mutable initialized = false

@@ -26,15 +26,15 @@ open Mm
 
 let bytes_per_sample = 2
 
-class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
-  source =
+class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start
+  ~nb_blocks ~server source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~name:"output.jack"
+        ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.jack"
           ~output_kind:"output.jack" source true as super
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
@@ -138,6 +138,7 @@ let _ =
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -147,5 +148,6 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       (new output
-         ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server source
+         ~clock_safe ~infallible ~register_telnet ~on_start ~on_stop ~nb_blocks
+         ~server source
         :> Output.output))

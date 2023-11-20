@@ -36,14 +36,15 @@ let force f fd x =
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "OSS")
 
-class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
+class output ~clock_safe ~on_start ~on_stop ~infallible ~register_telnet ~start
+  dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~name ~output_kind:"output.oss"
-          val_source start as super
+        ~infallible ~register_telnet ~on_stop ~on_start ~name
+          ~output_kind:"output.oss" val_source start as super
 
     inherit! Source.no_seek
 
@@ -151,6 +152,7 @@ let _ =
        (fun p ->
          let e f v = f (List.assoc v p) in
          let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+         let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
          let start = Lang.to_bool (List.assoc "start" p) in
          let on_start =
            let f = List.assoc "on_start" p in
@@ -164,7 +166,8 @@ let _ =
          let device = e Lang.to_string "device" in
          let source = List.assoc "" p in
          (new output
-            ~start ~on_start ~on_stop ~infallible ~clock_safe device source
+            ~start ~on_start ~on_stop ~infallible ~register_telnet ~clock_safe
+            device source
            :> Output.output)));
 
   let return_t =

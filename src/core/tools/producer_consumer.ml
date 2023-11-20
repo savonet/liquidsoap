@@ -44,7 +44,8 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   object (self)
     inherit
       Output.output
-        ~output_kind:name ~infallible ~on_start:noop ~on_stop:noop source true as super
+        ~output_kind:name ~register_telnet:false ~infallible ~on_start:noop
+          ~on_stop:noop source true as super
 
     val mutable output_enabled = false
     val mutable producer_buffer = Generator.create Frame.Fields.empty

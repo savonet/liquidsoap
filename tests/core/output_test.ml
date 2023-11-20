@@ -2,7 +2,7 @@ class dummy ~autostart ~on_start source =
   object (self)
     inherit
       Output.dummy
-        ~autostart ~infallible:false ~on_start
+        ~autostart ~infallible:false ~register_telnet:false ~on_start
         ~on_stop:(fun () -> ())
         (Lang.source (source :> Source.source))
 

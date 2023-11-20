@@ -26,13 +26,13 @@ open Mm
 
 open Tsdl
 
-class output ~infallible ~on_start ~on_stop ~autostart source =
+class output ~infallible ~register_telnet ~on_start ~on_stop ~autostart source =
   let () = Sdl_utils.init [Sdl.Init.video] in
   object (self)
     inherit
       Output.output
-        ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~on_start ~on_stop
-          source autostart
+        ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~register_telnet
+          ~on_start ~on_stop source autostart
 
     val mutable fullscreen = false
     val mutable window = None
@@ -110,6 +110,7 @@ let output_sdl =
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -119,7 +120,8 @@ let output_sdl =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output ~infallible ~autostart ~on_start ~on_stop source
+      (new output
+         ~infallible ~register_telnet ~autostart ~on_start ~on_stop source
         :> Output.output))
 
 let _ =

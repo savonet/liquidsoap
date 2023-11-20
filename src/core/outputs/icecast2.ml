@@ -409,6 +409,7 @@ class output p =
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
   let on_start =
     let f = List.assoc "on_start" p in
     fun () -> ignore (Lang.apply f [])
@@ -454,8 +455,8 @@ class output p =
   object (self)
     inherit
       Output.encoded
-        ~output_kind:"output.icecast" ~infallible ~autostart ~on_start ~on_stop
-          ~name source
+        ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
+          ~on_start ~on_stop ~name source
 
     (** In this operator, we don't exactly follow the start/stop
     * mechanism of Output.encoded because we want to control
