@@ -53,12 +53,13 @@ module Tutils = struct
     (kill, wait)
 end
 
-class output ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-  ~encoder_factory source =
+class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
+  ~hostname ~port ~encoder_factory source =
   object (self)
     inherit
       Output.encoded
-        ~output_kind:"udp" ~on_start ~on_stop ~infallible ~autostart
+        ~output_kind:"udp" ~on_start ~on_stop ~register_telnet ~infallible
+          ~autostart
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         source
 
@@ -208,6 +209,7 @@ let _ =
       (* Generic output parameters *)
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -229,8 +231,8 @@ let _ =
       in
       let source = Lang.assoc "" 2 p in
       (new output
-         ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-         ~encoder_factory:fmt source
+         ~on_start ~on_stop ~register_telnet ~infallible ~autostart ~hostname
+         ~port ~encoder_factory:fmt source
         :> Source.source))
 
 let _ =

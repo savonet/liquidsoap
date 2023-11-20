@@ -29,6 +29,7 @@ class virtual output :
   output_kind:string
   -> ?name:string
   -> infallible:bool
+  -> register_telnet:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> Lang.value
@@ -64,6 +65,7 @@ class virtual encoded :
   -> infallible:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
+  -> register_telnet:bool
   -> autostart:bool
   -> Lang.value
   -> object
@@ -82,6 +84,7 @@ class dummy :
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool
+  -> register_telnet:bool
   -> Lang.value
   -> object
        inherit output

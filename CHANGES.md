@@ -1,8 +1,16 @@
 # 2.2.3 (unreleased)
 
+New:
+
+- Added `register_telnet` option to all outputs to
+  prevent telnet commands registration (#3545)
+
 Fixed:
 
 - Fixed `file.touch` (#3529)
+- Cleanup telnet commands on output shutdown,
+  prevent commands registration for internal
+  outputs (#3545, fixes: #3541)
 
 ---
 

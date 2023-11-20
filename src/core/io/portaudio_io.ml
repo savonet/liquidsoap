@@ -148,14 +148,14 @@ let open_device ~mode ~latency ~channels ~buflen device_id =
         Portaudio.open_stream inparams outparams (float samples_per_second)
           buflen []
 
-class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~device_id
-  ~latency buflen val_source =
+class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~register_telnet
+  ~device_id ~latency buflen val_source =
   object (self)
     inherit base
 
     inherit!
       Output.output
-        ~infallible ~on_stop ~on_start ~name:"output.portaudio"
+        ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.portaudio"
           ~output_kind:"output.portaudio" val_source start as super
 
     method! private set_clock =
@@ -276,6 +276,7 @@ let _ =
         Lang.to_valued_option Lang.to_float (List.assoc "latency" p)
       in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -288,8 +289,8 @@ let _ =
       let source = List.assoc "" p in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       (new output
-         ~start ~on_start ~on_stop ~infallible ~clock_safe ~device_id ~latency
-         buflen source
+         ~start ~on_start ~on_stop ~infallible ~register_telnet ~clock_safe
+         ~device_id ~latency buflen source
         :> Output.output))
 
 let _ =

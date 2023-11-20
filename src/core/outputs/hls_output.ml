@@ -306,6 +306,7 @@ class hls_output p =
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
   let prefix = Lang.to_string (List.assoc "prefix" p) in
   let directory_val = Lang.assoc "" 1 p in
   let directory = Lang.to_string directory_val in
@@ -523,8 +524,8 @@ class hls_output p =
   object (self)
     inherit
       Output.encoded
-        ~infallible ~on_start ~on_stop ~autostart ~output_kind:"output.file"
-          ~name:main_playlist_filename source
+        ~infallible ~register_telnet ~on_start ~on_stop ~autostart
+          ~output_kind:"output.file" ~name:main_playlist_filename source
 
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams
