@@ -30,16 +30,16 @@ open Ao
   * per driver... but it might also depend on driver options. *)
 let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "ao")
 
-class output ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
-  ~options ?channels_matrix source start =
+class output ~clock_safe ~nb_blocks ~driver ~register_telnet ~infallible
+  ~on_start ~on_stop ~options ?channels_matrix source start =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_start ~on_stop ~name:"ao" ~output_kind:"output.ao"
-          source start as super
+        ~register_telnet ~infallible ~on_start ~on_stop ~name:"ao"
+          ~output_kind:"output.ao" source start as super
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
@@ -151,6 +151,7 @@ let _ =
         if channels_matrix = "" then None else Some channels_matrix
       in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -162,6 +163,6 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~nb_blocks ~driver ~infallible ~on_start ~on_stop
-         ?channels_matrix ~options source start
+         ~clock_safe ~nb_blocks ~driver ~infallible ~register_telnet ~on_start
+         ~on_stop ?channels_matrix ~options source start
         :> Output.output))

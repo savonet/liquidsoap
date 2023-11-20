@@ -46,7 +46,7 @@ class virtual base ~client ~device =
     method self_sync : Source.self_sync = (`Dynamic, dev <> None)
   end
 
-class output ~infallible ~start ~on_start ~on_stop p =
+class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
@@ -58,8 +58,8 @@ class output ~infallible ~start ~on_start ~on_stop p =
 
     inherit!
       Output.output
-        ~infallible ~on_stop ~on_start ~name ~output_kind:"output.pulseaudio"
-          val_source start as super
+        ~infallible ~register_telnet ~on_stop ~on_start ~name
+          ~output_kind:"output.pulseaudio" val_source start as super
 
     method! private set_clock =
       super#set_clock;
@@ -182,6 +182,7 @@ let _ =
     ~descr:"Output the source's stream to a pulseaudio output device."
     (fun p ->
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -191,7 +192,8 @@ let _ =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      (new output ~infallible ~on_start ~on_stop ~start p :> Output.output))
+      (new output ~infallible ~register_telnet ~on_start ~on_stop ~start p
+        :> Output.output))
 
 let _ =
   let return_t =

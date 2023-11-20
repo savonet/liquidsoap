@@ -9,6 +9,7 @@ class encoded_test =
     inherit
       Output.encoded
         ~output_kind:"foo" ~name:"encoded_test" ~infallible:false
+          ~register_telnet:false
         ~on_start:(fun _ -> ())
         ~on_stop:(fun _ -> ())
         ~autostart:false

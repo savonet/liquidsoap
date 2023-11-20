@@ -39,6 +39,7 @@ class virtual base ~source ~name p =
   (* Output settings *)
   let autostart = e Lang.to_bool "start" in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
   let on_start =
     let f = List.assoc "on_start" p in
     fun () -> ignore (Lang.apply f [])
@@ -50,8 +51,8 @@ class virtual base ~source ~name p =
   object (self)
     inherit
       Output.encoded
-        ~infallible ~on_start ~on_stop ~autostart ~output_kind:"output.file"
-          ~name source
+        ~infallible ~register_telnet ~on_start ~on_stop ~autostart
+          ~output_kind:"output.file" ~name source
 
     val mutable encoder = None
     val mutable current_metadata = None

@@ -165,8 +165,9 @@ class virtual ['a, 'b] element_factory ~on_error =
 
 (* Audio/video output *)
 
-class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
-  ?(blocking = true) source start (pipeline, audio_pipeline, video_pipeline) =
+class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
+  ~on_stop ?(blocking = true) source start
+  (pipeline, audio_pipeline, video_pipeline) =
   let has_audio, audio_pipeline =
     match audio_pipeline with
       | Some audio_pipeline -> (true, audio_pipeline)
@@ -180,7 +181,7 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
   object (self)
     inherit
       Output.output
-        ~infallible ~on_start ~on_stop ~name:"output.gstreamer"
+        ~infallible ~register_telnet ~on_start ~on_stop ~name:"output.gstreamer"
           ~output_kind:"gstreamer" source start as super
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
@@ -343,6 +344,7 @@ let _ =
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -359,8 +361,8 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start
-         ("", Some pipeline, None)
+         ~clock_safe ~on_error ~infallible ~register_telnet ~on_start ~on_stop
+         source start ("", Some pipeline, None)
         :> Output.output))
 
 let _ =
@@ -375,6 +377,7 @@ let _ =
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -391,8 +394,8 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start
-         ("", None, Some pipeline)
+         ~clock_safe ~infallible ~register_telnet ~on_error ~on_start ~on_stop
+         source start ("", None, Some pipeline)
         :> Output.output))
 
 let _ =
@@ -425,6 +428,7 @@ let _ =
       let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
       let video_pipeline = Lang.to_string (List.assoc "video_pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -442,8 +446,8 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking source
-         start
+         ~clock_safe ~infallible ~register_telnet ~on_error ~on_start ~on_stop
+         ~blocking source start
          (pipeline, Some audio_pipeline, Some video_pipeline)
         :> Output.output))
 

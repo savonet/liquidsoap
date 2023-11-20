@@ -159,7 +159,8 @@ module Buffer = struct
     object
       inherit
         Output.output
-          ~output_kind:id ~infallible ~on_start ~on_stop source_val autostart
+          ~output_kind:id ~infallible ~register_telnet:false ~on_start ~on_stop
+            source_val autostart
 
       method! reset = ()
       method start = ()
@@ -423,8 +424,9 @@ module AdaptativeBuffer = struct
     object (self)
       inherit
         Output.output
-          ~output_kind:"buffer" ~name:"buffer.adaptative.consumer" ~infallible
-            ~on_start ~on_stop source_val autostart
+          ~output_kind:"buffer" ~register_telnet:false
+            ~name:"buffer.adaptative.consumer" ~infallible ~on_start ~on_stop
+            source_val autostart
 
       method! reset = ()
       method start = ()

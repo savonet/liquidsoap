@@ -895,7 +895,8 @@ let _ =
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
 class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~autostart ~on_disconnect ~encoder_factory source =
+  ~infallible ~register_telnet ~autostart ~on_disconnect ~encoder_factory source
+  =
   let buffer = Strings.Mutable.empty () in
   let tmp = Bytes.create payload_size in
   object (self)
@@ -904,8 +905,8 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
 
     inherit
       Output.encoded
-        ~output_kind:"srt" ~on_start ~on_stop ~infallible ~autostart
-          ~name:"output.srt" source
+        ~output_kind:"srt" ~on_start ~on_stop ~infallible ~register_telnet
+          ~autostart ~name:"output.srt" source
 
     val mutable encoder = None
 
@@ -986,13 +987,13 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
 
 class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~payload_size ~messageapi ~on_start ~on_stop ~infallible
-  ~autostart ~on_connect ~on_disconnect ~port ~hostname ~read_timeout
-  ~write_timeout ~connection_timeout ~encoder_factory source =
+  ~register_telnet ~autostart ~on_connect ~on_disconnect ~port ~hostname
+  ~read_timeout ~write_timeout ~connection_timeout ~encoder_factory source =
   object (self)
     inherit
       output_base
-        ~payload_size ~messageapi ~on_start ~on_stop ~infallible ~autostart
-          ~on_disconnect ~encoder_factory source
+        ~payload_size ~messageapi ~on_start ~on_stop ~infallible
+          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source
 
     inherit
       caller
@@ -1014,13 +1015,13 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
 
 class output_listener ~enforced_encryption ~pbkeylen ~passphrase
   ~listen_callback ~max_clients ~payload_size ~messageapi ~on_start ~on_stop
-  ~infallible ~autostart ~on_connect ~on_disconnect ~bind_address ~read_timeout
-  ~write_timeout ~encoder_factory source =
+  ~infallible ~register_telnet ~autostart ~on_connect ~on_disconnect
+  ~bind_address ~read_timeout ~write_timeout ~encoder_factory source =
   object (self)
     inherit
       output_base
-        ~payload_size ~messageapi ~on_start ~on_stop ~infallible ~autostart
-          ~on_disconnect ~encoder_factory source
+        ~payload_size ~messageapi ~on_start ~on_stop ~infallible
+          ~register_telnet ~autostart ~on_disconnect ~encoder_factory source
 
     inherit
       listener
@@ -1088,6 +1089,7 @@ let _ =
         Lang.to_valued_option Lang.to_int (List.assoc "max_clients" p)
       in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -1112,15 +1114,16 @@ let _ =
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~payload_size ~autostart ~on_start
                ~on_stop ~read_timeout ~write_timeout ~connection_timeout
-               ~infallible ~messageapi ~encoder_factory ~on_connect
-               ~on_disconnect source
+               ~infallible ~register_telnet ~messageapi ~encoder_factory
+               ~on_connect ~on_disconnect source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Listener ->
             (new output_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~bind_address
                ~read_timeout ~write_timeout ~payload_size ~autostart ~on_start
-               ~on_stop ~infallible ~messageapi ~encoder_factory ~on_connect
-               ~on_disconnect ~listen_callback ~max_clients source
+               ~on_stop ~infallible ~register_telnet ~messageapi
+               ~encoder_factory ~on_connect ~on_disconnect ~listen_callback
+               ~max_clients source
               :> < Output.output
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))

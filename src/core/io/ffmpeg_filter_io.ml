@@ -82,8 +82,8 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
   object (self)
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~name
-          ~output_kind:"ffmpeg.filter.input" (Lang.source source) true as super
+        ~infallible:false ~register_telnet:false ~on_stop:noop ~on_start:noop
+          ~name ~output_kind:"ffmpeg.filter.input" (Lang.source source) true as super
 
     inherit ['a] duration_converter
     inherit! Source.no_seek

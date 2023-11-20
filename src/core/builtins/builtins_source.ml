@@ -247,7 +247,7 @@ let _ =
           ~infallible:false
           ~on_start:(fun () -> ())
           ~on_stop:(fun () -> ())
-          ~autostart:true (Lang.source s)
+          ~register_telnet:false ~autostart:true (Lang.source s)
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in

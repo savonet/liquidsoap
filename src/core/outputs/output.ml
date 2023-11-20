@@ -29,6 +29,10 @@ let fallibility_check = ref true
 let proto =
   Start_stop.output_proto
   @ [
+      ( "register_telnet",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Register telnet commands for this output." );
       ( "fallible",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -43,7 +47,7 @@ let meth = Start_stop.meth ()
     of pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including
     start/stop. *)
-class virtual output ~output_kind ?(name = "") ~infallible
+class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
   ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
@@ -67,7 +71,7 @@ class virtual output ~output_kind ?(name = "") ~infallible
     val mutable registered_telnet = false
 
     method private register_telnet =
-      if not registered_telnet then (
+      if register_telnet && not registered_telnet then (
         registered_telnet <- true;
         (* Add a few more server controls *)
         let ns = [self#id] in
@@ -97,6 +101,13 @@ class virtual output ~output_kind ?(name = "") ~infallible
             else (
               let t = Frame.seconds_of_main r in
               Printf.sprintf "%.2f" t)))
+
+    method private cleanup_telnet =
+      if registered_telnet then
+        List.iter
+          (Server.remove ~ns:[self#id])
+          ["skip"; "metadata"; "remaining"];
+      registered_telnet <- false
 
     method private _is_ready ?frame () =
       if infallible then (
@@ -193,12 +204,12 @@ class virtual output ~output_kind ?(name = "") ~infallible
             self#abort_track))
   end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart source =
+class dummy ~infallible ~on_start ~on_stop ~autostart ~register_telnet source =
   object
     inherit
       output
         source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
-          ~on_start ~on_stop
+          ~on_start ~on_stop ~register_telnet
 
     method! private reset = ()
     method private start = ()
@@ -220,15 +231,20 @@ let _ =
       let on_stop = List.assoc "on_stop" p in
       let on_start () = ignore (Lang.apply on_start []) in
       let on_stop () = ignore (Lang.apply on_stop []) in
-      new dummy ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p))
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
+      new dummy
+        ~on_start ~on_stop ~infallible ~autostart ~register_telnet
+        (List.assoc "" p))
 
 (** More concrete abstract-class, which takes care of the #send_frame method for
     outputs based on encoders. *)
 class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
-  ~autostart source =
+  ~register_telnet ~autostart source =
   object (self)
     inherit
-      output ~infallible ~on_start ~on_stop ~output_kind ~name source autostart
+      output
+        ~infallible ~on_start ~on_stop ~output_kind ~name ~register_telnet
+          source autostart
 
     method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
     method virtual private encode : Frame.t -> int -> int -> 'a

@@ -356,6 +356,7 @@ class output p =
   in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
   let on_start =
     let f = List.assoc "on_start" p in
     fun () -> ignore (Lang.apply f [])
@@ -415,8 +416,8 @@ class output p =
     (** File descriptor where to dump. *)
     inherit
       Output.encoded
-        ~output_kind:"output.harbor" ~infallible ~autostart ~on_start ~on_stop
-          ~name:mount source
+        ~output_kind:"output.harbor" ~infallible ~register_telnet ~autostart
+          ~on_start ~on_stop ~name:mount source
 
     val mutable dump = None
     val mutable encoder = None
