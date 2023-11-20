@@ -23,38 +23,6 @@
 open Source
 open Request_source
 
-let _ =
-  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.request "once" ~category:`Input
-    ~descr:"Play a request once and become unavailable."
-    [
-      ( "timeout",
-        Lang.float_t,
-        Some (Lang.float 20.),
-        Some "Timeout in seconds for resolving the request." );
-      ("", Request.Value.t, None, Some "Request to play.");
-    ]
-    ~meth:
-      [
-        ( "resolve",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Resolve the request (this is useful to make sure that the source \
-           will be available in advance). This function returns `true` if we \
-           were able to successfully perform resolution. You should use this \
-           method instead of `request.resolve` to make sure that the proper \
-           content type is decoded from the request.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#resolve) );
-        ( "request",
-          ([], Request.Value.t),
-          "Get the request played by this source",
-          fun s -> Request.Value.to_value s#request );
-      ]
-    ~return_t
-    (fun p ->
-      let timeout = List.assoc "timeout" p |> Lang.to_float in
-      let r = List.assoc "" p |> Request.Value.of_value in
-      new once ~name:"request.once" ~timeout r)
-
 exception Invalid_URI of string
 
 (** [r] must resolve and be always ready. *)

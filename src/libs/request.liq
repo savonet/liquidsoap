@@ -42,7 +42,8 @@ def request.queue(
 ) =
   ignore(native)
   id = string.id.default(default="request.queue", id)
-  queue = ref(queue)
+  initial_queue = queue
+  queue = ref([])
   fetch = ref(fun () -> true)
 
   def next() =
@@ -93,6 +94,8 @@ def request.queue(
 %else
     default
 %endif
+
+  s.set_queue(initial_queue)
 
   source.set_name(s, "request.queue")
   fetch := s.fetch
@@ -191,6 +194,41 @@ def request.queue(
     length={list.length(queue()) + list.length(s.queue())},
     set_queue=set_queue
   }
+end
+
+# Play a request once and become unavailable.
+# @category Source / Input
+# @param ~timeout Timeout in seconds for resolving the request.
+# @param r Request to play.
+def request.once(~id=null("request.once"), ~timeout=20., r) =
+  id = string.id.default(default="request.once", id)
+
+  done = ref(false)
+
+  def next() =
+    if
+      done()
+    then
+      null()
+    else
+      done := true
+      if
+        request.resolve(r, timeout=timeout)
+      then
+        request.queue(queue=[r])
+      else
+        log.critical(
+          label=id,
+          "Failed to prepare track: request not ready."
+        )
+        request.destroy(r)
+        fallback([])
+      end
+    end
+  end
+
+  s = source.dynamic(track_sensitive=true, next)
+  s.{resolve=fun () -> request.resolve(r), request=r}
 end
 
 # Create a source on which plays immediately requests given with the `play`
