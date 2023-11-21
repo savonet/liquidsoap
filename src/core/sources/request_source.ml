@@ -37,97 +37,6 @@ let log_failed_request (log : Log.t) request ans =
       | Request.Timeout -> "timeout"
       | Request.Resolved -> assert false)
 
-(** Play a request once and become unavailable. *)
-class once ~name ~timeout request =
-  object (self)
-    inherit source ~name () as super
-    method self_sync = (`Static, false)
-    method stype = `Fallible
-
-    (* True means that the request has already been played or could not be
-       resolved. *)
-    val mutable over = false
-
-    (* We must send metadata at beginning. *)
-    val mutable send_metadata = true
-
-    (* We need to insert a track at next frame. *)
-    val mutable must_fail = false
-    val mutable remaining = 0
-    method remaining = remaining
-    val mutable decoder = None
-    method request = request
-
-    method resolve =
-      Request.resolve ~ctype:(Some self#content_type) request timeout
-      = Request.Resolved
-
-    method! private wake_up activation =
-      super#wake_up activation;
-      if not over then (
-        (* Ensure that the request is resolved. *)
-        (match
-           Request.resolve ~ctype:(Some self#content_type) request timeout
-         with
-          | Request.Resolved -> ()
-          | ans -> log_failed_request self#log request ans);
-        if not (Request.resolved request) then (
-          over <- true;
-          self#log#critical "Failed to prepare track: request not ready.";
-          Request.destroy request)
-        else (
-          (match Request.ctype request with
-            | Some ctype -> assert (Frame.compatible ctype self#content_type)
-            | None -> ());
-          let file = Option.get (Request.get_filename request) in
-          decoder <- Request.get_decoder request;
-          assert (decoder <> None);
-          remaining <- -1;
-          self#log#important "Prepared %s (RID %d)."
-            (Lang_string.quote_string file)
-            (Request.get_id request)))
-
-    method private end_track forced =
-      if not over then (
-        (match Request.get_filename request with
-          | None ->
-              self#log#severe
-                "Finished with a non-existent file?! Something may have been \
-                 moved or destroyed during decoding. It is VERY dangerous, \
-                 avoid it!"
-          | Some f -> self#log#info "Finished with %S." f);
-        let decoder = Option.get decoder in
-        decoder.Decoder.close ();
-        Request.destroy request;
-        remaining <- 0;
-        if forced then must_fail <- true else over <- true)
-
-    method private _is_ready ?frame:_ _ = not over
-
-    method private get_frame buf =
-      if must_fail then (
-        must_fail <- false;
-        over <- true;
-        Frame.add_break buf (Frame.position buf))
-      else (
-        if send_metadata then (
-          Request.on_air request;
-          let m = Request.get_all_metadata request in
-          Frame.set_metadata buf (Frame.position buf) m;
-          send_metadata <- false);
-        let decoder = Option.get decoder in
-        remaining <- decoder.Decoder.fill buf;
-        if Frame.is_partial buf then self#end_track false)
-
-    method seek len =
-      let decoder = Option.get decoder in
-      decoder.Decoder.fseek len
-
-    method seek_source = (self :> Source.source)
-    method abort_track = self#end_track true
-    method! private sleep = self#end_track false
-  end
-
 (** Class [unqueued] plays the file given by method [get_next_file] as a request
     which is ready, i.e. has been resolved. On the top of it we define [queued],
     which manages a queue of files, feed by resolving in an other thread requests
@@ -339,26 +248,23 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
           let t = Duppy.Async.add Tutils.scheduler ~priority self#feed_queue in
           Duppy.Async.wake_up t;
           task <- Some t;
-          state <- `Running)
+          state <- `Starting)
         ()
 
     method! private sleep =
-      (* We need to be sure that the feeding task stopped filling the queue
-         before we destroy all requests from that queue.  Async.stop only
-         promises us that on the next round the task will stop but won't tell us
-         if it's currently resolving a file or not.  So we first put the queue
-         into an harmless state: we put the state to `Tired and wait for it to
-         acknowledge it by setting it to `Sleeping. *)
-      Tutils.mutexify state_lock
-        (fun () ->
-          assert (state = `Running);
-          state <- `Tired)
-        ();
+      if state = `Running then (
+        (* We need to be sure that the feeding task stopped filling the queue
+           before we destroy all requests from that queue.  Async.stop only
+           promises us that on the next round the task will stop but won't tell us
+           if it's currently resolving a file or not.  So we first put the queue
+           into an harmless state: we put the state to `Tired and wait for it to
+           acknowledge it by setting it to `Sleeping. *)
+        Tutils.mutexify state_lock (fun () -> state <- `Tired) ();
 
-      (* Make sure the task is awake so that it can see our signal. *)
-      Duppy.Async.wake_up (Option.get task);
-      self#log#info "Waiting for feeding task to stop...";
-      Tutils.wait state_cond state_lock (fun () -> state = `Sleeping);
+        (* Make sure the task is awake so that it can see our signal. *)
+        Duppy.Async.wake_up (Option.get task);
+        self#log#info "Waiting for feeding task to stop...";
+        Tutils.wait state_cond state_lock (fun () -> state = `Sleeping));
       Duppy.Async.stop (Option.get task);
       task <- None;
 
@@ -411,6 +317,9 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
         Tutils.mutexify state_lock
           (fun () ->
             match state with
+              | `Starting ->
+                  state <- `Running;
+                  true
               | `Running -> true
               | `Tired ->
                   state <- `Sleeping;

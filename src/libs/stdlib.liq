@@ -1,105 +1,55 @@
 %include "error.liq"
-
 %include "null.liq"
-
 %include "ref.liq"
-
 %include "list.liq"
-
 %include "math.liq"
-
 %include "getter.liq"
-
 %include "predicate.liq"
-
 %include "settings.liq"
-
 %include "log.liq"
-
 %include "thread.liq"
-
 %include "process.liq"
-
 %include "string.liq"
-
 %include "socket.liq"
-
 %include "file.liq"
-
 %include "switches.liq"
-
 %include "utils.liq"
-
 %include "clock.liq"
-
 %include "metadata.liq"
-
 %include "playlist.liq"
-
 %include "source.liq"
-
 %include "tracks.liq"
-
 %include "request.liq"
-
 %include "audio.liq"
-
 %include "fades.liq"
-
 %include "replaygain.liq"
-
 %include "http_codes.liq"
-
 %include "http.liq"
-
 %include "protocols.liq"
-
 %include "resolvers.liq"
-
 %include "icecast.liq"
-
 %include "server.liq"
-
 %include "hls.liq"
-
 %include "video.liq"
-
 %include "ffmpeg.liq"
-
 %include "profiler.liq"
-
 %include "io.liq"
-
 %include "medialib.liq"
-
 %include "runtime.liq"
-
 %include "testing.liq"
-
 %include "liquidsoap.liq"
 
 %include_extra "extra/file.liq"
-
 %include_extra "extra/native.liq"
-
 %include_extra "extra/audio.liq"
-
 %include_extra "extra/source.liq"
-
 %include_extra "extra/http.liq"
-
 %include_extra "extra/externals.liq"
-
 %include_extra "extra/lastfm.liq"
-
 %include_extra "extra/server.liq"
-
 %include_extra "extra/telnet.liq"
-
 %include_extra "extra/interactive.liq"
-
 %include_extra "extra/gstreamer.liq"
-
 %include_extra "extra/visualization.liq"
 
 set_settings_ref(settings)

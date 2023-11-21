@@ -29,24 +29,6 @@ type handler = {
   close : unit -> unit;
 }
 
-class once :
-  name:string
-  -> timeout:float
-  -> Request.t
-  -> object
-       inherit Source.source
-       method stype : [ `Fallible | `Infallible ]
-       method self_sync : Source.self_sync
-       method private _is_ready : ?frame:Frame.t -> unit -> bool
-       method request : Request.t
-       method remaining : int
-       method private get_frame : Frame.t -> unit
-       method resolve : bool
-       method abort_track : unit
-       method seek : int -> int
-       method seek_source : Source.source
-     end
-
 class virtual unqueued :
   name:string
   -> object
