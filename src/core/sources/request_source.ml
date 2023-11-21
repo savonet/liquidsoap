@@ -248,26 +248,23 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
           let t = Duppy.Async.add Tutils.scheduler ~priority self#feed_queue in
           Duppy.Async.wake_up t;
           task <- Some t;
-          state <- `Running)
+          state <- `Starting)
         ()
 
     method! private sleep =
-      (* We need to be sure that the feeding task stopped filling the queue
-         before we destroy all requests from that queue.  Async.stop only
-         promises us that on the next round the task will stop but won't tell us
-         if it's currently resolving a file or not.  So we first put the queue
-         into an harmless state: we put the state to `Tired and wait for it to
-         acknowledge it by setting it to `Sleeping. *)
-      Tutils.mutexify state_lock
-        (fun () ->
-          assert (state = `Running);
-          state <- `Tired)
-        ();
+      if state = `Running then (
+        (* We need to be sure that the feeding task stopped filling the queue
+           before we destroy all requests from that queue.  Async.stop only
+           promises us that on the next round the task will stop but won't tell us
+           if it's currently resolving a file or not.  So we first put the queue
+           into an harmless state: we put the state to `Tired and wait for it to
+           acknowledge it by setting it to `Sleeping. *)
+        Tutils.mutexify state_lock (fun () -> state <- `Tired) ();
 
-      (* Make sure the task is awake so that it can see our signal. *)
-      Duppy.Async.wake_up (Option.get task);
-      self#log#info "Waiting for feeding task to stop...";
-      Tutils.wait state_cond state_lock (fun () -> state = `Sleeping);
+        (* Make sure the task is awake so that it can see our signal. *)
+        Duppy.Async.wake_up (Option.get task);
+        self#log#info "Waiting for feeding task to stop...";
+        Tutils.wait state_cond state_lock (fun () -> state = `Sleeping));
       Duppy.Async.stop (Option.get task);
       task <- None;
 
@@ -320,6 +317,9 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
         Tutils.mutexify state_lock
           (fun () ->
             match state with
+              | `Starting ->
+                  state <- `Running;
+                  true
               | `Running -> true
               | `Tired ->
                   state <- `Sleeping;
