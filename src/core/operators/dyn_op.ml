@@ -174,5 +174,16 @@ let _ =
       let resurection_time =
         List.assoc "resurection_time" p |> Lang.to_valued_option Lang.to_float
       in
-      new dyn
-        ~init ~track_sensitive ~infallible ~resurection_time (List.assoc "" p))
+      let next = List.assoc "" p in
+      let frame_t = Lang.univ_t () in
+      Liquidsoap_lang.Lang.(
+        match next.Value.value with
+          | Fun (_, _, { Term.t }) ->
+              Typing.(
+                t <: Lang.nullable_t (Lang.source_t ~methods:false frame_t))
+          | _ -> assert false);
+      let s =
+        new dyn ~init ~track_sensitive ~infallible ~resurection_time next
+      in
+      Typing.(s#frame_type <: frame_t);
+      s)
