@@ -101,7 +101,7 @@ let meth v l =
   }
 
 let record = meth unit
-let val_fun p f = mk (FFI (p, f))
+let val_fun p f = mk (FFI { ffi_args = p; ffi_fn = f })
 let term_fun p tm = mk (Fun (p, [], tm))
 
 let val_cst_fun p c =
@@ -122,7 +122,7 @@ let val_cst_fun p c =
         f (mkg Type.Ground.float) (`Ground (Term.Ground.Float i))
     | Ground (String i) ->
         f (mkg Type.Ground.string) (`Ground (Term.Ground.String i))
-    | _ -> mk (FFI (p, fun _ -> c))
+    | _ -> mk (FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
 let reference get set =
   let get = val_fun [] (fun _ -> get ()) in
@@ -167,7 +167,12 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
   let value =
     {
       pos = None;
-      value = FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f);
+      value =
+        FFI
+          {
+            ffi_args = List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto;
+            ffi_fn = f;
+          };
       methods = Methods.empty;
     }
   in
@@ -351,7 +356,7 @@ let to_int_list l = List.map to_int (to_list l)
 
 let to_getter t =
   match t.value with
-    | Fun ([], _, _) | FFI ([], _) -> fun () -> apply t []
+    | Fun ([], _, _) | FFI { ffi_args = []; _ } -> fun () -> apply t []
     | _ -> fun () -> t
 
 let to_ref t =

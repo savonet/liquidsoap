@@ -326,6 +326,7 @@ let check_content v t =
             List.iter (fun v -> check_value v t) l
         | Value.Tuple l, Type.Tuple t -> List.iter2 check_value l t
         | Value.Null, _ -> ()
+        | _, Type.Nullable t -> check_value v t
         (* Value can have more methods than the type requires so check from the type here. *)
         | _, Type.Meth _ ->
             let meths, v = Value.split_meths v in
@@ -337,12 +338,51 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        (* We don't check functions, assuming anything creating a source is a
-           FFI registered via add_operator so the check will happen there. *)
-        | Fun _, _ | FFI _, _ -> ()
+        | Fun ([], _, ret), Type.Getter t -> Typing.(ret.Term.t <: t)
+        | FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
+            ffi.ffi_fn <-
+              (fun env ->
+                let v = ffi_fn env in
+                check_value v t;
+                v)
+        | Fun (args, _, ret), Type.Arrow (args_t, ret_t) ->
+            List.iter
+              (fun typ ->
+                match typ with
+                  | true, lbl_t, typ ->
+                      List.iter
+                        (fun arg ->
+                          match arg with
+                            | lbl, _, Some v when lbl = lbl_t ->
+                                check_value v typ
+                            | _ -> ())
+                        args
+                  | _ -> ())
+              args_t;
+            Typing.(ret.Term.t <: ret_t)
+        | FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
+            List.iter
+              (fun typ ->
+                match typ with
+                  | true, lbl_t, typ ->
+                      List.iter
+                        (fun arg ->
+                          match arg with
+                            | lbl, _, Some v when lbl = lbl_t ->
+                                check_value v typ
+                            | _ -> ())
+                        ffi_args
+                  | _ -> ())
+              args_t;
+            ffi.ffi_fn <-
+              (fun env ->
+                let v = ffi_fn env in
+                check_value v ret_t;
+                v)
         | _ ->
             failwith
-              ("Unhandled value in check_content: " ^ Value.to_string v ^ "."))
+              (Printf.sprintf "Unhandled value in check_content: %s, type: %s."
+                 (Value.to_string v) (Type.to_string t)))
   in
   check_value v t
 
@@ -542,7 +582,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
                will be unused in the execution of the function. *)
             iter_term env body;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-        | FFI (proto, _) ->
+        | FFI { ffi_args = proto; _ } ->
             on_imprecise ();
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
       (*

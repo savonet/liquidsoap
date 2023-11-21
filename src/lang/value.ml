@@ -33,6 +33,11 @@ and env = (string * t) list
 (* Some values have to be lazy in the environment because of recursive functions. *)
 and lazy_env = (string * t Lazy.t) list
 
+and ffi = {
+  ffi_args : (string * string * t option) list;
+  mutable ffi_fn : env -> t;
+}
+
 and in_value =
   | Ground of Ground.t
   | List of t list
@@ -43,7 +48,7 @@ and in_value =
   | Fun of (string * string * t option) list * lazy_env * Term.t
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
-  | FFI of (string * string * t option) list * (env -> t)
+  | FFI of ffi
 
 let unit : in_value = Tuple []
 
