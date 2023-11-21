@@ -11,8 +11,6 @@ Fixed:
 - Cleanup telnet commands on output shutdown,
   prevent commands registration for internal
   outputs (#3545, fixes: #3541)
-- Properly typecheck `source.dynamic`'s generator return
-  type.
 
 ---
 
