@@ -100,7 +100,7 @@ let mk_time_pred ~pos (a, b, c) =
 let gen_args_of ~only ~except ~pos get_args name =
   match Environment.get_builtin name with
     | Some ((_, t), Value.{ value = Fun (args, _, _) })
-    | Some ((_, t), Value.{ value = FFI (args, _) }) ->
+    | Some ((_, t), Value.{ value = FFI { ffi_args = args; _ } }) ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
         let filtered_args =
           if only <> [] then

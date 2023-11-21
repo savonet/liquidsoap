@@ -58,6 +58,11 @@ type value = Value.t = {
 and env = (string * value) list
 and lazy_env = (string * value Lazy.t) list
 
+and ffi = Value.ffi = {
+  ffi_args : (string * string * value option) list;
+  mutable ffi_fn : env -> value;
+}
+
 and in_value = Value.in_value =
   | Ground of Ground.t
   | List of value list
@@ -66,7 +71,7 @@ and in_value = Value.in_value =
   | Fun of (string * string * value option) list * lazy_env * Term.t
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
-  | FFI of (string * string * value option) list * (env -> value)
+  | FFI of ffi
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value

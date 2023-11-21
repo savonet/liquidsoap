@@ -6,6 +6,7 @@
   115-1.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -19,6 +20,7 @@
   115-2.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -32,6 +34,7 @@
   AC5109.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -45,6 +48,7 @@
   BUG403.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -58,6 +62,7 @@
   GH-action-919422659.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -71,6 +76,7 @@
   GH1129.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -84,6 +90,7 @@
   GH1146.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -97,6 +104,7 @@
   GH1151.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -110,6 +118,7 @@
   GH1159.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -123,6 +132,7 @@
   GH1279.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -136,6 +146,7 @@
   GH1327.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -149,6 +160,7 @@
   GH2585.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -162,6 +174,7 @@
   GH2602.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -175,6 +188,7 @@
   GH2756-2.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -188,6 +202,7 @@
   GH2756.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -201,6 +216,7 @@
   GH2758.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -214,6 +230,7 @@
   GH2842.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -227,6 +244,7 @@
   GH2850.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -240,6 +258,7 @@
   GH2867.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -253,6 +272,7 @@
   GH2871.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -266,6 +286,7 @@
   GH2872.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -279,6 +300,7 @@
   GH2897.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -292,6 +314,7 @@
   GH2902.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -305,6 +328,7 @@
   GH2926.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -318,6 +342,7 @@
   GH3093.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -331,6 +356,7 @@
   GH3121.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -344,6 +370,7 @@
   GH3132.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -357,6 +384,7 @@
   GH3224.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -370,6 +398,7 @@
   GH3239-2.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -383,6 +412,7 @@
   GH3239.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -396,6 +426,7 @@
   GH3276.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -409,6 +440,7 @@
   GH3316.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -422,6 +454,7 @@
   LS268.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -435,6 +468,7 @@
   LS354-1.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -448,6 +482,7 @@
   LS354-2.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -461,6 +496,7 @@
   LS460.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -474,6 +510,7 @@
   LS503.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -487,6 +524,7 @@
   default_format.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -500,6 +538,7 @@
   external-encoder.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -513,6 +552,7 @@
   ffmpeg-copy-encode.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -526,6 +566,7 @@
   ffmpeg-copy-input-http.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -539,6 +580,7 @@
   ffmpeg-naming-convention.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -552,6 +594,7 @@
   infallible-shutdown.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -565,6 +608,7 @@
   init-error.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -578,6 +622,7 @@
   initial_request_queue.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -591,6 +636,7 @@
   input_rtmp.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -604,6 +650,7 @@
   metadata_cache.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -617,6 +664,7 @@
   playlist-id.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -630,6 +678,7 @@
   replaygain.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -643,6 +692,7 @@
   shoutcast-args.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -653,9 +703,24 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  source_dynamic.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} source_dynamic.liq liquidsoap %{test_liq} source_dynamic.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   unified-pcm-types.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -669,6 +734,7 @@
   video-only.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)

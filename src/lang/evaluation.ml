@@ -177,7 +177,7 @@ and apply ?pos ~eval_check f l =
             fun pe ->
               let env = Env.adds e pe in
               eval ~eval_check env body )
-      | Value.FFI (p, f) -> (p, fun pe -> f (List.rev pe))
+      | Value.FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
   in
   (* Record error positions. *)

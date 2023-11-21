@@ -219,7 +219,7 @@ let print_settings () =
   in
   let print_set ~path = function
     | Value.Tuple [] -> []
-    | (Value.Fun ([], _, _) | Value.FFI ([], _)) as value ->
+    | (Value.Fun ([], _, _) | Value.FFI { ffi_args = []; _ }) as value ->
         let value =
           Lang.apply
             { Value.pos = None; value; methods = Value.Methods.empty }
