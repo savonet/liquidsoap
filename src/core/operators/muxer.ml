@@ -269,7 +269,9 @@ let _ =
   let arguments = [("", Lang.source_t ~methods:false frame_t, None, None)] in
   Lang.add_builtin ~base:source "tracks" ~category:(`Source `Track)
     ~descr:"Return the tracks of a given source." arguments return_t (fun env ->
-      let return_t = Lang_source.check_arguments ~return_t ~env arguments in
+      let return_t, env =
+        Lang_source.check_arguments ~return_t ~env arguments
+      in
       let return_t =
         Type.filter_meths return_t (fun { Type.meth } ->
             meth <> "metadata" && meth <> "track_marks")

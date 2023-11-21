@@ -204,6 +204,8 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
   id = string.id.default(default="request.once", id)
 
   done = ref(false)
+  fail = fallback([])
+  s_ref = ref((fail : source))
 
   def next() =
     if
@@ -213,7 +215,7 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
     else
       done := true
       if
-        request.resolve(r, timeout=timeout)
+        request.resolve(r, timeout=timeout, content_type=s_ref())
       then
         request.queue(queue=[r])
       else
@@ -222,13 +224,83 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
           "Failed to prepare track: request not ready."
         )
         request.destroy(r)
-        fallback([])
+        fail
       end
     end
   end
 
-  s = source.dynamic(track_sensitive=true, next)
-  s.{resolve=fun () -> request.resolve(r), request=r}
+  s = source.dynamic(self_sync=false, track_sensitive=true, next)
+  s_ref := (s : source)
+  (s : source_methods).{resolve=fun () -> request.resolve(r), request=r}
+end
+
+# Loop on a request. It never fails if the request is static, meaning
+# that it can be fetched once. Typically, http, ftp, say requests are
+# static, and time is not.
+# @category Source / Input
+# @param ~prefetch How many requests should be queued in advance.
+# @param ~timeout Timeout (in sec.) for a single download.
+# @param ~fallible Enforce fallibility of the request.
+# @param uri URI where to find the file
+def single(
+  ~id=null("single"),
+  ~prefetch=1,
+  ~timeout=20.,
+  ~fallible=false,
+  uri
+) =
+  id = string.id.default(default="single", id)
+  infallible = request.is_static(uri) and not fallible
+
+  static_request = ref(null())
+  s_ref = ref((fallback([]) : source))
+  done = ref(false)
+
+  def next() =
+    if
+      done()
+    then
+      null()
+    else
+      done := true
+
+      if
+        infallible
+      then
+        log.important(
+          label=id,
+          "#{uri} is static, resolving once for all..."
+        )
+        r = request.create(persistent=true, uri)
+        if
+          not request.resolve(r, timeout=timeout, content_type=s_ref())
+        then
+          request.destroy(r)
+          error.raise(
+            error.invalid,
+            "Could not resolve uri: #{uri}"
+          )
+        else
+          static_request := r
+        end
+      end
+
+      def next() =
+        static_request() ?? request.create(uri)
+      end
+
+      s = request.dynamic(prefetch=prefetch, next)
+      if infallible then s.set_queue([next()]) end
+      s
+    end
+  end
+
+  s =
+    source.dynamic(
+      id=id, infallible=infallible, self_sync=false, track_sensitive=true, next
+    )
+  s_ref := (s : source)
+  (s : source_methods)
 end
 
 # Create a source on which plays immediately requests given with the `play`

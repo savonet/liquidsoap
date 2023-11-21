@@ -22,6 +22,15 @@
 
 open Source
 
+(* Scheduler priority for request resolutions. *)
+let priority = `Maybe_blocking
+
+type queue_item = {
+  request : Request.t;
+  (* in seconds *)
+  mutable expired : bool;
+}
+
 type handler = {
   req : Request.t;
   fill : Frame.t -> unit;
@@ -37,20 +46,24 @@ let log_failed_request (log : Log.t) request ans =
       | Request.Timeout -> "timeout"
       | Request.Resolved -> assert false)
 
-(** Class [unqueued] plays the file given by method [get_next_file] as a request
-    which is ready, i.e. has been resolved. On the top of it we define [queued],
-    which manages a queue of files, feed by resolving in an other thread requests
-    given by [get_next_request]. *)
-class virtual unqueued ~name =
+let extract_queued_params p =
+  let l = Lang.to_int (List.assoc "prefetch" p) in
+  let t = Lang.to_float (List.assoc "timeout" p) in
+  (l, t)
+
+class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
+  let should_fail = Atomic.make false in
+  let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
-    inherit source ~name ()
+    initializer
+      Lifecycle.before_core_shutdown
+        ~name:(Printf.sprintf "%s shutdown" self#id) (fun () ->
+          Atomic.set should_fail true)
 
-    (** [get_next_file] returns a ready audio request. It is supposed to return
-      "quickly", which means that no resolving can be done here. *)
-    method virtual get_next_file
-        : [ `Empty | `Request of Request.t | `Retry of unit -> float ]
-
+    inherit source ~name:"request.dynamic" () as super
+    method stype = `Fallible
     val mutable remaining = 0
+    method remaining = remaining
     val mutable must_fail = false
 
     (** These values are protected by [plock]. *)
@@ -129,16 +142,6 @@ class virtual unqueued ~name =
             Request.destroy req;
             false
 
-    (** Now we can write the source's methods. *)
-
-    method private _is_ready ?frame:_ _ =
-      Tutils.mutexify plock
-        (fun () ->
-          current <> None || must_fail || try self#begin_track with _ -> false)
-        ()
-
-    method remaining = remaining
-
     method private get_frame buf =
       let end_track =
         Tutils.mutexify plock
@@ -162,36 +165,53 @@ class virtual unqueued ~name =
                     Frame.is_partial buf))
           ()
       in
-      if end_track then self#end_track false
+      if end_track then self#end_track false;
+
+      (* At an end of track, we always have unqueued#remaining=0, so there's
+         nothing special to do. *)
+      if self#queue_size < prefetch then self#notify_new_request
 
     method! seek x = match current with None -> 0 | Some cur -> cur.seek x
     method seek_source = (self :> Source.source)
     method abort_track = self#end_track true
-    method! private sleep = self#end_track false
-  end
+    val mutable retry_status = None
 
-type queue_item = {
-  request : Request.t;
-  (* in seconds *)
-  mutable expired : bool;
-}
+    method _is_ready ?frame:_ () =
+      let is_ready =
+        Tutils.mutexify plock
+          (fun () ->
+            current <> None || must_fail
+            || try self#begin_track with _ -> false)
+          ()
+      in
+      match (is_ready, retry_status) with
+        | true, _ -> true
+        | false, Some d when Unix.gettimeofday () < d -> false
+        | false, _ ->
+            if available () then self#notify_new_request;
+            false
 
-(* Scheduler priority for request resolutions. *)
-let priority = `Maybe_blocking
-
-(** Same thing, with a queue in which we prefetch files, which requests are
-    given by [get_next_request]. Heuristical settings determining how the source
-    feeds its queue:
-    - the source tries to have more than [prefetch] requests in queue
-    - downloading a file is required to take less than [timeout] seconds
-   *)
-class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
-  object (self)
-    inherit unqueued ~name as super
-    method stype = `Fallible
-
-    method virtual get_next_request
-        : [ `Empty | `Request of Request.t | `Retry of unit -> float ]
+    method private get_next_request =
+      let retry () =
+        let delay = retry_delay () in
+        retry_status <- Some (Unix.gettimeofday () +. delay);
+        `Empty
+      in
+      if available () then (
+        match
+          Lang.to_valued_option Request.Value.of_value (Lang.apply f [])
+        with
+          | Some r ->
+              Request.set_root_metadata r "source" self#id;
+              `Request r
+          | None -> retry ()
+          | exception exn ->
+              let bt = Printexc.get_backtrace () in
+              Utils.log_exception ~log:self#log ~bt
+                (Printf.sprintf "Failed to obtain a media request: %s"
+                   (Printexc.to_string exn));
+              retry ())
+      else `Empty
 
     val qlock = Mutex.create ()
     val retrieved : queue_item Queue.t = Queue.create ()
@@ -270,6 +290,7 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
 
       (* No more feeding task, we can go to sleep. *)
       super#sleep;
+      self#end_track false;
       self#log#info "Cleaning up request queue...";
       try
         Mutex.lock qlock;
@@ -424,28 +445,109 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
 
         (* Notify in any case, notifying twice never hurts. *)
         self#notify_new_request)
-
-    method! private get_frame ab =
-      super#get_frame ab;
-
-      (* At an end of track, we always have unqueued#remaining=0, so there's
-         nothing special to do. *)
-      if self#queue_size < prefetch then self#notify_new_request
   end
 
-let queued_proto =
-  [
-    ( "prefetch",
-      Lang.int_t,
-      Some (Lang.int 1),
-      Some "How many requests should be queued in advance." );
-    ( "timeout",
-      Lang.float_t,
-      Some (Lang.float 20.),
-      Some "Timeout (in sec.) for a single download." );
-  ]
-
-let extract_queued_params p =
-  let l = Lang.to_int (List.assoc "prefetch" p) in
-  let t = Lang.to_float (List.assoc "timeout" p) in
-  (l, t)
+let _ =
+  let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let log = Log.make ["request"; "dynamic"] in
+  Lang.add_operator ~base:Modules.request "dynamic" ~category:`Input
+    ~descr:"Play request dynamically created by a given function."
+    [
+      ("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None);
+      ( "retry_delay",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 0.1),
+        Some
+          "Retry after a given time (in seconds) when callback returns `null`."
+      );
+      ( "available",
+        Lang.getter_t Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Whether some new requests are available (when set to false, it \
+           stops after current playing request)." );
+      ( "prefetch",
+        Lang.int_t,
+        Some (Lang.int 1),
+        Some "How many requests should be queued in advance." );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 20.),
+        Some "Timeout (in sec.) for a single download." );
+    ]
+    ~meth:
+      [
+        ( "fetch",
+          ([], Lang.fun_t [] Lang.bool_t),
+          "Try feeding the queue with a new request. Returns `true` if \
+           successful. This method can take long to return and should usually \
+           be run in a separate thread.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                match s#fetch with
+                  | `Finished -> Lang.bool true
+                  | `Retry _ ->
+                      log#important "Fetch failed: retry.";
+                      Lang.bool false
+                  | `Empty ->
+                      log#important "Fetch failed: empty.";
+                      Lang.bool false) );
+        ( "queue",
+          ([], Lang.fun_t [] (Lang.list_t Request.Value.t)),
+          "Get the requests currently in the queue.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                Lang.list
+                  (List.rev
+                     (Queue.fold
+                        (fun c i -> Request.Value.to_value i.request :: c)
+                        [] s#queue))) );
+        ( "add",
+          ([], Lang.fun_t [(false, "", Request.Value.t)] Lang.bool_t),
+          "Add a request to the queue. Requests are resolved before being \
+           added. Returns `true` if the request was successfully added.",
+          fun s ->
+            Lang.val_fun
+              [("", "", None)]
+              (fun p ->
+                Lang.bool
+                  (s#add
+                     {
+                       request = Request.Value.of_value (List.assoc "" p);
+                       expired = false;
+                     })) );
+        ( "set_queue",
+          ([], Lang.fun_t [(false, "", Lang.list_t Request.Value.t)] Lang.unit_t),
+          "Set the queue of requests. Requests are resolved before being added \
+           to the queue. You are responsible for destroying the requests \
+           currently in the queue.",
+          fun s ->
+            Lang.val_fun
+              [("", "", None)]
+              (fun p ->
+                let l =
+                  List.map Request.Value.of_value
+                    (Lang.to_list (List.assoc "" p))
+                in
+                let q = Queue.create () in
+                List.iter
+                  (fun request -> Queue.push { request; expired = false } q)
+                  l;
+                s#set_queue q;
+                Lang.unit) );
+        ( "current",
+          ([], Lang.fun_t [] (Lang.nullable_t Request.Value.t)),
+          "Get the request currently being played.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                match s#current with
+                  | None -> Lang.null
+                  | Some c -> Request.Value.to_value c.req) );
+      ]
+    ~return_t
+    (fun p ->
+      let f = List.assoc "" p in
+      let available = Lang.to_bool_getter (List.assoc "available" p) in
+      let retry_delay = Lang.to_float_getter (List.assoc "retry_delay" p) in
+      let l, t = extract_queued_params p in
+      new dynamic ~available ~retry_delay f l t)

@@ -62,6 +62,7 @@ val bound_vars_pat : pattern -> Vars.t
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
 val free_fun_vars : (t, Type.t) func -> Vars.t
 val can_ignore : Type.t -> bool
+val fresh : handler:Type.Fresh.mapper -> t -> t
 
 exception Unbound of Pos.Option.t * string
 exception Ignored of t

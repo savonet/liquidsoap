@@ -45,7 +45,10 @@ module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
   type content = Source.source
 
   let name = "source"
-  let descr s = Printf.sprintf "<source#%s>" s#id
+
+  let descr s =
+    Printf.sprintf "<source(id=%s, frame_type=%s>" s#id
+      (Type.to_string s#frame_type)
 
   let to_json ~pos _ =
     Runtime_error.raise ~pos
@@ -408,19 +411,47 @@ let check_content v t =
 let _meth = meth
 
 let check_arguments ~env ~return_t arguments =
-  let return_t, arguments =
-    let handler = Type.Fresh.init () in
-    let return_t = Type.Fresh.make handler return_t in
-    let arguments =
-      List.map
-        (fun (lbl, t, _, _) -> (lbl, Type.Fresh.make handler t))
-        arguments
-    in
-    let arguments =
-      List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') arguments
-    in
-    (return_t, arguments)
+  let handler = Type.Fresh.init () in
+  let return_t = Type.Fresh.make handler return_t in
+  let arguments =
+    List.map (fun (lbl, t, _, _) -> (lbl, Type.Fresh.make handler t)) arguments
   in
+  let arguments =
+    List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') arguments
+  in
+  (* Generalize all terms inside the arguments *)
+  let map =
+    let open Liquidsoap_lang.Value in
+    let rec map { pos; value; methods } =
+      let value =
+        match value with
+          | Ground g -> Ground g
+          | List l -> List (List.map map l)
+          | Tuple l -> Tuple (List.map map l)
+          | Null -> Null
+          | Fun (args, lazy_env, ret) ->
+              Fun
+                ( List.map (fun (l, l', v) -> (l, l', Option.map map v)) args,
+                  lazy_env,
+                  Term.fresh ~handler ret )
+          | FFI ffi ->
+              FFI
+                {
+                  ffi_args =
+                    List.map
+                      (fun (l, l', v) -> (l, l', Option.map map v))
+                      ffi.ffi_args;
+                  ffi_fn =
+                    (fun env ->
+                      let v = ffi.ffi_fn env in
+                      map v);
+                }
+      in
+      { pos; value; methods = Liquidsoap_lang.Methods.map map methods }
+    in
+    map
+  in
+  let env = List.map (fun (lbl, v) -> (lbl, map v)) env in
   (* Negotiate content for all sources and formats in the arguments. *)
   let () =
     let env =
@@ -436,7 +467,7 @@ let check_arguments ~env ~return_t arguments =
         check_content v typ)
       arguments env
   in
-  return_t
+  (return_t, env)
 
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
@@ -460,7 +491,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
         | [] -> None
         | p :: _ -> Some p
     in
-    let return_t = check_arguments ~return_t ~env arguments in
+    let return_t, env = check_arguments ~return_t ~env arguments in
     let src : < Source.source ; .. > = f env in
     src#set_pos pos;
     Typing.(src#frame_type <: return_t);
@@ -500,7 +531,7 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
         | [] -> None
         | p :: _ -> Some p
     in
-    let return_t = check_arguments ~return_t ~env arguments in
+    let return_t, env = check_arguments ~return_t ~env arguments in
     let field, (src : < Source.source ; .. >) = f env in
     src#set_pos pos;
     (if field <> Frame.Fields.track_marks && field <> Frame.Fields.metadata then
