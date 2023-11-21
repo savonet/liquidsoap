@@ -204,6 +204,8 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
   id = string.id.default(default="request.once", id)
 
   done = ref(false)
+  fail = fallback([])
+  s_ref = ref((fail : source))
 
   def next() =
     if
@@ -213,7 +215,7 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
     else
       done := true
       if
-        request.resolve(r, timeout=timeout)
+        request.resolve(r, timeout=timeout, content_type=s_ref())
       then
         request.queue(queue=[r])
       else
@@ -222,12 +224,13 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
           "Failed to prepare track: request not ready."
         )
         request.destroy(r)
-        fallback([])
+        fail
       end
     end
   end
 
   s = source.dynamic(track_sensitive=true, next)
+  s_ref := (s : source)
   s.{resolve=fun () -> request.resolve(r), request=r}
 end
 

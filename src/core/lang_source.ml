@@ -45,7 +45,10 @@ module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
   type content = Source.source
 
   let name = "source"
-  let descr s = Printf.sprintf "<source#%s>" s#id
+
+  let descr s =
+    Printf.sprintf "<source(id=%s, frame_type=%s>" s#id
+      (Type.to_string s#frame_type)
 
   let to_json ~pos _ =
     Runtime_error.raise ~pos
@@ -290,7 +293,7 @@ let to_track = Track.of_value
 type 'a operator_method = string * scheme * string * ('a -> value)
 
 (** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
-let check_content v t =
+let check_content ~subst_vars v t =
   let checked_values = ref [] in
   let check t t' = Typing.(t <: t') in
   let rec check_value v t =
@@ -332,13 +335,17 @@ let check_content v t =
             let meths, v = Value.split_meths v in
             let meths_t, t = Type.split_meths t in
             List.iter
-              (fun { Type.meth; optional; scheme = s } ->
-                let t = Typing.instantiate ~level:(-1) s in
+              (fun { Type.meth; optional; scheme = s, t } ->
+                let t = Typing.instantiate ~level:(-1) (subst_vars @ s, t) in
                 try check_value (List.assoc meth meths) t
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        | Fun ([], _, ret), Type.Getter t -> Typing.(ret.Term.t <: t)
+        | Fun ([], _, ret), Type.Getter t ->
+            let term_t =
+              Typing.instantiate ~level:(-1) (subst_vars, ret.Term.t)
+            in
+            Typing.(term_t <: t)
         | FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
             ffi.ffi_fn <-
               (fun env ->
@@ -359,7 +366,10 @@ let check_content v t =
                         args
                   | _ -> ())
               args_t;
-            Typing.(ret.Term.t <: ret_t)
+            let term_t =
+              Typing.instantiate ~level:(-1) (subst_vars, ret.Term.t)
+            in
+            Typing.(term_t <: ret_t)
         | FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
             List.iter
               (fun typ ->
@@ -403,17 +413,18 @@ let _meth = meth
 
 let check_arguments ~env ~return_t arguments =
   (* Create a fresh instantiation of the return type and the type of arguments. *)
-  let return_t, arguments =
-    let s =
+  let subst_vars, return_t, arguments =
+    let scheme =
       (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
       Typing.generalize ~level:(-1)
         (Type.make
            (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) arguments)))
     in
-    let t = Typing.instantiate ~level:(-1) s in
+    let t = Typing.instantiate ~level:(-1) scheme in
     match t.Type.descr with
       | Type.Tuple (return_t :: arguments_t) ->
-          ( return_t,
+          ( fst scheme,
+            return_t,
             List.map2
               (fun (name, _, _, _) typ -> (name, typ))
               arguments arguments_t )
@@ -434,7 +445,7 @@ let check_arguments ~env ~return_t arguments =
     List.iter2
       (fun (name, typ) (name', v) ->
         assert (name = name');
-        check_content v typ)
+        check_content ~subst_vars v typ)
       arguments env
   in
   return_t
