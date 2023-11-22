@@ -29,7 +29,6 @@ class accelerate ~ratio ~randomize source_val =
     inherit! Child_support.base ~check_self_sync:true [source_val]
     method self_sync = source#self_sync
     method stype = source#stype
-    method seek = source#seek
     method seek_source = source#seek_source
 
     method remaining =

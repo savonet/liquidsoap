@@ -36,7 +36,6 @@ class on_offset ~force ~offset f s =
     method private _is_ready = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track
-    method seek n = s#seek n
     method seek_source = s#seek_source
     method self_sync = s#self_sync
     val mutable elapsed = 0L

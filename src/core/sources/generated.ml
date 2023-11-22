@@ -131,7 +131,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
 class consumer buffer =
   object
     inherit Source.source ~name:"buffer" ()
-    inherit source ~bufferize:0. ~empty_on_abort:true ()
+    inherit! source ~bufferize:0. ~empty_on_abort:true ()
     method stype = `Fallible
     method! buffer = buffer
   end

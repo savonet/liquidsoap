@@ -383,12 +383,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Limit -> -1
         | `After -> (Option.get transition_source)#remaining
 
-    method seek len =
-      match status with
-        | `Before | `Idle -> source#seek len
-        | `Limit -> -1
-        | `After -> (Option.get transition_source)#seek len
-
     method seek_source =
       match status with
         | `Before | `Idle -> source#seek_source

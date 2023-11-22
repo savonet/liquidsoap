@@ -106,8 +106,6 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
     method abort_track =
       match source with Some s -> s#abort_track | None -> ()
 
-    method seek n = match source with Some s -> s#seek n | None -> 0
-
     method seek_source =
       match source with
         | Some s -> s#seek_source

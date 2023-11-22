@@ -23,7 +23,6 @@
 class fail name =
   object (self)
     inherit Source.source ~name ()
-    inherit Source.no_seek
     method seek_source = (self :> Source.source)
     method stype = `Fallible
     method private _is_ready ?frame:_ _ = false

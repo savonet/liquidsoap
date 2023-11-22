@@ -64,7 +64,7 @@ class muxer tracks =
     method private _is_ready ?frame () =
       Generator.length self#buffer > 0 || self#sources_ready ?frame ()
 
-    method seek len =
+    method! seek len =
       let gen_len = min (Generator.length self#buffer) len in
       Generator.truncate self#buffer gen_len;
       if gen_len = len then len

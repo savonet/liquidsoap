@@ -31,7 +31,6 @@ let f_group_size = float group_size
 class vumeter ~kind source =
   object (self)
     inherit operator ~name:"visu.volume" kind [source] as super
-    inherit no_seek
     method stype = source#stype
     method private _is_ready = source#is_ready
     method remaining = source#remaining

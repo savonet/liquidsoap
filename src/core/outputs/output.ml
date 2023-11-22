@@ -117,7 +117,6 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
 
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek len = source#seek len
     method seek_source = source#seek_source
 
     (* Operator startup *)

@@ -120,7 +120,6 @@ class biquad (source : source) filter_type freq q gain =
 
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method private _is_ready = source#is_ready

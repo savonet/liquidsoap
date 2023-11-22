@@ -79,7 +79,6 @@ class pitch every length freq_min freq_max (source : source) =
     val mutable computations = -1
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
     method seek_source = source#seek_source
     method private _is_ready = source#is_ready
     method abort_track = source#abort_track

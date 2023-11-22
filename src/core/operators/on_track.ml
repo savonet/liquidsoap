@@ -27,7 +27,6 @@ class on_track f s =
     method private _is_ready = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
-    method seek n = s#seek n
     method seek_source = s#seek_source
     method self_sync = s#self_sync
     val mutable called = false

@@ -29,7 +29,6 @@ class swap ~field (source : source) =
     method private _is_ready = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek = source#seek
     method seek_source = source#seek_source
     method self_sync = source#self_sync
 

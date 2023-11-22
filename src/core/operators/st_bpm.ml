@@ -29,8 +29,7 @@ class bpm (source : source) =
     method private _is_ready = source#is_ready
     method self_sync = source#self_sync
     method remaining = source#remaining
-    method seek = source#seek
-    method seek_source = s#seek_source
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     val mutable bpm = None
 

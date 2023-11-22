@@ -28,7 +28,6 @@ class echo (source : source) delay feedback ping_pong =
     inherit operator ~name:"echo" [source] as super
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method private _is_ready = source#is_ready

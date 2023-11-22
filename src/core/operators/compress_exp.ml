@@ -29,7 +29,6 @@ class compress ~field (source : source) mu =
     method remaining = source#remaining
     method private _is_ready = source#is_ready
     method abort_track = source#abort_track
-    method seek = source#seek
     method seek_source = source#seek_source
     method self_sync = source#self_sync
 

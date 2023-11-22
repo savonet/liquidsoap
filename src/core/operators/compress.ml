@@ -37,7 +37,6 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
     method! private wake_up a = super#wake_up a
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method private _is_ready = source#is_ready

@@ -47,7 +47,7 @@ class max_duration ~override_meta ~duration source =
         | _, -1 -> -1
         | rem, rem' -> min rem rem'
 
-    method seek len = source#seek (min remaining len)
+    method! seek len = source#seek_source#seek (min remaining len)
     method seek_source = source#seek_source
 
     method private check_for_override ~offset buf =

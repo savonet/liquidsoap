@@ -31,7 +31,6 @@ class flanger (source : source) delay freq feedback phase =
     inherit operator ~name:"flanger" [source] as super
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method private _is_ready = source#is_ready

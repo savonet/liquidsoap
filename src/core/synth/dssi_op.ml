@@ -51,8 +51,7 @@ let all_chans = 16
 class dssi ?chan plugin descr outputs params source =
   object
     inherit operator ~name:"dssi" [source]
-    method seek n = source#seek n
-    method seek_source = s#seek_source
+    method seek_source = source#seek_source
     method stype = source#stype
     method remaining = source#remaining
     method private _is_ready = source#is_ready

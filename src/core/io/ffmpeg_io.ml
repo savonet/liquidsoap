@@ -64,7 +64,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
       Start_stop.active_source
         ~name ~fallible:true ~clock_safe ~on_start ~on_stop ~autostart () as super
 
-    inherit Source.no_seek
     val connect_task = Atomic.make None
     val container = Atomic.make None
     val shutdown = Atomic.make false

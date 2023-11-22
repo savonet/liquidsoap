@@ -58,7 +58,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     (* We are expecting real-rate with a couple of hickups.. *)
     inherit! Child_support.base ~check_self_sync:false [source_val]
-    inherit Generated.source ~empty_on_abort:false ~bufferize ()
+    inherit! Generated.source ~empty_on_abort:false ~bufferize ()
     val mutable samplesize = 16
     val mutable samplerate = Frame.audio_of_seconds 1.
 
