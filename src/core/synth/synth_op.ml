@@ -33,7 +33,7 @@ class synth (synth : Synth.synth) (source : source) chan volume =
     method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
 
     method private get_frame buf =
       let offset = AFrame.position buf in

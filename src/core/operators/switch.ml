@@ -253,7 +253,7 @@ class virtual switch ~name ~override_meta ~transition_length
 
     method seek_source =
       match selected with
-        | Some s -> s.effective_source
+        | Some s -> s.effective_source#seek_source
         | None -> (self :> Source.source)
 
     method selected = Option.map (fun { child } -> child.source) selected

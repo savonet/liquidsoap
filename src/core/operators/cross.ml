@@ -391,8 +391,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method seek_source =
       match status with
-        | `Before | `Idle -> source
-        | `After -> Option.get transition_source
+        | `Before | `Idle -> source#seek_source
+        | `After -> (Option.get transition_source)#seek_source
         | _ -> (self :> Source.source)
 
     method private _is_ready ?frame () =

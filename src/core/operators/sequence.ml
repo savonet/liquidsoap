@@ -71,7 +71,9 @@ class sequence ?(merge = false) sources =
     method seek len = match seq_sources with s :: _ -> s#seek len | [] -> 0
 
     method seek_source =
-      match seq_sources with s :: _ -> s | _ -> (self :> Source.source)
+      match seq_sources with
+        | s :: _ -> s#seek_source
+        | _ -> (self :> Source.source)
 
     method abort_track =
       if merge then (
@@ -116,7 +118,7 @@ class merge_tracks source =
     method abort_track = source#abort_track
     method remaining = -1
     method self_sync = source#self_sync
-    method seek_source = source
+    method seek_source = source#seek_source
     method seek = source#seek
 
     method private get_frame buf =

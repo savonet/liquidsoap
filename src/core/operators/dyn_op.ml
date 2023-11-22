@@ -109,7 +109,9 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
     method seek n = match source with Some s -> s#seek n | None -> 0
 
     method seek_source =
-      match source with Some s -> s | None -> (self :> Source.source)
+      match source with
+        | Some s -> s#seek_source
+        | None -> (self :> Source.source)
 
     method self_sync =
       (`Dynamic, match source with Some s -> snd s#self_sync | None -> false)

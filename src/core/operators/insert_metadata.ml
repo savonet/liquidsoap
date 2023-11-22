@@ -32,7 +32,7 @@ class insert_metadata source =
     method private _is_ready = source#is_ready
     method remaining = source#remaining
     method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     val mutable metadata = None
@@ -127,7 +127,7 @@ class replay meta src =
     method remaining = src#remaining
     method self_sync = src#self_sync
     method seek = src#seek
-    method seek_source = src
+    method seek_source = src#seek_source
 
     method private get_frame ab =
       let start = Frame.position ab in

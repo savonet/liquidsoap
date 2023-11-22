@@ -28,7 +28,7 @@ class on_frame f s =
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek n = s#seek n
-    method seek_source = s
+    method seek_source = s#seek_source
     method self_sync = s#self_sync
 
     method private get_frame ab =
@@ -64,7 +64,7 @@ class frame_op ~name f default s =
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek n = s#seek n
-    method seek_source = s
+    method seek_source = s#seek_source
     method self_sync = s#self_sync
     val mutable value = default
     method value : Lang.value = value
