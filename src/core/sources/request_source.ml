@@ -255,7 +255,7 @@ class virtual unqueued ~name =
       in
       if end_track then self#end_track false
 
-    method seek x = match current with None -> 0 | Some cur -> cur.seek x
+    method! seek x = match current with None -> 0 | Some cur -> cur.seek x
     method seek_source = (self :> Source.source)
     method abort_track = self#end_track true
     method! private sleep = self#end_track false

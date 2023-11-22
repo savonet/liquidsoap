@@ -68,10 +68,10 @@ class sequence ?(merge = false) sources =
         List.fold_left ( + ) 0 (List.map (fun s -> s#remaining) seq_sources))
       else (List.hd seq_sources)#remaining
 
-    method seek len = match seq_sources with s :: _ -> s#seek len | [] -> 0
-
     method seek_source =
-      match seq_sources with s :: _ -> s | _ -> (self :> Source.source)
+      match seq_sources with
+        | s :: _ -> s#seek_source
+        | _ -> (self :> Source.source)
 
     method abort_track =
       if merge then (
@@ -116,8 +116,7 @@ class merge_tracks source =
     method abort_track = source#abort_track
     method remaining = -1
     method self_sync = source#self_sync
-    method seek_source = source
-    method seek = source#seek
+    method seek_source = source#seek_source
 
     method private get_frame buf =
       source#get buf;

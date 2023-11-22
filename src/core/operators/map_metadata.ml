@@ -30,8 +30,7 @@ class map_metadata source rewrite_f insert_missing update strip =
     method private _is_ready = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek n = source#seek n
-    method seek_source = source
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
 
     method private rewrite m =

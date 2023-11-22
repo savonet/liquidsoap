@@ -83,7 +83,7 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
 
     method stype = if infallible then `Infallible else `Fallible
 
-    method seek len =
+    method! seek len =
       let len = min (Generator.length self#buffer) len in
       Generator.truncate self#buffer len;
       len

@@ -76,8 +76,6 @@ Device ID %d:
 
 class virtual base =
   object (self)
-    inherit Source.no_seek
-
     initializer
       if not !initialized then (
         Portaudio.init ();
@@ -153,7 +151,7 @@ class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~register_telnet
   object (self)
     inherit base
 
-    inherit!
+    inherit
       Output.output
         ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.portaudio"
           ~output_kind:"output.portaudio" val_source start as super

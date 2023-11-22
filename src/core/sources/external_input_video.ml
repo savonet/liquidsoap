@@ -42,7 +42,7 @@ class video ~name ~restart ~bufferize ~restart_on_error ~max ~on_data
       External_input.base
         ~name ?read_header ~restart ~restart_on_error ~on_data command
 
-    inherit Generated.source ~empty_on_abort:false ~bufferize ()
+    inherit! Generated.source ~empty_on_abort:false ~bufferize ()
   end
 
 (***** AVI *****)

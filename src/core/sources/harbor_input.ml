@@ -31,7 +31,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
     inherit Source.active_source ~name:"input.harbor" () as super
-    inherit Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
+    inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
     val should_shutdown = Atomic.make false
 
     initializer

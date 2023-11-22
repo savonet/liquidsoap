@@ -55,7 +55,6 @@ let note_of_char c = array_index c + 72
 class keyboard =
   object (self)
     inherit Source.active_source ~name:"input.keyboard" ()
-    inherit Source.no_seek
     method seek_source = (self :> Source.source)
     method stype = `Infallible
     method private _is_ready ?frame:_ _ = true

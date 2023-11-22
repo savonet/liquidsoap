@@ -86,7 +86,6 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
           ~name ~output_kind:"ffmpeg.filter.input" (Lang.source source) true as super
 
     inherit ['a] duration_converter
-    inherit! Source.no_seek
 
     initializer
       Typing.(
@@ -179,7 +178,6 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
   object (self)
     inherit ['a] duration_converter
     inherit Source.source ~name ()
-    inherit Source.no_seek
     initializer Typing.(self#frame_type <: frame_t)
     method seek_source = (self :> Source.source)
     method stype : Source.source_t = `Fallible

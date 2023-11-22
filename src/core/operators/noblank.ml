@@ -93,8 +93,7 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
-    method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
 
     method private get_frame ab =
@@ -125,10 +124,9 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       (not self#is_blank) && source#is_ready ?frame ()
 
     method remaining = if self#is_blank then 0 else source#remaining
-    method seek n = if self#is_blank then 0 else source#seek n
 
     method seek_source =
-      if self#is_blank then (self :> Source.source) else source
+      if self#is_blank then (self :> Source.source) else source#seek_source
 
     method abort_track = source#abort_track
     method self_sync = source#self_sync
@@ -176,8 +174,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     method stype = `Fallible
     method private _is_ready = source#is_ready
     method remaining = source#remaining
-    method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 

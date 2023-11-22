@@ -45,7 +45,6 @@ class virtual output :
        method private _is_ready : ?frame:Frame.t -> unit -> bool
        method state : Start_stop.state
        method transition_to : Start_stop.state -> unit
-       method seek : int -> int
        method seek_source : Source.source
        method private video_dimensions : int * int
        method private add_metadata : Request.metadata -> unit

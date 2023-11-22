@@ -588,16 +588,12 @@ class virtual operator ?pos ?(name = "src") sources =
       let e = self#elapsed in
       if r < 0 || e < 0 then -1 else e + r
 
-    (* [self#seek x] skips [x] main ticks.
-       Returns the number of ticks actually skipped.
-       By default it always returns 0, refusing to seek at all. *)
-    method virtual seek : int -> int
-
-    (** Return the source effectively used to seek, used
-           by the muxer to determine if there is a unique seeking
-           source. Should return [self] if there isn't a unique
-           source. *)
     method virtual seek_source : source
+
+    method seek n =
+      let s = self#seek_source in
+      if (s :> < seek : int -> int >) == (self :> < seek : int -> int >) then 0
+      else s#seek n
 
     (* Underlying source implementation for [is_ready].
        should return [true] when the source can produce
@@ -833,15 +829,6 @@ and virtual source ?pos ?name () =
 class virtual active_source ?pos ?name () =
   object
     inherit active_operator ?pos ?name []
-  end
-
-class virtual no_seek =
-  object (self)
-    method virtual log : Log.t
-
-    method seek (_ : int) =
-      self#log#important "Seeking not supported by this source!";
-      0
   end
 
 (** Specialized shortcuts *)

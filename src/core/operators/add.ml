@@ -58,10 +58,8 @@ class virtual base ~name tracks =
     method private _is_ready ?frame () =
       List.exists (fun s -> s#is_ready ?frame ()) sources
 
-    method seek n = match sources with [s] -> s#seek n | _ -> 0
-
     method seek_source =
-      match sources with [s] -> s | _ -> (self :> Source.source)
+      match sources with [s] -> s#seek_source | _ -> (self :> Source.source)
 
     val mutable track_frames = []
 

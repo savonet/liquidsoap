@@ -28,8 +28,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
     inherit operator ~name:"gate" [source]
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
