@@ -157,8 +157,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
     inherit operator ~name:"dtmf" [source]
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
@@ -295,8 +294,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
     inherit operator ~name:"sine.detect" [source]
     method stype = source#stype
     method remaining = source#remaining
-    method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method private _is_ready = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync

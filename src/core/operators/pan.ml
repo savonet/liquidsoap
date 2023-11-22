@@ -29,8 +29,7 @@ class pan ~field (source : source) phi phi_0 =
     method stype = source#stype
     method private _is_ready = source#is_ready
     method remaining = source#remaining
-    method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 

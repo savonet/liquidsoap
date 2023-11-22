@@ -35,8 +35,7 @@ class delay ~initial (source : source) delay =
       self#end_track;
       source#abort_track
 
-    method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
     val mutable last = if initial then Unix.time () else 0.
     val mutable in_track = false

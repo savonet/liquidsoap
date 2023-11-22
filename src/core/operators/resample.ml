@@ -38,7 +38,7 @@ class resample ~field ~ratio source =
     method self_sync = source#self_sync
     method stype = source#stype
 
-    method seek len =
+    method! seek len =
       let glen = min (Generator.length self#buffer) len in
       Generator.truncate self#buffer glen;
       (if glen < len then source#seek (len - glen) else 0) + glen

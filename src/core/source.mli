@@ -178,18 +178,18 @@ class virtual source :
        method elapsed : int
        method duration : int
 
-       (** [self#seek_ticks x] skips [x] main ticks.
-           returns the number of ticks actually skipped.
-           By default it always returns 0, refusing to seek at all.
-           That method may be called from any thread, concurrently
-           with [#get], so they should not interfere. *)
-       method virtual seek : int -> int
-
        (** Return the source effectively used to seek, used
            by the muxer to determine if there is a unique seeking
            source. Should return [self] if there isn't a unique
            source. *)
        method virtual seek_source : source
+
+       (** [self#seek_ticks x] skips [x] main ticks.
+           returns the number of ticks actually skipped.
+           By default it always returns 0, refusing to seek at all.
+           That method may be called from any thread, concurrently
+           with [#get], so they should not interfere. *)
+       method seek : int -> int
 
        (** [is_ready] tells you if [get] can be called.
            Frame argument is optional. With no frame, the
@@ -274,12 +274,6 @@ class virtual active_operator :
   -> object
        inherit active_source
      end
-
-class virtual no_seek :
-  object
-    method virtual log : Log.t
-    method seek : int -> int
-  end
 
 val has_outputs : unit -> bool
 val iterate_new_outputs : (active_source -> unit) -> unit

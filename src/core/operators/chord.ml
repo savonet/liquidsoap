@@ -51,8 +51,7 @@ class chord metadata_name (source : source) =
     method remaining = source#remaining
     method private _is_ready = source#is_ready
     method abort_track = source#abort_track
-    method seek = source#seek
-    method seek_source = source
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
     val mutable notes_on = []
 

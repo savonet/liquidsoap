@@ -44,7 +44,6 @@ class virtual unqueued :
        method remaining : int
        method self_sync : Source.self_sync
        method current : handler option
-       method seek : int -> int
        method seek_source : Source.source
      end
 

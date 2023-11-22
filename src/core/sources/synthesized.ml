@@ -31,7 +31,7 @@ class virtual source ?name ~seek duration =
     method stype = if track_size = None then `Infallible else `Fallible
     val mutable remaining = track_size
     method private _is_ready ?frame:_ _ = remaining <> Some 0
-    method seek x = if seek then x else 0
+    method! seek x = if seek then x else 0
     method seek_source = (self :> Source.source)
     method self_sync = (`Static, false)
 

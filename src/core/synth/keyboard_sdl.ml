@@ -86,7 +86,6 @@ class keyboard velocity =
   let () = Sdl_utils.init [Sdl.Init.events; Sdl.Init.video] in
   object (self)
     inherit Source.active_source ~name:"input.keyboard.sdl" ()
-    inherit Source.no_seek
     method seek_source = (self :> Source.source)
     method stype = `Infallible
     method private _is_ready ?frame:_ _ = true

@@ -130,7 +130,7 @@ module Buffer = struct
       method private _is_ready ?frame:_ _ =
         proceed c (fun () -> not c.buffering)
 
-      method seek len =
+      method! seek len =
         let len = min (Generator.length (Lazy.force c.generator)) len in
         Generator.truncate (Lazy.force c.generator) len;
         len
@@ -300,7 +300,6 @@ module AdaptativeBuffer = struct
     let alpha = AFrame.duration () /. averaging in
     object (self)
       inherit Source.source ~name:"buffer.adaptative.producer" () as super
-      inherit Source.no_seek
       method seek_source = (self :> Source.source)
       method stype = `Fallible
       method self_sync = (`Static, false)

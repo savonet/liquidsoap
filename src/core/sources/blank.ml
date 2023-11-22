@@ -35,7 +35,7 @@ class blank duration =
     method stype = `Infallible
     method private _is_ready ?frame:_ _ = true
     method self_sync = (`Static, false)
-    method seek x = x
+    method! seek x = x
     method seek_source = (self :> Source.source)
     method abort_track = remaining <- 0
 

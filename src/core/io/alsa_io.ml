@@ -36,7 +36,6 @@ class virtual base dev mode =
   let samples_per_frame = AFrame.size () in
   let periods = Alsa_settings.periods#get in
   object (self)
-    inherit Source.no_seek
     method virtual log : Log.t
     method virtual audio_channels : int
     val mutable alsa_rate = -1
