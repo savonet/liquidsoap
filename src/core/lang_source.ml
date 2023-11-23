@@ -332,8 +332,14 @@ let check_content v t =
             let meths, v = Value.split_meths v in
             let meths_t, t = Type.split_meths t in
             List.iter
-              (fun { Type.meth; optional; scheme = s } ->
-                let t = Typing.instantiate ~level:(-1) s in
+              (fun { Type.meth; optional; scheme = generalized, t } ->
+                let names = List.map (fun v -> v.Type.name) generalized in
+                let handler =
+                  Type.Fresh.init
+                    ~selector:(fun v -> List.mem v.Type.name names)
+                    ()
+                in
+                let t = Type.Fresh.make handler t in
                 try check_value (List.assoc meth meths) t
                 with Not_found when optional -> ())
               meths_t;
@@ -402,25 +408,18 @@ let check_content v t =
 let _meth = meth
 
 let check_arguments ~env ~return_t arguments =
-  (* Create a fresh instantiation of the return type and the type of arguments. *)
   let return_t, arguments =
-    let s =
-      (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
-      Typing.generalize ~level:(-1)
-        (Type.make
-           (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) arguments)))
+    let handler = Type.Fresh.init () in
+    let return_t = Type.Fresh.make handler return_t in
+    let arguments =
+      List.map
+        (fun (lbl, t, _, _) -> (lbl, Type.Fresh.make handler t))
+        arguments
     in
-    let t = Typing.instantiate ~level:(-1) s in
-    match t.Type.descr with
-      | Type.Tuple (return_t :: arguments_t) ->
-          ( return_t,
-            List.map2
-              (fun (name, _, _, _) typ -> (name, typ))
-              arguments arguments_t )
-      | _ -> assert false
-  in
-  let arguments =
-    List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') arguments
+    let arguments =
+      List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') arguments
+    in
+    (return_t, arguments)
   in
   (* Negotiate content for all sources and formats in the arguments. *)
   let () =

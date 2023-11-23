@@ -33,8 +33,7 @@ let _ =
     (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
-      let scheme = Typing.generalize ~level:(-1) ty in
-      let ty = Typing.instantiate ~level:(-1) scheme in
+      let ty = Type.fresh ty in
       let parser = Atomic.get yaml_parser in
       try
         let yaml = parser s in

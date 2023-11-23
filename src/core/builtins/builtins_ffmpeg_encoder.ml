@@ -457,10 +457,7 @@ let mk_encoder mode =
                 (format_val, "Format option is not supported inline encoders"));
 
          let mk_encode_frame generator =
-           let output_frame_t =
-             let s = Typing.generalize ~level:(-1) output_frame_t in
-             Typing.instantiate ~level:(-1) s
-           in
+           let output_frame_t = Type.fresh output_frame_t in
 
            let stream = List.assoc format_field format.Ffmpeg_format.streams in
 
@@ -563,10 +560,7 @@ let mk_encoder mode =
          in
          consumer#set_pos pos;
 
-         let input_frame_t =
-           Typing.instantiate ~level:(-1)
-             (Typing.generalize ~level:(-1) input_frame_t)
-         in
+         let input_frame_t = Type.fresh input_frame_t in
          Typing.(
            consumer#frame_type
            <: Lang.frame_t (Lang.univ_t ())

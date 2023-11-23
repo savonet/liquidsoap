@@ -69,7 +69,6 @@ val string_of_constr : constr -> string
 val num_constr : constr
 val ord_constr : constr
 
-module Subst = Type_base.Subst
 module R = Type_base.R
 
 type custom = Type_base.custom = ..
@@ -107,6 +106,26 @@ val unit : descr
 module Var = Type_base.Var
 module Vars = Type_base.Vars
 
+(** Generate fresh types from existing types. *)
+module Fresh : sig
+  type mapper = Type_base.Fresh.mapper
+
+  (* Use [selector] to pick variables to be re-freshed. If [level] is passed,
+     all new variables are created with the given level. *)
+  val init : ?selector:(var -> bool) -> ?level:int -> unit -> mapper
+
+  (* Generate a fresh var using the parameters passed when initializing
+     the corresponding handler. Generated variables are memoized. *)
+  val make_var : mapper -> var -> var
+
+  (* Generate a fresh type using the parameters passed when initializing
+     the corresponding handler. *)
+  val make : mapper -> t -> t
+end
+
+(* Generate a fully refreshed type. Shared variables are mapped
+   to shared fresh variables. *)
+val fresh : t -> t
 val make : ?pos:Pos.t -> descr -> t
 val deref : t -> t
 val demeth : t -> t
