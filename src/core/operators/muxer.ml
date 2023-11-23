@@ -85,7 +85,7 @@ class muxer tracks =
             if List.memq source sources then sources else source :: sources)
           [] sources
       with
-        | [s] -> s
+        | [s] -> s#seek_source
         | _ -> (self :> Source.source)
 
     method remaining =
