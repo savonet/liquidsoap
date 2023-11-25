@@ -2,16 +2,14 @@
 audio = sine()
 
 # Encode it in mp3
-audio = ffmpeg.encode.audio(
-  %ffmpeg(%audio(codec="libmp3lame")),
-  audio)
+audio = ffmpeg.encode.audio(%ffmpeg(%audio(codec = "libmp3lame")), audio)
 
 # Send it to icecast
 output.icecast(
-  %ffmpeg(format="mp3", %audio.copy),
-  host = "...",
-  password = "...",
-  mount = "/stream",
+  %ffmpeg(format = "mp3", %audio.copy),
+  host="...",
+  password="...",
+  mount="/stream",
   audio
 )
 
@@ -19,18 +17,13 @@ output.icecast(
 video = single("image.png")
 
 # Encode it in h264 format
-video = ffmpeg.encode.video(
-  %ffmpeg(%video(codec="libx264")),
-  video)
+video = ffmpeg.encode.video(%ffmpeg(%video(codec = "libx264")), video)
 
 # Mux it with the audio
 stream = source.mux.video(video=video, audio)
 
 # Copy encoder for the rtmp stream
-enc = %ffmpeg(
-  format="flv",
-  %audio.copy,
-  %video.copy)
+enc = %ffmpeg(format = "flv", %audio.copy, %video.copy)
 
 # Send to YouTube
 key = "..."
