@@ -38,13 +38,6 @@ def file.write.stream(~perms=0o644, ~append=false, path) =
   write
 end
 
-# Ensure that a file exists, creating it empty if it does not.
-# @category File
-# @param path Path of the file.
-def file.touch(~perms=0o644, path) =
-  file.write(data="", perms=perms, append=true, path)
-end
-
 # Write data to a file.
 # @category File
 # @param ~data Data to write. If passing a callback `() -> string?`, the callback \
@@ -66,6 +59,13 @@ def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
     end
   end
   write()
+end
+
+# Ensure that a file exists, creating it empty if it does not.
+# @category File
+# @param path Path of the file.
+def file.touch(~perms=0o644, path) =
+  file.write(data="", perms=perms, append=true, path)
 end
 
 # Read the whole contents of a file.
