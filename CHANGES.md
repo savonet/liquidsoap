@@ -22,6 +22,8 @@ Fixed:
   (#3563)
 - Fixed playlist parsers not being registered
   when evaluatin top-level script (#3553)
+- Fixed infinite loop on some active sources
+  (#3544)
 
 ---
 
