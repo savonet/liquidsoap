@@ -113,7 +113,7 @@ class append ~insert_missing ~merge source f =
         | `Replay (Some _) -> source#remaining
         | `Append s -> s#remaining
 
-    method seek n =
+    method! seek n =
       match Atomic.get state with
         | `Idle | `Replay None -> source#seek n
         | `Replay (Some s) when s#is_ready () && merge -> 0

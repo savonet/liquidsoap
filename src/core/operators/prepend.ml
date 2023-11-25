@@ -108,7 +108,6 @@ class prepend ~merge source f =
             let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
             if merge then s#remaining + source#remaining else s#remaining
 
-    method seek len = self#seek_source#seek len
     method seek_source = match state with `Prepend (s, _) -> s | _ -> source
 
     method self_sync =

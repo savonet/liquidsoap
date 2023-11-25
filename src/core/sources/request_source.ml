@@ -119,7 +119,7 @@ class once ~name ~timeout request =
         remaining <- decoder.Decoder.fill buf;
         if Frame.is_partial buf then self#end_track false)
 
-    method seek len =
+    method! seek len =
       let decoder = Option.get decoder in
       decoder.Decoder.fseek len
 
