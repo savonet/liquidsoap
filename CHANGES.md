@@ -4,6 +4,7 @@ New:
 
 - Added `register_telnet` option to all outputs to
   prevent telnet commands registration (#3545)
+- Added `file.touch`
 
 Fixed:
 

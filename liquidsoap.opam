@@ -18,8 +18,8 @@ bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.6"}
   "liquidsoap-core" {= version}
-  "liquidsoap-libs" {>= "2.2.2" & < "2.2.3"}
-  "liquidsoap-libs-extra" {>= "2.2.2" & < "2.2.3"}
+  "liquidsoap-libs" {>= "2.2.3" & < "2.2.4"}
+  "liquidsoap-libs-extra" {>= "2.2.3" & < "2.2.4"}
   "odoc" {with-doc}
 ]
 build: [
