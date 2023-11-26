@@ -248,7 +248,7 @@ def protocol.youtube_dl(~rlog,~maxtime,arg)
   title = list.hd(default="",x)
   ext   = file.extension(leading_dot=false,list.nth(default="",x,1))
 
-  cmd = "rm -f $(output) && #{binary} -q -f best --no-playlist -o $(output) -- #{process.quote(arg)}"
+  cmd = "#{binary} -q -f best --no-continue --no-playlist -o $(output) -- #{process.quote(arg)}"
   cmd = process.uri(timeout=timeout, extname=ext, cmd)
 
   if title != "" then

@@ -11,6 +11,9 @@ Fixed:
 - Cleanup telnet commands on output shutdown,
   prevent commands registration for internal
   outputs (#3545, fixes: #3541)
+- Allow overwrite in youtube-dl/yt-dlp call,
+  remove use of unix-specific process call.
+  (#3563)
 
 ---
 
