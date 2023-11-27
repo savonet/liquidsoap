@@ -1,3 +1,74 @@
+let settings.playlist.mime_types =
+  settings.make.void(
+    "Mime-types used for guessing playlist formats."
+  )
+
+let settings.playlist.mime_types.basic =
+  settings.make(
+    description=
+      "Mime-types used for guessing text-based playlists.",
+    [
+      {mime="audio/x-scpls", strict=true, parser=playlist.parse.scpls},
+      {mime="application/x-cue", strict=true, parser=playlist.parse.cue},
+      {mime="audio/x-mpegurl", strict=false, parser=playlist.parse.m3u},
+      {mime="audio/mpegurl", strict=false, parser=playlist.parse.m3u},
+      {mime="application/x-mpegURL", strict=false, parser=playlist.parse.m3u}
+    ]
+  )
+
+%ifdef playlist.parse.xml
+let settings.playlist.mime_types.xml =
+  settings.make(
+    description=
+      "Mime-types used for guessing xml-based playlists.",
+    list.map(
+      (fun (mime) -> {mime=mime, strict=true, parser=playlist.parse.xml}),
+      [
+        "video/x-ms-asf",
+        "audio/x-ms-asx",
+        "text/xml",
+        "application/xml",
+        "application/smil",
+        "application/smil+xml",
+        "application/xspf+xml",
+        "application/rss+xml"
+      ]
+    )
+  )
+%endif
+
+# @flag hidden
+let register_playlist_parsers =
+  begin
+    registered = ref(false)
+    fun () ->
+      begin
+        if
+          not registered()
+        then
+          parsers = settings.playlist.mime_types.basic()
+%ifdef playlist.parse.xml
+          parsers = [...parsers, ...settings.playlist.mime_types.xml()]
+%endif
+          list.iter(
+            fun (entry) ->
+              playlist.parse.register(
+                format=entry.mime, strict=entry.strict, entry.parser
+              ),
+            parsers
+          )
+        end
+        registered := true
+      end
+  end
+on_start(register_playlist_parsers)
+
+# @docof playlist.parse
+def replaces playlist.parse(%argsof(playlist.parse), uri) =
+  register_playlist_parsers()
+  playlist.parse(%argsof(playlist.parse), uri)
+end
+
 # Default id assignment for playlists (the identifier is generated from the
 # filename).
 # @category Liquidsoap

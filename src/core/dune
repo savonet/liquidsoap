@@ -197,7 +197,6 @@
   pipe
   pipe_output
   pitch
-  playlist_basic
   playlist_parser
   plug
   pool
@@ -283,6 +282,7 @@
   builtins_process
   builtins_request
   builtins_resolvers
+  playlist_basic
   builtins_runtime
   builtins_server
   builtins_settings
@@ -731,7 +731,7 @@
 
 (library
  (name liquidsoap_xmlplaylist)
- (libraries xmlplaylist liquidsoap_core)
+ (libraries xmlplaylist liquidsoap_core liquidsoap_builtins)
  (library_flags -linkall)
  (wrapped false)
  (optional)
