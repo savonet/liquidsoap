@@ -6,6 +6,12 @@ New:
   prevent telnet commands registration (#3545)
 - Added `file.touch`
 
+Changed:
+
+- BREAKING: `setting.playlists` has been renamed
+  `setting.playlist`, `settings.playlist.mime_types`
+  now refers to a full list of records (#3561)
+
 Fixed:
 
 - Cleanup telnet commands on output shutdown,
@@ -14,6 +20,8 @@ Fixed:
 - Allow overwrite in youtube-dl/yt-dlp call,
   remove use of unix-specific process call.
   (#3563)
+- Fixed playlist parsers not being registered
+  when evaluatin top-level script (#3553)
 
 ---
 

@@ -289,14 +289,8 @@ let parse_cue ?pwd string =
   in
   export_tracks [] sheet.tracks
 
-let () =
-  Plug.register Playlist_parser.parsers "audio/x-scpls" ~doc:""
-    { Playlist_parser.strict = true; Playlist_parser.parser = parse_scpls };
-  Plug.register Playlist_parser.parsers "application/x-cue" ~doc:""
-    { Playlist_parser.strict = true; Playlist_parser.parser = parse_cue };
-  Plug.register Playlist_parser.parsers "audio/x-mpegurl" ~doc:""
-    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl };
-  Plug.register Playlist_parser.parsers "audio/mpegurl" ~doc:""
-    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl };
-  Plug.register Playlist_parser.parsers "application/x-mpegURL" ~doc:""
-    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }
+let _ =
+  Builtins_resolvers.add_playlist_parser ~format:"SCPLS" "scpls" parse_scpls
+
+let _ = Builtins_resolvers.add_playlist_parser ~format:"CUE" "cue" parse_cue
+let _ = Builtins_resolvers.add_playlist_parser ~format:"M3U" "m3u" parse_mpegurl
