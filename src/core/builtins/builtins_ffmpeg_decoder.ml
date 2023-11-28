@@ -495,8 +495,7 @@ let mk_decoder mode =
          in
          consumer#set_pos pos;
 
-         let input_frame_t = Typing.generalize ~level:(-1) input_frame_t in
-         let input_frame_t = Typing.instantiate ~level:(-1) input_frame_t in
+         let input_frame_t = Type.fresh input_frame_t in
          Typing.(
            consumer#frame_type
            <: Lang.frame_t (Lang.univ_t ())

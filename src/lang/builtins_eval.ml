@@ -31,7 +31,6 @@ let _ =
     (Lang.univ_t ())
     (fun p ->
       let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
-      let scheme = Typing.generalize ~level:(-1) ty in
-      let ty = Typing.instantiate ~level:(-1) scheme in
+      let ty = Type.fresh ty in
       let s = Lang.to_string (List.assoc "" p) in
       try Runtime.eval ~ignored:false ~ty s with exn -> raise exn)

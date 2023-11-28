@@ -102,52 +102,16 @@ let generalizable ~level t = filter_vars (fun v -> v.level > level) t
 
 let generalize ~level t : scheme = (generalizable ~level t, t)
 
-(** Copy a term, substituting some EVars as indicated by a list of
-    associations. Other EVars are not copied, so sharing is preserved. *)
-let copy_with (subst : Subst.t) t =
-  let rec aux t =
-    let descr =
-      match t.descr with
-        | Var { contents = Free v } as var -> (
-            try (Subst.value subst v).descr with Not_found -> var)
-        | Constr c ->
-            let params = List.map (fun (v, t) -> (v, aux t)) c.params in
-            Constr { c with params }
-        | Custom c -> Custom { c with typ = c.copy_with aux c.typ }
-        | Getter t -> Getter (aux t)
-        | List { t; json_repr } -> List { t = aux t; json_repr }
-        | Nullable t -> Nullable (aux t)
-        | Tuple l -> Tuple (List.map aux l)
-        | Meth (({ scheme = g, t } as m), u) ->
-            (* We assume that we don't substitute generalized variables. *)
-            if !debug then
-              assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
-            Meth ({ m with scheme = (g, aux t) }, aux u)
-        | Arrow (p, t) ->
-            Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t)
-        | Var { contents = Link (_, t) } ->
-            (* TODO: we remove the link here, it would be too difficult to preserve
-               sharing. We could at least keep it when no variable is changed. *)
-            (aux t).descr
-        | _ -> raise NotImplemented
-    in
-    Type.make ?pos:t.pos descr
-  in
-  if Subst.is_identity subst then t else aux t
-
 (** Instantiate a type scheme, given as a type together with a list of
-    generalized variables. Fresh variables are created with the given (current)
-    level, and attached to the appropriate constraints. This erases position
+    generalized variables. This erases position
     information, since they usually become irrelevant. *)
 let instantiate ~level ((generalized, t) : scheme) =
-  let subst =
-    List.map
-      (fun v ->
-        (v, var ~level ~constraints:(Constraints.elements v.constraints) ()))
-      generalized
-  in
-  let subst = Subst.of_list subst in
-  copy_with subst t
+  if generalized = [] then t
+  else (
+    let mapper =
+      Type.Fresh.init ~selector:(fun v -> List.memq v generalized) ~level ()
+    in
+    Type.Fresh.make mapper t)
 
 (** {1 Assignation} *)
 

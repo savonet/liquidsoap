@@ -110,29 +110,6 @@ end)
 
 let string_of_constr c = c.constr_descr
 
-(** Substitutions. *)
-module Subst = struct
-  module M = Map.Make (struct
-    type t = var
-
-    (* We can compare variables with their indices. *)
-    let compare (v : var) (v' : var) = compare v.name v'.name
-  end)
-
-  type subst = t M.t
-  type t = subst
-
-  let of_list l : t = M.of_seq (List.to_seq l)
-
-  (** Retrieve the value of a variable. *)
-  let value (s : t) (i : var) = M.find i s
-
-  (* let filter f (s : t) = M.filter (fun i t -> f i t) s *)
-
-  (** Whether we have the identity substitution. *)
-  let is_identity (s : t) = M.is_empty s
-end
-
 type 'a argument = bool * string * 'a
 
 module R = struct
@@ -311,19 +288,97 @@ let split_meths t =
   aux [] t
 
 (** Create a fresh variable. *)
+let var_name =
+  let c = ref (-1) in
+  fun () ->
+    incr c;
+    !c
+
 let var =
-  let name =
-    let c = ref (-1) in
-    fun () ->
-      incr c;
-      !c
-  in
   let f ?(constraints = []) ?(level = max_int) ?pos () =
     let constraints = Constraints.of_list constraints in
-    let name = name () in
+    let name = var_name () in
     make ?pos (Var (ref (Free { name; level; constraints })))
   in
   f
+
+module Fresh = struct
+  type mapper = {
+    level : int option;
+    selector : var -> bool;
+    var_maps : (var, var) Hashtbl.t;
+    link_maps : (invar ref, invar ref) Hashtbl.t;
+  }
+
+  let init ?(selector = fun _ -> true) ?level () =
+    {
+      level;
+      selector;
+      var_maps = Hashtbl.create 10;
+      link_maps = Hashtbl.create 10;
+    }
+
+  let make_var { level; selector; var_maps } var =
+    if not (selector var) then var
+    else (
+      try Hashtbl.find var_maps var
+      with Not_found ->
+        let level = Option.value ~default:var.level level in
+        let new_var = { var with name = var_name (); level } in
+        Hashtbl.add var_maps var new_var;
+        new_var)
+
+  let make ({ selector; link_maps } as h) t =
+    let map_var = make_var h in
+    let map_descr map = function
+      | Custom c -> Custom { c with typ = c.copy_with map c.typ }
+      | Constr { constructor; params } ->
+          Constr
+            { constructor; params = List.map (fun (v, t) -> (v, map t)) params }
+      | Getter t -> Getter (map t)
+      | List { t; json_repr } -> List { t = map t; json_repr }
+      | Tuple l -> Tuple (List.map map l)
+      | Nullable t -> Nullable (map t)
+      | Meth ({ meth; optional; scheme = vars, t; doc; json_name }, t') ->
+          Meth
+            ( {
+                meth;
+                optional;
+                scheme = (List.map map_var vars, map t);
+                doc;
+                json_name;
+              },
+              map t' )
+      | Arrow (args, t) ->
+          Arrow (List.map (fun (b, s, t) -> (b, s, map t)) args, map t)
+      (* Here we keep all links. While it could be tempting to deref,
+         we are using links to compute type supremum in type unification
+         so we are better off keeping them. Also, we need to create fresh
+         links to make sure that a suppremum computation in the refreshed
+         type does not impact the original type. *)
+      | Var ({ contents = Link (v, t) } as link) ->
+          Var
+            (try Hashtbl.find link_maps link
+             with Not_found ->
+               let new_link = { contents = Link (v, map t) } in
+               Hashtbl.add link_maps link new_link;
+               new_link)
+      | Var ({ contents = Free var } as link) as descr ->
+          if not (selector var) then descr
+          else
+            Var
+              (try Hashtbl.find link_maps link
+               with Not_found ->
+                 let new_link = { contents = Free (map_var var) } in
+                 Hashtbl.add link_maps link new_link;
+                 new_link)
+      | _ -> assert false
+    in
+    let rec map { descr } = { pos = None; descr = map_descr map descr } in
+    map t
+end
+
+let fresh t = Fresh.make (Fresh.init ()) t
 
 let to_string_fun =
   ref (fun ?(generalized : var list option) _ ->

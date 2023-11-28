@@ -14,8 +14,7 @@ let eval_check ~env:_ ~tm v =
   if Lang_source.Source_val.is_value v then (
     let s = Lang_source.Source_val.of_value v in
     if not s#has_content_type then (
-      let scheme = Typing.generalize ~level:(-1) (deep_demeth tm.Term.t) in
-      let ty = Typing.instantiate ~level:(-1) scheme in
+      let ty = Type.fresh (deep_demeth tm.Term.t) in
       Typing.(Lang_source.source_t ~methods:false s#frame_type <: ty);
       s#content_type_computation_allowed))
   else if Track.is_value v then (
@@ -25,10 +24,7 @@ let eval_check ~env:_ ~tm v =
         | _ when field = Frame.Fields.metadata -> ()
         | _ when field = Frame.Fields.track_marks -> ()
         | _ ->
-            let scheme =
-              Typing.generalize ~level:(-1) (deep_demeth tm.Term.t)
-            in
-            let ty = Typing.instantiate ~level:(-1) scheme in
+            let ty = Type.fresh (deep_demeth tm.Term.t) in
             let frame_t =
               Frame_type.make (Lang.univ_t ())
                 (Frame.Fields.add field ty Frame.Fields.empty)
