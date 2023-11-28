@@ -63,6 +63,7 @@ class keyboard =
     method self_sync = (`Static, false)
 
     method output =
+      self#has_ticked;
       if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
         self#get self#memo
 

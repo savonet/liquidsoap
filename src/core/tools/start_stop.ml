@@ -99,6 +99,7 @@ class virtual active_source ?get_clock ~name ~clock_safe
     method virtual private memo : Frame.t
 
     method private output =
+      self#has_ticked;
       if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
         self#get self#memo
   end
