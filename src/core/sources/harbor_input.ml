@@ -64,6 +64,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         | None -> "no source client connected"
 
     method private output =
+      self#has_ticked;
       if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
         self#get self#memo
 
