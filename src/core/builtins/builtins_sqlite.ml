@@ -23,7 +23,7 @@
 let _ =
   let meth =
     let check ans =
-      if ans <> Sqlite3.Rc.OK then (
+      if not (Sqlite3.Rc.is_success ans) then (
         let message =
           Printf.sprintf "Command failed: %s." (Sqlite3.Rc.to_string ans)
         in
@@ -45,7 +45,7 @@ let _ =
         "Close the database. It should not be accessed afterward.",
         fun db ->
           Lang.val_fun [] (fun _p ->
-              ignore (Sqlite3.db_close db);
+              Sqlite3.db_close db |> ignore;
               Lang.unit) );
     ]
   in
