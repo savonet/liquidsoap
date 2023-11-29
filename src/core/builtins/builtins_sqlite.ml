@@ -22,10 +22,11 @@
 
 let _ =
   let meth =
-    let check ans =
+    let check db ans =
       if not (Sqlite3.Rc.is_success ans) then (
         let message =
-          Printf.sprintf "Command failed: %s." (Sqlite3.Rc.to_string ans)
+          Printf.sprintf "Command failed (%s): %s." (Sqlite3.Rc.to_string ans)
+            (Sqlite3.errmsg db)
         in
         Runtime_error.raise ~pos:[] ~message "sqlite")
     in
@@ -38,7 +39,7 @@ let _ =
             [("", "", None)]
             (fun p ->
               let sql = List.assoc "" p |> Lang.to_string in
-              Sqlite3.exec db sql |> check;
+              Sqlite3.exec db sql |> check db;
               Lang.unit) );
       ( "close",
         ([], Lang.fun_t [] Lang.unit_t),
