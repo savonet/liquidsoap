@@ -163,6 +163,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           in
           if Frame.position buf < Lazy.force Frame.size then (
             self#end_request;
+            let buf = Frame.add_track_mark buf (Frame.position buf) in
             if self#fetch_request then fill buf else buf)
           else buf)
         else buf
