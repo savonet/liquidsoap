@@ -30,15 +30,9 @@ type t = {
   content : Content.data Frame_base.Fields.t Atomic.t;
 }
 
-let add_timed_content content =
-  Frame_base.Fields.add Frame_base.Fields.track_marks
-    (Content.make Content.Track_marks.format)
-    (Frame_base.Fields.add Frame_base.Fields.metadata
-       (Content.make Content.Metadata.format)
-       content)
-
 let make_content ?length content_type =
-  add_timed_content (Frame_base.Fields.map (Content.make ?length) content_type)
+  Frame_base.add_timed_content
+    (Frame_base.Fields.map (Content.make ?length) content_type)
 
 let create ?(log = fun s -> log#info "%s" s) ?max_length ?length content_type =
   {

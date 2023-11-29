@@ -82,7 +82,7 @@ module Metadata_specs = struct
 
   type kind = [ `Metadata ]
   type params = unit
-  type data = Frame_base.metadata content
+  type data = Metadata_base.t content
 
   let internal_content_type = None
   let kind = `Metadata

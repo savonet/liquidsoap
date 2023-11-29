@@ -32,6 +32,7 @@
   re
   uri
   metadata
+  saturn_lockfree
   (select
    file_watcher.ml
    from
@@ -170,6 +171,7 @@
   ;map_op
   ;max_duration
   ;mean
+  metadata_base
   ;merge_metadata
   ;midi_decoder
   ;midi_routing

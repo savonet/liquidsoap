@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Source
+module Queue = Lockfree.Single_prod_single_cons_queue
 
 (* Scheduler priority for request resolutions. *)
 let priority = `Maybe_blocking
@@ -64,113 +65,109 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     method stype = `Fallible
     val mutable remaining = 0
     method remaining = remaining
-    val mutable must_fail = false
-
-    (** These values are protected by [plock]. *)
     val mutable send_metadata = false
-
-    val mutable current = None
-    method current = current
-    val plock = Mutex.create ()
+    val mutable current = Atomic.make None
+    method current = Atomic.get current
     method self_sync = (`Static, false)
 
     (** How to unload a request. *)
-    method private end_track =
-      Tutils.mutexify plock (fun forced ->
-          begin
-            match current with
-              | None -> ()
-              | Some cur ->
-                  begin
-                    match Request.get_filename cur.req with
-                      | None ->
-                          self#log#severe
-                            "Finished with a non-existent file?! Something may \
-                             have been moved or destroyed during decoding. It \
-                             is VERY dangerous, avoid it!"
-                      | Some f -> self#log#info "Finished with %S." f
-                  end;
-                  cur.close ();
-                  Request.destroy cur.req;
-                  must_fail <- forced
-          end;
-          current <- None;
-          remaining <- 0)
+    method private end_request =
+      remaining <- 0;
+      match Atomic.exchange current None with
+        | None -> ()
+        | Some cur ->
+            begin
+              match Request.get_filename cur.req with
+                | None ->
+                    self#log#severe
+                      "Finished with a non-existent file?! Something may have \
+                       been moved or destroyed during decoding. It is VERY \
+                       dangerous, avoid it!"
+                | Some f -> self#log#info "Finished with %S." f
+            end;
+            cur.close ();
+            Request.destroy cur.req
 
-    (** Load a request. Should be called within critical section, when there is no
-      ready request. *)
-    method private begin_track =
-      assert (Tutils.seems_locked plock);
-      assert (current = None);
-      match self#get_next_file with
-        | `Retry _ | `Empty ->
-            self#log#debug "Failed to prepare track: no file.";
-            false
-        | `Request req when Request.resolved req && Request.ctype req <> None ->
-            assert (
-              Frame.compatible
-                (Option.get (Request.ctype req))
-                self#content_type);
+    method private fetch_request =
+      assert (self#current = None);
+      try
+        match self#get_next_file with
+          | `Retry _ | `Empty ->
+              self#log#debug "Failed to prepare track: no file.";
+              false
+          | `Request req when Request.resolved req && Request.ctype req <> None
+            ->
+              assert (
+                Frame.compatible
+                  (Option.get (Request.ctype req))
+                  self#content_type);
 
-            (* [Request.resolved] ensures that we can get a filename from the request,
-               and it can be decoded. *)
-            let file = Option.get (Request.get_filename req) in
-            let decoder = Option.get (Request.get_decoder req) in
-            self#log#important "Prepared %s (RID %d)."
-              (Lang_string.quote_string file)
-              (Request.get_id req);
+              (* [Request.resolved] ensures that we can get a filename from the request,
+                 and it can be decoded. *)
+              let file = Option.get (Request.get_filename req) in
+              let decoder = Option.get (Request.get_decoder req) in
+              self#log#important "Prepared %s (RID %d)."
+                (Lang_string.quote_string file)
+                (Request.get_id req);
 
-            (* We use this mutex to avoid seeking and filling at the same time.. *)
-            let m = Mutex.create () in
-            current <-
-              Some
-                {
-                  req;
-                  fread =
-                    Tutils.mutexify m (fun len ->
-                        let buf = decoder.Decoder.fread len in
-                        remaining <- decoder.Decoder.remaining ();
-                        buf);
-                  seek =
-                    Tutils.mutexify m (fun len -> decoder.Decoder.fseek len);
-                  close = decoder.Decoder.close;
-                };
-            remaining <- -1;
-            send_metadata <- true;
-            true
-        | `Request req ->
-            (* We got an unresolved request.. this shouldn't actually happen *)
-            self#log#critical "Failed to prepare track: request not ready.";
-            Request.destroy req;
-            false
+              (* We use this mutex to avoid seeking and filling at the same time.. *)
+              let m = Mutex.create () in
+              Atomic.set current
+                (Some
+                   {
+                     req;
+                     fread =
+                       Tutils.mutexify m (fun len ->
+                           let buf = decoder.Decoder.fread len in
+                           remaining <- decoder.Decoder.remaining ();
+                           buf);
+                     seek =
+                       Tutils.mutexify m (fun len -> decoder.Decoder.fseek len);
+                     close = decoder.Decoder.close;
+                   });
+              remaining <- -1;
+              send_metadata <- true;
+              true
+          | `Request req ->
+              (* We got an unresolved request.. this shouldn't actually happen *)
+              self#log#critical "Failed to prepare track: request not ready.";
+              Request.destroy req;
+              false
+      with exn ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log:self#log ~bt
+          (Printf.sprintf "Failed to fetch a new request: %s"
+             (Printexc.to_string exn));
+        false
+
+    method private generate_from_current_request len =
+      match self#current with
+        | None -> assert false
+        | Some cur ->
+            let buf = cur.fread len in
+            if send_metadata then (
+              Request.on_air cur.req;
+              let m = Request.get_all_metadata cur.req in
+              let buf = Frame.add_metadata buf 0 m in
+              send_metadata <- false;
+              buf)
+            else buf
 
     method private generate_data =
-      let buf, end_track =
-        Tutils.mutexify plock
-          (fun () ->
-            if must_fail then (
-              must_fail <- false;
-              (Frame.add_track_mark self#frame 0, false))
-            else (
-              match current with
-                | None ->
-                    (* We're supposed to be ready so this shouldn't be reached. *)
-                    assert false
-                | Some cur ->
-                    let buf = cur.fread (Lazy.force Frame.size) in
-                    let buf =
-                      if send_metadata then (
-                        Request.on_air cur.req;
-                        let m = Request.get_all_metadata cur.req in
-                        let buf = Frame.add_metadata buf 0 m in
-                        send_metadata <- false;
-                        buf)
-                      else buf
-                    in
-                    (buf, List.length (Frame.track_marks buf) <> 0)))
-          ()
+      let size = Lazy.force Frame.size in
+      let rec fill buf =
+        let pos = Frame.position buf in
+        if pos < size then (
+          let buf =
+            Frame.append buf (self#generate_from_current_request (size - pos))
+          in
+          if Frame.position buf < Lazy.force Frame.size then (
+            self#end_request;
+            if self#fetch_request then fill buf else buf)
+          else buf)
+        else buf
       in
-      if end_track then self#end_track false;
+      let buf = fill self#frame in
 
       (* At an end of track, we always have unqueued#remaining=0, so there's
          nothing special to do. *)
@@ -178,17 +175,17 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
       buf
 
-    method! seek x = match current with None -> 0 | Some cur -> cur.seek x
+    method! seek x =
+      match self#current with None -> 0 | Some cur -> cur.seek x
+
     method seek_source = (self :> Source.source)
-    method abort_track = self#end_track true
+    method abort_track = self#end_request
     val mutable retry_status = None
 
     method can_generate_data =
       let is_ready =
-        Tutils.mutexify plock
-          (fun () ->
-            current <> None || must_fail
-            || try self#begin_track with _ -> false)
+        (fun () ->
+          self#current <> None || try self#fetch_request with _ -> false)
           ()
       in
       match (is_ready, retry_status) with
@@ -220,38 +217,33 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               retry ())
       else `Empty
 
-    val qlock = Mutex.create ()
-    val retrieved : queue_item Queue.t = Queue.create ()
+    val retrieved : queue_item Queue.t =
+      Queue.create
+        ~size_exponent:(2 * int_of_float (ceil (log (float prefetch))))
 
-    method private queue_size =
-      self#mutexify (fun () -> Queue.length retrieved) ()
-
-    method queue = self#mutexify (fun () -> Queue.copy retrieved) ()
+    method private queue_size = Queue.size retrieved
+    method queue = retrieved
 
     method set_queue =
-      self#mutexify (fun q ->
-          Queue.clear retrieved;
-          Queue.iter
-            (fun i ->
-              match
-                Request.resolve ~ctype:(Some self#content_type) i.request
-                  timeout
-              with
-                | Request.Resolved -> Queue.push i retrieved
-                | ans -> log_failed_request self#log i.request ans)
-            q)
-
-    method add =
-      self#mutexify (fun i ->
+      self#clear_retrieved;
+      List.iter (fun request ->
           match
-            Request.resolve ~ctype:(Some self#content_type) i.request timeout
+            Request.resolve ~ctype:(Some self#content_type) request timeout
           with
             | Request.Resolved ->
-                Queue.push i retrieved;
-                true
-            | ans ->
-                log_failed_request self#log i.request ans;
-                false)
+                Queue.push retrieved { request; expired = false }
+            | ans -> log_failed_request self#log request ans)
+
+    method add i =
+      match
+        Request.resolve ~ctype:(Some self#content_type) i.request timeout
+      with
+        | Request.Resolved ->
+            Queue.push retrieved i;
+            true
+        | ans ->
+            log_failed_request self#log i.request ans;
+            false
 
     (* Seconds *)
     val mutable resolving = None
@@ -278,6 +270,16 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           state <- `Starting)
         ()
 
+    method private clear_retrieved =
+      let rec clear () =
+        match Queue.pop retrieved with
+          | None -> ()
+          | Some { request = req; _ } ->
+              Request.destroy req;
+              clear ()
+      in
+      clear ()
+
     method! private sleep =
       if state = `Running then (
         (* We need to be sure that the feeding task stopped filling the queue
@@ -297,17 +299,9 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
       (* No more feeding task, we can go to sleep. *)
       super#sleep;
-      self#end_track false;
+      self#end_request;
       self#log#info "Cleaning up request queue...";
-      try
-        Mutex.lock qlock;
-        while true do
-          let { request = req; _ } = Queue.take retrieved in
-          Request.destroy req
-        done
-      with e ->
-        Mutex.unlock qlock;
-        if e <> Queue.Empty then raise e
+      self#clear_retrieved
 
     (** This method should be called whenever the feeding task has a new
       opportunity to feed the queue, in case it is sleeping. *)
@@ -397,21 +391,24 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               Request.resolve ~ctype:(Some self#content_type) req timeout
             with
               | Request.Resolved ->
-                  let rec remove_expired n =
-                    if n = 0 then ()
-                    else (
-                      let r = Queue.take retrieved in
-                      if r.expired then (
-                        self#log#info "Dropping expired request.";
-                        Request.destroy r.request)
-                      else Queue.add r retrieved;
-                      remove_expired (n - 1))
+                  let rec remove_expired ret =
+                    match Queue.pop retrieved with
+                      | None -> List.rev ret
+                      | Some r ->
+                          let ret =
+                            if r.expired then (
+                              self#log#info "Dropping expired request.";
+                              Request.destroy r.request;
+                              ret)
+                            else r :: ret
+                          in
+                          remove_expired ret
                   in
-                  Mutex.lock qlock;
-                  remove_expired (Queue.length retrieved);
-                  Queue.add { request = req; expired = false } retrieved;
+                  List.iter
+                    (fun r -> Queue.push retrieved r)
+                    (remove_expired []);
+                  Queue.push retrieved { request = req; expired = false };
                   self#log#info "Queued %d requests" self#queue_size;
-                  Mutex.unlock qlock;
                   resolving <- None;
                   `Finished
               | Request.Failed (* Failure of resolving or decoding *)
@@ -422,36 +419,13 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
-      Mutex.lock qlock;
-      let ans =
-        try
-          let r = Queue.take retrieved in
-          self#log#info "Remaining %d requests" self#queue_size;
-          `Request r.request
-        with Queue.Empty ->
-          self#log#debug "Queue is empty!";
-          `Empty
-      in
-      Mutex.unlock qlock;
-
-      (* A request has been taken off the queue, there is a chance that the
-         queue should be refilled: awaken the feeding task. However, we can wait
-         that this file is played, and this need will be noticed in #get_frame. *)
-      ans
-
-    method private expire test =
-      let already_short = self#queue_size < prefetch in
-      Mutex.lock qlock;
-      Queue.iter
-        (fun r -> if test r.request && not r.expired then r.expired <- true)
-        retrieved;
-      Mutex.unlock qlock;
-      if self#queue_size < prefetch then (
-        if not already_short then
-          self#log#info "Expirations made the queue too short, feeding...";
-
-        (* Notify in any case, notifying twice never hurts. *)
-        self#notify_new_request)
+      match Queue.pop retrieved with
+        | None ->
+            self#log#debug "Queue is empty!";
+            `Empty
+        | Some r ->
+            self#log#info "Remaining %d requests" self#queue_size;
+            `Request r.request
   end
 
 let _ =
@@ -504,11 +478,12 @@ let _ =
           "Get the requests currently in the queue.",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                Lang.list
-                  (List.rev
-                     (Queue.fold
-                        (fun c i -> Request.Value.to_value i.request :: c)
-                        [] s#queue))) );
+                let rec fetch cur =
+                  match Queue.pop s#queue with
+                    | None -> List.rev cur
+                    | Some r -> fetch (Request.Value.to_value r.request :: cur)
+                in
+                Lang.list (fetch [])) );
         ( "add",
           ([], Lang.fun_t [(false, "", Request.Value.t)] Lang.bool_t),
           "Add a request to the queue. Requests are resolved before being \
@@ -536,11 +511,7 @@ let _ =
                   List.map Request.Value.of_value
                     (Lang.to_list (List.assoc "" p))
                 in
-                let q = Queue.create () in
-                List.iter
-                  (fun request -> Queue.push { request; expired = false } q)
-                  l;
-                s#set_queue q;
+                s#set_queue l;
                 Lang.unit) );
         ( "current",
           ([], Lang.fun_t [] (Lang.nullable_t Request.Value.t)),
