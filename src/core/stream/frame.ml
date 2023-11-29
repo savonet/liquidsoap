@@ -87,7 +87,8 @@ let add_track_mark frame pos =
 let position frame =
   Option.value ~default:0
     (Fields.fold
-       (fun _ c -> function
+       (fun field c -> function
+         | v when field = Fields.track_marks || field = Fields.metadata -> v
          | None -> Some (Content.length c)
          | Some p -> Some (min p (Content.length c)))
        frame None)

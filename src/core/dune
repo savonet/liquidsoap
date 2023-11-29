@@ -805,8 +805,7 @@
   tls_option
   vorbis_option
   winsvc_option
-  yaml_option
-  xmlplaylist_option)
+  yaml_option)
  (libraries
   liquidsoap_core
   (select
@@ -1058,9 +1057,4 @@
    yaml_option.ml
    from
    (liquidsoap_yaml -> yaml_option.enabled.ml)
-   (-> yaml_option.disabled.ml))
-  (select
-   xmlplaylist_option.ml
-   from
-   (liquidsoap_xmlplaylist -> xmlplaylist_option.enabled.ml)
-   (-> xmlplaylist_option.disabled.ml))))
+   (-> yaml_option.disabled.ml))))

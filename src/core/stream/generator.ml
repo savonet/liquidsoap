@@ -101,7 +101,7 @@ let _truncate gen len =
   Atomic.set gen.content
     (Frame_base.Fields.map
        (fun content ->
-         if len < Content.length content then Content.truncate content len
+         if len <= Content.length content then Content.truncate content len
          else content)
        (Atomic.get gen.content))
 

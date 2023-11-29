@@ -33,7 +33,7 @@ type queue_item = {
 
 type handler = {
   req : Request.t;
-  fill : Frame.t -> unit;
+  fread : int -> Frame.t;
   seek : int -> int;
   close : unit -> unit;
 }
@@ -126,9 +126,11 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               Some
                 {
                   req;
-                  fill =
-                    Tutils.mutexify m (fun buf ->
-                        remaining <- decoder.Decoder.fill buf);
+                  fread =
+                    Tutils.mutexify m (fun len ->
+                        let buf = decoder.Decoder.fread len in
+                        remaining <- decoder.Decoder.remaining ();
+                        buf);
                   seek =
                     Tutils.mutexify m (fun len -> decoder.Decoder.fseek len);
                   close = decoder.Decoder.close;
@@ -142,41 +144,46 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
             Request.destroy req;
             false
 
-    method private get_frame buf =
-      let end_track =
+    method private generate_data =
+      let buf, end_track =
         Tutils.mutexify plock
           (fun () ->
             if must_fail then (
               must_fail <- false;
-              Frame.add_break buf (Frame.position buf);
-              false)
+              (Frame.add_track_mark self#frame 0, false))
             else (
               match current with
                 | None ->
                     (* We're supposed to be ready so this shouldn't be reached. *)
                     assert false
                 | Some cur ->
-                    if send_metadata then (
-                      Request.on_air cur.req;
-                      let m = Request.get_all_metadata cur.req in
-                      Frame.set_metadata buf (Frame.position buf) m;
-                      send_metadata <- false);
-                    cur.fill buf;
-                    Frame.is_partial buf))
+                    let buf = cur.fread (Lazy.force Frame.size) in
+                    let buf =
+                      if send_metadata then (
+                        Request.on_air cur.req;
+                        let m = Request.get_all_metadata cur.req in
+                        let buf = Frame.add_metadata buf 0 m in
+                        send_metadata <- false;
+                        buf)
+                      else buf
+                    in
+                    (buf, List.length (Frame.track_marks buf) <> 0)))
           ()
       in
       if end_track then self#end_track false;
 
       (* At an end of track, we always have unqueued#remaining=0, so there's
          nothing special to do. *)
-      if self#queue_size < prefetch then self#notify_new_request
+      if self#queue_size < prefetch then self#notify_new_request;
+
+      buf
 
     method! seek x = match current with None -> 0 | Some cur -> cur.seek x
     method seek_source = (self :> Source.source)
     method abort_track = self#end_track true
     val mutable retry_status = None
 
-    method _is_ready ?frame:_ () =
+    method can_generate_data =
       let is_ready =
         Tutils.mutexify plock
           (fun () ->

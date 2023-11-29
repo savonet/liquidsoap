@@ -172,7 +172,6 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         let data = source#get_data in
-        Printf.printf "Got frame of length: %d\n%!" (Frame.position data);
         List.iter
           (fun (_, m) ->
             self#add_metadata
