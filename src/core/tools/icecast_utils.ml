@@ -177,9 +177,18 @@ module Icecast_v (M : Icecast_t) = struct
     | Encoder.AVI _ -> Some avi
     | Encoder.Ogg _ -> Some ogg
 
+  let encoder_overrides = function
+    | Encoder.Ffmpeg { Ffmpeg_format.format = Some "mp3"; opts } as e ->
+        if not (Hashtbl.mem opts "id3v2_version") then
+          Hashtbl.add opts "id3v2_version" (`Int 0);
+        if not (Hashtbl.mem opts "write_xing") then
+          Hashtbl.add opts "write_xing" (`Int 0);
+        e
+    | e -> e
+
   let encoder_data p =
     let v = Lang.assoc "" 1 p in
-    let enc = Lang.to_format v in
+    let enc = encoder_overrides (Lang.to_format v) in
     let info, format = (M.info_of_encoder enc, format_of_encoder enc) in
     let encoder_factory =
       try Encoder.get_factory enc
