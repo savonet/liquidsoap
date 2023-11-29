@@ -65,6 +65,7 @@ depopts: [
   "shine"
   "soundtouch"
   "speex"
+  "sqlite3"
   "srt"
   "ssl"
   "taglib"
