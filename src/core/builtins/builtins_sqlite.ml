@@ -19,3 +19,29 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
+
+let _ =
+  let meth =
+    [
+      ( "close",
+        ([], Lang.fun_t [] Lang.unit_t),
+        "Close the database. It should not be accessed afterward.",
+        fun db ->
+          Lang.val_fun [] (fun _p ->
+              ignore (Sqlite3.db_close db);
+              Lang.unit) );
+    ]
+  in
+  let t =
+    List.map (fun (name, typ, doc, _) -> (name, typ, doc)) meth
+    |> Lang.method_t Lang.unit_t
+  in
+  Lang.add_builtin "sqlite" ~category:`Programming
+    ~descr:"Manipulate an SQLITE database."
+    [("", Lang.string_t, None, Some "File where the data base is stored")]
+    t
+    (fun p ->
+      let fname = List.assoc "" p |> Lang.to_string in
+      let db = Sqlite3.db_open fname in
+      let meth = List.map (fun (name, _, _, f) -> (name, f db)) meth in
+      Lang.meth Lang.unit meth)
