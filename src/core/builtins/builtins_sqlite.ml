@@ -23,6 +23,16 @@
 let _ =
   let meth =
     [
+      ( "exec",
+        ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t),
+        "Execute an SQL operation.",
+        fun db ->
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              let sql = List.assoc "" p |> Lang.to_string in
+              ignore (Sqlite3.exec db sql);
+              Lang.unit) );
       ( "close",
         ([], Lang.fun_t [] Lang.unit_t),
         "Close the database. It should not be accessed afterward.",
