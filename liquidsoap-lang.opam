@@ -17,6 +17,7 @@ depends: [
   "menhir" {>= "20180703"}
   "odoc" {with-doc}
 ]
+depopts: ["sqlite3"]
 build: [
   ["dune" "subst"] {dev}
   [

@@ -154,7 +154,11 @@
     (re (>= 1.11.0))
     (ppx_string :build)
     (sedlex (>= 3.2))
-    (menhir (>= 20180703)))
+    (menhir (>= 20180703))
+  )
+  (depopts
+    sqlite3
+  )
   (sites (share libs) (share bin) (lib_root lib_root))
   (synopsis "Liquidsoap language library"))
 
