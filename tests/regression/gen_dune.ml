@@ -17,6 +17,7 @@ let () =
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
   ../streams/file1.png
+  ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)

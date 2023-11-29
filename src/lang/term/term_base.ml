@@ -68,6 +68,73 @@ let ref_t ?pos t =
     (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
     (Type.Constr { Type.constructor = "ref"; params = [(`Invariant, t)] })
 
+let rec fresh ~handler { t; term; methods } =
+  let term =
+    match term with
+      | `Ground g -> `Ground g
+      | `Tuple l -> `Tuple (List.map (fresh ~handler) l)
+      | `Null -> `Null
+      | `Open (t, t') -> `Open (fresh ~handler t, fresh ~handler t')
+      | `Var s -> `Var s
+      | `Seq (t, t') -> `Seq (fresh ~handler t, fresh ~handler t')
+      | `Let { doc; replace; pat; gen; def; body } ->
+          `Let
+            {
+              doc;
+              replace;
+              pat;
+              gen = List.map (Type.Fresh.make_var handler) gen;
+              def = fresh ~handler def;
+              body = fresh ~handler body;
+            }
+      | `List l -> `List (List.map (fresh ~handler) l)
+      | `Cast (t, typ) -> `Cast (fresh ~handler t, Type.Fresh.make handler typ)
+      | `App (t, l) ->
+          `App
+            ( fresh ~handler t,
+              List.map (fun (lbl, t) -> (lbl, fresh ~handler t)) l )
+      | `Invoke { invoked; invoke_default; meth } ->
+          `Invoke
+            {
+              invoked = fresh ~handler invoked;
+              invoke_default = Option.map (fresh ~handler) invoke_default;
+              meth;
+            }
+      | `Encoder encoder ->
+          let rec map_encoder (lbl, params) =
+            ( lbl,
+              List.map
+                (function
+                  | `Anonymous s -> `Anonymous s
+                  | `Encoder enc -> `Encoder (map_encoder enc)
+                  | `Labelled (lbl, t) -> `Labelled (lbl, fresh ~handler t))
+                params )
+          in
+          `Encoder (map_encoder encoder)
+      | `Fun { free_vars; name; arguments; body } ->
+          `Fun
+            {
+              free_vars;
+              name;
+              arguments =
+                List.map
+                  (fun { label; as_variable; default; typ } ->
+                    {
+                      label;
+                      as_variable;
+                      default = Option.map (fresh ~handler) default;
+                      typ = Type.Fresh.make handler typ;
+                    })
+                  arguments;
+              body = fresh ~handler body;
+            }
+  in
+  {
+    t = Type.Fresh.make handler t;
+    term;
+    methods = Methods.map (fresh ~handler) methods;
+  }
+
 (** {2 Terms} *)
 
 module Ground = struct

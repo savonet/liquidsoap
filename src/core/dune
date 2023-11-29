@@ -207,8 +207,7 @@
   raw_audio_decoder
   replaygain_op
   request
-  request_simple
-  request_source
+  request_dynamic
   resample
   rms_smooth
   rqueue

@@ -23,6 +23,13 @@
 let request = Modules.request
 
 let _ =
+  Lang.add_builtin ~base:request "is_static" ~category:`Liquidsoap
+    ~descr:"`true` if the given URI is assumed to be static, e.g. a file."
+    [("", Lang.string_t, None, None)]
+    Lang.bool_t
+    (fun p -> Lang.bool (Request.is_static (Lang.to_string (List.assoc "" p))))
+
+let _ =
   Lang.add_builtin ~base:request "create" ~category:`Liquidsoap
     ~descr:"Create a request from an URI."
     [

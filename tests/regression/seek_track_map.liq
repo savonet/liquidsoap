@@ -1,5 +1,5 @@
 # This is a regression test for GH3252
-s = single("./file1.mp3")
+s = single("../streams/file1.mp3")
 
 def set_cues(s) =
   def f(_) =
@@ -13,10 +13,10 @@ end
 
 s = set_cues(s)
 thread.run(
-  delay=1.,
+  delay=3.,
   {
     let seeked = s.seek(2.)
-    if seeked >= 1. then test.pass() end
+    if seeked >= 1. then test.pass() else test.fail() end
   }
 )
 

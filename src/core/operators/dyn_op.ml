@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
+class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
   object (self)
     inherit Source.source ~name:"source.dynamic" ()
     method stype = if infallible then `Infallible else `Fallible
@@ -112,7 +112,11 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
         | None -> (self :> Source.source)
 
     method self_sync =
-      (`Dynamic, match source with Some s -> snd s#self_sync | None -> false)
+      match self_sync with
+        | Some v -> (`Static, v)
+        | None -> (
+            ( `Dynamic,
+              match source with Some s -> snd s#self_sync | None -> false ))
   end
 
 let _ =
@@ -133,6 +137,10 @@ let _ =
         Some
           "Whether the source is infallible or not (be careful when setting \
            this, it will not be checked by the typing system)." );
+      ( "self_sync",
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
+        Some "For the source's `self_sync` property." );
       ( "resurection_time",
         Lang.nullable_t Lang.float_t,
         Some (Lang.float 1.),
@@ -174,5 +182,9 @@ let _ =
       let resurection_time =
         List.assoc "resurection_time" p |> Lang.to_valued_option Lang.to_float
       in
+      let self_sync =
+        Lang.to_valued_option Lang.to_bool (List.assoc "self_sync" p)
+      in
+      let next = List.assoc "" p in
       new dyn
-        ~init ~track_sensitive ~infallible ~resurection_time (List.assoc "" p))
+        ~init ~track_sensitive ~infallible ~resurection_time ~self_sync next)
