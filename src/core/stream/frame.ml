@@ -56,22 +56,13 @@ let compatible c c' =
 (* Frames *)
 
 let create content_type =
-  add_timed_content
+  add_timed_content ~length:0
     (Frame_base.Fields.map (Content.make ~length:0) content_type)
 
 let content_type = Fields.map Content.format
 
 let chunk ~start ~stop frame =
-  Fields.mapi
-    (fun field c ->
-      try Content.sub c start stop
-      with
-      | Invalid_argument arg
-      when arg = "Content.sub"
-           && (field = Fields.metadata || field = Fields.track_marks)
-      ->
-        Content.make ~length:0 (Content.format c))
-    frame
+  Fields.map (fun c -> Content.sub c start stop) frame
 
 let slice frame len =
   Fields.map
@@ -93,16 +84,20 @@ let track_marks frame =
   Content.Track_marks.get_data (get frame Fields.track_marks)
 
 let add_track_mark frame pos =
-  let track_marks = track_marks frame in
-  Fields.add Fields.track_marks
-    (Content.Track_marks.lift_data (pos :: track_marks))
-    frame
+  let old_marks = get frame Fields.track_marks in
+  let new_marks =
+    Content.make
+      ~length:(max pos (Content.length old_marks))
+      (Content.format old_marks)
+  in
+  Content.Track_marks.set_data new_marks
+    (pos :: Content.Track_marks.get_data old_marks);
+  Fields.add Fields.track_marks new_marks frame
 
 let position frame =
   Option.value ~default:0
     (Fields.fold
-       (fun field c -> function
-         | v when field = Fields.track_marks || field = Fields.metadata -> v
+       (fun _ c -> function
          | None -> Some (Content.length c)
          | Some p -> Some (min p (Content.length c)))
        frame None)
@@ -130,7 +125,12 @@ let get_metadata b t =
   try Some (List.assoc t (get_all_metadata b)) with Not_found -> None
 
 let add_metadata frame pos m =
-  let metadata = get_all_metadata frame in
-  Fields.add Fields.metadata
-    (Content.Metadata.lift_data ((pos, m) :: metadata))
-    frame
+  let old_metadata = get frame Fields.metadata in
+  let new_metadata =
+    Content.make
+      ~length:(max pos (Content.length old_metadata))
+      (Content.format old_metadata)
+  in
+  Content.Metadata.set_data new_metadata
+    ((pos, m) :: Content.Metadata.get_data old_metadata);
+  Fields.add Fields.metadata new_metadata frame

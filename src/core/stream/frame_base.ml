@@ -114,9 +114,9 @@ let format_of_channels ~pcm_kind n =
         lazy (Audio_converter.Channel_layout.layout_of_channels n);
     }
 
-let add_timed_content content =
+let add_timed_content ?length content =
   Fields.add Fields.track_marks
-    (Content_base.make Content_timed.Track_marks.format)
+    (Content_base.make ?length Content_timed.Track_marks.format)
     (Fields.add Fields.metadata
-       (Content_base.make Content_timed.Metadata.format)
+       (Content_base.make ?length Content_timed.Metadata.format)
        content)
