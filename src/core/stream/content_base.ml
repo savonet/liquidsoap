@@ -254,7 +254,9 @@ module MkContentBase (C : ContentSpecs) :
   let sub data ofs len =
     let start = ofs in
     let stop = start + len in
-    assert (stop <= length data);
+    let data_length = length data in
+    if data_length < start || data_length < stop then
+      raise (Invalid_argument "Content.sub");
     {
       data with
       chunks =

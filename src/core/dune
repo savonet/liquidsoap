@@ -180,7 +180,7 @@
   mp3_format
   mpd
   ;ms_stereo
-  ;muxer
+  muxer
   native_audio_converter
   native_video_converter
   ;noblank

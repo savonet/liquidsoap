@@ -62,7 +62,16 @@ let create content_type =
 let content_type = Fields.map Content.format
 
 let chunk ~start ~stop frame =
-  Fields.map (fun c -> Content.sub c start stop) frame
+  Fields.mapi
+    (fun field c ->
+      try Content.sub c start stop
+      with
+      | Invalid_argument arg
+      when arg = "Content.sub"
+           && (field = Fields.metadata || field = Fields.track_marks)
+      ->
+        Content.make ~length:0 (Content.format c))
+    frame
 
 let slice frame len =
   Fields.map
@@ -103,7 +112,7 @@ let is_partial b = 0 < remaining b
 
 let map_chunks fn f =
   let rec map (cur : t) = function
-    | [] -> cur
+    | _ :: [] -> cur
     | start :: stop :: rest ->
         map (append cur (fn (chunk ~start ~stop f))) (stop :: rest)
     | _ -> assert false
