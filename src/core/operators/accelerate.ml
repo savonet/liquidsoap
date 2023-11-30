@@ -25,7 +25,7 @@ open Source
 class accelerate ~ratio ~randomize source_val =
   let source = Lang.to_source source_val in
   object (self)
-    inherit operator ~name:"accelerate" [source] as super
+    inherit operator ~name:"accelerate" [source]
     inherit! Child_support.base ~check_self_sync:true [source_val]
     method self_sync = source#self_sync
     method stype = source#stype
@@ -36,17 +36,7 @@ class accelerate ~ratio ~randomize source_val =
       if rem = -1 then rem else int_of_float (float rem *. ratio ())
 
     method abort_track = source#abort_track
-
-    (** Frame used for dropping samples. *)
-    val mutable null = Frame.dummy ()
-
-    method! private wake_up x =
-      super#wake_up x;
-      null <- Frame.create self#content_type;
-      source#get_ready [(self :> source)]
-
-    method! private sleep = source#leave (self :> source)
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
 
     (** Filled ticks. *)
     val mutable filled = 0
@@ -70,22 +60,19 @@ class accelerate ~ratio ~randomize source_val =
           let l = (tanh (a *. 2.) +. 1.) /. 2. in
           Random.float 1. > 1. -. l))
 
-    method private get_frame frame =
+    method private generate_data =
       let pos = ref 1 in
       (* Drop frames if we are late. *)
       (* TODO: we could also duplicate if we are in advance. *)
-      while !pos > 0 && self#must_drop && source#is_ready ~frame () do
-        Frame.clear null;
-        self#child_on_output (fun () -> source#get null);
-        pos := Frame.position null;
+      while !pos > 0 && self#must_drop && source#is_ready do
+        self#child_on_output (fun () -> pos := Frame.position source#get_data);
         skipped <- skipped + !pos
       done;
-      if source#is_ready ~frame () then (
-        let before = Frame.position frame in
-        if !pos > 0 then self#child_on_output (fun () -> source#get frame);
-        let after = Frame.position frame in
-        filled <- filled + (after - before))
-      else Frame.add_break frame (Frame.position frame)
+      let buf = ref self#frame in
+      if source#is_ready then (
+        if !pos > 0 then self#child_on_output (fun () -> buf := source#get_data);
+        filled <- filled + Frame.position !buf);
+      !buf
   end
 
 let _ =

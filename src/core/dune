@@ -50,7 +50,7 @@
  (library_flags -linkall)
  (modules
   aFrame
-  ;accelerate
+  accelerate
   ;add
   amplify
   annotate
