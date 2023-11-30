@@ -102,6 +102,9 @@ val create : content_type -> t
 (** Get at most length data from the start of the given frame. *)
 val slice : t -> int -> t
 
+(** Get a chunk delimitated by [start] and [stop] *)
+val chunk : start:int -> stop:int -> t -> t
+
 (** Get a frame's content type. *)
 val content_type : t -> content_type
 
@@ -110,6 +113,9 @@ val append : t -> t -> t
 
 (** Get a frame's content. *)
 val get : t -> field -> Content.data
+
+(** Set a frame's content. *)
+val set : t -> field -> Content.data -> t
 
 (** Get a frame's audio content. *)
 val audio : t -> Content.data
@@ -127,8 +133,13 @@ val position : t -> int
 val remaining : t -> int
 
 (** Is the frame partially filled, i.e. is its end [position] strictly before
-    its size? *)
+    [Lazy.force Frame.size]? *)
 val is_partial : t -> bool
+
+(** Apply a function to all chunks of the frame.
+    A frame's chunks are all the section between
+    frame start, track marks and frame end. *)
+val map_chunks : (t -> t) -> t -> t
 
 (** {3 Track marks} *)
 

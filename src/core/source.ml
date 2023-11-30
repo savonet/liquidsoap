@@ -585,7 +585,7 @@ class virtual operator ?pos ?(name = "src") sources =
 
     method is_ready =
       self#has_ticked;
-      match streaming_state with `Ready _ -> true | _ -> false
+      match streaming_state with `Ready _ | `Done _ -> true | _ -> false
 
     (* This is the implementation of the main streaming logic. *)
     initializer

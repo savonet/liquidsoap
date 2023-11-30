@@ -61,6 +61,9 @@ let create content_type =
 
 let content_type = Fields.map Content.format
 
+let chunk ~start ~stop frame =
+  Fields.map (fun c -> Content.sub c start stop) frame
+
 let slice frame len =
   Fields.map
     (fun c -> if Content.length c < len then c else Content.sub c 0 len)
@@ -70,6 +73,7 @@ let append f f' =
   Fields.mapi (fun field c -> Content.append c (Fields.find field f')) f
 
 let get frame field = Fields.find field frame
+let set frame field c = Fields.add field c frame
 let audio frame = get frame Fields.audio
 let video frame = get frame Fields.video
 let midi frame = get frame Fields.midi
@@ -96,6 +100,15 @@ let position frame =
 
 let remaining b = !!size - position b
 let is_partial b = 0 < remaining b
+
+let map_chunks fn f =
+  let rec map (cur : t) = function
+    | [] -> cur
+    | start :: stop :: rest ->
+        map (append cur (fn (chunk ~start ~stop f))) (stop :: rest)
+    | _ -> assert false
+  in
+  map (slice f 0) (0 :: (track_marks f @ [position f]))
 
 (** Metadata stuff *)
 
