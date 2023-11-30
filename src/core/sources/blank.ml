@@ -33,48 +33,36 @@ class blank duration =
 
     method remaining = remaining
     method stype = `Infallible
-    method private _is_ready ?frame:_ _ = true
+    method private can_generate_data = true
     method self_sync = (`Static, false)
     method! seek x = x
     method seek_source = (self :> Source.source)
     method abort_track = remaining <- 0
 
-    method get_frame ab =
-      let position = Frame.position ab in
-      let length =
-        if remaining < 0 then Lazy.force Frame.size - position
-        else min remaining (Lazy.force Frame.size - position)
-      in
-      let audio_pos = Frame.audio_of_main position in
+    method generate_data =
+      let length = min (Lazy.force Frame.size) remaining in
+      remaining <- remaining - remaining;
       let audio_len = Frame.audio_of_main length in
-      let video_pos = Frame.video_of_main position in
       let video_len = Frame.video_of_main length in
-
-      Frame.Fields.iter
-        (fun field typ ->
-          match typ with
+      Frame.Fields.map
+        (fun typ ->
+          let c = Content.make ~length typ in
+          (match typ with
             | _ when Content.Audio.is_format typ ->
-                Audio.clear
-                  (Content.Audio.get_data (Frame.get ab field))
-                  audio_pos audio_len
+                Audio.clear (Content.Audio.get_data c) 0 audio_len
             | _ when Content_pcm_s16.is_format typ ->
-                Content_pcm_s16.clear
-                  (Content_pcm_s16.get_data (Frame.get ab field))
-                  audio_pos audio_len
+                Content_pcm_s16.clear (Content_pcm_s16.get_data c) 0 audio_len
             | _ when Content_pcm_f32.is_format typ ->
-                Content_pcm_f32.clear
-                  (Content_pcm_f32.get_data (Frame.get ab field))
-                  audio_pos audio_len
+                Content_pcm_f32.clear (Content_pcm_f32.get_data c) 0 audio_len
             | _ when Content.Video.is_format typ ->
-                Video.Canvas.blank
-                  (Content.Video.get_data (Frame.get ab field))
-                  video_pos video_len
-            | _ -> failwith "Invalid content type!")
-        self#content_type;
-
-      Frame.add_break ab (position + length);
-      if Frame.is_partial ab then remaining <- ticks
-      else if remaining > 0 then remaining <- remaining - length
+                Video.Canvas.blank (Content.Video.get_data c) 0 video_len
+            | _
+              when Content.Metadata.is_format typ
+                   || Content.Track_marks.is_format typ ->
+                ()
+            | _ -> failwith "Invalid content type!");
+          c)
+        self#content_type
   end
 
 let blank =
