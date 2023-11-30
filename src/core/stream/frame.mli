@@ -97,7 +97,7 @@ type t = Content.data Fields.t
 (** All units are in ticks (main clock). *)
 
 (** Create a frame of a given content type. *)
-val create : content_type -> t
+val create : length:int -> content_type -> t
 
 (** Get at most length data from the start of the given frame. *)
 val slice : t -> int -> t

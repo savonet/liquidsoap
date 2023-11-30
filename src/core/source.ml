@@ -627,7 +627,7 @@ class virtual operator ?pos ?(name = "src") sources =
       match frame with
         | Some frame -> frame
         | None ->
-            let f = Frame.create self#content_type in
+            let f = Frame.create ~length:0 self#content_type in
             frame <- Some f;
             f
 

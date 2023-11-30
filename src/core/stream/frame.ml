@@ -55,9 +55,9 @@ let compatible c c' =
 
 (* Frames *)
 
-let create content_type =
-  add_timed_content ~length:0
-    (Frame_base.Fields.map (Content.make ~length:0) content_type)
+let create ~length content_type =
+  add_timed_content ~length
+    (Frame_base.Fields.map (Content.make ~length) content_type)
 
 let content_type = Fields.map Content.format
 

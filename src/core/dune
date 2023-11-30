@@ -55,7 +55,7 @@
   amplify
   annotate
   audio_converter
-  ;audio_gen
+  audio_gen
   ;available
   avi
   ;avi_encoder
@@ -234,7 +234,7 @@
   ;swap
   ;switch
   ;synth_op
-  ;synthesized
+  synthesized
   term
   theora_format
   ;time_warp
