@@ -49,7 +49,7 @@ def medialib(
     m
   end
 
-  # Whether an entry needs ot be updated.
+  # Whether an entry needs to be updated.
   def needs_update(f, m) =
     file.mtime(f) >
       string.to_float(
@@ -380,3 +380,417 @@ def medialib(
 
   {find=find, refresh=refresh, add_directory=add_directory, clear=clear}
 end
+
+%ifdef sqlite
+# A library to store the metadata of files in given folders and query
+# them. This is useful to generate playlists based on metadata. This version
+# use an SQL implementation which should be much faster and less memory
+# consuming than the basic one.
+# @category File
+# @param ~persistency Store the database in given file, which is reuse to populate the database on next run.
+# @param ~refresh Scan directories for new files every given number of seconds (by default the database is never updated).
+# @param ~standardize Function mapped on metadata when indexing. It can be used to change the field names to standard ones, pretreat data, etc.
+# @param ~initial_progress Show progress of library being indexed at startup.
+# @param ~directories Directories to look for files in.
+# @param dir Directory to look for files in.
+# @method find Find files according to conditions on metadata.
+# @method refresh Update metadatas and look for new files.
+# @method add_directory Add a new directory which should be scanned.
+# @method clear Remove all known metadata.
+def medialib.sqlite(
+  ~id=null(),
+  ~database,
+  ~refresh=null(),
+  ~standardize=fun (m) -> m,
+  ~initial_progress=true,
+  ~directories=[],
+  dir=null()
+) =
+  id = string.id.default(default="medialib.sqlite", id)
+  refresh_time = refresh
+  directories = ref(directories)
+  if null.defined(dir) then directories := null.get(dir)::directories() end
+
+  fields_string = ["artist", "title", "album", "genre", "basename"]
+  fields_int = ["year", "bpm"]
+  fields_float = ["last_scan"]
+
+  db = sqlite(database)
+  begin
+    fields_string =
+      string.concat(
+        separator=
+          ", ",
+        list.map(
+          fun (s) ->
+            s ^
+              " STRING",
+          fields_string
+        )
+      )
+    fields_int =
+      string.concat(
+        separator=
+          ", ",
+        list.map(
+          fun (s) ->
+            s ^
+              " INT",
+          fields_int
+        )
+      )
+    fields_float =
+      string.concat(
+        separator=
+          ", ",
+        list.map(
+          fun (s) ->
+            s ^
+              " FLOAT",
+          fields_float
+        )
+      )
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS metadata (file STRING UNIQUE, #{
+        fields_string
+      }, #{fields_int}, #{fields_float})"
+    )
+  end
+
+  def dt(t) =
+    string.float(decimal_places=2, time() - t)
+  end
+
+  # Read metadata from file.
+  def metadata(f) =
+    m = file.metadata.native(f)
+    m = standardize(m)
+
+    # Sanitize
+    m = metadata.cover.remove(m)
+    m = list.assoc.filter(fun (k, _) -> not list.mem(k, ["priv", "rva2"]), m)
+
+    # Add more metadata
+    m = ("basename", path.basename(f))::m
+    m = ("last_scan", string.float(time()))::m
+    m
+  end
+
+  # Whether an entry needs to be updated.
+  def needs_update(f, last_scan) =
+    file.mtime(f) > last_scan
+  end
+
+  # Remove file from the database
+  def remove(f) =
+    db.exec(
+      "DELETE FROM metadata WHERE file=#{sqlite.escape(f)}"
+    )
+  end
+
+  # Add a file to the database.
+  def add(f) =
+    # If file doesn't exist remove it
+    if
+      not (file.exists(f))
+    then
+      remove(f)
+    else
+      count =
+        db.count(
+          "SELECT COUNT(*) FROM metadata WHERE file=#{sqlite.escape(f)}"
+        )
+      def last_scan() =
+        string.to_float(
+          null.get(
+            snd(
+              list.hd(
+                list.hd(
+                  db.query(
+                    "SELECT last_scan FROM metadata WHERE file=#{
+                      sqlite.escape(f)
+                    }"
+                  )
+                )
+              )
+            )
+          )
+        )
+      end
+
+      # New file or not recent enough metadata
+      if
+        count == 0 or needs_update(f, last_scan())
+      then
+        remove(f)
+        m = metadata(f)
+        def field(~map, k) =
+          if list.assoc.mem(k, m) then map(list.assoc(k, m)) else null() end
+        end
+        id = fun (x) -> x
+        m =
+          {
+            file=f,
+            artist=field(map=id, "artist"),
+            title=field(map=id, "title"),
+            album=field(map=id, "album"),
+            genre=field(map=id, "genre"),
+            basename=field(map=id, "basename"),
+            last_scan=field(map=float_of_string, "last_scan"),
+            year=field(map=int_of_string, "year"),
+            bpm=field(map=int_of_string, "bpm")
+          }
+        db.insert(table="metadata", m)
+      end
+    end
+  end
+
+  # Number of entries in the database
+  def count() =
+    db.count(
+      "SELECT COUNT(*) FROM metadata"
+    )
+  end
+
+  # Update database by renewing metadata and removing removed files.
+  def update(~progress=fun (_, _) -> ()) =
+    len = count()
+    n = ref(0)
+    nu = ref(0)
+
+    def u(row) =
+      ref.incr(n)
+      progress(n(), len)
+      f = row["file"]
+      add(f)
+    end
+
+    db.iter(
+      u,
+      "SELECT file FROM metadata"
+    )
+    log.debug(
+      label=id,
+      "Updated #{nu()} files."
+    )
+  end
+
+  # Make sure that new files from directories are registered.
+  def scan(~progress=fun (_, _) -> ()) =
+    l =
+      list.map(
+        fun (d) -> file.ls(absolute=true, recursive=true, d), directories()
+      )
+
+    l = list.flatten(l)
+    n = ref(0)
+    len = list.length(l)
+
+    def add(f) =
+      ref.incr(n)
+      progress(n(), len)
+      add(f)
+    end
+
+    list.iter(add, l)
+  end
+
+  # Refresh the library.
+  def refresh() =
+    log.info(
+      label=id,
+      "Refreshing the library..."
+    )
+    t = time()
+    update()
+    scan()
+    log.info(
+      label=id,
+      "Refreshed the library in #{dt(t)}s."
+    )
+  end
+
+  # Find all files matching given criteria.
+  def find(
+    ~artist=null(),
+    ~artist_contains=null(),
+    ~artist_matches=null(),
+    ~album=null(),
+    ~genre=null(),
+    ~title=null(),
+    ~title_contains=null(),
+    ~filename=null(),
+    ~filename_contains=null(),
+    ~filename_matches=null(),
+    ~year=null(),
+    ~year_ge=null(),
+    ~year_lt=null(),
+    ~bpm=null(),
+    ~bpm_ge=null(),
+    bpm_lt=null()
+  ) =
+    predicates = ref([])
+    def pred(p) =
+      predicates := p::predicates()
+    end
+    def eqf(k, v) =
+      if
+        null.defined(v)
+      then
+        v = null.get(v)
+        pred("#{k}=#{sqlite.escape(v)}")
+      end
+    end
+    def ctf(k, v) =
+      if
+        null.defined(v)
+      then
+        v = null.get(v)
+        pred(
+          "#{k} LIKE #{sqlite.escape('%' ^ v ^ '%')}"
+        )
+      end
+    end
+    def mtf(k, v) =
+      if
+        null.defined(v)
+      then
+        v = null.get(v)
+        pred(
+          "#{k} MATCHES #{sqlite.escape(v)}"
+        )
+      end
+    end
+
+    eqf("artist", artist)
+    ctf("artist", artist_contains)
+    mtf("artist", artist_matches)
+    eqf("album", album)
+    eqf("genre", genre)
+    eqf("title", title)
+    ctf("title", title_contains)
+    eqf("filename", filename)
+    ctf("basename", filename_contains)
+    mtf("basename", filename_matches)
+
+    if
+      null.defined(year)
+    then
+      year = null.get(year)
+      pred("year=#{year}")
+    end
+    if
+      null.defined(year_ge)
+    then
+      year_ge = null.get(year_ge)
+      pred(
+        "year >= #{year_ge}"
+      )
+    end
+    if
+      null.defined(year_lt)
+    then
+      year_lt = null.get(year_lt)
+      pred(
+        "year < #{year_lt}"
+      )
+    end
+    if
+      null.defined(bpm)
+    then
+      bpm = null.get(bpm)
+      pred("bpm=#{bpm}")
+    end
+    if
+      null.defined(bpm_ge)
+    then
+      bpm_ge = null.get(bpm_ge)
+      pred(
+        "bpm >= #{bpm_ge}"
+      )
+    end
+    if
+      null.defined(bpm_lt)
+    then
+      bpm_lt = null.get(bpm_lt)
+      pred(
+        "bpm < #{bpm_lt}"
+      )
+    end
+    predicates =
+      string.concat(
+        separator=
+          " AND ",
+        predicates()
+      )
+
+    l =
+      db.query(
+        "SELECT file FROM metadata WHERE #{predicates}"
+      )
+    l = list.map((fun (l) -> null.get(snd(list.hd(l)))), l)
+    l
+  end
+
+  t = time()
+  progress =
+    if
+      initial_progress
+    then
+      fun (n, l) ->
+        print(
+          newline=false,
+          "#{id}: updating #{n * 100 / l}%...\r"
+        )
+    else
+      fun (_, _) -> ()
+    end
+
+  update(progress=progress)
+  log.important(
+    label=id,
+    "Updated library in #{dt(t)}s: #{count()} entries"
+  )
+
+  t = time()
+  progress =
+    if
+      initial_progress
+    then
+      fun (n, l) ->
+        print(
+          newline=false,
+          "#{id}: scanning #{n * 100 / l}%...\r"
+        )
+    else
+      fun (_, _) -> ()
+    end
+
+  scan(progress=progress)
+  log.important(
+    label=id,
+    "Scanned new files in #{dt(t)}s: #{count()} entries"
+  )
+
+  if
+    null.defined(refresh_time)
+  then
+    thread.run(
+      delay=null.get(refresh_time), every=null.get(refresh_time), refresh
+    )
+  end
+
+  def clear() =
+    db.exec(
+      "DELETE FROM metadata"
+    )
+  end
+
+  def add_directory(d) =
+    directories := d::directories()
+    scan()
+  end
+
+  {find=find, refresh=refresh, add_directory=add_directory, clear=clear}
+end
+%endif
