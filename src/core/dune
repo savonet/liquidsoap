@@ -121,7 +121,7 @@
   frame_type
   format_type
   ;gate
-  ;generated
+  generated
   generator
   gstreamer_format
   harbor
