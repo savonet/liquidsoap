@@ -20,15 +20,17 @@
 
  *****************************************************************************)
 
+let error fmt =
+  Printf.ksprintf
+    (fun message -> Runtime_error.raise ~pos:[] ~message "sqlite")
+    fmt
+
 let _ =
   let meth =
     let check db ans =
-      if not (Sqlite3.Rc.is_success ans) then (
-        let message =
-          Printf.sprintf "Command failed (%s): %s." (Sqlite3.Rc.to_string ans)
-            (Sqlite3.errmsg db)
-        in
-        Runtime_error.raise ~pos:[] ~message "sqlite")
+      if not (Sqlite3.Rc.is_success ans) then
+        error "Command failed (%s): %s." (Sqlite3.Rc.to_string ans)
+          (Sqlite3.errmsg db)
     in
     [
       ( "exec",
@@ -41,6 +43,49 @@ let _ =
               let sql = List.assoc "" p |> Lang.to_string in
               Sqlite3.exec db sql |> check db;
               Lang.unit) );
+      ( "insert",
+        ( [],
+          Lang.fun_t
+            [(false, "table", Lang.string_t); (false, "", Lang.unit_t)]
+            Lang.unit_t ),
+        "Insert a value represented as a record into a table.",
+        fun db ->
+          Lang.val_fun
+            [("table", "table", None); ("", "", None)]
+            (fun p ->
+              let table = List.assoc "table" p |> Lang.to_string in
+              let v =
+                List.assoc "" p |> Liquidsoap_lang.Builtins_json.json_of_value
+              in
+              match v with
+                | `Assoc l ->
+                    let l =
+                      List.map
+                        (fun (k, v) ->
+                          ( k,
+                            match v with
+                              | `String s -> Sqlite3.Data.opt_text (Some s)
+                              | `Int n -> Sqlite3.Data.opt_int (Some n)
+                              | `Float x -> Sqlite3.Data.opt_float (Some x)
+                              | _ -> error "Unexpected content for field %s." k
+                          ))
+                        l
+                    in
+                    let fields = l |> List.map fst |> String.concat ", " in
+                    let values =
+                      l |> List.map (fun _ -> "?") |> String.concat ", "
+                    in
+                    let insert =
+                      Printf.sprintf "INSERT INTO %s (%s) VALUES (%s)" table
+                        fields values
+                    in
+                    let insert = Sqlite3.prepare db insert in
+                    l |> List.map snd
+                    |> List.iteri (fun i v ->
+                           Sqlite3.bind insert (i + 1) v |> check db);
+                    Sqlite3.step insert |> check db;
+                    Lang.unit
+                | _ -> error "Expected associative list.") );
       ( "close",
         ([], Lang.fun_t [] Lang.unit_t),
         "Close the database. It should not be accessed afterward.",
