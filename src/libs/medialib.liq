@@ -612,6 +612,7 @@ def medialib.sqlite(
 
   # Find all files matching given criteria.
   def find(
+    ~case_sensitive=false,
     ~artist=null(),
     ~artist_contains=null(),
     ~artist_matches=null(),
@@ -633,33 +634,39 @@ def medialib.sqlite(
     def pred(p) =
       predicates := p::predicates()
     end
-    def eqf(k, v) =
+    def cmp(op, k, v) =
       if
         null.defined(v)
       then
         v = null.get(v)
-        pred("#{k}=#{sqlite.escape(v)}")
+        p =
+          if
+            case_sensitive
+          then
+            (
+              "#{k} #{op} #{sqlite.escape(v)}"
+            )
+          else
+            (
+              "UPPER(#{k}) #{op} UPPER(#{sqlite.escape(v)})"
+            )
+          end
+        pred(p)
       end
+    end
+    def eqf(k, v) =
+      cmp("=", k, v)
     end
     def ctf(k, v) =
       if
         null.defined(v)
       then
         v = null.get(v)
-        pred(
-          "#{k} LIKE #{sqlite.escape('%' ^ v ^ '%')}"
-        )
+        cmp("LIKE", k, "%" ^ v ^ "%")
       end
     end
     def mtf(k, v) =
-      if
-        null.defined(v)
-      then
-        v = null.get(v)
-        pred(
-          "#{k} MATCHES #{sqlite.escape(v)}"
-        )
-      end
+      cmp("MATCHES", k, v)
     end
 
     eqf("artist", artist)
@@ -672,7 +679,6 @@ def medialib.sqlite(
     eqf("filename", filename)
     ctf("basename", filename_contains)
     mtf("basename", filename_matches)
-
     if
       null.defined(year)
     then
