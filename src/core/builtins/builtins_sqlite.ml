@@ -25,6 +25,10 @@ let error fmt =
     (fun message -> Runtime_error.raise ~pos:[] ~message "sqlite")
     fmt
 
+let escape =
+  let rex = Pcre.regexp "'" in
+  fun s -> "'" ^ Pcre.substitute ~rex ~subst:(fun _ -> "''") s ^ "'"
+
 let sqlite =
   let meth =
     let check db ans =
@@ -123,6 +127,30 @@ let sqlite =
           Lang.val_fun [] (fun _p ->
               Sqlite3.db_close db |> ignore;
               Lang.unit) );
+      ( "table",
+        ( [],
+          Lang.record_t
+            [("exists", Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t)] ),
+        "Operations on tables.",
+        fun db ->
+          Lang.record
+            [
+              ( "exists",
+                Lang.val_fun
+                  [("", "", None)]
+                  (fun p ->
+                    let table = List.assoc "" p |> Lang.to_string in
+                    let statement =
+                      Printf.sprintf
+                        "SELECT name FROM sqlite_master WHERE type='table' AND \
+                         name=%s"
+                        (escape table)
+                    in
+                    let ans = ref false in
+                    Sqlite3.exec db ~cb:(fun _ _ -> ans := true) statement
+                    |> check db;
+                    Lang.bool !ans) );
+            ] );
     ]
   in
   let t =
@@ -140,13 +168,8 @@ let sqlite =
       Lang.meth Lang.unit meth)
 
 let _ =
-  let rex = Pcre.regexp "'" in
   Lang.add_builtin "escape" ~base:sqlite ~category:`Programming
     ~descr:"Escape a string for use in a query."
     [("", Lang.string_t, None, Some "String to escape.")]
     Lang.string_t
-    (fun p ->
-      let s = List.assoc "" p |> Lang.to_string in
-      let s = Pcre.substitute ~rex ~subst:(fun _ -> "''") s in
-      let s = "'" ^ s ^ "'" in
-      Lang.string s)
+    (fun p -> List.assoc "" p |> Lang.to_string |> escape |> Lang.string)

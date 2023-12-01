@@ -25,6 +25,8 @@ def f() =
   print(
     "result: #{l}"
   )
+  test.equals(db.table.exists("test"), true)
+  test.equals(db.table.exists("ghost"), false)
   test.pass()
 end
 
