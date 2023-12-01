@@ -267,6 +267,22 @@ class virtual active_operator :
        inherit active_source
      end
 
+(* Helper to generate data from a sequence of source.
+   Data generation calls [get_source] on track marks.
+   When frame is partial, a track mark is added unless [merge] is
+   set to [true]. *)
+class virtual generate_from_multiple_sources :
+  merge:(unit -> bool)
+  -> track_sensitive:(unit -> bool)
+  -> unit
+  -> object
+       method virtual get_source : reselect:bool -> unit -> source option
+       method virtual frame : Frame.t
+       method virtual on_after_output : (unit -> unit) -> unit
+       method private can_generate_data : bool
+       method private generate_data : Frame.t
+     end
+
 val has_outputs : unit -> bool
 val iterate_new_outputs : (active_source -> unit) -> unit
 

@@ -137,7 +137,7 @@
   ;iir_filter
   ;image_decoder
   image_plug
-  ;insert_metadata
+  insert_metadata
   ioRing
   json
   ;keyboard
@@ -169,7 +169,7 @@
   ;mFrame
   ;map_metadata
   ;map_op
-  ;max_duration
+  max_duration
   ;mean
   metadata_base
   ;merge_metadata
@@ -215,7 +215,7 @@
   rqueue
   runtime_error
   sandbox
-  ;sequence
+  sequence
   server
   server_builtins
   sha1
@@ -232,7 +232,7 @@
   stringView
   strings
   ;swap
-  ;switch
+  switch
   ;synth_op
   synthesized
   term

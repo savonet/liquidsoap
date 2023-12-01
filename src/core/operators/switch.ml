@@ -37,8 +37,35 @@ type track_mode = Sensitive | Insensitive
 
 type selection = { child : child; effective_source : source }
 
-class virtual switch ~name ~override_meta ~transition_length
-  ?(mode = fun () -> true) ?(replay_meta = true) (cases : child list) =
+let satisfied f = Lang.to_bool (Lang.apply f [])
+
+let trivially_true = function
+  | {
+      Lang.value =
+        Lang.Fun (_, _, { Term.term = `Ground (Term.Ground.Bool true); _ });
+      _;
+    } ->
+      true
+  | _ -> false
+
+let third (_, _, s) = s
+
+(** Like [List.find] but evaluates [f] on every element when [strict] is
+    [true]. *)
+let find ?(strict = false) f l =
+  let rec aux = function
+    | x :: l ->
+        if f x then (
+          if strict then List.iter (fun x -> ignore (f x)) l;
+          x)
+        else aux l
+    | [] -> raise Not_found
+  in
+  aux l
+
+class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
+  ~track_sensitive children =
+  let cases = List.map third children in
   let sources = ref (List.map (fun c -> c.source) cases) in
   let failed = ref false in
   let () =
@@ -52,7 +79,13 @@ class virtual switch ~name ~override_meta ~transition_length
     if !failed then lazy `Dynamic else Utils.self_sync_type !sources
   in
   object (self)
-    inherit operator ~name (List.map (fun x -> x.source) cases)
+    inherit operator ~name:"switch" (List.map (fun x -> x.source) cases)
+
+    inherit
+      generate_from_multiple_sources
+        ~merge:(fun () -> false)
+        ~track_sensitive ()
+
     val mutable transition_length = transition_length
     val mutable selected : selection option = None
 
@@ -62,34 +95,31 @@ class virtual switch ~name ~override_meta ~transition_length
         | Some { child = { source }; effective_source } ->
             source != effective_source
 
-    (** Indicates that the former child was left without having finished its
-    * track, in which case the switch will artificially produce an EOT. *)
-    val mutable need_eot = false
+    method private select =
+      let selected s =
+        match selected with
+          | Some { child } when child.source == s.source -> true
+          | _ -> false
+      in
+      try
+        Some
+          (third
+             (find ~strict:all_predicates
+                (fun (d, single, s) ->
+                  (* Check single constraints *)
+                  (if selected s then not single else true)
+                  && satisfied d && s.source#is_ready)
+                children))
+      with Not_found -> None
 
-    (** The selection method should return None or Some c,
-    * where c is a ready child. *)
-    method virtual private select : child option
-
-    (** Don't call #select directly but use #cached_select
-    * to ensure consistency during one time tick between #is_ready and
-    * #get_frame. We want to make sure that when a source is selected
-    * during a #is_ready call, the same selection is returned during the
-    * next #get_frame call. *)
-    val mutable cached_selected = None
-
-    method private cached_select =
-      match cached_selected with
-        | Some _ as c -> c
-        | None ->
-            cached_selected <- self#select;
-            cached_selected
-
-    initializer
-      self#on_after_output (fun () ->
-          (* Selection may have been triggered by a call to #is_ready, without
-           * any call to #get_ready (in particular if #select returned None).
-           * It is cleared here in order to get a chance to be re-computed later. *)
-          cached_selected <- None)
+    method stype =
+      if
+        List.exists
+          (fun (d, single, s) ->
+            s.source#stype = `Infallible && (not single) && trivially_true d)
+          children
+      then `Infallible
+      else `Fallible
 
     val mutable activation = []
 
@@ -110,37 +140,18 @@ class virtual switch ~name ~override_meta ~transition_length
       if self#is_selected_generated then
         (Option.get selected).effective_source#leave (self :> source)
 
-    method private _is_ready ?frame:_ _ =
-      need_eot || selected <> None || self#cached_select <> None
-
-    (* This one is tricky. We do not want to call #cached_select as
-       this requires some run-time info from underlying sources
-       (mostly ctype to be set). The only case that matters if no
-       sources are selected is to know if we are [`Static, false] for
-       any caller such as [cross]. Since the source is not ready, we
-       can return anything so we check if any source might be not
-       self_sync in this case *)
-    method self_sync =
-      ( Lazy.force self_sync_type,
-        match selected with
-          | Some s -> snd s.effective_source#self_sync
-          | None -> List.exists (fun c -> snd c.source#self_sync) cases )
-
-    method private get_frame ab =
-      (* Choose the next child to be played.
-       * [forget] tells that the current child has finished its track,
-       * in which case a transition does not make sense and would actually start
-       * playing a next track (if available) on the left child. *)
-      let reselect ?(forget = false) () =
-        if not forget then need_eot <- true;
-        match
-          let c = self#cached_select in
-          cached_selected <- None;
-          c
-        with
-          | Some c -> (
-              match selected with
-                | None ->
+    method get_source ~reselect () =
+      match (selected, reselect) with
+        | Some s, false -> Some s.effective_source
+        | _ ->
+            begin
+              match (selected, self#select) with
+                | None, None -> ()
+                | Some c, None ->
+                    if c.child.source != c.effective_source then
+                      c.effective_source#leave (self :> source);
+                    selected <- None
+                | None, Some c ->
                     self#log#important "Switch to %s." c.source#id;
                     let new_source =
                       (* Force insertion of old metadata if relevant.
@@ -159,17 +170,26 @@ class virtual switch ~name ~override_meta ~transition_length
                     new_source#get_ready activation;
                     selected <-
                       Some { child = c; effective_source = new_source }
-                | Some old_selection when old_selection.child.source != c.source
-                  ->
+                | Some old_selection, Some c
+                  when old_selection.child.source == c.source ->
+                    ()
+                | old_selection, Some c ->
+                    let forget, old_source =
+                      match old_selection with
+                        | None -> (true, Debug_sources.empty ())
+                        | Some old_selection ->
+                            if
+                              old_selection.effective_source
+                              != old_selection.child.source
+                            then
+                              old_selection.effective_source#leave
+                                (self :> source);
+                            (false, old_selection.child.source)
+                    in
                     self#log#important "Switch to %s with%s transition."
                       c.source#id
                       (if forget then " forgetful" else "");
-                    old_selection.effective_source#leave (self :> source);
                     Clock.collect_after (fun () ->
-                        let old_source =
-                          if forget then Debug_sources.empty ()
-                          else old_selection.child.source
-                        in
                         let new_source =
                           (* Force insertion of old metadata if relevant.
                            * It can't be done in a static way: we need to start
@@ -203,42 +223,22 @@ class virtual switch ~name ~override_meta ~transition_length
                                     ~override_meta ~duration:transition_length s
                                 in
                                 Typing.(s#frame_type <: self#frame_type);
-                                new Sequence.sequence
-                                  ~merge:true [s; new_source]
+                                (new Sequence.sequence
+                                   ~merge:true [s; new_source]
+                                  :> Source.source)
                         in
                         Typing.(s#frame_type <: self#frame_type);
                         Clock.unify ~pos:self#pos s#clock self#clock;
                         s#get_ready activation;
                         selected <- Some { child = c; effective_source = s })
-                | _ ->
-                    (* We are staying on the same child,
-                     * don't start a new track. *)
-                    need_eot <- false)
-          | None -> (
-              match selected with
-                | Some old_s ->
-                    old_s.effective_source#leave (self :> source);
-                    selected <- None
-                | None -> ())
-      in
-      (* #select is called only when selected=None, and the cache is cleared
-       * as soon as the new selection is set. *)
-      assert (selected = None || cached_selected = None);
-      if need_eot then (
-        need_eot <- false;
-        Frame.add_break ab (Frame.position ab))
-      else (
-        match selected with
-          | None ->
-              reselect ~forget:true ();
+            end;
+            Option.map (fun s -> s.effective_source) selected
 
-              (* Our #is_ready, and caching, ensure the following. *)
-              assert (selected <> None);
-              self#get_frame ab
-          | Some s ->
-              s.effective_source#get ab;
-              if Frame.is_partial ab then reselect ~forget:true ()
-              else if not (mode ()) then reselect ())
+    method self_sync =
+      ( Lazy.force self_sync_type,
+        match selected with
+          | Some s -> snd s.effective_source#self_sync
+          | None -> List.exists (fun c -> snd c.source#self_sync) cases )
 
     method remaining =
       match selected with None -> 0 | Some s -> s.effective_source#remaining
@@ -261,69 +261,6 @@ class virtual switch ~name ~override_meta ~transition_length
 let default_transition =
   Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
     "fun (_, y) -> y"
-
-(** Switch: switch according to user-defined predicates. *)
-
-let satisfied f = Lang.to_bool (Lang.apply f [])
-
-let trivially_true = function
-  | {
-      Lang.value =
-        Lang.Fun (_, _, { Term.term = `Ground (Term.Ground.Bool true); _ });
-      _;
-    } ->
-      true
-  | _ -> false
-
-let third (_, _, s) = s
-
-(** Like [List.find] but evaluates [f] on every element when [strict] is
-    [true]. *)
-let find ?(strict = false) f l =
-  let rec aux = function
-    | x :: l ->
-        if f x then (
-          if strict then List.iter (fun x -> ignore (f x)) l;
-          x)
-        else aux l
-    | [] -> raise Not_found
-  in
-  aux l
-
-class lang_switch ~override_meta ~all_predicates ~transition_length mode
-  ?replay_meta (children : (Lang.value * bool * child) list) =
-  object
-    inherit
-      switch
-        ~name:"switch" ~mode ~override_meta ~transition_length ?replay_meta
-          (List.map third children)
-
-    method private select =
-      let selected s =
-        match selected with
-          | Some { child } when child.source == s.source -> true
-          | _ -> false
-      in
-      try
-        Some
-          (third
-             (find ~strict:all_predicates
-                (fun (d, single, s) ->
-                  (* Check single constraints *)
-                  (if selected s then not single else true)
-                  && satisfied d && s.source#is_ready ())
-                children))
-      with Not_found -> None
-
-    method stype =
-      if
-        List.exists
-          (fun (d, single, s) ->
-            s.source#stype = `Infallible && (not single) && trivially_true d)
-          children
-      then `Infallible
-      else `Fallible
-  end
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
@@ -438,6 +375,6 @@ let _ =
                ( List.assoc "single" p,
                  "there should be exactly one flag per children" ))
       in
-      new lang_switch
-        ~replay_meta ~override_meta ~all_predicates ~transition_length:tl ts
-        children)
+      new switch
+        ~replay_meta ~override_meta ~all_predicates ~transition_length:tl
+        ~track_sensitive:ts children)

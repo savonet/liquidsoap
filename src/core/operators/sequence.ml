@@ -29,9 +29,18 @@ open Source
   * to the current use of [sequence] in transitions. *)
 class sequence ?(merge = false) sources =
   let self_sync_type = Utils.self_sync_type sources in
+  let merge_fn = ref (fun () -> merge) in
   object (self)
     inherit operator ~name:"sequence" sources
+
+    inherit
+      generate_from_multiple_sources
+        ~merge:(fun () -> !merge_fn ())
+        ~track_sensitive:(fun () -> true)
+        ()
+
     val mutable seq_sources = sources
+    initializer merge_fn := fun () -> merge && seq_sources <> []
 
     method self_sync =
       ( Lazy.force self_sync_type,
@@ -48,19 +57,15 @@ class sequence ?(merge = false) sources =
     method! private sleep =
       List.iter (fun s -> (s :> source)#leave (self :> source)) sources
 
-    (** When head_ready is true, it must be that:
-    *  - (List.hd seq_sources)#is_ready
-    *  - or we have started playing a track of (List.hd sources)
-    *    and that track has not ended yet.
-    * In case the head source becomes unavailable before its end of track,
-    * head_ready keeps the sequence operator available, so that its #get_frame
-    * can be called to properly end the track and cleanup the source if needed.
-    * If instead the operator had become unavailable then source#get would have
-    * inserted an end of track automatically instead of calling #get_frame. *)
-    val mutable head_ready = false
-
-    method private _is_ready ?frame () =
-      head_ready || List.exists (fun s -> s#is_ready ?frame ()) seq_sources
+    method private get_source ~reselect () =
+      match seq_sources with
+        | [] -> None
+        | s :: [] -> Some s
+        | s :: rest when reselect || not s#is_ready ->
+            (s :> source)#leave (self :> source);
+            seq_sources <- rest;
+            self#get_source ~reselect:false ()
+        | s :: _ -> Some s
 
     method remaining =
       if merge then (
@@ -79,54 +84,23 @@ class sequence ?(merge = false) sources =
           | [] -> assert false
           | hd :: _ -> seq_sources <- [hd]);
       match seq_sources with hd :: _ -> hd#abort_track | _ -> ()
-
-    method private get_frame buf =
-      if head_ready then (
-        let hd = List.hd seq_sources in
-        hd#get buf;
-        if Frame.is_partial buf then (
-          head_ready <- false;
-          if List.length seq_sources > 1 then (
-            seq_sources <- List.tl seq_sources;
-            if merge && self#is_ready ~frame:buf () then (
-              let pos = Frame.position buf in
-              self#get_frame buf;
-              Frame.set_breaks buf
-                (Utils.remove_one (( = ) pos) (Frame.breaks buf))))))
-      else (
-        match seq_sources with
-          | a :: (_ :: _ as tl) ->
-              if a#is_ready ~frame:buf () then head_ready <- true
-              else seq_sources <- tl;
-              self#get_frame buf
-          | [a] ->
-              assert (a#is_ready ~frame:buf ());
-
-              (* Our #is_ready ensures that. *)
-              head_ready <- true;
-              self#get_frame buf
-          | [] -> assert false)
   end
 
 class merge_tracks source =
-  object (self)
+  object
     inherit operator ~name:"sequence" [source]
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method abort_track = source#abort_track
     method remaining = -1
     method self_sync = source#self_sync
     method seek_source = source#seek_source
 
-    method private get_frame buf =
-      source#get buf;
-      if Frame.is_partial buf && source#is_ready ~frame:buf () then (
-        self#log#info "End of track: merging.";
-        self#get_frame buf;
-        Frame.set_breaks buf
-          (match Frame.breaks buf with
-            | b :: _ :: l -> b :: l
-            | _ -> assert false))
+    method private generate_data =
+      let buf = source#get_data in
+      Frame.set buf Frame.Fields.track_marks
+        (Content.make ~length:(Frame.position buf)
+           Content_timed.Track_marks.format)
   end
 
 let _ =

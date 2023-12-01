@@ -598,8 +598,11 @@ class virtual operator ?pos ?(name = "src") sources =
           else streaming_state <- `Unavailable)
 
     method get_data =
+      self#has_ticked;
       match streaming_state with
-        | `Unavailable -> raise Unavailable
+        | `Unavailable ->
+            log#critical "source called while not ready!";
+            raise Unavailable
         | `Ready fn ->
             fn ();
             self#get_data
@@ -749,6 +752,78 @@ and virtual source ?pos ?name () =
 class virtual active_source ?pos ?name () =
   object
     inherit active_operator ?pos ?name []
+  end
+
+class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
+  object (self)
+    method virtual get_source : reselect:bool -> unit -> source option
+    method virtual frame : Frame.t
+    method virtual on_after_output : (unit -> unit) -> unit
+    val mutable cache = None
+    val mutable last_position = Hashtbl.create 10
+    initializer self#on_after_output (fun () -> Hashtbl.clear last_position)
+
+    method private can_generate_data =
+      match cache with
+        | Some c when Frame.position c > 0 -> true
+        | _ -> (
+            match self#get_source ~reselect:false () with
+              | Some s -> s#is_ready
+              | None -> false)
+
+    method private get_slice ~reselect () =
+      match self#get_source ~reselect () with
+        | Some source when source#is_ready ->
+            let data = source#get_data in
+            let start =
+              match Hashtbl.find_opt last_position source with
+                | Some p -> p
+                | None -> 0
+            in
+            let stop =
+              match
+                List.filter (fun p -> p > start) (Frame.track_marks data)
+              with
+                | p :: _ -> p
+                | _ -> Frame.position data
+            in
+            Hashtbl.replace last_position source stop;
+            Some (Frame.chunk ~start ~stop data)
+        | _ -> None
+
+    method private generate_data =
+      let rec pull ~reselect buf =
+        let pos = Frame.position buf in
+        let size = Lazy.force Frame.size in
+        let buf =
+          if size < pos then (
+            cache <- Some (Frame.chunk ~start:size ~stop:pos buf);
+            Frame.slice buf size)
+          else buf
+        in
+        if Frame.is_partial buf then (
+          match self#get_slice ~reselect () with
+            | None -> buf
+            | Some data ->
+                let buf_pos = Frame.position buf in
+                let data_pos = Frame.position data in
+                let data =
+                  match
+                    (buf_pos + data_pos < Lazy.force Frame.size, merge ())
+                  with
+                    | true, false -> Frame.add_track_mark data data_pos
+                    | _, true ->
+                        Frame.set data Frame.Fields.track_marks
+                          (Content.make ~length:data_pos
+                             Content_timed.Track_marks.format)
+                    | _ -> data
+                in
+                pull ~reselect:true (Frame.append buf data))
+        else buf
+      in
+      let buf = Option.value ~default:self#frame cache in
+      cache <- None;
+      pull ~reselect:(not (track_sensitive ())) buf
   end
 
 (** Specialized shortcuts *)

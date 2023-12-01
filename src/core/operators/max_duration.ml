@@ -38,7 +38,7 @@ class max_duration ~override_meta ~duration source =
 
     method! private sleep = s#leave (self :> Source.operator)
     method stype = `Fallible
-    method private _is_ready ?frame () = remaining > 0 && s#is_ready ?frame ()
+    method private can_generate_data = remaining > 0 && s#is_ready
     method abort_track = s#abort_track
 
     method remaining =
@@ -50,31 +50,32 @@ class max_duration ~override_meta ~duration source =
     method! seek len = source#seek_source#seek (min remaining len)
     method seek_source = source#seek_source
 
-    method private check_for_override ~offset buf =
+    method private check_for_override buf =
       List.iter
-        (fun (p, m) ->
-          if p >= offset then
-            Frame.Metadata.iter
-              (fun lbl v ->
-                if lbl = override_meta then (
-                  try
-                    let v = float_of_string v in
-                    remaining <- Frame.main_of_seconds v;
-                    self#log#info "Overriding remaining value: %.02f." v
-                  with _ ->
-                    self#log#important "Invalid remaining override value: %s." v))
-              m)
+        (fun (_, m) ->
+          Frame.Metadata.iter
+            (fun lbl v ->
+              if lbl = override_meta then (
+                try
+                  let v = float_of_string v in
+                  remaining <- Frame.main_of_seconds v;
+                  self#log#info "Overriding remaining value: %.02f." v
+                with _ ->
+                  self#log#important "Invalid remaining override value: %s." v))
+            m)
         (Frame.get_all_metadata buf)
 
-    method private get_frame buf =
-      let offset = Frame.position buf in
-      s#get buf;
-      self#check_for_override ~offset buf;
-      remaining <- remaining - Frame.position buf + offset;
+    method private generate_data =
+      let buf = s#get_data in
+      self#check_for_override buf;
+      let pos = Frame.position buf in
+      let len = min remaining pos in
+      remaining <- remaining - len;
       if remaining <= 0 then (
         s#leave (self :> Source.source);
         s <- Debug_sources.empty ();
-        s#get_ready [(self :> Source.source)])
+        s#get_ready [(self :> Source.source)]);
+      if len < pos then Frame.slice buf len else buf
   end
 
 let _ =

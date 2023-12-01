@@ -58,13 +58,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
           last_buffering_warning <- r;
           self#log#debug "Not ready: need more buffering (%i/%i)." r bufferize);
         r > bufferize)
-      else (
-        (* This only happens if the end of track has not been played yet,
-         * after which the buffering phase will start again. Does not mean
-         * that we're not accumulating data, but it means that we don't know
-         * yet that we'll stop playing it until the buffer is full enough. *)
-        if r = 0 then self#log#info "Not ready for a new track: empty buffer.";
-        r > 0)
+      else r > 0
 
     method remaining =
       if add_track_mark then 0
