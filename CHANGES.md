@@ -13,8 +13,9 @@ New:
 - Add `metadata.replaygain` method to extract unified replay gain value from metadata (#3438).
 - Add `compute` parameter to `file.replaygain` to control gain calculation (#3438).
 - Add `compute` parameter to `enable_replaygain_metadata` to control replay gain calculation (#3438).
-- Add `copy:` protocol (##3506)
+- Add `copy:` protocol (#3506)
 - Add `file.touch`.
+- Add support for sqlite databases (#3575).
 
 Changed:
 
