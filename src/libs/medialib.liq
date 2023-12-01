@@ -497,9 +497,13 @@ def medialib.sqlite(
       remove(f)
     else
       count =
-        db.count(
-          "SELECT COUNT(*) FROM metadata WHERE file=#{sqlite.escape(f)}"
-        )
+        begin
+          let [[(_, c)]] =
+            db.query(
+              "SELECT COUNT(*) FROM metadata WHERE file=#{sqlite.escape(f)}"
+            )
+          int_of_string(null.get(c))
+        end
       def last_scan() =
         string.to_float(
           null.get(
@@ -555,9 +559,11 @@ def medialib.sqlite(
 
   # Number of entries in the database
   def count() =
-    db.count(
-      "SELECT COUNT(*) FROM metadata"
-    )
+    let [[(_, c)]] =
+      db.query(
+        "SELECT COUNT(*) FROM metadata"
+      )
+    int_of_string(null.get(c))
   end
 
   # Update database by renewing metadata and removing removed files.

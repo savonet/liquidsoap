@@ -42,15 +42,6 @@ def f() =
     "SELECT * FROM test WHERE n=5"
   )
 
-  # Count
-  n =
-    db.count(
-      "SELECT COUNT(*) FROM test"
-    )
-  print(
-    "COUNT: #{n}"
-  )
-
   # Table existence
   test.equals(db.table.exists("test"), true)
   test.equals(db.table.exists("ghost"), false)
