@@ -146,14 +146,17 @@ val map_chunks : (t -> t) -> t -> t
 (** List of track marks in a frame. *)
 val track_marks : t -> int list
 
-(** Add a track_mark to a frame *)
+(** Add a track mark to a frame *)
 val add_track_mark : t -> int -> t
+
+(** Add a multiple track marks to a frame *)
+val add_track_marks : t -> int list -> t
 
 (** {3 Metadata} *)
 
 exception No_metadata
 
-(** Attach metadata at a given position in the frame. *)
+(** Attach metadata at a given position to the frame. *)
 val add_metadata : t -> int -> metadata -> t
 
 (** Retrieve metadata at a given position. *)
@@ -161,6 +164,9 @@ val get_metadata : t -> int -> metadata option
 
 (** Retrieve all metadata. *)
 val get_all_metadata : t -> (int * metadata) list
+
+(** Attach multiple metadata to a frame. *)
+val add_all_metadata : t -> (int * metadata) list -> t
 
 (** {2 Content operations} *)
 

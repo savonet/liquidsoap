@@ -70,7 +70,7 @@ class accelerate ~ratio ~randomize source_val =
       done;
       let buf = ref self#frame in
       if source#is_ready then (
-        if !pos > 0 then self#child_on_output (fun () -> buf := source#get_data);
+        self#child_on_output (fun () -> buf := source#get_data);
         filled <- filled + Frame.position !buf);
       !buf
   end

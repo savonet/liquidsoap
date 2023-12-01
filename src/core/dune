@@ -51,7 +51,7 @@
  (modules
   aFrame
   accelerate
-  ;add
+  add
   amplify
   annotate
   audio_converter
@@ -85,7 +85,7 @@
   configure
   ;cross
   ;cuepoint
-  ;debug_sources
+  debug_sources
   decoder
   decoder_utils
   ;defer
@@ -239,7 +239,7 @@
   theora_format
   ;time_warp
   track
-  ;track_map
+  track_map
   tutils
   type
   typing

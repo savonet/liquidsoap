@@ -83,16 +83,19 @@ let midi frame = get frame Fields.midi
 let track_marks frame =
   Content.Track_marks.get_data (get frame Fields.track_marks)
 
-let add_track_mark frame pos =
+let add_track_marks frame l =
   let old_marks = get frame Fields.track_marks in
-  let new_marks =
-    Content.make
-      ~length:(max pos (Content.length old_marks))
-      (Content.format old_marks)
+  let length =
+    List.fold_left
+      (fun length pos -> max pos length)
+      (Content.length old_marks) l
   in
+  let new_marks = Content.make ~length (Content.format old_marks) in
   Content.Track_marks.set_data new_marks
-    (pos :: Content.Track_marks.get_data old_marks);
+    (l @ Content.Track_marks.get_data old_marks);
   Fields.add Fields.track_marks new_marks frame
+
+let add_track_mark frame pos = add_track_marks frame [pos]
 
 let position frame =
   Option.value ~default:0
@@ -124,13 +127,17 @@ let get_all_metadata frame =
 let get_metadata b t =
   try Some (List.assoc t (get_all_metadata b)) with Not_found -> None
 
-let add_metadata frame pos m =
+let add_all_metadata frame l =
   let old_metadata = get frame Fields.metadata in
-  let new_metadata =
-    Content.make
-      ~length:(max pos (Content.length old_metadata))
-      (Content.format old_metadata)
+  let length =
+    List.fold_left
+      (fun length (pos, _) -> max pos length)
+      (Content.length old_metadata)
+      l
   in
+  let new_metadata = Content.make ~length (Content.format old_metadata) in
   Content.Metadata.set_data new_metadata
-    ((pos, m) :: Content.Metadata.get_data old_metadata);
+    (l @ Content.Metadata.get_data old_metadata);
   Fields.add Fields.metadata new_metadata frame
+
+let add_metadata frame pos m = add_all_metadata frame [(pos, m)]
