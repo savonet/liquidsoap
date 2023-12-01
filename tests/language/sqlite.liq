@@ -18,6 +18,8 @@ def f() =
   print(
     "result: #{l}"
   )
+  test.equals(sqlite.escape("bla"), "'bla'")
+  test.equals(sqlite.escape("a'b"), "'a''b'")
   test.pass()
 end
 

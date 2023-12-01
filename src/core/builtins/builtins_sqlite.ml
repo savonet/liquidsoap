@@ -25,7 +25,7 @@ let error fmt =
     (fun message -> Runtime_error.raise ~pos:[] ~message "sqlite")
     fmt
 
-let _ =
+let sqlite =
   let meth =
     let check db ans =
       if not (Sqlite3.Rc.is_success ans) then
@@ -138,3 +138,15 @@ let _ =
       let db = Sqlite3.db_open fname in
       let meth = List.map (fun (name, _, _, f) -> (name, f db)) meth in
       Lang.meth Lang.unit meth)
+
+let _ =
+  let rex = Pcre.regexp "'" in
+  Lang.add_builtin "escape" ~base:sqlite ~category:`Programming
+    ~descr:"Escape a string for use in a query."
+    [("", Lang.string_t, None, Some "String to escape.")]
+    Lang.string_t
+    (fun p ->
+      let s = List.assoc "" p |> Lang.to_string in
+      let s = Pcre.substitute ~rex ~subst:(fun _ -> "''") s in
+      let s = "'" ^ s ^ "'" in
+      Lang.string s)
