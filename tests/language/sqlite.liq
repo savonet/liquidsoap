@@ -1,8 +1,10 @@
 #!../../liquidsoap ../test.liq
 def f() =
   fname = "/tmp/test.sql"
-  file.remove(fname)
   db = sqlite(fname)
+  db.exec(
+    "DROP TABLE IF EXISTS test"
+  )
   db.exec(
     "CREATE TABLE test (n INTEGER PRIMARY KEY, s STRING, f FLOAT);"
   )
