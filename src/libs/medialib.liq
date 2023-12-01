@@ -208,7 +208,7 @@ def medialib(
     ~year_lt=null(),
     ~bpm=null(),
     ~bpm_ge=null(),
-    bpm_lt=null(),
+    ~bpm_lt=null(),
     ~predicate=(fun (_) -> true)
   ) =
     def p(m) =
@@ -525,6 +525,14 @@ def medialib.sqlite(
         remove(f)
         m = metadata(f)
         def field(~map, k) =
+          def map(x) =
+            # Harden
+            try
+              map(x)
+            catch _ do
+              null()
+            end
+          end
           if list.assoc.mem(k, m) then map(list.assoc(k, m)) else null() end
         end
         id = fun (x) -> x
@@ -628,12 +636,14 @@ def medialib.sqlite(
     ~year_lt=null(),
     ~bpm=null(),
     ~bpm_ge=null(),
-    bpm_lt=null()
+    ~bpm_lt=null(),
+    ~condition=null()
   ) =
     predicates = ref([])
     def pred(p) =
       predicates := p::predicates()
     end
+    if null.defined(condition) then pred(null.get(condition)) end
     def cmp(op, k, v) =
       if
         null.defined(v)
