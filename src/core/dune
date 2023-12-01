@@ -126,7 +126,7 @@
   gstreamer_format
   harbor
   harbor_base
-  ;harbor_input
+  harbor_input
   ;harbor_output
   hooks_implementations
   ;hls_output
