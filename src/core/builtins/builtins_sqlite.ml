@@ -167,6 +167,7 @@ let sqlite =
                                  | `String s -> Sqlite3.Data.opt_text (Some s)
                                  | `Int n -> Sqlite3.Data.opt_int (Some n)
                                  | `Float x -> Sqlite3.Data.opt_float (Some x)
+                                 | `Null -> Sqlite3.Data.NULL
                                  | _ ->
                                      error "Unexpected content for field %s." k
                              ))
