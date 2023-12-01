@@ -85,7 +85,7 @@ let _ =
                            Sqlite3.bind insert (i + 1) v |> check db);
                     Sqlite3.step insert |> check db;
                     Lang.unit
-                | _ -> error "Expected associative list.") );
+                | _ -> error "A record was expected.") );
       ( "close",
         ([], Lang.fun_t [] Lang.unit_t),
         "Close the database. It should not be accessed afterward.",
