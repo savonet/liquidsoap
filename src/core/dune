@@ -58,7 +58,7 @@
   audio_gen
   available
   avi
-  ;avi_encoder
+  avi_encoder
   avi_format
   ;biquad_filter
   blank
@@ -247,7 +247,7 @@
   ;udp_io
   utils
   value
-  ;vFrame
+  vFrame
   ;video_board
   video_converter
   ;video_effects
