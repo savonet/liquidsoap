@@ -32,6 +32,14 @@ def f() =
     "result: #{l}"
   )
 
+  n =
+    db.count(
+      "SELECT COUNT(*) FROM test"
+    )
+  print(
+    "COUNT: #{n}"
+  )
+
   # Table existence
   test.equals(db.table.exists("test"), true)
   test.equals(db.table.exists("ghost"), false)

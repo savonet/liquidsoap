@@ -73,9 +73,21 @@ let sqlite =
                 in
                 ans := l :: !ans
               in
-              Sqlite3.exec ~cb db sql |> check db;
+              Sqlite3.exec db ~cb sql |> check db;
               let ans = List.rev !ans in
               Lang.list ans) );
+      ( "count",
+        ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.int_t),
+        "Execute a COUNT SQL operation and return the result.",
+        fun db ->
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              let sql = List.assoc "" p |> Lang.to_string in
+              let ans = ref 0 in
+              let cb row = ans := int_of_string (Option.get row.(0)) in
+              Sqlite3.exec_no_headers db ~cb sql |> check db;
+              Lang.int !ans) );
       ( "insert",
         ( [],
           Lang.method_t
