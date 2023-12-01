@@ -35,5 +35,18 @@ def replaces sqlite(file) =
     db.exec(sql)
   end
 
+  # Operations on tables.
+  let db.table = ()
+
+  def db.table.exists(name) =
+    let [[(_, n)]] =
+      db.query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=#{
+          sqlite.escape(name)
+        }"
+      )
+    null.defined(n)
+  end
+
   db
 end

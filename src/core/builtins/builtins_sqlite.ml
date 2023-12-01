@@ -165,30 +165,6 @@ let sqlite =
           Lang.val_fun [] (fun _p ->
               Sqlite3.db_close db |> ignore;
               Lang.unit) );
-      ( "table",
-        ( [],
-          Lang.record_t
-            [("exists", Lang.fun_t [(false, "", Lang.string_t)] Lang.bool_t)] ),
-        "Operations on tables.",
-        fun db ->
-          Lang.record
-            [
-              ( "exists",
-                Lang.val_fun
-                  [("", "", None)]
-                  (fun p ->
-                    let table = List.assoc "" p |> Lang.to_string in
-                    let statement =
-                      Printf.sprintf
-                        "SELECT name FROM sqlite_master WHERE type='table' AND \
-                         name=%s"
-                        (escape table)
-                    in
-                    let ans = ref false in
-                    Sqlite3.exec db ~cb:(fun _ _ -> ans := true) statement
-                    |> check db;
-                    Lang.bool !ans) );
-            ] );
     ]
   in
   let t =
