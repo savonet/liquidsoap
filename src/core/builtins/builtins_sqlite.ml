@@ -76,6 +76,43 @@ let sqlite =
               Sqlite3.exec db ~cb sql |> check db;
               let ans = List.rev !ans in
               Lang.list ans) );
+      ( "iter",
+        ( [],
+          Lang.fun_t
+            [
+              ( false,
+                "",
+                Lang.fun_t
+                  [
+                    ( false,
+                      "",
+                      Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)
+                    );
+                  ]
+                  Lang.unit_t );
+              (false, "", Lang.string_t);
+            ]
+            Lang.unit_t ),
+        "Iterate a function over all the results of a query.",
+        fun db ->
+          Lang.val_fun
+            [("", "", None); ("", "", None)]
+            (fun p ->
+              let f = Lang.assoc "" 1 p in
+              let sql = Lang.assoc "" 2 p |> Lang.to_string in
+              let cb row headers =
+                let l =
+                  Array.map2 (fun h r -> (h, r)) headers row
+                  |> Array.to_list
+                  |> List.map (fun (h, r) ->
+                         Lang.product (Lang.string h)
+                           (Option.fold ~none:Lang.null ~some:Lang.string r))
+                  |> Lang.list
+                in
+                ignore (Lang.apply f [("", l)])
+              in
+              Sqlite3.exec db ~cb sql |> check db;
+              Lang.unit) );
       ( "count",
         ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.int_t),
         "Execute a COUNT SQL operation and return the result.",

@@ -32,6 +32,16 @@ def f() =
     "result: #{l}"
   )
 
+  # Iterate
+  print(
+    "# Iterate"
+  )
+  db.iter(
+    print,
+    "SELECT * FROM test WHERE n=5"
+  )
+
+  # Count
   n =
     db.count(
       "SELECT COUNT(*) FROM test"
