@@ -78,48 +78,90 @@ let sqlite =
               Lang.list ans) );
       ( "insert",
         ( [],
-          Lang.fun_t
-            [(false, "table", Lang.string_t); (false, "", Lang.unit_t)]
-            Lang.unit_t ),
+          Lang.method_t
+            (Lang.fun_t
+               [(false, "table", Lang.string_t); (false, "", Lang.unit_t)]
+               Lang.unit_t)
+            [
+              ( "list",
+                ( [],
+                  Lang.fun_t
+                    [
+                      (false, "table", Lang.string_t);
+                      ( false,
+                        "",
+                        Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)
+                      );
+                    ]
+                    Lang.unit_t ),
+                "Insert a list of key / value pairs, where all the values are \
+                 strings." );
+            ] ),
         "Insert a value represented as a record into a table.",
         fun db ->
-          Lang.val_fun
-            [("table", "table", None); ("", "", None)]
-            (fun p ->
-              let table = List.assoc "table" p |> Lang.to_string in
-              let v =
-                List.assoc "" p |> Liquidsoap_lang.Builtins_json.json_of_value
-              in
-              match v with
-                | `Assoc l ->
+          Lang.meth
+            (Lang.val_fun
+               [("table", "table", None); ("", "", None)]
+               (fun p ->
+                 let table = List.assoc "table" p |> Lang.to_string in
+                 let v =
+                   List.assoc "" p
+                   |> Liquidsoap_lang.Builtins_json.json_of_value
+                 in
+                 match v with
+                   | `Assoc l ->
+                       let l =
+                         List.map
+                           (fun (k, v) ->
+                             ( k,
+                               match v with
+                                 | `String s -> Sqlite3.Data.opt_text (Some s)
+                                 | `Int n -> Sqlite3.Data.opt_int (Some n)
+                                 | `Float x -> Sqlite3.Data.opt_float (Some x)
+                                 | _ ->
+                                     error "Unexpected content for field %s." k
+                             ))
+                           l
+                       in
+                       let insert =
+                         let fields = l |> List.map fst |> String.concat ", " in
+                         let values =
+                           l |> List.map (fun _ -> "?") |> String.concat ", "
+                         in
+                         Printf.sprintf "INSERT INTO %s (%s) VALUES (%s)" table
+                           fields values
+                       in
+                       let insert = Sqlite3.prepare db insert in
+                       l |> List.map snd
+                       |> List.iteri (fun i v ->
+                              Sqlite3.bind insert (i + 1) v |> check db);
+                       Sqlite3.step insert |> check db;
+                       Sqlite3.finalize insert |> check db;
+                       Lang.unit
+                   | _ -> error "A record was expected."))
+            [
+              ( "list",
+                Lang.val_fun
+                  [("table", "table", None); ("", "", None)]
+                  (fun p ->
+                    let table = List.assoc "table" p |> Lang.to_string in
                     let l =
-                      List.map
-                        (fun (k, v) ->
-                          ( k,
-                            match v with
-                              | `String s -> Sqlite3.Data.opt_text (Some s)
-                              | `Int n -> Sqlite3.Data.opt_int (Some n)
-                              | `Float x -> Sqlite3.Data.opt_float (Some x)
-                              | _ -> error "Unexpected content for field %s." k
-                          ))
-                        l
-                    in
-                    let fields = l |> List.map fst |> String.concat ", " in
-                    let values =
-                      l |> List.map (fun _ -> "?") |> String.concat ", "
+                      List.assoc "" p |> Lang.to_list
+                      |> List.map Lang.to_product
+                      |> List.map (fun (k, v) ->
+                             (Lang.to_string k, Lang.to_string v))
                     in
                     let insert =
+                      let fields = List.map fst l |> String.concat ", " in
+                      let values =
+                        List.map snd l |> List.map escape |> String.concat ", "
+                      in
                       Printf.sprintf "INSERT INTO %s (%s) VALUES (%s)" table
                         fields values
                     in
-                    let insert = Sqlite3.prepare db insert in
-                    l |> List.map snd
-                    |> List.iteri (fun i v ->
-                           Sqlite3.bind insert (i + 1) v |> check db);
-                    Sqlite3.step insert |> check db;
-                    Sqlite3.finalize insert |> check db;
-                    Lang.unit
-                | _ -> error "A record was expected.") );
+                    Sqlite3.exec db insert |> check db;
+                    Lang.unit) );
+            ] );
       ( "close",
         ([], Lang.fun_t [] Lang.unit_t),
         "Close the database. It should not be accessed afterward.",
