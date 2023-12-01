@@ -32,13 +32,14 @@ class available ~track_sensitive ~override p (source : source) =
     method self_sync = source#self_sync
     val mutable ready = p ()
 
-    method private _is_ready ?frame () =
+    method private can_generate_data =
       if not (track_sensitive () && ready) then ready <- p ();
-      ready && (override || source#is_ready ?frame ())
+      ready && (override || source#is_ready)
 
-    method private get_frame buf =
-      source#get buf;
-      if track_sensitive () && Frame.is_partial buf then ready <- p ()
+    method private generate_data =
+      let buf = source#get_data in
+      if track_sensitive () && Frame.track_marks buf <> [] then ready <- p ();
+      buf
   end
 
 let _ =
