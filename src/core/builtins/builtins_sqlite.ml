@@ -84,6 +84,7 @@ let _ =
                     |> List.iteri (fun i v ->
                            Sqlite3.bind insert (i + 1) v |> check db);
                     Sqlite3.step insert |> check db;
+                    Sqlite3.finalize insert |> check db;
                     Lang.unit
                 | _ -> error "A record was expected.") );
       ( "close",
