@@ -66,6 +66,7 @@ type meth = Type_base.meth = {
 type repr_t = Type_base.repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 val string_of_constr : constr -> string
+val record_constr : constr
 val num_constr : constr
 val ord_constr : constr
 

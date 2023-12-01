@@ -29,6 +29,49 @@ let escape =
   let rex = Pcre.regexp "'" in
   fun s -> "'" ^ Pcre.substitute ~rex ~subst:(fun _ -> "''") s ^ "'"
 
+type Type.constr_t += Insert_value | Insert_record
+
+let insert_value_constr =
+  let open Type in
+  {
+    t = Insert_value;
+    constr_descr = "int, float, string or null.";
+    univ_descr = None;
+    satisfied =
+      (fun ~subtype:_ ~satisfies b ->
+        let rec check typ =
+          match (deref typ).descr with
+            | Var _ -> satisfies b
+            | Nullable typ -> check typ
+            | Custom { typ = Ground.Float.Type }
+            | Custom { typ = Ground.Int.Type }
+            | Custom { typ = Ground.String.Type } ->
+                ()
+            | _ -> raise Unsatisfied_constraint
+        in
+        check b);
+  }
+
+let insert_record_constr =
+  let open Type in
+  {
+    t = Insert_record;
+    constr_descr = "a record with int, float, string or null methods.";
+    univ_descr = None;
+    satisfied =
+      (fun ~subtype ~satisfies b ->
+        let m, b = split_meths b in
+        match b.descr with
+          | Var _ -> satisfies b
+          | Tuple [] when m = [] -> raise Unsatisfied_constraint
+          | Tuple [] ->
+              List.iter
+                (fun { scheme = _, typ } ->
+                  subtype typ (var ~constraints:[insert_value_constr] ()))
+                m
+          | _ -> raise Unsatisfied_constraint);
+  }
+
 let sqlite =
   let meth =
     let check db ans =
@@ -116,7 +159,10 @@ let sqlite =
       ( "insert",
         ( [],
           Lang.fun_t
-            [(false, "table", Lang.string_t); (false, "", Lang.unit_t)]
+            [
+              (false, "table", Lang.string_t);
+              (false, "", Type.var ~constraints:[insert_record_constr] ());
+            ]
             Lang.unit_t ),
         "Insert a value represented as a record into a table.",
         fun db ->
