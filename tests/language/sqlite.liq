@@ -13,7 +13,7 @@ def f() =
   )
   db.insert(table="test", {n=5, s="bla", f=2.5})
   db.insert(table="test", {n=5, s="bli", f=1.})
-  db.insert(table="test", {n=6, s="blu", f=0.2})
+  db.insert(table="test", {n=66, s="blu", f=0.2})
   db.exec(
     "INSERT INTO test VALUES (5,#{sqlite.escape('hello')},1.2)"
   )
@@ -21,6 +21,7 @@ def f() =
     db.query(
       "SELECT * FROM test WHERE n=5"
     )
+  test.equals(list.length(l), 3)
   print(
     "result: #{l}"
   )
