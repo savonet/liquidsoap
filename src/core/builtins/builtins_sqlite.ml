@@ -48,7 +48,8 @@ let _ =
           Lang.fun_t
             [(false, "", Lang.string_t)]
             (Lang.list_t
-               (Lang.product_t Lang.string_t (Lang.nullable_t Lang.string_t)))
+               (Lang.list_t
+                  (Lang.product_t Lang.string_t (Lang.nullable_t Lang.string_t))))
         ),
         "Execute an SQL operation returning the result.",
         fun db ->
@@ -58,17 +59,19 @@ let _ =
               let sql = List.assoc "" p |> Lang.to_string in
               let ans = ref [] in
               let cb row headers =
-                Array.iter2 (fun h r -> ans := (h, r) :: !ans) headers row
+                let l =
+                  Array.map2 (fun h r -> (h, r)) headers row
+                  |> Array.to_list
+                  |> List.map (fun (h, r) ->
+                         Lang.product (Lang.string h)
+                           (Option.fold ~none:Lang.null ~some:Lang.string r))
+                  |> Lang.list
+                in
+                ans := l :: !ans
               in
               Sqlite3.exec ~cb db sql |> check db;
-              let ans =
-                !ans |> List.rev
-                |> List.map (fun (h, r) ->
-                       Lang.product (Lang.string h)
-                         (Option.fold ~none:Lang.null ~some:Lang.string r))
-                |> Lang.list
-              in
-              ans) );
+              let ans = List.rev !ans in
+              Lang.list ans) );
       ( "insert",
         ( [],
           Lang.fun_t
