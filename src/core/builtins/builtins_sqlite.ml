@@ -74,11 +74,17 @@ let insert_record_constr =
 
 let sqlite =
   let meth =
-    let check db ans =
+    let check db ?sql ans =
+      let sql =
+        match sql with
+          | Some sql -> Printf.sprintf " Statement: %s." sql
+          | None -> ""
+      in
       if not (Sqlite3.Rc.is_success ans) then
-        error "Command failed (%s): %s." (Sqlite3.Rc.to_string ans)
-          (Sqlite3.errmsg db)
+        error "Command failed (%s): %s.%s" (Sqlite3.Rc.to_string ans)
+          (Sqlite3.errmsg db) sql
     in
+    let exec db ?cb sql = Sqlite3.exec db ?cb sql |> check db ~sql in
     [
       ( "exec",
         ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t),
@@ -88,7 +94,7 @@ let sqlite =
             [("", "", None)]
             (fun p ->
               let sql = List.assoc "" p |> Lang.to_string in
-              Sqlite3.exec db sql |> check db;
+              exec db sql;
               Lang.unit) );
       ( "query",
         ( [],
@@ -116,7 +122,7 @@ let sqlite =
                 in
                 ans := l :: !ans
               in
-              Sqlite3.exec db ~cb sql |> check db;
+              exec db ~cb sql;
               let ans = List.rev !ans in
               Lang.list ans) );
       ( "iter",
@@ -154,7 +160,7 @@ let sqlite =
                 in
                 ignore (Lang.apply f [("", l)])
               in
-              Sqlite3.exec db ~cb sql |> check db;
+              exec db ~cb sql;
               Lang.unit) );
       ( "insert",
         ( [],
