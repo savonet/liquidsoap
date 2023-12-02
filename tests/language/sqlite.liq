@@ -7,9 +7,7 @@ def f() =
   # Table creation
   fname = "/tmp/test.sql"
   db = sqlite(fname)
-  db.exec(
-    "DROP TABLE IF EXISTS test"
-  )
+  db.table.drop("test")
   db.exec(
     "CREATE TABLE test (n INTEGER, s STRING, f FLOAT);"
   )
@@ -25,10 +23,7 @@ def f() =
   )
 
   # Select
-  l =
-    db.query(
-      "SELECT * FROM test WHERE n=5"
-    )
+  l = db.select(table="test", where="n=5")
   test.equals(list.length(l), 3)
   print(
     "result: #{l}"
@@ -38,19 +33,14 @@ def f() =
   print(
     "# Iterate"
   )
-  db.iter(
-    print,
-    "SELECT * FROM test WHERE n=5"
-  )
+  db.select.iter(print, table="test", where="n=5")
 
   # Table existence
   test.equals(db.table.exists("test"), true)
   test.equals(db.table.exists("ghost"), false)
 
   # Insertion of lists
-  db.exec(
-    "CREATE TABLE IF NOT EXISTS abc (a STRING, b STRING, c STRING)"
-  )
+  db.table.create("abc", preserve=true, [("a", "STRING"), ("b", "STRING"), ("c", "STRING")])
   db.insert.list(table="abc", [("c", "123"), ("a", "456"), ("b", "789")])
 
   test.pass()

@@ -35,38 +35,108 @@ def replaces sqlite(file) =
     db.exec(sql)
   end
 
-  def db.select(~table, what="*", ~where="")
-    where = if where == "" then "" else " WHERE #{where}" end
-    db.query("SELECT #{what} FROM #{table}#{where}")
+  def db.select(~table, what="*", ~where="") =
+    where =
+      if
+        where == ""
+      then
+        ""
+      else
+        " WHERE #{where}"
+      end
+    db.query(
+      "SELECT #{what} FROM #{table}#{where}"
+    )
   end
 
-  def db.select.iter(f, ~table, what="*", ~where="")
-    where = if where == "" then "" else " WHERE #{where}" end
-    db.iter(f, "SELECT #{what} FROM #{table}#{where}")
+  def db.select.iter(f, ~table, what="*", ~where="") =
+    where =
+      if
+        where == ""
+      then
+        ""
+      else
+        " WHERE #{where}"
+      end
+    db.iter(
+      f,
+      "SELECT #{what} FROM #{table}#{where}"
+    )
   end
 
-  def db.delete(~table, ~where="")
-    where = if where == "" then "" else " WHERE #{where}" end
-    db.exec("DELETE FROM #{table}#{where}")
+  def db.delete(~table, ~where="") =
+    where =
+      if
+        where == ""
+      then
+        ""
+      else
+        " WHERE #{where}"
+      end
+    db.exec(
+      "DELETE FROM #{table}#{where}"
+    )
   end
 
   # Count the number of items matching a condition.
-  def db.count(~table, ~where="")
-    where = if where == "" then "" else " WHERE " ^ where end
+  def db.count(~table, ~where="") =
+    where =
+      if
+        where == ""
+      then
+        ""
+      else
+        " WHERE " ^
+          where
+      end
     let [[(_, c)]] =
-      db.query("SELECT COUNT(*) FROM #{table}#{where}")
-      int_of_string(null.get(c))
+      db.query(
+        "SELECT COUNT(*) FROM #{table}#{where}"
+      )
+    int_of_string(null.get(c))
   end
 
   # Operations on tables.
   let db.table = ()
 
+  def db.table.drop(table, ~existing=true) =
+    existing =
+      if
+        existing
+      then
+        " IF EXISTS"
+      else
+        ""
+      end
+    db.exec(
+      "DROP TABLE#{existing} #{table}"
+    )
+  end
+
   # Create a table with given fields.
   # @param ~preserve Preserve previous table if one already exists under the same name.
-  def db.table.create(table, ~preserve=false, fields)
-    preserve = if preserve then " IF NOT EXISTS" else "" end
-    fields = string.concat(separator=", ", list.map(fun (lt) -> "#{fst(lt)} #{snd(lt)}", fields))
-    db.exec("CREATE TABLE#{preserve} #{table} (#{fields})")
+  def db.table.create(table, ~preserve=false, fields) =
+    preserve =
+      if
+        preserve
+      then
+        " IF NOT EXISTS"
+      else
+        ""
+      end
+    fields =
+      string.concat(
+        separator=
+          ", ",
+        list.map(
+          fun (lt) ->
+            "#{fst(lt)} #{snd(lt)}",
+          fields
+        )
+      )
+    db.exec(
+      "CREATE TABLE#{preserve} #{table} (#{fields})"
+    )
   end
 
   # Check whether a table exists.
