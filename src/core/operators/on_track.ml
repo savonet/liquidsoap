@@ -24,26 +24,23 @@ class on_track f s =
   object
     inherit Source.operator ~name:"on_track" [s]
     method stype = s#stype
-    method private _is_ready = s#is_ready
+    method private can_generate_data = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek_source = s#seek_source
     method self_sync = s#self_sync
-    val mutable called = false
 
-    method private get_frame ab =
-      let p = Frame.position ab in
-      s#get ab;
-      if not called then begin
+    method private generate_data =
+      let buf = s#get_data in
+      if Frame.track_marks buf <> [] then begin
         let m =
-          match Frame.get_metadata ab p with
+          match Frame.get_metadata buf 0 with
             | None -> Lang.list []
             | Some m -> Lang.metadata m
         in
-        ignore (Lang.apply f [("", m)]);
-        called <- true
+        ignore (Lang.apply f [("", m)])
       end;
-      if Frame.is_partial ab then called <- false
+      buf
   end
 
 let _ =

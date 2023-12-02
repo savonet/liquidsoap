@@ -98,7 +98,7 @@
   encoder
   encoder_formats
   error
-  ;external_decoder
+  external_decoder
   ;external_encoder
   external_encoder_format
   external_input
@@ -190,14 +190,14 @@
   ogg_metadata_plug
   ;on_end
   ;on_frame
-  ;on_metadata
+  on_metadata
   ;on_offset
-  ;on_track
+  on_track
   opus_format
   output
   ;pan
   ;pipe
-  ;pipe_output
+  pipe_output
   ;pitch
   playlist_parser
   plug
@@ -283,15 +283,15 @@
   builtins_metadata
   builtins_process
   builtins_request
-  ;builtins_resolvers
-  ;playlist_basic
+  builtins_resolvers
+  playlist_basic
   builtins_runtime
   builtins_server
   builtins_settings
   builtins_socket
-  ;builtins_source
+  builtins_source
   builtins_string_extra
-  ;builtins_sys
+  builtins_sys
   builtins_thread
   builtins_time))
 
