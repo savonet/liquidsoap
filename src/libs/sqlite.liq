@@ -35,9 +35,18 @@ def replaces sqlite(file) =
     db.exec(sql)
   end
 
+  # Count the number of items matching a condition.
+  def db.count(~table, ~where="")
+    where = if where == "" then "" else " WHERE " ^ where end
+    let [[(_, c)]] =
+      db.query("SELECT COUNT(*) FROM #{table}#{where}")
+      int_of_string(null.get(c))
+  end
+
   # Operations on tables.
   let db.table = ()
 
+  # Check whether a table exists.
   def db.table.exists(name) =
     let [[(_, n)]] =
       db.query(
