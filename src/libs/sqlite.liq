@@ -46,6 +46,14 @@ def replaces sqlite(file) =
   # Operations on tables.
   let db.table = ()
 
+  # Create a table with given fields.
+  # @param ~preserve Preserve previous table if one already exists under the same name.
+  def db.table.create(table, ~preserve=false, fields)
+    preserve = if preserve then " IF NOT EXISTS" else "" end
+    fields = string.concat(separator=", ", list.map(fun (lt) -> "#{fst(lt)} #{snd(lt)}", fields))
+    db.exec("CREATE TABLE#{preserve} #{table} (#{fields})")
+  end
+
   # Check whether a table exists.
   def db.table.exists(name) =
     let [[(_, n)]] =

@@ -417,43 +417,13 @@ def medialib.sqlite(
 
   db = sqlite(database)
   begin
-    fields_string =
-      string.concat(
-        separator=
-          ", ",
-        list.map(
-          fun (s) ->
-            s ^
-              " STRING",
-          fields_string
-        )
-      )
-    fields_int =
-      string.concat(
-        separator=
-          ", ",
-        list.map(
-          fun (s) ->
-            s ^
-              " INT",
-          fields_int
-        )
-      )
-    fields_float =
-      string.concat(
-        separator=
-          ", ",
-        list.map(
-          fun (s) ->
-            s ^
-              " FLOAT",
-          fields_float
-        )
-      )
-    db.exec(
-      "CREATE TABLE IF NOT EXISTS metadata (file STRING UNIQUE, #{
-        fields_string
-      }, #{fields_int}, #{fields_float})"
+    fields_string = list.map(fun (l) -> (l, "STRING"), fields_string)
+    fields_int = list.map(fun (l) -> (l, "INT"), fields_int)
+    fields_float = list.map(fun (l) -> (l, "FLOAT"), fields_float)
+    db.table.create(
+      "metadata",
+      preserve=true,
+      [...fields_string, ...fields_int, ...fields_float]
     )
   end
 

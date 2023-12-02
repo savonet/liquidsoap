@@ -13,6 +13,7 @@ def f() =
   db.exec(
     "CREATE TABLE test (n INTEGER, s STRING, f FLOAT);"
   )
+  db.table.create("test2", preserve=true, [("n", "INTEGER"), ("s", "STRING")])
 
   # Insertion
   db.insert(table="test", {n=5, s="bla", f=2.5})
