@@ -536,10 +536,7 @@ def medialib.sqlite(
       add(f)
     end
 
-    db.iter(
-      u,
-      "SELECT file FROM metadata"
-    )
+    db.select.iter(u, "file", table="metadata")
     log.debug(
       label=id,
       "Updated #{nu()} files."

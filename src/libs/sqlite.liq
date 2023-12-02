@@ -40,6 +40,11 @@ def replaces sqlite(file) =
     db.query("SELECT #{what} FROM #{table}#{where}")
   end
 
+  def db.select.iter(f, ~table, what="*", ~where="")
+    where = if where == "" then "" else " WHERE #{where}" end
+    db.iter(f, "SELECT #{what} FROM #{table}#{where}")
+  end
+
   def db.delete(~table, ~where="")
     where = if where == "" then "" else " WHERE #{where}" end
     db.exec("DELETE FROM #{table}#{where}")
