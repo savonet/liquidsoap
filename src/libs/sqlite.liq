@@ -35,6 +35,16 @@ def replaces sqlite(file) =
     db.exec(sql)
   end
 
+  def db.select(~table, what="*", ~where="")
+    where = if where == "" then "" else " WHERE #{where}" end
+    db.query("SELECT #{what} FROM #{table}#{where}")
+  end
+
+  def db.delete(~table, ~where="")
+    where = if where == "" then "" else " WHERE #{where}" end
+    db.exec("DELETE FROM #{table}#{where}")
+  end
+
   # Count the number of items matching a condition.
   def db.count(~table, ~where="")
     where = if where == "" then "" else " WHERE " ^ where end

@@ -453,9 +453,7 @@ def medialib.sqlite(
 
   # Remove file from the database
   def remove(f) =
-    db.exec(
-      "DELETE FROM metadata WHERE file=#{sqlite.escape(f)}"
-    )
+    db.delete(table="metadata", where="file=#{sqlite.escape(f)}")
   end
 
   # Add a file to the database.
@@ -473,10 +471,10 @@ def medialib.sqlite(
             snd(
               list.hd(
                 list.hd(
-                  db.query(
-                    "SELECT last_scan FROM metadata WHERE file=#{
-                      sqlite.escape(f)
-                    }"
+                  db.select(
+                    "last_scan",
+                    table="metadata",
+                    where="file=#{sqlite.escape(f)}"
                   )
                 )
               )
@@ -705,10 +703,7 @@ def medialib.sqlite(
         predicates()
       )
 
-    l =
-      db.query(
-        "SELECT file FROM metadata WHERE #{predicates}"
-      )
+    l = db.select("file", table="metadata", where=predicates)
     l = list.map((fun (l) -> null.get(snd(list.hd(l)))), l)
     l
   end
@@ -762,9 +757,7 @@ def medialib.sqlite(
   end
 
   def clear() =
-    db.exec(
-      "DELETE FROM metadata"
-    )
+    db.delete(table="metadata")
   end
 
   def add_directory(d) =
