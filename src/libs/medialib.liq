@@ -423,7 +423,15 @@ def medialib.sqlite(
     db.table.create(
       "metadata",
       preserve=true,
-      [...fields_string, ...fields_int, ...fields_float]
+      [
+        (
+          "file",
+          "STRING PRIMARY KEY"
+        ),
+        ...fields_string,
+        ...fields_int,
+        ...fields_float
+      ]
     )
   end
 
@@ -579,7 +587,7 @@ def medialib.sqlite(
 
   # Find all files matching given criteria.
   def find(
-    ~case_sensitive=false,
+    ~case_sensitive=true,
     ~artist=null(),
     ~artist_contains=null(),
     ~artist_matches=null(),
