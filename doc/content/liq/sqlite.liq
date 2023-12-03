@@ -12,7 +12,7 @@ db.table.create(
   [
     (
       "filename",
-      "STRING UNIQUE"
+      "STRING PRIMARY KEY"
     ),
     ("artist", "STRING"),
     ("title", "STRING"),
@@ -42,5 +42,60 @@ db.insert(
     filename="orelsan.mp3"
   }
 )
+
 # insert-end
+# select-begin
+l =
+  db.select(
+    table="metadata",
+    where=
+      "year >= 2000"
+  )
+
+# select-end
+# select2-begin
+find_artist = "Brassens"
+l' =
+  db.select(
+    table="metadata",
+    where=
+      "artist = #{sqlite.escape(find_artist)}"
+  )
+
+# select2-end
+ignore(l')
+
+# query-begin
+l'' =
+  db.query(
+    "SELECT FROM metadata WHERE artist = 'bla'"
+  )
+
+# query-end
+ignore(l'')
+
+# play-begin
+l = list.map(fun (row) -> row["filename"] ?? "", l)
+print(l)
+s = playlist(l)
+output(s)
+
+# play-end
+# delete-begin
+db.delete(
+  table="metadata",
+  where=
+    "year < 1900"
+)
+
+# delete-end
+# drop-begin
+db.table.drop("metadata")
+
+# drop-end
+# exec-begin
+db.exec(
+  "DROP TABLE IF EXISTS metadata"
+)
+# exec-end
 %endif
