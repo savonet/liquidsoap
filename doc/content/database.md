@@ -66,9 +66,9 @@ order to build a playlist as follows:
 
 ```
 
-This can be read as follows: on each row (by `list.map`) we replace take the
-field labeled `"filename"` (by `list.assoc`) and take its value, assuming that
-it is not null (by `null.get`).
+This can be read as follows: on each row (by `list.map`{.liquidsoap}) we replace
+take the field labeled `"filename"`{.liquidsoap} (by `list.assoc`{.liquidsoap})
+and take its value, assuming that it is not null (by `null.get`{.liquidsoap}).
 
 Other useful methods include
 
@@ -97,5 +97,5 @@ Other useful methods include
   ```
 
 Finally, if your aim is to index file metadata, you might be interested in the
-`medialib.sqlite` operator which is implemented in the standard library as
-described above (see the [quickstart](quick_start.html)).
+`medialib.sqlite`{.liquidsoap} operator which is implemented in the standard
+library as described above (see the [quickstart](quick_start.html)).
