@@ -5,6 +5,10 @@
 db = sqlite("/tmp/database.sql")
 
 # open-end
+# drop-begin
+db.table.drop("metadata")
+
+# drop-end
 # create-begin
 db.table.create(
   "metadata",
@@ -68,16 +72,15 @@ ignore(l')
 # query-begin
 l'' =
   db.query(
-    "SELECT FROM metadata WHERE artist = 'bla'"
+    "SELECT * FROM metadata WHERE artist = 'bla'"
   )
 
 # query-end
 ignore(l'')
 
 # play-begin
-l = list.map(fun (row) -> row["filename"] ?? "", l)
-print(l)
-s = playlist(l)
+l = list.map(fun (row) -> null.get(list.assoc("filename", row)), l)
+s = playlist.list(l)
 output(s)
 
 # play-end
@@ -89,10 +92,6 @@ db.delete(
 )
 
 # delete-end
-# drop-begin
-db.table.drop("metadata")
-
-# drop-end
 # exec-begin
 db.exec(
   "DROP TABLE IF EXISTS metadata"
