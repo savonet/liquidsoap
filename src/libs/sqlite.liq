@@ -1,3 +1,4 @@
+%ifdef sqlite
 # @docof sqlite
 def replaces sqlite(file) =
   db = sqlite(file)
@@ -152,3 +153,4 @@ def replaces sqlite(file) =
 
   db
 end
+%endif
