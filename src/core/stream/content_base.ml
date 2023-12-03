@@ -162,7 +162,6 @@ let parse_param kind label value =
   with Parsed_format p -> p
 
 type data_handler = {
-  blit : data -> int -> data -> int -> int -> unit;
   fill : data -> int -> data -> int -> int -> unit;
   sub : data -> int -> int -> data;
   truncate : data -> int -> data;
@@ -175,7 +174,6 @@ type data_handler = {
 
 let dummy_handler =
   {
-    blit = (fun _ _ _ _ _ -> raise Invalid);
     fill = (fun _ _ _ _ _ -> raise Invalid);
     sub = (fun _ _ _ -> raise Invalid);
     truncate = (fun _ _ -> raise Invalid);
@@ -195,7 +193,6 @@ let register_data_handler t h =
 
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ?length k = (get_format_handler k).make length
-let blit src = (get_data_handler src).blit src
 let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
 let truncate d = (get_data_handler d).truncate d
@@ -327,28 +324,17 @@ module MkContentBase (C : ContentSpecs) :
       C.blit data offset buf pos length;
       pos + length
     in
-    fun ?(force = false) d ->
+    fun d ->
       match (length d, d.chunks) with
-        | 0, _ ->
-            d.chunks <- [];
-            d
-        | _, [{ offset = 0; length = None }] when not force -> d
+        | 0, _ -> { d with chunks = [] }
+        | _, [{ offset = 0; length = None }] -> d
         | length, _ ->
             let buf = C.make ~length d.params in
             ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
-            d.chunks <- [{ offset = 0; length = Some length; data = buf }];
-            d
-
-  let blit src src_pos dst dst_pos len =
-    let src = content src in
-    let dst = content dst in
-    dst.params <- src.params;
-    let dst_len = length dst in
-    dst.chunks <-
-      (sub dst 0 dst_pos).chunks
-      @ (consolidate_chunks ~force:true (sub src src_pos len)).chunks
-      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
-    assert (dst_len = length dst)
+            {
+              d with
+              chunks = [{ offset = 0; length = Some length; data = buf }];
+            }
 
   let make ?length params =
     { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
@@ -408,7 +394,6 @@ module MkContentBase (C : ContentSpecs) :
     Queue.push format_of_string format_parsers;
     let data_handler =
       {
-        blit;
         fill;
         sub = (fun d ofs len -> (_type, Content (sub (content d) ofs len)));
         truncate = (fun d len -> (_type, Content (truncate (content d) len)));

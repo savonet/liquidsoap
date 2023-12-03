@@ -64,9 +64,6 @@ module type ContentSpecs = sig
   (* Length is in main ticks. *)
   val make : ?length:int -> params -> data
   val length : data -> int
-
-  (* TODO: This will be removed when reworking
-     the streaming API. *)
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
 
@@ -124,7 +121,6 @@ type data = Contents.data
 (** Data *)
 
 val make : ?length:int -> format -> data
-val blit : data -> int -> data -> int -> int -> unit
 val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val truncate : data -> int -> data

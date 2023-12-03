@@ -12,7 +12,7 @@ let () =
   assert (Track_marks.get_data c' = marks 10);
   assert (Track_marks.get_data (Content.sub c 5 10) = List.init 10 (fun x -> x));
   Track_marks.set_data c' [];
-  Content.blit c' 0 c 5 10;
+  Content.fill c' 0 c 5 10;
   assert (Track_marks.get_data c = marks 5 @ marks ~offset:15 (1000 - 15))
 
 (* Test metadata uniqueness. *)
@@ -47,7 +47,7 @@ let () =
   let data = Content.append data thrd in
   assert (Content.length data = length);
   let final = Content.make ~length Content.(default_format Video.kind) in
-  Content.blit data 0 final 0 length;
+  Content.fill data 0 final 0 length;
   let data = Content.Video.get_data data in
   let final = Content.Video.get_data final in
   assert (Array.length data = 1);
@@ -59,7 +59,7 @@ let () =
 
 (* Another content test boundary.
    We create a source of 1 and a source of length 2 * Frame.size - 1
-   and a destination of 2 * Frame.size and blit the source into destination.
+   and a destination of 2 * Frame.size and fill the source into destination.
    The second chunk should have enough data to fill the destination. *)
 let () =
   let size = Lazy.force Frame.size in
@@ -73,7 +73,7 @@ let () =
   let dst =
     Content.make ~length:(2 * size) Content.(default_format Video.kind)
   in
-  Content.blit src 0 dst 0 (2 * size);
+  Content.fill src 0 dst 0 (2 * size);
   let src = Content.Video.get_data src in
   let dst = Content.Video.get_data dst in
   assert (Array.length src = Array.length dst);
