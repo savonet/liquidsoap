@@ -59,7 +59,7 @@ class amplify ~field (source : source) override_field coeff =
             if k <> 1. then (
               let data = Content.Audio.get_data (Frame.get buf field) in
               Audio.amplify k data 0 (AFrame.position buf);
-              Frame.set buf field (Content.Audio.lift_data data))
+              Frame.set_data buf field Content.Audio.lift_data data)
             else buf
           in
           if Frame.track_marks buf <> [] && override <> None then (

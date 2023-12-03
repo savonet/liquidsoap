@@ -327,7 +327,6 @@ module MkContentBase (C : ContentSpecs) :
     fun d ->
       match (length d, d.chunks) with
         | 0, _ -> { d with chunks = [] }
-        | _, [{ offset = 0; length = None }] -> d
         | length, _ ->
             let buf = C.make ~length d.params in
             ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
