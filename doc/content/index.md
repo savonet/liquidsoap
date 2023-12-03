@@ -58,4 +58,4 @@ Liquidsoap is a flexible tool for processing audio and video streams, that's all
 
 Liquidsoap itself doesn't have a nice GUI or any graphical programming environment. You'll have to write the script by hand, and the only possible interaction with a running liquidsoap is the telnet server.
 
-Liquidsoap doesn't do any database or website stuff. It won't index your audio files, it won't allow your users to score songs on the web, etc. However, liquidsoap makes the interfacing with other tools easy, since it can call an external application (reading from the database) to get audio tracks, another one (updating last-played information) to notify that some file has been successfully played. An example of this is [Beets](beets.html), RadioPi also has a more complex system of its own along these lines.
+Liquidsoap makes the interfacing with other tools easy, since it can call an external application (reading from the database) to get audio tracks, another one (updating last-played information) to notify that some file has been successfully played. An example of this is [Beets](beets.html).

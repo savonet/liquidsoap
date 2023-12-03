@@ -36,6 +36,7 @@ If you are migrating from a previous version, you might want to checkout
 - [JSON import/export](json.html): Importing and exporting language values in JSON.
 - [Playlist parsers](playlist_parsers.html): Supported playlist formats.
 - [LADSPA plugins](ladspa.html): Using LADSPA plugins.
+- [Database](database.html): Support for SQL databases.
 
 ## Core
 
