@@ -40,6 +40,9 @@ def f() =
   db.insert(table="test2", replace=true, {id=0, value="a"})
   db.insert(table="test2", replace=true, {id=0, value="b"})
 
+  # Count
+  test.equals(db.count(table="test", where="n=5"), 3)
+
   # Select
   l = db.select(table="test", where="n=5")
   test.equals(list.length(l), 3)
