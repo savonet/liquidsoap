@@ -33,12 +33,12 @@ let content ?(field = Frame.Fields.midi) b =
   try Frame.get b field with Not_found -> raise Content.Invalid
 
 let midi ?field b = Content.Midi.get_data (content ?field b)
-let add_break t i = add_break t (tom i)
+let add_track_mark t i = add_track_mark t (tom i)
 let is_partial = is_partial
 
 type metadata = Frame.metadata
 
-let set_metadata t i m = set_metadata t (tom i) m
+let add_metadata t i m = add_metadata t (tom i) m
 let get_metadata t i = get_metadata t (tom i)
 
 let get_all_metadata t =

@@ -11,12 +11,12 @@ val size : unit -> int
 (** Position of the first break. *)
 val position : t -> int
 
-(** Add a break. *)
-val add_break : t -> int -> unit
+(** Add a track mark. *)
+val add_track_mark : t -> int -> t
 
 type metadata = Frame.metadata
 
-val set_metadata : t -> int -> metadata -> unit
+val add_metadata : t -> int -> metadata -> t
 val get_metadata : t -> int -> metadata option
 val get_all_metadata : t -> (int * metadata) list
 

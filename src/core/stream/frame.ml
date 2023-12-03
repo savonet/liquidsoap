@@ -61,6 +61,17 @@ let create ~length content_type =
 
 let content_type = Fields.map Content.format
 
+let position frame =
+  Option.value ~default:0
+    (Fields.fold
+       (fun _ c -> function
+         | None -> Some (Content.length c)
+         | Some p -> Some (min p (Content.length c)))
+       frame None)
+
+let remaining b = !!size - position b
+let is_partial b = 0 < remaining b
+
 let chunk ~start ~stop frame =
   Fields.map (fun c -> Content.sub c start (stop - start)) frame
 
@@ -74,6 +85,10 @@ let append f f' =
 
 let get frame field = Fields.find field frame
 let set frame field c = Fields.add field c frame
+
+let set_data frame field lift c =
+  Fields.add field (lift ?offset:None ?length:(Some (position frame)) c) frame
+
 let audio frame = get frame Fields.audio
 let video frame = get frame Fields.video
 let midi frame = get frame Fields.midi
@@ -96,17 +111,6 @@ let add_track_marks frame l =
   Fields.add Fields.track_marks new_marks frame
 
 let add_track_mark frame pos = add_track_marks frame [pos]
-
-let position frame =
-  Option.value ~default:0
-    (Fields.fold
-       (fun _ c -> function
-         | None -> Some (Content.length c)
-         | Some p -> Some (min p (Content.length c)))
-       frame None)
-
-let remaining b = !!size - position b
-let is_partial b = 0 < remaining b
 
 let map_chunks fn f =
   let rec map (cur : t) = function

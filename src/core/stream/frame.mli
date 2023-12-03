@@ -117,6 +117,13 @@ val get : t -> field -> Content.data
 (** Set a frame's content. *)
 val set : t -> field -> Content.data -> t
 
+(** Set a frame's content using data.
+    Data is assumed to be of the frame's position
+    length. The type is designed to work with `Content.*.lift_data`
+    functions. *)
+val set_data :
+  t -> field -> (?offset:int -> ?length:int -> 'a -> Content.data) -> 'a -> t
+
 (** Get a frame's audio content. *)
 val audio : t -> Content.data
 

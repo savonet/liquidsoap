@@ -170,12 +170,11 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     ()
   in
   let sleep () = () in
-  let get_frame ~start_time ~end_time ~start_position ~end_position
-      ~is_partial:_ ~metadata:_ =
+  let generate_data ~start_time ~end_time ~length ~is_partial:_ ~metadata:_ =
     last_start_time := start_time;
     last_end_time := end_time;
     Prometheus.Gauge.set last_data end_time;
-    let encoded_time = Frame.seconds_of_main (end_position - start_position) in
+    let encoded_time = Frame.seconds_of_main length in
     let latency = (end_time -. start_time) /. encoded_time in
     add_input_latency latency
   in
@@ -188,7 +187,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     {
       Source.wake_up;
       sleep;
-      get_frame;
+      generate_data;
       before_output = (fun _ -> ());
       after_output;
     }

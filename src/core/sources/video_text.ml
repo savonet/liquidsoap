@@ -57,9 +57,9 @@ class text init render_text ttf ttf_size color duration text =
             self#render_text;
             Option.get text_frame
 
-    method private synthesize frame off len =
-      let off = Frame.video_of_main off in
-      let len = Frame.video_of_main len in
+    method private synthesize length =
+      let frame = Frame.create ~length self#content_type in
+      let len = Frame.video_of_main length in
       let ttf = ttf () in
       let ttf_size = ttf_size () in
       let color = color () in
@@ -75,12 +75,13 @@ class text init render_text ttf ttf_size color duration text =
         self#render_text);
       let tf = self#get_text_frame in
       let buf = VFrame.data frame in
-      for i = off to off + len - 1 do
+      for i = 0 to len - 1 do
         let img = buf.(i) in
         let width = Video.Canvas.Image.width img in
         let height = Video.Canvas.Image.height img in
         buf.(i) <- Video.Canvas.Image.viewport width height tf
-      done
+      done;
+      Frame.set frame Frame.Fields.video (Content.Video.lift_data ~length buf)
   end
 
 let register name init render_text =

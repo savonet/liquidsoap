@@ -60,7 +60,7 @@
   avi
   avi_encoder
   avi_format
-  ;biquad_filter
+  biquad_filter
   blank
   charset_base
   charset
@@ -109,7 +109,7 @@
   fdkaac_format
   ffmpeg_format
   file_watcher
-  ;filter
+  filter
   ;filter_rc
   ;fir_filter
   flac_format
@@ -134,13 +134,13 @@
   icecast_utils
   ;icecast2
   id3_plug
-  ;iir_filter
+  iir_filter
   ;image_decoder
   image_plug
   insert_metadata
   ioRing
   json
-  ;keyboard
+  keyboard
   lang
   lang_avi
   lang_encoder
@@ -166,7 +166,7 @@
   liquidsoap_paths
   log
   ;lufs
-  ;mFrame
+  mFrame
   ;map_metadata
   ;map_op
   max_duration
@@ -250,11 +250,11 @@
   vFrame
   ;video_board
   video_converter
-  ;video_effects
+  video_effects
   ;video_fade
   video_plug
   ;video_testsrc
-  ;video_text
+  video_text
   ;video_text_native
   ;video_volume
   vorbis_format
