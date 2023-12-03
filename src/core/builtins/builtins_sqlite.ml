@@ -74,26 +74,49 @@ let insert_record_constr =
 
 type row = { row : Sqlite3.row; headers : Sqlite3.headers }
 
-module SqliteRow = Value.MkAbstract (struct
-  type content = row
+module SqliteRow = struct
+  include Value.MkAbstract (struct
+    type content = row
 
-  let name = "sqlite.row"
+    let name = "sqlite.row"
 
-  let to_json ~pos:_ { row; headers } =
-    `Assoc
-      (List.fold_left2
-         (fun json header row ->
-           (header, match row with Some s -> `String s | None -> `Null)
-           :: json)
-         [] (Array.to_list headers) (Array.to_list row))
+    let to_json ~pos _ =
+      Runtime_error.raise ~pos
+        ~message:"Sqlite rows cannot be represented as json" "json"
 
-  let descr _ = "sqlite.row"
-  let compare = Stdlib.compare
-end)
+    let descr _ = "sqlite.row"
+    let compare = Stdlib.compare
+  end)
+
+  let t =
+    Lang.method_t t
+      [
+        ( "to_list",
+          ( [],
+            Lang.fun_t []
+              (Lang.list_t
+                 (Lang.product_t Lang.string_t (Lang.nullable_t Lang.string_t)))
+          ),
+          "Return the row as an associative `[(label, value)]` list." );
+      ]
+
+  let to_value v =
+    let to_list { headers; row } =
+      List.fold_left2
+        (fun l header row ->
+          Lang.product (Lang.string header)
+            (match row with None -> Lang.null | Some r -> Lang.string r)
+          :: l)
+        [] (Array.to_list headers) (Array.to_list row)
+    in
+    Lang.meth (to_value v)
+      [("to_list", Lang.val_fun [] (fun _ -> Lang.list (to_list v)))]
+
+  let of_value v = of_value (Lang.demeth v)
+end
 
 let header_types ty =
   let open Type in
-  let ty = match (deref ty).descr with List { t } -> t | _ -> assert false in
   let headers, _ = split_meths ty in
   let rec to_type ~nullable ty =
     match (deref ty).descr with
@@ -139,7 +162,11 @@ let rec parse_value ~pos ~header ~typ v =
     | `Nullable _, NULL -> Lang.null
     | `Nullable typ, v -> parse_value ~pos ~header ~typ v
     | `Int, INT i -> Lang.int (Int64.to_int i)
+    | `Int, TEXT s -> Lang.int (int_of_string s)
+    | `Int, BLOB s -> Lang.int (int_of_string s)
     | `Float, FLOAT f -> Lang.float f
+    | `Float, TEXT s -> Lang.float (float_of_string s)
+    | `Float, BLOB s -> Lang.float (float_of_string s)
     | `String, TEXT s -> Lang.string s
     | `String, BLOB s -> Lang.string s
     | _ ->

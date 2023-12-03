@@ -10,8 +10,9 @@ def f() =
   test.equals(sqlite.escape("a'b"), "'a''b'")
 
   # Table creation
-  fname = "/tmp/test.sql"
-  db = sqlite(fname)
+  tmp = file.temp("test", ".sql")
+  on_cleanup({file.remove(tmp)})
+  db = sqlite(tmp)
   db.table.drop("test")
   db.exec(
     "CREATE TABLE test (n INTEGER, s STRING, f FLOAT);"
@@ -69,6 +70,22 @@ def f() =
     "abc", preserve=true, [("a", "STRING"), ("b", "STRING"), ("c", "STRING")]
   )
   db.insert.list(table="abc", [("c", "123"), ("a", "456"), ("b", "789")])
+
+  # Query parse
+  let sqlite.query ([{a}] : [{a: int}]) =
+    db.query(
+      "SELECT a FROM abc LIMIT 1"
+    )
+  test.equals(a, 456)
+
+  # Manual row manipulation
+  let [row] =
+    db.query(
+      "SELECT a FROM abc LIMIT 1"
+    )
+  let [(label, v)] = row.to_list()
+  test.equals(label, "a")
+  test.equals(v, "456")
 %endif
 
   test.pass()
