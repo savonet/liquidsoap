@@ -1,5 +1,10 @@
 #!../../liquidsoap ../test.liq
 def f() =
+%ifndef sqlite
+  print(
+    "WARNING: Not compiled with sqlite support. Passing test."
+  )
+%else
   # Escaping
   test.equals(sqlite.escape("bla"), "'bla'")
   test.equals(sqlite.escape("a'b"), "'a''b'")
@@ -40,8 +45,11 @@ def f() =
   test.equals(db.table.exists("ghost"), false)
 
   # Insertion of lists
-  db.table.create("abc", preserve=true, [("a", "STRING"), ("b", "STRING"), ("c", "STRING")])
+  db.table.create(
+    "abc", preserve=true, [("a", "STRING"), ("b", "STRING"), ("c", "STRING")]
+  )
   db.insert.list(table="abc", [("c", "123"), ("a", "456"), ("b", "789")])
+%endif
 
   test.pass()
 end
