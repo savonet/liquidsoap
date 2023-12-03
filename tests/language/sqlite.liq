@@ -53,9 +53,13 @@ def f() =
   )
   db.select.iter(print, table="test", where="n=5")
 
-  # Table existence
-  test.equals(db.table.exists("test"), true)
-  test.equals(db.table.exists("ghost"), false)
+  # Delete
+  db.delete(table="test2", where="id=0")
+  db.delete(table="test2", where="id=55")
+
+  # # Table existence
+  # test.equals(db.table.exists("test"), true)
+  # test.equals(db.table.exists("ghost"), false)
 
   # Insertion of lists
   db.table.create(

@@ -487,7 +487,6 @@ def medialib.sqlite(
       if
         count == 0 or needs_update(f, last_scan())
       then
-        remove(f)
         m = metadata(f)
         def field(~map, k) =
           def map(x) =
@@ -513,7 +512,7 @@ def medialib.sqlite(
             year=field(map=int_of_string, "year"),
             bpm=field(map=int_of_string, "bpm")
           }
-        db.insert(table="metadata", m)
+        db.insert(table="metadata", replace=true, m)
       end
     end
   end
