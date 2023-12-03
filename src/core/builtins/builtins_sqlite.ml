@@ -72,19 +72,138 @@ let insert_record_constr =
           | _ -> raise Unsatisfied_constraint);
   }
 
+type row = { row : Sqlite3.row; headers : Sqlite3.headers }
+
+module SqliteRow = Value.MkAbstract (struct
+  type content = row
+
+  let name = "sqlite.row"
+
+  let to_json ~pos:_ { row; headers } =
+    `Assoc
+      (List.fold_left2
+         (fun json header row ->
+           (header, match row with Some s -> `String s | None -> `Null)
+           :: json)
+         [] (Array.to_list headers) (Array.to_list row))
+
+  let descr _ = "sqlite.row"
+  let compare = Stdlib.compare
+end)
+
+let header_types ty =
+  let open Type in
+  let ty = match (deref ty).descr with List { t } -> t | _ -> assert false in
+  let headers, _ = split_meths ty in
+  let rec to_type ~nullable ty =
+    match (deref ty).descr with
+      | Nullable typ ->
+          let typ = to_type ~nullable:false typ in
+          if nullable then `Nullable typ else typ
+      | Custom { typ = Ground.Float.Type } -> `Float
+      | Custom { typ = Ground.Int.Type } -> `Int
+      | Custom { typ = Ground.String.Type } -> `String
+      | Var _ -> raise Not_found
+      | _ -> assert false
+  in
+  let headers =
+    List.fold_left
+      (fun headers { Type.meth = lbl; scheme = _, ty } ->
+        try (lbl, to_type ~nullable:true ty) :: headers
+        with Not_found -> headers)
+      [] headers
+  in
+  headers
+
+let rec string_of_typ = function
+  | `Nullable typ -> Printf.sprintf "%s?" (string_of_typ typ)
+  | `Int -> "int"
+  | `Float -> "float"
+  | `String -> "string"
+
+let check db ?sql ans =
+  let sql =
+    match sql with
+      | Some sql -> Printf.sprintf " Statement: %s." sql
+      | None -> ""
+  in
+  if not (Sqlite3.Rc.is_success ans) then
+    error "Command failed (%s): %s.%s" (Sqlite3.Rc.to_string ans)
+      (Sqlite3.errmsg db) sql
+
+let exec db ?cb sql = Sqlite3.exec db ?cb sql |> check db ~sql
+
+let rec parse_value ~pos ~header ~typ v =
+  let open Sqlite3.Data in
+  match (typ, v) with
+    | `Nullable _, NULL -> Lang.null
+    | `Nullable typ, v -> parse_value ~pos ~header ~typ v
+    | `Int, INT i -> Lang.int (Int64.to_int i)
+    | `Float, FLOAT f -> Lang.float f
+    | `String, TEXT s -> Lang.string s
+    | `String, BLOB s -> Lang.string s
+    | _ ->
+        Runtime_error.raise ~pos
+          ~message:
+            (Printf.sprintf
+               "Parse error: sqlite query response for column %s with value %s \
+                cannot be parsed as type %s"
+               header
+               (match to_string v with None -> "NULL" | Some s -> s)
+               (string_of_typ typ))
+          "sqlite"
+
+let parse_row ~pos ~header_types { row; headers } =
+  let row = Array.to_list row in
+  let headers = Array.to_list headers in
+  List.fold_left2
+    (fun l header row ->
+      match List.assoc_opt header header_types with
+        | Some typ ->
+            (header, parse_value ~pos ~header ~typ (Sqlite3.Data.opt_text row))
+            :: l
+        | None -> l)
+    [] headers row
+  |> Lang.record
+
+let query_parser ~db query =
+  let ans = ref [] in
+  let cb row headers = ans := SqliteRow.to_value { row; headers } :: !ans in
+  exec db ~cb query;
+  let ans = List.rev !ans in
+  Lang.list ans
+
+let _ =
+  let return_t = Type.var ~constraints:[insert_record_constr] () in
+  Lang.add_builtin "_sqlite_row_parser_" ~category:`String ~flags:[`Hidden]
+    ~descr:"Internal sql row parser"
+    [
+      ("type", Value.RuntimeType.t, None, Some "Runtime type");
+      ("", SqliteRow.t, None, None);
+    ]
+    return_t
+    (fun p ->
+      let row = SqliteRow.of_value (List.assoc "" p) in
+      let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
+      let header_types = header_types ty in
+      let pos = Lang.pos p in
+      try parse_row ~pos ~header_types row
+      with exn -> (
+        let bt = Printexc.get_raw_backtrace () in
+        match exn with
+          | Runtime_error.Runtime_error _ as exn ->
+              Printexc.raise_with_backtrace exn bt
+          | _ ->
+              Runtime_error.raise ~bt ~pos
+                ~message:
+                  (Printf.sprintf
+                     "Parse error: sqlite query response value cannot be \
+                      parsed as type: %s"
+                     (Type.to_string ty))
+                "sqlite"))
+
 let sqlite =
   let meth =
-    let check db ?sql ans =
-      let sql =
-        match sql with
-          | Some sql -> Printf.sprintf " Statement: %s." sql
-          | None -> ""
-      in
-      if not (Sqlite3.Rc.is_success ans) then
-        error "Command failed (%s): %s.%s" (Sqlite3.Rc.to_string ans)
-          (Sqlite3.errmsg db) sql
-    in
-    let exec db ?cb sql = Sqlite3.exec db ?cb sql |> check db ~sql in
     [
       ( "exec",
         ([], Lang.fun_t [(false, "", Lang.string_t)] Lang.unit_t),
@@ -97,52 +216,25 @@ let sqlite =
               exec db sql;
               Lang.unit) );
       ( "query",
-        ( [],
-          Lang.fun_t
-            [(false, "", Lang.string_t)]
-            (Lang.list_t
-               (Lang.list_t
-                  (Lang.product_t Lang.string_t (Lang.nullable_t Lang.string_t))))
-        ),
-        "Execute an SQL operation returning the result.",
+        ([], Lang.fun_t [(false, "", Lang.string_t)] (Lang.list_t SqliteRow.t)),
+        "Execute an SQL operation returning the result. Result can be parsed \
+         using `let sqlite.query = ...`.",
         fun db ->
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              let sql = List.assoc "" p |> Lang.to_string in
-              let ans = ref [] in
-              let cb row headers =
-                let l =
-                  Array.map2 (fun h r -> (h, r)) headers row
-                  |> Array.to_list
-                  |> List.map (fun (h, r) ->
-                         Lang.product (Lang.string h)
-                           (Option.fold ~none:Lang.null ~some:Lang.string r))
-                  |> Lang.list
-                in
-                ans := l :: !ans
-              in
-              exec db ~cb sql;
-              let ans = List.rev !ans in
-              Lang.list ans) );
+              let query = List.assoc "" p |> Lang.to_string in
+              query_parser ~db query) );
       ( "iter",
         ( [],
           Lang.fun_t
             [
-              ( false,
-                "",
-                Lang.fun_t
-                  [
-                    ( false,
-                      "",
-                      Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)
-                    );
-                  ]
-                  Lang.unit_t );
+              (false, "", Lang.fun_t [(false, "", SqliteRow.t)] Lang.unit_t);
               (false, "", Lang.string_t);
             ]
             Lang.unit_t ),
-        "Iterate a function over all the results of a query.",
+        "Iterate a function over all the results of a query. Result can be \
+         parsed using `let sqlite.row = ...`.",
         fun db ->
           Lang.val_fun
             [("", "", None); ("", "", None)]
@@ -150,15 +242,8 @@ let sqlite =
               let f = Lang.assoc "" 1 p in
               let sql = Lang.assoc "" 2 p |> Lang.to_string in
               let cb row headers =
-                let l =
-                  Array.map2 (fun h r -> (h, r)) headers row
-                  |> Array.to_list
-                  |> List.map (fun (h, r) ->
-                         Lang.product (Lang.string h)
-                           (Option.fold ~none:Lang.null ~some:Lang.string r))
-                  |> Lang.list
-                in
-                ignore (Lang.apply f [("", l)])
+                let row = SqliteRow.to_value { row; headers } in
+                ignore (Lang.apply f [("", row)])
               in
               exec db ~cb sql;
               Lang.unit) );

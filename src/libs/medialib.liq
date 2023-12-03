@@ -474,21 +474,11 @@ def medialib.sqlite(
     else
       count = db.count(table="metadata", where="file=#{sqlite.escape(f)}")
       def last_scan() =
-        string.to_float(
-          null.get(
-            snd(
-              list.hd(
-                list.hd(
-                  db.select(
-                    "last_scan",
-                    table="metadata",
-                    where="file=#{sqlite.escape(f)}"
-                  )
-                )
-              )
-            )
+        let sqlite.query ([{last_scan}] : [{last_scan: float}]) =
+          db.select(
+            "last_scan", table="metadata", where="file=#{sqlite.escape(f)}"
           )
-        )
+        last_scan
       end
 
       # New file or not recent enough metadata
@@ -539,8 +529,8 @@ def medialib.sqlite(
     def u(row) =
       ref.incr(n)
       progress(n(), len)
-      f = row["file"]
-      add(f)
+      let sqlite.row ({file} : {file: string}) = row
+      add(file)
     end
 
     db.select.iter(u, "file", table="metadata")
@@ -707,9 +697,9 @@ def medialib.sqlite(
         predicates()
       )
 
-    l = db.select("file", table="metadata", where=predicates)
-    l = list.map((fun (l) -> null.get(snd(list.hd(l)))), l)
-    l
+    let sqlite.query (l : [{file: string}]) =
+      db.select("file", table="metadata", where=predicates)
+    list.map((fun (l) -> l.file), l)
   end
 
   t = time()

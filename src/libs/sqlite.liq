@@ -90,11 +90,11 @@ def replaces sqlite(file) =
         " WHERE " ^
           where
       end
-    let [[(_, c)]] =
+    let sqlite.query ([{count}] : [{count:int}]) =
       db.query(
-        "SELECT COUNT(*) FROM #{table}#{where}"
+        "SELECT COUNT(*) AS count FROM #{table}#{where}"
       )
-    int_of_string(null.get(c))
+    count
   end
 
   # Operations on tables.
@@ -142,13 +142,13 @@ def replaces sqlite(file) =
 
   # Check whether a table exists.
   def db.table.exists(name) =
-    let [[(_, n)]] =
+    let sqlite.query ([{name}]: [{name: string}]) =
       db.query(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=#{
           sqlite.escape(name)
         }"
       )
-    null.defined(n)
+     name
   end
 
   db

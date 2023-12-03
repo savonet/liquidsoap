@@ -94,6 +94,8 @@ and let_decoration =
   | `Recursive
   | `Replaces
   | `Eval
+  | `Sqlite_query
+  | `Sqlite_row
   | `Yaml_parse
   | `Json_parse of (string * t) list ]
 

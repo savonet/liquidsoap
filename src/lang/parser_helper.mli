@@ -28,7 +28,14 @@ module Vars = Term_base.Vars
 type arglist = Term.fun_arg list
 
 type lexer_let_decoration =
-  [ `Eval | `Json_parse | `None | `Recursive | `Replaces | `Yaml_parse ]
+  [ `Eval
+  | `Json_parse
+  | `None
+  | `Recursive
+  | `Replaces
+  | `Yaml_parse
+  | `Sqlite_row
+  | `Sqlite_query ]
 
 type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
 type binding = [ explicit_binding | `Binding of Term._let ]
