@@ -624,14 +624,14 @@ class virtual operator ?pos ?(name = "src") sources =
             buffer <- Some buf;
             buf
 
-    val mutable frame = None
+    val mutable empty_frame = None
 
-    method frame =
-      match frame with
+    method empty_frame =
+      match empty_frame with
         | Some frame -> frame
         | None ->
             let f = Frame.create ~length:0 self#content_type in
-            frame <- Some f;
+            empty_frame <- Some f;
             f
 
     val mutable last_metadata = None
@@ -757,7 +757,7 @@ class virtual active_source ?pos ?name () =
 class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
   object (self)
     method virtual get_source : reselect:bool -> unit -> source option
-    method virtual frame : Frame.t
+    method virtual empty_frame : Frame.t
     method virtual on_after_output : (unit -> unit) -> unit
     val mutable cache = None
     val mutable last_position = Hashtbl.create 10
@@ -821,7 +821,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                 pull ~reselect:true (Frame.append buf data))
         else buf
       in
-      let buf = Option.value ~default:self#frame cache in
+      let buf = Option.value ~default:self#empty_frame cache in
       cache <- None;
       pull ~reselect:(not (track_sensitive ())) buf
   end

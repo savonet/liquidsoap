@@ -168,7 +168,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           else buf)
         else buf
       in
-      let buf = fill self#frame in
+      let buf = fill self#empty_frame in
 
       (* At an end of track, we always have unqueued#remaining=0, so there's
          nothing special to do. *)

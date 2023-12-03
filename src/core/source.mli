@@ -174,7 +174,7 @@ class virtual source :
        method buffer : Generator.t
 
        (** An empty frame that can be used by the source. *)
-       method frame : Frame.t
+       method empty_frame : Frame.t
 
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
        method virtual remaining : int
@@ -277,7 +277,7 @@ class virtual generate_from_multiple_sources :
   -> unit
   -> object
        method virtual get_source : reselect:bool -> unit -> source option
-       method virtual frame : Frame.t
+       method virtual empty_frame : Frame.t
        method virtual on_after_output : (unit -> unit) -> unit
        method private can_generate_data : bool
        method private generate_data : Frame.t

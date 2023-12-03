@@ -68,7 +68,7 @@ class accelerate ~ratio ~randomize source_val =
         self#child_on_output (fun () -> pos := Frame.position source#get_data);
         skipped <- skipped + !pos
       done;
-      let buf = ref self#frame in
+      let buf = ref self#empty_frame in
       if source#is_ready then (
         self#child_on_output (fun () -> buf := source#get_data);
         filled <- filled + Frame.position !buf);
