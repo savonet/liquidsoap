@@ -797,7 +797,7 @@
   srt_option
   ssl_option
   stereotool_option
-  sqlite_option
+  sqlite3_option
   taglib_option
   theora_option
   tls_option
@@ -1023,10 +1023,10 @@
    (liquidsoap_stereotool -> stereotool_option.enabled.ml)
    (-> stereotool_option.disabled.ml))
   (select
-   sqlite_option.ml
+   sqlite3_option.ml
    from
-   (liquidsoap_sqlite -> sqlite_option.enabled.ml)
-   (-> sqlite_option.disabled.ml))
+   (liquidsoap_sqlite -> sqlite3_option.enabled.ml)
+   (-> sqlite3_option.disabled.ml))
   (select
    taglib_option.ml
    from
