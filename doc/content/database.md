@@ -72,6 +72,12 @@ and take its value, assuming that it is not null (by `null.get`{.liquidsoap}).
 
 Other useful methods include
 
+- `count` to count the number of rows satisfying a condition
+
+  ```{.liquidsoap include="sqlite.liq" from="count-begin" to="count-end"}
+
+  ```
+
 - `delete` to delete rows from a table
 
   ```{.liquidsoap include="sqlite.liq" from="play-begin" to="play-end"}

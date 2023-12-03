@@ -48,6 +48,13 @@ db.insert(
 )
 
 # insert-end
+
+# count-begin
+n = db.count(table="metadata", where="year=2023")
+
+# count-end
+ignore(n)
+
 # select-begin
 l =
   db.select(
