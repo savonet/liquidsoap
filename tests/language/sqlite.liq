@@ -16,7 +16,17 @@ def f() =
   db.exec(
     "CREATE TABLE test (n INTEGER, s STRING, f FLOAT);"
   )
-  db.table.create("test2", preserve=true, [("n", "INTEGER"), ("s", "STRING")])
+  db.table.create(
+    "test2",
+    preserve=true,
+    [
+      (
+        "id",
+        "INTEGER UNIQUE"
+      ),
+      ("value", "STRING")
+    ]
+  )
 
   # Insertion
   db.insert(table="test", {n=5, s="bla", f=2.5})
@@ -26,6 +36,9 @@ def f() =
   db.exec(
     "INSERT INTO test VALUES (5,#{sqlite.escape('hello')},1.2)"
   )
+
+  db.insert(table="test2", replace=true, {id=0, value="a"})
+  db.insert(table="test2", replace=true, {id=0, value="b"})
 
   # Select
   l = db.select(table="test", where="n=5")

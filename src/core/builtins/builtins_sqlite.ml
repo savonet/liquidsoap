@@ -167,15 +167,21 @@ let sqlite =
           Lang.fun_t
             [
               (false, "table", Lang.string_t);
+              (true, "replace", Lang.bool_t);
               (false, "", Type.var ~constraints:[insert_record_constr] ());
             ]
             Lang.unit_t ),
         "Insert a value represented as a record into a table.",
         fun db ->
           Lang.val_fun
-            [("table", "table", None); ("", "", None)]
+            [
+              ("table", "table", None);
+              ("replace", "replace", Some (Lang.bool false));
+              ("", "", None);
+            ]
             (fun p ->
               let table = List.assoc "table" p |> Lang.to_string in
+              let replace = List.assoc "replace" p |> Lang.to_bool in
               let v =
                 List.assoc "" p |> Liquidsoap_lang.Builtins_json.json_of_value
               in
@@ -194,19 +200,20 @@ let sqlite =
                           ))
                         l
                     in
-                    let insert =
+                    let sql =
+                      let replace = if replace then " OR REPLACE" else "" in
                       let fields = l |> List.map fst |> String.concat ", " in
                       let values =
                         l |> List.map (fun _ -> "?") |> String.concat ", "
                       in
-                      Printf.sprintf "INSERT INTO %s (%s) VALUES (%s)" table
-                        fields values
+                      Printf.sprintf "INSERT%s INTO %s (%s) VALUES (%s)" replace
+                        table fields values
                     in
-                    let insert = Sqlite3.prepare db insert in
+                    let insert = Sqlite3.prepare db sql in
                     l |> List.map snd
                     |> List.iteri (fun i v ->
                            Sqlite3.bind insert (i + 1) v |> check db);
-                    Sqlite3.step insert |> check db;
+                    Sqlite3.step insert |> check db ~sql;
                     Sqlite3.finalize insert |> check db;
                     Lang.unit
                 | _ -> error "A record was expected.") );
