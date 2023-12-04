@@ -36,7 +36,7 @@ def replaces sqlite(file) =
     db.exec(sql)
   end
 
-  def db.select(~table, what="*", ~where="") =
+  def db.select(~table, what="*", ~where="", ~limit=null()) =
     where =
       if
         where == ""
@@ -45,8 +45,9 @@ def replaces sqlite(file) =
       else
         " WHERE #{where}"
       end
+    limit = if null.defined(limit) then " LIMIT#{null.get(limit)}" else limit end
     db.query(
-      "SELECT #{what} FROM #{table}#{where}"
+      "SELECT #{what} FROM #{table}#{where}#{limit}"
     )
   end
 
