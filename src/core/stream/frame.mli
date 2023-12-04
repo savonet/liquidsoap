@@ -166,6 +166,9 @@ exception No_metadata
 (** Attach metadata at a given position to the frame. *)
 val add_metadata : t -> int -> metadata -> t
 
+(* Remove a metadata at a given position. *)
+val free_metadata : t -> int -> t
+
 (** Retrieve metadata at a given position. *)
 val get_metadata : t -> int -> metadata option
 

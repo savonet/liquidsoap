@@ -29,7 +29,7 @@ class delay (source : source) duration =
     inherit operator ~name:"amplify" [source] as super
     val mutable override = None
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -54,22 +54,23 @@ class delay (source : source) duration =
       super#wake_up a;
       self#prepare (length ())
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
+    method private generate_data =
+      let buf =
+        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+      in
+      let position = source#audio_position in
       let length = length () in
       self#prepare length;
       if length > 0 then
-        for i = offset to position - 1 do
+        for i = 0 to position - 1 do
           for c = 0 to self#audio_channels - 1 do
             let x = buf.(c).(i) in
             buf.(c).(i) <- buffer.(c).(pos);
             buffer.(c).(pos) <- x
           done;
           pos <- (pos + 1) mod length
-        done
+        done;
+      source#set_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

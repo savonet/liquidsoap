@@ -107,7 +107,7 @@ class lufs window source =
   object (self)
     inherit operator [source] ~name:"lufs" as super
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
@@ -156,14 +156,13 @@ class lufs window source =
     (** Momentary LUFS. *)
     method momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
-    method private get_frame buf =
+    method private generate_data =
       let channels = self#channels in
       let len_100ms = Frame.audio_of_seconds 0.1 in
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
-      for i = offset to position - 1 do
+      let frame = source#get_data in
+      let position = AFrame.position frame in
+      let buf = AFrame.pcm frame in
+      for i = 0 to position - 1 do
         let x = Array.init channels (fun c -> buf.(c).(i)) in
         (* Prefilter. *)
         let x = stage1 x in
@@ -181,7 +180,8 @@ class lufs window source =
           ms_len <- 0)
       done;
       (* Keep only a limited (by the window) number of blocks. *)
-      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
+      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks;
+      frame
   end
 
 let _ =

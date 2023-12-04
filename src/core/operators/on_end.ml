@@ -26,27 +26,28 @@ class on_end ~delay f s =
     inherit Latest_metadata.source
     val mutable executed = false
     method stype = s#stype
-    method private _is_ready = s#is_ready
+    method private can_generate_data = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek_source = s#seek_source
     method self_sync = s#self_sync
     method private on_new_metadata = ()
 
-    method private get_frame ab =
-      s#get ab;
-      self#save_latest_metadata ab;
+    method private generate_data =
+      let buf = s#get_data in
+      self#save_latest_metadata buf;
       let rem = Frame.seconds_of_main s#remaining in
       if
-        (not executed) && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab)
+        (not executed) && ((0. <= rem && rem <= delay ()) || self#has_track_mark)
       then (
         ignore
           (Lang.apply f
              [("", Lang.float rem); ("", Lang.metadata latest_metadata)]);
         executed <- true);
-      if Frame.is_partial ab then (
+      if self#has_track_mark then (
         self#clear_latest_metadata;
-        executed <- false)
+        executed <- false);
+      buf
   end
 
 let _ =

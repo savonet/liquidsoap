@@ -27,7 +27,7 @@ class rms ~tau source =
   object (self)
     inherit operator [source] ~name:"rms" as super
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
@@ -36,14 +36,13 @@ class rms ~tau source =
     val mutable rms = 0.
     method rms = sqrt rms
 
-    method private get_frame buf =
+    method private generate_data =
       let chans = self#audio_channels in
       let a = 1. -. exp (-1. /. (tau () *. samplerate)) in
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
-      for i = offset to position - 1 do
+      let frame = source#get_data in
+      let position = AFrame.position frame in
+      let buf = AFrame.pcm frame in
+      for i = 0 to position - 1 do
         let r = ref 0. in
         for c = 0 to chans - 1 do
           let x = buf.(c).(i) in
@@ -51,7 +50,8 @@ class rms ~tau source =
         done;
         let r = !r /. float chans in
         rms <- ((1. -. a) *. rms) +. (a *. r)
-      done
+      done;
+      frame
   end
 
 let _ =

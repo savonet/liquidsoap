@@ -61,17 +61,6 @@ let create ~length content_type =
 
 let content_type = Fields.map Content.format
 
-let position frame =
-  Option.value ~default:0
-    (Fields.fold
-       (fun _ c -> function
-         | None -> Some (Content.length c)
-         | Some p -> Some (min p (Content.length c)))
-       frame None)
-
-let remaining b = !!size - position b
-let is_partial b = 0 < remaining b
-
 let chunk ~start ~stop frame =
   Fields.map (fun c -> Content.sub c start (stop - start)) frame
 
@@ -145,3 +134,12 @@ let add_all_metadata frame l =
   Fields.add Fields.metadata new_metadata frame
 
 let add_metadata frame pos m = add_all_metadata frame [(pos, m)]
+
+let free_metadata frame pos =
+  let metadata = get frame Fields.metadata in
+  let new_metadata =
+    Content.make ~length:(Content.length metadata) (Content.format metadata)
+  in
+  Content.Metadata.set_data new_metadata
+    (List.filter (fun (p, _) -> p <> pos) (Content.Metadata.get_data metadata));
+  Fields.add Fields.metadata metadata frame

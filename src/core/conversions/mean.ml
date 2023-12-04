@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Source
+open Mm
 
 class mean ~field ~normalize source =
   object
@@ -28,24 +29,22 @@ class mean ~field ~normalize source =
 
     inherit
       Conversion.base
-        ~audio:true source
-        ~converter:(fun ~frame tmp_frame ->
+        ~converter:(fun frame ->
           (* Compute the mean of audio channels *)
-          let start = Frame.position frame in
-          let len = Frame.position tmp_frame - start in
-          let content = Content.Audio.get_data (Frame.get frame field) in
-          let tmp_content =
-            Content.Audio.get_data (Frame.get tmp_frame field)
-          in
+          let len = Frame.position frame in
+          let alen = Frame.audio_of_main len in
+          let src_content = Content.Audio.get_data (Frame.get frame field) in
+          let dst_content = Audio.Mono.create alen in
           let amp =
-            if normalize then 1. /. float (Array.length tmp_content) else 1.
+            if normalize then 1. /. float (Array.length src_content) else 1.
           in
-          let ( ! ) = Frame.audio_of_main in
-          for i = !start to !(start + len) - 1 do
-            content.(0).(i) <-
-              Array.fold_left (fun m b -> m +. b.(i)) 0. tmp_content *. amp
+          for i = 0 to alen - 1 do
+            dst_content.(i) <-
+              Array.fold_left (fun m b -> m +. b.(i)) 0. src_content *. amp
           done;
-          Frame.set frame field (Content.Audio.lift_data content))
+          Frame.set frame field
+            (Content.Audio.lift_data ~length:len [| dst_content |]))
+        source
   end
 
 let _ =

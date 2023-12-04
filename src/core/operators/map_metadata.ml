@@ -27,7 +27,7 @@ class map_metadata source rewrite_f insert_missing update strip =
     inherit operator ~name:"metadata.map" [source]
     initializer Typing.(self#frame_type <: Lang.unit_t)
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -47,23 +47,25 @@ class map_metadata source rewrite_f insert_missing update strip =
 
     val mutable in_track = false
 
-    method private get_frame buf =
-      let p = Frame.position buf in
-      source#get buf;
-      if insert_missing && (not in_track) && Frame.position buf > p then (
-        in_track <- true;
-        match Frame.get_metadata buf p with
-          | None ->
-              self#log#important "Inserting missing metadata.";
-              Frame.set_metadata buf p Frame.Metadata.empty
-          | Some _ -> ());
+    method private generate_data =
+      let buf = source#get_data in
+      let buf =
+        if insert_missing && not in_track then (
+          in_track <- true;
+          match Frame.get_metadata buf 0 with
+            | None ->
+                self#log#important "Inserting missing metadata.";
+                Frame.add_metadata buf 0 Frame.Metadata.empty
+            | Some _ -> buf)
+        else buf
+      in
       if Frame.is_partial buf then in_track <- false;
-      List.iter
-        (fun (t, m) ->
-          if t >= p then (
-            let m = self#rewrite m in
-            if strip && Frame.Metadata.is_empty m then Frame.free_metadata buf t
-            else Frame.set_metadata buf t m))
+      List.fold_left
+        (fun buf (t, m) ->
+          let m = self#rewrite m in
+          if strip && Frame.Metadata.is_empty m then Frame.free_metadata buf t
+          else Frame.add_metadata buf t m)
+        buf
         (Frame.get_all_metadata buf)
   end
 

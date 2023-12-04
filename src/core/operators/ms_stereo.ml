@@ -28,17 +28,15 @@ class msstereo ~field (source : source) mode width =
   object
     inherit operator ~name:"stereo.ms.encode" [source]
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method abort_track = source#abort_track
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let buffer = Content.Audio.get_data (Frame.get buf field) in
-      for i = offset to AFrame.position buf - 1 do
+    method private generate_data =
+      let buffer = Content.Audio.get_data (source#get_mutable_field field) in
+      for i = 0 to source#audio_position - 1 do
         match mode with
           | Encode ->
               let left = buffer.(0).(i) and right = buffer.(1).(i) in
@@ -54,7 +52,8 @@ class msstereo ~field (source : source) mode width =
               (* left *)
               buffer.(1).(i) <- mid -. (side *. width)
         (* right *)
-      done
+      done;
+      source#set_data field Content.Audio.lift_data buffer
   end
 
 let stereo_ms = Lang.add_module ~base:Stereo.stereo "ms"
@@ -90,17 +89,15 @@ class spatializer ~field ~width (source : source) =
   object
     inherit operator ~name:"stereo.width" [source]
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method abort_track = source#abort_track
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = Content.Audio.get_data (Frame.get buf field) in
+    method private generate_data =
+      let position = source#audio_position in
+      let buf = Content.Audio.get_data (source#get_mutable_field field) in
       let width = width () in
       let width = (width +. 1.) /. 2. in
       let a =
@@ -108,14 +105,15 @@ class spatializer ~field ~width (source : source) =
         let w' = 1. -. width in
         w /. sqrt ((w *. w) +. (w' *. w'))
       in
-      for i = offset to position - 1 do
+      for i = 0 to position - 1 do
         let left = buf.(0).(i) in
         let right = buf.(1).(i) in
         let mid = (left +. right) /. 2. in
         let side = (left -. right) /. 2. in
         buf.(0).(i) <- ((1. -. a) *. mid) -. (a *. side);
         buf.(1).(i) <- ((1. -. a) *. mid) +. (a *. side)
-      done
+      done;
+      source#set_data field Content.Audio.lift_data buf
   end
 
 let _ =

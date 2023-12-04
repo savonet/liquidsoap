@@ -55,8 +55,8 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
     method start = ()
     method stop = write_frame producer_buffer `Flush
 
-    method! _is_ready ?frame () =
-      super#_is_ready ?frame ()
+    method! can_generate_data =
+      super#can_generate_data
       && (Clock.get self#clock)#is_attached (self :> Source.active_source)
 
     method! output = if always_enabled || output_enabled then super#output
@@ -100,8 +100,8 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
         | -1, r -> r
         | r, _ -> r
 
-    method private _is_ready ?frame () =
-      List.for_all (fun c -> c#is_ready ?frame ()) consumers
+    method private can_generate_data =
+      List.for_all (fun c -> c#is_ready) consumers
 
     method! wake_up a =
       super#wake_up a;
@@ -117,21 +117,16 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
         (fun c -> c#leave ?failed_to_start:None (self :> Source.source))
         consumers
 
-    method private get_frame buf =
-      let b = Frame.breaks buf in
+    method private generate_data =
       List.iter (fun c -> c#set_output_enabled true) consumers;
       while
-        Generator.length self#buffer < Lazy.force Frame.size
-        && self#is_ready ~frame:self#buffer ()
+        Generator.length self#buffer < Lazy.force Frame.size && self#is_ready
       do
         self#child_tick
       done;
       needs_tick <- false;
       List.iter (fun c -> c#set_output_enabled false) consumers;
-      Generator.fill self#buffer buf;
-      if List.length b + 1 <> List.length (Frame.breaks buf) then (
-        let cur_pos = Frame.position buf in
-        Frame.set_breaks buf (b @ [cur_pos]))
+      Generator.slice self#buffer (Lazy.force Frame.size)
 
     method abort_track =
       Generator.add_track_mark self#buffer;

@@ -99,6 +99,9 @@ val add_metadata : ?pos:int -> t -> Frame_base.metadata -> unit
    for track mark. Default position is generator's length. *)
 val add_track_mark : ?pos:int -> t -> unit
 
+(* Append a frame content to a generator. *)
+val append : ?offset:int -> ?length:int -> t -> Frame_base.t -> unit
+
 (* [feed ?offset ?length ?fields generator frame] is the old call
    to feed a frame's content to a generator. *)
 val feed :

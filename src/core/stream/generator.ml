@@ -74,6 +74,8 @@ let length gen =
          | Some l' -> Some (min (Content.length c) l'))
        (media_content gen) None)
 
+let _length = length
+
 let buffered_length gen =
   Option.value ~default:0
     (Frame_base.Fields.fold
@@ -195,6 +197,37 @@ let _get =
 let get ?length gen = Tutils.mutexify gen.lock (fun () -> _get ?length gen) ()
 let peek gen = Atomic.get gen.content
 let peek_media gen = media_content gen
+
+let append ?(offset = 0) ?length gen =
+  Tutils.mutexify gen.lock (fun frame ->
+      let pos = _length gen in
+      let length = Option.value ~default:(Frame_base.position frame) length in
+      Atomic.set gen.content
+        (Frame_base.Fields.mapi
+           (fun field content ->
+             match field with
+               | _ when Frame_base.Fields.track_marks = field ->
+                   List.iter
+                     (fun p -> _add_track_mark ~pos:(pos + p) gen)
+                     (Content_timed.Track_marks.get_data
+                        (Content.sub
+                           (Frame_base.Fields.find field frame)
+                           offset length));
+                   content
+               | _ when Frame_base.Fields.metadata = field ->
+                   List.iter
+                     (fun (p, m) -> _add_metadata ~pos:(pos + p) gen m)
+                     (Content_timed.Metadata.get_data
+                        (Content.sub
+                           (Frame_base.Fields.find field frame)
+                           offset length));
+                   content
+               | _ ->
+                   Content.append content
+                     (Content.sub
+                        (Frame_base.Fields.find field frame)
+                        offset length))
+           (Atomic.get gen.content)))
 
 (* The following is frame-specific and should hopefully go away when
    we switch to immutable content. *)

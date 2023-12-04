@@ -298,11 +298,6 @@ module MkContentBase (C : ContentSpecs) :
     in
     { data with chunks = f len data.chunks }
 
-  let copy_chunks =
-    List.map (fun chunk -> { chunk with data = C.copy chunk.data })
-
-  let copy data = { data with chunks = copy_chunks data.chunks }
-
   let append d d' =
     let d = content d in
     let d' = content d' in
@@ -324,17 +319,22 @@ module MkContentBase (C : ContentSpecs) :
       C.blit data offset buf pos length;
       pos + length
     in
-    fun d ->
+    fun ~force d ->
       match (length d, d.chunks) with
-        | 0, _ -> { d with chunks = [] }
-        | _, [{ offset = 0; length = None }] -> d
+        | 0, _ ->
+            d.chunks <- [];
+            { d with chunks = [] }
+        | _, [{ offset = 0; length = None }] when not force -> d
         | length, _ ->
             let buf = C.make ~length d.params in
             ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
+            d.chunks <- [{ offset = 0; length = Some length; data = buf }];
             {
               d with
               chunks = [{ offset = 0; length = Some length; data = buf }];
             }
+
+  let copy = consolidate_chunks ~force:true
 
   let make ?length params =
     { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
@@ -423,7 +423,7 @@ module MkContentBase (C : ContentSpecs) :
 
   let get_data d =
     let d = get_chunked_data d in
-    match (consolidate_chunks d).chunks with
+    match (consolidate_chunks ~force:false d).chunks with
       | [] -> C.make ~length:0 d.params
       | [{ data }] -> data
       | _ -> raise Invalid

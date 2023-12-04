@@ -81,19 +81,19 @@
   content_midi
   content_timed
   content_video
-  ;conversion
+  conversion
   configure
-  ;cross
+  cross
   ;cuepoint
   debug_sources
   decoder
   decoder_utils
   ;defer
   ;delay
-  ;delay_line
+  delay_line
   doc
   ;dtmf
-  ;dyn_op
+  dyn_op
   ;echo
   encoder
   encoder_formats
@@ -158,19 +158,19 @@
   lang_theora
   lang_vorbis
   lang_wav
-  ;latest_metadata
+  latest_metadata
   liqcurl
   lifecycle
   liq_time
   liqmagic
   liquidsoap_paths
   log
-  ;lufs
+  lufs
   mFrame
-  ;map_metadata
+  map_metadata
   ;map_op
   max_duration
-  ;mean
+  mean
   metadata_base
   ;merge_metadata
   ;midi_decoder
@@ -179,23 +179,23 @@
   modules
   mp3_format
   mpd
-  ;ms_stereo
+  ms_stereo
   muxer
   native_audio_converter
   native_video_converter
-  ;noblank
+  noblank
   ;noise
-  ;normalize
+  normalize
   ogg_format
   ogg_metadata_plug
-  ;on_end
-  ;on_frame
+  on_end
+  on_frame
   on_metadata
   ;on_offset
   on_track
   opus_format
   output
-  ;pan
+  pan
   ;pipe
   pipe_output
   ;pitch
@@ -205,13 +205,13 @@
   pos
   ppm_decoder
   process_handler
-  ;producer_consumer
+  producer_consumer
   raw_audio_decoder
   ;replaygain_op
   request
   request_dynamic
-  ;resample
-  ;rms_smooth
+  resample
+  rms_smooth
   rqueue
   runtime_error
   sandbox
@@ -227,11 +227,11 @@
   ;srt_parser
   start_stop
   startup
-  ;stereo
+  stereo
   ;still_frame
   stringView
   strings
-  ;swap
+  swap
   switch
   ;synth_op
   synthesized
@@ -263,7 +263,7 @@
   ;wav_encoder
   wav_format
   websocket
-  ;window_op
+  window_op
   ))
 
 (library

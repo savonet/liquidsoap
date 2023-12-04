@@ -92,6 +92,17 @@ type content_type = Content_base.format Fields.t
 
 type t = Content_base.data Fields.t
 
+let position frame =
+  Option.value ~default:0
+    (Fields.fold
+       (fun _ c -> function
+         | None -> Some (Content_base.length c)
+         | Some p -> Some (min p (Content_base.length c)))
+       frame None)
+
+let remaining b = Lazy.force Frame_settings.size - position b
+let is_partial b = 0 < remaining b
+
 (** Metadata of a frame. *)
 module Metadata = Metadata_base
 

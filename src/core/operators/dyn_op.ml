@@ -23,6 +23,12 @@
 class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
   object (self)
     inherit Source.source ~name:"source.dynamic" ()
+
+    inherit
+      Source.generate_from_multiple_sources
+        ~merge:(fun () -> false)
+        ~track_sensitive ()
+
     method stype = if infallible then `Infallible else `Fallible
     val mutable activation = []
     val mutable source : Source.source option = init
@@ -37,36 +43,42 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
       in
       if already_locked then unregister () else self#mutexify unregister ()
 
-    val mutable last_select = 0.
+    val mutable last_select = Unix.gettimeofday ()
+    val mutable proposed = None
+    method propose s = proposed <- Some s
 
-    (* Proposed source for next round. *)
-    val mutable proposal = None
-    method propose s = proposal <- Some s
-
-    method private select =
+    method private get_source ~reselect () =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
         (self#mutexify (fun () ->
-             let s =
-               match proposal with
+             let next () =
+               last_select <- Unix.gettimeofday ();
+               let s =
+                 Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
+               in
+               match s with
+                 | None -> None
                  | Some s ->
-                     proposal <- None;
-                     Some s
-                 | None ->
-                     Lang.apply f [] |> Lang.to_option
-                     |> Option.map Lang.to_source
+                     Typing.(s#frame_type <: self#frame_type);
+                     Clock.unify ~pos:self#pos s#clock self#clock;
+                     s#get_ready activation;
+                     self#unregister_source ~already_locked:true;
+                     source <- Some s;
+                     source
              in
-             if track_sensitive then last_select <- Unix.gettimeofday ();
-             match s with
-               | None -> ()
-               | Some s ->
-                   Typing.(s#frame_type <: self#frame_type);
-                   Clock.unify ~pos:self#pos s#clock self#clock;
-                   s#get_ready activation;
-                   self#unregister_source ~already_locked:true;
-                   source <- Some s))
+             match (source, proposed) with
+               | Some s, _ when s#is_ready && not reselect -> source
+               | _, Some s when s#is_ready ->
+                   source <- Some s;
+                   source
+               | Some s, _
+                 when (not reselect) && (not s#is_ready)
+                      && Unix.gettimeofday () -. last_select < resurection_time
+                 ->
+                   next ()
+               | _ -> next ()))
 
-    (* Source methods: attempt to #select as soon as it could be useful for the
+    (* Source methods: attempt to #get_source as soon as it could be useful for the
        selection function to change the source. *)
     method! private wake_up ancestors =
       activation <- (self :> Source.source) :: ancestors;
@@ -75,31 +87,11 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
           Typing.(s#frame_type <: self#frame_type);
           s#get_ready activation)
         f;
-      self#select
+      ignore (self#get_source ~reselect:true ())
 
     method! private sleep =
       Lang.iter_sources (fun s -> s#leave (self :> Source.source)) f;
       self#unregister_source ~already_locked:false
-
-    method private _is_ready ?frame () =
-      if (not track_sensitive) || source = None then self#select;
-      match source with
-        | Some s when s#is_ready ?frame () -> true
-        | _ ->
-            if
-              track_sensitive && resurection_time <> None
-              && Unix.gettimeofday () -. last_select
-                 >= Option.get resurection_time
-            then self#select;
-            false
-
-    method private get_frame frame =
-      begin
-        match source with
-          | Some s -> s#get frame
-          | None -> Frame.add_break frame (Frame.position frame)
-      end;
-      if (not track_sensitive) || Frame.is_partial frame then self#select
 
     method remaining = match source with Some s -> s#remaining | None -> -1
 
@@ -128,7 +120,7 @@ let _ =
         Some Lang.null,
         Some "Initial value for the source" );
       ( "track_sensitive",
-        Lang.bool_t,
+        Lang.getter_t Lang.bool_t,
         Some (Lang.bool false),
         Some "Whether the source should only be updated on track change." );
       ( "infallible",
@@ -177,11 +169,13 @@ let _ =
       let init =
         List.assoc "init" p |> Lang.to_option |> Option.map Lang.to_source
       in
-      let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
+      let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_getter in
+      let track_sensitive () = Lang.to_bool (track_sensitive ()) in
       let infallible = List.assoc "infallible" p |> Lang.to_bool in
       let resurection_time =
         List.assoc "resurection_time" p |> Lang.to_valued_option Lang.to_float
       in
+      let resurection_time = Option.value ~default:(-1.) resurection_time in
       let self_sync =
         Lang.to_valued_option Lang.to_bool (List.assoc "self_sync" p)
       in
