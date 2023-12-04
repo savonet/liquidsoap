@@ -159,6 +159,15 @@ val add_track_mark : t -> int -> t
 (** Add a multiple track marks to a frame *)
 val add_track_marks : t -> int list -> t
 
+(** [true] is frame has a track mark. *)
+val has_track_marks : t -> bool
+
+(** [true] is frame has a track mark at the given position *)
+val has_track_mark : t -> int -> bool
+
+(** Remove all track marks from the frame. *)
+val drop_track_marks : t -> t
+
 (** {3 Metadata} *)
 
 exception No_metadata

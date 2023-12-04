@@ -523,7 +523,6 @@ end
 # @param ~fade_in      Fade-in duration, if any.
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
-# @param ~conservative Always prepare for a premature end-of-track.
 # @param ~minimum      Minimum duration (in sec.) for a cross: \
 #                      If the track ends without any warning (e.g. in case of skip) \
 #                      there may not be enough data for a decent composition. \
@@ -555,7 +554,6 @@ def crossfade(
   ~deduplicate=true,
   ~minimum=(-1.),
   ~width=2.,
-  ~conservative=true,
   s
 ) =
   id = string.id.default(default="crossfade", id)
@@ -632,7 +630,6 @@ def crossfade(
       duration=duration,
       persist_override=persist_override,
       override_duration=override_duration,
-      conservative=conservative,
       minimum=minimum,
       transition,
       s

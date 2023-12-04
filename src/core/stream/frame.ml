@@ -87,6 +87,9 @@ let midi frame = get frame Fields.midi
 let track_marks frame =
   Content.Track_marks.get_data (get frame Fields.track_marks)
 
+let has_track_marks frame = track_marks frame <> []
+let has_track_mark frame pos = List.mem pos (track_marks frame)
+
 let add_track_marks frame l =
   let old_marks = get frame Fields.track_marks in
   let length =
@@ -100,6 +103,11 @@ let add_track_marks frame l =
   Fields.add Fields.track_marks new_marks frame
 
 let add_track_mark frame pos = add_track_marks frame [pos]
+
+let drop_track_marks frame =
+  Fields.add Fields.track_marks
+    (Content.make ~length:(position frame) Content_timed.Track_marks.format)
+    frame
 
 let map_chunks fn f =
   let rec map (cur : t) = function

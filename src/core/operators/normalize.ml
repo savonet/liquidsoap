@@ -102,7 +102,7 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
       done;
 
       (* Reset values if it is the end of the track. *)
-      if track_sensitive && source#has_track_mark then self#init;
+      if track_sensitive && source#has_track_marks then self#init;
 
       source#set_data Frame.Fields.audio Content.Audio.lift_data b
   end

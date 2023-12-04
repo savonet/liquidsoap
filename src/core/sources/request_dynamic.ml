@@ -65,7 +65,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     method stype = `Fallible
     val mutable remaining = 0
     method remaining = remaining
-    val mutable send_metadata = false
+    val mutable first_fill = false
     val mutable current = Atomic.make None
     method current = Atomic.get current
     method self_sync = (`Static, false)
@@ -126,7 +126,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                      close = decoder.Decoder.close;
                    });
               remaining <- -1;
-              send_metadata <- true;
+              first_fill <- true;
               true
           | `Request req ->
               (* We got an unresolved request.. this shouldn't actually happen *)
@@ -145,11 +145,12 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         | None -> assert false
         | Some cur ->
             let buf = cur.fread len in
-            if send_metadata then (
+            if first_fill then (
               Request.on_air cur.req;
               let m = Request.get_all_metadata cur.req in
               let buf = Frame.add_metadata buf 0 m in
-              send_metadata <- false;
+              let buf = Frame.add_track_mark buf 0 in
+              first_fill <- false;
               buf)
             else buf
 
@@ -161,7 +162,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           let buf =
             Frame.append buf (self#generate_from_current_request (size - pos))
           in
-          if Frame.position buf < Lazy.force Frame.size then (
+          if remaining = 0 then (
             self#end_request;
             let buf = Frame.add_track_mark buf (Frame.position buf) in
             if self#fetch_request then fill buf else buf)

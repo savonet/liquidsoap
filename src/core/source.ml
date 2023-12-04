@@ -596,7 +596,7 @@ class virtual operator ?pos ?(name = "src") sources =
         (Frame.set self#get_data field (self#get_mutable_field field))
 
     method is_partial = Frame.is_partial self#get_data
-    method has_track_mark = Frame.track_marks self#get_data <> []
+    method has_track_marks = Frame.has_track_marks self#get_data
     method position = Frame.position self#get_data
     method audio_position = Frame.audio_of_main self#position
 

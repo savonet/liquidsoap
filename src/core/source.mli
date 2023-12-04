@@ -224,7 +224,7 @@ class virtual source :
        method audio_position : int
        method video_position : int
        method is_partial : bool
-       method has_track_mark : bool
+       method has_track_marks : bool
        method virtual private can_generate_data : bool
        method virtual private generate_data : Frame.t
        method is_ready : bool
