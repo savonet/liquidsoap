@@ -39,7 +39,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method abort_track = source#abort_track
 
     (* Current gain in dB. *)
@@ -65,12 +65,10 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       gain <- 0.;
       ms <- 0.
 
-    method private get_frame buf =
-      let ofs = AFrame.position buf in
-      source#get buf;
-      let pos = AFrame.position buf in
-      let partial = AFrame.is_partial buf in
-      let buf = Content.Audio.get_data (Frame.get buf field) in
+    method private generate_data =
+      let pos = source#audio_position in
+      let partial = source#is_partial in
+      let buf = Content.Audio.get_data (source#get_mutable_field field) in
       let chans = self#audio_channels in
       let samplerate = float (Lazy.force Frame.audio_rate) in
       let threshold = threshold () in
@@ -88,7 +86,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       let window_coef = 1. -. exp (-1. /. (window *. samplerate)) in
       let wet = wet () in
       self#prepare lookahead;
-      for i = ofs to pos - 1 do
+      for i = 0 to pos - 1 do
         (* Apply pre_gain. *)
         if pre_gain <> 0. then
           for c = 0 to chans - 1 do
@@ -163,7 +161,8 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
           buf.(c).(i) <- buf.(c).(i) *. (1. -. wet +. (wet *. gain))
         done
       done;
-      if partial && track_sensitive then self#reset
+      if partial && track_sensitive then self#reset;
+      source#set_data field Content.Audio.lift_data buf
   end
 
 let audio_compress =
