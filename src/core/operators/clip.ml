@@ -34,11 +34,11 @@ class clip ~field (source : source) =
     method self_sync = source#self_sync
 
     method private generate_data =
-      let buf = source#get_data in
-      let b = Content.Audio.get_data (Frame.get buf field) in
-      let position = AFrame.position buf in
+      let c = source#get_mutable_field field in
+      let b = Content.Audio.get_data c in
+      let position = source#audio_position in
       Audio.clip b 0 position;
-      Frame.set_data buf field Content.Audio.lift_data b
+      source#set_data field Content.Audio.lift_data b
   end
 
 let _ =

@@ -35,8 +35,7 @@ class amplify ~field (source : source) override_field coeff =
     method self_sync = source#self_sync
 
     method private generate_data =
-      Frame.map_chunks
-        (fun buf ->
+      source#map_mutable_chunks field (fun buf ->
           begin
             match override_field with
               | Some f ->
@@ -66,7 +65,6 @@ class amplify ~field (source : source) override_field coeff =
             self#log#info "End of the current overriding.";
             override <- None);
           buf)
-        source#get_data
   end
 
 let _ =

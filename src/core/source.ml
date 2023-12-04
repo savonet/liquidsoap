@@ -459,33 +459,6 @@ class virtual operator ?pos ?(name = "src") sources =
 
     val mutable caching = false
     val mutable activations : operator list list = []
-
-    method private update_caching_mode =
-      let string_of activations =
-        String.concat ", "
-          (List.map
-             (fun l -> String.concat ":" (List.map (fun s -> s#id) l))
-             activations)
-      in
-      self#log#debug "Activations changed: static=[%s]." (string_of activations);
-
-      (* Decide whether caching mode is needed, and why *)
-      match
-        if self#is_active then Some "active source"
-        else (
-          match activations with
-            | [] | _ :: [] -> None
-            | _ -> Some "two static activations")
-      with
-        | None ->
-            if caching then (
-              caching <- false;
-              self#log#debug "Disabling caching mode.")
-        | Some msg ->
-            if not caching then (
-              caching <- true;
-              self#log#debug "Enabling caching mode: %s." msg)
-
     val mutable on_wake_up = []
 
     method on_wake_up =
@@ -514,8 +487,7 @@ class virtual operator ?pos ?(name = "src") sources =
           (Frame.string_of_content_type self#content_type);
         self#wake_up activation;
         List.iter (fun fn -> fn ()) on_wake_up);
-      activations <- activation :: activations;
-      self#update_caching_mode
+      activations <- activation :: activations
 
     val mutable on_sleep = []
     method on_sleep = self#mutexify (fun fn -> on_sleep <- on_sleep @ [fn])
@@ -537,7 +509,6 @@ class virtual operator ?pos ?(name = "src") sources =
         | h :: tl -> remove (h :: acc) tl
       in
       activations <- remove [] activations;
-      self#update_caching_mode;
       if activations = [] then (
         source_log#info "Source %s gets down." id;
         self#sleep;
@@ -607,6 +578,29 @@ class virtual operator ?pos ?(name = "src") sources =
             fn ();
             self#get_data
         | `Done data -> data
+
+    method get_mutable_field field =
+      let content = Frame.get self#get_data field in
+      if List.length activations <= 1 then content else Content.copy content
+
+    method set_data
+        : 'a.
+          Frame.field ->
+          (?offset:int -> ?length:int -> 'a -> Content.data) ->
+          'a ->
+          Frame.t =
+      fun field lift data -> Frame.set_data self#get_data field lift data
+
+    method map_mutable_chunks field fn =
+      Frame.map_chunks fn
+        (Frame.set self#get_data field (self#get_mutable_field field))
+
+    method position = Frame.position self#get_data
+    method audio_position = Frame.audio_of_main self#position
+
+    (* This is rounded up. *)
+    method video_position =
+      Frame.video_of_main (self#position + Lazy.force Frame.video_rate - 1)
 
     (* If possible, end the current track.
        Typically, that signal is just re-routed, or makes the next file

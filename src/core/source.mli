@@ -208,6 +208,21 @@ class virtual source :
 
        method streaming_state : streaming_state
        method get_data : Frame.t
+
+       method map_mutable_chunks :
+         Frame.field -> (Frame.t -> Frame.t) -> Frame.t
+
+       method get_mutable_field : Frame.field -> Content.data
+
+       method set_data :
+         Frame.field ->
+         (?offset:int -> ?length:int -> 'a -> Content.data) ->
+         'a ->
+         Frame.t
+
+       method position : int
+       method audio_position : int
+       method video_position : int
        method virtual private can_generate_data : bool
        method virtual private generate_data : Frame.t
        method is_ready : bool

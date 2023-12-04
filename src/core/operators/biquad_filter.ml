@@ -130,9 +130,9 @@ class biquad (source : source) filter_type freq q gain =
       self#init
 
     method private generate_data =
-      let frame = source#get_data in
-      let position = AFrame.position frame in
-      let buf = AFrame.pcm frame in
+      let data = source#get_mutable_field Frame.Fields.audio in
+      let buf = Content.Audio.get_data data in
+      let position = source#audio_position in
       self#init;
       for c = 0 to self#audio_channels - 1 do
         let buf = buf.(c) in
@@ -152,7 +152,7 @@ class biquad (source : source) filter_type freq q gain =
           y1.(c) <- y0
         done
       done;
-      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
+      source#set_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let filter_iir_eq = Lang.add_module ~base:Iir_filter.filter_iir "eq"

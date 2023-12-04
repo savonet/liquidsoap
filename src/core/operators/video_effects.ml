@@ -79,11 +79,10 @@ class virtual base ~name (source : source) f =
     method virtual content_type : Frame.content_type
 
     method private generate_data =
-      let buf = source#get_data in
-      let video = Content.Video.get_data (Frame.get buf Frame.Fields.video) in
-      let video = Video.Canvas.copy video in
-      f video 0 (VFrame.next_sample_position buf);
-      Frame.set_data buf Frame.Fields.video Content.Video.lift_data video
+      let c = source#get_mutable_field Frame.Fields.video in
+      let video = Content.Video.get_data c in
+      f video 0 source#video_position;
+      source#set_data Frame.Fields.video Content.Video.lift_data video
   end
 
 class effect ~name (source : source) effect =

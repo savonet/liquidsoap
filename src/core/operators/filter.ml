@@ -57,9 +57,9 @@ class filter (source : source) freq q wet mode =
        Maybe should we implement Chamberlin's version instead, which handles freq
        <= rate/2. See http://www.musicdsp.org/archive.php?classid=3#142 *)
     method private generate_data =
-      let buf = source#get_data in
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+      let c = source#get_mutable_field Frame.Fields.audio in
+      let b = Content.Audio.get_data c in
+      let position = source#audio_position in
       let freq = freq () in
       let q = q () in
       let wet = wet () in
@@ -82,7 +82,7 @@ class filter (source : source) freq q wet mode =
             +. ((1. -. wet) *. b_c.(i))
         done
       done;
-      Frame.set_data buf Frame.Fields.audio Content.Audio.lift_data b
+      source#set_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let filter =
