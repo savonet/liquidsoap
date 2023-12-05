@@ -400,6 +400,7 @@ jobs:
         if: matrix.os == 'alpine'
         run: |
           apk -U --force-overwrite upgrade
+          apk add -i sqlite-dev
       - name: Install additional libraries
         run: |
           sudo -u opam -E opam install -y sqlite3
