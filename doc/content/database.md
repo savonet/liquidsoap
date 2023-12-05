@@ -13,7 +13,7 @@ object whose methods can be used to modify or query the database:
 
 ```
 
-A table in the database can then be created by calling the `table.create` method
+table in the database can then be created by calling the `table.create` method
 on the object with as arguments the table name (labeled by `table`) and the list
 of columns specified by pairs consisting of the column name, and its
 type. Setting the `preserve` argument to `true`{.liquidsoap} allows not creating
@@ -123,4 +123,4 @@ Other useful methods include
 
 Finally, if your aim is to index file metadata, you might be interested in the
 `medialib.sqlite`{.liquidsoap} operator which is implemented in the standard
-library as described above (see the [quickstart](quick_start.html)).
+library as described above (see the [cookbook](cookbook.html)).

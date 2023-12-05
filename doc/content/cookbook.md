@@ -154,6 +154,8 @@ can use the `medialib.sqlite` operator as follows:
 
 ```
 
+(we also support more advanced uses of [databases](database.html)).
+
 ## Force a file/playlist to be played at least every XX minutes
 
 It can be useful to have a special playlist that is played at least every 20 minutes for instance (3 times per hour).
