@@ -395,10 +395,14 @@ jobs:
           sudo apt-get update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
+          sudo apt-get -y install libsqlite3-dev
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
           apk -U --force-overwrite upgrade
+      - name: Install additional libraries
+        run: |
+          sudo -u opam -E opam install -y sqlite3
       - name: Install pandoc
         run: |
           cd /tmp

@@ -31,8 +31,6 @@ cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
-opam install -y sqlite3
-
 cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
