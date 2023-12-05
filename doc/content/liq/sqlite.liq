@@ -86,11 +86,24 @@ l'' =
 ignore(l'')
 
 # play-begin
-l = list.map(fun (row) -> null.get(list.assoc("filename", row)), l)
-s = playlist.list(l)
+files =
+  list.map(fun (row) -> null.get(list.assoc("filename", row.to_list())), l)
+s = playlist.list(files)
 output(s)
 
 # play-end
+# play2-begin
+def f(row) =
+  let sqlite.row (r :
+    {filename: string, artist: string, title: string, year: int}
+  ) = row
+  r.filename
+end
+files = list.map(f, l)
+s = playlist.list(files)
+output(s)
+
+# play2-end
 # delete-begin
 db.delete(
   table="metadata",

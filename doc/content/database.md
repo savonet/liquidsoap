@@ -52,8 +52,8 @@ In the case where you want to use strings in your queries, you should always use
 
 ```
 
-The `select` function, returns a list of rows. Each row is represented as a list
-of pairs strings consisting of
+The `select` function, returns a list of rows. To each row will correspond a
+list of pairs strings consisting of
 
 - a string: the name of the column,
 - a nullable string: its value (this is nullable because the contents of a
@@ -66,9 +66,28 @@ order to build a playlist as follows:
 
 ```
 
-This can be read as follows: on each row (by `list.map`{.liquidsoap}) we replace
-take the field labeled `"filename"`{.liquidsoap} (by `list.assoc`{.liquidsoap})
-and take its value, assuming that it is not null (by `null.get`{.liquidsoap}).
+This can be read as follows: for each row (by `list.map`{.liquidsoap}), we
+convert the row to a list of pairs of strings as described above (by calling the
+`to_list`{.liquidsoap} method), we replace take the field labeled
+`"filename"`{.liquidsoap} (by `list.assoc`{.liquidsoap}) and take its value,
+assuming that it is not null (by `null.get`{.liquidsoap}).
+
+Since manipulating rows as lists of pairs of strings is not convenient,
+Liquidsoap offers the possibility to represent them as records with
+constructions of the form
+
+```liquidsoap
+let sqlite.row (r : {a : string; b : int}) = row
+```
+
+which instructs to parse the row `row`{.liquidsoap} as a record `r` with fields
+`a` and `b` of respective types `string`{.liquidsoap} and
+`int`{.liquidsoap}. The above filename extraction is thus more conveniently
+written as
+
+```{.liquidsoap include="sqlite.liq" from="play2-begin" to="play2-end"}
+
+```
 
 Other useful methods include
 
