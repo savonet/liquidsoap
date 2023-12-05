@@ -45,7 +45,14 @@ def replaces sqlite(file) =
       else
         " WHERE #{where}"
       end
-    limit = if null.defined(limit) then " LIMIT#{null.get(limit)}" else limit end
+    limit =
+      if
+        null.defined(limit)
+      then
+        " LIMIT #{null.get(limit)}"
+      else
+        ""
+      end
     db.query(
       "SELECT #{what} FROM #{table}#{where}#{limit}"
     )
@@ -91,7 +98,7 @@ def replaces sqlite(file) =
         " WHERE " ^
           where
       end
-    let sqlite.query ([{count}] : [{count:int}]) =
+    let sqlite.query ([{count}] : [{count: int}]) =
       db.query(
         "SELECT COUNT(*) AS count FROM #{table}#{where}"
       )
@@ -143,13 +150,13 @@ def replaces sqlite(file) =
 
   # Check whether a table exists.
   def db.table.exists(name) =
-    let sqlite.query ([{name}]: [{name: string}]) =
+    let sqlite.query ([{name}] : [{name: string}]) =
       db.query(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=#{
           sqlite.escape(name)
         }"
       )
-     name
+    name
   end
 
   db
