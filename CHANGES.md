@@ -24,6 +24,10 @@ Fixed:
   when evaluatin top-level script (#3553)
 - Fixed infinite loop on some active sources
   (#3544)
+- Fixed fd leak on failed connection in srt
+  caller mode (#3583)
+- Fixed high CPU usage on failed connection
+  in srt caller mode (#3583, #3573)
 
 ---
 

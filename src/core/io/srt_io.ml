@@ -430,101 +430,86 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
     method virtual id : string
     method virtual should_stop : bool
     val mutable connect_task = None
-    val mutable task_should_stop = false
-    val mutable socket = None
+    val task_should_stop = Atomic.make false
+    val socket = Atomic.make None
 
     initializer
       Lifecycle.on_core_shutdown ~name:(Printf.sprintf "%s shutdown" self#id)
         (fun () -> self#disconnect)
 
     method private get_socket =
-      self#mutexify
-        (fun () ->
-          match socket with Some s -> s | None -> raise Not_connected)
-        ()
+      match Atomic.get socket with Some s -> s | None -> raise Not_connected
 
     method virtual private log : Log.t
-    method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
-    method private is_connected = self#mutexify (fun () -> socket <> None) ()
+    method private is_connected = Atomic.get socket <> None
 
     method private connect_fn () =
-      self#mutexify
-        (fun () ->
-          try
-            let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
-            let sockaddr = Unix.ADDR_INET (ipaddr, port) in
-            self#log#important "Connecting to srt://%s:%d.." hostname port;
-            ignore (Option.map (fun (_, s) -> close_socket s) socket);
-            let s = mk_socket ~payload_size ~messageapi () in
-            Srt.setsockflag s Srt.sndsyn true;
-            Srt.setsockflag s Srt.rcvsyn true;
-            ignore
-              (Option.map (fun id -> Srt.(setsockflag s streamid id)) streamid);
-            ignore
-              (Option.map
-                 (fun b -> Srt.(setsockflag s enforced_encryption b))
-                 enforced_encryption);
-            ignore
-              (Option.map
-                 (fun len -> Srt.(setsockflag s pbkeylen len))
-                 pbkeylen);
-            ignore
-              (Option.map
-                 (fun p -> Srt.(setsockflag s passphrase p))
-                 passphrase);
-            ignore
-              (Option.map
-                 (fun v -> Srt.(setsockflag s conntimeo v))
-                 connection_timeout);
-            ignore
-              (Option.map
-                 (fun v -> Srt.(setsockflag s sndtimeo v))
-                 write_timeout);
-            ignore
-              (Option.map
-                 (fun v -> Srt.(setsockflag s rcvtimeo v))
-                 read_timeout);
-            Srt.connect s sockaddr;
-            socket <- Some (sockaddr, s);
-            self#log#important "Client connected!";
-            !on_connect ();
-            -1.
-          with exn ->
-            self#log#important "Connect failed: %s" (Printexc.to_string exn);
-            if not task_should_stop then polling_delay else -1.)
-        ()
+      try
+        let ipaddr = (Unix.gethostbyname hostname).Unix.h_addr_list.(0) in
+        let sockaddr = Unix.ADDR_INET (ipaddr, port) in
+        self#log#important "Connecting to srt://%s:%d.." hostname port;
+        (match Atomic.exchange socket None with
+          | None -> ()
+          | Some (_, s) -> close_socket s);
+        let s = mk_socket ~payload_size ~messageapi () in
+        try
+          Srt.setsockflag s Srt.sndsyn true;
+          Srt.setsockflag s Srt.rcvsyn true;
+          ignore
+            (Option.map (fun id -> Srt.(setsockflag s streamid id)) streamid);
+          ignore
+            (Option.map
+               (fun b -> Srt.(setsockflag s enforced_encryption b))
+               enforced_encryption);
+          ignore
+            (Option.map (fun len -> Srt.(setsockflag s pbkeylen len)) pbkeylen);
+          ignore
+            (Option.map (fun p -> Srt.(setsockflag s passphrase p)) passphrase);
+          ignore
+            (Option.map
+               (fun v -> Srt.(setsockflag s conntimeo v))
+               connection_timeout);
+          ignore
+            (Option.map (fun v -> Srt.(setsockflag s sndtimeo v)) write_timeout);
+          ignore
+            (Option.map (fun v -> Srt.(setsockflag s rcvtimeo v)) read_timeout);
+          Srt.connect s sockaddr;
+          Atomic.set socket (Some (sockaddr, s));
+          self#log#important "Client connected!";
+          !on_connect ();
+          -1.
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Srt.close s;
+          Printexc.raise_with_backtrace exn bt
+      with exn ->
+        self#log#important "Connect failed: %s" (Printexc.to_string exn);
+        if not (Atomic.get task_should_stop) then polling_delay else -1.
 
     method private connect =
-      self#mutexify
-        (fun () ->
-          task_should_stop <- false;
-          match connect_task with
-            | Some t -> Duppy.Async.wake_up t
-            | None ->
-                let t =
-                  Duppy.Async.add ~priority:`Blocking Tutils.scheduler
-                    self#connect_fn
-                in
-                connect_task <- Some t;
-                Duppy.Async.wake_up t)
-        ()
+      Atomic.set task_should_stop false;
+      match connect_task with
+        | Some t -> Duppy.Async.wake_up t
+        | None ->
+            let t =
+              Duppy.Async.add ~priority:`Blocking Tutils.scheduler
+                self#connect_fn
+            in
+            connect_task <- Some t;
+            Duppy.Async.wake_up t
 
     method private disconnect =
-      self#mutexify
-        (fun () ->
-          (match socket with
-            | None -> ()
-            | Some (_, socket) ->
-                close_socket socket;
-                !on_disconnect ());
-          socket <- None;
-          task_should_stop <- true;
-          match connect_task with
-            | None -> ()
-            | Some t ->
-                Duppy.Async.stop t;
-                connect_task <- None)
-        ()
+      (match Atomic.exchange socket None with
+        | None -> ()
+        | Some (_, socket) ->
+            close_socket socket;
+            !on_disconnect ());
+      Atomic.set task_should_stop true;
+      match connect_task with
+        | None -> ()
+        | Some t ->
+            Duppy.Async.stop t;
+            connect_task <- None
   end
 
 class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
