@@ -86,6 +86,8 @@ def f() =
   let [(label, v)] = row.to_list()
   test.equals(label, "a")
   test.equals(v, "456")
+  let sqlite.row (r : {a: string, b: string}) = row
+  test.equals(r.a, "456")
 %endif
 
   test.pass()
