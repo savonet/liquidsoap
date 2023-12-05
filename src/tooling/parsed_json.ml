@@ -295,6 +295,10 @@ let json_of_let_decoration ~to_json : Parsed_term.let_decoration -> Json.t =
   | `Recursive -> `Assoc (ast_node ~typ:"var" [("value", `String "rec")])
   | `Replaces -> `Assoc (ast_node ~typ:"var" [("value", `String "replaces")])
   | `Eval -> `Assoc (ast_node ~typ:"var" [("value", `String "eval")])
+  | `Sqlite_query ->
+      `Assoc (ast_node ~typ:"var" [("value", `String "sqlite.query")])
+  | `Sqlite_row ->
+      `Assoc (ast_node ~typ:"var" [("value", `String "sqlite.row")])
   | `Yaml_parse ->
       `Assoc (ast_node ~typ:"var" [("value", `String "yaml.parse")])
   | `Json_parse [] ->

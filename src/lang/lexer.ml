@@ -210,6 +210,8 @@ let rec token lexbuf =
         LETLBRA `Json_parse
     | "let", Plus skipped, "json.parse", Plus skipped -> LET `Json_parse
     | "let", Plus skipped, "yaml.parse", Plus skipped -> LET `Yaml_parse
+    | "let", Plus skipped, "sqlite.row", Plus skipped -> LET `Sqlite_row
+    | "let", Plus skipped, "sqlite.query", Plus skipped -> LET `Sqlite_query
     | "let" -> LET `None
     | "fun" -> FUN
     | '=' -> GETS

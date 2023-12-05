@@ -622,6 +622,52 @@ let mk_let_yaml_parse ~pos (pat, def, cast) body =
   let def = mk ~pos (`Cast (def, ty)) in
   `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
 
+let mk_let_sqlite_row ~pos (pat, def, cast) body =
+  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
+  let tty = Value.RuntimeType.to_term ty in
+  let parser = mk ~pos (`Var "_sqlite_row_parser_") in
+  let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
+  let def = mk ~pos (`Cast (def, ty)) in
+  `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
+
+let mk_let_sqlite_query ~pos (pat, def, cast) body =
+  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
+  let inner_list_ty = Type.var ~pos () in
+  Typing.(
+    ty
+    <: Type.make ~pos (Type.List { Type.t = inner_list_ty; json_repr = `Tuple }));
+  let tty = Value.RuntimeType.to_term inner_list_ty in
+  let parser = mk ~pos (`Var "_sqlite_row_parser_") in
+  let mapper =
+    let query = mk ~pos (`Var "query") in
+    mk ~pos (`App (parser, [("type", tty); ("", query)]))
+  in
+  let mapper =
+    mk ~pos
+      (`Fun
+        {
+          free_vars = None;
+          name = None;
+          arguments =
+            [
+              {
+                label = "";
+                as_variable = Some "query";
+                default = None;
+                typ = Type.var ~pos ();
+              };
+            ];
+          body = mapper;
+        })
+  in
+  let list = mk ~pos (`Var "list") in
+  let map =
+    mk ~pos (`Invoke { invoked = list; invoke_default = None; meth = "map" })
+  in
+  let def = mk ~pos (`App (map, [("", mapper); ("", def)])) in
+  let def = mk ~pos (`Cast (def, ty)) in
+  `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
+
 let mk_rec_fun ~pos pat arguments body =
   let name =
     match pat with
@@ -643,6 +689,8 @@ let string_of_let_decoration = function
   | `Recursive -> "rec"
   | `Replaces -> "replaces"
   | `Eval -> "eval"
+  | `Sqlite_query -> "sqlite.query"
+  | `Sqlite_row -> "sqlite.row"
   | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
@@ -676,6 +724,8 @@ let mk_let ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
         let args = List.map (fun (l, v) -> (l, to_term v)) args in
         mk_let_json_parse ~pos (args, pat, def, cast) body
     | None, `Yaml_parse -> mk_let_yaml_parse ~pos (pat, def, cast) body
+    | None, `Sqlite_row -> mk_let_sqlite_row ~pos (pat, def, cast) body
+    | None, `Sqlite_query -> mk_let_sqlite_query ~pos (pat, def, cast) body
     | Some _, v ->
         parse_error ~pos
           (string_of_let_decoration v

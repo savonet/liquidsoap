@@ -34,8 +34,10 @@
 %include "ffmpeg.liq"
 %include "profiler.liq"
 %include "io.liq"
+%include "sqlite.liq"
 %include "medialib.liq"
 %include "runtime.liq"
+%include "sqlite.liq"
 %include "testing.liq"
 %include "liquidsoap.liq"
 

@@ -120,6 +120,7 @@ let build_config =
    - mem_usage         : %{Mem_usage_option.detected}
    - osc               : %{Osc_option.detected}
    - ssl               : %{Ssl_option.detected}
+   - sqlite3           : %{Sqlite3_option.detected}
    - tls               : %{Tls_option.detected}
    - posix-time2       : %{Posix_time_option.detected}
    - windows service   : %{Winsvc_option.detected}

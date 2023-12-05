@@ -5,7 +5,8 @@ s1 = playlist("/my/playlist.txt")
 s2 = playlist(mode="normal", "/my/pl.m3u")
 
 # The playlist can come from any URI, can be reloaded every 10 minutes.
-s3 = playlist(reload=600,"http://my/playlist.txt")
+s3 = playlist(reload=600, "http://my/playlist.txt")
+
 # END
 output.dummy(fallible=true, s1)
 output.dummy(fallible=true, s2)

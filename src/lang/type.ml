@@ -24,6 +24,21 @@ include Type_base
 include Ref_type
 module Ground = Ground_type
 
+let record_constr =
+  {
+    t = Record;
+    constr_descr = "a record type";
+    univ_descr = None;
+    satisfied =
+      (fun ~subtype:_ ~satisfies b ->
+        let m, b = split_meths b in
+        match b.descr with
+          | Var _ -> satisfies b
+          | Tuple [] when m = [] -> raise Unsatisfied_constraint
+          | Tuple [] -> ()
+          | _ -> raise Unsatisfied_constraint);
+  }
+
 let num_constr =
   {
     t = Num;

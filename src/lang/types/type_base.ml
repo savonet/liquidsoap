@@ -57,7 +57,7 @@ type t = { pos : Pos.Option.t; descr : descr }
 (** Constraint type *)
 type constr_t = ..
 
-type constr_t += Num | Ord
+type constr_t += Num | Ord | Record
 
 type constr = {
   t : constr_t;

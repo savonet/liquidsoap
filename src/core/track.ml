@@ -30,8 +30,7 @@ include Liquidsoap_lang.Lang_core.MkAbstract (struct
       (Frame.Fields.string_of_field f)
 
   let to_json ~pos _ =
-    Runtime_error.raise ~pos
-      ~message:(Printf.sprintf "Tracks cannot be represented as json")
+    Runtime_error.raise ~pos ~message:"Tracks cannot be represented as json"
       "json"
 
   let compare (f1, s1) (f2, s2) = Stdlib.compare (f1, s1#id) (f2, s2#id)

@@ -245,6 +245,10 @@ jobs:
           sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
           sudo -u opam -E git fetch origin ${{ github.sha }}
           sudo -u opam -E git checkout ${{ github.sha }}
+      - name: Install sqlite
+        run: |
+          sudo apt-get -y install libsqlite3-dev
+          sudo -u opam -E opam install -y sqlite3
       - name: Install pandoc
         run: |
           cd /tmp
@@ -395,10 +399,15 @@ jobs:
           sudo apt-get update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
+          sudo apt-get -y install libsqlite3-dev
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
           apk -U --force-overwrite upgrade
+          apk add -i sqlite-dev
+      - name: Install additional libraries
+        run: |
+          sudo -u opam -E opam install -y sqlite3
       - name: Install pandoc
         run: |
           cd /tmp

@@ -29,7 +29,14 @@ module Vars = Term_base.Vars
 type arglist = Parsed_term.fun_arg list
 
 type lexer_let_decoration =
-  [ `None | `Recursive | `Replaces | `Eval | `Json_parse | `Yaml_parse ]
+  [ `None
+  | `Recursive
+  | `Replaces
+  | `Eval
+  | `Json_parse
+  | `Yaml_parse
+  | `Sqlite_row
+  | `Sqlite_query ]
 
 type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
 type binding = [ explicit_binding | `Binding of Term._let ]
@@ -174,6 +181,8 @@ type meth_pattern_el = string * meth_term_default
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []
   | `Yaml_parse -> `Yaml_parse
+  | `Sqlite_query -> `Sqlite_query
+  | `Sqlite_row -> `Sqlite_row
   | `Eval -> `Eval
   | `Recursive -> `Recursive
   | `None -> `None

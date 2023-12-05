@@ -145,6 +145,15 @@ length 5:
 
 ```
 
+The default implementation of `medialib` uses standard Liquidsoap functions and
+can be pretty expensive in terms of memory. A more efficient implementation is
+available if you compiled with support for sqlite3 databases. In this case, you
+can use the `medialib.sqlite` operator as follows:
+
+```{.liquidsoap include="medialib.sqlite.liq"}
+
+```
+
 ## Force a file/playlist to be played at least every XX minutes
 
 It can be useful to have a special playlist that is played at least every 20 minutes for instance (3 times per hour).

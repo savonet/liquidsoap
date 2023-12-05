@@ -98,6 +98,7 @@
     shine
     soundtouch
     speex
+    sqlite3
     srt
     ssl
     taglib
@@ -154,7 +155,8 @@
     (re (>= 1.11.0))
     (ppx_string :build)
     (sedlex (>= 3.2))
-    (menhir (>= 20180703)))
+    (menhir (>= 20180703))
+  )
   (sites (share libs) (share bin) (lib_root lib_root))
   (synopsis "Liquidsoap language library"))
 
