@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 1.11555695534
+  unit: "s"
+  time: 1701785129.11
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 2.07291793823
+  unit: "s"
+  time: 1701785131.19
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.94437289238
+  unit: "s"
+  time: 1701785133.13
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 2.97355294228
+  unit: "s"
+  time: 1701785136.11
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 332.
+  unit: "Mio"
+  time: 1701785285.7
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 852.046875
+  unit: "Mio"
+  time: 1701785285.7
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1701785285.7
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1701785285.7
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 5748.15625
+  unit: "Mio"
+  time: 1701785285.7
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 5748.15625
+  unit: "Mio"
+  time: 1701785285.7
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2217.
+  unit: "functions"
+  time: 1701785286.87
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1701785286.87
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.35657501221
+  unit: "s"
+  time: 1701785460.51
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.67485785484
+  unit: "s"
+  time: 1701785560.19
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.89238190651
+  unit: "s"
+  time: 1701785564.08
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1701785567.71
+  min: 0.
+
+- commit: 51b1291b6f337ad83874cd6c1cb37ad5e3a96a0c
+  branch: main
+  time: 1701785567
