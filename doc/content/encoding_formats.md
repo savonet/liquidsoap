@@ -23,8 +23,7 @@ In most liquidsoap scripts, the encoding format determines what
 kind of data is streamed.
 
 The type of an encoding format depends on its parameter.
-For example, `%mp3` has type `format(audio=2,video=0,midi=0)`
-but `%mp3(mono)` has type `format(audio=1,video=0,midi=0)`.
+For example, `%mp3` has type `format(audio=pcm(stereo))`.
 
 The type of an output like `output.icecast`
 or `output.file` is something like
@@ -38,12 +37,12 @@ output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))
 ```
 
 then the playlist source will have to stream stereo audio.
-Thus it will reject mono and video files.
 
-Liquidsoap provides operators that can be used to convert sources
-into a format acceptable for a given encoder. For instance, the `mean`
-operator transforms any audio source into a mono source and the `audio_to_stereo`
-operator transforms any audio source into a stereo source.
+In the case of audio format, liquidsoap tries its best to convert the format whenever
+possible. For instance, in the above, liquidsoap will convert mono files
+from the playlist to stereo files by duplicating the single audio channel
+in a mono file. Likewise, if the encoder requires mono audio, it will compute
+the mean of a stereo files.
 
 # List of formats and their syntax
 
