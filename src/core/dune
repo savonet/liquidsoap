@@ -65,10 +65,10 @@
   charset_base
   charset
   child_support
-  ;chord
+  chord
   clip
   clock
-  ;comb
+  comb
   compand
   compress
   compress_exp
@@ -88,7 +88,7 @@
   debug_sources
   decoder
   decoder_utils
-  ;defer
+  defer
   ;delay
   delay_line
   doc
