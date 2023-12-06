@@ -146,17 +146,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             Frame.add_track_mark (Frame.drop_track_marks frame) p
         | _ -> frame
 
-    method private save_last_metadata mode buf_frame =
-      let compare x y = -compare (fst x) (fst y) in
-      let l = List.sort compare (AFrame.get_all_metadata buf_frame) in
-      match (l, mode) with
-        | (_, m) :: _, `Before -> before_metadata <- Some m
-        | (_, m) :: _, `After -> after_metadata <- Some m
-        | _ -> ()
-
-    method private update_cross_length frame =
-      if Frame.is_partial frame && not persist_override then
-        duration_getter <- original_duration_getter;
+    method private append mode buf_frame =
+      let l = Frame.get_all_metadata buf_frame in
       List.iter
         (fun (_, m) ->
           match Frame.Metadata.find_opt override_duration m with
@@ -168,8 +159,15 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                   let l = float_of_string v in
                   duration_getter <- (fun () -> l)
                 with _ -> ()))
-        (Frame.get_all_metadata frame);
-      self#set_cross_length
+        l;
+      self#set_cross_length;
+      (match (List.rev l, mode) with
+        | (_, m) :: _, `Before -> before_metadata <- Some m
+        | (_, m) :: _, `After -> after_metadata <- Some m
+        | _ -> ());
+      match mode with
+        | `Before -> Generator.append gen_before buf_frame
+        | `After -> Generator.append gen_after buf_frame
 
     (* A chunk is a buffer that has at most one
        track mark at its beginning. *)
@@ -181,8 +179,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             match Frame.track_marks buf with
               | p :: _ ->
                   self#log#info "Buffering end of track...";
-                  Generator.append gen_before
-                    (Frame.chunk ~start:p ~stop:pos buf);
+                  self#append `Before (Frame.chunk ~start:p ~stop:pos buf);
                   status <- `Before;
                   self#buffering cross_length;
                   self#generate_data
@@ -201,7 +198,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
               let buf = self#child_get source in
               if Frame.is_partial buf then (
                 self#cleanup_transition_source;
-                Generator.append gen_before buf;
+                self#append `Before buf;
                 status <- `Before;
                 self#buffering cross_length;
                 Generator.slice gen_before (Lazy.force Frame.size))
@@ -227,9 +224,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         let buf_frame = self#child_get source in
         let buf_frame, next_frame = self#split_frame buf_frame in
         let len = AFrame.position buf_frame in
-        self#save_last_metadata `Before buf_frame;
-        self#update_cross_length buf_frame;
-        Generator.append gen_before buf_frame;
+        self#append `Before buf_frame;
 
         (* Analyze them *)
         let pcm = AFrame.pcm buf_frame in
@@ -243,8 +238,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         match next_frame with
           | None -> if len < n then self#buffering (n - len)
           | Some end_frame ->
+              if not persist_override then
+                duration_getter <- original_duration_getter;
               status <- `After;
-              Generator.append gen_after end_frame;
+              self#append `After end_frame;
               if source#is_ready then self#analyze_after)
 
     (* Analyze the beginning of a new track. *)
@@ -255,15 +252,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
           let buf_frame = self#child_get source in
           let buf_frame, next_frame = self#split_frame buf_frame in
           let len = AFrame.position buf_frame in
-          Generator.append gen_after buf_frame;
+          self#append `After buf_frame;
           let after_len = Generator.length gen_after in
           if after_len <= rms_width then (
             let pcm = AFrame.pcm buf_frame in
             let squares = Audio.squares pcm 0 len in
             rms_after <- rms_after +. squares;
             rmsi_after <- rmsi_after + len);
-          self#save_last_metadata `After buf_frame;
-          self#update_cross_length buf_frame;
           match next_frame with
             | None -> if after_len < before_len then f () else None
             | _ -> next_frame)
@@ -273,7 +268,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       self#create_transition;
       match next_frame with
         | None -> ()
-        | Some next_frame -> Generator.append gen_before next_frame
+        | Some next_frame -> self#append `Before next_frame
 
     (* Sum up analysis and build the transition *)
     method private create_transition =
