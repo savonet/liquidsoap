@@ -523,14 +523,13 @@ end
 # @param ~fade_in      Fade-in duration, if any.
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
-# @param ~minimum      Minimum duration (in sec.) for a cross: \
-#                      If the track ends without any warning (e.g. in case of skip) \
-#                      there may not be enough data for a decent composition. \
-#                      Set to 0. to avoid having transitions after skips, \
-#                      or more to avoid transitions on short tracks. \
-#                      With a negative default, transitions always occur.
-# @param ~default      Smart crossfade: transition used when no rule applies \
-#                      (default: sequence).
+# @param ~duration_margin \
+#                      Acceptable deviation from the expected duration to allow \
+#                      the computation of a proper crossfade, in percent. if buffered \
+#                      length is above or below this value, the default crossfade \
+#                      transition is used.
+# @param ~default      Transition used when no rule apply or when there is not enough \
+#                      data to compute the crossfade (default: sequence).
 # @param ~smart        Enable smart crossfading
 # @param ~high         Smart crossfade: value, in dB, for loud sound level.
 # @param ~medium       Smart crossfade: value, in dB, for medium sound level.
@@ -552,7 +551,7 @@ def crossfade(
   ~medium=-32.,
   ~margin=4.,
   ~deduplicate=true,
-  ~minimum=(-1.),
+  ~duration_margin=0.1,
   ~width=2.,
   s
 ) =
@@ -572,6 +571,13 @@ def crossfade(
       metadata.cover.remove(a.metadata)
     )
 
+    log(
+      level=4,
+      "Before: expected duration: #{a.expected_duration}, buffered: #{
+        a.buffered
+      }"
+    )
+
     list.iter(
       fun (x) ->
         log(
@@ -582,9 +588,22 @@ def crossfade(
     )
 
     log(
+      level=4,
+      "After: expected duration: #{b.expected_duration}, buffered: #{
+        b.buffered
+      }"
+    )
+
+    log(
       "Simple transition: crossed, fade-in, fade-out."
     )
     cross.simple(fade_in=fade_in, fade_out=fade_out, a.source, b.source)
+  end
+
+  def acceptable_duration(m) =
+    (1. - duration_margin) * m.expected_duration <= m.buffered
+  and
+    m.buffered <= (1. + duration_margin) * m.expected_duration
   end
 
   def smart_transition(a, b) =
@@ -597,6 +616,13 @@ def crossfade(
       metadata.cover.remove(a.metadata)
     )
 
+    log(
+      level=4,
+      "Before: expected duration: #{a.expected_duration}, buffered: #{
+        a.buffered
+      }"
+    )
+
     list.iter(
       fun (x) ->
         log(
@@ -606,17 +632,33 @@ def crossfade(
       metadata.cover.remove(b.metadata)
     )
 
-    cross.smart(
-      log=log,
-      fade_in=fade_in,
-      fade_out=fade_out,
-      default=default,
-      high=high,
-      medium=medium,
-      margin=margin,
-      a,
-      b
+    log(
+      level=4,
+      "After: expected duration: #{b.expected_duration}, buffered: #{
+        b.buffered
+      }"
     )
+
+    if
+      not acceptable_duration(a) or not acceptable_duration(b)
+    then
+      log(
+        "Not enough data for crossing: using default transition"
+      )
+      default(a.source, b.source)
+    else
+      cross.smart(
+        log=log,
+        fade_in=fade_in,
+        fade_out=fade_out,
+        default=default,
+        high=high,
+        medium=medium,
+        margin=margin,
+        a,
+        b
+      )
+    end
   end
 
   transition = if smart then smart_transition else simple_transition end
@@ -630,7 +672,6 @@ def crossfade(
       duration=duration,
       persist_override=persist_override,
       override_duration=override_duration,
-      minimum=minimum,
       transition,
       s
     )

@@ -26,10 +26,10 @@ open Source
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
-(** [rms_width] and [minimum_length] are all in samples.
+(** [rms_width] is in samples.
   * [cross_length] is in ticks (like #remaining estimations) and must be at least one frame. *)
 class cross val_source ~duration_getter ~override_duration ~persist_override
-  ~rms_width ~minimum_length transition =
+  ~rms_width transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
@@ -312,6 +312,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                       [
                         ("source", Lang.source a);
                         ("db_level", Lang.float db_before);
+                        ( "expected_duration",
+                          Lang.float (Frame.seconds_of_main cross_length) );
+                        ( "buffered",
+                          Lang.float
+                            (Frame.seconds_of_main
+                               (Generator.length gen_before)) );
                         ("metadata", Lang.metadata before_metadata);
                       ] );
                   ( "",
@@ -319,6 +325,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                       [
                         ("source", Lang.source b);
                         ("db_level", Lang.float db_after);
+                        ( "expected_duration",
+                          Lang.float (Frame.seconds_of_main cross_length) );
+                        ( "buffered",
+                          Lang.float
+                            (Frame.seconds_of_main (Generator.length gen_after))
+                        );
                         ("metadata", Lang.metadata after_metadata);
                       ] );
                 ]
@@ -330,11 +342,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 db_before db_after
                 (Frame.seconds_of_main (Generator.length gen_before))
                 (Frame.seconds_of_main (Generator.length gen_after));
-              if Frame.main_of_audio minimum_length < Generator.length gen_after
-              then f before after
-              else (
-                self#log#important "Not enough data for crossing.";
-                (new Sequence.sequence [before; after] :> source))
+              f before after
             in
             Clock.unify ~pos:self#pos compound#clock s#clock;
             Typing.(compound#frame_type <: self#frame_type);
@@ -376,6 +384,8 @@ let _ =
       [
         ("source", ([], Lang.source_t frame_t), "Source");
         ("db_level", ([], Lang.float_t), "dB level of the source.");
+        ("expected_duration", ([], Lang.float_t), "Expected buffered duration.");
+        ("buffered", ([], Lang.float_t), "Buffered duration.");
         ("metadata", ([], Lang.metadata_t), "Metadata of the source.");
       ]
   in
@@ -397,15 +407,6 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Keep duration override on track change." );
-      ( "minimum",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
-        Some
-          "Minimum duration (in sec.) for a cross: If the track ends without \
-           any warning (e.g. in case of skip) there may not be enough data for \
-           a decent composition. Set to 0. to avoid having transitions after \
-           skips, or more to avoid transitions on short tracks. With a \
-           negative default, transitions always occur." );
       ( "width",
         Lang.float_t,
         Some (Lang.float 2.),
@@ -441,12 +442,10 @@ let _ =
         Lang.to_string (List.assoc "override_duration" p)
       in
       let persist_override = Lang.to_bool (List.assoc "persist_override" p) in
-      let minimum = Lang.to_float (List.assoc "minimum" p) in
-      let minimum_length = Frame.audio_of_seconds minimum in
       let rms_width = Lang.to_float (List.assoc "width" p) in
       let rms_width = Frame.audio_of_seconds rms_width in
       let transition = Lang.assoc "" 1 p in
       let source = Lang.assoc "" 2 p in
       new cross
-        source transition ~duration_getter ~rms_width ~minimum_length
-        ~override_duration ~persist_override)
+        source transition ~duration_getter ~rms_width ~override_duration
+        ~persist_override)
