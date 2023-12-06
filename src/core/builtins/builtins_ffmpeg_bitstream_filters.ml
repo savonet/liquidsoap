@@ -308,7 +308,7 @@ let register_filters () =
                          (fun pos -> Generator.add_track_mark ~pos generator)
                          (List.filter
                             (fun x -> x < Lazy.force Frame.size)
-                            (Frame.breaks frame));
+                            (Frame.track_marks frame));
                        process frame
                    | `Flush -> flush ()
                  in

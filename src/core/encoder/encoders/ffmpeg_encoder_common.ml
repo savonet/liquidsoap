@@ -273,7 +273,7 @@ let encoder ~pos ~mk_streams ffmpeg meta =
               let sent = Frame.Fields.find field sent in
               let d = Content.sub c start len in
               sent := !sent || not (Content.is_empty d))
-            (Generator.peek_media frame);
+            frame;
           if Frame.Fields.exists (fun _ c -> not !c) sent then
             raise Encoder.Not_enough_data;
           Av.flush encoder.output;

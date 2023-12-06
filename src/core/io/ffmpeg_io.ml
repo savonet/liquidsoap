@@ -77,7 +77,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
     method private is_connected = Atomic.get container <> None
-    method! is_ready ?frame () = super#is_ready ?frame () && self#is_connected
+    method! is_ready = super#is_ready && self#is_connected
 
     method private get_self_sync =
       match self_sync () with Some v -> v | None -> false
@@ -231,9 +231,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | None -> raise Not_connected
         | Some c -> c
 
-    method private get_frame frame =
-      let pos = Frame.position frame in
-      let breaks = Frame.breaks frame in
+    method private generate_data =
+      let size = Lazy.force Frame.size in
       try
         let { decoder; buffer; closed } = self#get_connected_container in
         while Generator.length self#buffer < Lazy.force Frame.size do
@@ -245,30 +244,26 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         if meta <> [] then (
           Generator.add_metadata self#buffer (Frame.Metadata.from_list meta);
           if new_track_on_metadata then Generator.add_track_mark self#buffer);
-        Generator.fill self#buffer frame;
-        let stop = Frame.position frame in
+        let frame = Generator.slice self#buffer size in
         (* Metadata can be added by the decoder and the demuxer so we filter at the frame level. *)
         let metadata =
           List.fold_left
             (fun metadata (p, m) ->
-              if p < pos || stop < p then (p, m) :: metadata
-              else (
-                let m = metadata_filter m in
-                if 0 < Frame.Metadata.cardinal m then (p, m) :: metadata
-                else metadata))
+              let m = metadata_filter m in
+              if 0 < Frame.Metadata.cardinal m then (p, m) :: metadata
+              else metadata)
             []
             (Frame.get_all_metadata frame)
         in
-        Frame.set_all_metadata frame metadata
+        Frame.add_all_metadata frame metadata
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log
           ~bt:(Printexc.raw_backtrace_to_string bt)
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn);
-        if List.length breaks = List.length (Frame.breaks frame) then
-          Frame.add_break frame pos;
-        self#reconnect
+        self#reconnect;
+        self#empty_frame
   end
 
 let http_log = Log.make ["input"; "http"]

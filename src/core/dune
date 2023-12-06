@@ -84,7 +84,7 @@
   conversion
   configure
   cross
-  ;cuepoint
+  cuepoint
   debug_sources
   decoder
   decoder_utils

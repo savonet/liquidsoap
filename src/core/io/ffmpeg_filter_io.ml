@@ -102,7 +102,7 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
     method stop = ()
     method! reset = ()
     val mutable is_up = false
-    method! is_ready ?frame () = is_up && super#is_ready ?frame ()
+    method! is_ready = is_up && super#is_ready
 
     method! wake_up l =
       is_up <- true;
@@ -140,15 +140,13 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
                         else []
                       in
                       let metadata =
-                        if
-                          Frame.is_partial memo
-                          || List.length (Frame.breaks memo) > 1
-                        then (track_mark_metadata, "1") :: metadata
+                        if Frame.has_track_marks memo then
+                          (track_mark_metadata, "1") :: metadata
                         else metadata
                       in
                       if metadata <> [] then
-                        Avutil.Frame.set_metadata frame metadata);
-                    input (`Frame frame))
+                        Avutil.Frame.set_metadata frame metadata;
+                      input (`Frame frame)))
                   frames)
         frames
   end
@@ -245,16 +243,13 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
         f ()
       with Not_ready -> ()
 
-    method private _is_ready ?frame:_ _ =
+    method private can_generate_data =
       Generator.length self#buffer >= Lazy.force Frame.size || is_ready ()
 
-    method private get_frame frame =
-      let b = Frame.breaks frame in
+    method private generate_data =
+      let size = Lazy.force Frame.size in
       if Generator.length self#buffer < Lazy.force Frame.size then self#pull;
-      Generator.fill self#buffer frame;
-      if List.length b + 1 <> List.length (Frame.breaks frame) then (
-        let cur_pos = Frame.position frame in
-        Frame.set_breaks frame (b @ [cur_pos]))
+      Generator.slice self#buffer size
   end
 
 type audio_config = {
