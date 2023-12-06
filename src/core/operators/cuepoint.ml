@@ -154,19 +154,10 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
       if source#is_ready then self#generate_data else self#empty_frame
 
     method private child_get =
-      if source#is_ready then (
-        let frame = ref self#empty_frame in
+      let frame = ref self#empty_frame in
+      if source#is_ready then
         self#child_on_output (fun () -> frame := source#get_data);
-        let frame = !frame in
-        match Frame.track_marks frame with
-          | p :: _ :: _ ->
-              self#log#important
-                "Source created multiple tracks in a single frame! Sub-frame \
-                 tracks cannot be handled by this operator and are merged into \
-                 a single one..";
-              Frame.add_track_mark (Frame.drop_track_marks frame) p
-          | _ -> frame)
-      else self#empty_frame
+      !frame
 
     method private split_frame buf_frame =
       match Frame.track_marks buf_frame with

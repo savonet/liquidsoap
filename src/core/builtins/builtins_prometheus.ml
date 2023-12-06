@@ -170,7 +170,8 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     ()
   in
   let sleep () = () in
-  let generate_data ~start_time ~end_time ~length ~is_partial:_ ~metadata:_ =
+  let generate_data ~start_time ~end_time ~length ~has_track_mark:_ ~metadata:_
+      =
     last_start_time := start_time;
     last_end_time := end_time;
     Prometheus.Gauge.set last_data end_time;

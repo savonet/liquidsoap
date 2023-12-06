@@ -34,37 +34,46 @@ class amplify ~field (source : source) override_field coeff =
     method seek_source = source#seek_source
     method self_sync = source#self_sync
 
+    method private process content =
+      let k = match override with Some o -> o | None -> coeff () in
+      if k <> 1. then (
+        let data = Content.Audio.get_data content in
+        Audio.amplify k data 0 (Frame.audio_of_main (Content.length content));
+        Content.Audio.lift_data data)
+      else content
+
     method private generate_data =
-      source#map_mutable_chunks field (fun buf ->
-          begin
-            match override_field with
-              | Some f ->
-                  List.iter
-                    (fun (_, m) ->
-                      try
-                        let s = Frame.Metadata.find f m in
-                        let k =
-                          try Scanf.sscanf s " %f dB" Audio.lin_of_dB
-                          with _ -> float_of_string s
-                        in
-                        self#log#info "Overriding amplification: %f." k;
-                        override <- Some k
-                      with _ -> ())
-                    (AFrame.get_all_metadata buf)
-              | None -> ()
-          end;
-          let k = match override with Some o -> o | None -> coeff () in
-          let buf =
-            if k <> 1. then (
-              let data = Content.Audio.get_data (Frame.get buf field) in
-              Audio.amplify k data 0 (AFrame.position buf);
-              Frame.set_data buf field Content.Audio.lift_data data)
-            else buf
-          in
-          if Frame.track_marks buf <> [] && override <> None then (
-            self#log#info "End of the current overriding.";
-            override <- None);
-          buf)
+      let c = source#get_mutable_field field in
+      let track_mark = source#track_mark in
+      let c, end_c =
+        match track_mark with
+          | Some p -> (Content.sub c 0 p, Content.sub c p (Content.length c - p))
+          | None -> (c, Content.make ~length:0 (Content.format c))
+      in
+      let c = self#process c in
+      begin
+        match (track_mark, override_field) with
+          | Some p, Some f ->
+              if override <> None then
+                self#log#info "End of the current overriding.";
+              override <- None;
+              List.iter
+                (fun (pos, m) ->
+                  if p <= pos then (
+                    try
+                      let s = Frame.Metadata.find f m in
+                      let k =
+                        try Scanf.sscanf s " %f dB" Audio.lin_of_dB
+                        with _ -> float_of_string s
+                      in
+                      self#log#info "Overriding amplification: %f." k;
+                      override <- Some k
+                    with _ -> ()))
+                source#metadata
+          | _ -> ()
+      end;
+      let end_c = self#process end_c in
+      Frame.set source#get_data field (Content.append c end_c)
   end
 
 let _ =

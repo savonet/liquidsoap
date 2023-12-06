@@ -137,15 +137,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let frame = ref self#empty_frame in
       self#child_on_output (fun () ->
           if source#is_ready then frame := source#get_data);
-      let frame = !frame in
-      match Frame.track_marks frame with
-        | p :: _ :: _ ->
-            self#log#important
-              "Source created multiple tracks in a single frame! Sub-frame \
-               tracks cannot be handled by this operator and are merged into a \
-               single one..";
-            Frame.add_track_mark (Frame.drop_track_marks frame) p
-        | _ -> frame
+      !frame
 
     method private append mode buf_frame =
       let l = Frame.get_all_metadata buf_frame in
@@ -174,17 +166,15 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
        track mark at its beginning. *)
     method private generate_data =
       match status with
-        | `Idle -> (
+        | `Idle ->
             let buf = self#child_get source in
             let pos = Frame.position buf in
-            match Frame.track_marks buf with
-              | p :: _ ->
-                  self#log#info "Buffering end of track...";
-                  self#append `Before (Frame.chunk ~start:p ~stop:pos buf);
-                  status <- `Before;
-                  self#buffering cross_length;
-                  self#generate_data
-              | [] -> buf)
+            let p = Option.value ~default:0 source#track_mark in
+            self#log#info "Buffering end of track...";
+            self#append `Before (Frame.chunk ~start:p ~stop:pos buf);
+            status <- `Before;
+            self#buffering cross_length;
+            Frame.append (Frame.slice buf p) self#generate_data
         | `Before ->
             (* We started buffering but the track didn't end.
              * Play the beginning of the buffer while filling it more. *)

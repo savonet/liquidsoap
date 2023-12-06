@@ -292,7 +292,7 @@ type watcher = {
     start_time:float ->
     end_time:float ->
     length:int ->
-    is_partial:bool ->
+    has_track_mark:bool ->
     metadata:metadata ->
     unit;
   before_output : unit -> unit;
@@ -591,12 +591,15 @@ class virtual operator ?pos ?(name = "src") sources =
           Frame.t =
       fun field lift data -> Frame.set_data self#get_data field lift data
 
-    method map_mutable_chunks field fn =
-      Frame.map_chunks fn
-        (Frame.set self#get_data field (self#get_mutable_field field))
-
     method is_partial = Frame.is_partial self#get_data
-    method has_track_marks = Frame.has_track_marks self#get_data
+    method has_track_mark = Frame.has_track_marks self#get_data
+
+    method track_mark =
+      match Frame.track_marks self#get_data with
+        | pos :: _ -> Some pos
+        | _ -> None
+
+    method metadata = Frame.get_all_metadata self#get_data
     method position = Frame.position self#get_data
     method audio_position = Frame.audio_of_main self#position
 
@@ -649,8 +652,18 @@ class virtual operator ?pos ?(name = "src") sources =
       let buf = self#generate_data in
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
-      let is_partial = Frame.is_partial buf in
-      if is_partial then elapsed <- 0 else elapsed <- elapsed + length;
+      let track_marks = Frame.track_marks buf in
+      let buf =
+        match track_marks with
+          | p :: _ :: _ ->
+              self#log#important
+                "Source created multiple tracks in a single frame! Sub-frame \
+                 tracks are not supported and are merged into a single one..";
+              Frame.add_track_mark (Frame.drop_track_marks buf) p
+          | _ -> buf
+      in
+      let has_track_mark = track_marks <> [] in
+      if has_track_mark then elapsed <- 0 else elapsed <- elapsed + length;
       let metadata = Frame.get_all_metadata buf in
       let on_metadata = self#mutexify (fun () -> on_metadata) () in
       List.iter
@@ -673,7 +686,8 @@ class virtual operator ?pos ?(name = "src") sources =
           List.iter (fun fn -> fn m) on_track)
         (Frame.track_marks buf);
       self#iter_watchers (fun w ->
-          w.generate_data ~start_time ~end_time ~length ~is_partial ~metadata);
+          w.generate_data ~start_time ~end_time ~length ~has_track_mark
+            ~metadata);
       buf
 
     (* Set to [true] when we're inside an output cycle. *)

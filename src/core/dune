@@ -89,7 +89,7 @@
   decoder
   decoder_utils
   defer
-  ;delay
+  delay
   delay_line
   doc
   ;dtmf

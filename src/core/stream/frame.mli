@@ -143,11 +143,6 @@ val remaining : t -> int
     [Lazy.force Frame.size]? *)
 val is_partial : t -> bool
 
-(** Apply a function to all chunks of the frame.
-    A frame's chunks are all the section between
-    frame start, track marks and frame end. *)
-val map_chunks : (t -> t) -> t -> t
-
 (** {3 Track marks} *)
 
 (** List of track marks in a frame. *)

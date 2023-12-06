@@ -109,15 +109,6 @@ let drop_track_marks frame =
     (Content.make ~length:(position frame) Content_timed.Track_marks.format)
     frame
 
-let map_chunks fn f =
-  let rec map (cur : t) = function
-    | _ :: [] -> cur
-    | start :: stop :: rest ->
-        map (append cur (fn (chunk ~start ~stop f))) (stop :: rest)
-    | _ -> assert false
-  in
-  map (slice f 0) (0 :: (track_marks f @ [position f]))
-
 (** Metadata stuff *)
 
 exception No_metadata
