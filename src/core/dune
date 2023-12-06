@@ -71,7 +71,7 @@
   ;comb
   compand
   compress
-  ;compress_exp
+  compress_exp
   content
   content_audio
   content_pcm_base
