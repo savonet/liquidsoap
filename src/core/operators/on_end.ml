@@ -37,15 +37,13 @@ class on_end ~delay f s =
       let buf = s#get_data in
       self#save_latest_metadata buf;
       let rem = Frame.seconds_of_main s#remaining in
-      if
-        (not executed)
-        && ((0. <= rem && rem <= delay ()) || self#has_track_marks)
+      if (not executed) && ((0. <= rem && rem <= delay ()) || s#has_track_marks)
       then (
         ignore
           (Lang.apply f
              [("", Lang.float rem); ("", Lang.metadata latest_metadata)]);
         executed <- true);
-      if self#has_track_marks then (
+      if s#has_track_marks then (
         self#clear_latest_metadata;
         executed <- false);
       buf
