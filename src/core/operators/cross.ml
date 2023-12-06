@@ -135,7 +135,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private child_get source =
       let frame = ref self#empty_frame in
-      self#child_on_output (fun () -> frame := source#get_data);
+      self#child_on_output (fun () ->
+          if source#is_ready then frame := source#get_data);
       let frame = !frame in
       match Frame.track_marks frame with
         | p :: _ :: _ ->
@@ -194,19 +195,14 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             else self#generate_data
         | `After ->
             let source = Option.get transition_source in
-            if source#is_ready then (
-              let buf = self#child_get source in
-              if Frame.is_partial buf then (
-                self#cleanup_transition_source;
-                self#append `Before buf;
-                status <- `Before;
-                self#buffering cross_length;
-                Generator.slice gen_before (Lazy.force Frame.size))
-              else buf)
-            else (
-              status <- `Idle;
+            let buf = self#child_get source in
+            if Frame.is_partial buf then (
               self#cleanup_transition_source;
-              if source#is_ready then self#generate_data else self#empty_frame)
+              self#append `Before buf;
+              status <- `Before;
+              self#buffering cross_length;
+              Generator.slice gen_before (Lazy.force Frame.size))
+            else buf
 
     method private split_frame buf_frame =
       match Frame.track_marks buf_frame with
@@ -220,49 +216,46 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
     method private buffering n =
-      if source#is_ready then (
-        let buf_frame = self#child_get source in
-        let buf_frame, next_frame = self#split_frame buf_frame in
-        let len = AFrame.position buf_frame in
-        self#append `Before buf_frame;
+      let buf_frame = self#child_get source in
+      let buf_frame, next_frame = self#split_frame buf_frame in
+      let len = AFrame.position buf_frame in
+      self#append `Before buf_frame;
 
-        (* Analyze them *)
-        let pcm = AFrame.pcm buf_frame in
-        let squares = Audio.squares pcm 0 len in
-        rms_before <- rms_before -. mem_before.(mem_i) +. squares;
-        mem_before.(mem_i) <- squares;
-        mem_i <- (mem_i + len) mod rms_width;
-        rmsi_before <- min rms_width (rmsi_before + len);
+      (* Analyze them *)
+      let pcm = AFrame.pcm buf_frame in
+      let squares = Audio.squares pcm 0 len in
+      rms_before <- rms_before -. mem_before.(mem_i) +. squares;
+      mem_before.(mem_i) <- squares;
+      mem_i <- (mem_i + len) mod rms_width;
+      rmsi_before <- min rms_width (rmsi_before + len);
 
-        (* Should we buffer more or are we done ? *)
-        match next_frame with
-          | None -> if len < n then self#buffering (n - len)
-          | Some end_frame ->
-              if not persist_override then
-                duration_getter <- original_duration_getter;
-              status <- `After;
-              self#append `After end_frame;
-              if source#is_ready then self#analyze_after)
+      (* Should we buffer more or are we done ? *)
+      match next_frame with
+        | None -> if 0 < len && len < n then self#buffering (n - len)
+        | Some end_frame ->
+            if not persist_override then
+              duration_getter <- original_duration_getter;
+            status <- `After;
+            self#append `After end_frame;
+            self#analyze_after
 
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
       let before_len = Generator.length gen_before in
       let rec f () =
-        if source#is_ready then (
-          let buf_frame = self#child_get source in
-          let buf_frame, next_frame = self#split_frame buf_frame in
-          let len = AFrame.position buf_frame in
-          self#append `After buf_frame;
-          let after_len = Generator.length gen_after in
-          if after_len <= rms_width then (
-            let pcm = AFrame.pcm buf_frame in
-            let squares = Audio.squares pcm 0 len in
-            rms_after <- rms_after +. squares;
-            rmsi_after <- rmsi_after + len);
-          match next_frame with
-            | None -> if after_len < before_len then f () else None
-            | _ -> next_frame)
-        else None
+        let buf_frame = self#child_get source in
+        let buf_frame, next_frame = self#split_frame buf_frame in
+        let len = AFrame.position buf_frame in
+        self#append `After buf_frame;
+        let after_len = Generator.length gen_after in
+        if after_len <= rms_width then (
+          let pcm = AFrame.pcm buf_frame in
+          let squares = Audio.squares pcm 0 len in
+          rms_after <- rms_after +. squares;
+          rmsi_after <- rmsi_after + len);
+        match next_frame with
+          | None -> if 0 < len && after_len < before_len then f () else None
+          | _ -> next_frame
       in
       let next_frame = f () in
       self#create_transition;

@@ -132,6 +132,8 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
           (buf, length))
       in
 
+      let buf = Frame.add_track_mark buf 0 in
+
       match out_pos with
         | None ->
             state <- `No_cue_out;
@@ -180,14 +182,14 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
       let buf, next_frame = self#split_frame frame in
       let length = Frame.position buf in
       match (next_frame, state) with
-        | Some buf, _ ->
+        | Some next_buf, _ ->
             (match state with
               | `Cue_out (elapsed, cue_out) ->
                   if elapsed + length < cue_out then
                     self#log#important
                       "End of track reached before cue-out point."
               | _ -> ());
-            let in_pos, out_pos = self#get_cue_points buf in
+            let in_pos, out_pos = self#get_cue_points next_buf in
             if in_pos <> None then
               self#log#debug "Cue in at %.03f s."
                 (Option.get in_pos |> Frame.seconds_of_main);
@@ -196,7 +198,7 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
               self#log#debug "Cue out at %.03f s."
                 (Option.get out_pos |> Frame.seconds_of_main);
 
-            self#cue_in ?in_pos ?out_pos buf
+            Frame.append buf (self#cue_in ?in_pos ?out_pos next_buf)
         | None, `Idle | None, `No_cue_out -> frame
         | None, `Cue_out (elapsed, cue_out) when cue_out < elapsed + length ->
             self#cue_out
