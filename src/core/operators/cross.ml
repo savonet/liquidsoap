@@ -169,7 +169,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Idle ->
             let buf = self#child_get source in
             let pos = Frame.position buf in
-            let p = Option.value ~default:0 source#track_mark in
+            let p = match Frame.track_marks buf with p :: _ -> p | [] -> 0 in
             self#log#info "Buffering end of track...";
             self#append `Before (Frame.chunk ~start:p ~stop:pos buf);
             status <- `Before;
