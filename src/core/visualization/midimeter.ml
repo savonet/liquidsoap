@@ -27,7 +27,7 @@ class midimeter source =
   object
     inherit operator ~name:"midi.inspect" [source]
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method self_sync = source#self_sync

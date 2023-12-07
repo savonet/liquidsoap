@@ -158,7 +158,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
@@ -169,17 +169,17 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
     val mutable n = nbands
     val mutable state = `None
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+    method private generate_data =
+      let b =
+        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+      in
+      let position = source#audio_position in
       let channels = self#audio_channels in
       let debug = debug () in
       let duration = duration () in
       let threshold = threshold () in
       let alpha = min 1. (size /. (samplerate *. smoothing ())) in
-      for i = offset to position - 1 do
+      for i = 0 to position - 1 do
         let x =
           let x = ref 0. in
           for c = 0 to channels - 1 do
@@ -226,7 +226,8 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
                   let k = try String.make 1 (key f) with Not_found -> "???" in
                   Printf.printf "Signaled key %s.\n" k);
             print_newline ()))
-      done
+      done;
+      source#set_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let dtmf = Lang.add_module "dtmf"
@@ -295,7 +296,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     val bands = Bands.make ~size:nbands ~samplerate frequencies
@@ -307,17 +308,17 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
       self#log#info "Listening on the following bands: %s"
         (Bands.to_string ~size:nbands ~samplerate bands)
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+    method private generate_data =
+      let b =
+        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+      in
+      let position = source#audio_position in
       let channels = self#audio_channels in
       let debug = debug () in
       let duration = duration () in
       let threshold = threshold () in
       let alpha = min 1. (size /. (samplerate *. smoothing ())) in
-      for i = offset to position - 1 do
+      for i = 0 to position - 1 do
         let x =
           let x = ref 0. in
           for c = 0 to channels - 1 do
@@ -352,7 +353,8 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
                 detected <- List.remove_assoc f detected;
                 signaled <- f :: signaled))
             found)
-      done
+      done;
+      source#set_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

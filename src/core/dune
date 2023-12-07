@@ -92,14 +92,14 @@
   delay
   delay_line
   doc
-  ;dtmf
+  dtmf
   dyn_op
-  ;echo
+  echo
   encoder
   encoder_formats
   error
   external_decoder
-  ;external_encoder
+  external_encoder
   external_encoder_format
   external_input
   ;external_input_audio

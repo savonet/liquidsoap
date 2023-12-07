@@ -41,7 +41,7 @@ class soundtouch source_val rate tempo pitch =
     val mutable st = None
     method stype = source#stype
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method seek_source = source#seek_source
     method remaining = -1
 

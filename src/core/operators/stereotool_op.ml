@@ -75,7 +75,7 @@ class stereotool ~field ~handler source =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 

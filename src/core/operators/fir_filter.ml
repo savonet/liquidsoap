@@ -123,7 +123,7 @@ class fir (source : source) freq beta numcoeffs =
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
     method stype = source#stype
     method remaining = source#remaining
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync

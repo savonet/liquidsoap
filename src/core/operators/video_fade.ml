@@ -31,7 +31,7 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
   object
     inherit operator ~name:"video.fade.in" [source]
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
     method self_sync = source#self_sync
@@ -94,7 +94,7 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
      * The value is set at the beginning of every track, depending on metadata. *)
     val mutable cur_length = None
     method remaining = source#remaining
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
 
     method private get_frame ab =
       let n = Frame.video_of_main source#remaining in

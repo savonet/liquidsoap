@@ -30,7 +30,7 @@ class echo (source : source) delay feedback ping_pong =
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method abort_track = source#abort_track
     val mutable effect = None
 
@@ -44,15 +44,16 @@ class echo (source : source) delay feedback ping_pong =
 
     val mutable past_pos = 0
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+    method private generate_data =
+      let b =
+        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+      in
+      let position = source#audio_position in
       let effect = Option.get effect in
       effect#set_delay (delay ());
       effect#set_feedback (feedback ());
-      effect#process b offset (position - offset)
+      effect#process b 0 position;
+      source#set_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

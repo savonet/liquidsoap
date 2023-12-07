@@ -30,7 +30,7 @@ class synth (synth : Synth.synth) (source : source) chan volume =
     method stype = source#stype
     method self_sync = source#self_sync
     method remaining = source#remaining
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method abort_track = source#abort_track
     method seek_source = source#seek_source
 

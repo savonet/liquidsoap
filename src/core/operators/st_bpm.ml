@@ -26,7 +26,7 @@ class bpm (source : source) =
   object (self)
     inherit operator ~name:"bpm" [source] as super
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_data = source#is_ready
     method self_sync = source#self_sync
     method remaining = source#remaining
     method seek_source = source#seek_source
