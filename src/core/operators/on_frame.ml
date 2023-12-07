@@ -24,15 +24,15 @@ class on_frame f s =
   object
     inherit Source.operator ~name:"on_frame" [s]
     method stype = s#stype
-    method private can_generate_data = s#is_ready
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek_source = s#seek_source
     method self_sync = s#self_sync
 
-    method private generate_data =
+    method private generate_frame =
       ignore (Lang.apply f []);
-      s#get_data
+      s#get_frame
   end
 
 let _ =
@@ -59,7 +59,7 @@ class frame_op ~name f default s =
   object
     inherit Source.operator ~name [s]
     method stype = s#stype
-    method private can_generate_data = s#is_ready
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek_source = s#seek_source
@@ -67,8 +67,8 @@ class frame_op ~name f default s =
     val mutable value = default
     method value : Lang.value = value
 
-    method private generate_data =
-      let buf = s#get_data in
+    method private generate_frame =
+      let buf = s#get_frame in
       let pos = Frame.position buf in
       value <- f buf 0 pos;
       buf

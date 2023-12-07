@@ -27,12 +27,12 @@ class compress ~field (source : source) mu =
     inherit operator ~name:"compress" [source]
     method stype = source#stype
     method remaining = source#remaining
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method seek_source = source#seek_source
     method self_sync = source#self_sync
 
-    method private generate_data =
+    method private generate_frame =
       let b = Content.Audio.get_data (source#get_mutable_field field) in
       for c = 0 to self#audio_channels - 1 do
         let b_c = b.(c) in

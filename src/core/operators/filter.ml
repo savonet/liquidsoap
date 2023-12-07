@@ -31,7 +31,7 @@ class filter (source : source) freq q wet mode =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     val mutable low = [||]
@@ -56,7 +56,7 @@ class filter (source : source) freq q wet mode =
 
        Maybe should we implement Chamberlin's version instead, which handles freq
        <= rate/2. See http://www.musicdsp.org/archive.php?classid=3#142 *)
-    method private generate_data =
+    method private generate_frame =
       let c = source#get_mutable_field Frame.Fields.audio in
       let b = Content.Audio.get_data c in
       let position = source#audio_position in

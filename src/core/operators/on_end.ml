@@ -26,15 +26,15 @@ class on_end ~delay f s =
     inherit Latest_metadata.source
     val mutable executed = false
     method stype = s#stype
-    method private can_generate_data = s#is_ready
+    method private can_generate_frame = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek_source = s#seek_source
     method self_sync = s#self_sync
     method private on_new_metadata = ()
 
-    method private generate_data =
-      let buf = s#get_data in
+    method private generate_frame =
+      let buf = s#get_frame in
       self#save_latest_metadata buf;
       let rem = Frame.seconds_of_main s#remaining in
       if (not executed) && ((0. <= rem && rem <= delay ()) || s#has_track_mark)

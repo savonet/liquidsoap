@@ -39,7 +39,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
     (* Current gain in dB. *)
@@ -65,7 +65,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       gain <- 0.;
       ms <- 0.
 
-    method private generate_data =
+    method private generate_frame =
       let pos = source#audio_position in
       let partial = source#is_partial in
       let buf = Content.Audio.get_data (source#get_mutable_field field) in

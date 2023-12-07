@@ -23,13 +23,6 @@
 type write_payload = [ `Frame of Frame.t | `Flush ]
 type write_frame = write_payload -> unit
 
-let write_to_buffer ~fields g = function
-  | `Frame frame ->
-      Generator.feed ~fields g frame;
-      let excess = Generator.length g - Lazy.force Frame.size in
-      if 0 < excess then Generator.truncate g excess
-  | `Flush -> ()
-
 (* This here is tricky:
  * - We want to use the output API to have a method for
  *   generating data when calling a clock tick.
@@ -55,8 +48,8 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
     method start = ()
     method stop = write_frame producer_buffer `Flush
 
-    method! can_generate_data =
-      super#can_generate_data
+    method! can_generate_frame =
+      super#can_generate_frame
       && (Clock.get self#clock)#is_attached (self :> Source.active_source)
 
     method! output = if always_enabled || output_enabled then super#output
@@ -100,7 +93,7 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
         | -1, r -> r
         | r, _ -> r
 
-    method private can_generate_data =
+    method private can_generate_frame =
       List.for_all (fun c -> c#is_ready) consumers
 
     method! wake_up a =
@@ -117,7 +110,7 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
         (fun c -> c#leave ?failed_to_start:None (self :> Source.source))
         consumers
 
-    method private generate_data =
+    method private generate_frame =
       List.iter (fun c -> c#set_output_enabled true) consumers;
       while
         Generator.length self#buffer < Lazy.force Frame.size && self#is_ready

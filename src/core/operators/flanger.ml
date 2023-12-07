@@ -33,7 +33,7 @@ class flanger (source : source) delay freq feedback phase =
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable past = Audio.make 0 0 0.
 
@@ -44,14 +44,14 @@ class flanger (source : source) delay freq feedback phase =
     val mutable past_pos = 0
     val mutable omega = 0.
 
-    method private get_frame buf =
+    method private generate_frame =
       let feedback = feedback () in
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+      let b =
+        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+      in
+      let position = source#audio_position in
       let d_omega = 2. *. pi *. freq () /. float (Frame.audio_of_seconds 1.) in
-      for i = offset to position - 1 do
+      for i = 0 to position - 1 do
         for c = 0 to Array.length b - 1 do
           let delay =
             (past_pos + past_len
@@ -68,7 +68,8 @@ class flanger (source : source) delay freq feedback phase =
           omega <- omega -. (2. *. pi)
         done;
         past_pos <- (past_pos + 1) mod past_len
-      done
+      done;
+      source#set_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

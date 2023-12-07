@@ -27,7 +27,7 @@ class map_metadata source rewrite_f insert_missing update strip =
     inherit operator ~name:"metadata.map" [source]
     initializer Typing.(self#frame_type <: Lang.unit_t)
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -47,8 +47,8 @@ class map_metadata source rewrite_f insert_missing update strip =
 
     val mutable in_track = false
 
-    method private generate_data =
-      let buf = source#get_data in
+    method private generate_frame =
+      let buf = source#get_frame in
       let buf =
         if insert_missing && not in_track then (
           in_track <- true;

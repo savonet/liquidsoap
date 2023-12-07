@@ -74,11 +74,11 @@ class virtual base ~name (source : source) f =
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method virtual content_type : Frame.content_type
 
-    method private generate_data =
+    method private generate_frame =
       let c = source#get_mutable_field Frame.Fields.video in
       let video = Content.Video.get_data c in
       f video 0 source#video_position;

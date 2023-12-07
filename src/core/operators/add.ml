@@ -54,7 +54,9 @@ class virtual base ~name tracks =
            (List.filter (fun (s : Source.source) -> s#is_ready) sources))
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
-    method private can_generate_data = List.exists (fun s -> s#is_ready) sources
+
+    method private can_generate_frame =
+      List.exists (fun s -> s#is_ready) sources
 
     method seek_source =
       match sources with [s] -> s#seek_source | _ -> (self :> Source.source)
@@ -63,7 +65,7 @@ class virtual base ~name tracks =
     method private track_frame = Hashtbl.find track_frames
 
     method private feed_track pos { source } =
-      let buf = source#get_data in
+      let buf = source#get_frame in
       Hashtbl.replace track_frames source buf;
       let buf_pos = Frame.position buf in
       match pos with None -> Some buf_pos | Some p -> Some (min p buf_pos)
@@ -95,7 +97,7 @@ class virtual base ~name tracks =
             let position = Frame.position buf in
             let metadata =
               Content.Metadata.get_data
-                (Frame.Fields.find Frame.Fields.metadata source#get_data)
+                (Frame.Fields.find Frame.Fields.metadata source#get_frame)
             in
             let metadata =
               List.filter (fun (pos, _) -> pos <= position) metadata
@@ -111,7 +113,7 @@ class audio_add ~renorm ~power ~field tracks =
   object (self)
     inherit base ~name:"audio.add" tracks
 
-    method private generate_data =
+    method private generate_frame =
       let renorm = renorm () in
       let power = power () in
       let total_weight, tracks =
@@ -158,7 +160,7 @@ class video_add ~field ~add tracks =
   object (self)
     inherit base ~name:"video.add" tracks
 
-    method private generate_data =
+    method private generate_frame =
       let tracks =
         List.fold_left
           (fun tracks track ->

@@ -29,7 +29,7 @@ class insert_metadata source =
   object (self)
     inherit operator ~name:"insert_metadata" [source]
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
@@ -67,8 +67,8 @@ class insert_metadata source =
           ret)
         ()
 
-    method private generate_data =
-      let buf = source#get_data in
+    method private generate_frame =
+      let buf = source#get_frame in
       let buf = if self#insert_track then Frame.add_track_mark buf 0 else buf in
       self#add_metadata buf
   end
@@ -119,14 +119,14 @@ class replay meta src =
     inherit operator ~name:"replay_metadata" [src]
     val mutable first = true
     method stype = src#stype
-    method private can_generate_data = src#is_ready
+    method private can_generate_frame = src#is_ready
     method abort_track = src#abort_track
     method remaining = src#remaining
     method self_sync = src#self_sync
     method seek_source = src#seek_source
 
-    method private generate_data =
-      let buf = src#get_data in
+    method private generate_frame =
+      let buf = src#get_frame in
       if first then (
         first <- false;
         if Frame.get_all_metadata buf = [] then Frame.add_metadata buf 0 meta

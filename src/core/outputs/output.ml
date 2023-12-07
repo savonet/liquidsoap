@@ -110,7 +110,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
           ["skip"; "metadata"; "remaining"];
       registered_telnet <- false
 
-    method private can_generate_data =
+    method private can_generate_frame =
       if infallible then (
         assert source#is_ready;
         true)
@@ -164,7 +164,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
     (* The output process *)
     val mutable skip = false
     method private skip = skip <- true
-    method private generate_data = source#get_data
+    method private generate_frame = source#get_frame
 
     method private output =
       self#has_ticked;
@@ -172,7 +172,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         let data =
-          if source#is_ready then source#get_data else self#empty_frame
+          if source#is_ready then source#get_frame else self#empty_frame
         in
         List.iter
           (fun (_, m) ->

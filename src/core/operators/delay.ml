@@ -39,10 +39,10 @@ class delay ~initial (source : source) delay =
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method private delay_ok = Unix.time () -. last_track >= delay ()
-    method private can_generate_data = self#delay_ok && source#is_ready
+    method private can_generate_frame = self#delay_ok && source#is_ready
 
-    method private generate_data =
-      let buf = source#get_data in
+    method private generate_frame =
+      let buf = source#get_frame in
       match source#track_mark with
         | Some p ->
             last_track <- Unix.time ();

@@ -55,7 +55,7 @@ class muxer tracks =
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private sources_ready = List.for_all (fun s -> s#is_ready) sources
 
-    method private can_generate_data =
+    method private can_generate_frame =
       Generator.length self#buffer > 0 || self#sources_ready
 
     method! seek len =
@@ -108,7 +108,7 @@ class muxer tracks =
 
     method private feed_fields { fields; source } =
       if source#is_ready then (
-        let buf = source#get_data in
+        let buf = source#get_frame in
         List.iter (self#feed_track ~buf) fields)
 
     method private feed =
@@ -123,7 +123,7 @@ class muxer tracks =
        frame and, also, that if one source becomes unavailable
        while streaming, we end all tracks when this source drops
        off. *)
-    method generate_data =
+    method generate_frame =
       self#feed;
       Generator.slice self#buffer (Lazy.force Frame.size)
 

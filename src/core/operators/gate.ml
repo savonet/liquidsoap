@@ -29,7 +29,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
@@ -47,11 +47,11 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
     val mutable hold_delay =
       int_of_float (hold () *. float (Lazy.force Frame.audio_rate))
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
+    method private generate_frame =
+      let buf =
+        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+      in
+      let position = self#audio_position in
       let chans = self#audio_channels in
       let samplerate = float (Lazy.force Frame.audio_rate) in
       let attack = attack () in
@@ -63,7 +63,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
       let window_coef = 1. -. exp (-1. /. (window () *. samplerate)) in
       let range = range () in
       let hold = int_of_float (hold () *. samplerate) in
-      for i = offset to position - 1 do
+      for i = 0 to position - 1 do
         let x =
           let x = ref 0. in
           for c = 0 to chans - 1 do
@@ -95,7 +95,8 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
         for c = 0 to chans - 1 do
           buf.(c).(i) <- buf.(c).(i) *. gain
         done
-      done
+      done;
+      source#set_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

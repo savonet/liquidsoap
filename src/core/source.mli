@@ -65,7 +65,7 @@ type watcher = {
     clock_sync_mode:clock_sync_mode ->
     unit;
   sleep : unit -> unit;
-  generate_data :
+  generate_frame :
     start_time:float ->
     end_time:float ->
     length:int ->
@@ -207,8 +207,10 @@ class virtual source :
        method on_track : (Frame.metadata -> unit) -> unit
 
        method streaming_state : streaming_state
-       method get_data : Frame.t
+       method get_frame : Frame.t
        method get_mutable_field : Frame.field -> Content.data
+       method get_mutable_frame : Frame.field -> Frame.t
+       method private split_frame : Frame.t -> Frame.t * Frame.t option
 
        method set_data :
          Frame.field ->
@@ -223,8 +225,8 @@ class virtual source :
        method has_track_mark : bool
        method track_mark : int option
        method metadata : (int * Frame.Metadata.t) list
-       method virtual private can_generate_data : bool
-       method virtual private generate_data : Frame.t
+       method virtual private can_generate_frame : bool
+       method virtual private generate_frame : Frame.t
        method is_ready : bool
 
        (** Tells the source to end its current track. *)
@@ -294,8 +296,8 @@ class virtual generate_from_multiple_sources :
        method virtual get_source : reselect:bool -> unit -> source option
        method virtual empty_frame : Frame.t
        method virtual on_after_output : (unit -> unit) -> unit
-       method private can_generate_data : bool
-       method private generate_data : Frame.t
+       method private can_generate_frame : bool
+       method private generate_frame : Frame.t
      end
 
 val has_outputs : unit -> bool

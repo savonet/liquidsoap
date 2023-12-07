@@ -142,21 +142,16 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     method private get_handler =
       match handler with Some h -> h | None -> raise Process_handler.Finished
 
-    val mutable tmp = None
-
-    method tmp =
-      match tmp with
-        | Some t -> t
-        | None ->
-            let t = Frame.create self#content_type in
-            tmp <- Some t;
-            t
+    method private child_get =
+      let frame = ref self#empty_frame in
+      self#child_on_output (fun () ->
+          if source#is_ready then frame := source#get_frame);
+      !frame
 
     method private get_to_write =
-      if source#is_ready ~frame:self#tmp () then (
-        Frame.clear self#tmp;
-        self#child_on_output (fun () -> source#get self#tmp);
-        let buf = AFrame.pcm self#tmp in
+      if source#is_ready then (
+        let frame = self#child_get in
+        let buf = AFrame.pcm frame in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
         let slen = slen_of_len blen in
@@ -165,7 +160,10 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         let metadata =
           List.sort
             (fun (pos, _) (pos', _) -> compare pos pos')
-            (Frame.get_all_metadata self#tmp)
+            (Frame.get_all_metadata frame)
+        in
+        let track_mark =
+          match Frame.track_marks frame with p :: _ -> Some p | [] -> None
         in
         let ofs =
           List.fold_left
@@ -173,8 +171,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
               let pos = slen_of_len pos in
               let len = pos - ofs in
               let next =
-                if pos = slen && Frame.is_partial self#tmp then
-                  `Break_and_metadata m
+                if track_mark = Some pos then `Break_and_metadata m
                 else `Metadata m
               in
               Queue.push { sbuf; next; ofs; len } to_write;
@@ -183,7 +180,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         in
         if ofs < slen then (
           let len = slen - ofs in
-          let next = if Frame.is_partial self#tmp then `Break else `Nothing in
+          let next = if track_mark <> None then `Break else `Nothing in
           Queue.push { sbuf; next; ofs; len } to_write))
 
     method private on_stdin pusher =

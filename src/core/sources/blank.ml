@@ -33,13 +33,13 @@ class blank duration =
 
     method remaining = remaining
     method stype = `Infallible
-    method private can_generate_data = true
+    method private can_generate_frame = true
     method self_sync = (`Static, false)
     method! seek x = x
     method seek_source = (self :> Source.source)
     method abort_track = remaining <- 0
 
-    method generate_data =
+    method generate_frame =
       let length = min (Lazy.force Frame.size) remaining in
       remaining <- remaining - remaining;
       let audio_len = Frame.audio_of_main length in

@@ -30,7 +30,7 @@ class window mode duration source =
       operator [source] ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
 
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
@@ -54,8 +54,8 @@ class window mode duration source =
     val m = Mutex.create ()
     method value = Tutils.mutexify m (fun () -> value) ()
 
-    method private generate_data =
-      let frame = source#get_data in
+    method private generate_frame =
+      let frame = source#get_frame in
       let duration = duration () in
       if duration > 0. then (
         let duration = Frame.audio_of_seconds duration in

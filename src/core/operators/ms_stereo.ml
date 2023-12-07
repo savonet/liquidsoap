@@ -28,13 +28,13 @@ class msstereo ~field (source : source) mode width =
   object
     inherit operator ~name:"stereo.ms.encode" [source]
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method abort_track = source#abort_track
 
-    method private generate_data =
+    method private generate_frame =
       let buffer = Content.Audio.get_data (source#get_mutable_field field) in
       for i = 0 to source#audio_position - 1 do
         match mode with
@@ -89,13 +89,13 @@ class spatializer ~field ~width (source : source) =
   object
     inherit operator ~name:"stereo.width" [source]
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     method abort_track = source#abort_track
 
-    method private generate_data =
+    method private generate_frame =
       let position = source#audio_position in
       let buf = Content.Audio.get_data (source#get_mutable_field field) in
       let width = width () in

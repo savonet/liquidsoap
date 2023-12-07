@@ -54,7 +54,7 @@ class dssi ?chan plugin descr outputs params source =
     method seek_source = source#seek_source
     method stype = source#stype
     method remaining = source#remaining
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
 

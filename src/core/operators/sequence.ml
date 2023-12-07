@@ -90,14 +90,14 @@ class merge_tracks source =
   object
     inherit operator ~name:"sequence" [source]
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = -1
     method self_sync = source#self_sync
     method seek_source = source#seek_source
 
-    method private generate_data =
-      let buf = source#get_data in
+    method private generate_frame =
+      let buf = source#get_frame in
       Frame.set buf Frame.Fields.track_marks
         (Content.make ~length:(Frame.position buf)
            Content_timed.Track_marks.format)

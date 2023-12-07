@@ -82,7 +82,7 @@ let off_string iw ih ox oy =
   let oy = f ((frame_h - ih) / 2) frame_h oy in
   (ox, oy)
 
-let create_decoder ~audio ~width ~height ~metadata img =
+let create_decoder ~ctype ~width ~height ~metadata img =
   let frame_width = width in
   let frame_height = height in
   (* Dimensions. *)
@@ -116,27 +116,27 @@ let create_decoder ~audio ~width ~height ~metadata img =
   in
   let duration = ref duration in
   let close () = () in
-  let fill frame =
-    let a0 = AFrame.position frame in
-    (* Fill in video. *)
-    let video = VFrame.data frame in
-    let start = VFrame.next_sample_position frame in
-    let stop =
-      if !duration = -1 then VFrame.size frame
-      else min (VFrame.size frame) (start + !duration)
+  let remaining () =
+    if !duration = -1 then -1 else Frame.main_of_video !duration
+  in
+  let fread length =
+    let frame = Frame.create ~length Frame.Fields.empty in
+    let video =
+      Content.Video.get_data
+        (Content.make ~length (Frame.Fields.find Frame.Fields.video ctype))
     in
-    VFrame.add_break frame stop;
-    for i = start to stop - 1 do
+    for i = 0 to Frame.video_of_main length - 1 do
       Video.Canvas.set video i img
     done;
-    let a1 = AFrame.position frame in
-    if audio then AFrame.blankify frame a0 (a1 - a0);
-    if !duration = -1 then -1
-    else (
-      duration := !duration - (stop - start);
-      Frame.main_of_video !duration)
+    match Frame.Fields.find_opt Frame.Fields.audio ctype with
+      | None -> frame
+      | Some format ->
+          let pcm = Content.Audio.get_data (Content.make ~length format) in
+          Audio.clear pcm 0 (Frame.audio_of_main length);
+          Frame.set frame Frame.Fields.audio
+            (Content.Audio.lift_data ~length pcm)
   in
-  { Decoder.fill; fseek = (fun _ -> 0); close }
+  { Decoder.fread; remaining; fseek = (fun len -> len); close }
 
 let is_audio_compatible ctype =
   match Frame.Fields.find_opt Frame.Fields.audio ctype with
@@ -174,8 +174,6 @@ let () =
               Content.Video.dimensions_of_format
                 (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
             in
-            create_decoder
-              ~audio:(Frame.Fields.mem Frame.Fields.audio ctype)
-              ~width ~height ~metadata img);
+            create_decoder ~ctype ~width ~height ~metadata img);
       stream_decoder = None;
     }

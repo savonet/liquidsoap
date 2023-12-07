@@ -28,7 +28,7 @@ class replaygain (source : source) =
     inherit operator ~name:"source.replaygain.compute" [source]
     val mutable override = None
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -45,11 +45,11 @@ class replaygain (source : source) =
       if state = None then self#reset;
       Option.get state
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      Audio.Analyze.ReplayGain.process self#state (AFrame.pcm buf) offset
-        (AFrame.position buf - offset)
+    method private generate_frame =
+      let buf = source#get_frame in
+      Audio.Analyze.ReplayGain.process self#state (AFrame.pcm buf) 0
+        source#audio_position;
+      buf
 
     method peak = Audio.Analyze.ReplayGain.peak self#state
     method gain = Audio.Analyze.ReplayGain.gain self#state

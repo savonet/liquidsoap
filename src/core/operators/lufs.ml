@@ -107,7 +107,7 @@ class lufs window source =
   object (self)
     inherit operator [source] ~name:"lufs" as super
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
@@ -156,10 +156,10 @@ class lufs window source =
     (** Momentary LUFS. *)
     method momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
-    method private generate_data =
+    method private generate_frame =
       let channels = self#channels in
       let len_100ms = Frame.audio_of_seconds 0.1 in
-      let frame = source#get_data in
+      let frame = source#get_frame in
       let position = AFrame.position frame in
       let buf = AFrame.pcm frame in
       for i = 0 to position - 1 do

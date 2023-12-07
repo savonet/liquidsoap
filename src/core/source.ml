@@ -288,7 +288,7 @@ type watcher = {
     clock_sync_mode:clock_sync_mode ->
     unit;
   sleep : unit -> unit;
-  generate_data :
+  generate_frame :
     start_time:float ->
     end_time:float ->
     length:int ->
@@ -549,8 +549,8 @@ class virtual operator ?pos ?(name = "src") sources =
       if (s :> < seek : int -> int >) == (self :> < seek : int -> int >) then 0
       else s#seek n
 
-    method virtual private can_generate_data : bool
-    method virtual private generate_data : Frame.t
+    method virtual private can_generate_frame : bool
+    method virtual private generate_frame : Frame.t
     val mutable streaming_state : streaming_state = `Unavailable
     method streaming_state = streaming_state
 
@@ -561,14 +561,14 @@ class virtual operator ?pos ?(name = "src") sources =
     (* This is the implementation of the main streaming logic. *)
     initializer
       self#on_before_output (fun () ->
-          if self#can_generate_data then
+          if self#can_generate_frame then
             streaming_state <-
               `Ready
                 (fun () ->
-                  streaming_state <- `Done self#instrumented_generate_data)
+                  streaming_state <- `Done self#instrumented_generate_frame)
           else streaming_state <- `Unavailable)
 
-    method get_data =
+    method get_frame =
       self#has_ticked;
       match streaming_state with
         | `Unavailable ->
@@ -576,12 +576,15 @@ class virtual operator ?pos ?(name = "src") sources =
             raise Unavailable
         | `Ready fn ->
             fn ();
-            self#get_data
+            self#get_frame
         | `Done data -> data
 
     method get_mutable_field field =
-      let content = Frame.get self#get_data field in
+      let content = Frame.get self#get_frame field in
       if List.length activations <= 1 then content else Content.copy content
+
+    method get_mutable_frame field =
+      Frame.set self#get_frame field (self#get_mutable_field field)
 
     method set_data
         : 'a.
@@ -589,18 +592,25 @@ class virtual operator ?pos ?(name = "src") sources =
           (?offset:int -> ?length:int -> 'a -> Content.data) ->
           'a ->
           Frame.t =
-      fun field lift data -> Frame.set_data self#get_data field lift data
+      fun field lift data -> Frame.set_data self#get_frame field lift data
 
-    method is_partial = Frame.is_partial self#get_data
-    method has_track_mark = Frame.has_track_marks self#get_data
+    method private split_frame frame =
+      match Frame.track_marks frame with
+        | p :: _ ->
+            ( Frame.slice frame p,
+              Some (Frame.chunk ~start:p ~stop:(Frame.position frame) frame) )
+        | [] -> (frame, None)
+
+    method is_partial = Frame.is_partial self#get_frame
+    method has_track_mark = Frame.has_track_marks self#get_frame
 
     method track_mark =
-      match Frame.track_marks self#get_data with
+      match Frame.track_marks self#get_frame with
         | pos :: _ -> Some pos
         | _ -> None
 
-    method metadata = Frame.get_all_metadata self#get_data
-    method position = Frame.position self#get_data
+    method metadata = Frame.get_all_metadata self#get_frame
+    method position = Frame.position self#get_frame
     method audio_position = Frame.audio_of_main self#position
 
     (* This is rounded up. *)
@@ -647,9 +657,9 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable was_partial = true
     method on_track = self#mutexify (fun fn -> on_track <- on_track @ [fn])
 
-    method private instrumented_generate_data =
+    method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
-      let buf = self#generate_data in
+      let buf = self#generate_frame in
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
       let track_marks = Frame.track_marks buf in
@@ -686,7 +696,7 @@ class virtual operator ?pos ?(name = "src") sources =
           List.iter (fun fn -> fn m) on_track)
         (Frame.track_marks buf);
       self#iter_watchers (fun w ->
-          w.generate_data ~start_time ~end_time ~length ~has_track_mark
+          w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);
       buf
 
@@ -773,7 +783,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     val mutable last_position = Hashtbl.create 10
     initializer self#on_after_output (fun () -> Hashtbl.clear last_position)
 
-    method private can_generate_data =
+    method private can_generate_frame =
       match cache with
         | Some c when Frame.position c > 0 -> true
         | _ -> (
@@ -784,7 +794,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method private get_slice ~reselect () =
       match self#get_source ~reselect () with
         | Some source when source#is_ready ->
-            let data = source#get_data in
+            let data = source#get_frame in
             let start =
               match Hashtbl.find_opt last_position source with
                 | Some p -> p
@@ -801,7 +811,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
             Some (Frame.chunk ~start ~stop data)
         | _ -> None
 
-    method private generate_data =
+    method private generate_frame =
       let rec pull ~reselect buf =
         let pos = Frame.position buf in
         let size = Lazy.force Frame.size in

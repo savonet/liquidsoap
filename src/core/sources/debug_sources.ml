@@ -25,11 +25,11 @@ class fail name =
     inherit Source.source ~name ()
     method seek_source = (self :> Source.source)
     method stype = `Fallible
-    method private can_generate_data = false
+    method private can_generate_frame = false
     method self_sync = (`Static, false)
     method remaining = 0
     method abort_track = ()
-    method generate_data = assert false
+    method generate_frame = assert false
   end
 
 let fail () = (new fail "fail" :> Source.source)

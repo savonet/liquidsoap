@@ -28,7 +28,7 @@ class amplify ~field (source : source) override_field coeff =
     inherit operator ~name:"track.audio.amplify" [source]
     val mutable override = None
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -42,7 +42,7 @@ class amplify ~field (source : source) override_field coeff =
         Content.Audio.lift_data data)
       else content
 
-    method private generate_data =
+    method private generate_frame =
       let c = source#get_mutable_field field in
       let track_mark = source#track_mark in
       let c, end_c =
@@ -73,7 +73,7 @@ class amplify ~field (source : source) override_field coeff =
           | _ -> ()
       end;
       let end_c = self#process end_c in
-      Frame.set source#get_data field (Content.append c end_c)
+      Frame.set source#get_frame field (Content.append c end_c)
   end
 
 let _ =

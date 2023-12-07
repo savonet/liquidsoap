@@ -38,14 +38,14 @@ class testsrc ?(duration = None) ~width ~height () =
     val mutable duy' = 3
     val mutable dvy' = 2
 
-    method private synthesize frame off len =
+    method private synthesize length =
+      let frame = Frame.create ~length self#content_type in
       let frame_width, frame_height = self#video_dimensions in
       let width = if width < 0 then frame_width else width in
       let height = if height < 0 then frame_height else height in
-      let off = Frame.video_of_main off in
-      let len = Frame.video_of_main len in
+      let len = Frame.video_of_main length in
       let buf = VFrame.data frame in
-      for i = off to off + len - 1 do
+      for i = 0 to len - 1 do
         let img = Image.YUV420.create width height in
         u0 <- u0 + u0';
         if u0 < 0 then u0' <- abs u0';
@@ -70,7 +70,8 @@ class testsrc ?(duration = None) ~width ~height () =
           (u0 + duy, v0 + dvy);
         buf.(i) <-
           Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
-      done
+      done;
+      Frame.set_data frame Frame.Fields.video Content.Video.lift_data buf
   end
 
 let _ =

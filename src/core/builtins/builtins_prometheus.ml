@@ -170,7 +170,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     ()
   in
   let sleep () = () in
-  let generate_data ~start_time ~end_time ~length ~has_track_mark:_ ~metadata:_
+  let generate_frame ~start_time ~end_time ~length ~has_track_mark:_ ~metadata:_
       =
     last_start_time := start_time;
     last_end_time := end_time;
@@ -188,7 +188,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     {
       Source.wake_up;
       sleep;
-      generate_data;
+      generate_frame;
       before_output = (fun _ -> ());
       after_output;
     }

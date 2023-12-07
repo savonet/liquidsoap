@@ -154,7 +154,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               buf)
             else buf
 
-    method private generate_data =
+    method private generate_frame =
       let size = Lazy.force Frame.size in
       let rec fill buf =
         let pos = Frame.position buf in
@@ -184,7 +184,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     method abort_track = self#end_request
     val mutable retry_status = None
 
-    method can_generate_data =
+    method can_generate_frame =
       let is_ready =
         (fun () ->
           self#current <> None || try self#fetch_request with _ -> false)

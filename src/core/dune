@@ -102,40 +102,40 @@
   external_encoder
   external_encoder_format
   external_input
-  ;external_input_audio
-  ;external_input_video
+  external_input_audio
+  external_input_video
   extralib
   extra_args
   fdkaac_format
   ffmpeg_format
   file_watcher
   filter
-  ;filter_rc
-  ;fir_filter
+  filter_rc
+  fir_filter
   flac_format
   flac_metadata_plug
-  ;flanger
+  flanger
   frame
   frame_base
   frame_settings
   frame_type
   format_type
-  ;gate
+  gate
   generated
   generator
   gstreamer_format
   harbor
   harbor_base
   harbor_input
-  ;harbor_output
+  harbor_output
   hooks_implementations
-  ;hls_output
+  hls_output
   http
   icecast_utils
-  ;icecast2
+  icecast2
   id3_plug
   iir_filter
-  ;image_decoder
+  image_decoder
   image_plug
   insert_metadata
   ioRing
@@ -168,14 +168,14 @@
   lufs
   mFrame
   map_metadata
-  ;map_op
+  map_op
   max_duration
   mean
   metadata_base
-  ;merge_metadata
-  ;midi_decoder
-  ;midi_routing
-  ;midimeter
+  merge_metadata
+  midi_decoder
+  midi_routing
+  midimeter
   modules
   mp3_format
   mpd
@@ -184,21 +184,21 @@
   native_audio_converter
   native_video_converter
   noblank
-  ;noise
+  noise
   normalize
   ogg_format
   ogg_metadata_plug
   on_end
   on_frame
   on_metadata
-  ;on_offset
+  on_offset
   on_track
   opus_format
   output
   pan
-  ;pipe
+  pipe
   pipe_output
-  ;pitch
+  pitch
   playlist_parser
   plug
   pool
@@ -207,7 +207,7 @@
   process_handler
   producer_consumer
   raw_audio_decoder
-  ;replaygain_op
+  replaygain_op
   request
   request_dynamic
   resample
@@ -223,44 +223,44 @@
   shine_format
   source
   speex_format
-  ;srt_decoder
-  ;srt_parser
+  srt_decoder
+  srt_parser
   start_stop
   startup
   stereo
-  ;still_frame
+  still_frame
   stringView
   strings
   swap
   switch
-  ;synth_op
+  synth_op
   synthesized
   term
   theora_format
-  ;time_warp
+  time_warp
   track
   track_map
   tutils
   type
   typing
   unifier
-  ;udp_io
+  udp_io
   utils
   value
   vFrame
-  ;video_board
+  video_board
   video_converter
   video_effects
-  ;video_fade
+  video_fade
   video_plug
-  ;video_testsrc
+  video_testsrc
   video_text
-  ;video_text_native
-  ;video_volume
+  video_text_native
+  video_volume
   vorbis_format
   wav_aiff
   wav_aiff_decoder
-  ;wav_encoder
+  wav_encoder
   wav_format
   websocket
   window_op

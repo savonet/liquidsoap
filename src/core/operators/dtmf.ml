@@ -158,7 +158,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
@@ -169,7 +169,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
     val mutable n = nbands
     val mutable state = `None
 
-    method private generate_data =
+    method private generate_frame =
       let b =
         Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
       in
@@ -296,7 +296,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     val bands = Bands.make ~size:nbands ~samplerate frequencies
@@ -308,7 +308,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
       self#log#info "Listening on the following bands: %s"
         (Bands.to_string ~size:nbands ~samplerate bands)
 
-    method private generate_data =
+    method private generate_frame =
       let b =
         Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
       in

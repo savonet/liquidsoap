@@ -136,7 +136,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     method private child_get source =
       let frame = ref self#empty_frame in
       self#child_on_output (fun () ->
-          if source#is_ready then frame := source#get_data);
+          if source#is_ready then frame := source#get_frame);
       !frame
 
     method private append mode buf_frame =
@@ -164,7 +164,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     (* A chunk is a buffer that has at most one
        track mark at its beginning. *)
-    method private generate_data =
+    method private generate_frame =
       match status with
         | `Idle ->
             let buf = self#child_get source in
@@ -174,7 +174,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             self#append `Before (Frame.chunk ~start:p ~stop:pos buf);
             status <- `Before;
             self#buffering cross_length;
-            Frame.append (Frame.slice buf p) self#generate_data
+            Frame.append (Frame.slice buf p) self#generate_frame
         | `Before ->
             (* We started buffering but the track didn't end.
              * Play the beginning of the buffer while filling it more. *)
@@ -182,7 +182,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             if len <= cross_length then self#buffering (cross_length - len);
             if status = `Before then
               Generator.slice gen_before (Lazy.force Frame.size)
-            else self#generate_data
+            else self#generate_frame
         | `After ->
             let source = Option.get transition_source in
             let buf = self#child_get source in
@@ -193,15 +193,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
               self#buffering cross_length;
               Generator.slice gen_before (Lazy.force Frame.size))
             else buf
-
-    method private split_frame buf_frame =
-      match Frame.track_marks buf_frame with
-        | p :: _ ->
-            ( Frame.slice buf_frame p,
-              Some
-                (Frame.chunk ~start:p ~stop:(Frame.position buf_frame) buf_frame)
-            )
-        | [] -> (buf_frame, None)
 
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
@@ -346,7 +337,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Before | `Idle -> source#seek_source
         | `After -> (Option.get transition_source)#seek_source
 
-    method private can_generate_data =
+    method private can_generate_frame =
       match status with
         | `Idle | `Before -> source#is_ready
         | `After -> (Option.get transition_source)#is_ready || source#is_ready

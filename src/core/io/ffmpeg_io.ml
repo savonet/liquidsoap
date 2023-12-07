@@ -231,7 +231,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | None -> raise Not_connected
         | Some c -> c
 
-    method private generate_data =
+    method private generate_frame =
       let size = Lazy.force Frame.size in
       try
         let { decoder; buffer; closed } = self#get_connected_container in

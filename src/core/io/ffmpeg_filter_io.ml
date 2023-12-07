@@ -243,10 +243,10 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
         f ()
       with Not_ready -> ()
 
-    method private can_generate_data =
+    method private can_generate_frame =
       Generator.length self#buffer >= Lazy.force Frame.size || is_ready ()
 
-    method private generate_data =
+    method private generate_frame =
       let size = Lazy.force Frame.size in
       if Generator.length self#buffer < Lazy.force Frame.size then self#pull;
       Generator.slice self#buffer size

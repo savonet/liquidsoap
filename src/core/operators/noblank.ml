@@ -88,14 +88,14 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     inherit operator ~name:"blank.detect" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
 
-    method private generate_data =
-      let buf = source#get_data in
+    method private generate_frame =
+      let buf = source#get_frame in
       let was_blank = self#is_blank in
       let is_blank =
         self#check_blank buf;
@@ -117,7 +117,7 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     inherit active_operator ~name:"blank.strip" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method stype = `Fallible
-    method private can_generate_data = (not self#is_blank) && source#is_ready
+    method private can_generate_frame = (not self#is_blank) && source#is_ready
     method remaining = if self#is_blank then 0 else source#remaining
 
     method seek_source =
@@ -126,14 +126,14 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private generate_data =
-      let buf = source#get_data in
+    method private generate_frame =
+      let buf = source#get_frame in
       self#check_blank buf;
       buf
 
     method private output =
       self#has_ticked;
-      if source#is_ready && self#is_blank then ignore self#get_data
+      if source#is_ready && self#is_blank then ignore self#get_frame
 
     method reset = ()
   end
@@ -153,18 +153,18 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     val mutable stripping = false
     val mutable beginning = true
     method stype = `Fallible
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private generate_data =
+    method private generate_frame =
       let first = ref true in
       let frame = ref self#empty_frame in
       while !first || stripping do
         first := false;
-        self#child_on_output (fun () -> frame := source#get_data);
+        self#child_on_output (fun () -> frame := source#get_frame);
         let frame = !frame in
         if track_sensitive () && Frame.track_marks frame <> [] then (
           stripping <- false;

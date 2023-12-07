@@ -85,7 +85,7 @@ class defer ~delay ~overhead ~field source =
       let data_rem = chunk_len - offset in
 
       let tmp_frame =
-        if source#is_ready then source#get_data else self#empty_frame
+        if source#is_ready then source#get_frame else self#empty_frame
       in
 
       let gen_len = Frame.position tmp_frame in
@@ -136,10 +136,10 @@ class defer ~delay ~overhead ~field source =
           self#queue_output);
       self#on_sleep (fun () -> should_queue <- false)
 
-    method private can_generate_data =
+    method private can_generate_frame =
       (not deferred) && Generator.length self#generator > 0
 
-    method private generate_data =
+    method private generate_frame =
       Generator.slice self#generator (Lazy.force Frame.size)
   end
 

@@ -101,13 +101,3 @@ val add_track_mark : ?pos:int -> t -> unit
 
 (* Append a frame content to a generator. *)
 val append : ?offset:int -> ?length:int -> t -> Frame_base.t -> unit
-
-(* [feed ?offset ?length ?fields generator frame] is the old call
-   to feed a frame's content to a generator. *)
-val feed :
-  ?offset:int -> ?length:int -> ?fields:Frame_base.field list -> t -> t -> unit
-
-(* [fill generator frame] fills the frame with as much content as possible,
-   from the generator either until the frame is full or the generator's
-   remaining length (if applicable) or length. *)
-val fill : t -> t -> unit

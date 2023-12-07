@@ -24,14 +24,14 @@ class on_track f s =
   object
     inherit Source.operator ~name:"on_track" [s]
     method stype = s#stype
-    method private can_generate_data = s#is_ready
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek_source = s#seek_source
     method self_sync = s#self_sync
 
-    method private generate_data =
-      let buf = s#get_data in
+    method private generate_frame =
+      let buf = s#get_frame in
       if Frame.track_marks buf <> [] then begin
         let m =
           match Frame.get_metadata buf 0 with

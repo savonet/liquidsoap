@@ -30,7 +30,7 @@ class virtual source ?name ~seek duration =
     inherit Source.source ?name ()
     method stype = if track_size = None then `Infallible else `Fallible
     val mutable remaining = track_size
-    method private can_generate_data = remaining <> Some 0
+    method private can_generate_frame = remaining <> Some 0
     method! seek x = if seek then x else 0
     method seek_source = (self :> Source.source)
     method self_sync = (`Static, false)
@@ -46,7 +46,7 @@ class virtual source ?name ~seek duration =
 
     method virtual private synthesize : int -> Frame.t
 
-    method private generate_data =
+    method private generate_frame =
       let len =
         match remaining with
           | None -> Lazy.force Frame.size

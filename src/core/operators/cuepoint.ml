@@ -43,7 +43,7 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
     inherit! Child_support.base ~check_self_sync:true [source_val]
     val mutable state : state = `Idle
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     method seek_source = source#seek_source
@@ -151,24 +151,15 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
       source#abort_track;
       on_cue_out ();
       state <- `Idle;
-      if source#is_ready then self#generate_data else self#empty_frame
+      if source#is_ready then self#generate_frame else self#empty_frame
 
     method private child_get =
       let frame = ref self#empty_frame in
       if source#is_ready then
-        self#child_on_output (fun () -> frame := source#get_data);
+        self#child_on_output (fun () -> frame := source#get_frame);
       !frame
 
-    method private split_frame buf_frame =
-      match Frame.track_marks buf_frame with
-        | p :: _ ->
-            ( Frame.slice buf_frame p,
-              Some
-                (Frame.chunk ~start:p ~stop:(Frame.position buf_frame) buf_frame)
-            )
-        | [] -> (buf_frame, None)
-
-    method private generate_data =
+    method private generate_frame =
       let frame = self#child_get in
       let buf, next_frame = self#split_frame frame in
       let length = Frame.position buf in

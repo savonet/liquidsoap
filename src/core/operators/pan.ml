@@ -27,13 +27,13 @@ class pan ~field (source : source) phi phi_0 =
   object
     inherit operator ~name:"pan" [source]
     method stype = source#stype
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private generate_data =
+    method private generate_frame =
       let buffer = Content.Audio.get_data (source#get_mutable_field field) in
       (* Degrees to radians + half field. *)
       let phi_0 = phi_0 () *. Float.pi /. 360. in

@@ -29,11 +29,11 @@ class clip ~field (source : source) =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private generate_data =
+    method private generate_frame =
       let c = source#get_mutable_field field in
       let b = Content.Audio.get_data c in
       let position = source#audio_position in

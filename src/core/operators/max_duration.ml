@@ -38,7 +38,7 @@ class max_duration ~override_meta ~duration source =
 
     method! private sleep = s#leave (self :> Source.operator)
     method stype = `Fallible
-    method private can_generate_data = remaining > 0 && s#is_ready
+    method private can_generate_frame = remaining > 0 && s#is_ready
     method abort_track = s#abort_track
 
     method remaining =
@@ -65,8 +65,8 @@ class max_duration ~override_meta ~duration source =
             m)
         (Frame.get_all_metadata buf)
 
-    method private generate_data =
-      let buf = s#get_data in
+    method private generate_frame =
+      let buf = s#get_frame in
       self#check_for_override buf;
       let pos = Frame.position buf in
       let len = min remaining pos in

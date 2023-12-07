@@ -30,10 +30,10 @@ class track_map ~name ~field ~fn s =
     method abort_track = s#abort_track
     method seek_source = s#seek_source
     method self_sync = s#self_sync
-    method private can_generate_data = s#is_ready
+    method private can_generate_frame = s#is_ready
 
-    method private generate_data =
-      let buf = s#get_data in
+    method private generate_frame =
+      let buf = s#get_frame in
       Frame.set buf field (fn (Frame.get buf field))
   end
 

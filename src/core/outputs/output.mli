@@ -43,8 +43,8 @@ class virtual output :
        method remaining : int
        method output : unit
        method abort_track : unit
-       method private can_generate_data : bool
-       method private generate_data : Frame.t
+       method private can_generate_frame : bool
+       method private generate_frame : Frame.t
        method state : Start_stop.state
        method transition_to : Start_stop.state -> unit
        method seek_source : Source.source

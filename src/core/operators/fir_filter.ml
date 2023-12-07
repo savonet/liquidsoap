@@ -123,15 +123,15 @@ class fir (source : source) freq beta numcoeffs =
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
     method stype = source#stype
     method remaining = source#remaining
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+      in
       let shift a =
         for i = 0 to Array.length a - 2 do
           a.(i) <- a.(i + 1)
@@ -147,12 +147,13 @@ class fir (source : source) freq beta numcoeffs =
       in
       let addtimes a b c = a +. (b *. c) in
       for c = 0 to 1 do
-        for i = offset to AFrame.position buf - 1 do
+        for i = 0 to source#audio_position - 1 do
           shift xv.(c);
           xv.(c).(nzeros) <- b.(c).(i) /. gain;
           b.(c).(i) <- fold_left2 addtimes 0. xcoeffs xv.(c)
         done
-      done
+      done;
+      source#set_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

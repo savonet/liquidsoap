@@ -51,7 +51,7 @@ class resample ~field ~ratio source =
       else int_of_float (float (rem + Generator.length self#buffer) *. ratio ())
 
     method abort_track = source#abort_track
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     val mutable converter = None
 
     method! wake_up a =
@@ -81,7 +81,7 @@ class resample ~field ~ratio source =
         (Frame.get_all_metadata frame);
       if Frame.is_partial frame then Generator.add_track_mark self#buffer
 
-    method private generate_data =
+    method private generate_frame =
       consumer#set_output_enabled true;
       while
         Generator.length self#buffer < Lazy.force Frame.size && source#is_ready

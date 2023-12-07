@@ -33,7 +33,7 @@ class comb ~field (source : source) delay feedback =
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable past = Audio.make 0 0 0.
 
@@ -43,7 +43,7 @@ class comb ~field (source : source) delay feedback =
 
     val mutable past_pos = 0
 
-    method private generate_data =
+    method private generate_frame =
       let b = Content.Audio.get_data (source#get_mutable_field field) in
       let position = source#audio_position in
       let feedback = feedback () in

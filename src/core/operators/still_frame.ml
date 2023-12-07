@@ -33,7 +33,7 @@ class still_frame ~name (source : source) =
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable fname = None
 
@@ -44,24 +44,24 @@ class still_frame ~name (source : source) =
            .bmp"
       else fname <- Some f
 
-    method private get_frame buf =
+    method private generate_frame =
       match fname with
-        | None -> source#get buf
-        | Some f -> (
-            let v = VFrame.get_content buf source in
-            match v with
-              | Some (v, off, _) ->
-                  let v = Content.Video.get_data v in
-                  let i = Video.Canvas.get v off in
-                  let i =
-                    i |> Video.Canvas.Image.render |> Image.YUV420.to_RGBA32
-                    |> Image.RGBA32.to_BMP
-                  in
-                  let oc = open_out f in
-                  output_string oc i;
-                  close_out oc;
-                  fname <- None
-              | None -> ())
+        | None -> source#get_frame
+        | Some f ->
+            let v =
+              Content.Video.get_data
+                (source#get_mutable_field Frame.Fields.video)
+            in
+            let i = Video.Canvas.get v 0 in
+            let i =
+              i |> Video.Canvas.Image.render |> Image.YUV420.to_RGBA32
+              |> Image.RGBA32.to_BMP
+            in
+            let oc = open_out f in
+            output_string oc i;
+            close_out oc;
+            fname <- None;
+            source#set_data Frame.Fields.video Content.Video.lift_data v
   end
 
 let _ =

@@ -36,7 +36,7 @@ class accelerate ~ratio ~randomize source_val =
       if rem = -1 then rem else int_of_float (float rem *. ratio ())
 
     method abort_track = source#abort_track
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
 
     (** Filled ticks. *)
     val mutable filled = 0
@@ -60,17 +60,17 @@ class accelerate ~ratio ~randomize source_val =
           let l = (tanh (a *. 2.) +. 1.) /. 2. in
           Random.float 1. > 1. -. l))
 
-    method private generate_data =
+    method private generate_frame =
       let pos = ref 1 in
       (* Drop frames if we are late. *)
       (* TODO: we could also duplicate if we are in advance. *)
       while !pos > 0 && self#must_drop && source#is_ready do
-        self#child_on_output (fun () -> pos := Frame.position source#get_data);
+        self#child_on_output (fun () -> pos := Frame.position source#get_frame);
         skipped <- skipped + !pos
       done;
       let buf = ref self#empty_frame in
       if source#is_ready then (
-        self#child_on_output (fun () -> buf := source#get_data);
+        self#child_on_output (fun () -> buf := source#get_frame);
         filled <- filled + Frame.position !buf);
       !buf
   end

@@ -57,14 +57,14 @@ class keyboard =
     inherit Source.active_source ~name:"input.keyboard" ()
     method seek_source = (self :> Source.source)
     method stype = `Infallible
-    method private can_generate_data = true
+    method private can_generate_frame = true
     method remaining = -1
     method abort_track = ()
     method self_sync = (`Static, false)
 
     method output =
       self#has_ticked;
-      if self#is_ready then ignore self#get_data
+      if self#is_ready then ignore self#get_frame
 
     val mutable ev = MIDI.create (MFrame.size ())
     val ev_m = Mutex.create ()
@@ -122,7 +122,7 @@ class keyboard =
 
     method reset = ()
 
-    method private generate_data =
+    method private generate_frame =
       let t = self#get_events in
       Frame.set_data
         (Frame.create ~length:(Lazy.force Frame.size) Frame.Fields.empty)

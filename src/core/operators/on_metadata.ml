@@ -24,14 +24,14 @@ class on_metadata f s =
   object (self)
     inherit Source.operator ~name:"on_metadata" [s]
     method stype = s#stype
-    method private can_generate_data = s#is_ready
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek_source = s#seek_source
     method self_sync = s#self_sync
 
-    method private generate_data =
-      let buf = s#get_data in
+    method private generate_frame =
+      let buf = s#get_frame in
       List.iter
         (fun (p, m) ->
           self#log#debug "Got metadata at position %d: calling handler..." p;

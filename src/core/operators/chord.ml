@@ -49,16 +49,16 @@ class chord metadata_name (source : source) =
     inherit operator ~name:"chord" [source]
     method stype = source#stype
     method remaining = source#remaining
-    method private can_generate_data = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     val mutable notes_on = []
 
-    method private generate_data =
+    method private generate_frame =
       let buf = source#get_mutable_field Frame.Fields.midi in
       let m = Content.Midi.get_data buf in
-      let meta = Frame.get_all_metadata source#get_data in
+      let meta = Frame.get_all_metadata source#get_frame in
       let chords =
         let ans = ref [] in
         List.iter
