@@ -268,7 +268,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover..";
           Pcm.recover pcm e;
-          self#output)
+          self#generate_frame)
         else raise e
   end
 
