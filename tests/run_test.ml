@@ -39,9 +39,9 @@ let run () =
 
   let runtime () =
     let runtime = Unix.time () -. start_time in
-    let min = runtime /. 60. in
-    let sec = runtime -. (min *. 60.) in
-    (int_of_float min, int_of_float sec)
+    let min = int_of_float (runtime /. 60.) in
+    let sec = runtime -. (float min *. 60.) in
+    (min, int_of_float sec)
   in
 
   let () = Console.color_conf := `Always in
