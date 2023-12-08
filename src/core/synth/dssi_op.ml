@@ -71,13 +71,15 @@ class dssi ?chan plugin descr outputs params source =
     initializer
       Array.iter (fun inst -> Ladspa.Descriptor.activate inst) (snd di)
 
-    method private get_frame =
+    method private generate_frame =
       let b =
         Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
       in
       let alen = source#audio_position in
       let descr, inst = di in
-      let evs = MFrame.midi buf in
+      let evs =
+        Content.Midi.get_data (Frame.get source#get_frame Frame.Fields.midi)
+      in
       (* Now convert everything to audio samples. *)
       let evs =
         let dssi_of_midi (t, e) =
@@ -109,13 +111,13 @@ class dssi ?chan plugin descr outputs params source =
             Ladspa.Descriptor.connect_port inst outputs.(c) ba.(c)
           done)
         inst;
-      (try Descriptor.run_multiple_synths descr ~adding:true inst len evs
+      (try Descriptor.run_multiple_synths descr ~adding:true inst alen evs
        with Descriptor.Not_implemented ->
          for i = 0 to (if chan = None then all_chans else 1) - 1 do
-           Descriptor.run_synth ~adding:true descr inst.(i) len evs.(i)
+           Descriptor.run_synth ~adding:true descr inst.(i) alen evs.(i)
          done;
          Audio.copy_from_ba ba b 0 alen);
-      source#set_data Frame.Field.audio Content.Audio.lift_data b
+      source#set_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let dssi = Lang.add_module "dssi"
