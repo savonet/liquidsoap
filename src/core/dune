@@ -31,6 +31,7 @@
   cry
   re
   uri
+  saturn_lockfree
   metadata
   (select
    file_watcher.ml
@@ -171,6 +172,7 @@
   max_duration
   mean
   merge_metadata
+  metadata_base
   midi_decoder
   midi_routing
   midimeter
