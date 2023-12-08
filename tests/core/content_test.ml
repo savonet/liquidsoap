@@ -4,8 +4,8 @@ let () = Frame_settings.lazy_config_eval := true
 
 let () =
   let marks ?(offset = 0) len = List.init len (fun x -> x + offset) in
-  let c = Track_marks.(lift_data (make ~length:1000 ())) in
-  let c' = Track_marks.(lift_data (make ~length:10 ())) in
+  let c = Content.make ~length:1000 Content.Track_marks.format in
+  let c' = Content.make ~length:10 Content.Track_marks.format in
   Track_marks.set_data c (marks 1000);
   (* Track marks outside of the declared length should be ignored. *)
   Track_marks.set_data c' (marks 10);
@@ -22,11 +22,11 @@ let () =
       (Lang.frame_t Lang.unit_t
          (Frame.Fields.make ~audio:(Format_type.audio ()) ()))
   in
-  let frame = Frame.create ctype in
+  let frame = Frame.create ~length:(Lazy.force Frame.size) ctype in
   let m = Frame.Metadata.from_list [("foo", "bla")] in
-  Frame.set_metadata frame 123 m;
+  let frame = Frame.add_metadata frame 123 m in
   let m = Frame.Metadata.from_list [("gni", "gno")] in
-  Frame.set_metadata frame 123 m;
+  let frame = Frame.add_metadata frame 123 m in
   assert (Frame.get_all_metadata frame = [(123, m)])
 
 (* Test content boundaries.

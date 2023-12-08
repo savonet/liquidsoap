@@ -21,7 +21,6 @@ let () =
       (Lang.frame_t Lang.unit_t
          (Frame.Fields.make ~audio:(Format_type.audio ()) ()))
   in
-  let frame = Frame.create ctype in
   let create_decoder = Option.get (Decoder.get_stream_decoder ~ctype format) in
   let decoder =
     create_decoder { Decoder.read; tell = None; length = None; lseek = None }
@@ -35,15 +34,15 @@ let () =
     create_encoder ~pos:None "test stream" Frame.Metadata.Export.empty
   in
   write (encoder.Encoder.header ());
+  let size = Lazy.force Frame.size in
   try
     while true do
       try
         while Generator.length generator < Lazy.force Frame.size do
           decoder.Decoder.decode buffer
         done;
-        Generator.fill generator frame;
-        write (encoder.Encoder.encode frame 0 (Frame.position frame));
-        Frame.clear frame
+        let frame = Generator.slice generator size in
+        write (encoder.Encoder.encode frame 0 (Frame.position frame))
       with Avutil.Error `Invalid_data -> ()
     done
   with Ffmpeg_decoder.End_of_file ->

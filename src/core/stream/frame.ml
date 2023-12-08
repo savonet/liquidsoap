@@ -99,7 +99,7 @@ let add_track_marks frame l =
   in
   let new_marks = Content.make ~length (Content.format old_marks) in
   Content.Track_marks.set_data new_marks
-    (l @ Content.Track_marks.get_data old_marks);
+    (List.sort_uniq Stdlib.compare (l @ Content.Track_marks.get_data old_marks));
   Fields.add Fields.track_marks new_marks frame
 
 let add_track_mark frame pos = add_track_marks frame [pos]
@@ -129,7 +129,9 @@ let add_all_metadata frame l =
   in
   let new_metadata = Content.make ~length (Content.format old_metadata) in
   Content.Metadata.set_data new_metadata
-    (l @ Content.Metadata.get_data old_metadata);
+    (List.sort_uniq
+       (fun (p, _) (p', _) -> Stdlib.compare p p')
+       (l @ Content.Metadata.get_data old_metadata));
   Fields.add Fields.metadata new_metadata frame
 
 let add_metadata frame pos m = add_all_metadata frame [(pos, m)]
