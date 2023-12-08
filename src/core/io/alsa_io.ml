@@ -240,9 +240,11 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     method seek_source = (self :> Source.source)
 
     (* TODO: convert samplerate *)
-    method private get_frame frame =
+    method private generate_frame =
       let pcm = Option.get pcm in
-      let buf = AFrame.pcm frame in
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       try
         let r = ref 0 in
         while !r < samples_per_frame do
@@ -253,7 +255,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
               !r (Audio.length buf);
           r := !r + read pcm buf !r (samples_per_frame - !r)
         done;
-        AFrame.add_break frame (AFrame.size ())
+        Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
       with e ->
         begin
           match e with

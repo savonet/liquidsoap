@@ -102,14 +102,15 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
       done;
       String.blit !ans 0 block 0 length
 
-    method private get_frame buf =
-      assert (0 = AFrame.position buf);
+    method private generate_frame =
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let buffer = ioring#get_block in
-      let fbuf = AFrame.pcm buf in
       Audio.S16LE.to_audio
         (Bytes.unsafe_to_string buffer)
-        0 fbuf 0 samples_per_frame;
-      AFrame.add_break buf samples_per_frame
+        0 buf 0 samples_per_frame;
+      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
 
     method! reset = ()
   end

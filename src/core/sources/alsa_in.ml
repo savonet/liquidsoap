@@ -134,12 +134,13 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
           Pcm.recover dev e)
         else raise e
 
-    method get_frame buf =
-      assert (0 = AFrame.position buf);
+    method generate_frame =
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let buffer = ioring#get_block in
-      let fbuf = AFrame.pcm buf in
-      Audio.blit buffer 0 fbuf 0 buffer_length;
-      AFrame.add_break buf buffer_length
+      Audio.blit buffer 0 buf 0 (Frame.audio_of_main length);
+      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
 
     method! reset = ()
   end

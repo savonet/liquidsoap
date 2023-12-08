@@ -73,16 +73,14 @@ class soundtouch source_val rate tempo pitch =
         (fun (_, m) -> Generator.add_metadata self#buffer m)
         (AFrame.get_all_metadata databuf)
 
-    method private get_frame buf =
+    method private generate_frame =
+      let size = Lazy.force Frame.size in
       consumer#set_output_enabled true;
-      while
-        Generator.length self#buffer < Lazy.force Frame.size
-        && source#is_ready ~frame:self#buffer ()
-      do
+      while Generator.length self#buffer < size && source#is_ready do
         self#child_tick
       done;
       consumer#set_output_enabled false;
-      Generator.fill self#buffer buf
+      Generator.slice self#buffer size
 
     method! wake_up a =
       super#wake_up a;

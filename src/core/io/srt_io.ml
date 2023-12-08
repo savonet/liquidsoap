@@ -683,8 +683,8 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 
-    method! is_ready ?frame () =
-      super#is_ready ?frame () && (not self#should_stop) && self#is_connected
+    method! is_ready =
+      super#is_ready && (not self#should_stop) && self#is_connected
 
     method self_sync = (`Dynamic, self#is_connected)
 
@@ -716,8 +716,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
       in
       create_decoder { Decoder.read; tell = None; length = None; lseek = None }
 
-    method private get_frame frame =
-      let pos = Frame.position frame in
+    method private generate_frame =
       try
         let _, socket = self#get_socket in
         let decoder, buffer =
@@ -731,17 +730,18 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
                 (decoder, buffer)
             | Some d -> d
         in
-        while Generator.length self#buffer < Lazy.force Frame.size do
+        let size = Lazy.force Frame.size in
+        while Generator.length self#buffer < size do
           decoder.Decoder.decode buffer
         done;
-        Generator.fill self#buffer frame
+        Generator.slice self#buffer size
       with exn ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         self#disconnect;
         if not self#should_stop then self#connect;
-        Frame.add_break frame pos
+        self#empty_frame
 
     method private start =
       self#set_should_stop false;

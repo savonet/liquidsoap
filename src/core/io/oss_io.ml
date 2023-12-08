@@ -112,17 +112,18 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       Unix.close (Option.get fd);
       fd <- None
 
-    method get_frame frame =
-      assert (0 = AFrame.position frame);
+    method generate_frame =
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let fd = Option.get fd in
-      let buf = AFrame.pcm frame in
       let len = 2 * Array.length buf * Audio.Mono.length buf.(0) in
       let s = Bytes.create len in
       let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r);
       Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf 0 len;
-      AFrame.add_break frame (AFrame.size ())
+      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

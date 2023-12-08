@@ -227,13 +227,14 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
       Portaudio.close_stream (Option.get stream);
       stream <- None
 
-    method get_frame frame =
-      assert (0 = AFrame.position frame);
+    method generate_frame =
+      let size = Lazy.force Frame.size in
+      let frame = Frame.create ~length:size self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let stream = Option.get stream in
-      let buf = AFrame.pcm frame in
       self#handle "read_stream" (fun () ->
           Portaudio.read_stream stream buf 0 (Array.length buf.(0)));
-      AFrame.add_break frame (AFrame.size ())
+      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =
