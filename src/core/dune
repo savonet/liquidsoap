@@ -32,7 +32,6 @@
   re
   uri
   metadata
-  saturn_lockfree
   (select
    file_watcher.ml
    from
@@ -171,7 +170,6 @@
   map_op
   max_duration
   mean
-  metadata_base
   merge_metadata
   midi_decoder
   midi_routing
@@ -263,8 +261,7 @@
   wav_encoder
   wav_format
   websocket
-  window_op
-  ))
+  window_op))
 
 (library
  (name liquidsoap_builtins)
@@ -682,7 +679,6 @@
  (libraries stereotool liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
- (enabled_if false)
  (optional)
  (modules stereotool_op))
 
@@ -807,7 +803,8 @@
   tls_option
   vorbis_option
   winsvc_option
-  yaml_option)
+  yaml_option
+  xmlplaylist_option)
  (libraries
   liquidsoap_core
   (select
@@ -1059,4 +1056,9 @@
    yaml_option.ml
    from
    (liquidsoap_yaml -> yaml_option.enabled.ml)
-   (-> yaml_option.disabled.ml))))
+   (-> yaml_option.disabled.ml))
+  (select
+   xmlplaylist_option.ml
+   from
+   (liquidsoap_xmlplaylist -> xmlplaylist_option.enabled.ml)
+   (-> xmlplaylist_option.disabled.ml))))
