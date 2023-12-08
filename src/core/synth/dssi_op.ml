@@ -71,19 +71,14 @@ class dssi ?chan plugin descr outputs params source =
     initializer
       Array.iter (fun inst -> Ladspa.Descriptor.activate inst) (snd di)
 
-    method private get_frame buf =
-      let descr, inst = di in
-      let offset = Frame.position buf in
-      let position =
-        source#get buf;
-        Frame.position buf
+    method private get_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
       in
-      let b = AFrame.pcm buf in
+      let alen = source#audio_position in
+      let descr, inst = di in
       let evs = MFrame.midi buf in
       (* Now convert everything to audio samples. *)
-      let offset = Frame.audio_of_main offset in
-      let position = Frame.audio_of_main position in
-      let len = position - offset in
       let evs =
         let dssi_of_midi (t, e) =
           let t = Frame.audio_of_main (Frame.main_of_midi t) in
@@ -104,7 +99,7 @@ class dssi ?chan plugin descr outputs params source =
                     (List.filter_map dssi_of_midi (MIDI.data evs.(chan))))
       in
       assert (Array.length outputs = Array.length b);
-      let ba = Audio.to_ba b offset len in
+      let ba = Audio.to_ba b 0 alen in
       Array.iter
         (fun inst ->
           List.iter
@@ -114,12 +109,13 @@ class dssi ?chan plugin descr outputs params source =
             Ladspa.Descriptor.connect_port inst outputs.(c) ba.(c)
           done)
         inst;
-      try Descriptor.run_multiple_synths descr ~adding:true inst len evs
-      with Descriptor.Not_implemented ->
-        for i = 0 to (if chan = None then all_chans else 1) - 1 do
-          Descriptor.run_synth ~adding:true descr inst.(i) len evs.(i)
-        done;
-        Audio.copy_from_ba ba b offset len
+      (try Descriptor.run_multiple_synths descr ~adding:true inst len evs
+       with Descriptor.Not_implemented ->
+         for i = 0 to (if chan = None then all_chans else 1) - 1 do
+           Descriptor.run_synth ~adding:true descr inst.(i) len evs.(i)
+         done;
+         Audio.copy_from_ba ba b 0 alen);
+      source#set_data Frame.Field.audio Content.Audio.lift_data b
   end
 
 let dssi = Lang.add_module "dssi"
