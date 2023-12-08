@@ -40,29 +40,45 @@ class blank duration =
     method abort_track = remaining <- 0
 
     method generate_frame =
-      let length = min (Lazy.force Frame.size) remaining in
-      remaining <- remaining - remaining;
-      let audio_len = Frame.audio_of_main length in
-      let video_len = Frame.video_of_main length in
-      Frame.Fields.map
-        (fun typ ->
-          let c = Content.make ~length typ in
-          (match typ with
-            | _ when Content.Audio.is_format typ ->
-                Audio.clear (Content.Audio.get_data c) 0 audio_len
-            | _ when Content_pcm_s16.is_format typ ->
-                Content_pcm_s16.clear (Content_pcm_s16.get_data c) 0 audio_len
-            | _ when Content_pcm_f32.is_format typ ->
-                Content_pcm_f32.clear (Content_pcm_f32.get_data c) 0 audio_len
-            | _ when Content.Video.is_format typ ->
-                Video.Canvas.blank (Content.Video.get_data c) 0 video_len
-            | _
-              when Content.Metadata.is_format typ
-                   || Content.Track_marks.is_format typ ->
-                ()
-            | _ -> failwith "Invalid content type!");
-          c)
-        self#content_type
+      let length =
+        match remaining with
+          | -1 -> Lazy.force Frame.size
+          | _ ->
+              let l = min (Lazy.force Frame.size) remaining in
+              remaining <- remaining - l;
+              l
+      in
+
+      if length = 0 then self#empty_frame
+      else (
+        let frame = Frame.create ~length self#content_type in
+        let audio_len = Frame.audio_of_main length in
+        let video_len = Frame.video_of_main length in
+        Frame.Fields.map
+          (fun c ->
+            match c with
+              | _ when Content.Audio.is_data c ->
+                  let data = Content.Audio.get_data c in
+                  Audio.clear data 0 audio_len;
+                  Content.Audio.lift_data ~length data
+              | _ when Content_pcm_s16.is_data c ->
+                  let data = Content_pcm_s16.get_data c in
+                  Content_pcm_s16.clear data 0 audio_len;
+                  Content_pcm_s16.lift_data ~length data
+              | _ when Content_pcm_f32.is_data c ->
+                  let data = Content_pcm_f32.get_data c in
+                  Content_pcm_f32.clear data 0 audio_len;
+                  Content_pcm_f32.lift_data ~length data
+              | _ when Content.Video.is_data c ->
+                  let data = Content.Video.get_data c in
+                  Video.Canvas.blank data 0 video_len;
+                  Content.Video.lift_data ~length data
+              | _
+                when Content.Metadata.is_data c || Content.Track_marks.is_data c
+                ->
+                  c
+              | _ -> failwith "Invalid content type!")
+          frame)
   end
 
 let blank =
