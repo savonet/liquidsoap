@@ -34,6 +34,7 @@ val find : 'a -> ('a, 'b) t -> 'b
 val find_opt : 'a -> ('a, 'b) t -> 'b option
 val mem : 'a -> ('a, 'b) t -> bool
 val remove : 'a -> ('a, 'b) t -> ('a, 'b) t
+val append : ('a, 'b) t -> ('a, 'b) t -> ('a, 'b) t
 val add : 'a -> 'b -> ('a, 'b) t -> ('a, 'b) t
 val mapi : ('a -> 'b -> 'c) -> ('a, 'b) t -> ('a, 'c) t
 val map : ('b -> 'c) -> ('a, 'b) t -> ('a, 'c) t

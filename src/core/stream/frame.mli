@@ -58,6 +58,7 @@ module Metadata : sig
   val to_list : t -> (string * string) list
   val is_empty : t -> bool
   val empty : t
+  val append : t -> t -> t
   val cardinal : t -> int
   val fold : (string -> string -> 'a -> 'a) -> t -> 'a -> 'a
   val find : string -> t -> string

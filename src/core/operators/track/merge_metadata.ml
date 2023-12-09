@@ -45,9 +45,20 @@ class merge_metadata tracks =
     method private generate_frame =
       List.fold_left
         (fun frame source ->
-          if source#is_ready then
-            Frame.add_all_metadata frame
-              (Frame.get_all_metadata source#get_frame)
+          if source#is_ready then (
+            let l = Frame.get_all_metadata source#get_frame in
+            let l =
+              List.fold_left
+                (fun l (pos, m) ->
+                  ( pos,
+                    Frame.Metadata.append
+                      (Option.value ~default:Frame.Metadata.empty
+                         (Frame.get_metadata frame pos))
+                      m )
+                  :: l)
+                [] l
+            in
+            Frame.add_all_metadata frame l)
           else frame)
         (Frame.create ~length:(Lazy.force Frame.size) self#content_type)
         sources

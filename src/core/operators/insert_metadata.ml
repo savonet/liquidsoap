@@ -26,7 +26,7 @@ exception Error
 
 (* This is an internal operator. *)
 class insert_metadata source =
-  object (self)
+  object
     inherit operator ~name:"insert_metadata" [source]
     method stype = source#stype
     method private can_generate_frame = source#is_ready
@@ -34,43 +34,24 @@ class insert_metadata source =
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    val mutable metadata = None
-    val mutable new_track = false
-    val lock_m = Mutex.create ()
-    val mutable ns = []
+    val mutable metadata = Atomic.make None
 
-    method insert_metadata nt m : unit =
-      Mutex.lock lock_m;
-      metadata <- Some m;
-      new_track <- nt;
-      Mutex.unlock lock_m
-
-    method private add_metadata frame =
-      Tutils.mutexify lock_m
-        (fun () ->
-          let frame =
-            match (metadata, Frame.get_metadata frame 0) with
-              | Some m, None ->
-                  metadata <- None;
-                  Frame.add_metadata frame 0 m
-              | _ -> frame
-          in
-          metadata <- None;
-          frame)
-        ()
-
-    method private insert_track =
-      Tutils.mutexify lock_m
-        (fun () ->
-          let ret = new_track in
-          new_track <- false;
-          ret)
-        ()
+    method insert_metadata ~new_track m =
+      Atomic.set metadata (Some (new_track, m))
 
     method private generate_frame =
       let buf = source#get_frame in
-      let buf = if self#insert_track then Frame.add_track_mark buf 0 else buf in
-      self#add_metadata buf
+      match Atomic.exchange metadata None with
+        | Some (new_track, m) ->
+            let m =
+              Frame.Metadata.append
+                (Option.value ~default:Frame.Metadata.empty
+                   (Frame.get_metadata buf 0))
+                m
+            in
+            let buf = Frame.add_metadata buf 0 m in
+            if new_track then Frame.add_track_mark buf 0 else buf
+        | None -> buf
   end
 
 let _ =
@@ -96,7 +77,7 @@ let _ =
               (fun p ->
                 let m = Lang.to_metadata (List.assoc "" p) in
                 let new_track = Lang.to_bool (List.assoc "new_track" p) in
-                s#insert_metadata new_track m;
+                s#insert_metadata ~new_track m;
                 Lang.unit) );
       ]
     ~return_t
