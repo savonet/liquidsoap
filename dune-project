@@ -55,7 +55,7 @@
     uri
     fileutils
     menhirLib
-    saturn_lockfree
+    (saturn_lockfree (>= 0.4.1))
     (metadata (>= 0.2.0))
     dune-build-info
     (liquidsoap-lang (= :version))

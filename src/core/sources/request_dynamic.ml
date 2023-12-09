@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Source
-module Queue = Lockfree.Single_prod_single_cons_queue
+module Queue = Saturn_lockfree.Single_prod_single_cons_queue
 
 (* Scheduler priority for request resolutions. *)
 let priority = `Maybe_blocking
@@ -274,7 +274,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     method private clear_retrieved =
       let rec clear () =
-        match Queue.pop retrieved with
+        match Queue.pop_opt retrieved with
           | None -> ()
           | Some { request = req; _ } ->
               Request.destroy req;
@@ -394,7 +394,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
             with
               | Request.Resolved ->
                   let rec remove_expired ret =
-                    match Queue.pop retrieved with
+                    match Queue.pop_opt retrieved with
                       | None -> List.rev ret
                       | Some r ->
                           let ret =
@@ -421,7 +421,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
     (** Provide the unqueued [super] with resolved requests. *)
     method private get_next_file =
-      match Queue.pop retrieved with
+      match Queue.pop_opt retrieved with
         | None ->
             self#log#debug "Queue is empty!";
             `Empty
@@ -481,7 +481,7 @@ let _ =
           fun s ->
             Lang.val_fun [] (fun _ ->
                 let rec fetch cur =
-                  match Queue.pop s#queue with
+                  match Queue.pop_opt s#queue with
                     | None -> List.rev cur
                     | Some r -> fetch (Request.Value.to_value r.request :: cur)
                 in
