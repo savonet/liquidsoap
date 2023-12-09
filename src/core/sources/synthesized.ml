@@ -58,7 +58,7 @@ class virtual source ?name ~seek duration =
       let buf = self#synthesize len in
       if add_track_mark then (
         add_track_mark <- false;
-        remaining <- (if track_size = None then None else Some 0);
+        remaining <- track_size;
         Frame.add_track_mark buf 0)
       else buf
   end
