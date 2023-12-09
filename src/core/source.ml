@@ -684,17 +684,11 @@ class virtual operator ?pos ?(name = "src") sources =
       (match List.rev metadata with
         | (_, m) :: _ -> self#mutexify (fun () -> last_metadata <- Some m) ()
         | [] -> ());
-      List.iter
-        (fun pos ->
-          let m =
-            match
-              List.rev (List.filter (fun (pos', _) -> pos' <= pos) metadata)
-            with
-              | (_, m) :: _ -> m
-              | [] -> Frame.Metadata.empty
-          in
-          List.iter (fun fn -> fn m) on_track)
-        (Frame.track_marks buf);
+      if has_track_mark then (
+        let m =
+          match last_metadata with Some m -> m | None -> Frame.Metadata.empty
+        in
+        List.iter (fun fn -> fn m) on_track);
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);

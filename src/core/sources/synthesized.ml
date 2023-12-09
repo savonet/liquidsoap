@@ -38,7 +38,7 @@ class virtual source ?name ~seek duration =
     method remaining =
       match remaining with None -> -1 | Some remaining -> remaining
 
-    val mutable add_track_mark = false
+    val mutable add_track_mark = true
 
     method abort_track =
       add_track_mark <- true;
