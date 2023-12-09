@@ -268,6 +268,14 @@ let encoder ~pos ~mk_streams ffmpeg meta =
     match ffmpeg.Ffmpeg_format.format with
       | Some "mp4" ->
           encode ~encoder frame start len;
+          let frame =
+            Frame.Fields.filter
+              (fun _ c ->
+                not
+                  (Content_timed.Track_marks.is_data c
+                  || Content_timed.Metadata.is_data c))
+              frame
+          in
           Frame.Fields.iter
             (fun field c ->
               let sent = Frame.Fields.find field sent in
