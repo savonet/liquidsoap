@@ -159,7 +159,6 @@ def crossfade(
   ~medium=-32.,
   ~margin=4.,
   ~width=2.,
-  ~conservative=false,
   s
 ) =
   fade_out = fun (s) -> fade.out(type="sin", duration=fade_out, s)
@@ -280,9 +279,7 @@ def crossfade(
     end
   end
 
-  cross(
-    width=width, duration=start_next, conservative=conservative, transition, s
-  )
+  cross(width=width, duration=start_next, transition, s)
 end
 
 # Create a radiopilote-driven source
@@ -311,8 +308,7 @@ def channel_radiopilote(~skip=true, name) =
     request.create(ret)
   end
 
-  # Create the dynamic source. Set conservative to true to queue several songs
-  # in advance.
+  # Create the dynamic source.
   s = request.dynamic(id="dyn_" ^ name, req, timeout=60.)
 
   # Apply normalization using replaygain information.

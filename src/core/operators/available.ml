@@ -23,22 +23,31 @@
 open Source
 
 class available ~track_sensitive ~override p (source : source) =
-  object
+  object (self)
     inherit operator ~name:"source.available" [source]
     method stype = `Fallible
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    val mutable ready = p ()
+    val mutable ready = None
+
+    method private ready =
+      match ready with
+        | None ->
+            let r = p () in
+            ready <- Some r;
+            r
+        | Some r -> r
 
     method private can_generate_frame =
-      if not (track_sensitive () && ready) then ready <- p ();
-      ready && (override || source#is_ready)
+      if not (track_sensitive () && self#ready) then ready <- Some (p ());
+      self#ready && (override || source#is_ready)
 
     method private generate_frame =
       let buf = source#get_frame in
-      if track_sensitive () && Frame.track_marks buf <> [] then ready <- p ();
+      if track_sensitive () && Frame.track_marks buf <> [] then
+        ready <- Some (p ());
       buf
   end
 
