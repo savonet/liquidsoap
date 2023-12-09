@@ -31,7 +31,18 @@ class virtual source ?name ~seek duration =
     method stype = if track_size = None then `Infallible else `Fallible
     val mutable remaining = track_size
     method private can_generate_frame = remaining <> Some 0
-    method! seek x = if seek then x else 0
+
+    method! seek x =
+      match (seek, remaining) with
+        | false, _ -> 0
+        | true, None -> x
+        | true, Some r when x <= r ->
+            remaining <- Some (r - x);
+            x
+        | true, Some r ->
+            remaining <- Some 0;
+            r
+
     method seek_source = (self :> Source.source)
     method self_sync = (`Static, false)
 
@@ -42,7 +53,7 @@ class virtual source ?name ~seek duration =
 
     method abort_track =
       add_track_mark <- true;
-      remaining <- Some 0
+      remaining <- Some (-1)
 
     method virtual private synthesize : int -> Frame.t
 

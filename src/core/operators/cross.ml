@@ -108,7 +108,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let s = (s :> source) in
       s#get_ready [(self :> source)];
       Clock.unify ~pos:self#pos source#clock s#clock;
-      transition_source <- Some s
+      transition_source <- Some s;
+      self#set_cross_length
 
     method cleanup_transition_source =
       match transition_source with
@@ -153,7 +154,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                   duration_getter <- (fun () -> l)
                 with _ -> ()))
         l;
-      self#set_cross_length;
       (match (List.rev l, mode) with
         | (_, m) :: _, `Before -> before_metadata <- Some m
         | (_, m) :: _, `After -> after_metadata <- Some m
@@ -162,36 +162,49 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Before -> Generator.append gen_before buf_frame
         | `After -> Generator.append gen_after buf_frame
 
+    val mutable cache = None
+
     (* A chunk is a buffer that has at most one
        track mark at its beginning. *)
     method private generate_frame =
       match status with
         | `Idle ->
-            let buf = self#child_get source in
+            let buf =
+              match cache with
+                | Some frame -> frame
+                | None -> self#child_get source
+            in
+            cache <- None;
             let pos = Frame.position buf in
             let p = match Frame.track_marks buf with p :: _ -> p | [] -> 0 in
             self#log#info "Buffering end of track...";
             self#append `Before (Frame.chunk ~start:p ~stop:pos buf);
             status <- `Before;
             self#buffering cross_length;
-            Frame.append (Frame.slice buf p) self#generate_frame
+            cache <- Some (Frame.slice buf p);
+            self#generate_frame
         | `Before ->
             (* We started buffering but the track didn't end.
              * Play the beginning of the buffer while filling it more. *)
             let len = Generator.length gen_before in
             if len <= cross_length then self#buffering (cross_length - len);
-            if status = `Before then
-              Generator.slice gen_before (Lazy.force Frame.size)
+            if status = `Before then (
+              let size = Lazy.force Frame.size in
+              match cache with
+                | Some frame ->
+                    cache <- None;
+                    Frame.append frame
+                      (Generator.slice gen_before (size - Frame.position frame))
+                | None -> Generator.slice gen_before size)
             else self#generate_frame
         | `After ->
             let source = Option.get transition_source in
             let buf = self#child_get source in
             if Frame.is_partial buf then (
               self#cleanup_transition_source;
-              self#append `Before buf;
-              status <- `Before;
-              self#buffering cross_length;
-              Generator.slice gen_before (Lazy.force Frame.size))
+              status <- `Idle;
+              cache <- Some buf;
+              self#generate_frame)
             else buf
 
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
