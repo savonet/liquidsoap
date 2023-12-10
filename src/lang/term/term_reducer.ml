@@ -877,7 +877,7 @@ and to_encoder_params l =
 
 and to_encoder (lbl, params) = (lbl, to_encoder_params params)
 
-and to_term (tm : Parsed_term.t) : Term.t =
+and to_term_base (tm : Parsed_term.t) : Term.t =
   match tm.term with
     | `Seq (({ term = `Include _ } as t), t')
     | `Seq (({ term = `If_def _ } as t), t')
@@ -939,3 +939,8 @@ and to_term (tm : Parsed_term.t) : Term.t =
             | ast, _ -> ast
         in
         { t = Type.var ~pos:tm.pos (); term; methods = Methods.empty }
+
+and to_term parsed_term =
+  let term = to_term_base parsed_term in
+  Term_base.ActiveTerm.add Term_base.active_terms term;
+  term
