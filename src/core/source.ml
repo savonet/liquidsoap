@@ -558,9 +558,12 @@ class virtual operator ?pos ?(name = "src") sources =
       self#has_ticked;
       match streaming_state with `Ready _ | `Done _ -> true | _ -> false
 
+    val mutable_fields = Hashtbl.create 4
+
     (* This is the implementation of the main streaming logic. *)
     initializer
       self#on_before_output (fun () ->
+          Hashtbl.clear mutable_fields;
           if self#can_generate_frame then
             streaming_state <-
               `Ready
@@ -579,12 +582,14 @@ class virtual operator ?pos ?(name = "src") sources =
             self#get_frame
         | `Done data -> data
 
-    method get_mutable_field field =
+    method get_mutable_content field =
       let content = Frame.get self#get_frame field in
-      if List.length activations <= 1 then content else Content.copy content
+      let count = try Hashtbl.find mutable_fields field with Not_found -> 1 in
+      Hashtbl.replace mutable_fields field (count + 1);
+      if count > 1 then Content.copy content else content
 
     method get_mutable_frame field =
-      Frame.set self#get_frame field (self#get_mutable_field field)
+      Frame.set self#get_frame field (self#get_mutable_content field)
 
     method set_data
         : 'a.

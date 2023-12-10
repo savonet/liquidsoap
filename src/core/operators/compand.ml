@@ -34,7 +34,7 @@ class compand ~field (source : source) mu =
 
     method private generate_frame =
       let pos = source#audio_position in
-      let b = Content.Audio.get_data (source#get_mutable_field field) in
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
       for c = 0 to self#audio_channels - 1 do
         let b_c = b.(c) in
         for i = 0 to pos - 1 do

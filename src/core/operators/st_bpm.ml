@@ -45,7 +45,7 @@ class bpm (source : source) =
 
     method private generate_frame =
       let buf =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let bpm = Option.get bpm in
       let len = source#audio_position in

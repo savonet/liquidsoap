@@ -35,7 +35,7 @@ class midimeter source =
 
     method generate_frame =
       let m =
-        Content.Midi.get_data (source#get_mutable_field Frame.Fields.midi)
+        Content.Midi.get_data (source#get_mutable_content Frame.Fields.midi)
       in
       (* Printf.printf "len: %d\n%!" (List.length (MIDI.data m.(0))); *)
       for c = 0 to Array.length m - 1 do

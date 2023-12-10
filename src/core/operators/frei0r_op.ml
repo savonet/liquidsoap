@@ -57,7 +57,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
 
     method private generate_frame =
       let rgb =
-        Content.Video.get_data (source#get_mutable_field Frame.Fields.video)
+        Content.Video.get_data (source#get_mutable_content Frame.Fields.video)
       in
       params ();
       for i = 0 to source#video_position - 1 do
@@ -109,7 +109,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
     method private generate_frame =
       (* Get content in respective buffers *)
       let rgb =
-        Content.Video.get_data (source#get_mutable_field Frame.Fields.video)
+        Content.Video.get_data (source#get_mutable_content Frame.Fields.video)
       in
       let rgb' =
         Content.Video.get_data (Frame.get source2#get_frame Frame.Fields.video)

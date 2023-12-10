@@ -325,6 +325,9 @@ module MkContentBase (C : ContentSpecs) :
             d.chunks <- [];
             { d with chunks = [] }
         | _, [{ offset = 0; length = None }] when not force -> d
+        | _, [{ offset = 0; length = Some l; data }]
+          when l = C.length data && not force ->
+            d
         | length, _ ->
             let buf = C.make ~length d.params in
             ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);

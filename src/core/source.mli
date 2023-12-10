@@ -208,7 +208,7 @@ class virtual source :
 
        method streaming_state : streaming_state
        method get_frame : Frame.t
-       method get_mutable_field : Frame.field -> Content.data
+       method get_mutable_content : Frame.field -> Content.data
        method get_mutable_frame : Frame.field -> Frame.t
        method private split_frame : Frame.t -> Frame.t * Frame.t option
 

@@ -40,7 +40,7 @@ class merge (source : source) out =
 
     method private generate_frame =
       let m =
-        Content.Midi.get_data (source#get_mutable_field Frame.Fields.midi)
+        Content.Midi.get_data (source#get_mutable_content Frame.Fields.midi)
       in
       for c = 0 to Array.length m - 1 do
         MIDI.merge m.(out) m.(c);
@@ -55,7 +55,7 @@ class remove (source : source) t =
 
     method private generate_frame =
       let m =
-        Content.Midi.get_data (source#get_mutable_field Frame.Fields.midi)
+        Content.Midi.get_data (source#get_mutable_content Frame.Fields.midi)
       in
       List.iter (fun c -> if c < Array.length m then MIDI.clear_all m.(c)) t;
       source#set_data Frame.Fields.midi Content.Midi.lift_data m

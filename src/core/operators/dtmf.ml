@@ -171,7 +171,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let position = source#audio_position in
       let channels = self#audio_channels in
@@ -310,7 +310,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let position = source#audio_position in
       let channels = self#audio_channels in

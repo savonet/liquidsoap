@@ -35,7 +35,7 @@ class msstereo ~field (source : source) mode width =
     method abort_track = source#abort_track
 
     method private generate_frame =
-      let buffer = Content.Audio.get_data (source#get_mutable_field field) in
+      let buffer = Content.Audio.get_data (source#get_mutable_content field) in
       for i = 0 to source#audio_position - 1 do
         match mode with
           | Encode ->
@@ -97,7 +97,7 @@ class spatializer ~field ~width (source : source) =
 
     method private generate_frame =
       let position = source#audio_position in
-      let buf = Content.Audio.get_data (source#get_mutable_field field) in
+      let buf = Content.Audio.get_data (source#get_mutable_content field) in
       let width = width () in
       let width = (width +. 1.) /. 2. in
       let a =

@@ -82,7 +82,7 @@ class lilv_mono (source : source) plugin input output params =
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let len = source#audio_position in
       let chans = Array.length b in
@@ -113,7 +113,7 @@ class lilv (source : source) plugin inputs outputs params =
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let len = source#audio_position in
       List.iter

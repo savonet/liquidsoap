@@ -46,7 +46,7 @@ class echo (source : source) delay feedback ping_pong =
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let position = source#audio_position in
       let effect = Option.get effect in

@@ -420,7 +420,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
     val mutable v_offs = 0
 
     method private generate_frame =
-      let c = source#get_mutable_field Frame.Fields.audio in
+      let c = source#get_mutable_content Frame.Fields.audio in
       let b = Content.Audio.get_data c in
       let v_len = Array.length xv.(0) in
       let coeffs_len = Array.length xcoeffs in

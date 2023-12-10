@@ -56,7 +56,7 @@ class chord metadata_name (source : source) =
     val mutable notes_on = []
 
     method private generate_frame =
-      let buf = source#get_mutable_field Frame.Fields.midi in
+      let buf = source#get_mutable_content Frame.Fields.midi in
       let m = Content.Midi.get_data buf in
       let meta = Frame.get_all_metadata source#get_frame in
       let chords =

@@ -80,7 +80,7 @@ class stereotool ~field ~handler source =
     method self_sync = source#self_sync
 
     method private generate_frame =
-      let b = Content.Audio.get_data (source#get_mutable_field field) in
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
       Stereotool.process
         ~samplerate:(Lazy.force Frame.audio_rate)
         handler b 0 source#audio_position;

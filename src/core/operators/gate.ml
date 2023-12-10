@@ -49,7 +49,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
 
     method private generate_frame =
       let buf =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let position = self#audio_position in
       let chans = self#audio_channels in

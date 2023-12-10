@@ -50,7 +50,7 @@ class still_frame ~name (source : source) =
         | Some f ->
             let v =
               Content.Video.get_data
-                (source#get_mutable_field Frame.Fields.video)
+                (source#get_mutable_content Frame.Fields.video)
             in
             let i = Video.Canvas.get v 0 in
             let i =

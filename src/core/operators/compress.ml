@@ -68,7 +68,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
     method private generate_frame =
       let pos = source#audio_position in
       let partial = source#is_partial in
-      let buf = Content.Audio.get_data (source#get_mutable_field field) in
+      let buf = Content.Audio.get_data (source#get_mutable_content field) in
       let chans = self#audio_channels in
       let samplerate = float (Lazy.force Frame.audio_rate) in
       let threshold = threshold () in

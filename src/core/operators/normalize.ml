@@ -70,7 +70,7 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let rmst = rmst () in
       let kup = kup () in

@@ -130,7 +130,7 @@ class fir (source : source) freq beta numcoeffs =
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let shift a =
         for i = 0 to Array.length a - 2 do

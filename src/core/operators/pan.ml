@@ -34,7 +34,7 @@ class pan ~field (source : source) phi phi_0 =
     method self_sync = source#self_sync
 
     method private generate_frame =
-      let buffer = Content.Audio.get_data (source#get_mutable_field field) in
+      let buffer = Content.Audio.get_data (source#get_mutable_content field) in
       (* Degrees to radians + half field. *)
       let phi_0 = phi_0 () *. Float.pi /. 360. in
       (* Map -1 / 1 to radians. *)

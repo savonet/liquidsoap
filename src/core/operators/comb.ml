@@ -44,7 +44,7 @@ class comb ~field (source : source) delay feedback =
     val mutable past_pos = 0
 
     method private generate_frame =
-      let b = Content.Audio.get_data (source#get_mutable_field field) in
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
       let position = source#audio_position in
       let feedback = feedback () in
       for i = 0 to position - 1 do

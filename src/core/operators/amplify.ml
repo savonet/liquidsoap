@@ -43,7 +43,7 @@ class amplify ~field (source : source) override_field coeff =
       else content
 
     method private generate_frame =
-      let c = source#get_mutable_field field in
+      let c = source#get_mutable_content field in
       let track_mark = source#track_mark in
       let c, end_c =
         match track_mark with

@@ -45,7 +45,7 @@ class synth (synth : Synth.synth) (source : source) chan volume =
       else (
         let evs = midi.(chan) in
         let b =
-          Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+          Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
         in
         let len = source#audio_position in
         synth#play evs 0 b 0 len;

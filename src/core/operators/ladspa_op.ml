@@ -113,7 +113,7 @@ class ladspa_mono (source : source) plugin descr input output params =
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let len = source#audio_position in
       let inst = Option.get inst in
@@ -143,7 +143,7 @@ class ladspa (source : source) plugin descr inputs outputs params =
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let len = source#audio_position in
       let ba = Audio.to_ba b 0 len in

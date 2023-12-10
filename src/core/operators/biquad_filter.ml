@@ -130,7 +130,7 @@ class biquad (source : source) filter_type freq q gain =
       self#init
 
     method private generate_frame =
-      let data = source#get_mutable_field Frame.Fields.audio in
+      let data = source#get_mutable_content Frame.Fields.audio in
       let buf = Content.Audio.get_data data in
       let position = source#audio_position in
       self#init;

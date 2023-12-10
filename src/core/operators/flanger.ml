@@ -47,7 +47,7 @@ class flanger (source : source) delay freq feedback phase =
     method private generate_frame =
       let feedback = feedback () in
       let b =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let position = source#audio_position in
       let d_omega = 2. *. pi *. freq () /. float (Frame.audio_of_seconds 1.) in

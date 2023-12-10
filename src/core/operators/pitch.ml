@@ -86,7 +86,7 @@ class pitch every length freq_min freq_max (source : source) =
 
     method private generate_frame =
       let buf =
-        Content.Audio.get_data (source#get_mutable_field Frame.Fields.audio)
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let ring = self#ring in
       let databuf = self#databuf in
