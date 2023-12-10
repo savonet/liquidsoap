@@ -562,9 +562,9 @@ module ActiveTerm = Weak.Make (struct
 end)
 
 let active_terms = ActiveTerm.create 1024
-let unit_t = Type.make (Type.Tuple [])
-let trim_term term = term.t <- unit_t
-let trim_runtime_types () = ActiveTerm.iter trim_term active_terms
+
+let trim_runtime_types () =
+  ActiveTerm.iter (fun term -> term.t <- Type.deep_demeth term.t) active_terms
 
 (** Create a new value. *)
 let make ?pos ?t ?methods e =
