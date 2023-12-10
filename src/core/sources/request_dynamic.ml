@@ -162,7 +162,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           let buf =
             Frame.append buf (self#generate_from_current_request (size - pos))
           in
-          if remaining = 0 then (
+          if Frame.is_partial buf then (
             self#end_request;
             let buf = Frame.add_track_mark buf (Frame.position buf) in
             if self#fetch_request then fill buf else buf)
