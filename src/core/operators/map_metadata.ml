@@ -45,21 +45,7 @@ class map_metadata source rewrite_f insert_missing update strip =
       let m = if not update then Frame.Metadata.empty else m in
       List.fold_left replace_val m (Lang.to_list m')
 
-    val mutable in_track = false
-
-    method private generate_frame =
-      let buf = source#get_frame in
-      let buf =
-        if insert_missing && not in_track then (
-          in_track <- true;
-          match Frame.get_metadata buf 0 with
-            | None ->
-                self#log#important "Inserting missing metadata.";
-                Frame.add_metadata buf 0 Frame.Metadata.empty
-            | Some _ -> buf)
-        else buf
-      in
-      if Frame.is_partial buf then in_track <- false;
+    method private process buf =
       List.fold_left
         (fun buf (t, m) ->
           let m = self#rewrite m in
@@ -67,6 +53,20 @@ class map_metadata source rewrite_f insert_missing update strip =
           else Frame.add_metadata buf t m)
         buf
         (Frame.get_all_metadata buf)
+
+    method private generate_frame =
+      match self#split_frame source#get_frame with
+        | frame, None -> self#process frame
+        | frame, Some new_track ->
+            let frame = self#process frame in
+            let new_track = self#process new_track in
+            Frame.append frame
+              (match (insert_missing, Frame.get_metadata new_track 0) with
+                | false, _ -> new_track
+                | true, None ->
+                    self#log#important "Inserting missing metadata.";
+                    Frame.add_metadata new_track 0 Frame.Metadata.empty
+                | true, Some _ -> new_track)
   end
 
 let register =

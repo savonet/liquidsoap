@@ -221,7 +221,6 @@ class virtual source :
        method position : int
        method audio_position : int
        method video_position : int
-       method is_partial : bool
        method has_track_mark : bool
        method track_mark : int option
        method metadata : (int * Frame.Metadata.t) list

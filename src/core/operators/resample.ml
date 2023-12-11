@@ -79,7 +79,9 @@ class resample ~field ~ratio source =
         (fun (pos, m) ->
           Generator.add_metadata ~pos:(convert pos) self#buffer m)
         (Frame.get_all_metadata frame);
-      if Frame.is_partial frame then Generator.add_track_mark self#buffer
+      List.iter
+        (fun pos -> Generator.add_track_mark ~pos:(convert pos) self#buffer)
+        (Frame.track_marks frame)
 
     method private generate_frame =
       consumer#set_output_enabled true;

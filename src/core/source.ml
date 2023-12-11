@@ -606,7 +606,6 @@ class virtual operator ?pos ?(name = "src") sources =
               Some (Frame.chunk ~start:p ~stop:(Frame.position frame) frame) )
         | [] -> (frame, None)
 
-    method is_partial = Frame.is_partial self#get_frame
     method has_track_mark = Frame.has_track_marks self#get_frame
 
     method track_mark =

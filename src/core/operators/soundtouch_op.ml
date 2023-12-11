@@ -65,12 +65,14 @@ class soundtouch source_val rate tempo pitch =
         ignore (Soundtouch.get_samples_ni st buf 0 available);
         Generator.put self#buffer Frame.Fields.audio
           (Content.Audio.lift_data buf));
-      if AFrame.is_partial databuf then Generator.add_track_mark self#buffer;
-
-      (* It's almost impossible to know where to add metadata,
-       * b/c of tempo so we add then right here. *)
+      let gen_pos = Generator.length self#buffer in
       List.iter
-        (fun (_, m) -> Generator.add_metadata self#buffer m)
+        (fun pos -> Generator.add_track_mark ~pos:(pos + gen_pos) self#buffer)
+        (Frame.track_marks databuf);
+
+      List.iter
+        (fun (pos, m) ->
+          Generator.add_metadata ~pos:(pos + gen_pos) self#buffer m)
         (AFrame.get_all_metadata databuf)
 
     method private generate_frame =
