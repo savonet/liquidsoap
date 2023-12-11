@@ -66,7 +66,7 @@ let chunk ~start ~stop frame =
 
 let slice frame len =
   Fields.map
-    (fun c -> if Content.length c < len then c else Content.sub c 0 len)
+    (fun c -> if Content.length c <= len then c else Content.sub c 0 len)
     frame
 
 let append f f' =

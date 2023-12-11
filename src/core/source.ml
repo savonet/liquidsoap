@@ -815,8 +815,10 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
         let pos = Frame.position buf in
         let size = Lazy.force Frame.size in
         if size <= pos then (
-          cache <- Some (Frame.chunk ~start:size ~stop:pos buf);
-          Frame.slice buf size)
+          cache <-
+            (if pos = size then None
+             else Some (Frame.chunk ~start:size ~stop:pos buf));
+          if pos = size then buf else Frame.slice buf size)
         else (
           let buf = fst (self#split_frame buf) in
           match self#get_slice ~reselect () with
