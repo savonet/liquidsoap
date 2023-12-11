@@ -65,7 +65,8 @@ class map_metadata source rewrite_f insert_missing update strip =
                 | false, _ -> new_track
                 | true, None ->
                     self#log#important "Inserting missing metadata.";
-                    Frame.add_metadata new_track 0 Frame.Metadata.empty
+                    Frame.add_metadata new_track 0
+                      (self#rewrite Frame.Metadata.empty)
                 | true, Some _ -> new_track)
   end
 

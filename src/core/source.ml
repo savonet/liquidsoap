@@ -780,6 +780,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual split_frame : Frame.t -> Frame.t * Frame.t option
     val mutable cache = None
     val mutable last_position = Hashtbl.create 10
+    val mutable last_source = None
     initializer self#on_after_output (fun () -> Hashtbl.clear last_position)
 
     method private can_generate_frame =
@@ -807,7 +808,14 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                 | _ -> Frame.position data
             in
             Hashtbl.replace last_position source stop;
-            if start = stop then None else Some (Frame.chunk ~start ~stop data)
+            if start = stop then None
+            else (
+              let chunk = Frame.chunk ~start ~stop data in
+              match last_source with
+                | Some s when s == source -> Some chunk
+                | _ ->
+                    last_source <- Some source;
+                    Some (Frame.add_track_mark chunk 0))
         | _ -> None
 
     method private generate_frame =
@@ -827,7 +835,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                 let buf =
                   if merge () then
                     Frame.drop_track_marks (Frame.append buf new_track)
-                  else Frame.append buf (Frame.add_track_mark new_track 0)
+                  else Frame.append buf new_track
                 in
                 pull ~reselect:true buf)
       in
