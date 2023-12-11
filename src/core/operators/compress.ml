@@ -65,11 +65,10 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       gain <- 0.;
       ms <- 0.
 
-    method private generate_frame =
-      let pos = source#audio_position in
-      let partial = source#is_partial in
-      let buf = Content.Audio.get_data (source#get_mutable_content field) in
-      let chans = self#audio_channels in
+    method private compress frame =
+      let pos = AFrame.position frame in
+      let buf = Content.Audio.get_data (Frame.get frame field) in
+      let chans = Array.length buf in
       let samplerate = float (Lazy.force Frame.audio_rate) in
       let threshold = threshold () in
       let knee = knee () in
@@ -161,8 +160,15 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
           buf.(c).(i) <- buf.(c).(i) *. (1. -. wet +. (wet *. gain))
         done
       done;
-      if partial && track_sensitive then self#reset;
-      source#set_data field Content.Audio.lift_data buf
+      Frame.set_data frame field Content.Audio.lift_data buf
+
+    method private generate_frame =
+      match self#split_frame (source#get_mutable_frame field) with
+        | frame, None -> self#compress frame
+        | frame, Some new_track ->
+            let frame = self#compress frame in
+            if track_sensitive then self#reset;
+            Frame.append frame (self#compress new_track)
   end
 
 let audio_compress =
