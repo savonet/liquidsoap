@@ -40,20 +40,11 @@ class blank duration =
     method abort_track = remaining <- 0
 
     method generate_frame =
-      let length =
-        match remaining with
-          | -1 -> Lazy.force Frame.size
-          | _ ->
-              let l = min (Lazy.force Frame.size) remaining in
-              remaining <- remaining - l;
-              l
-      in
-
-      if length = 0 then self#empty_frame
-      else (
-        let frame = Frame.create ~length self#content_type in
-        let audio_len = Frame.audio_of_main length in
-        let video_len = Frame.video_of_main length in
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let audio_len = Frame.audio_of_main length in
+      let video_len = Frame.video_of_main length in
+      let frame =
         Frame.Fields.map
           (fun c ->
             match c with
@@ -78,7 +69,13 @@ class blank duration =
                 ->
                   c
               | _ -> failwith "Invalid content type!")
-          frame)
+          frame
+      in
+      if remaining < length then (
+        let frame = Frame.add_track_mark frame remaining in
+        remaining <- length - remaining;
+        frame)
+      else frame
   end
 
 let blank =

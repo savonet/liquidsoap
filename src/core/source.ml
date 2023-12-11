@@ -814,23 +814,20 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       let rec pull ~reselect buf =
         let pos = Frame.position buf in
         let size = Lazy.force Frame.size in
-        if size < pos then (
+        if size <= pos then (
           cache <- Some (Frame.chunk ~start:size ~stop:pos buf);
           Frame.slice buf size)
         else (
-          match self#split_frame buf with
-            | frame, None -> frame
-            | frame, Some _ -> (
-                match self#get_slice ~reselect () with
-                  | None -> frame
-                  | Some new_track ->
-                      let buf =
-                        if merge () then
-                          Frame.drop_track_marks (Frame.append frame new_track)
-                        else
-                          Frame.append frame (Frame.add_track_mark new_track 0)
-                      in
-                      pull ~reselect:true buf))
+          let buf = fst (self#split_frame buf) in
+          match self#get_slice ~reselect () with
+            | None -> buf
+            | Some new_track ->
+                let buf =
+                  if merge () then
+                    Frame.drop_track_marks (Frame.append buf new_track)
+                  else Frame.append buf (Frame.add_track_mark new_track 0)
+                in
+                pull ~reselect:true buf)
       in
       let buf = Option.value ~default:self#empty_frame cache in
       cache <- None;
