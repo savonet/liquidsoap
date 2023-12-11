@@ -777,6 +777,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual get_source : reselect:bool -> unit -> source option
     method virtual empty_frame : Frame.t
     method virtual on_after_output : (unit -> unit) -> unit
+    method virtual split_frame : Frame.t -> Frame.t * Frame.t option
     val mutable cache = None
     val mutable last_position = Hashtbl.create 10
     initializer self#on_after_output (fun () -> Hashtbl.clear last_position)
@@ -806,38 +807,30 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                 | _ -> Frame.position data
             in
             Hashtbl.replace last_position source stop;
-            Some (Frame.chunk ~start ~stop data)
+            if start = stop then None else Some (Frame.chunk ~start ~stop data)
         | _ -> None
 
     method private generate_frame =
       let rec pull ~reselect buf =
         let pos = Frame.position buf in
         let size = Lazy.force Frame.size in
-        let buf =
-          if size < pos then (
-            cache <- Some (Frame.chunk ~start:size ~stop:pos buf);
-            Frame.slice buf size)
-          else buf
-        in
-        if Frame.is_partial buf then (
-          match self#get_slice ~reselect () with
-            | None -> buf
-            | Some data ->
-                let buf_pos = Frame.position buf in
-                let data_pos = Frame.position data in
-                let data =
-                  match
-                    (buf_pos + data_pos < Lazy.force Frame.size, merge ())
-                  with
-                    | true, false -> Frame.add_track_mark data data_pos
-                    | _, true ->
-                        Frame.set data Frame.Fields.track_marks
-                          (Content.make ~length:data_pos
-                             Content_timed.Track_marks.format)
-                    | _ -> data
-                in
-                pull ~reselect:true (Frame.append buf data))
-        else buf
+        if size < pos then (
+          cache <- Some (Frame.chunk ~start:size ~stop:pos buf);
+          Frame.slice buf size)
+        else (
+          match self#split_frame buf with
+            | frame, None -> frame
+            | frame, Some _ -> (
+                match self#get_slice ~reselect () with
+                  | None -> frame
+                  | Some new_track ->
+                      let buf =
+                        if merge () then
+                          Frame.drop_track_marks (Frame.append frame new_track)
+                        else
+                          Frame.append frame (Frame.add_track_mark new_track 0)
+                      in
+                      pull ~reselect:true buf))
       in
       let buf = Option.value ~default:self#empty_frame cache in
       cache <- None;

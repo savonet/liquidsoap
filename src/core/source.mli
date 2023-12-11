@@ -296,6 +296,7 @@ class virtual generate_from_multiple_sources :
        method virtual empty_frame : Frame.t
        method virtual on_after_output : (unit -> unit) -> unit
        method private can_generate_frame : bool
+       method virtual split_frame : Frame.t -> Frame.t * Frame.t option
        method private generate_frame : Frame.t
      end
 
