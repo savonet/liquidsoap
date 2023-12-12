@@ -1,4 +1,5 @@
 log.level.set(4)
+
 keys = "1234567890*#ABCD"
 detected = ref("")
 
@@ -23,4 +24,7 @@ s = audio.decode.pcm_s16(s)
 
 # s = add([s, amplify(0.5, noise())]) # Removed to make the test deterministic
 s = dtmf.detect(debug=false, s, f)
+
+clock.assign_new(sync="none", [s])
+
 output.dummy(fallible=true, s)

@@ -20,4 +20,7 @@ s = amplify(0.5, dtmf(duration=1., keys))
 
 # s = add([s, amplify(0.5, noise())]) # Removed to make the test deterministic
 s = dtmf.detect(debug=false, s, f)
+
+clock.assign_new(sync="none", [s])
+
 output.dummy(fallible=true, s)

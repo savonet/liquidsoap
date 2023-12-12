@@ -71,11 +71,15 @@ class blank duration =
               | _ -> failwith "Invalid content type!")
           frame
       in
-      if remaining < length then (
-        let frame = Frame.add_track_mark frame remaining in
-        remaining <- length - remaining;
-        frame)
-      else frame
+      match remaining with
+        | -1 -> frame
+        | r ->
+            if r < length then (
+              remaining <- length - r;
+              Frame.add_track_mark frame r)
+            else (
+              remaining <- r - length;
+              frame)
   end
 
 let blank =
