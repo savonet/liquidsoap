@@ -78,7 +78,10 @@ let _ =
       let metas =
         let ret = Hashtbl.create 0 in
         Frame.Metadata.iter
-          (fun x y -> Hashtbl.add ret x (Charset.convert ?target:out_enc y))
+          (fun x y ->
+            Hashtbl.add ret x
+              (Charset.convert ?target:out_enc
+                 (Frame.Metadata.string_of_value y)))
           metas;
         ret
       in

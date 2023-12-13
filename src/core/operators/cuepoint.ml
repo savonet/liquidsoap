@@ -64,9 +64,13 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
             let get key =
               try
                 let content = Frame.Metadata.find key table in
-                try Some (Frame.main_of_seconds (float_of_string content))
+                try
+                  Some
+                    (Frame.main_of_seconds
+                       (Frame.Metadata.float_of_value content))
                 with _ ->
-                  self#log#severe "Ill-formed metadata %s=%S!" key content;
+                  self#log#severe "Ill-formed metadata %s=%S!" key
+                    (Frame.Metadata.string_of_value content);
                   None
               with Not_found -> None
             in

@@ -493,7 +493,9 @@ class output p =
         let m = Frame.Metadata.Export.to_metadata m in
         Frame.Metadata.iter
           (fun lbl v ->
-            if List.mem lbl icy_metadata then Hashtbl.replace icy_meta lbl (f v))
+            if List.mem lbl icy_metadata then
+              Hashtbl.replace icy_meta lbl
+                (f (Frame.Metadata.string_of_value v)))
           m;
         if not (Hashtbl.mem icy_meta "song") then (
           match icy_song (Lang.metadata m) with

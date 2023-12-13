@@ -38,8 +38,8 @@ class map_metadata source rewrite_f insert_missing update strip =
       let replace_val m v =
         let x, y = Lang.to_product v in
         let x = Lang.to_string x and y = Lang.to_string y in
-        if not strip then Frame.Metadata.add x y m
-        else if y <> "" then Frame.Metadata.add x y m
+        if not strip then Frame.Metadata.add x (`String y) m
+        else if y <> "" then Frame.Metadata.add x (`String y) m
         else Frame.Metadata.remove x m
       in
       let m = if not update then Frame.Metadata.empty else m in

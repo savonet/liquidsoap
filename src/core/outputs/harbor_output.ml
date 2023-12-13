@@ -198,8 +198,12 @@ let add_meta c data =
         ( Frame.Metadata.find_opt "artist" meta,
           Frame.Metadata.find_opt "title" meta )
       with
-        | Some a, Some t -> Some (Printf.sprintf "%s - %s" a t)
-        | Some s, None | None, Some s -> Some s
+        | Some a, Some t ->
+            Some
+              (Printf.sprintf "%s - %s"
+                 (Frame.Metadata.string_of_value a)
+                 (Frame.Metadata.string_of_value t))
+        | Some s, None | None, Some s -> Some (Frame.Metadata.string_of_value s)
         | None, None -> None
     in
     let meta =
@@ -325,7 +329,8 @@ class output p =
     in
     let f = Charset.convert ~target:out_enc in
     Frame.Metadata.fold
-      (fun a b m -> Frame.Metadata.add a (f b) m)
+      (fun a b m ->
+        Frame.Metadata.add a (`String (f (Frame.Metadata.string_of_value b))) m)
       Frame.Metadata.empty m
   in
   let timeout = Lang.to_float (List.assoc "timeout" p) in
@@ -537,7 +542,7 @@ class output p =
              self#log#info "Client %s connected" ip;
              Tutils.mutexify clients_m (fun () -> Queue.push client clients) ();
              on_connect ~protocol ~uri
-               ~headers:(Frame.Metadata.from_list headers)
+               ~headers:(Frame.Metadata.from_string_list headers)
                ip))
 
     method send b =

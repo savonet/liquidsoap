@@ -149,7 +149,7 @@ let () =
 
 let log = Log.make ["metadata"; "flac"]
 
-let get_tags ~metadata:_ file =
+let get_tags file =
   if
     not
       (Decoder.test_file ~log ~mimes:mime_types#get
@@ -162,6 +162,9 @@ let get_tags ~metadata:_ file =
       let write _ = () in
       let h = Flac.Decoder.File.create_from_fd write fd in
       match h.Flac.Decoder.File.comments with Some (_, m) -> m | None -> [])
+
+let get_tags ~metadata:_ file =
+  List.map (fun (k, v) -> (k, `String v)) (get_tags file)
 
 let () = Plug.register Request.mresolvers "flac" ~doc:"" get_tags
 

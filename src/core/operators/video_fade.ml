@@ -54,8 +54,11 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
                   | None -> duration
                   | Some m -> (
                       match Frame.Metadata.find_opt meta m with
-                        | Some d -> (
-                            try float_of_string d with _ -> duration)
+                        | Some (`Float f) -> f
+                        | Some v -> (
+                            try
+                              float_of_string (Frame.Metadata.string_of_value v)
+                            with _ -> duration)
                         | None -> duration)
               in
               let length = Frame.video_of_seconds duration in
@@ -112,8 +115,11 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
                   | Some m -> (
                       match Frame.Metadata.find_opt meta m with
                         | None -> duration
-                        | Some d -> (
-                            try float_of_string d with _ -> duration))
+                        | Some (`Float f) -> f
+                        | Some v -> (
+                            try
+                              float_of_string (Frame.Metadata.string_of_value v)
+                            with _ -> duration))
               in
               let l = Frame.video_of_seconds duration in
               let f = fader l in

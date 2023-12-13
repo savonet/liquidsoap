@@ -243,7 +243,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         let { get_metadata } = self#get_connected_container in
         let meta = get_metadata () in
         if meta <> [] then (
-          Generator.add_metadata self#buffer (Frame.Metadata.from_list meta);
+          Generator.add_metadata self#buffer
+            (Frame.Metadata.from_string_list meta);
           if new_track_on_metadata then Generator.add_track_mark self#buffer);
         Generator.fill self#buffer frame;
         let stop = Frame.position frame in
@@ -548,8 +549,8 @@ let register_input is_http =
            match Lang.to_option (List.assoc "metadata_filter" p) with
              | Some fn ->
                  fun m ->
-                   Lang.to_metadata_list
-                     (Lang.apply fn [("", Lang.metadata_list m)])
+                   Lang.to_metadata_string_list
+                     (Lang.apply fn [("", Lang.metadata_string_list m)])
              | None ->
                  List.filter (fun (k, _) ->
                      not (Pcre.pmatch ~pat:"^id3v2_priv" k))
@@ -570,8 +571,8 @@ let register_input is_http =
                  m))
          in
          let metadata_filter m =
-           let m = metadata_filter (Frame.Metadata.to_list m) in
-           Frame.Metadata.from_list m
+           let m = metadata_filter (Frame.Metadata.to_string_list m) in
+           Frame.Metadata.from_string_list m
          in
          let new_track_on_metadata =
            Lang.to_bool (List.assoc "new_track_on_metadata" p)

@@ -143,11 +143,17 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
                         if
                           Frame.is_partial memo
                           || List.length (Frame.breaks memo) > 1
-                        then (track_mark_metadata, "1") :: metadata
+                        then (track_mark_metadata, `String "1") :: metadata
                         else metadata
                       in
-                      if metadata <> [] then
-                        Avutil.Frame.set_metadata frame metadata);
+                      if metadata <> [] then (
+                        let metadata =
+                          List.map
+                            (fun (k, v) ->
+                              (k, Frame.Metadata.string_of_value v))
+                            metadata
+                        in
+                        Avutil.Frame.set_metadata frame metadata));
                     input (`Frame frame))
                   frames)
         frames
@@ -199,7 +205,8 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
             let m =
               List.filter (fun (k, _) -> k <> track_mark_metadata) metadata
             in
-            Generator.add_metadata self#buffer (Frame.Metadata.from_list m);
+            Generator.add_metadata self#buffer
+              (Frame.Metadata.from_string_list m);
             if List.mem_assoc track_mark_metadata metadata then
               Generator.add_track_mark self#buffer));
         match

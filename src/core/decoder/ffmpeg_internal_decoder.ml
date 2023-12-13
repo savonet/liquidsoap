@@ -118,7 +118,7 @@ let mk_audio_decoder ~channels ~stream ~field ~pcm_kind codec =
         let metadata = Avutil.Frame.metadata frame in
         if metadata <> [] then
           Generator.add_metadata buffer.Decoder.generator
-            (Frame.Metadata.from_list metadata)
+            (Frame.Metadata.from_string_list metadata)
 
 let mk_video_decoder ~width ~height ~stream ~field codec =
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
@@ -166,7 +166,7 @@ let mk_video_decoder ~width ~height ~stream ~field codec =
     let metadata = Avutil.Frame.metadata frame in
     if metadata <> [] then
       Generator.add_metadata buffer.Decoder.generator
-        (Frame.Metadata.from_list metadata)
+        (Frame.Metadata.from_string_list metadata)
   in
   let converter =
     Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base

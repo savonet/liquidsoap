@@ -51,7 +51,9 @@ let _ =
         let ret = Lang.to_list ret in
         let ret = List.map Lang.to_product ret in
         let ret =
-          List.map (fun (x, y) -> (Lang.to_string x, Lang.to_string y)) ret
+          List.map
+            (fun (x, y) -> (Lang.to_string x, `String (Lang.to_string y)))
+            ret
         in
         ret
       in
@@ -77,7 +79,7 @@ let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
       Lang.list
         (List.map
            (fun (metadata, uri) ->
-             Lang.product (Lang.metadata_list metadata) (Lang.string uri))
+             Lang.product (Lang.metadata_string_list metadata) (Lang.string uri))
            entries))
 
 let _ =
@@ -120,7 +122,7 @@ let _ =
         List.map
           (fun el ->
             let m, s = Lang.to_product el in
-            (Lang.to_metadata_list m, Lang.to_string s))
+            (Lang.to_metadata_string_list m, Lang.to_string s))
           ret
       in
       Plug.register Playlist_parser.parsers format ~doc:""

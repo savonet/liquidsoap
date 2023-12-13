@@ -120,7 +120,7 @@ let create_decoder ?(merge_tracks = false) source input =
       if source = `Stream || (merge_tracks && not !first_meta) then (
         let _, (v, m) = f decoder t in
         let metas =
-          Frame.Metadata.from_list
+          Frame.Metadata.from_string_list
             (("vendor", v)
             :: List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m)
         in
@@ -299,7 +299,7 @@ let () =
 
 (** Metadata *)
 
-let get_tags ~metadata:_ file =
+let get_tags file =
   if
     not
       (Decoder.test_file ~log ~mimes:mime_types#get
@@ -319,5 +319,8 @@ let get_tags ~metadata:_ file =
       in
       get Ogg_decoder.audio_info tracks.Ogg_decoder.audio_track
       @ get Ogg_decoder.video_info tracks.Ogg_decoder.video_track)
+
+let get_tags ~metadata:_ file =
+  List.map (fun (k, v) -> (k, `String v)) (get_tags file)
 
 let () = Plug.register Request.mresolvers "ogg" ~doc:"" get_tags

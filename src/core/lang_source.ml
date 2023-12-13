@@ -27,15 +27,32 @@ let metadata_t = list_t (product_t string_t string_t)
 
 let to_metadata_list t =
   let pop v =
-    let f (a, b) = (to_string a, to_string b) in
+    let f (a, b) = (to_string a, `String (to_string b)) in
     f (to_product v)
   in
   List.map pop (to_list t)
 
+let to_metadata_string_list t =
+  List.map
+    (fun (k, v) -> (k, Frame.Metadata.string_of_value v))
+    (to_metadata_list t)
+
 let to_metadata t = Frame.Metadata.from_list (to_metadata_list t)
 
 let metadata_list m =
-  list (List.map (fun (k, v) -> product (string k) (string v)) m)
+  list
+    (List.map
+       (fun (k, v) ->
+         let v =
+           match v with
+             | `Bigarray ba -> string_ba ba
+             | v -> string (Frame.Metadata.string_of_value v)
+         in
+         product (string k) v)
+       m)
+
+let metadata_string_list m =
+  metadata_list (List.map (fun (k, v) -> (k, `String v)) m)
 
 let metadata m = metadata_list (Frame.Metadata.to_list m)
 let metadata_track_t = Format_type.metadata

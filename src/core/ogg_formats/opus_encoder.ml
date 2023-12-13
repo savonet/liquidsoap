@@ -128,7 +128,7 @@ let create_opus = function
   | Ogg_format.Opus opus ->
       let reset ogg_enc m =
         let comments =
-          Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
+          Frame.Metadata.to_string_list (Frame.Metadata.Export.to_metadata m)
         in
         let enc = create_encoder ~opus ~comments () in
         Ogg_muxer.register_track ?fill:opus.Opus_format.fill ogg_enc enc

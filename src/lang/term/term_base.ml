@@ -70,6 +70,13 @@ let ref_t ?pos t =
 
 (** {2 Terms} *)
 
+type bigarray =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+let string_of_bigarray ba =
+  String.init (Bigarray.Array1.dim ba) (fun i ->
+      Bigarray.Array1.unsafe_get ba i)
+
 module Ground = struct
   type t = ground = ..
 
@@ -84,7 +91,7 @@ module Ground = struct
 
   let register matcher c =
     let module C = (val c.typ : Type.Ground.Custom) in
-    Hashtbl.replace handlers C.Type (c, matcher)
+    Hashtbl.add handlers C.Type (c, matcher)
 
   exception Found of content
 
@@ -109,10 +116,16 @@ module Ground = struct
 
   let compare (v : t) = (find v).compare v
 
-  type t += Bool of bool | Int of int | String of string | Float of float
+  type t +=
+    | Bool of bool
+    | Int of int
+    | String of string
+    | Bigarray of bigarray
+    | Float of float
 
   let () =
     let compare conv v v' = Stdlib.compare (conv v) (conv v') in
+
     let to_bool = function Bool b -> b | _ -> assert false in
     let to_string b = string_of_bool (to_bool b) in
     let to_json ~pos:_ b = `Bool (to_bool b) in
@@ -124,6 +137,7 @@ module Ground = struct
         compare = compare to_bool;
         typ = (module Type.Ground.Bool : Type.Ground.Custom);
       };
+
     let to_int = function Int i -> i | _ -> assert false in
     let to_string i = string_of_int (to_int i) in
     let to_json ~pos:_ i = `Int (to_int i) in
@@ -135,6 +149,7 @@ module Ground = struct
         compare = compare to_int;
         typ = (module Type.Ground.Int : Type.Ground.Custom);
       };
+
     let to_string = function
       | String s -> Lang_string.quote_string s
       | _ -> assert false
@@ -148,6 +163,27 @@ module Ground = struct
         compare = compare (function String s -> s | _ -> assert false);
         typ = (module Type.Ground.String : Type.Ground.Custom);
       };
+
+    let to_string = function
+      | Bigarray ba ->
+          Lang_string.quote_string
+            (String.init (Bigarray.Array1.dim ba) (fun i ->
+                 Bigarray.Array1.unsafe_get ba i))
+      | _ -> assert false
+    in
+    let to_json ~pos:_ = function
+      | Bigarray _ as ba -> `String (to_string ba)
+      | _ -> assert false
+    in
+    register
+      (function Bigarray _ -> true | _ -> false)
+      {
+        descr = to_string;
+        to_json;
+        compare = compare (function Bigarray s -> s | _ -> assert false);
+        typ = (module Type.Ground.String : Type.Ground.Custom);
+      };
+
     let to_float = function Float f -> f | _ -> assert false in
     let to_json ~pos:_ f = `Float (to_float f) in
     register

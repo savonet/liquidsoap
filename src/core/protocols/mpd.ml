@@ -113,7 +113,7 @@ let search read write field v =
         let field = String.lowercase_ascii field in
         let value = Str.matched_group 2 s in
         if List.mem field valid_metadata then
-          metadata := (field, value) :: !metadata))
+          metadata := (field, `String value) :: !metadata))
     l;
   add ();
   if conf_randomize#get then Extralib.List.shuffle !ans else List.rev !ans

@@ -59,6 +59,7 @@ let string_of_metadata metadata =
   let first = ref true in
   Frame.Metadata.iter
     (fun k v ->
+      let v = Frame.Metadata.string_of_value v in
       if !first then (
         first := false;
         try Format.fprintf f "%s=%s" k (Lang_string.quote_utf8_string v)
@@ -74,7 +75,7 @@ let short_string_of_metadata m =
   "Title: "
   ^
   try
-    let t = Frame.Metadata.find "title" m in
+    let t = Frame.Metadata.(string_of_value (find "title" m)) in
     if String.length t < 12 then t else String.sub t 0 9 ^ "..."
   with Not_found -> "(undef)"
 
@@ -197,7 +198,7 @@ let set_metadata t k v =
 let set_root_metadata t k v =
   t.root_metadata <- Frame.Metadata.add k v t.root_metadata
 
-exception Found of string
+exception Found of Frame.Metadata.value
 
 let get_metadata t k =
   try
@@ -346,10 +347,14 @@ let read_metadata t =
       log#important "Read permission denied for %s!"
         (Lang_string.quote_string name)
     else (
-      let convert =
+      let convert : string -> Frame.Metadata.value -> Frame.Metadata.value =
         if conf_recode#get then (
           let excluded = conf_recode_excluded#get in
-          fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
+          fun k -> function
+            | `String v ->
+                if not (List.mem k excluded) then `String (Charset.convert v)
+                else `String v
+            | v -> v)
         else fun _ x -> x
       in
       List.iter
@@ -358,7 +363,7 @@ let read_metadata t =
             let ans = resolver ~metadata:indicator.metadata name in
             List.iter
               (fun (k, v) ->
-                let k = String.lowercase_ascii (convert k k) in
+                let k = String.lowercase_ascii k in
                 let v = convert k v in
                 if conf_override_metadata#get || get_metadata t k = None then
                   indicator.metadata <-
@@ -368,8 +373,7 @@ let read_metadata t =
               try
                 indicator.metadata <-
                   Frame.Metadata.add "duration"
-                    (string_of_float
-                       (duration ~metadata:indicator.metadata name))
+                    (`Float (duration ~metadata:indicator.metadata name))
                     indicator.metadata
               with Not_found -> ())
           with _ -> ())
@@ -394,7 +398,7 @@ let local_check t =
           match Decoder.get_file_decoder ~metadata ~ctype name with
             | Some (decoder_name, f) ->
                 t.decoder <- Some f;
-                set_root_metadata t "decoder" decoder_name;
+                set_root_metadata t "decoder" (`String decoder_name);
                 read_metadata t;
                 t.status <- Ready
             | None -> pop_indicator t)
@@ -431,43 +435,46 @@ let get_filename t =
 
 let update_metadata t =
   let replace k v = t.root_metadata <- Frame.Metadata.add k v t.root_metadata in
-  replace "rid" (string_of_int t.id);
-  replace "initial_uri" t.initial_uri;
+  replace "rid" (`String (string_of_int t.id));
+  replace "initial_uri" (`String t.initial_uri);
 
   (* TOP INDICATOR *)
   replace "temporary"
     (match t.indicators with
-      | (h :: _) :: _ -> if h.temporary then "true" else "false"
-      | _ -> "false");
+      | (h :: _) :: _ -> if h.temporary then `String "true" else `String "false"
+      | _ -> `String "false");
   begin
-    match get_filename t with Some f -> replace "filename" f | None -> ()
+    match get_filename t with
+      | Some f -> replace "filename" (`String f)
+      | None -> ()
   end;
 
   (* STATUS *)
   begin
     match t.resolving with
-      | Some d -> replace "resolving" (pretty_date (Unix.localtime d))
+      | Some d -> replace "resolving" (`String (pretty_date (Unix.localtime d)))
       | None -> ()
   end;
   begin
     match t.on_air with
       | Some d ->
-          replace "on_air" (pretty_date (Unix.localtime d));
-          replace "on_air_timestamp" (Printf.sprintf "%.02f" d)
+          replace "on_air" (`String (pretty_date (Unix.localtime d)));
+          replace "on_air_timestamp" (`String (Printf.sprintf "%.02f" d))
       | None -> ()
   end;
   begin
     match t.ctype with
       | None -> ()
-      | Some ct -> replace "kind" (Frame.string_of_content_type ct)
+      | Some ct -> replace "kind" (`String (Frame.string_of_content_type ct))
   end;
   replace "status"
-    (match t.status with
-      | Idle -> "idle"
-      | Resolving -> "resolving"
-      | Ready -> "ready"
-      | Playing -> "playing"
-      | Destroyed -> "destroyed")
+    (`String
+      (match t.status with
+        | Idle -> "idle"
+        | Resolving -> "resolving"
+        | Ready -> "ready"
+        | Playing -> "playing"
+        | Destroyed -> "destroyed"))
 
 let get_metadata t k =
   update_metadata t;

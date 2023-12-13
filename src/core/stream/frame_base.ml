@@ -90,39 +90,7 @@ type field = Fields.field
 (** Precise description of the channel types for the current track. *)
 type content_type = Content_base.format Fields.t
 
-module Metadata = struct
-  include Liquidsoap_lang.Methods
-
-  type t = (string, string) Liquidsoap_lang.Methods.t
-
-  let to_list m =
-    List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (bindings m)
-
-  module Export = struct
-    type metadata = t
-    type t = metadata
-
-    let metadata m =
-      let l = Encoder_formats.conf_export_metadata#get in
-      fold
-        (fun x y m ->
-          if List.mem (String.lowercase_ascii x) l then (x, y) :: m else m)
-        m []
-
-    let from_metadata m = m
-    let to_metadata m = m
-    let to_list m = bindings m
-
-    let equal m m' =
-      let normalize m =
-        List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (to_list m)
-      in
-      normalize m = normalize m'
-
-    let empty : t = from_list []
-    let is_empty m = to_list m = []
-  end
-end
+module Metadata = Metadata_base
 
 (** Metadata of a frame. *)
 type metadata = Metadata.t

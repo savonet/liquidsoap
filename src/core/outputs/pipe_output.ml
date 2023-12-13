@@ -320,7 +320,7 @@ class virtual piped_output ~name p =
         match current_metadata with
           | Some m ->
               let m = Frame.Metadata.Export.to_metadata m in
-              fun x -> subst (Frame.Metadata.find x m)
+              fun x -> subst Frame.Metadata.(string_of_value (find x m))
           | None -> fun _ -> raise Not_found
       in
       Utils.interpolate current_metadata s

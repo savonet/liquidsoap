@@ -92,8 +92,7 @@ let () =
          (fun version ->
            Strings.Mutable.add encoded
              (Utils.id3v2_of_metadata ~version
-                (Frame.Metadata.to_list
-                   (Frame.Metadata.Export.to_metadata metadata))))
+                (Frame.Metadata.Export.to_list metadata)))
          mp3.id3v2);
     let encode frame start len =
       let b = AFrame.pcm frame in

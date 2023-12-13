@@ -542,7 +542,7 @@ let parse_input_args args =
 
 let parse_file_decoder_args metadata =
   match Frame.Metadata.find_opt "ffmpeg_options" metadata with
-    | Some args -> parse_input_args args
+    | Some args -> parse_input_args (Frame.Metadata.string_of_value args)
     | None -> ([], None)
 
 let duration ~metadata file =
@@ -584,6 +584,9 @@ let get_tags ~metadata file =
         (fun (lbl, v) ->
           try (List.assoc lbl tags_substitutions, v) with _ -> (lbl, v))
         (audio_tags @ tags))
+
+let get_tags ~metadata file =
+  List.map (fun (k, v) -> (k, `String v)) (get_tags ~metadata file)
 
 let () = Plug.register Request.mresolvers "ffmpeg" ~doc:"" get_tags
 
@@ -854,7 +857,7 @@ let mk_streams ~ctype ~decode_first_metadata container =
         is_first := false;
         latest_metadata := Some m;
         Generator.add_metadata buffer.Decoder.generator
-          (Frame.Metadata.from_list m));
+          (Frame.Metadata.from_string_list m));
       fn ~buffer data
   in
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in

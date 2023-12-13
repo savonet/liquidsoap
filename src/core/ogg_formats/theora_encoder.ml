@@ -162,7 +162,7 @@ let create_encoder ~theora ~metadata () =
 let create_theora theora =
   let reset ogg_enc m =
     let metadata =
-      Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
+      Frame.Metadata.to_string_list (Frame.Metadata.Export.to_metadata m)
     in
     let enc = create_encoder ~theora ~metadata () in
     Ogg_muxer.register_track ?fill:theora.Theora_format.fill ogg_enc enc

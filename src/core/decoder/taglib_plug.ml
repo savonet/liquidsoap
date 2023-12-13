@@ -55,7 +55,7 @@ let tag_aliases = [("track", "tracknumber")]
 
 (** We used to force the format. However, now that we check extensions, taglib's
   * automatic format detection should work. *)
-let get_tags ~metadata:_ fname =
+let get_tags fname =
   try
     if
       not
@@ -98,5 +98,8 @@ let get_tags ~metadata:_ fname =
           (Printf.sprintf "Error while decoding file tags: %s"
              (Printexc.to_string e));
         raise Not_found
+
+let get_tags ~metadata:_ file =
+  List.map (fun (k, v) -> (k, `String v)) (get_tags file)
 
 let () = Plug.register Request.mresolvers "taglib" ~doc:"" get_tags

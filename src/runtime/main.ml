@@ -186,7 +186,11 @@ let process_request s =
           Request.get_all_metadata req
           |> Frame.Metadata.to_list |> List.to_seq
           |> Seq.map (fun (k, v) ->
-                 (k, if String.length v > 1024 then "<redacted>" else v))
+                 ( k,
+                   match v with
+                     | `Bigarray _ -> "<redacted>"
+                     | `String v when String.length v > 1024 -> "<redacted>"
+                     | v -> Frame.Metadata.string_of_value v ))
           |> Seq.map (fun (k, v) -> k ^ " = " ^ v)
           |> List.of_seq |> String.concat "\n"
         in

@@ -158,7 +158,9 @@ let create speex ~metadata () =
 let create_speex = function
   | Ogg_format.Speex speex ->
       let reset ogg_enc m =
-        let m = Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m) in
+        let m =
+          Frame.Metadata.to_string_list (Frame.Metadata.Export.to_metadata m)
+        in
         let title =
           try List.assoc "title" m
           with Not_found -> (

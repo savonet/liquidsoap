@@ -52,25 +52,30 @@ type field = Fields.field
 type content_type = Content.format Fields.t
 
 module Metadata : sig
+  type value = Frame_base.Metadata.value
   type t = Frame_base.Metadata.t
 
-  val from_list : (string * string) list -> t
-  val to_list : t -> (string * string) list
+  val from_list : (string * value) list -> t
+  val from_string_list : (string * string) list -> t
+  val to_list : t -> (string * value) list
+  val to_string_list : t -> (string * string) list
+  val string_of_value : value -> string
+  val float_of_value : value -> float
   val is_empty : t -> bool
   val empty : t
   val cardinal : t -> int
-  val fold : (string -> string -> 'a -> 'a) -> t -> 'a -> 'a
-  val find : string -> t -> string
-  val find_opt : string -> t -> string option
+  val fold : (string -> value -> 'a -> 'a) -> t -> 'a -> 'a
+  val find : string -> t -> value
+  val find_opt : string -> t -> value option
   val mem : string -> t -> bool
   val remove : string -> t -> t
-  val add : string -> string -> t -> t
-  val mapi : (string -> string -> string) -> t -> t
-  val map : (string -> string) -> t -> t
-  val filter : (string -> string -> bool) -> t -> t
-  val for_all : (string -> string -> bool) -> t -> bool
-  val exists : (string -> string -> bool) -> t -> bool
-  val iter : (string -> string -> unit) -> t -> unit
+  val add : string -> value -> t -> t
+  val mapi : (string -> value -> value) -> t -> t
+  val map : (value -> value) -> t -> t
+  val filter : (string -> value -> bool) -> t -> t
+  val for_all : (string -> value -> bool) -> t -> bool
+  val exists : (string -> value -> bool) -> t -> bool
+  val iter : (string -> value -> unit) -> t -> unit
 
   module Export : sig
     type metadata = t

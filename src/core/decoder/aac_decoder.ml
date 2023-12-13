@@ -275,7 +275,7 @@ let () =
 
 let log = Log.make ["metadata"; "mp4"]
 
-let get_tags ~metadata:_ file =
+let get_tags file =
   if
     not
       (Decoder.test_file ~log ~mimes:mp4_mime_types#get
@@ -287,5 +287,8 @@ let get_tags ~metadata:_ file =
     (fun () ->
       let mp4 = Faad.Mp4.openfile_fd fd in
       Array.to_list (Faad.Mp4.metadata mp4))
+
+let get_tags ~metadata:_ file =
+  List.map (fun (k, v) -> (k, `String v)) (get_tags file)
 
 let () = Plug.register Request.mresolvers "mp4" ~doc:"MP4 tag decoder." get_tags

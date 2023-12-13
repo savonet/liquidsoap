@@ -202,7 +202,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           Lang.to_valued_option Request.Value.of_value (Lang.apply f [])
         with
           | Some r ->
-              Request.set_root_metadata r "source" self#id;
+              Request.set_root_metadata r "source" (`String self#id);
               `Request r
           | None -> retry ()
           | exception exn ->

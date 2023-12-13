@@ -22,7 +22,7 @@
 
 (* Support for id3v2 encoding using taglib. *)
 
-exception Found of string
+exception Found of Frame.Metadata.value
 
 let render m =
   let m = Frame.Metadata.Export.to_metadata m in
@@ -39,7 +39,7 @@ let render m =
             raise (Found x))
         m;
       t
-    with Found x -> g t x
+    with Found x -> g t (Frame.Metadata.string_of_value x)
   in
   let try_int f t x = try f t (int_of_string x) with _ -> t in
   let tags =

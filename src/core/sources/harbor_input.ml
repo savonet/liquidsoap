@@ -90,8 +90,8 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         else m
       in
       self#log#important "New metadata chunk %s -- %s."
-        (try Frame.Metadata.find "artist" m with _ -> "?")
-        (try Frame.Metadata.find "title" m with _ -> "?");
+        (try Frame.Metadata.(string_of_value (find "artist" m)) with _ -> "?")
+        (try Frame.Metadata.(string_of_value (find "title" m)) with _ -> "?");
       Generator.add_metadata self#buffer m
 
     method get_mime_type = mime_type

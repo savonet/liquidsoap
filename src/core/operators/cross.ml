@@ -167,7 +167,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                     self#log#info
                       "Overriding crossfade duration from metadata %s"
                       override_duration;
-                    let l = float_of_string v in
+                    let l = Frame.Metadata.float_of_value v in
                     duration_getter <- (fun () -> l)
                   with _ -> ())))
         (Frame.get_all_metadata frame);

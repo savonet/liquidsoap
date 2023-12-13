@@ -660,7 +660,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   log#debug "Metadata packet: %s\n%!" s;
                   let data = Option.get data in
                   let m = List.map (fun (l, v) -> (l, json_string_of v)) data in
-                  let m = Frame.Metadata.from_list m in
+                  let m = Frame.Metadata.from_string_list m in
                   source#insert_metadata m;
                   raise Retry
               | _ -> raise Retry)
@@ -758,7 +758,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 | _ -> x
             in
             let g x = Charset.convert ?source:in_enc x in
-            Frame.Metadata.add (g x) (g y) m
+            Frame.Metadata.add (g x) (`String (g y)) m
           in
           let args = Hashtbl.fold f args Frame.Metadata.empty in
           s#insert_metadata args;

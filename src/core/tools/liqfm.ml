@@ -109,7 +109,9 @@ let init host =
       (* This function checks that the submission is valid *)
       let song songs (user, password, (source : source), stype, length, m) =
         let login = { user; password } in
-        let f x = try Frame.Metadata.find x m with Not_found -> "" in
+        let f x =
+          try Frame.Metadata.(string_of_value (find x m)) with Not_found -> ""
+        in
         let artist, track = (f "artist", f "title") in
         let s =
           match stype with Played -> "submit" | NowPlaying -> "nowplaying"
@@ -118,15 +120,15 @@ let init host =
         log#info "Submitting %s -- %s with mode: %s to %s:%i" artist track s h p;
         try
           let duration () =
-            try
-              match float_of_string_opt (Frame.Metadata.find "duration" m) with
-                | Some d -> d
-                | None -> raise Not_found
-            with Not_found -> (
+            try Frame.Metadata.(float_of_value (find "duration" m))
+            with _ -> (
               let exception Bad_rid in
               try
                 let rid =
-                  match int_of_string_opt (Frame.Metadata.find "rid" m) with
+                  match
+                    int_of_string_opt
+                      Frame.Metadata.(string_of_value (find "rid" m))
+                  with
                     | Some rid -> rid
                     | None -> raise Bad_rid
                 in

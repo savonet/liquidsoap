@@ -55,7 +55,7 @@
     uri
     fileutils
     menhirLib
-    (metadata (>= 0.2.0))
+    (metadata (>= 0.3.0))
     dune-build-info
     (liquidsoap-lang (= :version))
     (ppx_string :build))

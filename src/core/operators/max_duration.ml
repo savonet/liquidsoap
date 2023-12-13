@@ -58,11 +58,12 @@ class max_duration ~override_meta ~duration source =
               (fun lbl v ->
                 if lbl = override_meta then (
                   try
-                    let v = float_of_string v in
+                    let v = Frame.Metadata.float_of_value v in
                     remaining <- Frame.main_of_seconds v;
                     self#log#info "Overriding remaining value: %.02f." v
                   with _ ->
-                    self#log#important "Invalid remaining override value: %s." v))
+                    self#log#important "Invalid remaining override value: %s."
+                      (Frame.Metadata.string_of_value v)))
               m)
         (Frame.get_all_metadata buf)
 

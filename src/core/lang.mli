@@ -198,7 +198,8 @@ val to_valued_option : (value -> 'a) -> value -> 'a option
 val to_default_option : default:'a -> (value -> 'a) -> value -> 'a
 val to_product : value -> value * value
 val to_tuple : value -> value list
-val to_metadata_list : value -> (string * string) list
+val to_metadata_list : value -> (string * Frame.Metadata.value) list
+val to_metadata_string_list : value -> (string * string) list
 val to_metadata : value -> Frame.metadata
 val to_string_list : value -> string list
 val to_int_list : value -> int list
@@ -313,7 +314,8 @@ val pos : env -> Liquidsoap_lang.Pos.t list
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
 
-val metadata_list : (string * string) list -> value
+val metadata_list : (string * Frame.Metadata.value) list -> value
+val metadata_string_list : (string * string) list -> value
 
 (** Raise an error. *)
 val raise_error :

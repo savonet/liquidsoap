@@ -40,7 +40,7 @@ type t
 (** Create a request. *)
 val create :
   ?resolve_metadata:bool ->
-  ?metadata:(string * string) list ->
+  ?metadata:(string * Frame.Metadata.value) list ->
   ?persistent:bool ->
   ?indicators:indicator list ->
   string ->
@@ -149,10 +149,10 @@ val push_indicators : t -> indicator list -> unit
 
 val string_of_metadata : metadata -> string
 val short_string_of_metadata : metadata -> string
-val set_metadata : t -> string -> string -> unit
-val get_metadata : t -> string -> string option
-val set_root_metadata : t -> string -> string -> unit
-val get_root_metadata : t -> string -> string option
+val set_metadata : t -> string -> Frame.Metadata.value -> unit
+val get_metadata : t -> string -> Frame.Metadata.value option
+val set_root_metadata : t -> string -> Frame.Metadata.value -> unit
+val get_root_metadata : t -> string -> Frame.Metadata.value option
 val get_all_metadata : t -> metadata
 
 (** {1 Logging}
@@ -192,7 +192,8 @@ val dresolvers : (metadata:Frame.metadata -> string -> float) Plug.t
 (** Functions for resolving metadata. Metadata filling isn't included in Decoder
     because we want it to occur immediately after request resolution. *)
 val mresolvers :
-  (metadata:Frame.metadata -> string -> (string * string) list) Plug.t
+  (metadata:Frame.metadata -> string -> (string * Frame.Metadata.value) list)
+  Plug.t
 
 (** Functions for resolving URIs. *)
 val protocols : protocol Plug.t

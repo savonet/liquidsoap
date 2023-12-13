@@ -112,7 +112,7 @@ let create_flac = function
   | Ogg_format.Flac flac ->
       let reset ogg_enc m =
         let comments =
-          Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
+          Frame.Metadata.to_string_list (Frame.Metadata.Export.to_metadata m)
         in
         let enc = create_encoder ~flac ~comments () in
         Ogg_muxer.register_track ?fill:flac.Flac_format.fill ogg_enc enc

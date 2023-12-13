@@ -46,8 +46,11 @@ class amplify ~field (source : source) override_field coeff =
                     try
                       let s = Frame.Metadata.find f m in
                       let k =
-                        try Scanf.sscanf s " %f dB" Audio.lin_of_dB
-                        with _ -> float_of_string s
+                        try
+                          Scanf.sscanf
+                            (Frame.Metadata.string_of_value s)
+                            " %f dB" Audio.lin_of_dB
+                        with _ -> Frame.Metadata.float_of_value s
                       in
                       self#log#info "Overriding amplification: %f." k;
                       override <- Some k
