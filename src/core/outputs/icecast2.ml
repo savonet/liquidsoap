@@ -456,7 +456,7 @@ class output p =
     inherit
       Output.encoded
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
-          ~on_start ~on_stop ~name source
+          ~export_cover_metadata:false ~on_start ~on_stop ~name source
 
     (** In this operator, we don't exactly follow the start/stop
     * mechanism of Output.encoded because we want to control

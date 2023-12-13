@@ -575,7 +575,8 @@ class hls_output p =
     inherit
       Output.encoded
         ~infallible ~register_telnet ~on_start ~on_stop ~autostart
-          ~output_kind:"output.file" ~name:main_playlist_filename source
+          ~export_cover_metadata:false ~output_kind:"output.file"
+          ~name:main_playlist_filename source
 
     (** Available segments *)
     val mutable segments = List.map (fun { name } -> (name, ref [])) streams

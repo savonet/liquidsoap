@@ -102,14 +102,19 @@ module Metadata = struct
     type metadata = t
     type t = metadata
 
-    let metadata m =
-      let l = Encoder_formats.conf_export_metadata#get in
+    let from_metadata ?(cover = true) m =
+      let export = Encoder_formats.conf_export_metadata#get in
+      let export =
+        if cover then export
+        else (
+          let cover = Encoder_formats.conf_meta_cover#get in
+          List.filter (fun m -> not (List.mem m cover)) export)
+      in
       fold
         (fun x y m ->
-          if List.mem (String.lowercase_ascii x) l then (x, y) :: m else m)
-        m []
+          if List.mem (String.lowercase_ascii x) export then add x y m else m)
+        m empty
 
-    let from_metadata m = m
     let to_metadata m = m
     let to_list m = bindings m
 
