@@ -29,6 +29,9 @@ type t = Type.t
 type module_name = string
 type scheme = Type.scheme
 
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
 type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
@@ -89,6 +92,7 @@ let int i = mk (Ground (Int i))
 let bool i = mk (Ground (Bool i))
 let float i = mk (Ground (Float i))
 let string i = mk (Ground (String i))
+let bigstring i = mk (Ground (Bigstring i))
 let tuple l = mk (Tuple l)
 let product a b = tuple [a; b]
 let list l = mk (List l)
@@ -122,6 +126,8 @@ let val_cst_fun p c =
         f (mkg Type.Ground.float) (`Ground (Term.Ground.Float i))
     | Ground (String i) ->
         f (mkg Type.Ground.string) (`Ground (Term.Ground.String i))
+    | Ground (Bigstring i) ->
+        f (mkg Type.Ground.string) (`Ground (Term.Ground.Bigstring i))
     | _ -> mk (FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
 let reference get set =
@@ -297,16 +303,42 @@ let to_fun f =
     | Fun _ | FFI _ -> fun args -> apply f args
     | _ -> assert false
 
+let bigstring_of_string s =
+  Bigstringaf.of_string ~off:0 ~len:(String.length s) s
+
 let to_string t =
-  match t.value with Ground (String s) -> s | _ -> assert false
+  match t.value with
+    | Ground (String s) -> s
+    | Ground (Bigstring bs) -> Bigstringaf.to_string bs
+    | _ -> assert false
+
+let to_bigstring t =
+  match t.value with
+    | Ground (String s) -> bigstring_of_string s
+    | Ground (Bigstring bs) -> bs
+    | _ -> assert false
 
 let to_string_getter t =
   match t.value with
     | Ground (String s) -> fun () -> s
+    | Ground (Bigstring bs) -> fun () -> Bigstringaf.to_string bs
     | Fun _ | FFI _ -> (
         fun () ->
           match (apply t []).value with
             | Ground (String s) -> s
+            | Ground (Bigstring bs) -> Bigstringaf.to_string bs
+            | _ -> assert false)
+    | _ -> assert false
+
+let to_bigstring_getter t =
+  match t.value with
+    | Ground (String s) -> fun () -> bigstring_of_string s
+    | Ground (Bigstring bs) -> fun () -> bs
+    | Fun _ | FFI _ -> (
+        fun () ->
+          match (apply t []).value with
+            | Ground (String s) -> bigstring_of_string s
+            | Ground (Bigstring bs) -> bs
             | _ -> assert false)
     | _ -> assert false
 

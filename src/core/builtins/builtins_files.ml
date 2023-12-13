@@ -362,6 +362,29 @@ let _ =
         let message = Printf.sprintf "The file %s does not exist." file in
         Lang.raise_error ~pos:(Lang.pos p) ~message "file"))
 
+let file_socket fd =
+  let s = Http.unix_socket fd in
+  object
+    method typ = s#typ
+    method file_descr = s#file_descr
+    method transport = s#transport
+    method wait_for = s#wait_for
+    method write = s#write
+    method write_bigstring = s#write_bigstring
+    method read = s#read
+
+    method read_bigstring ?dst len =
+      match dst with
+        | Some dst -> s#read_bigstring ~dst len
+        | None ->
+            let pos = Int64.of_int (Unix.lseek fd 0 Unix.SEEK_CUR) in
+            let bs = Bigstring_unix.map_file_descr ~pos ~shared:false fd len in
+            ignore (Unix.lseek fd len Unix.SEEK_CUR);
+            bs
+
+    method close = s#close
+  end
+
 let _ =
   Lang.add_builtin ~base:file "open" ~category:`File
     [
@@ -416,7 +439,7 @@ let _ =
       let path = Lang_string.home_unrelate (Lang.to_string (List.assoc "" p)) in
       try
         Builtins_socket.Socket_value.(
-          to_value (Http.unix_socket (Unix.openfile path flags file_perms)))
+          to_value (file_socket (Unix.openfile path flags file_perms)))
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"file" exn)

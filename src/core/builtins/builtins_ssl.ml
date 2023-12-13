@@ -52,7 +52,14 @@ let ssl_socket transport ssl =
       Tutils.wait_for ?log event timeout
 
     method read = Ssl.read ssl
+
+    method read_bigstring ?dst len =
+      let dst = match dst with Some b -> b | None -> Bigstringaf.create len in
+      let n = Ssl.read_into_bigarray ssl dst 0 len in
+      Bigstringaf.sub ~off:0 ~len:n dst
+
     method write = Ssl.write ssl
+    method write_bigstring = Ssl.write_bigarray ssl
 
     method close =
       let fd = Ssl.file_descr_of_socket ssl in

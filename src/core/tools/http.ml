@@ -1,5 +1,8 @@
 module Pcre = Re.Pcre
 
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
 type uri = {
   protocol : string;
   host : string;
@@ -15,7 +18,9 @@ type socket =
   ; file_descr : Unix.file_descr
   ; wait_for : ?log:(string -> unit) -> event -> float -> unit
   ; write : Bytes.t -> int -> int -> int
+  ; write_bigstring : bigstring -> int -> int -> int
   ; read : Bytes.t -> int -> int -> int
+  ; read_bigstring : ?dst:bigstring -> int -> bigstring
   ; close : unit >
 
 and server =
@@ -38,7 +43,14 @@ let rec unix_socket fd =
     method transport = unix_transport ()
     method wait_for = s#wait_for
     method write = s#write
+    method write_bigstring bs off len = Bigstring_unix.write fd ~off ~len bs
     method read = s#read
+
+    method read_bigstring ?dst len =
+      let dst = match dst with Some b -> b | None -> Bigstringaf.create len in
+      let n = Bigstring_unix.read fd ~off:0 ~len dst in
+      Bigstringaf.sub ~off:0 ~len:n dst
+
     method close = s#close
   end
 

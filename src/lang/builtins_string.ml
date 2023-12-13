@@ -64,9 +64,13 @@ print(c) # should print 99 which is the ascii code for "c"
     Lang.int_t
     (fun p ->
       try
-        let s = Lang.to_string (Lang.assoc "" 1 p) in
         let n = Lang.to_int (Lang.assoc "" 2 p) in
-        Lang.int (int_of_char s.[n])
+        Lang.int
+          (match (Lang.assoc "" 1 p).Value.value with
+            | Ground (Term.Ground.String s) -> int_of_char s.[n]
+            | Ground (Term.Ground.Bigstring bs) ->
+                int_of_char (Bigstringaf.get bs n)
+            | _ -> assert false)
       with _ ->
         Runtime_error.raise ~pos:(Lang.pos p)
           ~message:"string.nth: character not found!" "not_found")
@@ -263,8 +267,11 @@ let _ =
     [("", Lang.string_t, None, None)]
     Lang.int_t
     (fun p ->
-      let string = Lang.to_string (List.assoc "" p) in
-      Lang.int (String.length string))
+      Lang.int
+        (match (List.assoc "" p).Value.value with
+          | Ground (Term.Ground.String s) -> String.length s
+          | Ground (Term.Ground.Bigstring bs) -> Bigstringaf.length bs
+          | _ -> assert false))
 
 let _ =
   Lang.add_builtin ~base:string "sub" ~category:`String
@@ -287,9 +294,15 @@ let _ =
     (fun p ->
       let start = Lang.to_int (List.assoc "start" p) in
       let len = Lang.to_int (List.assoc "length" p) in
-      let string = Lang.to_string (List.assoc "" p) in
-      Lang.string
-        (try String.sub string start len with Invalid_argument _ -> ""))
+      match (List.assoc "" p).Value.value with
+        | Ground (Term.Ground.String s) ->
+            Lang.string
+              (try String.sub s start len with Invalid_argument _ -> "")
+        | Ground (Term.Ground.Bigstring bs) ->
+            Lang.bigstring
+              (try Bigstringaf.sub bs ~off:start ~len
+               with _ -> Bigstringaf.empty)
+        | _ -> assert false)
 
 let _ =
   Lang.add_builtin ~base:string "index" ~category:`String

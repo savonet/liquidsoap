@@ -82,7 +82,7 @@
  (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx ppx_string))
- (libraries liquidsoap-lang.console dune-site re str unix menhirLib)
+ (libraries liquidsoap-lang.console dune-site re str bigstringaf unix menhirLib)
  (modules
   build_config
   builtins_bool

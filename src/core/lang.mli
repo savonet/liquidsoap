@@ -31,12 +31,21 @@ type module_name = Liquidsoap_lang.Lang.module_name
 type scheme = Liquidsoap_lang.Type.scheme
 type regexp = Liquidsoap_lang.Lang.regexp
 
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
 (** {2 Values} *)
 
 (** A typed value. *)
 module Ground : sig
   type t = Liquidsoap_lang.Term.Ground.t = ..
-  type t += Bool of bool | Int of int | String of string | Float of float
+
+  type t +=
+    | Bool of bool
+    | Int of int
+    | String of string
+    | Bigstring of bigstring
+    | Float of float
 
   type content = Liquidsoap_lang.Term.Ground.content = {
     descr : t -> string;
@@ -280,6 +289,7 @@ val int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
+val bigstring : bigstring -> value
 val regexp : regexp -> value
 val list : value list -> value
 val null : value

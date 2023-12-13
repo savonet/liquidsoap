@@ -52,6 +52,8 @@
     (ocurl (>= 0.9.2))
     (cry (>= 1.0.0))
     (camomile (>= 2.0.0))
+    bigstringaf
+    bigstring-unix
     uri
     fileutils
     menhirLib
@@ -152,6 +154,7 @@
   (depends
     (ocaml (>= 4.14.0))
     dune-site
+    bigstringaf
     (re (>= 1.11.0))
     (ppx_string :build)
     (sedlex (>= 3.2))

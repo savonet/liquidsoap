@@ -2,13 +2,18 @@
 
 type event = [ `Write | `Read | `Both ]
 
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
 type socket =
   < typ : string
   ; transport : transport
   ; file_descr : Unix.file_descr
   ; wait_for : ?log:(string -> unit) -> event -> float -> unit
   ; write : Bytes.t -> int -> int -> int
+  ; write_bigstring : bigstring -> int -> int -> int
   ; read : Bytes.t -> int -> int -> int
+  ; read_bigstring : ?dst:bigstring -> int -> bigstring
   ; close : unit >
 
 and server =

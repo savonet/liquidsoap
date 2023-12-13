@@ -19,6 +19,7 @@
   (pps ppx_string))
  (libraries
   mm
+  bigstring-unix
   dtools
   dune-build-info
   duppy

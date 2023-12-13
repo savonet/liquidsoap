@@ -28,6 +28,8 @@ depends: [
   "sedlex-windows" {>= "3.2"}
   "menhir"
   "menhirLib-windows"
+  "bigstringaf-windows"
+  "bigstring-unix-windows"
   "metadata-windows"
   "dune-site-windows"
   "dune-build-info-windows"

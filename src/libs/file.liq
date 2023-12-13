@@ -75,14 +75,10 @@ end
 # Read the whole contents of a file.
 # @category File
 def file.contents(fname) =
-  fn = file.read(fname)
-
-  def rec f(cur) =
-    s = fn()
-    if s == "" then cur else f("#{cur}#{s}") end
-  end
-
-  f("")
+  fd = file.open(write=false, fname)
+  s = fd.read(bigstring=true, file.size(fname))
+  fd.close()
+  s
 end
 
 # Get the list of lines of a file.

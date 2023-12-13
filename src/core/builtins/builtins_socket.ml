@@ -270,9 +270,16 @@ module Socket_value = struct
                  let timeout =
                    Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
                  in
-                 let data = Lang.to_string (List.assoc "" p) in
-                 let data = Bytes.of_string data in
-                 let len = Bytes.length data in
+                 let write, len =
+                   let open Liquidsoap_lang in
+                   match (List.assoc "" p).Value.value with
+                     | Ground (Term.Ground.String data) ->
+                         let data = Bytes.unsafe_of_string data in
+                         (socket#write data, Bytes.length data)
+                     | Ground (Term.Ground.Bigstring bs) ->
+                         (socket#write_bigstring bs, Bigstringaf.length bs)
+                     | _ -> assert false
+                 in
                  let start_time = Unix.gettimeofday () in
                  let check_timeout () =
                    match timeout with
@@ -290,7 +297,7 @@ module Socket_value = struct
                  try
                    let rec f pos =
                      check_timeout ();
-                     let n = socket#write data pos (len - pos) in
+                     let n = write pos (len - pos) in
                      if n < len then f (pos + n)
                    in
                    f 0;
@@ -302,19 +309,35 @@ module Socket_value = struct
         ( [],
           wait_t ~mode:`Read
             (Lang.fun_t
-               [(true, "timeout", Lang.nullable_t Lang.float_t)]
+               [
+                 (true, "timeout", Lang.nullable_t Lang.float_t);
+                 (true, "bigstring", Lang.bool_t);
+                 (true, "", Lang.int_t);
+               ]
                Lang.string_t) ),
         "Read data from a socket. Reading is done when the function returns an \
          empty string `\"\"`.",
         fun socket ->
-          let buflen = Utils.pagesize in
-          let buf = Bytes.create buflen in
           wait_meth ~mode:`Read socket
             (Lang.val_fun
-               [("timeout", "timeout", Some (Lang.float 10.))]
+               [
+                 ("timeout", "timeout", Some (Lang.float 10.));
+                 ("bigstring", "bigstring", Some (Lang.bool true));
+                 ("", "", Some (Lang.int Utils.pagesize));
+               ]
                (fun p ->
                  let timeout =
                    Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+                 in
+                 let bigstring = Lang.to_bool (List.assoc "bigstring" p) in
+                 let buflen = Lang.to_int (List.assoc "" p) in
+                 let read =
+                   if bigstring then fun n ->
+                     Lang.bigstring (socket#read_bigstring n)
+                   else fun n ->
+                     let buf = Bytes.create n in
+                     let n = socket#read buf 0 n in
+                     Lang.string (Bytes.sub_string buf 0 n)
                  in
                  let start_time = Unix.gettimeofday () in
                  let check_timeout () =
@@ -332,8 +355,7 @@ module Socket_value = struct
                  in
                  try
                    check_timeout ();
-                   let n = socket#read buf 0 buflen in
-                   Lang.string (Bytes.sub_string buf 0 n)
+                   read buflen
                  with exn ->
                    let bt = Printexc.get_raw_backtrace () in
                    Lang.raise_as_runtime ~bt ~kind:"socket" exn)) );

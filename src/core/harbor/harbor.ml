@@ -859,11 +859,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             let rem_len = String.length rem_data in
             let rem_ofs = Atomic.make 0 in
             let socket = h.Duppy.Monad.Io.socket in
-            object
+            object (self)
               method typ = socket#typ
               method transport = socket#transport
               method file_descr = socket#file_descr
               method write = socket#write
+              method write_bigstring = socket#write_bigstring
               method close = socket#close
 
               method wait_for ?log event timeout =
@@ -871,14 +872,36 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   | `Read, ofs when ofs < rem_len -> ()
                   | _ -> socket#wait_for ?log event timeout
 
-              method read buf dst_ofs len =
+              method private cached_read ~blit ~read len =
                 if Atomic.get rem_ofs < rem_len then (
                   let src_ofs = Atomic.get rem_ofs in
                   let len = min (rem_len - src_ofs) len in
-                  Bytes.blit_string rem_data src_ofs buf dst_ofs len;
+                  blit rem_data src_ofs;
                   Atomic.set rem_ofs (src_ofs + len);
                   len)
-                else socket#read buf dst_ofs len
+                else read ()
+
+              method read dst dst_ofs len =
+                self#cached_read
+                  ~blit:(fun src src_ofs ->
+                    Bytes.blit_string src src_ofs dst dst_ofs len)
+                  ~read:(fun () -> socket#read dst dst_ofs len)
+                  len
+
+              method read_bigstring ?dst len =
+                let dst =
+                  match dst with Some b -> b | None -> Bigstringaf.create len
+                in
+                let n =
+                  self#cached_read
+                    ~blit:(fun src src_off ->
+                      Bigstringaf.blit_from_string src ~src_off dst ~dst_off:0
+                        ~len)
+                    ~read:(fun () ->
+                      Bigstringaf.length (self#read_bigstring ~dst len))
+                    len
+                in
+                Bigstringaf.sub dst ~off:0 ~len:n
             end
           in
 

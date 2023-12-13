@@ -29,12 +29,21 @@ type module_name
 type scheme = Type.scheme
 type regexp = Builtins_regexp.regexp
 
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
 (** {2 Values} *)
 
 (** A typed value. *)
 module Ground : sig
   type t = Term.Ground.t = ..
-  type t += Bool of bool | Int of int | String of string | Float of float
+
+  type t +=
+    | Bool of bool
+    | Int of int
+    | String of string
+    | Bigstring of bigstring
+    | Float of float
 
   type content = Term.Ground.content = {
     descr : t -> string;
@@ -135,7 +144,9 @@ val to_unit : value -> unit
 val to_bool : value -> bool
 val to_bool_getter : value -> unit -> bool
 val to_string : value -> string
+val to_bigstring : value -> bigstring
 val to_string_getter : value -> unit -> string
+val to_bigstring_getter : value -> unit -> bigstring
 val to_regexp : value -> regexp
 val to_float : value -> float
 val to_float_getter : value -> unit -> float
@@ -200,6 +211,7 @@ val int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
+val bigstring : bigstring -> value
 val regexp : regexp -> value
 val list : value list -> value
 val null : value

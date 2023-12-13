@@ -27,6 +27,9 @@ echo "::endgroup::"
 
 echo "::group::Setting up specific dependencies"
 
+opam update
+opam install -y bigstringaf bigstring-unix
+
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh

@@ -97,11 +97,21 @@ module Liq_tls = struct
           h.state <- state;
           len
 
-  let read h b off len =
+  let write_bigstring h b off len =
+    match
+      Tls.Engine.send_application_data h.state [Cstruct.of_bigarray ~off ~len b]
+    with
+      | None -> len
+      | Some (state, data) ->
+          write_all h.fd data;
+          h.state <- state;
+          len
+
+  let read_base ~blit_from_cstruct ~blit_from_buffer h off len =
     let pending = Buffer.length h.read_pending in
     if 0 < pending then (
       let n = min pending len in
-      Buffer.blit h.read_pending 0 b off n;
+      blit_from_buffer h.read_pending 0 off n;
       Utils.buffer_drop h.read_pending n;
       n)
     else (
@@ -123,7 +133,7 @@ module Liq_tls = struct
                 | Some data ->
                     let data_len = Cstruct.length data in
                     let n = min data_len len in
-                    Cstruct.blit_to_bytes data 0 b off n;
+                    blit_from_cstruct data 0 off n;
                     if n < data_len then
                       Buffer.add_string h.read_pending
                         (Cstruct.to_string data ~off:n ~len:(data_len - n));
@@ -138,6 +148,23 @@ module Liq_tls = struct
                 "tls"
       in
       f ())
+
+  let read h b off len =
+    read_base
+      ~blit_from_cstruct:(fun data src_ofs dst_ofs n ->
+        Cstruct.blit_to_bytes data src_ofs b dst_ofs n)
+      ~blit_from_buffer:(fun src src_ofs dst_ofs n ->
+        Buffer.blit src src_ofs b dst_ofs n)
+      h off len
+
+  let read_bigstring h b off len =
+    let b = Cstruct.of_bigarray b in
+    read_base
+      ~blit_from_cstruct:(fun data src_ofs dst_ofs n ->
+        Cstruct.blit data src_ofs b dst_ofs n)
+      ~blit_from_buffer:(fun src src_ofs dst_ofs n ->
+        Cstruct.blit_from_string (Buffer.sub src src_ofs n) 0 b dst_ofs n)
+      h off len
 
   let close h =
     let state, data = Tls.Engine.send_close_notify h.state in
@@ -167,7 +194,14 @@ let tls_socket ~session transport =
       Tutils.wait_for ?log event timeout
 
     method read = Liq_tls.read session
+
+    method read_bigstring ?dst len =
+      let dst = match dst with Some b -> b | None -> Bigstringaf.create len in
+      let n = Liq_tls.read_bigstring session dst 0 len in
+      Bigstringaf.sub ~off:0 ~len:n dst
+
     method write = Liq_tls.write session
+    method write_bigstring = Liq_tls.write_bigstring session
     method close = Liq_tls.close session
   end
 
