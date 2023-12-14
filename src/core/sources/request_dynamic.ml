@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Source
-module Queue = Saturn_lockfree.Single_prod_single_cons_queue
+module Queue = Saturn_lockfree.Queue
 
 (* Scheduler priority for request resolutions. *)
 let priority = `Maybe_blocking
@@ -219,11 +219,14 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               retry ())
       else `Empty
 
-    val retrieved : queue_item Queue.t =
-      Queue.create
-        ~size_exponent:(2 * int_of_float (ceil (log (float prefetch))))
+    val retrieved : queue_item Queue.t = Queue.create ()
 
-    method private queue_size = Queue.size retrieved
+    method private queue_size =
+      let rec f n c =
+        match Queue.next c with None -> n | Some (_, c) -> f (n + 1) c
+      in
+      f 0 (Queue.snapshot retrieved)
+
     method queue = retrieved
 
     method set_queue =
