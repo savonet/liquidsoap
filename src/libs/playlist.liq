@@ -244,20 +244,21 @@ def playlist.list(
 
   # Instantiate the source
   default =
-    request.dynamic(
-      id=id,
-      prefetch=prefetch,
-      timeout=timeout,
-      retry_delay=1.,
-      available={not has_stopped()},
-      next
-    )
+    fun () ->
+      request.dynamic(
+        id=id,
+        prefetch=prefetch,
+        timeout=timeout,
+        retry_delay=1.,
+        available={not has_stopped()},
+        next
+      )
 
   s =
 %ifdef native
-    if native then stdlib_native.request.dynamic(id=id, next) else default end
+    if native then stdlib_native.request.dynamic(id=id, next) else default() end
 %else
-    default
+    default()
 %endif
 
   source.set_name(s, "playlist.list.reloadable")
