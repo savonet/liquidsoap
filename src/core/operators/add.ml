@@ -26,10 +26,10 @@ open Mm
 let max_remaining a b = if b = -1 || a = -1 then -1 else max a b
 
 type 'a field = { position : int; weight : 'a; field : Frame.field }
-type 'a track = { mutable fields : 'a field list; source : Source.source }
+type ('a, 'b) track = { mutable fields : 'a field list; data : 'b }
 
 class virtual base ~name tracks =
-  let sources = List.map (fun { source } -> source) tracks in
+  let sources = List.map (fun { data } -> data) tracks in
   let self_sync_type = Utils.self_sync_type sources in
   object (self)
     inherit Source.operator ~name sources
@@ -58,53 +58,58 @@ class virtual base ~name tracks =
     method private can_generate_frame =
       List.exists (fun s -> s#is_ready) sources
 
+    method private sources_ready = List.filter (fun s -> s#is_ready) sources
+
+    method private tracks_ready =
+      List.filter (fun { data = s } -> s#is_ready) tracks
+
+    method private generate_frames =
+      List.fold_left
+        (fun frames { fields; data = source } ->
+          let fields =
+            List.map
+              (fun ({ weight } as field) -> { field with weight = weight () })
+              fields
+          in
+          let data = if source#is_ready then Some source#get_frame else None in
+          { fields; data } :: frames)
+        [] tracks
+
+    method private frames_position frames =
+      Option.value ~default:0
+        (List.fold_left
+           (fun pos { data } ->
+             match (pos, data) with
+               | _, None -> pos
+               | None, Some frame -> Some (Frame.position frame)
+               | Some p, Some frame -> Some (min p (Frame.position frame)))
+           None frames)
+
     method seek_source =
       match sources with [s] -> s#seek_source | _ -> (self :> Source.source)
 
-    val mutable track_frames = Hashtbl.create (List.length tracks)
-    method private track_frame = Hashtbl.find track_frames
-
-    method private feed_track pos { source } =
-      let buf = source#get_frame in
-      Hashtbl.replace track_frames source buf;
-      let buf_pos = Frame.position buf in
-      match pos with None -> Some buf_pos | Some p -> Some (min p buf_pos)
-
-    method private feed tracks =
-      let pos = List.fold_left self#feed_track None tracks in
-      Option.value ~default:0 pos
-
     (* For backward compatibility: set metadata from the first
-       track effectively summed. This should be called after #feed *)
+       track effectively summed. *)
     method private set_metadata buf =
       match
         List.fold_left
-          (fun cur { fields; source } ->
-            if not source#is_ready then cur
-            else
-              List.fold_left
-                (fun cur { position; _ } ->
-                  match cur with
-                    | None -> Some (source, position)
-                    | Some (_, pos) when position < pos ->
-                        Some (source, position)
-                    | _ -> cur)
-                cur fields)
-          None tracks
+          (fun cur { fields; data = source } ->
+            List.fold_left
+              (fun cur { position; _ } ->
+                match cur with
+                  | None -> Some (source, position)
+                  | Some (_, pos) when position < pos -> Some (source, position)
+                  | _ -> cur)
+              cur fields)
+          None self#tracks_ready
       with
         | None -> buf
         | Some (source, _) ->
-            let position = Frame.position buf in
             let metadata =
               Content.Metadata.get_data
                 (Frame.Fields.find Frame.Fields.metadata source#get_frame)
             in
-            let metadata =
-              List.filter (fun (pos, _) -> pos <= position) metadata
-            in
             Frame.add_all_metadata buf metadata
-
-    initializer self#on_after_output (fun () -> Hashtbl.clear track_frames)
   end
 
 (** Add/mix several sources together.
@@ -116,42 +121,41 @@ class audio_add ~renorm ~power ~field tracks =
     method private generate_frame =
       let renorm = renorm () in
       let power = power () in
-      let total_weight, tracks =
+      let frames = self#generate_frames in
+      let total_weight =
         List.fold_left
-          (fun (total_weight, tracks) { source; fields } ->
-            let source_weight, fields =
+          (fun total_weight { fields } ->
+            let source_weight =
               List.fold_left
-                (fun (source_weight, fields) field ->
-                  let weight = field.weight () in
+                (fun source_weight { weight } ->
                   let weight = if power then weight *. weight else weight in
-                  (source_weight +. weight, { field with weight } :: fields))
-                (0., []) fields
+                  source_weight +. weight)
+                0. fields
             in
-            ( total_weight +. source_weight,
-              if source#is_ready then { source; fields } :: tracks else tracks
-            ))
-          (0., []) tracks
+            total_weight +. source_weight)
+          0. frames
       in
       let total_weight = if power then sqrt total_weight else total_weight in
-      let pos = self#feed tracks in
+      let pos = self#frames_position frames in
       let audio_len = Frame.audio_of_main pos in
-      let pcm =
-        Content.Audio.make ~length:pos
-          (Content.Audio.get_params (Frame.Fields.find field self#content_type))
-      in
+      let buf = Frame.create ~length:pos self#content_type in
+      let pcm = Content.Audio.get_data (Frame.get buf field) in
       Audio.clear pcm 0 audio_len;
       List.iter
-        (fun { source; fields } ->
-          let tmp = self#track_frame source in
-          List.iter
-            (fun { field; weight } ->
-              let track_pcm = Content.Audio.get_data (Frame.get tmp field) in
-              let c = if renorm then weight /. total_weight else weight in
-              if c <> 1. then Audio.amplify c track_pcm 0 audio_len;
-              Audio.add pcm 0 track_pcm 0 audio_len)
-            fields)
-        tracks;
-      let buf = Frame.create ~length:pos Frame.Fields.empty in
+        (fun { data; fields } ->
+          match data with
+            | None -> ()
+            | Some frame ->
+                List.iter
+                  (fun { field; weight } ->
+                    let track_pcm =
+                      Content.Audio.get_data (Frame.get frame field)
+                    in
+                    let c = if renorm then weight /. total_weight else weight in
+                    if c <> 1. then Audio.amplify c track_pcm 0 audio_len;
+                    Audio.add pcm 0 track_pcm 0 audio_len)
+                  fields)
+        frames;
       let buf = Frame.Fields.add field (Content.Audio.lift_data pcm) buf in
       self#set_metadata buf
   end
@@ -161,30 +165,27 @@ class video_add ~field ~add tracks =
     inherit base ~name:"video.add" tracks
 
     method private generate_frame =
-      let tracks =
-        List.fold_left
-          (fun tracks track ->
-            if track.source#is_ready then track :: tracks else tracks)
-          [] tracks
-      in
-      let pos = self#feed tracks in
+      let frames = self#generate_frames in
+      let pos = self#frames_position frames in
       let vbuf =
         Content.Video.make ~length:pos
           (Content.Video.get_params (Frame.Fields.find field self#content_type))
       in
       let ( ! ) = Frame.video_of_main in
-      let tracks =
+      let frames =
         List.fold_left
-          (fun tracks { source; fields } ->
-            let tmp = self#track_frame source in
-            tracks
-            @ List.map
-                (fun { position; field } -> (position, field, tmp))
-                fields)
-          [] tracks
+          (fun frames { data; fields } ->
+            match data with
+              | None -> frames
+              | Some frame ->
+                  frames
+                  @ List.map
+                      (fun { position; field } -> (position, field, frame))
+                      fields)
+          [] frames
       in
-      let tracks =
-        List.sort (fun (p, _, _) (p', _, _) -> Stdlib.compare p p') tracks
+      let frames =
+        List.sort (fun (p, _, _) (p', _, _) -> Stdlib.compare p p') frames
       in
       List.iteri
         (fun rank (position, field, tmp) ->
@@ -197,7 +198,7 @@ class video_add ~field ~add tracks =
             in
             Video.Canvas.set vbuf i img
           done)
-        tracks;
+        frames;
       let buf = Frame.create ~length:pos Frame.Fields.empty in
       let buf = Frame.Fields.add field (Content.Video.lift_data vbuf) buf in
       self#set_metadata buf
@@ -211,11 +212,11 @@ let get_tracks ~mk_weight p =
       let weight = mk_weight v in
       let field = { position; weight; field } in
       let track =
-        match List.find_opt (fun { source } -> s == source) tracks with
+        match List.find_opt (fun { data = source } -> s == source) tracks with
           | Some track ->
               track.fields <- track.fields @ [field];
               tracks
-          | None -> tracks @ [{ source = s; fields = [field] }]
+          | None -> tracks @ [{ data = s; fields = [field] }]
       in
       (track, position + 1))
     ([], 0) track_values
@@ -258,7 +259,7 @@ let _ =
     ~return_t:frame_t add_audio_tracks
 
 let add_video_tracks p =
-  let tracks, _ = get_tracks ~mk_weight:(fun _ -> ()) p in
+  let tracks, _ = get_tracks ~mk_weight:(fun _ () -> ()) p in
   let add _ = Video.Canvas.Image.add in
   let field = Frame.Fields.video in
   (field, new video_add ~add ~field tracks)
@@ -300,7 +301,7 @@ let _ =
     ]
     ~return_t:frame_t
     (fun p ->
-      let tracks, total_tracks = get_tracks ~mk_weight:(fun _ -> ()) p in
+      let tracks, total_tracks = get_tracks ~mk_weight:(fun _ () -> ()) p in
       let proportional = Lang.to_bool (List.assoc "proportional" p) in
       let tp = tile_pos total_tracks in
       let scale = Video_converter.scaler () in

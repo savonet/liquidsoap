@@ -155,7 +155,7 @@ let register obj name descr =
            List.mapi
              (fun position (weight, source) ->
                {
-                 Add.source;
+                 Add.data = source;
                  fields = [{ position; weight; field = Frame.Fields.audio }];
                })
              (Array.to_list synths)
