@@ -148,6 +148,32 @@ module Ground = struct
         typ = (module Type.Ground.Int : Type.Ground.Custom);
       };
 
+    let bigstring_compare ~len1 ~len2 = function
+      | 0 -> Stdlib.compare len1 len2
+      | v -> v
+    in
+
+    let string_compare v v' =
+      match (v, v') with
+        | String s, String s' -> String.compare s s'
+        | Bigstring s, String s' ->
+            let len1 = Bigstringaf.length s in
+            let len2 = String.length s' in
+            bigstring_compare ~len1 ~len2
+              (Bigstringaf.memcmp_string s 0 s' 0 (min len1 len2))
+        | String s, Bigstring s' ->
+            let len1 = String.length s in
+            let len2 = Bigstringaf.length s' in
+            bigstring_compare ~len1 ~len2
+              (-Bigstringaf.memcmp_string s' 0 s 0 (min len1 len2))
+        | Bigstring s, Bigstring s' ->
+            let len1 = Bigstringaf.length s in
+            let len2 = Bigstringaf.length s' in
+            bigstring_compare ~len1 ~len2
+              (Bigstringaf.memcmp s 0 s' 0 (min len1 len2))
+        | _ -> assert false
+    in
+
     let to_string = function
       | String s -> Lang_string.quote_string s
       | _ -> assert false
@@ -158,7 +184,7 @@ module Ground = struct
       {
         descr = to_string;
         to_json;
-        compare = compare (function String s -> s | _ -> assert false);
+        compare = string_compare;
         typ = (module Type.Ground.String : Type.Ground.Custom);
       };
 
@@ -175,7 +201,7 @@ module Ground = struct
       {
         descr = to_string;
         to_json;
-        compare = compare (function Bigstring s -> s | _ -> assert false);
+        compare = string_compare;
         typ = (module Type.Ground.String : Type.Ground.Custom);
       };
 

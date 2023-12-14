@@ -23,13 +23,54 @@ let string =
         | v -> Lang.string (Value.to_string v))
 
 let _ =
+  Lang.add_builtin ~base:string "bigstring" ~category:`String
+    ~descr:"True if the string is a bigstring."
+    [("", Lang.string_t, None, None)]
+    Lang.bool_t
+    (fun p ->
+      Lang.bool
+        (match (Lang.assoc "" 1 p).Value.value with
+          | Ground (Term.Ground.String _) -> false
+          | Ground (Term.Ground.Bigstring _) -> true
+          | _ -> assert false))
+
+let _ =
   Lang.add_builtin "^" ~category:`String ~descr:"Concatenate strings."
     [("", Lang.string_t, None, None); ("", Lang.string_t, None, None)]
     Lang.string_t
     (fun p ->
-      let s1 = Lang.to_string (Lang.assoc "" 1 p) in
-      let s2 = Lang.to_string (Lang.assoc "" 2 p) in
-      Lang.string (s1 ^ s2))
+      let s1 = Lang.assoc "" 1 p in
+      let s2 = Lang.assoc "" 2 p in
+      match (s1.Value.value, s2.Value.value) with
+        | Ground (Term.Ground.String s1), Ground (Term.Ground.String s2) ->
+            Lang.string (Printf.sprintf "%s%s" s1 s2)
+        | Ground (Term.Ground.Bigstring s1), Ground (Term.Ground.Bigstring s2)
+          ->
+            let len1 = Bigstringaf.length s1 in
+            let len2 = Bigstringaf.length s2 in
+            let len = len1 + len2 in
+            let s = Bigstringaf.create len in
+            Bigstringaf.blit s1 ~src_off:0 s ~dst_off:0 ~len:len1;
+            Bigstringaf.blit s2 ~src_off:len2 s ~dst_off:len1 ~len:(len - len1);
+            Lang.bigstring s
+        | Ground (Term.Ground.String s1), Ground (Term.Ground.Bigstring s2) ->
+            let len1 = String.length s1 in
+            let len2 = Bigstringaf.length s2 in
+            let len = len1 + len2 in
+            let s = Bigstringaf.create len in
+            Bigstringaf.blit_from_string s1 ~src_off:0 s ~dst_off:0 ~len:len1;
+            Bigstringaf.blit s2 ~src_off:len2 s ~dst_off:len1 ~len:(len - len1);
+            Lang.bigstring s
+        | Ground (Term.Ground.Bigstring s1), Ground (Term.Ground.String s2) ->
+            let len1 = Bigstringaf.length s1 in
+            let len2 = String.length s2 in
+            let len = len1 + len2 in
+            let s = Bigstringaf.create len in
+            Bigstringaf.blit s1 ~src_off:0 s ~dst_off:0 ~len:len1;
+            Bigstringaf.blit_from_string s2 ~src_off:len2 s ~dst_off:len1
+              ~len:(len - len1);
+            Lang.bigstring s
+        | _ -> assert false)
 
 let _ =
   Lang.add_builtin ~base:string "concat" ~category:`String
@@ -294,15 +335,16 @@ let _ =
     (fun p ->
       let start = Lang.to_int (List.assoc "start" p) in
       let len = Lang.to_int (List.assoc "length" p) in
-      match (List.assoc "" p).Value.value with
-        | Ground (Term.Ground.String s) ->
-            Lang.string
-              (try String.sub s start len with Invalid_argument _ -> "")
-        | Ground (Term.Ground.Bigstring bs) ->
-            Lang.bigstring
-              (try Bigstringaf.sub bs ~off:start ~len
-               with _ -> Bigstringaf.empty)
-        | _ -> assert false)
+      try
+        match (List.assoc "" p).Value.value with
+          | Ground (Term.Ground.String s) ->
+              Lang.string (String.sub s start len)
+          | Ground (Term.Ground.Bigstring bs) ->
+              Lang.bigstring (Bigstringaf.sub bs ~off:start ~len)
+          | _ -> assert false
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"string" exn)
 
 let _ =
   Lang.add_builtin ~base:string "index" ~category:`String

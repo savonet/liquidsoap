@@ -322,7 +322,7 @@ module Socket_value = struct
             (Lang.val_fun
                [
                  ("timeout", "timeout", Some (Lang.float 10.));
-                 ("bigstring", "bigstring", Some (Lang.bool true));
+                 ("bigstring", "bigstring", Some (Lang.bool false));
                  ("", "", Some (Lang.int Utils.pagesize));
                ]
                (fun p ->

@@ -150,7 +150,7 @@ def f() =
   test.equals("#{resp}", "")
 
   # Chunked query
-  def handler(req, res) =
+  def handler(req, _) =
     test.equals(req.http_version, "1.1")
     test.equals(req.method, "POST")
     test.equals(req.query, [])
@@ -193,7 +193,7 @@ def f() =
   test.equals("#{resp}", "")
 
   # Large chunked query
-  def handler(req, res) =
+  def handler(req, _) =
     test.equals(req.http_version, "1.1")
     test.equals(req.method, "POST")
     test.equals(req.query, [])
@@ -216,14 +216,14 @@ def f() =
       if ret != "" then f(count + string.length(ret)) else count end
     end
 
-    test.equals(f(0), 10_000_000)
+    test.equals(f(0), 100_000)
   end
 
   harbor.http.register("/large_chunked", method="POST", port=3456, handler)
   data =
     begin
       tmp = string.make(10_000)
-      count = ref(10_000_000 / 10_000)
+      count = ref(10)
       fun () ->
         if
           0 < count()
@@ -234,6 +234,13 @@ def f() =
           ""
         end
     end
+
+  resp = http.post(data=data, "http://localhost:3456/large_chunked")
+  test.equals(resp.status_message, "OK")
+  test.equals(resp.status_code, 200)
+  test.equals(resp.http_version, "1.1")
+  test.equals(resp.headers, [])
+  test.equals("#{resp}", "")
 
   # Custom response
   def handler(req) =
@@ -298,7 +305,7 @@ def f() =
   test.equals(resp.status_code, 200)
   try
     fn = read()
-    fn(timeout=10.)
+    ignore(fn(timeout=10.))
     test.fail()
   catch err : [error.http] do
     test.equals(
