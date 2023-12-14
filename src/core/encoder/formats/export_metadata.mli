@@ -22,7 +22,7 @@
 
 type metadata
 
-val metadata : Frame.metadata -> metadata
+val metadata : ?cover:bool -> Frame.metadata -> metadata
 val to_metadata : metadata -> Frame.metadata
 val to_list : metadata -> (string * string) list
 val equal : metadata -> metadata -> bool

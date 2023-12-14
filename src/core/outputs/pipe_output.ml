@@ -32,6 +32,13 @@ let encoder_factory ?format format_val =
   with Not_found ->
     raise (Error.Invalid_value (format_val, "Unsupported encoding format"))
 
+let base_proto =
+  ( "export_cover_metadata",
+    Lang.bool_t,
+    Some (Lang.bool true),
+    Some "Export cover metadata." )
+  :: Output.proto
+
 class virtual base ~source ~name p =
   let e f v = f (List.assoc v p) in
   (* Output settings *)
@@ -46,11 +53,14 @@ class virtual base ~source ~name p =
     let f = List.assoc "on_stop" p in
     fun () -> ignore (Lang.apply f [])
   in
+  let export_cover_metadata =
+    Lang.to_bool (List.assoc "export_cover_metadata" p)
+  in
   object (self)
     inherit
       Output.encoded
         ~infallible ~register_telnet ~on_start ~on_stop ~autostart
-          ~output_kind:"output.file" ~name source
+          ~export_cover_metadata ~output_kind:"output.file" ~name source
 
     val mutable encoder = None
     val mutable current_metadata = None
@@ -98,7 +108,7 @@ class virtual base ~source ~name p =
 (** url output: discard encoded data, try to restart on encoding error (can be
     networking issues etc.) *)
 let url_proto frame_t =
-  Output.proto
+  base_proto
   @ [
       ("url", Lang.string_t, None, Some "Url to output to.");
       ( "restart_delay",
@@ -228,7 +238,7 @@ let default_reopen_when =
     "fun () -> false"
 
 let pipe_proto frame_t arg_doc =
-  Output.proto
+  base_proto
   @ [
       ( "reopen_on_error",
         Lang.fun_t

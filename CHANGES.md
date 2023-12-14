@@ -28,6 +28,8 @@ Fixed:
   caller mode (#3583)
 - Fixed high CPU usage on failed connection
   in srt caller mode (#3583, #3573)
+- Prevent outputs from keeping the last 10 cover
+  metadata (#3504)
 
 ---
 

@@ -22,12 +22,18 @@
 
 type metadata = Frame.metadata
 
-let metadata m =
+let metadata ?(cover = true) m =
   let ret = Hashtbl.create 10 in
-  let l = Encoder_formats.conf_export_metadata#get in
+  let export = Encoder_formats.conf_export_metadata#get in
+  let export =
+    if cover then export
+    else (
+      let cover = Encoder_formats.conf_meta_cover#get in
+      List.filter (fun m -> not (List.mem m cover)) export)
+  in
   Hashtbl.iter
     (fun x y ->
-      if List.mem (String.lowercase_ascii x) l then Hashtbl.add ret x y)
+      if List.mem (String.lowercase_ascii x) export then Hashtbl.add ret x y)
     m;
   ret
 

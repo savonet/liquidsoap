@@ -881,7 +881,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
     inherit
       Output.encoded
         ~output_kind:"srt" ~on_start ~on_stop ~infallible ~register_telnet
-          ~autostart ~name:"output.srt" source
+          ~export_cover_metadata:false ~autostart ~name:"output.srt" source
 
     val mutable encoder = None
 

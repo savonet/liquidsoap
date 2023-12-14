@@ -12,7 +12,7 @@ class encoded_test =
           ~register_telnet:false
         ~on_start:(fun _ -> ())
         ~on_stop:(fun _ -> ())
-        ~autostart:false
+        ~autostart:false ~export_cover_metadata:false
         (Lang.source (new Noise.noise None))
 
     method insert_metadata _ =

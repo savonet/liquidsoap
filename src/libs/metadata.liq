@@ -130,8 +130,10 @@ end
 # Remove cover metadata. This is mostly useful in order not to flood logs
 # with coverart when logging metadata.
 # @category Metadata
-def metadata.cover.remove(m)
-  list.assoc.filter(fun (k, _) -> k != "metadata_block_picture" and k != "apic" and k != "pic" and k != "cover", m)
+def metadata.cover.remove(m) =
+  list.assoc.filter(
+    fun (k, (_:string)) -> not list.mem(k, settings.encoder.metadata.cover()), m
+  )
 end
 
 # Cleanup metadata for export. This is used to remove Liquidsoap's internal

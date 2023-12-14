@@ -59,7 +59,7 @@ class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
     inherit
       Output.encoded
         ~output_kind:"udp" ~on_start ~on_stop ~register_telnet ~infallible
-          ~autostart
+          ~autostart ~export_cover_metadata:false
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         source
 

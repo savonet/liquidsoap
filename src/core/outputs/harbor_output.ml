@@ -411,7 +411,7 @@ class output p =
     inherit
       Output.encoded
         ~output_kind:"output.harbor" ~infallible ~register_telnet ~autostart
-          ~on_start ~on_stop ~name:mount source
+          ~export_cover_metadata:false ~on_start ~on_stop ~name:mount source
 
     val mutable dump = None
     val mutable encoder = None
@@ -432,7 +432,8 @@ class output p =
       Tutils.mutexify metadata.metadata_m
         (fun () -> metadata.metadata <- Some m)
         ();
-      (Option.get encoder).Encoder.insert_metadata (Export_metadata.metadata m)
+      (Option.get encoder).Encoder.insert_metadata
+        (Export_metadata.metadata ~cover:false m)
 
     method add_client ~protocol ~headers ~uri ~query s =
       let ip =

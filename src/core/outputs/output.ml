@@ -87,7 +87,8 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
                      s
                      ^ (if s = "" then "--- " else "\n--- ")
                      ^ string_of_int i ^ " ---\n"
-                     ^ Request.string_of_metadata m
+                     ^ Request.string_of_metadata
+                         (Export_metadata.to_metadata m)
                    in
                    (s, i - 1))
                  ("", Queue.length q)
@@ -183,7 +184,8 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
           source#get self#memo
         done;
         List.iter
-          (fun (_, m) -> self#add_metadata m)
+          (fun (_, m) ->
+            self#add_metadata (Export_metadata.metadata ~cover:false m))
           (Frame.get_all_metadata self#memo);
 
         (* Output that frame if it has some data *)
@@ -236,7 +238,7 @@ let _ =
 (** More concrete abstract-class, which takes care of the #send_frame method for
     outputs based on encoders. *)
 class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
-  ~register_telnet ~autostart source =
+  ~register_telnet ~autostart ~export_cover_metadata source =
   object (self)
     inherit
       output
@@ -254,7 +256,9 @@ class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
           self#send data;
           match Frame.get_metadata frame start with
             | None -> ()
-            | Some m -> self#insert_metadata (Export_metadata.metadata m)
+            | Some m ->
+                self#insert_metadata
+                  (Export_metadata.metadata ~cover:export_cover_metadata m)
         in
         function
         | [] -> assert false
