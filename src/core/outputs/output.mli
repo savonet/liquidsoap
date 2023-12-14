@@ -49,8 +49,6 @@ class virtual output :
        method transition_to : Start_stop.state -> unit
        method seek_source : Source.source
        method private video_dimensions : int * int
-       method private add_metadata : Request.metadata -> unit
-       method private metadata_queue : Request.metadata Queue.t
        method private reset : unit
        method virtual private send_frame : Frame.t -> unit
        method virtual private start : unit
@@ -68,6 +66,7 @@ class virtual encoded :
   -> on_stop:(unit -> unit)
   -> register_telnet:bool
   -> autostart:bool
+  -> export_cover_metadata:bool
   -> Lang.value
   -> object
        inherit output

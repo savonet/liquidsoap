@@ -30,6 +30,11 @@ let conf_meta =
   Dtools.Conf.void ~p:(conf#plug "metadata") "Metadata settings"
     ~comments:["Settings for the encoded metadata."]
 
+let conf_meta_cover =
+  Dtools.Conf.list ~p:(conf_meta#plug "cover")
+    "Metadata labels that represent coverart"
+    ~d:["pic"; "apic"; "metadata_block_picture"; "cover"]
+
 (** The list of metadata fields that should be exported when encoding. *)
 let conf_export_metadata =
   Dtools.Conf.list ~p:(conf_meta#plug "export") "Exported metadata"
@@ -47,6 +52,7 @@ let conf_export_metadata =
         "dj";
         "next";
         "apic";
+        "pic";
         "metadata_url";
         "metadata_block_picture";
         "coverart";

@@ -74,9 +74,9 @@ module Metadata : sig
 
   module Export : sig
     type metadata = t
-    type t = Frame_base.Metadata.Export.t
+    type t
 
-    val from_metadata : metadata -> t
+    val from_metadata : ?cover:bool -> metadata -> t
     val to_metadata : t -> metadata
     val to_list : t -> (string * string) list
     val equal : t -> t -> bool

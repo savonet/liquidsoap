@@ -194,15 +194,7 @@ end
 # @category Metadata
 def metadata.cover.remove(m) =
   list.assoc.filter(
-    fun (k, _) ->
-      k != "metadata_block_picture"
-    and
-      k != "apic"
-    and
-      k != "pic"
-    and
-      k != "cover",
-    m
+    fun (k, (_:string)) -> not list.mem(k, settings.encoder.metadata.cover()), m
   )
 end
 
