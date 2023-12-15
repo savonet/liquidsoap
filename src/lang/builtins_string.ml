@@ -330,11 +330,16 @@ let _ =
         Lang.int_t,
         None,
         Some "Return a sub string of `length` characters." );
+      ( "raise",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Raise a `error.string` error if bounds do not match." );
     ]
     Lang.string_t
     (fun p ->
       let start = Lang.to_int (List.assoc "start" p) in
       let len = Lang.to_int (List.assoc "length" p) in
+      let raise = Lang.to_bool (List.assoc "raise" p) in
       try
         match (List.assoc "" p).Value.value with
           | Ground (Term.Ground.String s) ->
@@ -342,7 +347,7 @@ let _ =
           | Ground (Term.Ground.Bigstring bs) ->
               Lang.bigstring (Bigstringaf.sub bs ~off:start ~len)
           | _ -> assert false
-      with exn ->
+      with exn when raise ->
         let bt = Printexc.get_raw_backtrace () in
         Lang.raise_as_runtime ~bt ~kind:"string" exn)
 

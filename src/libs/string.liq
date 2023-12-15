@@ -64,39 +64,35 @@ end
 # @param s The string to look into.
 def string.contains(~prefix="", ~substring="", ~suffix="", s) =
   ans = ref(prefix == "" and substring == "" and suffix == "")
-  try
-    if
-      prefix != ""
-    then
-      ans :=
-        ans() or string.sub(s, start=0, length=string.length(prefix)) == prefix
-    end
-
-    if
-      suffix != ""
-    then
-      suflen = string.length(suffix)
-      ans :=
-        ans()
-      or
-        string.sub(s, start=string.length(s) - suflen, length=suflen) == suffix
-    end
-
-    if
-      substring != ""
-    then
-      sublen = string.length(substring)
-      for i = 0 to
-        string.length(s) - sublen
-      do
-        ans := ans() or (string.sub(s, start=i, length=sublen) == substring)
-      end
-    end
-
-    ans()
-  catch _ do
-    false
+  if
+    prefix != ""
+  then
+    ans :=
+      ans() or string.sub(s, start=0, length=string.length(prefix)) == prefix
   end
+
+  if
+    suffix != ""
+  then
+    suflen = string.length(suffix)
+    ans :=
+      ans()
+    or
+      string.sub(s, start=string.length(s) - suflen, length=suflen) == suffix
+  end
+
+  if
+    substring != ""
+  then
+    sublen = string.length(substring)
+    for i = 0 to
+      string.length(s) - sublen
+    do
+      ans := ans() or (string.sub(s, start=i, length=sublen) == substring)
+    end
+  end
+
+  ans()
 end
 
 # What remains of a string after a given prefix.
