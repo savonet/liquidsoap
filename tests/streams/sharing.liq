@@ -9,7 +9,7 @@ s = rms(s)
 
 rms = s.rms
 
-output.ao(s)
+output.dummy(s)
 
 def on_done() =
   print(
