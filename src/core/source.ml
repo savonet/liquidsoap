@@ -728,14 +728,14 @@ class virtual operator ?pos ?(name = "src") sources =
       in_output <- false
 
     method private has_ticked =
-      if not in_output then (
-        in_output <- true;
-        self#before_output;
-        match deref clock with
-          | Known c ->
+      match deref clock with
+        | Known c ->
+            if not in_output then (
+              in_output <- true;
+              self#before_output;
               c#on_output (fun () -> List.iter (fun fn -> fn ()) on_output);
-              c#on_after_output (fun () -> self#after_output)
-          | _ -> assert false)
+              c#on_after_output (fun () -> self#after_output))
+        | _ -> ()
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
