@@ -1,5 +1,9 @@
 let error.chatgpt = error.register("chatgpt")
 
+# Query ChatGPT API.
+# @param ~key OpenAI API key.
+# @param ~model Language model.
+# @param messages Messages initially exchanged.
 def chatgpt(~key, ~model="gpt-3.5-turbo", messages) =
   payload = {model=model, messages=messages}
 
@@ -45,7 +49,11 @@ def chatgpt(~key, ~model="gpt-3.5-turbo", messages) =
   end
 end
 
-# ChatGPT response to a prompt.
+# Retrieve ChatGPT response to a prompt.
+# @param ~key OpenAI API key.
+# @param ~model Language model.
+# @param ~system System prompt.
+# @param promp Prompt.
 def chatgpt.response(
   ~key,
   ~model="gpt-3.5-turbo",
