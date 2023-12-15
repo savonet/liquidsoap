@@ -586,7 +586,8 @@ class virtual operator ?pos ?(name = "src") sources =
       let content = Frame.get self#get_frame field in
       let count = try Hashtbl.find mutable_fields field with Not_found -> 1 in
       Hashtbl.replace mutable_fields field (count + 1);
-      if count > 1 then Content.copy content else content
+      (* Disable for now. *)
+      if true || count > 1 then Content.copy content else content
 
     method get_mutable_frame field =
       Frame.set self#get_frame field (self#get_mutable_content field)
