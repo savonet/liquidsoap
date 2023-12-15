@@ -1,4 +1,4 @@
-let error.openai = error.register("openai")
+let error.chatgpt = error.register("chatgpt")
 
 def chatgpt(~key, ~model="gpt-3.5-turbo", messages) =
   payload = {model=model, messages=messages}
@@ -39,7 +39,7 @@ def chatgpt(~key, ~model="gpt-3.5-turbo", messages) =
     ) = ans
     e = e.error
     error.raise(
-      error.openai,
+      error.chatgpt,
       "#{e.code}: #{e.message}"
     )
   end
@@ -55,19 +55,4 @@ def chatgpt.response(
   messages = [{role="system", content=system}, {role="user", content=prompt}]
   ans = chatgpt(key=key, model=model, messages)
   ans
-end
-
-openai = ()
-
-# Speech-to-text.
-# @param ~key OpenAI API key.
-# @param filename Mp3 file containing speech.
-def openai.whisper(~key, filename) =
-  # http.post(
-  # headers=[
-  # ("Authorization", "Bearer #{key}"),
-  # ("Content-Type", "multipart/form-data")
-  # ],
-  # "https://api.openai.com/v1/audio/transcriptions")
-  error.raise(error.openai("TODO"))
 end
