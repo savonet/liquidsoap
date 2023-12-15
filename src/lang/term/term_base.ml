@@ -189,7 +189,7 @@ module Ground = struct
       };
 
     let to_string = function
-      | Bigstring bs -> Lang_string.quote_string (Bigstringaf.to_string bs)
+      | Bigstring bs -> Bigstringaf.to_string bs
       | _ -> assert false
     in
     let to_json ~pos:_ = function
