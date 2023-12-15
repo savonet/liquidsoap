@@ -121,7 +121,7 @@ class input p =
     inherit
       Start_stop.active_source
         ~get_clock ~name:"input.pulseaudio" ~clock_safe ~on_start ~on_stop
-          ~autostart:start ~fallible ()
+          ~autostart:start ~fallible () as active_source
 
     inherit base ~client ~device
     method private start = self#open_device
@@ -130,6 +130,7 @@ class input p =
     method remaining = -1
     method abort_track = ()
     method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     method private open_device =
       let ss =

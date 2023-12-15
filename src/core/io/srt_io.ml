@@ -683,8 +683,8 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 
-    method! is_ready =
-      super#is_ready && (not self#should_stop) && self#is_connected
+    method private can_generate_frame =
+      super#started && (not self#should_stop) && self#is_connected
 
     method self_sync = (`Dynamic, self#is_connected)
 

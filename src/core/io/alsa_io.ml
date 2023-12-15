@@ -231,13 +231,14 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       Start_stop.active_source
         ~get_clock:Alsa_settings.get_clock
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
-        ~clock_safe ~on_start ~on_stop ~fallible ~autostart:start ()
+        ~clock_safe ~on_start ~on_stop ~fallible ~autostart:start () as active_source
 
     method private start = self#open_device
     method private stop = self#close_device
     method remaining = -1
     method abort_track = ()
     method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     (* TODO: convert samplerate *)
     method private generate_frame =

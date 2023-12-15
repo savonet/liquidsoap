@@ -90,7 +90,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       Start_stop.active_source
         ~get_clock ~clock_safe
         ~name:(Printf.sprintf "oss_in(%s)" dev)
-        ~on_start ~on_stop ~fallible ~autostart:start ()
+        ~on_start ~on_stop ~fallible ~autostart:start () as active_source
 
     val mutable fd = None
     method self_sync = (`Dynamic, fd <> None)
@@ -98,6 +98,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     method remaining = -1
     method seek_source = (self :> Source.source)
     method private start = self#open_device
+    method private can_generate_frame = active_source#started
 
     method private open_device =
       let descr = Unix.openfile dev [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o400 in

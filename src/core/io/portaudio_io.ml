@@ -204,7 +204,7 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
     inherit
       Start_stop.active_source
         ~get_clock ~clock_safe ~name:"input.portaudio" ~on_start ~on_stop
-          ~fallible ~autostart:start ()
+          ~fallible ~autostart:start () as active_source
 
     method private start = self#open_device
     method private stop = self#close_device
@@ -213,6 +213,7 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
     method abort_track = ()
     method remaining = -1
     method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     method private open_device =
       self#handle "open_device" (fun () ->

@@ -44,6 +44,7 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
     val mutable initialized = false
     method self_sync = (`Static, true)
     method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     method! private wake_up l =
       active_source#wake_up l;

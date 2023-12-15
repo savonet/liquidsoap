@@ -9,7 +9,7 @@ class dummy ~autostart ~on_start source =
     method test_wake_up = self#wake_up []
     val mutable test_is_ready = false
     method test_set_is_ready = test_is_ready <- true
-    method! is_ready = test_is_ready
+    method! can_generate_frame = test_is_ready
     method test_output = self#output
   end
 

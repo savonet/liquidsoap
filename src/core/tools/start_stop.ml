@@ -78,7 +78,7 @@ class virtual active_source ?get_clock ~name ~clock_safe
     method stype = if fallible then `Fallible else `Infallible
     method! private wake_up _ = if autostart then base#transition_to `Started
     method! private sleep = base#transition_to `Stopped
-    method private can_generate_frame = state = `Started
+    method private started = state = `Started
     val mutable clock = None
 
     method private get_clock =

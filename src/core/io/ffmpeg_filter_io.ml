@@ -102,7 +102,7 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
     method stop = ()
     method! reset = ()
     val mutable is_up = false
-    method! is_ready = is_up && super#is_ready
+    method! can_generate_frame = is_up && super#can_generate_frame
 
     method! wake_up l =
       is_up <- true;

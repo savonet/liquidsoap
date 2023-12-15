@@ -77,7 +77,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
     method private is_connected = Atomic.get container <> None
-    method! is_ready = super#is_ready && self#is_connected
+    method can_generate_frame = super#started && self#is_connected
 
     method private get_self_sync =
       match self_sync () with Some v -> v | None -> false
