@@ -347,9 +347,11 @@ let _ =
           | Ground (Term.Ground.Bigstring bs) ->
               Lang.bigstring (Bigstringaf.sub bs ~off:start ~len)
           | _ -> assert false
-      with exn when raise ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"string" exn)
+      with
+        | exn when raise ->
+            let bt = Printexc.get_raw_backtrace () in
+            Lang.raise_as_runtime ~bt ~kind:"string" exn
+        | _ -> Lang.string "")
 
 let _ =
   Lang.add_builtin ~base:string "index" ~category:`String
