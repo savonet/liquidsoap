@@ -99,8 +99,8 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
           if add_track_mark && empty_on_abort then Generator.clear self#buffer;
           let buf = Generator.slice self#buffer (Lazy.force Frame.size) in
           let buf =
-            if add_track_mark then (
-              self#log#info "Performing skip.";
+            if was_buffering || add_track_mark then (
+              self#log#info "Adding track mark.";
               add_track_mark <- false;
               Frame.add_track_mark buf 0)
             else buf
