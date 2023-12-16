@@ -144,7 +144,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
       match (selected, reselect) with
         | Some s, false when s.effective_source#is_ready ->
             Some s.effective_source
-        | _ ->
+        | _ -> (
             begin
               match (selected, self#select) with
                 | None, None -> ()
@@ -233,7 +233,10 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                         s#get_ready activation;
                         selected <- Some { child = c; effective_source = s })
             end;
-            Option.map (fun s -> s.effective_source) selected
+            match selected with
+              | Some s when s.effective_source#is_ready ->
+                  Some s.effective_source
+              | _ -> None)
 
     method self_sync =
       ( Lazy.force self_sync_type,

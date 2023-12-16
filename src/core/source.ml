@@ -816,51 +816,50 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual empty_frame : Frame.t
 
     method private can_generate_frame =
-      match self#get_source ~reselect:false () with
+      match self#get_source ~reselect:(not (track_sensitive ())) () with
         | Some s -> s#is_ready
         | None -> false
 
     method private generate_frame =
-      match self#get_source ~reselect:(not (track_sensitive ())) () with
-        | Some s when s#is_ready ->
-            let buf =
-              s#get_partial_frame (fun frame ->
-                  match self#split_frame frame with
-                    | buf, _ when Frame.position buf = 0 -> frame
-                    | buf, _ -> buf)
-            in
-            let size = Lazy.force Frame.size in
-            let rec f ~last_source ~last_buf buf =
-              let pos = Frame.position buf in
-              if pos < size then (
-                match self#get_source ~reselect:true () with
-                  | Some s' when last_source == s' ->
-                      let remainder =
-                        s#get_partial_frame (fun frame ->
-                            Frame.slice frame (size - Frame.position last_buf))
-                      in
-                      Frame.append last_buf remainder
-                  | Some s when s#is_ready ->
-                      let new_track =
-                        s#get_partial_frame (fun frame ->
-                            match self#split_frame frame with
-                              | buf, _ when Frame.position buf = 0 ->
-                                  Frame.slice frame (size - pos)
-                              | buf, _ ->
-                                  Frame.slice frame
-                                    (min (Frame.position buf) size - pos))
-                      in
-                      let new_track =
-                        if merge () then Frame.drop_track_marks new_track
-                        else Frame.add_track_mark new_track 0
-                      in
-                      f ~last_source:s ~last_buf:buf
-                        (Frame.append buf new_track)
-                  | _ -> buf)
-              else buf
-            in
-            f ~last_source:s ~last_buf:self#empty_frame buf
-        | _ -> self#empty_frame
+      let s = Option.get (self#get_source ~reselect:false ()) in
+      assert s#is_ready;
+      let buf =
+        s#get_partial_frame (fun frame ->
+            match self#split_frame frame with
+              | buf, _ when Frame.position buf = 0 -> frame
+              | buf, _ -> buf)
+      in
+      let size = Lazy.force Frame.size in
+      let rec f ~last_source ~last_buf buf =
+        let pos = Frame.position buf in
+        if pos < size then (
+          match self#get_source ~reselect:true () with
+            | Some s' when last_source == s' ->
+                let remainder =
+                  s#get_partial_frame (fun frame ->
+                      Frame.slice frame (size - Frame.position last_buf))
+                in
+                Frame.append last_buf remainder
+            | Some s ->
+                assert s#is_ready;
+                let new_track =
+                  s#get_partial_frame (fun frame ->
+                      match self#split_frame frame with
+                        | buf, _ when Frame.position buf = 0 ->
+                            Frame.slice frame (size - pos)
+                        | buf, _ ->
+                            Frame.slice frame
+                              (min (Frame.position buf) size - pos))
+                in
+                let new_track =
+                  if merge () then Frame.drop_track_marks new_track
+                  else Frame.add_track_mark new_track 0
+                in
+                f ~last_source:s ~last_buf:buf (Frame.append buf new_track)
+            | _ -> buf)
+        else buf
+      in
+      f ~last_source:s ~last_buf:self#empty_frame buf
   end
 
 (** Specialized shortcuts *)
