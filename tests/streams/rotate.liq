@@ -13,7 +13,7 @@ nmusic = ref(0)
 nmusic2 = ref(0)
 
 def ot(label) =
-  played := [label, ...!played]
+  played := [label, ...played()]
 
   if label == "music" then ref.incr(nmusic) end
   if label == "music2" then ref.incr(nmusic2) end
@@ -24,19 +24,19 @@ def ot(label) =
   )
 
   if
-    list.length(!played) == round_len * rounds
+    list.length(played()) == round_len * rounds
   then
     print(
-      "PLAYED: #{list.rev(!played)}\n"
+      "PLAYED: #{list.rev(played())}\n"
     )
 
     if
-      !njingles == rounds and !nmusic == 3 * rounds and !nmusic2 == 4 * rounds
+      njingles() == rounds and nmusic() == 3 * rounds and nmusic2() == 4 * rounds
     then
       test.pass()
     else
       print(
-        "jingles: #{!njingles} / music : #{!nmusic} / music2: #{!nmusic2}"
+        "jingles: #{njingles()} / music : #{nmusic()} / music2: #{nmusic2()}"
       )
       test.fail()
     end

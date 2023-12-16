@@ -208,6 +208,7 @@ class virtual source :
 
        method streaming_state : streaming_state
        method get_frame : Frame.t
+       method get_partial_frame : (Frame.t -> Frame.t) -> Frame.t
        method get_mutable_content : Frame.field -> Content.data
        method get_mutable_frame : Frame.field -> Frame.t
        method private split_frame : Frame.t -> Frame.t * Frame.t option
@@ -293,10 +294,9 @@ class virtual generate_from_multiple_sources :
   -> unit
   -> object
        method virtual get_source : reselect:bool -> unit -> source option
-       method virtual empty_frame : Frame.t
-       method virtual on_after_output : (unit -> unit) -> unit
-       method private can_generate_frame : bool
        method virtual split_frame : Frame.t -> Frame.t * Frame.t option
+       method virtual empty_frame : Frame.t
+       method private can_generate_frame : bool
        method private generate_frame : Frame.t
      end
 

@@ -558,20 +558,52 @@ class virtual operator ?pos ?(name = "src") sources =
       self#has_ticked;
       match streaming_state with `Ready _ | `Done _ -> true | _ -> false
 
-    val mutable_fields = Hashtbl.create 4
+    val mutable _cache = None
+
+    method private cache =
+      match _cache with None -> self#empty_frame | Some c -> c
+
+    val mutable consumed = 0
 
     (* This is the implementation of the main streaming logic. *)
     initializer
       self#on_before_output (fun () ->
-          Hashtbl.clear mutable_fields;
-          if self#can_generate_frame then
+          consumed <- 0;
+          let cache = self#cache in
+          let cache_pos = Frame.position cache in
+          let size = Lazy.force Frame.size in
+          if cache_pos > 0 || self#can_generate_frame then
             streaming_state <-
               `Ready
                 (fun () ->
-                  streaming_state <- `Done self#instrumented_generate_frame)
-          else streaming_state <- `Unavailable)
+                  let buf =
+                    if cache_pos < size then
+                      Frame.append cache self#instrumented_generate_frame
+                    else cache
+                  in
+                  let buf_pos = Frame.position buf in
+                  let buf =
+                    if size < buf_pos then (
+                      _cache <-
+                        Some
+                          (Frame.chunk ~start:size ~stop:(buf_pos - size) buf);
+                      Frame.slice buf size)
+                    else buf
+                  in
+                  streaming_state <- `Done buf)
+          else streaming_state <- `Unavailable);
 
-    method get_frame =
+      self#on_after_output (fun () ->
+          match (streaming_state, consumed) with
+            | `Done _, 0 -> _cache <- None
+            | `Done buf, n ->
+                let pos = Frame.position buf in
+                assert (n <= pos);
+                if pos = n then _cache <- None
+                else _cache <- Some (Frame.chunk ~start:n ~stop:(pos - n) buf)
+            | _ -> ())
+
+    method get_partial_frame cb =
       self#has_ticked;
       match streaming_state with
         | `Unavailable ->
@@ -579,15 +611,18 @@ class virtual operator ?pos ?(name = "src") sources =
             raise Unavailable
         | `Ready fn ->
             fn ();
-            self#get_frame
-        | `Done data -> data
+            self#get_partial_frame cb
+        | `Done data ->
+            let data = cb data in
+            consumed <- max consumed (Frame.position data);
+            data
+
+    method get_frame = self#get_partial_frame (fun f -> f)
 
     method get_mutable_content field =
       let content = Frame.get self#get_frame field in
-      let count = try Hashtbl.find mutable_fields field with Not_found -> 1 in
-      Hashtbl.replace mutable_fields field (count + 1);
-      (* Disable for now. *)
-      if true || count > 1 then Content.copy content else content
+      (* Optimization is disabled for now. *)
+      Content.copy content
 
     method get_mutable_frame field =
       Frame.set self#get_frame field (self#get_mutable_content field)
@@ -602,6 +637,7 @@ class virtual operator ?pos ?(name = "src") sources =
 
     method private split_frame frame =
       match Frame.track_marks frame with
+        | 0 :: _ -> (self#empty_frame, Some frame)
         | p :: _ ->
             ( Frame.slice frame p,
               Some (Frame.chunk ~start:p ~stop:(Frame.position frame) frame) )
@@ -776,73 +812,55 @@ class virtual active_source ?pos ?name () =
 class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
   object (self)
     method virtual get_source : reselect:bool -> unit -> source option
-    method virtual empty_frame : Frame.t
-    method virtual on_after_output : (unit -> unit) -> unit
     method virtual split_frame : Frame.t -> Frame.t * Frame.t option
-    val mutable cache = None
-    val mutable last_position = Hashtbl.create 10
-    val mutable last_source = None
-    initializer self#on_after_output (fun () -> Hashtbl.clear last_position)
+    method virtual empty_frame : Frame.t
 
     method private can_generate_frame =
-      match cache with
-        | Some c when Frame.position c > 0 -> true
-        | _ -> (
-            match self#get_source ~reselect:false () with
-              | Some s -> s#is_ready
-              | None -> false)
-
-    method private get_slice ~reselect () =
-      match self#get_source ~reselect () with
-        | Some source when source#is_ready ->
-            let data = source#get_frame in
-            let start =
-              match Hashtbl.find_opt last_position source with
-                | Some p -> p
-                | None -> 0
-            in
-            let stop =
-              match
-                List.filter (fun p -> p > start) (Frame.track_marks data)
-              with
-                | p :: _ -> p
-                | _ -> Frame.position data
-            in
-            Hashtbl.replace last_position source stop;
-            if start = stop then None
-            else (
-              let chunk = Frame.chunk ~start ~stop data in
-              match last_source with
-                | Some s when s == source -> Some chunk
-                | _ ->
-                    last_source <- Some source;
-                    Some (Frame.add_track_mark chunk 0))
-        | _ -> None
+      match self#get_source ~reselect:false () with
+        | Some s -> s#is_ready
+        | None -> false
 
     method private generate_frame =
-      let rec pull ~reselect buf =
-        let pos = Frame.position buf in
-        let size = Lazy.force Frame.size in
-        if size <= pos then (
-          cache <-
-            (if pos = size then None
-             else Some (Frame.chunk ~start:size ~stop:pos buf));
-          if pos = size then buf else Frame.slice buf size)
-        else (
-          let buf = fst (self#split_frame buf) in
-          match self#get_slice ~reselect () with
-            | None -> buf
-            | Some new_track ->
-                let buf =
-                  if merge () then
-                    Frame.drop_track_marks (Frame.append buf new_track)
-                  else Frame.append buf new_track
-                in
-                pull ~reselect:true buf)
-      in
-      let buf = Option.value ~default:self#empty_frame cache in
-      cache <- None;
-      pull ~reselect:(not (track_sensitive ())) buf
+      match self#get_source ~reselect:(not (track_sensitive ())) () with
+        | Some s when s#is_ready ->
+            let buf =
+              s#get_partial_frame (fun frame ->
+                  match self#split_frame frame with
+                    | buf, _ when Frame.position buf = 0 -> frame
+                    | buf, _ -> buf)
+            in
+            let size = Lazy.force Frame.size in
+            let rec f ~last_source ~last_buf buf =
+              let pos = Frame.position buf in
+              if pos < size then (
+                match self#get_source ~reselect:true () with
+                  | Some s' when last_source == s' ->
+                      let remainder =
+                        s#get_partial_frame (fun frame ->
+                            Frame.slice frame (size - Frame.position last_buf))
+                      in
+                      Frame.append last_buf remainder
+                  | Some s when s#is_ready ->
+                      let new_track =
+                        s#get_partial_frame (fun frame ->
+                            match self#split_frame frame with
+                              | buf, _ when Frame.position buf = 0 ->
+                                  Frame.slice frame (size - pos)
+                              | buf, _ ->
+                                  Frame.slice frame
+                                    (min (Frame.position buf) size - pos))
+                      in
+                      let new_track =
+                        if merge () then Frame.drop_track_marks new_track
+                        else Frame.add_track_mark new_track 0
+                      in
+                      f ~last_source:s ~last_buf:buf
+                        (Frame.append buf new_track)
+                  | _ -> buf)
+              else buf
+            in
+            f ~last_source:s ~last_buf:self#empty_frame buf
+        | _ -> self#empty_frame
   end
 
 (** Specialized shortcuts *)

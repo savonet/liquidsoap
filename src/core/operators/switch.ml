@@ -142,7 +142,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
     method get_source ~reselect () =
       match (selected, reselect) with
-        | Some s, false -> Some s.effective_source
+        | Some s, false when s.effective_source#is_ready ->
+            Some s.effective_source
         | _ ->
             begin
               match (selected, self#select) with

@@ -29,18 +29,15 @@ open Source
   * to the current use of [sequence] in transitions. *)
 class sequence ?(merge = false) sources =
   let self_sync_type = Utils.self_sync_type sources in
-  let merge_fn = ref (fun () -> merge) in
+  let seq_sources = Atomic.make sources in
   object (self)
     inherit operator ~name:"sequence" sources
 
     inherit
       generate_from_multiple_sources
-        ~merge:(fun () -> !merge_fn ())
+        ~merge:(fun () -> merge && Atomic.get seq_sources <> [])
         ~track_sensitive:(fun () -> true)
         ()
-
-    val mutable seq_sources = sources
-    initializer merge_fn := fun () -> merge && seq_sources <> []
 
     method self_sync =
       ( Lazy.force self_sync_type,
@@ -58,32 +55,34 @@ class sequence ?(merge = false) sources =
       List.iter (fun s -> (s :> source)#leave (self :> source)) sources
 
     method private get_source ~reselect () =
-      match seq_sources with
-        | [] -> None
-        | s :: [] -> Some s
+      match Atomic.get seq_sources with
+        | s :: [] when s#is_ready -> Some s
         | s :: rest when reselect || not s#is_ready ->
+            self#log#info "Finished with %s" s#id;
             (s :> source)#leave (self :> source);
-            seq_sources <- rest;
+            Atomic.set seq_sources rest;
             self#get_source ~reselect:false ()
         | s :: _ -> Some s
+        | _ -> None
 
     method remaining =
       if merge then (
         let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
-        List.fold_left ( + ) 0 (List.map (fun s -> s#remaining) seq_sources))
-      else (List.hd seq_sources)#remaining
+        List.fold_left ( + ) 0
+          (List.map (fun s -> s#remaining) (Atomic.get seq_sources)))
+      else (List.hd (Atomic.get seq_sources))#remaining
 
     method seek_source =
-      match seq_sources with
+      match Atomic.get seq_sources with
         | s :: _ -> s#seek_source
         | _ -> (self :> Source.source)
 
     method abort_track =
       if merge then (
-        match List.rev seq_sources with
+        match List.rev (Atomic.get seq_sources) with
           | [] -> assert false
-          | hd :: _ -> seq_sources <- [hd]);
-      match seq_sources with hd :: _ -> hd#abort_track | _ -> ()
+          | hd :: _ -> Atomic.set seq_sources [hd]);
+      match Atomic.get seq_sources with hd :: _ -> hd#abort_track | _ -> ()
   end
 
 class merge_tracks source =
