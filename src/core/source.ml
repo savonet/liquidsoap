@@ -826,7 +826,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       let buf =
         s#get_partial_frame (fun frame ->
             match self#split_frame frame with
-              | buf, _ when Frame.position buf = 0 -> frame
+              | buf, _ when Frame.position buf = 0 -> self#empty_frame
               | buf, _ -> buf)
       in
       let size = Lazy.force Frame.size in

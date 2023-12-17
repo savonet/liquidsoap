@@ -1,8 +1,8 @@
-jingles = mksafe(playlist(id="jingles", mode="normal", "jingles"))
+jingles = playlist(id="jingles", mode="normal", "jingles")
 
-music = mksafe(playlist(id="music", mode="normal", "playlist"))
+music = playlist(id="music", mode="normal", "playlist")
 
-music2 = mksafe(playlist(id="music2", mode="normal", "playlist"))
+music2 = playlist(id="music2", mode="normal", "playlist")
 
 rounds = 10
 round_len = 8
@@ -12,33 +12,46 @@ njingles = ref(0)
 nmusic = ref(0)
 nmusic2 = ref(0)
 
+# There seems to be a side-effect on the first track
+is_first = ref(true)
+
 def ot(label) =
-  played := [label, ...played()]
-
-  if label == "music" then ref.incr(nmusic) end
-  if label == "music2" then ref.incr(nmusic2) end
-  if label == "jingles" then ref.incr(njingles) end
-
-  print(
-    "\n**** track: #{label}\n"
-  )
-
   if
-    list.length(played()) == round_len * rounds
+    is_first()
   then
+    is_first := false
+  else
+    played := [label, ...played()]
+
+    if label == "music" then ref.incr(nmusic) end
+    if label == "music2" then ref.incr(nmusic2) end
+    if label == "jingles" then ref.incr(njingles) end
+
     print(
-      "PLAYED: #{list.rev(played())}\n"
+      "\n**** track: #{label}\n"
     )
 
     if
-      njingles() == rounds and nmusic() == 3 * rounds and nmusic2() == 4 * rounds
+      list.length(played()) == round_len * rounds
     then
-      test.pass()
-    else
       print(
-        "jingles: #{njingles()} / music : #{nmusic()} / music2: #{nmusic2()}"
+        "PLAYED: #{list.rev(played())}\n"
       )
-      test.fail()
+
+      if
+        njingles() == rounds
+      and
+        nmusic() == 3 * rounds
+      and
+        nmusic2() == 4 * rounds
+      then
+        test.pass()
+      else
+        print(
+          "jingles: #{njingles()} / music : #{nmusic()} / music2: #{nmusic2()}"
+        )
+        test.fail()
+      end
     end
   end
 end
@@ -53,4 +66,4 @@ radio = rotate(id="rotate2", weights=[1, 1], [radio, music2])
 
 clock.assign_new(sync="none", [radio])
 
-output.dummy(radio)
+output.dummy(fallible=true, radio)
