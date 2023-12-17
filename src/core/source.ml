@@ -460,9 +460,7 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable caching = false
     val mutable activations : operator list list = []
     val mutable on_wake_up = []
-
-    method on_wake_up =
-      self#mutexify (fun fn -> on_wake_up <- on_wake_up @ [fn])
+    method on_wake_up fn = on_wake_up <- fn :: on_wake_up
 
     initializer
       self#on_wake_up (fun () ->
@@ -490,7 +488,7 @@ class virtual operator ?pos ?(name = "src") sources =
       activations <- activation :: activations
 
     val mutable on_sleep = []
-    method on_sleep = self#mutexify (fun fn -> on_sleep <- on_sleep @ [fn])
+    method on_sleep fn = on_sleep <- fn :: on_sleep
 
     initializer
       self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
@@ -686,17 +684,20 @@ class virtual operator ?pos ?(name = "src") sources =
 
     val mutable last_metadata = None
     method last_metadata = self#mutexify (fun () -> last_metadata) ()
-    val mutable on_metadata : (Frame.metadata -> unit) list = []
+    val mutable on_metadata : (Frame.metadata -> unit) List.t = []
+    method on_metadata fn = on_metadata <- fn :: on_metadata
+    val mutable on_track_called = false
+    initializer self#on_before_output (fun () -> on_track_called <- false)
+    val mutable on_track : (Frame.metadata -> unit) List.t = []
+    method on_track fn = on_track <- fn :: on_track
 
-    method on_metadata =
-      self#mutexify (fun fn -> on_metadata <- on_metadata @ [fn])
-
-    val mutable on_track : (Frame.metadata -> unit) list = []
-
-    (* We want to notify of new tracks on the next call after a
-       partial frame. *)
-    val mutable was_partial = true
-    method on_track = self#mutexify (fun fn -> on_track <- on_track @ [fn])
+    method private execute_on_track =
+      if not on_track_called then (
+        on_track_called <- true;
+        let m =
+          match last_metadata with Some m -> m | None -> Frame.Metadata.empty
+        in
+        List.iter (fun fn -> fn m) on_track)
 
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
@@ -725,11 +726,7 @@ class virtual operator ?pos ?(name = "src") sources =
       (match List.rev metadata with
         | (_, m) :: _ -> self#mutexify (fun () -> last_metadata <- Some m) ()
         | [] -> ());
-      if has_track_mark then (
-        let m =
-          match last_metadata with Some m -> m | None -> Frame.Metadata.empty
-        in
-        List.iter (fun fn -> fn m) on_track);
+      if has_track_mark then self#execute_on_track;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);
@@ -749,7 +746,7 @@ class virtual operator ?pos ?(name = "src") sources =
       List.iter (fun fn -> fn ()) on_before_output;
       in_output <- true
 
-    val mutable on_output = []
+    val mutable on_output : (unit -> unit) List.t = []
     method on_output fn = on_output <- fn :: on_output
     val mutable on_after_output = []
     method on_after_output fn = on_after_output <- fn :: on_after_output
@@ -814,6 +811,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual get_source : reselect:bool -> unit -> source option
     method virtual split_frame : Frame.t -> Frame.t * Frame.t option
     method virtual empty_frame : Frame.t
+    method virtual private execute_on_track : unit
 
     method private can_generate_frame =
       match self#get_source ~reselect:(not (track_sensitive ())) () with
@@ -833,6 +831,8 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       let rec f ~last_source ~last_buf buf =
         let pos = Frame.position buf in
         if pos < size then (
+          let merge = merge () in
+          if not merge then self#execute_on_track;
           match self#get_source ~reselect:true () with
             | Some s' when last_source == s' ->
                 let remainder =
@@ -852,7 +852,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                               (min (Frame.position buf) size - pos))
                 in
                 let new_track =
-                  if merge () then Frame.drop_track_marks new_track
+                  if merge then Frame.drop_track_marks new_track
                   else Frame.add_track_mark new_track 0
                 in
                 f ~last_source:s ~last_buf:buf (Frame.append buf new_track)

@@ -1,8 +1,8 @@
-jingles = playlist(id="jingles", mode="normal", "jingles")
+jingles = mksafe(id="jingles", playlist(mode="normal", "jingles"))
 
-music = playlist(id="music", mode="normal", "playlist")
+music = mksafe(id="music", playlist(mode="normal", "playlist"))
 
-music2 = playlist(id="music2", mode="normal", "playlist")
+music2 = mksafe(id="music2", playlist(mode="normal", "playlist"))
 
 rounds = 10
 round_len = 8
@@ -12,46 +12,37 @@ njingles = ref(0)
 nmusic = ref(0)
 nmusic2 = ref(0)
 
-# There seems to be a side-effect on the first track
-is_first = ref(true)
-
 def ot(label) =
+  played := [label, ...played()]
+
+  if label == "music" then ref.incr(nmusic) end
+  if label == "music2" then ref.incr(nmusic2) end
+  if label == "jingles" then ref.incr(njingles) end
+
+  print(
+    "\n**** track: #{label}\n"
+  )
+
   if
-    is_first()
+    list.length(played()) == round_len * rounds
   then
-    is_first := false
-  else
-    played := [label, ...played()]
-
-    if label == "music" then ref.incr(nmusic) end
-    if label == "music2" then ref.incr(nmusic2) end
-    if label == "jingles" then ref.incr(njingles) end
-
     print(
-      "\n**** track: #{label}\n"
+      "PLAYED: #{list.rev(played())}\n"
     )
 
     if
-      list.length(played()) == round_len * rounds
+      njingles() == rounds
+    and
+      nmusic() == 3 * rounds
+    and
+      nmusic2() == 4 * rounds
     then
+      test.pass()
+    else
       print(
-        "PLAYED: #{list.rev(played())}\n"
+        "jingles: #{njingles()} / music : #{nmusic()} / music2: #{nmusic2()}"
       )
-
-      if
-        njingles() == rounds
-      and
-        nmusic() == 3 * rounds
-      and
-        nmusic2() == 4 * rounds
-      then
-        test.pass()
-      else
-        print(
-          "jingles: #{njingles()} / music : #{nmusic()} / music2: #{nmusic2()}"
-        )
-        test.fail()
-      end
+      test.fail()
     end
   end
 end
