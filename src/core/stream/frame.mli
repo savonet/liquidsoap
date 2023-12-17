@@ -110,7 +110,8 @@ val chunk : start:int -> stop:int -> t -> t
 (** Get a frame's content type. *)
 val content_type : t -> content_type
 
-(** Append data to a frame. *)
+(** [append f f'] appends the data from [f'] to [f].
+    [f'] can possibly have more fields that [f]. *)
 val append : t -> t -> t
 
 (** Get a frame's content. *)
