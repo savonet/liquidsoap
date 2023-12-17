@@ -88,7 +88,7 @@ let create_encoder ~opus ~comments () =
     while Generator.length gen >= frame_size_in_main do
       let content =
         Frame.Fields.find Frame.Fields.audio
-          (Generator.get ~length:frame_size_in_main gen)
+          (Generator.slice gen frame_size_in_main)
       in
       let pcm = Content.Audio.get_data content in
       let ret =

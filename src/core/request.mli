@@ -22,16 +22,14 @@
 
 (** A request is something from which we can produce a file. *)
 
-(** Metadatas of a request. *)
-type metadata = Frame.metadata
-
 (** An indicator is a resource location (URI), when meaningful, it can be
     declared as temporary if liquidsoap should destroy it after usage (this means
     deleting a local file). *)
 type indicator
 
 (** Create an indicator. *)
-val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
+val indicator :
+  ?metadata:Frame.metadata -> ?temporary:bool -> string -> indicator
 
 (** Type of requests, which are devices for obtaining a local file from an
     URI. *)
@@ -147,13 +145,11 @@ val push_indicators : t -> indicator list -> unit
 
 (** {1 Metadatas} *)
 
-val string_of_metadata : metadata -> string
-val short_string_of_metadata : metadata -> string
 val set_metadata : t -> string -> string -> unit
 val get_metadata : t -> string -> string option
 val set_root_metadata : t -> string -> string -> unit
 val get_root_metadata : t -> string -> string option
-val get_all_metadata : t -> metadata
+val get_all_metadata : t -> Frame.metadata
 
 (** {1 Logging}
     Every request has a separate log in which its history can be written. *)

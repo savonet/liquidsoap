@@ -29,7 +29,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
   object (self : < Source.source ; .. > as 'a)
     val mutable buffering = true
     val mutable add_track_mark = false
-    val mutable cur_meta : Request.metadata option = None
+    val mutable cur_meta : Frame.metadata option = None
     method virtual private log : Log.t
     method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method virtual buffer : Generator.t

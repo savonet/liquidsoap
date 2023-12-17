@@ -331,10 +331,14 @@ module MkContentBase (C : ContentSpecs) :
         | length, _ ->
             let buf = C.make ~length d.params in
             ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
-            {
-              d with
-              chunks = [{ offset = 0; length = Some length; data = buf }];
-            }
+            if copy then
+              {
+                d with
+                chunks = [{ offset = 0; length = Some length; data = buf }];
+              }
+            else (
+              d.chunks <- [{ offset = 0; length = Some length; data = buf }];
+              d)
 
   let copy = consolidate_chunks ~copy:true
 

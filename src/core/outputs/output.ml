@@ -89,7 +89,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
                      s
                      ^ (if s = "" then "--- " else "\n--- ")
                      ^ string_of_int i ^ " ---\n"
-                     ^ Request.string_of_metadata
+                     ^ Frame.Metadata.to_string
                          (Frame.Metadata.Export.to_metadata m)
                    in
                    (s, i - 1))

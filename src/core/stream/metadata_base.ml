@@ -27,6 +27,23 @@ type t = (string, string) Liquidsoap_lang.Methods.t
 let to_list m =
   List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (bindings m)
 
+let to_string metadata =
+  let b = Buffer.create 20 in
+  let f = Format.formatter_of_buffer b in
+  let first = ref true in
+  iter
+    (fun k v ->
+      if !first then (
+        first := false;
+        try Format.fprintf f "%s=%s" k (Lang_string.quote_utf8_string v)
+        with _ -> ())
+      else (
+        try Format.fprintf f "\n%s=%s" k (Lang_string.quote_utf8_string v)
+        with _ -> ()))
+    metadata;
+  Format.pp_print_flush f ();
+  Buffer.contents b
+
 module Export = struct
   type metadata = t
   type t = metadata

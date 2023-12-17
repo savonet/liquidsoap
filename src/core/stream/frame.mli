@@ -54,6 +54,7 @@ type content_type = Content.format Fields.t
 module Metadata : sig
   type t = Frame_base.Metadata.t
 
+  val to_string : t -> string
   val from_list : (string * string) list -> t
   val to_list : t -> (string * string) list
   val is_empty : t -> bool

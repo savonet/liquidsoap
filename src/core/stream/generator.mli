@@ -81,10 +81,6 @@ val clear : t -> unit
    for these type of content. *)
 val put : t -> Frame_base.field -> Content.data -> unit
 
-(* Remove the given length of content from the beginning of the generator
-   and return it. Defaults to the whole available length. *)
-val get : ?length:int -> t -> Content.data Frame_base.Fields.t
-
 (* Return the generator's content without removing it. *)
 val peek : t -> Content.data Frame_base.Fields.t
 

@@ -177,24 +177,6 @@ let _put gen field new_content =
 let put gen field =
   Tutils.mutexify gen.lock (fun content -> _put gen field content)
 
-let _get =
-  let len = length in
-  fun ?length gen ->
-    let length = Option.value ~default:(len gen) length in
-    if len gen < length then
-      failwith "Requested length is greater than buffer length!";
-    let content =
-      Frame_base.Fields.map
-        (fun c -> Content.sub c 0 length)
-        (Atomic.get gen.content)
-    in
-    Atomic.set gen.content
-      (Frame_base.Fields.map
-         (fun c -> Content.truncate c length)
-         (Atomic.get gen.content));
-    content
-
-let get ?length gen = Tutils.mutexify gen.lock (fun () -> _get ?length gen) ()
 let peek gen = Atomic.get gen.content
 let peek_media gen = media_content gen
 
