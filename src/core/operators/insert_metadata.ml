@@ -34,7 +34,7 @@ class insert_metadata source =
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    val mutable metadata = Atomic.make None
+    val metadata = Atomic.make None
 
     method insert_metadata ~new_track m =
       Atomic.set metadata (Some (new_track, m))
