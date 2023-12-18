@@ -1,18 +1,19 @@
 success = ref(false)
 
 a = sine(duration=5., 440.)
-a = metadata.map(update=false, (fun (_) -> [("source", "a")]), a)
+a = metadata.map(id="a", update=false, (fun (_) -> [("source", "a")]), a)
 
 b = sine(duration=5., 880.)
 b =
   metadata.map(
+    id="b",
     update=false,
     (fun (_) -> [("source", "b"), ("liq_cross_duration", "1.1")]),
     b
   )
 
 c = sine(duration=5., 440.)
-c = metadata.map(update=false, (fun (_) -> [("source", "c")]), c)
+c = metadata.map(id="c", update=false, (fun (_) -> [("source", "c")]), c)
 
 s = sequence([a, b, c])
 s = crossfade(duration=5., s)
