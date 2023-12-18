@@ -142,8 +142,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
          etc). *)
       source#get_ready ((self :> operator) :: activation);
 
-      if source#stype = `Infallible then
-        start_stop#transition_to (if autostart then `Started else `Stopped);
+      if not autostart then start_stop#transition_to `Stopped;
 
       self#register_telnet
 
@@ -168,7 +167,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
 
     method private output =
       self#has_ticked;
-      if self#is_ready && state <> `Stopped then
+      if self#can_generate_frame && state <> `Stopped then
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         let data =

@@ -818,15 +818,21 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
         | Some s -> s#is_ready
         | None -> false
 
+    val mutable is_first = true
+
     method private generate_frame =
       let s = Option.get (self#get_source ~reselect:false ()) in
       assert s#is_ready;
+      let was_first = is_first in
+      is_first <- false;
       let buf =
         s#get_partial_frame (fun frame ->
             match self#split_frame frame with
-              | buf, _ when Frame.position buf = 0 -> self#empty_frame
+              | buf, _ when Frame.position buf = 0 ->
+                  if was_first then frame else self#empty_frame
               | buf, _ -> buf)
       in
+      if was_first && Frame.has_track_marks buf then self#execute_on_track;
       let size = Lazy.force Frame.size in
       let rec f ~last_source ~last_buf buf =
         let pos = Frame.position buf in
@@ -837,9 +843,12 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
             | Some s' when last_source == s' ->
                 let remainder =
                   s#get_partial_frame (fun frame ->
-                      Frame.slice frame (size - Frame.position last_buf))
+                      Frame.slice frame (Frame.position last_buf + size - pos))
                 in
-                Frame.append last_buf remainder
+                Frame.append buf
+                  (Frame.chunk ~start:(Frame.position last_buf)
+                     ~stop:(Frame.position remainder - Frame.position last_buf)
+                     remainder)
             | Some s ->
                 assert s#is_ready;
                 let new_track =
@@ -855,7 +864,8 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                   if merge then Frame.drop_track_marks new_track
                   else Frame.add_track_mark new_track 0
                 in
-                f ~last_source:s ~last_buf:buf (Frame.append buf new_track)
+                f ~last_source:s ~last_buf:new_track
+                  (Frame.append buf new_track)
             | _ -> buf)
         else buf
       in
