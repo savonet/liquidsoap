@@ -1,8 +1,12 @@
-jingles = mksafe(id="jingles", playlist(mode="normal", "jingles"))
+def mksource(id="", url) =
+  metadata.map(id=id, fun (_) -> [("source", id)], mksafe(playlist(url)))
+end
 
-music = mksafe(id="music", playlist(mode="normal", "playlist"))
+jingles = mksource("jingles", "jingles")
 
-music2 = mksafe(id="music2", playlist(mode="normal", "playlist"))
+music = mksource("music", "playlist")
+
+music2 = mksource("music2", "playlist")
 
 rounds = 10
 round_len = 8
@@ -12,48 +16,51 @@ njingles = ref(0)
 nmusic = ref(0)
 nmusic2 = ref(0)
 
-def ot(label) =
-  played := [label, ...played()]
-
-  if label == "music" then ref.incr(nmusic) end
-  if label == "music2" then ref.incr(nmusic2) end
-  if label == "jingles" then ref.incr(njingles) end
-
-  print(
-    "\n**** track: #{label}\n"
-  )
+def ot(m) =
+  label = m["source"]
 
   if
-    list.length(played()) == round_len * rounds
+    label != ""
   then
+    played := [label, ...played()]
+
+    if label == "music" then ref.incr(nmusic) end
+    if label == "music2" then ref.incr(nmusic2) end
+    if label == "jingles" then ref.incr(njingles) end
+
     print(
-      "PLAYED: #{list.rev(played())}\n"
+      "\n**** track: #{label}\n"
     )
 
     if
-      njingles() == rounds
-    and
-      nmusic() == 3 * rounds
-    and
-      nmusic2() == 4 * rounds
+      list.length(played()) == round_len * rounds
     then
-      test.pass()
-    else
       print(
-        "jingles: #{njingles()} / music : #{nmusic()} / music2: #{nmusic2()}"
+        "PLAYED: #{list.rev(played())}\n"
       )
-      test.fail()
+
+      if
+        njingles() == rounds
+      and
+        nmusic() == 3 * rounds
+      and
+        nmusic2() == 4 * rounds
+      then
+        test.pass()
+      else
+        print(
+          "jingles: #{njingles()} / music : #{nmusic()} / music2: #{nmusic2()}"
+        )
+        test.fail()
+      end
     end
   end
 end
 
-jingles.on_track(fun (_) -> ot("jingles"))
-
-music.on_track(fun (_) -> ot("music"))
-music2.on_track(fun (_) -> ot("music2"))
-
 radio = rotate(id="rotate", weights=[3, 1], [music, jingles])
 radio = rotate(id="rotate2", weights=[1, 1], [radio, music2])
+
+radio.on_track(ot)
 
 clock.assign_new(sync="none", [radio])
 
