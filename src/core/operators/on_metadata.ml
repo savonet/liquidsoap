@@ -34,7 +34,8 @@ class on_metadata f s =
       let buf = s#get_frame in
       List.iter
         (fun (p, m) ->
-          self#log#debug "Got metadata at position %d: calling handler..." p;
+          self#log#debug
+            "on_metadata: got metadata at position %d: calling handler..." p;
           ignore (Lang.apply f [("", Lang.metadata m)]))
         (Frame.get_all_metadata buf);
       buf

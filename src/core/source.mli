@@ -210,6 +210,7 @@ class virtual source :
        method on_track : (Frame.metadata -> unit) -> unit
 
        method private execute_on_track : Frame.t -> unit
+       method private set_last_metadata : Frame.t -> unit
        method streaming_state : streaming_state
        method get_frame : Frame.t
        method get_partial_frame : (Frame.t -> Frame.t) -> Frame.t
@@ -301,6 +302,7 @@ class virtual generate_from_multiple_sources :
        method virtual split_frame : Frame.t -> Frame.t * Frame.t option
        method virtual empty_frame : Frame.t
        method virtual private execute_on_track : Frame.t -> unit
+       method virtual private set_last_metadata : Frame.t -> unit
        method private can_generate_frame : bool
        method private generate_frame : Frame.t
      end

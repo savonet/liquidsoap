@@ -692,14 +692,17 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable on_track : (Frame.metadata -> unit) List.t = []
     method on_track fn = on_track <- fn :: on_track
 
+    method private set_last_metadata buf =
+      match List.rev (Frame.get_all_metadata buf) with
+        | (_, m) :: _ -> last_metadata <- Some m
+        | _ -> ()
+
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
-        let m =
-          match List.rev (Frame.get_all_metadata buf) with
-            | (_, m) :: _ -> m
-            | [] -> Frame.Metadata.empty
-        in
+        self#set_last_metadata buf;
+        let m = Option.value ~default:Frame.Metadata.empty last_metadata in
+        self#log#debug "calling on_track handlers..";
         List.iter (fun fn -> fn m) on_track)
 
     method private instrumented_generate_frame =
@@ -723,12 +726,10 @@ class virtual operator ?pos ?(name = "src") sources =
       let on_metadata = self#mutexify (fun () -> on_metadata) () in
       List.iter
         (fun (i, m) ->
-          self#log#debug "Got metadata at position %d: calling handlers..." i;
+          self#log#debug
+            "generate_frame: got metadata at position %d: calling handlers..." i;
           List.iter (fun fn -> fn m) on_metadata)
         metadata;
-      (match List.rev (Frame.get_all_metadata buf) with
-        | (_, m) :: _ -> last_metadata <- Some m
-        | [] -> ());
       if has_track_mark then self#execute_on_track buf;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
@@ -815,6 +816,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual split_frame : Frame.t -> Frame.t * Frame.t option
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
+    method virtual private set_last_metadata : Frame.t -> unit
 
     method private can_generate_frame =
       match self#get_source ~reselect:(not (track_sensitive ())) () with
@@ -823,17 +825,19 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
 
     val mutable current_source = None
 
+    method private begin_track buf =
+      if merge () then Frame.drop_track_marks buf
+      else (
+        self#execute_on_track buf;
+        Frame.add_track_mark buf 0)
+
     method private continue_frame s =
       s#get_partial_frame (fun frame ->
           match self#split_frame frame with
-            | buf, Some next_track when Frame.position buf = 0 ->
-                if match current_source with Some s' -> s != s' | None -> true
-                then
-                  if merge () then Frame.drop_track_marks next_track
-                  else (
-                    self#execute_on_track next_track;
-                    Frame.add_track_mark next_track 0)
-                else self#empty_frame
+            | buf, Some next_track when Frame.position buf = 0 -> (
+                match current_source with
+                  | Some s' when s == s' -> self#empty_frame
+                  | _ -> self#begin_track next_track)
             | buf, _ -> buf)
 
     method private generate_frame =
@@ -841,43 +845,40 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       assert s#is_ready;
       let buf = self#continue_frame s in
       let size = Lazy.force Frame.size in
-      let rec f ~last_source ~last_buf buf =
+      let rec f ~last_source ~last_chunk buf =
         let pos = Frame.position buf in
+        self#set_last_metadata last_chunk;
         if pos < size then (
+          let rem = size - pos in
           match self#get_source ~reselect:true () with
             | Some s' when last_source == s' ->
                 let remainder =
                   s#get_partial_frame (fun frame ->
-                      Frame.slice frame (Frame.position last_buf + size - pos))
+                      Frame.slice frame (Frame.position last_chunk + rem))
                 in
-                ( s,
-                  Frame.append buf
-                    (Frame.chunk ~start:(Frame.position last_buf)
-                       ~stop:(Frame.position remainder - Frame.position last_buf)
-                       remainder) )
+                let new_track =
+                  Frame.chunk
+                    ~start:(Frame.position last_chunk)
+                    ~stop:(Frame.position remainder) remainder
+                in
+                (s, Frame.append buf (self#begin_track new_track))
             | Some s ->
                 assert s#is_ready;
                 let new_track =
                   s#get_partial_frame (fun frame ->
                       match self#split_frame frame with
                         | buf, _ when Frame.position buf = 0 ->
-                            Frame.slice frame (size - pos)
+                            Frame.slice frame rem
                         | buf, _ ->
                             Frame.slice frame
                               (min (Frame.position buf) size - pos))
                 in
-                let new_track =
-                  if merge () then Frame.drop_track_marks new_track
-                  else (
-                    self#execute_on_track new_track;
-                    Frame.add_track_mark new_track 0)
-                in
-                f ~last_source:s ~last_buf:new_track
-                  (Frame.append buf new_track)
+                f ~last_source:s ~last_chunk:new_track
+                  (Frame.append buf (self#begin_track new_track))
             | _ -> (last_source, buf))
         else (last_source, buf)
       in
-      let last_source, buf = f ~last_source:s ~last_buf:self#empty_frame buf in
+      let last_source, buf = f ~last_source:s ~last_chunk:buf buf in
       current_source <- Some last_source;
       buf
   end
