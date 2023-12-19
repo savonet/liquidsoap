@@ -57,7 +57,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                  Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
                in
                match s with
-                 | None -> None
+                 | None -> source
                  | Some s ->
                      Typing.(s#frame_type <: self#frame_type);
                      Clock.unify ~pos:self#pos s#clock self#clock;
