@@ -319,32 +319,26 @@ module MkContentBase (C : ContentSpecs) :
       C.blit data offset buf pos length;
       pos + length
     in
-    (* For some reason we're not getting a proper stack trace from
-       this unless we re-raise. *)
     fun ~copy d ->
-      try
-        match (length d, d.chunks) with
-          | 0, _ ->
-              d.chunks <- [];
-              { d with chunks = [] }
-          | _, [{ offset = 0; length = None }] when not copy -> d
-          | _, [{ offset = 0; length = Some l; data }]
-            when l = C.length data && not copy ->
-              d
-          | length, _ ->
-              let buf = C.make ~length d.params in
-              ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
-              if copy then
-                {
-                  d with
-                  chunks = [{ offset = 0; length = Some length; data = buf }];
-                }
-              else (
-                d.chunks <- [{ offset = 0; length = Some length; data = buf }];
-                d)
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Printexc.raise_with_backtrace exn bt
+      match (length d, d.chunks) with
+        | 0, _ ->
+            d.chunks <- [];
+            { d with chunks = [] }
+        | _, [{ offset = 0; length = None }] when not copy -> d
+        | _, [{ offset = 0; length = Some l; data }]
+          when l = C.length data && not copy ->
+            d
+        | length, _ ->
+            let buf = C.make ~length d.params in
+            ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
+            if copy then
+              {
+                d with
+                chunks = [{ offset = 0; length = Some length; data = buf }];
+              }
+            else (
+              d.chunks <- [{ offset = 0; length = Some length; data = buf }];
+              d)
 
   let copy = consolidate_chunks ~copy:true
 

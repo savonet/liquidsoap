@@ -171,7 +171,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
         let data =
-          if source#is_ready then source#get_frame else self#empty_frame
+          if source#is_ready then source#get_frame else self#end_of_track
         in
         List.iter
           (fun (_, m) ->
