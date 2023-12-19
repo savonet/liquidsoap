@@ -33,20 +33,30 @@ class on_end ~delay f s =
     method self_sync = s#self_sync
     method private on_new_metadata = ()
 
-    method private generate_frame =
-      let buf = s#get_frame in
-      self#save_latest_metadata buf;
-      let rem = Frame.seconds_of_main s#remaining in
-      if (not executed) && ((0. <= rem && rem <= delay ()) || s#has_track_mark)
-      then (
+    method private on_end rem =
+      if not executed then
         ignore
           (Lang.apply f
              [("", Lang.float rem); ("", Lang.metadata latest_metadata)]);
-        executed <- true);
-      if s#has_track_mark then (
-        self#clear_latest_metadata;
-        executed <- false);
-      buf
+      executed <- true
+
+    method private generate_frame =
+      let rem = Frame.seconds_of_main s#remaining in
+      let frame = s#get_frame in
+      match self#split_frame frame with
+        | buf, None ->
+            self#save_latest_metadata buf;
+            if 0. <= rem && rem <= delay () then self#on_end rem;
+            buf
+        | buf, Some new_track ->
+            if not executed then (
+              self#log#important
+                "New track occurred before the expected delay was reached!";
+              self#on_end (Frame.seconds_of_main (Frame.position buf)));
+            self#clear_latest_metadata;
+            self#save_latest_metadata new_track;
+            executed <- false;
+            frame
   end
 
 let _ =
