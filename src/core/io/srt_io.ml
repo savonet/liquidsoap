@@ -727,6 +727,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
                 in
                 let decoder = self#create_decoder socket in
                 decoder_data <- Some (decoder, buffer);
+                Generator.add_track_mark self#buffer;
                 (decoder, buffer)
             | Some d -> d
         in

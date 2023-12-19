@@ -669,7 +669,6 @@ class virtual operator ?pos ?(name = "src") sources =
             let buf =
               Generator.create ~log:(self#log#info "%s") self#content_type
             in
-            Generator.add_track_mark buf;
             buffer <- Some buf;
             buf
 

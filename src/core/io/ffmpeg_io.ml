@@ -166,6 +166,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           else []
         in
         on_connect input;
+        Generator.add_track_mark self#buffer;
         Atomic.set container
           (Some { input; decoder; buffer; get_metadata; closed });
         Atomic.set source_status (`Connected url);
