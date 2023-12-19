@@ -25,6 +25,7 @@ class on_end ~delay f s =
     inherit Source.operator ~name:"on_end" [s]
     inherit Latest_metadata.source
     val mutable executed = false
+    val mutable started = false
     method stype = s#stype
     method private can_generate_frame = s#is_ready
     method remaining = s#remaining
@@ -43,13 +44,15 @@ class on_end ~delay f s =
     method private generate_frame =
       let rem = Frame.seconds_of_main s#remaining in
       let frame = s#get_frame in
+      let has_started = started in
+      started <- true;
       match self#split_frame frame with
         | buf, None ->
             self#save_latest_metadata buf;
             if 0. <= rem && rem <= delay () then self#on_end rem;
             buf
         | buf, Some new_track ->
-            if not executed then (
+            if has_started && not executed then (
               self#log#important
                 "New track occurred before the expected delay was reached!";
               self#on_end (Frame.seconds_of_main (Frame.position buf)));
