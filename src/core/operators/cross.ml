@@ -275,17 +275,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
-            let before =
-              new Insert_metadata.replay
-                before_metadata
-                (new Generated.consumer gen_before)
-            in
+            let before = new Generated.consumer gen_before in
             Typing.(before#frame_type <: self#frame_type);
-            let after =
-              new Insert_metadata.replay
-                after_metadata
-                (new Generated.consumer gen_after)
-            in
+            let before = new Insert_metadata.replay before_metadata before in
+            Typing.(before#frame_type <: self#frame_type);
+            let after = new Generated.consumer gen_after in
+            Typing.(after#frame_type <: self#frame_type);
+            let after = new Insert_metadata.replay after_metadata after in
             Typing.(after#frame_type <: self#frame_type);
             let () =
               before#set_id (self#id ^ "_before");
