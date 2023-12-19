@@ -571,8 +571,8 @@ class virtual operator ?pos ?(name = "src") sources =
           let cache_pos = Frame.position cache in
           let size = Lazy.force Frame.size in
           if cache_pos > 0 || self#can_generate_frame then (
-            let was_done =
-              match streaming_state with `Done _ -> true | _ -> false
+            let was_available =
+              match streaming_state with `Unavailable -> false | _ -> true
             in
             streaming_state <-
               `Ready
@@ -594,7 +594,7 @@ class virtual operator ?pos ?(name = "src") sources =
                   (* Always had a track mark when the source becomes available after being
                      unavailable. *)
                   let buf =
-                    if was_done then buf else Frame.add_track_mark buf 0
+                    if was_available then buf else Frame.add_track_mark buf 0
                   in
                   streaming_state <- `Done buf))
           else streaming_state <- `Unavailable);
