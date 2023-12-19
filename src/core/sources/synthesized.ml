@@ -53,7 +53,7 @@ class virtual source ?name ~seek duration =
 
     method abort_track =
       add_track_mark <- true;
-      remaining <- Some (-1)
+      remaining <- Some 1
 
     method virtual private synthesize : int -> Frame.t
 
