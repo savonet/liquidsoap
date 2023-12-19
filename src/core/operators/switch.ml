@@ -35,7 +35,11 @@ type child = { source : source; transition : transition }
   * or only at track limits (sensitive). *)
 type track_mode = Sensitive | Insensitive
 
-type selection = { child : child; effective_source : source }
+type selection = {
+  predicate : Lang.value;
+  child : child;
+  effective_source : source;
+}
 
 let satisfied f = Lang.to_bool (Lang.apply f [])
 
@@ -48,7 +52,7 @@ let trivially_true = function
       true
   | _ -> false
 
-let third (_, _, s) = s
+let pick_selection (p, _, s) = (p, s)
 
 (** Like [List.find] but evaluates [f] on every element when [strict] is
     [true]. *)
@@ -65,7 +69,7 @@ let find ?(strict = false) f l =
 
 class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
   ~track_sensitive children =
-  let cases = List.map third children in
+  let cases = List.map (fun (_, _, s) -> s) children in
   let sources = ref (List.map (fun c -> c.source) cases) in
   let failed = ref false in
   let () =
@@ -103,7 +107,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
       in
       try
         Some
-          (third
+          (pick_selection
              (find ~strict:all_predicates
                 (fun (d, single, s) ->
                   (* Check single constraints *)
@@ -142,7 +146,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 
     method get_source ~reselect () =
       match (selected, reselect) with
-        | Some s, false when s.effective_source#is_ready ->
+        | Some s, false
+          when satisfied s.predicate && s.effective_source#is_ready ->
             Some s.effective_source
         | _ -> (
             begin
@@ -152,7 +157,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                     if c.child.source != c.effective_source then
                       c.effective_source#leave (self :> source);
                     selected <- None
-                | None, Some c ->
+                | None, Some (predicate, c) ->
                     self#log#important "Switch to %s." c.source#id;
                     let new_source =
                       (* Force insertion of old metadata if relevant.
@@ -170,11 +175,12 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                     Typing.(new_source#frame_type <: self#frame_type);
                     new_source#get_ready activation;
                     selected <-
-                      Some { child = c; effective_source = new_source }
-                | Some old_selection, Some c
+                      Some
+                        { predicate; child = c; effective_source = new_source }
+                | Some old_selection, Some (_, c)
                   when old_selection.child.source == c.source ->
                     ()
-                | old_selection, Some c ->
+                | old_selection, Some (predicate, c) ->
                     let forget, old_source =
                       match old_selection with
                         | None -> (true, Debug_sources.empty ())
@@ -231,7 +237,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                         Typing.(s#frame_type <: self#frame_type);
                         Clock.unify ~pos:self#pos s#clock self#clock;
                         s#get_ready activation;
-                        selected <- Some { child = c; effective_source = s })
+                        selected <-
+                          Some { predicate; child = c; effective_source = s })
             end;
             match selected with
               | Some s when s.effective_source#is_ready ->
