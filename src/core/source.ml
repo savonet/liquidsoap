@@ -570,7 +570,10 @@ class virtual operator ?pos ?(name = "src") sources =
           let cache = self#cache in
           let cache_pos = Frame.position cache in
           let size = Lazy.force Frame.size in
-          if cache_pos > 0 || self#can_generate_frame then
+          if cache_pos > 0 || self#can_generate_frame then (
+            let was_done =
+              match streaming_state with `Done _ -> true | _ -> false
+            in
             streaming_state <-
               `Ready
                 (fun () ->
@@ -588,7 +591,12 @@ class virtual operator ?pos ?(name = "src") sources =
                       Frame.slice buf size)
                     else buf
                   in
-                  streaming_state <- `Done buf)
+                  (* Always had a track mark when the source becomes available after being
+                     unavailable. *)
+                  let buf =
+                    if was_done then buf else Frame.add_track_mark buf 0
+                  in
+                  streaming_state <- `Done buf))
           else streaming_state <- `Unavailable);
 
       self#on_after_output (fun () ->
@@ -694,11 +702,10 @@ class virtual operator ?pos ?(name = "src") sources =
     method private execute_on_track buf =
       if not on_track_called then (
         on_track_called <- true;
-        (match List.rev (Frame.get_all_metadata buf) with
-          | (_, m) :: _ -> last_metadata <- Some m
-          | [] -> ());
         let m =
-          match last_metadata with Some m -> m | None -> Frame.Metadata.empty
+          match List.rev (Frame.get_all_metadata buf) with
+            | (_, m) :: _ -> m
+            | [] -> Frame.Metadata.empty
         in
         List.iter (fun fn -> fn m) on_track)
 
@@ -726,6 +733,9 @@ class virtual operator ?pos ?(name = "src") sources =
           self#log#debug "Got metadata at position %d: calling handlers..." i;
           List.iter (fun fn -> fn m) on_metadata)
         metadata;
+      (match List.rev (Frame.get_all_metadata buf) with
+        | (_, m) :: _ -> last_metadata <- Some m
+        | [] -> ());
       if has_track_mark then self#execute_on_track buf;
       self#iter_watchers (fun w ->
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark

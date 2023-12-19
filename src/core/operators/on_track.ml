@@ -20,14 +20,7 @@
 
  *****************************************************************************)
 
-(* This operator was kept as-is for homogeneity with the other
-   on_* operators. However, on_track trigger should be passed
-   down to the underlying source to make sure that it is properly
-   called between tracks. *)
 class on_track f s =
-  let () =
-    s#on_track (fun m -> ignore (Lang.apply f [("", Lang.metadata m)]))
-  in
   object
     inherit Source.operator ~name:"on_track" [s]
     method stype = s#stype
@@ -36,7 +29,18 @@ class on_track f s =
     method remaining = s#remaining
     method seek_source = s#seek_source
     method self_sync = s#self_sync
-    method private generate_frame = s#get_frame
+
+    method private generate_frame =
+      let buf = s#get_frame in
+      if Frame.track_marks buf <> [] then begin
+        let m =
+          match Frame.get_metadata buf 0 with
+            | None -> Lang.list []
+            | Some m -> Lang.metadata m
+        in
+        ignore (Lang.apply f [("", m)])
+      end;
+      buf
   end
 
 let _ =
