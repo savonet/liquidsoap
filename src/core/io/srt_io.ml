@@ -717,6 +717,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
       create_decoder { Decoder.read; tell = None; length = None; lseek = None }
 
     method private generate_frame =
+      let size = Lazy.force Frame.size in
       try
         let _, socket = self#get_socket in
         let decoder, buffer =
@@ -731,7 +732,6 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
                 (decoder, buffer)
             | Some d -> d
         in
-        let size = Lazy.force Frame.size in
         while Generator.length self#buffer < size do
           decoder.Decoder.decode buffer
         done;
@@ -742,7 +742,7 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         self#disconnect;
         if not self#should_stop then self#connect;
-        self#empty_frame
+        Frame.append (Generator.slice self#buffer size) self#end_of_track
 
     method private start =
       self#set_should_stop false;

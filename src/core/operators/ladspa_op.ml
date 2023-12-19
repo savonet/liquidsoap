@@ -184,7 +184,7 @@ class ladspa_nosource plugin descr outputs params =
     method private generate_frame =
       if must_fail then (
         must_fail <- false;
-        self#empty_frame)
+        self#end_of_track)
       else (
         let length = Lazy.force Frame.size in
         let buf = Frame.create ~length self#content_type in

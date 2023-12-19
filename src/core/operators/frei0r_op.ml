@@ -160,7 +160,7 @@ class frei0r_source ~name bgra instance params =
     method private generate_frame =
       if must_fail then (
         must_fail <- false;
-        self#empty_frame)
+        self#end_of_track)
       else (
         params ();
         let length = Lazy.force Frame.size in

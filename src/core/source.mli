@@ -176,6 +176,9 @@ class virtual source :
        (** An empty frame that can be used by the source. *)
        method empty_frame : Frame.t
 
+       (** An empty frame with a track mark. *)
+       method end_of_track : Frame.t
+
        (** Number of frames left in the current track. Defaults to -1=infinity. *)
        method virtual remaining : int
 

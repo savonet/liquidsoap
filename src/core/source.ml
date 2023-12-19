@@ -682,6 +682,7 @@ class virtual operator ?pos ?(name = "src") sources =
             empty_frame <- Some f;
             f
 
+    method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
     method last_metadata = last_metadata
     val mutable on_metadata : (Frame.metadata -> unit) List.t = []

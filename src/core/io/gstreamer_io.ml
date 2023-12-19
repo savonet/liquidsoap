@@ -632,14 +632,14 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
               self#log#info "Restarting.";
               self#restart);
             if self#can_generate_frame then self#generate_frame
-            else self#empty_frame
+            else self#end_of_track
         | exn ->
             let bt = Printexc.get_backtrace () in
             Utils.log_exception ~log:self#log ~bt
               (Printf.sprintf "Error while processing input data: %s"
                  (Printexc.to_string exn));
             self#on_error exn;
-            self#empty_frame
+            self#end_of_track
   end
 
 let input_proto =

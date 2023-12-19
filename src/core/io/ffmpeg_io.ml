@@ -264,7 +264,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn);
         self#reconnect;
-        self#empty_frame
+        Frame.append (Generator.slice self#buffer size) self#end_of_track
   end
 
 let http_log = Log.make ["input"; "http"]

@@ -54,15 +54,26 @@ class sequence ?(merge = false) sources =
     method! private sleep =
       List.iter (fun s -> (s :> source)#leave (self :> source)) sources
 
+    (* We have to wait until at least one source is ready. *)
+    val mutable has_started = false
+
+    method private has_started =
+      match has_started with
+        | true -> true
+        | false ->
+            has_started <-
+              List.exists (fun s -> s#is_ready) (Atomic.get seq_sources);
+            has_started
+
     method private get_source ~reselect () =
-      match Atomic.get seq_sources with
-        | s :: [] when s#is_ready -> Some s
-        | s :: rest when reselect || not s#is_ready ->
+      match (self#has_started, Atomic.get seq_sources) with
+        | true, s :: [] when s#is_ready -> Some s
+        | true, s :: rest when reselect || not s#is_ready ->
             self#log#info "Finished with %s" s#id;
             (s :> source)#leave (self :> source);
             Atomic.set seq_sources rest;
             self#get_source ~reselect:false ()
-        | s :: _ -> Some s
+        | true, s :: _ -> Some s
         | _ -> None
 
     method remaining =
