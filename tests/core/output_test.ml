@@ -7,18 +7,15 @@ class dummy ~autostart ~on_start source =
         (Lang.source (source :> Source.source))
 
     method test_wake_up = self#wake_up []
-    val mutable test_is_ready = false
-    method test_set_is_ready = test_is_ready <- true
-    method! can_generate_frame = test_is_ready
+    val mutable test_can_generate_frame = false
+    method test_set_can_generate_frame = test_can_generate_frame <- true
+    method! can_generate_frame = test_can_generate_frame
     method test_output = self#output
   end
 
 class failed =
   object
     inherit Debug_sources.fail "failed"
-
-    method! get_frame =
-      Frame.create ~length:(Lazy.force Frame.size) Frame.Fields.empty
   end
 
 let () =
@@ -30,11 +27,11 @@ let () =
   let clock = Clock.clock ~start:false "source" in
   Clock.unify ~pos:o#pos o#clock (Clock.create_known clock);
   o#content_type_computation_allowed;
-  assert (not o#is_ready);
+  assert (not o#can_generate_frame);
   o#test_wake_up;
   assert (not !started);
-  o#test_set_is_ready;
-  assert o#is_ready;
+  o#test_set_can_generate_frame;
+  assert o#can_generate_frame;
   o#test_output;
   assert !started;
   ()
