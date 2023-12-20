@@ -37,7 +37,7 @@ def f() =
   test.equals(file.exists("test-dst-file4"), true)
 
   file.mkdir(parents=true, "/tmp/a/b/c/d")
-  test.equals(file.exists("/tmp/a/b/c/d", true))
+  test.equals(file.exists("/tmp/a/b/c/d"), true)
 
   test.pass()
 end

@@ -129,8 +129,9 @@ let _ =
       let dir = List.assoc "" p |> Lang.to_string in
       try
         let rec recmkdir dir =
-          if not (Sys.file_exists dir) then recmkdir (Filename.dirname dir);
-          Unix.mkdir dir perms
+          if not (Sys.file_exists dir) then (
+            recmkdir (Filename.dirname dir);
+            Unix.mkdir dir perms)
         in
         let mkdir dir =
           if parents then recmkdir dir else Unix.mkdir dir perms
