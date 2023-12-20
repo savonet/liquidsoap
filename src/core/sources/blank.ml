@@ -38,8 +38,11 @@ class blank duration =
     method! seek x = x
     method seek_source = (self :> Source.source)
     method abort_track = remaining <- 0
+    val mutable is_first = true
 
     method generate_frame =
+      let was_first = is_first in
+      is_first <- false;
       let length = Lazy.force Frame.size in
       let frame = Frame.create ~length self#content_type in
       let audio_len = Frame.audio_of_main length in
@@ -71,9 +74,10 @@ class blank duration =
               | _ -> failwith "Invalid content type!")
           frame
       in
-      match remaining with
-        | -1 -> frame
-        | r ->
+      match (was_first, remaining) with
+        | true, _ -> Frame.add_track_mark frame 0
+        | _, -1 -> frame
+        | _, r ->
             if r < length then (
               remaining <- length - r;
               Frame.add_track_mark frame r)
