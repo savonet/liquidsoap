@@ -133,10 +133,7 @@ let _ =
             recmkdir (Filename.dirname dir);
             Unix.mkdir dir perms)
         in
-        let mkdir dir =
-          if parents then recmkdir dir else Unix.mkdir dir perms
-        in
-        mkdir dir;
+        if parents then recmkdir dir else Unix.mkdir dir perms;
         Lang.unit
       with _ -> Lang.unit)
 
