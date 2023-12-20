@@ -24,20 +24,13 @@ end
 s = single(fname)
 s = once(s)
 s = f(s)
-started = ref(false)
-
-def on_track(_) =
-  started := true
-end
-
-s.on_track(on_track)
 
 done = ref(false)
 
 #clock.assign_new(id='test_clock', sync='none', [s])
 def on_close(filename) =
   if
-    !started and not done()
+    not done()
   then
     done := true
 
