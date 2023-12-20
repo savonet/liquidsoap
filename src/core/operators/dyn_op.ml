@@ -57,7 +57,10 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                  Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
                in
                match s with
-                 | None -> source
+                 | None -> (
+                     match source with
+                       | Some s when self#is_suitable ~reselect s -> Some s
+                       | _ -> None)
                  | Some s ->
                      Typing.(s#frame_type <: self#frame_type);
                      Clock.unify ~pos:self#pos s#clock self#clock;
@@ -67,15 +70,14 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                      source
              in
              match (source, proposed) with
-               | Some s, _ when s#is_ready && not reselect -> source
+               | Some s, _ when self#is_suitable ~reselect s -> source
                | _, Some s when s#is_ready ->
+                   proposed <- None;
                    source <- Some s;
                    source
-               | Some s, _
-                 when (not reselect) && (not s#is_ready)
-                      && Unix.gettimeofday () -. last_select < resurection_time
-                 ->
-                   next ()
+               | Some _, _
+                 when Unix.gettimeofday () -. last_select < resurection_time ->
+                   None
                | _ -> next ()))
 
     (* Source methods: attempt to #get_source as soon as it could be useful for the
@@ -87,7 +89,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
           Typing.(s#frame_type <: self#frame_type);
           s#get_ready activation)
         f;
-      ignore (self#get_source ~reselect:true ())
+      ignore (self#get_source ~reselect:(`After_position 0) ())
 
     method! private sleep =
       Lang.iter_sources (fun s -> s#leave (self :> Source.source)) f;

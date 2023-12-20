@@ -99,7 +99,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         | Some { child = { source }; effective_source } ->
             source != effective_source
 
-    method private select =
+    method private select ~reselect () =
       let selected s =
         match selected with
           | Some { child } when child.source == s.source -> true
@@ -112,7 +112,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                 (fun (d, single, s) ->
                   (* Check single constraints *)
                   (if selected s then not single else true)
-                  && satisfied d && s.source#is_ready)
+                  && satisfied d
+                  && self#is_suitable ~reselect s.source)
                 children))
       with Not_found -> None
 
@@ -145,13 +146,14 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
         (Option.get selected).effective_source#leave (self :> source)
 
     method get_source ~reselect () =
-      match (selected, reselect) with
-        | Some s, false
-          when satisfied s.predicate && s.effective_source#is_ready ->
+      match selected with
+        | Some s
+          when satisfied s.predicate
+               && self#is_suitable ~reselect s.effective_source ->
             Some s.effective_source
         | _ -> (
             begin
-              match (selected, self#select) with
+              match (selected, self#select ~reselect ()) with
                 | None, None -> ()
                 | Some c, None ->
                     if c.child.source != c.effective_source then

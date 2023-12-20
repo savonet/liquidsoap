@@ -298,11 +298,17 @@ class virtual generate_from_multiple_sources :
   -> track_sensitive:(unit -> bool)
   -> unit
   -> object
-       method virtual get_source : reselect:bool -> unit -> source option
+       method virtual get_source :
+         reselect:[ `False | `After_position of int ] -> unit -> source option
+
        method virtual split_frame : Frame.t -> Frame.t * Frame.t option
        method virtual empty_frame : Frame.t
        method virtual private execute_on_track : Frame.t -> unit
        method virtual private set_last_metadata : Frame.t -> unit
+
+       method private is_suitable :
+         reselect:[ `False | `After_position of int ] -> source -> bool
+
        method private can_generate_frame : bool
        method private generate_frame : Frame.t
      end

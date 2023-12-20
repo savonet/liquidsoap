@@ -182,7 +182,9 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
         (* Output that frame if it has some data *)
         if Frame.position data > 0 then self#send_frame data;
         if Frame.is_partial data then (
-          assert (self#stype = `Fallible);
+          if self#stype = `Infallible then (
+            self#log#critical "Infallible source produced a partial frame!";
+            assert false);
           self#log#important "Source failed (no more tracks) stopping output...";
           self#transition_to `Idle))
 

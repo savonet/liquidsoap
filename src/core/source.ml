@@ -812,14 +812,20 @@ class virtual active_source ?pos ?name () =
 
 class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
   object (self)
-    method virtual get_source : reselect:bool -> unit -> source option
+    method virtual get_source
+        : reselect:[ `False | `After_position of int ] -> unit -> source option
+
     method virtual split_frame : Frame.t -> Frame.t * Frame.t option
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
     method virtual private set_last_metadata : Frame.t -> unit
 
     method private can_generate_frame =
-      match self#get_source ~reselect:(not (track_sensitive ())) () with
+      match
+        self#get_source
+          ~reselect:(if track_sensitive () then `After_position 0 else `False)
+          ()
+      with
         | Some s -> s#is_ready
         | None -> false
 
@@ -831,6 +837,14 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
         self#execute_on_track buf;
         Frame.add_track_mark buf 0)
 
+    method private is_suitable ~(reselect : [ `False | `After_position of int ])
+        (s : source) =
+      s#is_ready
+      &&
+      match reselect with
+        | `False -> true
+        | `After_position p -> p < Frame.position s#get_frame
+
     method private continue_frame s =
       s#get_partial_frame (fun frame ->
           match self#split_frame frame with
@@ -841,27 +855,30 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
             | buf, _ -> buf)
 
     method private generate_frame =
-      let s = Option.get (self#get_source ~reselect:false ()) in
+      let s = Option.get (self#get_source ~reselect:`False ()) in
       assert s#is_ready;
       let buf = self#continue_frame s in
       let size = Lazy.force Frame.size in
       let rec f ~last_source ~last_chunk buf =
         let pos = Frame.position buf in
+        let last_chunk_pos = Frame.position last_chunk in
         self#set_last_metadata last_chunk;
         if pos < size then (
           let rem = size - pos in
-          match self#get_source ~reselect:true () with
+          match
+            self#get_source ~reselect:(`After_position last_chunk_pos) ()
+          with
             | Some s' when last_source == s' ->
                 let remainder =
                   s#get_partial_frame (fun frame ->
-                      Frame.slice frame (Frame.position last_chunk + rem))
+                      Frame.slice frame (last_chunk_pos + rem))
                 in
                 let new_track =
-                  Frame.chunk
-                    ~start:(Frame.position last_chunk)
+                  Frame.chunk ~start:last_chunk_pos
                     ~stop:(Frame.position remainder) remainder
                 in
-                (s, Frame.append buf (self#begin_track new_track))
+                f ~last_source:s ~last_chunk:remainder
+                  (Frame.append buf (self#begin_track new_track))
             | Some s ->
                 assert s#is_ready;
                 let new_track =
