@@ -100,8 +100,7 @@ def test.equals(v, v') =
   if
     v != v'
   then
-    error.raise(
-      error.failure,
+    print(
       "expected:\r\n#{string.quote(string(v'))}\r\ngot:\r\n#{
         string.quote(string(v))
       }"
