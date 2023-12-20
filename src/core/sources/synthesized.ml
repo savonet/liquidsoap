@@ -53,14 +53,14 @@ class virtual source ?name ~seek duration =
 
     method abort_track =
       add_track_mark <- true;
-      remaining <- Some 1
+      remaining <- Some (-1)
 
     method virtual private synthesize : int -> Frame.t
 
     method private generate_frame =
       let len =
         match remaining with
-          | None -> Lazy.force Frame.size
+          | Some -1 | None -> Lazy.force Frame.size
           | Some r ->
               let len = min (Lazy.force Frame.size) r in
               remaining <- Some (r - len);
