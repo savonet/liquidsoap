@@ -69,12 +69,12 @@ class sequence ?(merge = false) sources =
       match (self#has_started, Atomic.get seq_sources) with
         | _, [] -> None
         | true, s :: rest ->
-            if self#is_suitable ~reselect s then Some s
+            if self#can_reselect ~reselect s then Some s
             else (
               self#log#info "Finished with %s" s#id;
               (s :> source)#leave (self :> source);
               Atomic.set seq_sources rest;
-              self#get_source ~reselect:`False ())
+              self#get_source ~reselect:`Ok ())
         | _ -> None
 
     method remaining =

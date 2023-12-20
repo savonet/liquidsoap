@@ -289,6 +289,8 @@ class virtual active_operator :
        inherit active_source
      end
 
+type reselect = [ `Ok | `Force | `After_position of int ]
+
 (* Helper to generate data from a sequence of source.
    Data generation calls [get_source] on track marks.
    When frame is partial, a track mark is added unless [merge] is
@@ -298,17 +300,12 @@ class virtual generate_from_multiple_sources :
   -> track_sensitive:(unit -> bool)
   -> unit
   -> object
-       method virtual get_source :
-         reselect:[ `False | `After_position of int ] -> unit -> source option
-
+       method virtual get_source : reselect:reselect -> unit -> source option
        method virtual split_frame : Frame.t -> Frame.t * Frame.t option
        method virtual empty_frame : Frame.t
        method virtual private execute_on_track : Frame.t -> unit
        method virtual private set_last_metadata : Frame.t -> unit
-
-       method private is_suitable :
-         reselect:[ `False | `After_position of int ] -> source -> bool
-
+       method private can_reselect : reselect:reselect -> source -> bool
        method private can_generate_frame : bool
        method private generate_frame : Frame.t
      end

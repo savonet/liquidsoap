@@ -100,20 +100,18 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
             source != effective_source
 
     method private select ~reselect () =
-      let selected s =
+      let may_reselect ~single s =
         match selected with
-          | Some { child } when child.source == s.source -> true
-          | _ -> false
+          | Some { child; effective_source } when child.source == s.source ->
+              (not single) && self#can_reselect ~reselect effective_source
+          | _ -> true
       in
       try
         Some
           (pick_selection
              (find ~strict:all_predicates
                 (fun (d, single, s) ->
-                  (* Check single constraints *)
-                  (if selected s then not single else true)
-                  && satisfied d
-                  && self#is_suitable ~reselect s.source)
+                  satisfied d && may_reselect ~single s && s.source#is_ready)
                 children))
       with Not_found -> None
 
@@ -149,11 +147,16 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
       match selected with
         | Some s
           when satisfied s.predicate
-               && self#is_suitable ~reselect s.effective_source ->
+               && self#can_reselect ~reselect s.effective_source ->
             Some s.effective_source
         | _ -> (
             begin
-              match (selected, self#select ~reselect ()) with
+              match
+                ( selected,
+                  self#select
+                    ~reselect:(match reselect with `Force -> `Ok | v -> v)
+                    () )
+              with
                 | None, None -> ()
                 | Some c, None ->
                     if c.child.source != c.effective_source then

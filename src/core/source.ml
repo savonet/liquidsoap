@@ -810,11 +810,11 @@ class virtual active_source ?pos ?name () =
     inherit active_operator ?pos ?name []
   end
 
+type reselect = [ `Ok | `Force | `After_position of int ]
+
 class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
   object (self)
-    method virtual get_source
-        : reselect:[ `False | `After_position of int ] -> unit -> source option
-
+    method virtual get_source : reselect:reselect -> unit -> source option
     method virtual split_frame : Frame.t -> Frame.t * Frame.t option
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
@@ -823,7 +823,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method private can_generate_frame =
       match
         self#get_source
-          ~reselect:(if track_sensitive () then `After_position 0 else `False)
+          ~reselect:(if track_sensitive () then `Ok else `Force)
           ()
       with
         | Some s -> s#is_ready
@@ -837,12 +837,12 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
         self#execute_on_track buf;
         Frame.add_track_mark buf 0)
 
-    method private is_suitable ~(reselect : [ `False | `After_position of int ])
-        (s : source) =
+    method private can_reselect ~(reselect : reselect) (s : source) =
       s#is_ready
       &&
       match reselect with
-        | `False -> true
+        | `Ok -> true
+        | `Force -> false
         | `After_position p -> p < Frame.position s#get_frame
 
     method private continue_frame s =
@@ -855,7 +855,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
             | buf, _ -> buf)
 
     method private generate_frame =
-      let s = Option.get (self#get_source ~reselect:`False ()) in
+      let s = Option.get (self#get_source ~reselect:`Ok ()) in
       assert s#is_ready;
       let buf = self#continue_frame s in
       let size = Lazy.force Frame.size in

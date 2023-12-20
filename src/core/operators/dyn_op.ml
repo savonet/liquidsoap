@@ -59,7 +59,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                match s with
                  | None -> (
                      match source with
-                       | Some s when self#is_suitable ~reselect s -> Some s
+                       | Some s when self#can_reselect ~reselect s -> Some s
                        | _ -> None)
                  | Some s ->
                      Typing.(s#frame_type <: self#frame_type);
@@ -70,7 +70,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                      source
              in
              match (source, proposed) with
-               | Some s, _ when self#is_suitable ~reselect s -> source
+               | Some s, _ when self#can_reselect ~reselect s -> source
                | _, Some s when s#is_ready ->
                    proposed <- None;
                    source <- Some s;
@@ -89,7 +89,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
           Typing.(s#frame_type <: self#frame_type);
           s#get_ready activation)
         f;
-      ignore (self#get_source ~reselect:(`After_position 0) ())
+      ignore (self#get_source ~reselect:`Force ())
 
     method! private sleep =
       Lang.iter_sources (fun s -> s#leave (self :> Source.source)) f;
