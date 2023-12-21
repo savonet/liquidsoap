@@ -118,8 +118,8 @@ let _ =
         Some "Also create parent directories if they do not exist." );
       ( "perms",
         Lang.int_t,
-        Some (Lang.int 0o755),
-        Some "Default file rights if created (default is `0o755`)." );
+        Some (Lang.octal_int 0o755),
+        Some "Default file rights if created." );
       ("", Lang.string_t, None, None);
     ]
     Lang.unit_t
@@ -395,8 +395,8 @@ let _ =
         Some "Open in non-blocking mode." );
       ( "perms",
         Lang.int_t,
-        Some (Lang.int 0o644),
-        Some "Default file rights if created. Default: `0o644`" );
+        Some (Lang.octal_int 0o644),
+        Some "Default file rights if created." );
       ("", Lang.string_t, None, None);
     ]
     Builtins_socket.Socket_value.t ~descr:"Open a file."

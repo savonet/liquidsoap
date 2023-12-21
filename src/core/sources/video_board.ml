@@ -90,7 +90,7 @@ let _ =
   let line_to board =
     Lang.val_fun
       [
-        ("color", "c", Some (Lang.int 0xffffff));
+        ("color", "c", Some (Lang.hex_int 0xffffff));
         ("", "x", None);
         ("", "y", None);
       ]

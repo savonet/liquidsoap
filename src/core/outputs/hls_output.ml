@@ -131,19 +131,14 @@ let hls_proto frame_t =
         Some "Number of segments per playlist." );
       ( "perm",
         Lang.int_t,
-        Some (Lang.int 0o666),
-        Some
-          "Permission of the created files, up to umask. You can and should \
-           write this number in octal notation: 0oXXX. The default value is \
-           however displayed in decimal (0o666 = 6×8^2 + 4×8 + 4 = 412)." );
+        Some (Lang.octal_int 0o666),
+        Some "Permission of the created files, up to umask." );
       ( "dir_perm",
         Lang.int_t,
-        Some (Lang.int 0o777),
+        Some (Lang.octal_int 0o777),
         Some
           "Permission of the directories if some have to be created, up to \
-           umask. Although you can enter values in octal notation (0oXXX) they \
-           will be displayed in decimal (for instance, 0o777 = 7×8^2 + 7×8 + 7 \
-           = 511)." );
+           umask." );
       ( "temp_dir",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
