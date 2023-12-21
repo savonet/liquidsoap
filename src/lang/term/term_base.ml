@@ -84,7 +84,7 @@ module Ground = struct
 
   let register matcher c =
     let module C = (val c.typ : Type.Ground.Custom) in
-    Hashtbl.replace handlers C.Type (c, matcher)
+    Hashtbl.add handlers C.Type (c, matcher)
 
   exception Found of content
 
@@ -109,7 +109,13 @@ module Ground = struct
 
   let compare (v : t) = (find v).compare v
 
-  type t += Bool of bool | Int of int | String of string | Float of float
+  type t +=
+    | Bool of bool
+    | Int of int
+    | OctalInt of int
+    | HexInt of int
+    | String of string
+    | Float of float
 
   let () =
     let compare conv v v' = Stdlib.compare (conv v) (conv v') in
@@ -124,17 +130,27 @@ module Ground = struct
         compare = compare to_bool;
         typ = (module Type.Ground.Bool : Type.Ground.Custom);
       };
-    let to_int = function Int i -> i | _ -> assert false in
-    let to_string i = string_of_int (to_int i) in
+
+    let to_int = function
+      | Int i | OctalInt i | HexInt i -> i
+      | _ -> assert false
+    in
+    let to_string = function
+      | Int i -> string_of_int i
+      | OctalInt i -> Printf.sprintf "0o%o" i
+      | HexInt i -> Printf.sprintf "0x%x" i
+      | _ -> assert false
+    in
     let to_json ~pos:_ i = `Int (to_int i) in
     register
-      (function Int _ -> true | _ -> false)
+      (function Int _ | OctalInt _ | HexInt _ -> true | _ -> false)
       {
         descr = to_string;
         to_json;
         compare = compare to_int;
         typ = (module Type.Ground.Int : Type.Ground.Custom);
       };
+
     let to_string = function
       | String s -> Lang_string.quote_string s
       | _ -> assert false
