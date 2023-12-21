@@ -32,6 +32,7 @@ Changed:
   as expected.
 - BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
 - BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
+- Added `parents` option of `file.mkdir` (#3600, #3601).
 
 ---
 

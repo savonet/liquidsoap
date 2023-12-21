@@ -112,6 +112,10 @@ let _ =
   Lang.add_builtin ~base:file "mkdir" ~category:`File
     ~descr:"Create a directory."
     [
+      ( "parents",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Also create parent directories if they do not exist." );
       ( "perms",
         Lang.int_t,
         Some (Lang.int 0o755),
@@ -120,10 +124,16 @@ let _ =
     ]
     Lang.unit_t
     (fun p ->
+      let parents = List.assoc "parents" p |> Lang.to_bool in
       let perms = List.assoc "perms" p |> Lang.to_int in
       let dir = List.assoc "" p |> Lang.to_string in
       try
-        Unix.mkdir dir perms;
+        let rec recmkdir dir =
+          if not (Sys.file_exists dir) then (
+            recmkdir (Filename.dirname dir);
+            Unix.mkdir dir perms)
+        in
+        if parents then recmkdir dir else Unix.mkdir dir perms;
         Lang.unit
       with _ -> Lang.unit)
 
