@@ -29,7 +29,8 @@ s.on_track(on_track)
 
 done = ref(false)
 
-#clock.assign_new(id='test_clock', sync='none', [s])
+clock.assign_new(id='test_clock', sync='none', [s])
+
 def on_close(filename) =
   if
     not done() and !started
