@@ -24,28 +24,6 @@
 
 let log = Ffmpeg_utils.log
 
-(* See: https://datatracker.ietf.org/doc/html/rfc8216#section-3.4 *)
-let render_mpeg2_timestamp =
-  let mpeg2_timestamp_unit = 90000. in
-  let frame_len =
-    lazy
-      (Int64.of_float
-         (Frame.seconds_of_main (Lazy.force Frame.size) *. mpeg2_timestamp_unit))
-  in
-  fun ~frame_position ~sample_position () ->
-    let buf = Buffer.create 10 in
-    let frame_position =
-      Int64.mul (Lazy.force frame_len) (Int64.of_int frame_position)
-    in
-    let sample_position =
-      Int64.of_float
-        (Frame.seconds_of_main sample_position *. mpeg2_timestamp_unit)
-    in
-    let position = Int64.add frame_position sample_position in
-    let position = Int64.unsigned_rem position 0x1ffffffffL in
-    Buffer.add_int64_be buf position;
-    Buffer.contents buf
-
 type encoder = {
   mk_stream : Frame.t -> unit;
   encode : Frame.t -> int -> int -> unit;
@@ -239,16 +217,11 @@ let encoder ~pos ~mk_streams ffmpeg meta =
       | Some "adts" | Some "mp3" | Some "ac3" | Some "eac3" ->
           if id3_enabled = Some false then
             Lang_encoder.raise_error ~pos "Format requires ID3 metadata!";
-          let id3_version = Option.value ~default:3 id3_version in
           encoder.insert_id3 <-
             (fun ~frame_position ~sample_position m ->
-              let timestamp =
-                Printf.sprintf
-                  "com.apple.streaming.transportStreamTimestamp\000%s"
-                  (render_mpeg2_timestamp ~frame_position ~sample_position ())
-              in
-              let m = ("PRIV", timestamp) :: m in
-              Some (Utils.id3v2_of_metadata ~version:id3_version m));
+              Some
+                (Encoder_utils.mk_hls_id3 ?id3_version ~frame_position
+                   ~sample_position m));
           true
       | Some _ when id3_enabled = Some true ->
           Lang_encoder.raise_error ~pos
