@@ -97,7 +97,7 @@ class virtual active_source ?get_clock ~name ~clock_safe
 
     method private output =
       self#has_ticked;
-      match self#streaming_state with `Ready fn -> fn () | _ -> ()
+      ignore self#get_frame
   end
 
 let base_proto ~label =

@@ -241,9 +241,8 @@ let source_methods =
               Lazy.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
-              match s#streaming_state with
-                | `Done d -> Frame.seconds_of_main (Frame.position d)
-                | _ -> 0.
+              if s#is_ready then Frame.(seconds_of_main (position s#get_frame))
+              else 0.
             in
             float (frame_position +. in_frame_position)) );
   ]

@@ -550,7 +550,6 @@ class virtual operator ?pos ?(name = "src") sources =
     method virtual private can_generate_frame : bool
     method virtual private generate_frame : Frame.t
     val mutable streaming_state : streaming_state = `Unavailable
-    method streaming_state = streaming_state
 
     method is_ready =
       self#has_ticked;
