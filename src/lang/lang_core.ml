@@ -89,6 +89,8 @@ let ref_t a = Type.reference a
 let mk ?pos value = { pos; value; methods = Methods.empty }
 let unit = mk unit
 let int i = mk (Ground (Int i))
+let octal_int i = mk (Ground (OctalInt i))
+let hex_int i = mk (Ground (HexInt i))
 let bool i = mk (Ground (Bool i))
 let float i = mk (Ground (Float i))
 let string i = mk (Ground (String i))
@@ -354,21 +356,24 @@ let to_float_getter t =
             | _ -> assert false)
     | _ -> assert false
 
-let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
+let to_int t =
+  match t.value with
+    | Ground (Int s) | Ground (OctalInt s) | Ground (HexInt s) -> s
+    | _ -> assert false
 
 let to_int_getter t =
   match t.value with
-    | Ground (Int n) -> fun () -> n
+    | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
           match (apply t []).value with
-            | Ground (Int n) -> n
+            | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> n
             | _ -> assert false)
     | _ -> assert false
 
 let to_num t =
   match t.value with
-    | Ground (Int n) -> `Int n
+    | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> `Int n
     | Ground (Float x) -> `Float x
     | _ -> assert false
 

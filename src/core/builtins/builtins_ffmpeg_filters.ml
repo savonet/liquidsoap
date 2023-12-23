@@ -72,6 +72,7 @@ type outputs =
 type graph = {
   mutable config : Avfilter.config option;
   mutable failed : bool;
+  mutable need_child_tick : bool;
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
   graph_outputs : Source.source Queue.t;
@@ -81,7 +82,26 @@ type graph = {
 
 let init_graph graph =
   if Queue.fold (fun b v -> b && v ()) true graph.input_inits then (
-    try Queue.iter Lazy.force graph.init
+    try
+      Queue.iter Lazy.force graph.init;
+
+      match
+        (Queue.peek_opt graph.graph_inputs, Queue.peek_opt graph.graph_outputs)
+      with
+        | Some i, Some o ->
+            (* Make sure input clock has at least one tick per output clock
+               tick. *)
+            let input_clock = Source.Clock_variables.get i#clock in
+            let output_clock = Source.Clock_variables.get o#clock in
+            let rec on_before_output () =
+              graph.need_child_tick <- true;
+              output_clock#on_after_output on_after_output
+            and on_after_output () =
+              if graph.need_child_tick then input_clock#end_tick;
+              output_clock#on_before_output on_before_output
+            in
+            output_clock#on_before_output on_before_output
+        | _ -> ()
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
       graph.failed <- true;
@@ -91,12 +111,20 @@ let initialized graph =
   Queue.fold (fun cur q -> cur && Lazy.is_val q) true graph.init
 
 let is_ready graph =
+  (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
+    | false, Some s -> (Source.Clock_variables.get s#clock)#end_tick
+    | _ -> ());
   (not graph.failed)
   && Queue.fold
        (fun cur (s : Source.source) -> cur && s#is_ready ())
        true graph.graph_inputs
 
-let pull graph = (Clock.get (Queue.peek graph.graph_inputs)#clock)#end_tick
+let pull graph =
+  match Queue.peek_opt graph.graph_inputs with
+    | Some s ->
+        graph.need_child_tick <- false;
+        (Clock.get s#clock)#end_tick
+    | None -> ()
 
 let self_sync_type graph =
   Lazy.from_fun (fun () ->
@@ -865,6 +893,7 @@ let _ =
           {
             config = Some config;
             failed = false;
+            need_child_tick = true;
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
             graph_outputs = Queue.create ();
@@ -888,6 +917,7 @@ let _ =
         Clock.create_unknown ~sources:[] ~sub_clocks:[input_clock] ()
       in
       unify_clocks ~clock:output_clock graph.graph_outputs;
+
       Queue.add
         (lazy
           (log#info "Initializing graph";

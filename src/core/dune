@@ -97,6 +97,7 @@
   echo
   encoder
   encoder_formats
+  encoder_utils
   error
   external_decoder
   external_encoder

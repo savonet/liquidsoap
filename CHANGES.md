@@ -32,6 +32,88 @@ Changed:
   as expected.
 - BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
 - BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
+- Added `parents` option of `file.mkdir` (#3600, #3601).
+
+---
+
+# 2.2.2 (2023-11-02)
+
+New:
+
+- Added `string.escape.html` (#3418, @ghostnumber7)
+- Add support for getters in arguments of `blank.detect` (#3452).
+- Allow float in source content type annotation so that it possible
+  to write: `source(audio=pcm(5.1))`
+
+Changed:
+
+- Trim urls in `input.ffmpeg` by default. Disable using
+  `trim_url=false` (#3424)
+- Automatically add HLS-specific ffmpeg parameters to
+  `%ffmpeg` encoder (#3483)
+- BREAKING: default `on_fail` removed on `playlist` (#3479)
+
+Fixed:
+
+- Allow `channel_layout` argument in ffmpeg encoder to set the
+  number of channels.
+- Improved support for unitary minus, fix runtime call of optional
+  methods (#3498)
+- Fixed `map.metadata` mutating existing metadata.
+- Fixed reloading loop in playlists with invalid files (#3479)
+- Fixed main HLS playlist codecs when using `mpegts` (#3483)
+- Fixed pop/clicks in crossfade and source with caching (#3318)
+- Fixed pop/clicks when resampling using `libsamplerate` (#3429)
+- Fixed gstreamer compilation. Remember that gstreamer features are
+  DEPRECATED! (#3459)
+- Fixed html character escaping in `interactive.harbor` (#3418, @ghostnumber7)
+- Fixed icecast not reconnecting after erroring out while closing connection
+  in some circumstances (#3427)
+- Fixed parse-only mode (#3423)
+- Fixed ffmpeg decoding failing on files with unknown codecs.
+- Fixed a crash due to `wait_until` timestamp being in the past when
+  using `posix-time2`
+- Make sure that temporary files are always cleaned up in HLS outputs (#3493)
+
+---
+
+# 2.2.1 (2023-09-05)
+
+Changed:
+
+- BREAKING: on HLS outputs, `on_file_change` events are
+  now `"created"`, `"updated"` and `"deleted"`, to better
+  reflect the new atomic file operations (#3284)
+- Added `compact` argument to the `http.response.json` function. `http.response.json` will produce minified JSON by
+  default. Added a newline symbol to the end of the JSON data produced by `http.response.json`. (#3299)
+- Bumped internal ogg decoder to make sure that it is used over the ffmpeg decoder whenever possible.
+  FFmpeg has issues with metadata in chained streams which needs to be fixed upstream. Unfortunately,
+  `input.http` can only use the ffmpeg decoder at the moment.
+- Cleanup `output.file` encoding and file handling logic (#3328)
+- Added `ratio` to `source.{dump,drop}` to make it possible to control its CPU peaks.
+- Enhanced clock error reporting (#3317)
+
+Fixed:
+
+- Fixed slow memory leak in muxer operator (#3372, #3181, #3334)
+- Fixed discontinuity logic error in HLS outputs after a restart.
+- Fixed HTTP response status in `output.harbor` (#3255)
+- Make sure main HLS playlist is regenerated after being
+  unlinked (#3275)
+- Fixed hard crash on icecast disconnection errors.
+- Fix `output.harbor` encoder header when encoding with
+  `%ogg`, `%vorbis` and etc. (#3276)
+- Fixed quality argument parsing in ffmpeg encoders (#3267)
+- Make all HLS file write atomic (#3284)
+- Allow seek and cue operators to work with muxed sources
+  using a single underlying source (#3252)
+- Fixed export of cover art metadata (#3279)
+- Remove use of `stereo:` protocol in `say:` protocol:
+  this is now handled automatically by the decoder and generates latency via
+  high CPU usage peak.
+- Fixed `output.file` reopening with flac encoding (#3328)
+
+---
 
 # 2.2.0 (2023-07-21)
 

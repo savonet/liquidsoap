@@ -73,10 +73,17 @@ def file.touch(~perms=0o644, path) =
 end
 
 # Read the whole contents of a file.
+# @param ~mmap_threshold For any read above this value, return a mmap'd bigstring. \
+#                        Mmap'd bigstrings directly refer to the file's content on disk \
+#                        so they do not impact the process' runtime memory usage. However, \
+#                        they also retain an open file descriptor on the underlying file \
+#                        which is only released when the string is no longer used. Set to \
+#                        `null` to always return regular string.
 # @category File
-def file.contents(fname) =
+def file.contents(~mmap_threshold=4096, fname) =
   fd = file.open(write=false, fname)
-  s = fd.read(bigstring=true, file.size(fname))
+  size = file.size(fname)
+  s = fd.read(bigstring=null.case({false}, fun (n) -> n <= size), size)
   fd.close()
   s
 end

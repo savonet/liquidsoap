@@ -89,7 +89,7 @@ module Ground = struct
 
   let register matcher c =
     let module C = (val c.typ : Type.Ground.Custom) in
-    Hashtbl.add handlers C.Type (c, matcher)
+    Hashtbl.replace handlers C.Type (c, matcher)
 
   exception Found of content
 
@@ -117,6 +117,8 @@ module Ground = struct
   type t +=
     | Bool of bool
     | Int of int
+    | OctalInt of int
+    | HexInt of int
     | String of string
     | Bigstring of bigstring
     | Float of float
@@ -136,11 +138,21 @@ module Ground = struct
         typ = (module Type.Ground.Bool : Type.Ground.Custom);
       };
 
-    let to_int = function Int i -> i | _ -> assert false in
-    let to_string i = string_of_int (to_int i) in
+    let to_int = function
+      | Int i | OctalInt i | HexInt i -> i
+      | _ -> assert false
+    in
+
+    let to_string = function
+      | Int i -> string_of_int i
+      | OctalInt i -> Printf.sprintf "0o%o" i
+      | HexInt i -> Printf.sprintf "0x%x" i
+      | _ -> assert false
+    in
+
     let to_json ~pos:_ i = `Int (to_int i) in
     register
-      (function Int _ -> true | _ -> false)
+      (function Int _ | OctalInt _ | HexInt _ -> true | _ -> false)
       {
         descr = to_string;
         to_json;
@@ -174,30 +186,13 @@ module Ground = struct
         | _ -> assert false
     in
 
-    let to_string = function
-      | String s -> Lang_string.quote_string s
-      | _ -> assert false
-    in
-    let to_json ~pos:_ = function String s -> `String s | _ -> assert false in
-    register
-      (function String _ -> true | _ -> false)
-      {
-        descr = to_string;
-        to_json;
-        compare = string_compare;
-        typ = (module Type.Ground.String : Type.Ground.Custom);
-      };
-
-    let to_string = function
-      | Bigstring bs -> Bigstringaf.to_string bs
-      | _ -> assert false
-    in
     let to_json ~pos:_ = function
-      | Bigstring _ as ba -> `String (to_string ba)
+      | String s -> `String s
+      | Bigstring bs -> `String (Bigstringaf.to_string bs)
       | _ -> assert false
     in
     register
-      (function Bigstring _ -> true | _ -> false)
+      (function String _ | Bigstring _ -> true | _ -> false)
       {
         descr = to_string;
         to_json;
