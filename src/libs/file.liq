@@ -83,7 +83,10 @@ end
 def file.contents(~mmap_threshold=4096, fname) =
   fd = file.open(write=false, fname)
   size = file.size(fname)
-  s = fd.read(bigstring=null.case({false}, fun (n) -> n <= size), size)
+  s =
+    fd.read(
+      bigstring=null.case(mmap_threshold, {false}, fun (n) -> n <= size), size
+    )
   fd.close()
   s
 end
