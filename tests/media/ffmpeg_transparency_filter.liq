@@ -22,7 +22,8 @@ s = max_duration(3., s)
 
 done = ref(false)
 
-#clock.assign_new(id='test_clock', sync='none', [s])
+clock.assign_new(id='test_clock', sync='none', [s])
+
 def on_close(filename) =
   if
     not done()
