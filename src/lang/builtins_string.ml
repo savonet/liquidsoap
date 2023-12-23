@@ -6,6 +6,10 @@ let string =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Show toplevel fields around the value." );
+      ( "bigstring",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Return the value as a bigstring." );
       ("", Lang.univ_t (), None, None);
     ]
     Lang.string_t
@@ -17,10 +21,19 @@ let string =
       let show_fields =
         if dv.Lang.value = Value.unit then true else show_fields
       in
+      let bigstring = Lang.to_bool (List.assoc "bigstring" p) in
       let v = if show_fields then v else dv in
       match v with
-        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
-        | v -> Lang.string (Value.to_string v))
+        | { Lang.value = Lang.(Ground (Ground.String s)); _ } ->
+            if bigstring then Lang.bigstring (Lang_core.bigstring_of_string s)
+            else Lang.string s
+        | { Lang.value = Lang.(Ground (Ground.Bigstring s)); _ } ->
+            if bigstring then Lang.bigstring s
+            else Lang.string (Bigstringaf.to_string s)
+        | v ->
+            let s = Value.to_string v in
+            if bigstring then Lang.bigstring (Lang_core.bigstring_of_string s)
+            else Lang.string s)
 
 let _ =
   Lang.add_builtin ~base:string "bigstring" ~category:`String
