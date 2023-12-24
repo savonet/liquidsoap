@@ -68,10 +68,8 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
-    method private generate_frame =
-      let b =
-        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
-      in
+    method private normalize buf =
+      let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
       let rmst = rmst () in
       let kup = kup () in
       let kdown = kdown () in
@@ -100,11 +98,15 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
           rms <- 0.;
           rmsc <- 0)
       done;
+      Frame.set_data buf Frame.Fields.audio Content.Audio.lift_data b
 
-      (* Reset values if it is the end of the track. *)
-      if track_sensitive && source#has_track_mark then self#init;
-
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+    method private generate_frame =
+      match self#split_frame (source#get_mutable_frame Frame.Fields.audio) with
+        | buf, None -> self#normalize buf
+        | buf, Some new_track ->
+            let buf = self#normalize buf in
+            if track_sensitive then self#init;
+            Frame.append buf (self#normalize new_track)
   end
 
 let normalize = Lang.add_module "normalize"
