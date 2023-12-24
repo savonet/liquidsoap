@@ -73,7 +73,7 @@ class soundtouch source_val rate tempo pitch =
       List.iter
         (fun (pos, m) ->
           Generator.add_metadata ~pos:(pos + gen_pos) self#buffer m)
-        (AFrame.get_all_metadata databuf)
+        (Frame.get_all_metadata databuf)
 
     method private generate_frame =
       let size = Lazy.force Frame.size in

@@ -24,22 +24,7 @@
 
 type t = Frame.t
 
-(** Is it partially filled ? *)
-val is_partial : t -> bool
-
-(** Number of video frames. *)
-val size : 'a -> int
-
 val position : t -> int
-
-(** Position (in video samples) of the next video sample to fill-in. *)
-val next_sample_position : t -> int
-
-(** Add a track mark at given video position. *)
-val add_track_mark : t -> int -> t
-
-(** Get video contents. Raises [Not_found] is frame has no video *)
-val content : ?field:Frame.field -> t -> Content.data
 
 (** Get video content. Raises [Content.Invalid] if video content is not in
     internal format and [Not_found] if frame has no video content. *)

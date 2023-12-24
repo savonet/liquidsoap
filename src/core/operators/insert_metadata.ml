@@ -50,7 +50,8 @@ class insert_metadata source =
                 m
             in
             let buf = Frame.add_metadata buf 0 m in
-            if new_track then Frame.add_track_mark buf 0 else buf
+            if new_track then Frame.(add_track_mark (drop_track_marks buf)) 0
+            else buf
         | None -> buf
   end
 

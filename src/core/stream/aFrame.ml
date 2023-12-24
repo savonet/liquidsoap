@@ -25,46 +25,10 @@ open Frame
 
 type t = Frame.t
 
-(* Samples of ticks, and vice versa. *)
 let sot = audio_of_main
-let tos = main_of_audio
 let content b = try Frame.audio b with Not_found -> raise Content.Invalid
 let pcm b = Content.Audio.get_data (content b)
-
-let to_s16le b =
-  let fpcm = pcm b in
-  assert (Audio.channels fpcm = 2);
-  Audio.S16LE.make fpcm 0 (Audio.length fpcm)
-
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
 let position t = sot (position t)
-let track_marks t = List.map sot (track_marks t)
-let is_partial = is_partial
-
-exception No_metadata
-
-type metadata = Frame.metadata
-
-let get_metadata t i = get_metadata t (tos i)
-
-let get_all_metadata t =
-  List.map (fun (x, y) -> (sot x, y)) (get_all_metadata t)
-
-let blankify b off len =
-  let pcm = pcm b in
-  Audio.clear pcm off len;
-  Frame.Fields.add Frame.Fields.audio (Content.Audio.lift_data pcm) b
-
-let multiply b off len c =
-  let pcm = pcm b in
-  Audio.amplify c pcm off len;
-  Frame.Fields.add Frame.Fields.audio (Content.Audio.lift_data pcm) b
-
-let add b1 off1 b2 off2 len =
-  let pcm1 = pcm b1 in
-  let pcm2 = pcm b2 in
-  Audio.add pcm1 off1 pcm2 off2 len;
-  Frame.Fields.add Frame.Fields.audio (Content.Audio.lift_data pcm1) b1
-
 let rms b off len = Audio.Analyze.rms (pcm b) off len
