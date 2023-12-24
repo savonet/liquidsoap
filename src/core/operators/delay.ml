@@ -42,12 +42,11 @@ class delay ~initial (source : source) delay =
     method private can_generate_frame = self#delay_ok && source#is_ready
 
     method private generate_frame =
-      let buf = source#get_frame in
-      match source#track_mark with
-        | Some p ->
+      match self#split_frame source#get_frame with
+        | buf, Some _ ->
             last_track <- Unix.time ();
-            Frame.slice buf p
-        | None -> buf
+            buf
+        | buf, None -> buf
   end
 
 let _ =
