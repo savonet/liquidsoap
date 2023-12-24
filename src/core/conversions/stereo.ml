@@ -50,7 +50,7 @@ class basic ~field source =
               | [| chan |] -> [| chan; chan |]
               | audio -> Array.sub audio 0 2
           in
-          Frame.set frame field (Content.Audio.lift_data audio))
+          Frame.set_data frame field Content.Audio.lift_data audio)
         source
   end
 

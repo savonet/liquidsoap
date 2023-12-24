@@ -130,8 +130,7 @@ let create_decoder ~ctype ~width ~height ~metadata img =
       | Some data ->
           let pcm = Content.Audio.get_data data in
           Audio.clear pcm 0 (Frame.audio_of_main length);
-          Frame.set frame Frame.Fields.audio
-            (Content.Audio.lift_data ~length pcm)
+          Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data pcm
   in
   { Decoder.fread; remaining; fseek = (fun len -> len); close }
 

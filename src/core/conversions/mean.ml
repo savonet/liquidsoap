@@ -42,8 +42,7 @@ class mean ~field ~normalize source =
             dst_content.(i) <-
               Array.fold_left (fun m b -> m +. b.(i)) 0. src_content *. amp
           done;
-          Frame.set frame field
-            (Content.Audio.lift_data ~length:len [| dst_content |]))
+          Frame.set_data frame field Content.Audio.lift_data [| dst_content |])
         source
   end
 

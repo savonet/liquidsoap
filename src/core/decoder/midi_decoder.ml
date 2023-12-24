@@ -54,9 +54,8 @@ let decoder ~ctype file =
         (fun () -> fd#read (Lazy.force Frame.midi_rate) m 0 length)
         ()
     in
-    Frame.slice
-      (Frame.set frame Frame.Fields.midi (Content.Midi.lift_data ~length m))
-      r
+    Frame.set_data (Frame.slice frame r) Frame.Fields.midi
+      Content.Midi.lift_data m
   in
   { Decoder.fread; remaining = (fun _ -> 0); fseek = (fun _ -> 0); close }
 
