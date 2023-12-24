@@ -138,7 +138,11 @@ let _ =
         else 0
       in
       let frame_position = Lazy.force Frame.duration *. float ticks in
-      Lang.float frame_position)
+      let in_frame_position =
+        if s#is_ready then Frame.seconds_of_main (Frame.position s#get_frame)
+        else 0.
+      in
+      Lang.float (frame_position +. in_frame_position))
 
 let _ =
   Lang.add_builtin ~base:source "on_shutdown" ~category:(`Source `Liquidsoap)
