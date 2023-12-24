@@ -422,7 +422,10 @@ let _ =
         Some "Default file rights if created." );
       ("", Lang.string_t, None, None);
     ]
-    Builtins_socket.Socket_value.t ~descr:"Open a file."
+    Builtins_socket.Socket_value.t
+    ~descr:
+      "Open a file. File descriptors behave like socket descriptors except \
+       that bigstring reads return data mmap'd directly from the file on disk."
     (fun p ->
       let write = Lang.to_bool (List.assoc "write" p) in
       let access_flag = if write then Unix.O_RDWR else Unix.O_RDONLY in
