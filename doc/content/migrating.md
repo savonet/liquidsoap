@@ -55,6 +55,12 @@ We applied the following changes:
 - Cleaned up and removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
 - Made `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
 
+### HLS events
+
+Starting with version `2.2.1`, on HLS outputs, `on_file_change` events are now `"created"`, `"updated"` and `"deleted"`. This breaking
+was required to reflect the fact that file changes are now atomic. See [this issue](https://github.com/savonet/liquidsoap/issues/3284)
+for more details.
+
 ### Harbor HTTP server and SSL support
 
 The API for registering HTTP server endpoint and using SSL was completely rewritten. It should be more flexible and

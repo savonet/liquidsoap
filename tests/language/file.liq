@@ -1,8 +1,10 @@
+#!../../liquidsoap ../test.liq
+
 def f() =
   try
     ignore(file.read("mqlskjdfdjnsi"))
     test.fail()
-  catch e : [error.file] do
+  catch _ : [error.file] do
     ()
   end
 
@@ -23,7 +25,7 @@ def f() =
   try
     file.copy(non_existent, dst_file2)
     test.fail()
-  catch e : [error.file] do
+  catch _ : [error.file] do
     ()
   end
 
@@ -33,6 +35,9 @@ def f() =
 
   file.touch("test-dst-file4")
   test.equals(file.exists("test-dst-file4"), true)
+
+  file.mkdir(parents=true, "/tmp/a/b/c/d")
+  test.equals(file.exists("/tmp/a/b/c/d"), true)
 
   test.pass()
 end

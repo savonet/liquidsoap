@@ -103,6 +103,7 @@ end
 # @param uri Path to the playlist
 def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
   id = id ?? playlist.id(default="playlist.files", uri)
+
   if
     file.is_directory(uri)
   then
@@ -139,8 +140,12 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
           label=id,
           "Couldn't read playlist: request resolution failed."
         )
+        request.destroy(pl)
 
-        []
+        error.raise(
+          error.invalid,
+          "Could not resolve uri: #{uri}"
+        )
       end
 
     request.destroy(pl)
@@ -239,20 +244,21 @@ def playlist.list(
 
   # Instantiate the source
   default =
-    request.dynamic(
-      id=id,
-      prefetch=prefetch,
-      timeout=timeout,
-      retry_delay=1.,
-      available={not has_stopped()},
-      next
-    )
+    fun () ->
+      request.dynamic(
+        id=id,
+        prefetch=prefetch,
+        timeout=timeout,
+        retry_delay=1.,
+        available={not has_stopped()},
+        next
+      )
 
   s =
 %ifdef native
-    if native then stdlib_native.request.dynamic(id=id, next) else default end
+    if native then stdlib_native.request.dynamic(id=id, next) else default() end
 %else
-    default
+    default()
 %endif
 
   source.set_name(s, "playlist.list.reloadable")
@@ -413,6 +419,7 @@ end
 #  whole round ("randomize" mode), or pick a random file in the playlist each time \
 #  ("random" mode).
 # @param ~native Use native implementation.
+# @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
 # @param ~on_done Function executed when the playlist is finished.
 # @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
 # @param ~on_reload Callback called after playlist has reloaded.
@@ -434,6 +441,7 @@ def replaces playlist(
   ~check_next=null(),
   ~prefetch=1,
   ~loop=true,
+  ~max_fail=10,
   ~mime_type=null(),
   ~mode="randomize",
   ~native=false,
@@ -471,15 +479,43 @@ def replaces playlist(
   # The reload function
   reloader_ref = ref(fun (~empty_queue=true) -> ignore(empty_queue))
 
+  failed_loads = ref(0)
+
   # The load function
   def load_playlist() =
     playlist_uri = path.home.unrelate(playlist_uri())
+
     log.info(
       label=id,
       "Reloading playlist."
     )
+
     files =
-      playlist.files(id=id, mime_type=mime_type, timeout=timeout, playlist_uri)
+      try
+        playlist.files(
+          id=id, mime_type=mime_type, timeout=timeout, playlist_uri
+        )
+      catch err do
+        log.info(
+          label=id,
+          "Playlist load failed: #{err}"
+        )
+
+        ref.incr(failed_loads)
+
+        if
+          failed_loads() < max_fail
+        then
+          []
+        else
+          log.info(
+            label=id,
+            "Maximum failures reached!"
+          )
+          on_fail = on_fail ?? fun () -> []
+          on_fail()
+        end
+      end
 
     list.map.right(fun (file) -> prefix ^ file, files)
   end
@@ -517,6 +553,7 @@ def replaces playlist(
       check_next=check_next,
       prefetch=prefetch,
       loop=loop,
+      max_fail=max_fail,
       mode=mode,
       native=native,
       on_done=on_done,
@@ -528,14 +565,18 @@ def replaces playlist(
 
   # The reload function
   def s.reload(~empty_queue=true, ~uri=null()) =
-    if null.defined(uri) then playlist_uri := null.get(uri) end
-    log(
-      label=id,
-      "Reloading playlist with URI #{playlist_uri()}."
-    )
-    files := load_playlist()
-    s.reload(empty_queue=empty_queue, files())
-    on_reload(playlist_uri())
+    if
+      failed_loads() < max_fail
+    then
+      if null.defined(uri) then playlist_uri := null.get(uri) end
+      log(
+        label=id,
+        "Reloading playlist with URI #{playlist_uri()}."
+      )
+      files := load_playlist()
+      s.reload(empty_queue=empty_queue, files())
+      on_reload(playlist_uri())
+    end
   end
 
   reloader_ref := s.reload

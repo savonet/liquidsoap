@@ -101,7 +101,7 @@ let register name init render_text =
         ("size", Lang.getter_t Lang.int_t, Some (Lang.int 18), Some "Font size.");
         ( "color",
           Lang.getter_t Lang.int_t,
-          Some (Lang.int 0xffffff),
+          Some (Lang.hex_int 0xffffff),
           Some "Text color (in 0xRRGGBB format)." );
         ( "duration",
           Lang.nullable_t Lang.float_t,

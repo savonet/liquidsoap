@@ -112,18 +112,28 @@ let _ =
   Lang.add_builtin ~base:file "mkdir" ~category:`File
     ~descr:"Create a directory."
     [
+      ( "parents",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Also create parent directories if they do not exist." );
       ( "perms",
         Lang.int_t,
-        Some (Lang.int 0o755),
-        Some "Default file rights if created (default is `0o755`)." );
+        Some (Lang.octal_int 0o755),
+        Some "Default file rights if created." );
       ("", Lang.string_t, None, None);
     ]
     Lang.unit_t
     (fun p ->
+      let parents = List.assoc "parents" p |> Lang.to_bool in
       let perms = List.assoc "perms" p |> Lang.to_int in
       let dir = List.assoc "" p |> Lang.to_string in
       try
-        Unix.mkdir dir perms;
+        let rec recmkdir dir =
+          if not (Sys.file_exists dir) then (
+            recmkdir (Filename.dirname dir);
+            Unix.mkdir dir perms)
+        in
+        if parents then recmkdir dir else Unix.mkdir dir perms;
         Lang.unit
       with _ -> Lang.unit)
 
@@ -385,8 +395,8 @@ let _ =
         Some "Open in non-blocking mode." );
       ( "perms",
         Lang.int_t,
-        Some (Lang.int 0o644),
-        Some "Default file rights if created. Default: `0o644`" );
+        Some (Lang.octal_int 0o644),
+        Some "Default file rights if created." );
       ("", Lang.string_t, None, None);
     ]
     Builtins_socket.Socket_value.t ~descr:"Open a file."
