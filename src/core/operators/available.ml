@@ -45,10 +45,12 @@ class available ~track_sensitive ~override p (source : source) =
       self#ready && (override || source#is_ready)
 
     method private generate_frame =
-      let buf = source#get_frame in
-      if track_sensitive () && Frame.track_marks buf <> [] then
-        ready <- Some (p ());
-      buf
+      let frame = source#get_frame in
+      match self#split_frame frame with
+        | buf, None -> buf
+        | buf, Some _ ->
+            if track_sensitive () then ready <- Some (p ());
+            if self#ready then frame else buf
   end
 
 let _ =
