@@ -57,4 +57,5 @@ let () =
       ("theora", Theora_option.enabled);
       ("vorbis", Vorbis_option.enabled);
       ("winsvc", Winsvc_option.enabled);
+      ("xmlplaylist", Xmlplaylist_option.enabled);
     ]
