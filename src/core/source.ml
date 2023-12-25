@@ -445,10 +445,6 @@ class virtual operator ?pos ?(name = "src") sources =
       when it's not used any more, and decide whether the source should run in
       caching mode.
 
-      A source may be accessed by several sources, and must switch to caching
-      mode when it may be accessed by more than one source, in order to ensure
-      consistency of the delivered stream chunk.
-
       Before that a source P accesses another source S it must activate it. The
       An activation is identified by the path to the source which required it.
       It is possible that two identical activations are done, and they should
@@ -529,8 +525,8 @@ class virtual operator ?pos ?(name = "src") sources =
 
     (** Streaming *)
 
-    (* Number of frames left in the current track: -1 means Infinity, time unit
-       is the frame. *)
+    (* Number of maste ticks left in the current track: -1 means unknown, time unit
+       is master tick. *)
     method virtual remaining : int
     val mutable elapsed = 0
     method elapsed = elapsed
@@ -624,7 +620,7 @@ class virtual operator ?pos ?(name = "src") sources =
     method get_mutable_frame field =
       Frame.set self#get_frame field (self#get_mutable_content field)
 
-    method set_data
+    method set_frame_data
         : 'a.
           Frame.field ->
           (?offset:int -> ?length:int -> 'a -> Content.data) ->
@@ -640,20 +636,20 @@ class virtual operator ?pos ?(name = "src") sources =
               Some (Frame.chunk ~start:p ~stop:(Frame.position frame) frame) )
         | [] -> (frame, None)
 
-    method has_track_mark = Frame.has_track_marks self#get_frame
+    method frame_has_track_mark = Frame.has_track_marks self#get_frame
 
-    method track_mark =
+    method frame_track_mark =
       match Frame.track_marks self#get_frame with
         | pos :: _ -> Some pos
         | _ -> None
 
-    method metadata = Frame.get_all_metadata self#get_frame
-    method position = Frame.position self#get_frame
-    method audio_position = Frame.audio_of_main self#position
+    method frame_metadata = Frame.get_all_metadata self#get_frame
+    method frame_position = Frame.position self#get_frame
+    method frame_audio_position = Frame.audio_of_main self#frame_position
 
     (* This is rounded up. *)
-    method video_position =
-      Frame.video_of_main (self#position + Lazy.force Frame.video_rate - 1)
+    method frame_video_position =
+      Frame.video_of_main (self#frame_position + Lazy.force Frame.video_rate - 1)
 
     (* If possible, end the current track.
        Typically, that signal is just re-routed, or makes the next file

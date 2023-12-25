@@ -36,9 +36,9 @@ class clip ~field (source : source) =
     method private generate_frame =
       let c = source#get_mutable_content field in
       let b = Content.Audio.get_data c in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       Audio.clip b 0 position;
-      source#set_data field Content.Audio.lift_data b
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

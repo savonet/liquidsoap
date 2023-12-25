@@ -48,12 +48,12 @@ class echo (source : source) delay feedback ping_pong =
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let effect = Option.get effect in
       effect#set_delay (delay ());
       effect#set_feedback (feedback ());
       effect#process b 0 position;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

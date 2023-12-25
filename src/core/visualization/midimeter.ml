@@ -54,7 +54,7 @@ class midimeter source =
             Printf.printf "%d: %s.\n%!" c s)
           (MIDI.data m.(c))
       done;
-      source#set_data Frame.Fields.midi Content.Midi.lift_data m
+      source#set_frame_data Frame.Fields.midi Content.Midi.lift_data m
   end
 
 let _ =

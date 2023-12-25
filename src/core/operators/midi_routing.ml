@@ -46,7 +46,7 @@ class merge (source : source) out =
         MIDI.merge m.(out) m.(c);
         if c <> out then MIDI.clear_all m.(c)
       done;
-      source#set_data Frame.Fields.midi Content.Midi.lift_data m
+      source#set_frame_data Frame.Fields.midi Content.Midi.lift_data m
   end
 
 class remove (source : source) t =
@@ -58,7 +58,7 @@ class remove (source : source) t =
         Content.Midi.get_data (source#get_mutable_content Frame.Fields.midi)
       in
       List.iter (fun c -> if c < Array.length m then MIDI.clear_all m.(c)) t;
-      source#set_data Frame.Fields.midi Content.Midi.lift_data m
+      source#set_frame_data Frame.Fields.midi Content.Midi.lift_data m
   end
 
 let _ =

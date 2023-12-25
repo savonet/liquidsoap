@@ -61,7 +61,7 @@ class still_frame ~name (source : source) =
             output_string oc i;
             close_out oc;
             fname <- None;
-            source#set_data Frame.Fields.video Content.Video.lift_data v
+            source#set_frame_data Frame.Fields.video Content.Video.lift_data v
   end
 
 let _ =

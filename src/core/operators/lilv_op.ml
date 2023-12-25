@@ -84,7 +84,7 @@ class lilv_mono (source : source) plugin input output params =
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let len = source#audio_position in
+      let len = source#frame_audio_position in
       let chans = Array.length b in
       let inst = Option.get inst in
       let ba = Audio.to_ba b 0 len in
@@ -99,7 +99,7 @@ class lilv_mono (source : source) plugin input output params =
         Plugin.Instance.run inst.(c) len;
         Audio.copy_from_ba ba b 0 len
       done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 class lilv (source : source) plugin inputs outputs params =
@@ -115,7 +115,7 @@ class lilv (source : source) plugin inputs outputs params =
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let len = source#audio_position in
+      let len = source#frame_audio_position in
       List.iter
         (fun (p, v) ->
           let data =
@@ -146,7 +146,7 @@ class lilv (source : source) plugin inputs outputs params =
         done;
         Plugin.Instance.run inst len;
         Audio.copy_from_ba dba b 0 len);
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 (** An LV2 plugin without audio input. *)
@@ -199,7 +199,7 @@ class lilv_noout source plugin inputs params =
       let buf = source#get_frame in
       let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
       let chans = Array.length b in
-      let alen = source#audio_position in
+      let alen = source#frame_audio_position in
       let ba = Audio.to_ba b 0 alen in
       List.iter
         (fun (p, v) ->

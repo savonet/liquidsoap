@@ -47,7 +47,7 @@ class filter (source : source) freq wet mode =
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let rc = 1. /. freq () in
       let alpha =
         match mode with
@@ -77,7 +77,7 @@ class filter (source : source) freq wet mode =
                 b_c.(i) <- (wet *. prev.(c)) +. (wet' *. b_c.(i))
               done
             done);
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

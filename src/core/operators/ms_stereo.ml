@@ -36,7 +36,7 @@ class msstereo ~field (source : source) mode width =
 
     method private generate_frame =
       let buffer = Content.Audio.get_data (source#get_mutable_content field) in
-      for i = 0 to source#audio_position - 1 do
+      for i = 0 to source#frame_audio_position - 1 do
         match mode with
           | Encode ->
               let left = buffer.(0).(i) and right = buffer.(1).(i) in
@@ -53,7 +53,7 @@ class msstereo ~field (source : source) mode width =
               buffer.(1).(i) <- mid -. (side *. width)
         (* right *)
       done;
-      source#set_data field Content.Audio.lift_data buffer
+      source#set_frame_data field Content.Audio.lift_data buffer
   end
 
 let stereo_ms = Lang.add_module ~base:Stereo.stereo "ms"
@@ -96,7 +96,7 @@ class spatializer ~field ~width (source : source) =
     method abort_track = source#abort_track
 
     method private generate_frame =
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let buf = Content.Audio.get_data (source#get_mutable_content field) in
       let width = width () in
       let width = (width +. 1.) /. 2. in
@@ -113,7 +113,7 @@ class spatializer ~field ~width (source : source) =
         buf.(0).(i) <- ((1. -. a) *. mid) -. (a *. side);
         buf.(1).(i) <- ((1. -. a) *. mid) +. (a *. side)
       done;
-      source#set_data field Content.Audio.lift_data buf
+      source#set_frame_data field Content.Audio.lift_data buf
   end
 
 let _ =

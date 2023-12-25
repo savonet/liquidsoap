@@ -41,10 +41,10 @@ class pan ~field (source : source) phi phi_0 =
       let phi = phi () *. phi_0 in
       let gain_left = (tan phi_0 +. tan phi) /. 2. in
       let gain_right = (tan phi_0 -. tan phi) /. 2. in
-      let len = source#audio_position in
+      let len = source#frame_audio_position in
       Audio.Mono.amplify gain_left buffer.(0) 0 len;
       Audio.Mono.amplify gain_right buffer.(1) 0 len;
-      source#set_data field Content.Audio.lift_data buffer
+      source#set_frame_data field Content.Audio.lift_data buffer
   end
 
 let _ =

@@ -75,7 +75,7 @@ class dssi ?chan plugin descr outputs params source =
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let alen = source#audio_position in
+      let alen = source#frame_audio_position in
       let descr, inst = di in
       let evs =
         Content.Midi.get_data (Frame.get source#get_frame Frame.Fields.midi)
@@ -117,7 +117,7 @@ class dssi ?chan plugin descr outputs params source =
            Descriptor.run_synth ~adding:true descr inst.(i) alen evs.(i)
          done;
          Audio.copy_from_ba ba b 0 alen);
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let dssi = Lang.add_module "dssi"

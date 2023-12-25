@@ -81,8 +81,8 @@ class virtual base ~name (source : source) f =
     method private generate_frame =
       let c = source#get_mutable_content Frame.Fields.video in
       let video = Content.Video.get_data c in
-      f video 0 source#video_position;
-      source#set_data Frame.Fields.video Content.Video.lift_data video
+      f video 0 source#frame_video_position;
+      source#set_frame_data Frame.Fields.video Content.Video.lift_data video
   end
 
 class effect ~name (source : source) effect =

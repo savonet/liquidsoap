@@ -45,7 +45,7 @@ class comb ~field (source : source) delay feedback =
 
     method private generate_frame =
       let b = Content.Audio.get_data (source#get_mutable_content field) in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let feedback = feedback () in
       for i = 0 to position - 1 do
         for c = 0 to Array.length b - 1 do
@@ -55,7 +55,7 @@ class comb ~field (source : source) delay feedback =
         done;
         past_pos <- (past_pos + 1) mod past_len
       done;
-      source#set_data field Content.Audio.lift_data b
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

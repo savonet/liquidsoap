@@ -173,7 +173,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let channels = self#audio_channels in
       let debug = debug () in
       let duration = duration () in
@@ -227,7 +227,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
                   Printf.printf "Signaled key %s.\n" k);
             print_newline ()))
       done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let dtmf = Lang.add_module "dtmf"
@@ -312,7 +312,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let channels = self#audio_channels in
       let debug = debug () in
       let duration = duration () in
@@ -354,7 +354,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
                 signaled <- f :: signaled))
             found)
       done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

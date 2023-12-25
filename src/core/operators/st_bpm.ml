@@ -48,9 +48,9 @@ class bpm (source : source) =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
       let bpm = Option.get bpm in
-      let len = source#audio_position in
+      let len = source#frame_audio_position in
       Soundtouch.BPM.put_samples_ni bpm buf 0 len;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data buf
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
 
     method bpm =
       match bpm with Some bpm -> Soundtouch.BPM.get_bpm bpm | None -> 0.

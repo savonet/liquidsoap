@@ -83,8 +83,8 @@ class stereotool ~field ~handler source =
       let b = Content.Audio.get_data (source#get_mutable_content field) in
       Stereotool.process
         ~samplerate:(Lazy.force Frame.audio_rate)
-        handler b 0 source#audio_position;
-      source#set_data field Content.Audio.lift_data b
+        handler b 0 source#frame_audio_position;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

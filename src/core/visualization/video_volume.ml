@@ -72,7 +72,7 @@ class visu source =
 
       (* Feed the volume buffer. *)
       let acontent = AFrame.pcm frame in
-      for i = Frame.audio_of_main 0 to source#audio_position - 1 do
+      for i = Frame.audio_of_main 0 to source#frame_audio_position - 1 do
         self#add_vol
           (Array.map
              (fun c ->
@@ -90,7 +90,7 @@ class visu source =
           (Frame.Fields.find Frame.Fields.video self#content_type)
       in
       let buf = Content.Video.get_data content in
-      for f = 0 to source#video_position - 1 do
+      for f = 0 to source#frame_video_position - 1 do
         let img = ref (Video.Canvas.Image.create width height) in
         let line c p q =
           img :=

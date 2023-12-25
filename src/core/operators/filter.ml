@@ -59,7 +59,7 @@ class filter (source : source) freq q wet mode =
     method private generate_frame =
       let c = source#get_mutable_content Frame.Fields.audio in
       let b = Content.Audio.get_data c in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let freq = freq () in
       let q = q () in
       let wet = wet () in
@@ -82,7 +82,7 @@ class filter (source : source) freq q wet mode =
             +. ((1. -. wet) *. b_c.(i))
         done
       done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let filter =

@@ -34,12 +34,12 @@ class map ~field source f =
 
     method private generate_frame =
       let b = Content.Audio.get_data (source#get_mutable_content field) in
-      for i = 0 to source#audio_position - 1 do
+      for i = 0 to source#frame_audio_position - 1 do
         for c = 0 to Array.length b - 1 do
           b.(c).(i) <- f b.(c).(i)
         done
       done;
-      source#set_data field Content.Audio.lift_data b
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let to_fun_float f x = Lang.to_float (Lang.apply f [("", Lang.float x)])

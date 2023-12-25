@@ -51,7 +51,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
       let buf =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let position = self#audio_position in
+      let position = self#frame_audio_position in
       let chans = self#audio_channels in
       let samplerate = float (Lazy.force Frame.audio_rate) in
       let attack = attack () in
@@ -96,7 +96,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
           buf.(c).(i) <- buf.(c).(i) *. gain
         done
       done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data buf
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

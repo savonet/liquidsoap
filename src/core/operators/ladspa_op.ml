@@ -115,7 +115,7 @@ class ladspa_mono (source : source) plugin descr input output params =
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let len = source#audio_position in
+      let len = source#frame_audio_position in
       let inst = Option.get inst in
       for c = 0 to Array.length b - 1 do
         let buf = Audio.Mono.to_ba b.(c) 0 len in
@@ -127,7 +127,7 @@ class ladspa_mono (source : source) plugin descr input output params =
         Descriptor.run inst.(c) len;
         Audio.Mono.copy_from_ba buf b.(c) 0 len
       done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 class ladspa (source : source) plugin descr inputs outputs params =
@@ -145,7 +145,7 @@ class ladspa (source : source) plugin descr inputs outputs params =
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let len = source#audio_position in
+      let len = source#frame_audio_position in
       let ba = Audio.to_ba b 0 len in
       List.iter (fun (p, v) -> Descriptor.set_control_port inst p (v ())) params;
       if Array.length inputs = Array.length outputs then (
@@ -167,7 +167,7 @@ class ladspa (source : source) plugin descr inputs outputs params =
         done;
         Descriptor.run inst len;
         Audio.copy_from_ba dba b 0 len);
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 class ladspa_nosource plugin descr outputs params =

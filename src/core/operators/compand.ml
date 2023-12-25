@@ -33,7 +33,7 @@ class compand ~field (source : source) mu =
     method abort_track = source#abort_track
 
     method private generate_frame =
-      let pos = source#audio_position in
+      let pos = source#frame_audio_position in
       let b = Content.Audio.get_data (source#get_mutable_content field) in
       for c = 0 to self#audio_channels - 1 do
         let b_c = b.(c) in
@@ -44,7 +44,7 @@ class compand ~field (source : source) mu =
             sign *. log (1. +. (mu *. Utils.abs_float b_c.(i))) /. log (1. +. mu)
         done
       done;
-      source#set_data field Content.Audio.lift_data b
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

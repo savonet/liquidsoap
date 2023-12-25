@@ -436,7 +436,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
         let xvc = xv.(c) in
         let yvc = yv.(c) in
         let bc = b.(c) in
-        for i = 0 to source#audio_position - 1 do
+        for i = 0 to source#frame_audio_position - 1 do
           v_offs <- (v_offs + 1) mod v_len;
           xvc.((coeffs_len - 1 + v_offs) mod v_len) <- bc.(i) /. gain;
           let insert =
@@ -447,7 +447,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
           bc.(i) <- insert
         done
       done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let filter_iir = Lang.add_module ~base:Filter.filter "iir"

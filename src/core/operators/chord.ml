@@ -111,7 +111,7 @@ class chord metadata_name (source : source) =
               | "dim" -> play t [c; c + 3; c + 6]
               | m -> self#log#debug "Unknown mode: %s\n%!" m))
         chords;
-      source#set_data Frame.Fields.midi Content.Midi.lift_data m
+      source#set_frame_data Frame.Fields.midi Content.Midi.lift_data m
   end
 
 let _ =

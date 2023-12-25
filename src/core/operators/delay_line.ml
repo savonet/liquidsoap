@@ -58,7 +58,7 @@ class delay (source : source) duration =
       let buf =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let length = length () in
       self#prepare length;
       if length > 0 then
@@ -70,7 +70,7 @@ class delay (source : source) duration =
           done;
           pos <- (pos + 1) mod length
         done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data buf
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

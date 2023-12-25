@@ -36,13 +36,13 @@ class compress ~field (source : source) mu =
       let b = Content.Audio.get_data (source#get_mutable_content field) in
       for c = 0 to self#audio_channels - 1 do
         let b_c = b.(c) in
-        for i = 0 to source#audio_position - 1 do
+        for i = 0 to source#frame_audio_position - 1 do
           let x = b_c.(i) in
           let sign = if x < 0. then -1. else 1. in
           b_c.(i) <- sign *. (1. -. ((1. -. Utils.abs_float x) ** mu))
         done
       done;
-      source#set_data field Content.Audio.lift_data b
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

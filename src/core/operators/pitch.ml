@@ -111,7 +111,7 @@ class pitch every length freq_min freq_max (source : source) =
         let f = if f > freq_max then 0. else f in
         self#log#important "Found frequency: %.02f (%s)\n%!" f
           (string_of_note (note_of_freq f)));
-      source#set_data Frame.Fields.audio Content.Audio.lift_data buf
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

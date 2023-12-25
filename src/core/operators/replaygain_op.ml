@@ -48,7 +48,7 @@ class replaygain (source : source) =
     method private generate_frame =
       let buf = source#get_frame in
       Audio.Analyze.ReplayGain.process self#state (AFrame.pcm buf) 0
-        source#audio_position;
+        source#frame_audio_position;
       buf
 
     method peak = Audio.Analyze.ReplayGain.peak self#state

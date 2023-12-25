@@ -49,7 +49,7 @@ class flanger (source : source) delay freq feedback phase =
       let b =
         Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let position = source#audio_position in
+      let position = source#frame_audio_position in
       let d_omega = 2. *. pi *. freq () /. float (Frame.audio_of_seconds 1.) in
       for i = 0 to position - 1 do
         for c = 0 to Array.length b - 1 do
@@ -69,7 +69,7 @@ class flanger (source : source) delay freq feedback phase =
         done;
         past_pos <- (past_pos + 1) mod past_len
       done;
-      source#set_data Frame.Fields.audio Content.Audio.lift_data b
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =
