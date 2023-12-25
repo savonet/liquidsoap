@@ -136,12 +136,8 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
         else raise e
 
     method generate_frame =
-      let length = Lazy.force Frame.size in
-      let frame = Frame.create ~length self#content_type in
-      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
-      let buffer = ioring#get_block in
-      Audio.blit buffer 0 buf 0 (Frame.audio_of_main length);
-      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
+      Frame.set_data self#empty_frame Frame.Fields.audio Content.Audio.lift_data
+        ioring#get_block
 
     method! reset = ()
   end
