@@ -33,35 +33,37 @@ class merge_metadata tracks =
         List.exists (fun s -> s#is_ready && snd s#self_sync) sources )
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
-    method private can_generate_frame = true
+    method private ready_sources = List.filter (fun s -> s#is_ready) sources
+    method private can_generate_frame = self#ready_sources <> []
 
     method seek_source =
-      match List.filter (fun s -> s#is_ready) sources with
+      match self#ready_sources with
         | s :: [] -> s
         | _ -> (self :> Source.source)
 
-    method remaining = -1
+    method remaining =
+      match self#ready_sources with s :: [] -> s#remaining | _ -> -1
 
     method private generate_frame =
-      List.fold_left
-        (fun frame source ->
-          if source#is_ready then (
-            let l = Frame.get_all_metadata source#get_frame in
-            let l =
-              List.fold_left
-                (fun l (pos, m) ->
-                  ( pos,
-                    Frame.Metadata.append
-                      (Option.value ~default:Frame.Metadata.empty
-                         (Frame.get_metadata frame pos))
-                      m )
-                  :: l)
-                [] l
-            in
-            Frame.add_all_metadata frame l)
-          else frame)
-        (Frame.create ~length:(Lazy.force Frame.size) self#content_type)
-        sources
+      match self#ready_sources with
+        | [] -> assert false
+        | s :: rest ->
+            List.fold_left
+              (fun frame source ->
+                let l = Frame.get_all_metadata source#get_frame in
+                let l =
+                  List.fold_left
+                    (fun l (pos, m) ->
+                      ( pos,
+                        Frame.Metadata.append
+                          (Option.value ~default:Frame.Metadata.empty
+                             (Frame.get_metadata frame pos))
+                          m )
+                      :: l)
+                    [] l
+                in
+                Frame.add_all_metadata frame l)
+              s#get_frame rest
   end
 
 let _ =
