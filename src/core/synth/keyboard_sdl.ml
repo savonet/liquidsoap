@@ -145,9 +145,8 @@ class keyboard velocity =
         done;
         ans
       in
-      Frame.set_data
-        (Frame.create ~length:(Lazy.force Frame.size) Frame.Fields.empty)
-        Frame.Fields.midi Content.Midi.lift_data [| t |]
+      Frame.set_data self#empty_frame Frame.Fields.midi Content.Midi.lift_data
+        [| t |]
   end
 
 let _ =
