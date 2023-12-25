@@ -51,11 +51,14 @@ let run () =
   let colorized_skipped = Console.colorize [`yellow; `bold] "[skipped]" in
   let colorized_failed = Console.colorize [`red; `bold] "[failed]" in
 
+  let pid_ref = ref None in
+
   let on_timeout () =
     let min, sec = runtime () in
     Printf.eprintf "%sRan test %s: %s (Test time: %02dm:%02ds)\n" error_prefix
       colorized_test colorized_timeout min sec;
     print_log ();
+    (match !pid_ref with Some p -> Unix.kill p Sys.sigkill | None -> ());
     cleanup ();
     exit 1
   in
@@ -69,6 +72,7 @@ let run () =
 
   Unix.putenv "MEMTRACE" (Printf.sprintf "%s.trace" test);
   let pid = Unix.create_process cmd args stdin stdout stdout in
+  pid_ref := Some pid;
 
   match Unix.waitpid [] pid with
     | _, Unix.WEXITED 0 ->
