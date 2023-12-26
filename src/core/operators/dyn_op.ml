@@ -49,36 +49,40 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
       self#exchange_source (Some s);
       if s#is_ready then Some s else None
 
-    method private get_source ~reselect () =
-      let reselect =
-        match (track_sensitive (), reselect) with
-          | false, `Force -> `Ok
-          | _, v -> v
-      in
+    method private get_next reselect =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
         (self#mutexify (fun () ->
-             let next () =
-               last_select <- Unix.gettimeofday ();
-               let s =
-                 Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
-               in
-               match s with
-                 | None -> (
-                     match Atomic.get source with
-                       | Some s when self#can_reselect ~reselect s -> Some s
-                       | _ -> None)
-                 | Some s -> self#prepare s
-             in
-             match (Atomic.get source, Atomic.get proposed) with
-               | _, Some s ->
-                   Atomic.set proposed None;
-                   self#prepare s
-               | Some s, _ when self#can_reselect ~reselect s -> Some s
-               | Some _, _
-                 when Unix.gettimeofday () -. last_select < resurection_time ->
-                   None
-               | _ -> next ()))
+             match Atomic.exchange proposed None with
+               | Some s -> self#prepare s
+               | None -> (
+                   last_select <- Unix.gettimeofday ();
+                   let s =
+                     Lang.apply f [] |> Lang.to_option
+                     |> Option.map Lang.to_source
+                   in
+                   match s with
+                     | None -> (
+                         match Atomic.get source with
+                           | Some s
+                             when self#can_reselect
+                                    ~reselect:
+                                      (match reselect with
+                                        | `Force -> `Ok
+                                        | v -> v)
+                                    s ->
+                               Some s
+                           | _ -> None)
+                     | Some s -> self#prepare s)))
+
+    method private get_source ~reselect () =
+      match (Atomic.get source, reselect) with
+        | None, _ | _, `Force -> self#get_next reselect
+        | Some s, _ when self#can_reselect ~reselect s -> Some s
+        | Some _, _ when Unix.gettimeofday () -. last_select < resurection_time
+          ->
+            None
+        | _ -> self#get_next reselect
 
     (* Source methods: attempt to #get_source as soon as it could be useful for the
        selection function to change the source. *)
