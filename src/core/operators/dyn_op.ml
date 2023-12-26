@@ -47,6 +47,14 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
     val mutable proposed = None
     method propose s = proposed <- Some s
 
+    method private prepare s =
+      Typing.(s#frame_type <: self#frame_type);
+      Clock.unify ~pos:self#pos s#clock self#clock;
+      s#get_ready activation;
+      self#unregister_source ~already_locked:true;
+      source <- Some s;
+      if s#is_ready then Some s else None
+
     method private get_source ~reselect () =
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
@@ -61,20 +69,13 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                      match source with
                        | Some s when self#can_reselect ~reselect s -> Some s
                        | _ -> None)
-                 | Some s ->
-                     Typing.(s#frame_type <: self#frame_type);
-                     Clock.unify ~pos:self#pos s#clock self#clock;
-                     s#get_ready activation;
-                     self#unregister_source ~already_locked:true;
-                     source <- Some s;
-                     source
+                 | Some s -> self#prepare s
              in
              match (source, proposed) with
-               | Some s, _ when self#can_reselect ~reselect s -> source
-               | _, Some s when s#is_ready ->
+               | _, Some s ->
                    proposed <- None;
-                   source <- Some s;
-                   source
+                   self#prepare s
+               | Some s, _ when self#can_reselect ~reselect s -> source
                | Some _, _
                  when Unix.gettimeofday () -. last_select < resurection_time ->
                    None
