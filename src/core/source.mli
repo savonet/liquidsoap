@@ -279,7 +279,6 @@ class virtual source :
 
        method frame_position : int
        method frame_audio_position : int
-       method frame_video_position : int
        method frame_has_track_mark : bool
        method frame_track_mark : int option
        method frame_metadata : (int * Frame.Metadata.t) list

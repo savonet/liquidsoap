@@ -60,7 +60,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
         Content.Video.get_data (source#get_mutable_content Frame.Fields.video)
       in
       params ();
-      for i = 0 to source#frame_video_position - 1 do
+      for i = 0 to Video.Canvas.length rgb - 1 do
         (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
         let img = Video.Canvas.render rgb i in
         let img = Image.YUV420.to_RGBA32 img in
@@ -121,9 +121,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
        * and/or attempt to get some more data in the buffers...
        * each solution has its downsides and it'll rarely matter
        * because there's usually only one image per video frame. *)
-      let length =
-        min source#frame_video_position source2#frame_video_position
-      in
+      let length = min (Video.Canvas.length rgb) (Video.Canvas.length rgb') in
       for i = 0 to length - 1 do
         (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
         let img = Video.Canvas.render rgb i in

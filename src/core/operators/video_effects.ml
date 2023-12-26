@@ -81,7 +81,7 @@ class virtual base ~name (source : source) f =
     method private generate_frame =
       let c = source#get_mutable_content Frame.Fields.video in
       let video = Content.Video.get_data c in
-      f video 0 source#frame_video_position;
+      f video 0 (Video.Canvas.length video);
       source#set_frame_data Frame.Fields.video Content.Video.lift_data video
   end
 

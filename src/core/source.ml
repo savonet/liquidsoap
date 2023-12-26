@@ -647,10 +647,6 @@ class virtual operator ?pos ?(name = "src") sources =
     method frame_position = Frame.position self#get_frame
     method frame_audio_position = Frame.audio_of_main self#frame_position
 
-    (* This is rounded up. *)
-    method frame_video_position =
-      Frame.video_of_main (self#frame_position + Lazy.force Frame.video_rate - 1)
-
     (* If possible, end the current track.
        Typically, that signal is just re-routed, or makes the next file
        to be played if there's anything like a file. *)
