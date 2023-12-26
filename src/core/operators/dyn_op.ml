@@ -31,28 +31,23 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
 
     method stype = if infallible then `Infallible else `Fallible
     val mutable activation = []
-    val mutable source : Source.source option = init
+    val source : Source.source option Atomic.t = Atomic.make init
 
-    method private unregister_source ~already_locked =
-      let unregister () =
-        match source with
-          | Some s ->
-              s#leave (self :> Source.source);
-              source <- None
-          | None -> ()
-      in
-      if already_locked then unregister () else self#mutexify unregister ()
+    method private unregister_source =
+      match Atomic.exchange source None with
+        | Some s -> s#leave (self :> Source.source)
+        | None -> ()
 
     val mutable last_select = Unix.gettimeofday ()
-    val mutable proposed = None
-    method propose s = proposed <- Some s
+    val proposed = Atomic.make None
+    method propose s = Atomic.set proposed (Some s)
 
     method private prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
       s#get_ready activation;
-      self#unregister_source ~already_locked:true;
-      source <- Some s;
+      self#unregister_source;
+      Atomic.set source (Some s);
       if s#is_ready then Some s else None
 
     method private get_source ~reselect () =
@@ -66,16 +61,16 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                in
                match s with
                  | None -> (
-                     match source with
+                     match Atomic.get source with
                        | Some s when self#can_reselect ~reselect s -> Some s
                        | _ -> None)
                  | Some s -> self#prepare s
              in
-             match (source, proposed) with
+             match (Atomic.get source, Atomic.get proposed) with
                | _, Some s ->
-                   proposed <- None;
+                   Atomic.set proposed None;
                    self#prepare s
-               | Some s, _ when self#can_reselect ~reselect s -> source
+               | Some s, _ when self#can_reselect ~reselect s -> Some s
                | Some _, _
                  when Unix.gettimeofday () -. last_select < resurection_time ->
                    None
@@ -94,15 +89,16 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
 
     method! private sleep =
       Lang.iter_sources (fun s -> s#leave (self :> Source.source)) f;
-      self#unregister_source ~already_locked:false
+      self#unregister_source
 
-    method remaining = match source with Some s -> s#remaining | None -> -1
+    method remaining =
+      match Atomic.get source with Some s -> s#remaining | None -> -1
 
     method abort_track =
-      match source with Some s -> s#abort_track | None -> ()
+      match Atomic.get source with Some s -> s#abort_track | None -> ()
 
     method seek_source =
-      match source with
+      match Atomic.get source with
         | Some s -> s#seek_source
         | None -> (self :> Source.source)
 
@@ -111,7 +107,9 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
         | Some v -> (`Static, v)
         | None -> (
             ( `Dynamic,
-              match source with Some s -> snd s#self_sync | None -> false ))
+              match Atomic.get source with
+                | Some s -> snd s#self_sync
+                | None -> false ))
   end
 
 let _ =
