@@ -46,6 +46,7 @@ def image(
 
   current_file = ref(getter.get(file))
   set(current_file())
+
   s =
     source.on_frame(
       s,

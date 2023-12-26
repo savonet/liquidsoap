@@ -50,6 +50,11 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
       if s#is_ready then Some s else None
 
     method private get_source ~reselect () =
+      let reselect =
+        match (track_sensitive (), reselect) with
+          | false, `Force -> `Ok
+          | _, v -> v
+      in
       (* Avoid that a new source gets assigned to the default clock. *)
       Clock.collect_after
         (self#mutexify (fun () ->
@@ -61,12 +66,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
                match s with
                  | None -> (
                      match Atomic.get source with
-                       | Some s
-                         when self#can_reselect
-                                ~reselect:
-                                  (match reselect with `Force -> `Ok | v -> v)
-                                s ->
-                           Some s
+                       | Some s when self#can_reselect ~reselect s -> Some s
                        | _ -> None)
                  | Some s -> self#prepare s
              in
