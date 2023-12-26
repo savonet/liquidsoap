@@ -33,8 +33,8 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
     val mutable activation = []
     val source : Source.source option Atomic.t = Atomic.make init
 
-    method private unregister_source =
-      match Atomic.exchange source None with
+    method private exchange_source new_source =
+      match Atomic.exchange source new_source with
         | Some s -> s#leave (self :> Source.source)
         | None -> ()
 
@@ -46,8 +46,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
       s#get_ready activation;
-      self#unregister_source;
-      Atomic.set source (Some s);
+      self#exchange_source (Some s);
       if s#is_ready then Some s else None
 
     method private get_source ~reselect () =
@@ -94,7 +93,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
 
     method! private sleep =
       Lang.iter_sources (fun s -> s#leave (self :> Source.source)) f;
-      self#unregister_source
+      self#exchange_source None
 
     method remaining =
       match Atomic.get source with Some s -> s#remaining | None -> -1
