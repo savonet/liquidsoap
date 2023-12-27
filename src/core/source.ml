@@ -548,8 +548,10 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable streaming_state : streaming_state = `Unavailable
 
     method is_ready =
-      self#has_ticked;
-      match streaming_state with `Ready _ | `Done _ -> true | _ -> false
+      if not content_type_computation_allowed then false
+      else (
+        self#has_ticked;
+        match streaming_state with `Ready _ | `Done _ -> true | _ -> false)
 
     val mutable _cache = None
 
