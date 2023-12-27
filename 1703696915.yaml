@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 1.03631091118
+  unit: "s"
+  time: 1703696535.69
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.9180970192
+  unit: "s"
+  time: 1703696537.61
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 3.59288406372
+  unit: "s"
+  time: 1703696541.2
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 3.87158107758
+  unit: "s"
+  time: 1703696545.08
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2217.
+  unit: "functions"
+  time: 1703696653.12
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1703696653.12
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 180.578125
+  unit: "Mio"
+  time: 1703696654.47
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 852.34375
+  unit: "Mio"
+  time: 1703696654.47
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1703696654.47
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1703696654.47
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 5863.40625
+  unit: "Mio"
+  time: 1703696654.47
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 5863.40625
+  unit: "Mio"
+  time: 1703696654.47
+  min: 0.
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.30576300621
+  unit: "s"
+  time: 1703696806.18
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.77142596245
+  unit: "s"
+  time: 1703696905.29
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.90556406975
+  unit: "s"
+  time: 1703696909.2
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1703696915.52
+  min: 0.
+
+- commit: 77cf76e88db9406aac1d9f656b2615edcf1199fe
+  branch: gh-readonly-queue_main_pr-3577-7cbafe5d1b9ab02aee6b00b5d7e2c1432f7934a8
+  time: 1703696915
