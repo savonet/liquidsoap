@@ -338,6 +338,15 @@ class virtual active_operator :
        inherit active_source
      end
 
+(** Type governing whether or not the same source should be re-selected.
+    - [`Force] means that the operator should at least try to see if a new
+      source should be selected.
+    - [`Ok] means that the operator should re-select the current source
+      whenever possible.
+    - [`After_position p] means that the operator should re-select the
+      current source only if it can produce data past the given position
+    The [generate_from_multiple_sources] implements a [can_reselect] that
+    can be called with the currently selected source to validate this logic. *)
 type reselect = [ `Ok | `Force | `After_position of int ]
 
 (* Helper to generate data from a sequence of source.
