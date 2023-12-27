@@ -41,7 +41,7 @@ class soundtouch source_val rate tempo pitch =
     val mutable st = None
     method stype = source#stype
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method seek_source = source#seek_source
     method remaining = -1
 
@@ -65,24 +65,24 @@ class soundtouch source_val rate tempo pitch =
         ignore (Soundtouch.get_samples_ni st buf 0 available);
         Generator.put self#buffer Frame.Fields.audio
           (Content.Audio.lift_data buf));
-      if AFrame.is_partial databuf then Generator.add_track_mark self#buffer;
-
-      (* It's almost impossible to know where to add metadata,
-       * b/c of tempo so we add then right here. *)
+      let gen_pos = Generator.length self#buffer in
       List.iter
-        (fun (_, m) -> Generator.add_metadata self#buffer m)
-        (AFrame.get_all_metadata databuf)
+        (fun pos -> Generator.add_track_mark ~pos:(pos + gen_pos) self#buffer)
+        (Frame.track_marks databuf);
 
-    method private get_frame buf =
+      List.iter
+        (fun (pos, m) ->
+          Generator.add_metadata ~pos:(pos + gen_pos) self#buffer m)
+        (Frame.get_all_metadata databuf)
+
+    method private generate_frame =
+      let size = Lazy.force Frame.size in
       consumer#set_output_enabled true;
-      while
-        Generator.length self#buffer < Lazy.force Frame.size
-        && source#is_ready ~frame:self#buffer ()
-      do
+      while Generator.length self#buffer < size && source#is_ready do
         self#child_tick
       done;
       consumer#set_output_enabled false;
-      Generator.fill self#buffer buf
+      Generator.slice self#buffer size
 
     method! wake_up a =
       super#wake_up a;

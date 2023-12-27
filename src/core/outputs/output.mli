@@ -42,9 +42,9 @@ class virtual output :
        method self_sync : Source.self_sync
        method remaining : int
        method output : unit
-       method private get_frame : Frame.t -> unit
        method abort_track : unit
-       method private _is_ready : ?frame:Frame.t -> unit -> bool
+       method private can_generate_frame : bool
+       method private generate_frame : Frame.t
        method state : Start_stop.state
        method transition_to : Start_stop.state -> unit
        method seek_source : Source.source

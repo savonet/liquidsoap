@@ -44,6 +44,7 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
     val mutable initialized = false
     method self_sync = (`Static, true)
     method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     method! private wake_up l =
       active_source#wake_up l;
@@ -134,12 +135,9 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
           Pcm.recover dev e)
         else raise e
 
-    method get_frame buf =
-      assert (0 = AFrame.position buf);
-      let buffer = ioring#get_block in
-      let fbuf = AFrame.pcm buf in
-      Audio.blit buffer 0 fbuf 0 buffer_length;
-      AFrame.add_break buf buffer_length
+    method generate_frame =
+      Frame.set_data self#empty_frame Frame.Fields.audio Content.Audio.lift_data
+        ioring#get_block
 
     method! reset = ()
   end

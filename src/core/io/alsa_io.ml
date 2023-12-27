@@ -231,18 +231,21 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       Start_stop.active_source
         ~get_clock:Alsa_settings.get_clock
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
-        ~clock_safe ~on_start ~on_stop ~fallible ~autostart:start ()
+        ~clock_safe ~on_start ~on_stop ~fallible ~autostart:start () as active_source
 
     method private start = self#open_device
     method private stop = self#close_device
     method remaining = -1
     method abort_track = ()
     method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     (* TODO: convert samplerate *)
-    method private get_frame frame =
+    method private generate_frame =
       let pcm = Option.get pcm in
-      let buf = AFrame.pcm frame in
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       try
         let r = ref 0 in
         while !r < samples_per_frame do
@@ -253,7 +256,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
               !r (Audio.length buf);
           r := !r + read pcm buf !r (samples_per_frame - !r)
         done;
-        AFrame.add_break frame (AFrame.size ())
+        Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
       with e ->
         begin
           match e with
@@ -266,7 +269,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover..";
           Pcm.recover pcm e;
-          self#output)
+          self#generate_frame)
         else raise e
   end
 

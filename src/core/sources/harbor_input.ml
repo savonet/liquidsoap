@@ -65,8 +65,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
     method private output =
       self#has_ticked;
-      if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
-        self#get self#memo
+      if self#is_ready then ignore self#get_frame
 
     method reset = self#disconnect ~lock:true
     method buffer_length_cmd = Frame.seconds_of_audio self#length

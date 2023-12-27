@@ -103,7 +103,7 @@ let () =
         let pcm =
           Content.Audio.get_data
             (Frame.Fields.find Frame.Fields.audio
-               (Generator.get ~length:frame_size pending_data))
+               (Generator.slice pending_data frame_size))
         in
         Strings.Mutable.add encoded
           (if channels = 1 then

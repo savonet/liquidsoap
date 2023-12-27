@@ -24,22 +24,21 @@ class on_metadata f s =
   object (self)
     inherit Source.operator ~name:"on_metadata" [s]
     method stype = s#stype
-    method private _is_ready = s#is_ready
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek_source = s#seek_source
     method self_sync = s#self_sync
 
-    method private get_frame ab =
-      let p = Frame.position ab in
-      s#get ab;
+    method private generate_frame =
+      let buf = s#get_frame in
       List.iter
-        (fun (i, m) ->
-          if i >= p then begin
-            self#log#debug "Got metadata at position %d: calling handler..." i;
-            ignore (Lang.apply f [("", Lang.metadata m)])
-          end)
-        (Frame.get_all_metadata ab)
+        (fun (p, m) ->
+          self#log#debug
+            "on_metadata: got metadata at position %d: calling handler..." p;
+          ignore (Lang.apply f [("", Lang.metadata m)]))
+        (Frame.get_all_metadata buf);
+      buf
   end
 
 let _ =

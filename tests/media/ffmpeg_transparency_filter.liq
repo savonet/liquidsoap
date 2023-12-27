@@ -19,13 +19,6 @@ end
 video = logo_overlay(source.tracks(background).video, source.tracks(logo).video)
 s = source({audio=source.tracks(playlist).audio, video=video})
 s = max_duration(3., s)
-started = ref(false)
-
-def on_track(_) =
-  started := true
-end
-
-s.on_track(on_track)
 
 done = ref(false)
 
@@ -33,7 +26,7 @@ clock.assign_new(id='test_clock', sync='none', [s])
 
 def on_close(filename) =
   if
-    not done() and !started
+    not done()
   then
     done := true
 

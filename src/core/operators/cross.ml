@@ -26,11 +26,10 @@ open Source
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
-(** [rms_width] and [minimum_length] are all in samples.
-  * [cross_length] is in ticks (like #remaining estimations).
-  * We are assuming a fixed audio kind -- at least for now. *)
+(** [rms_width] is in samples.
+  * [cross_length] is in ticks (like #remaining estimations) and must be at least one frame. *)
 class cross val_source ~duration_getter ~override_duration ~persist_override
-  ~rms_width ~minimum_length ~conservative transition =
+  ~rms_width transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
@@ -43,7 +42,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
      * sources but we do not have a static way of knowing it at the moment.
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
-    val mutable cross_length = 0
+    val mutable cross_length = Lazy.force Frame.size
     val mutable duration_getter = original_duration_getter
     method cross_duration = duration_getter ()
 
@@ -57,7 +56,11 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             "Cannot set crossfade duration to negative value %f!"
             new_cross_length
         else (
-          self#log#info "Setting crossfade duration to %.2fs" new_cross_length;
+          let main_new_cross_length =
+            max (Lazy.force Frame.size) main_new_cross_length
+          in
+          self#log#info "Setting crossfade duration to %.2fs"
+            (Frame.seconds_of_main main_new_cross_length);
           cross_length <- main_new_cross_length)
 
     initializer self#set_cross_length
@@ -79,19 +82,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     val mutable rms_after = 0.
     val mutable rmsi_after = 0
     val mutable after_metadata = None
-
-    (* An audio frame for intermediate computations. It is used to buffer the
-       end and beginnings of tracks. Its past metadata should mimic that of the
-       main stream in order to avoid metadata duplication. *)
-    val mutable buf_frame = None
-
-    method private buf_frame =
-      match buf_frame with
-        | Some frame -> frame
-        | None ->
-            let f = Frame.create self#content_type in
-            buf_frame <- Some f;
-            f
 
     method private reset_analysis =
       gen_before <- Generator.create self#content_type;
@@ -118,7 +108,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let s = (s :> source) in
       s#get_ready [(self :> source)];
       Clock.unify ~pos:self#pos source#clock s#clock;
-      transition_source <- Some s
+      transition_source <- Some s;
+      self#set_cross_length
 
     method cleanup_transition_source =
       match transition_source with
@@ -143,163 +134,128 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     (* in main time *)
     val mutable status = `Idle
 
-    method private child_get source frame =
-      self#child_on_output (fun () -> source#get frame)
+    method private child_get source =
+      let frame = ref self#empty_frame in
+      self#child_on_output (fun () ->
+          if source#is_ready then frame := source#get_frame);
+      !frame
 
-    method private save_last_metadata mode buf_frame =
-      let compare x y = -compare (fst x) (fst y) in
-      let l = List.sort compare (AFrame.get_all_metadata buf_frame) in
-      match (l, mode) with
+    method private append mode buf_frame =
+      let l = Frame.get_all_metadata buf_frame in
+      List.iter
+        (fun (_, m) ->
+          match Frame.Metadata.find_opt override_duration m with
+            | None -> ()
+            | Some v -> (
+                try
+                  self#log#info "Overriding crossfade duration from metadata %s"
+                    override_duration;
+                  let l = float_of_string v in
+                  duration_getter <- (fun () -> l)
+                with _ -> ()))
+        l;
+      (match (List.rev l, mode) with
         | (_, m) :: _, `Before -> before_metadata <- Some m
         | (_, m) :: _, `After -> after_metadata <- Some m
-        | _ -> ()
+        | _ -> ());
+      match mode with
+        | `Before -> Generator.append gen_before buf_frame
+        | `After -> Generator.append gen_after buf_frame
 
-    method private update_cross_length frame pos =
-      if Frame.is_partial frame && not persist_override then
-        duration_getter <- original_duration_getter;
-      List.iter
-        (fun (p, m) ->
-          if p >= pos then (
-            match Frame.Metadata.find_opt override_duration m with
-              | None -> ()
-              | Some v -> (
-                  try
-                    self#log#info
-                      "Overriding crossfade duration from metadata %s"
-                      override_duration;
-                    let l = float_of_string v in
-                    duration_getter <- (fun () -> l)
-                  with _ -> ())))
-        (Frame.get_all_metadata frame);
-      self#set_cross_length
+    val mutable cache = None
 
-    method private get_frame frame =
+    (* A chunk is a buffer that has at most one
+       track mark at its beginning. *)
+    method private generate_frame =
       match status with
         | `Idle ->
-            let rem = source#remaining in
-            if conservative || (0 <= rem && rem <= cross_length) then (
-              self#log#info "Buffering end of track...";
-              status <- `Before;
-              let buf_frame = self#buf_frame in
-              Frame.set_breaks buf_frame [Frame.position frame];
-              Frame.set_all_metadata buf_frame [];
-              self#buffering cross_length;
-              if status <> `Limit then
-                self#log#info "More buffering will be needed.";
-              self#get_frame frame)
-            else (
-              let p = Frame.position frame in
-              self#child_get source frame;
-              self#save_last_metadata `Before frame;
-              self#update_cross_length frame p)
+            let buf =
+              match cache with
+                | Some frame -> frame
+                | None -> self#child_get source
+            in
+            cache <- None;
+            let pos = Frame.position buf in
+            let p = match Frame.track_marks buf with p :: _ -> p | [] -> 0 in
+            self#log#info "Buffering end of track...";
+            self#append `Before (Frame.chunk ~start:p ~stop:pos buf);
+            status <- `Before;
+            self#buffering cross_length;
+            cache <- Some (Frame.slice buf p);
+            self#generate_frame
         | `Before ->
             (* We started buffering but the track didn't end.
              * Play the beginning of the buffer while filling it more. *)
             let len = Generator.length gen_before in
             if len <= cross_length then self#buffering (cross_length - len);
-            Generator.fill gen_before frame
-        | `Limit ->
-            (* The track finished.
-             * We compute rms_after and launch the transition. *)
-            if source#is_ready ~frame () then self#analyze_after;
-            self#create_transition;
-
-            (* Check if the new source is ready *)
-            if (Option.get transition_source)#is_ready ~frame () then
-              self#get_frame frame
-            else
-              (* If not, finish this track, which requires our callers
-               * to wait that we become ready again. *)
-              Frame.add_break frame (Frame.position frame)
-        | `After when (Option.get transition_source)#is_ready ~frame () ->
-            self#child_get (Option.get transition_source) frame;
-
-            if Generator.length pending_after = 0 && Frame.is_partial frame then (
-              status <- `Idle;
-              self#cleanup_transition_source;
-
-              (* If underlying source if ready, try to continue filling up the frame
-               * using it. Each call to [get_frame] must add exactly one break so
-               * call it again and then remove the intermediate break that was just
-               * added. *)
-              if source#is_ready ~frame () then (
-                self#get_frame frame;
-                Frame.set_breaks frame
-                  (match List.rev (Frame.breaks frame) with
-                    | b :: _ :: l -> List.rev (b :: l)
-                    | _ -> assert false)))
+            if status = `Before then (
+              let size = Lazy.force Frame.size in
+              match cache with
+                | Some frame ->
+                    cache <- None;
+                    Frame.append frame
+                      (Generator.slice gen_before (size - Frame.position frame))
+                | None -> Generator.slice gen_before size)
+            else self#generate_frame
         | `After ->
-            (* Here, transition source went down so we switch back to main source.
-               Our [is_ready] check ensures that we only get here when the main source
-               is ready. *)
-            status <- `Idle;
-            self#cleanup_transition_source;
-            self#get_frame frame
+            let source = Option.get transition_source in
+            let buf = self#child_get source in
+            if Frame.is_partial buf then (
+              self#cleanup_transition_source;
+              status <- `Idle;
+              cache <- Some buf;
+              self#generate_frame)
+            else buf
 
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
     method private buffering n =
-      let buf_frame = self#buf_frame in
-      if not (Frame.is_partial buf_frame) then Frame.clear buf_frame;
-      let start = AFrame.position buf_frame in
-      let stop =
-        self#child_get source buf_frame;
-        AFrame.position buf_frame
-      in
-      self#save_last_metadata `Before buf_frame;
-      self#update_cross_length buf_frame start;
-      Generator.feed
-        ~offset:(Frame.main_of_audio start)
-        ~length:(Frame.main_of_audio (stop - start))
-        gen_before buf_frame;
+      let buf_frame = self#child_get source in
+      let buf_frame, next_frame = self#split_frame buf_frame in
+      let len = AFrame.position buf_frame in
+      self#append `Before buf_frame;
 
       (* Analyze them *)
       let pcm = AFrame.pcm buf_frame in
-      let len = stop - start in
-      let squares = Audio.squares pcm start len in
+      let squares = Audio.squares pcm 0 len in
       rms_before <- rms_before -. mem_before.(mem_i) +. squares;
       mem_before.(mem_i) <- squares;
       mem_i <- (mem_i + len) mod rms_width;
       rmsi_before <- min rms_width (rmsi_before + len);
 
       (* Should we buffer more or are we done ? *)
-      if AFrame.is_partial buf_frame then (
-        Generator.add_track_mark gen_before;
-        status <- `Limit)
-      else if n > 0 then self#buffering (n - stop + start)
+      match next_frame with
+        | None -> if 0 < len && len < n then self#buffering (n - len)
+        | Some end_frame ->
+            if not persist_override then
+              duration_getter <- original_duration_getter;
+            status <- `After;
+            self#append `After end_frame;
+            self#analyze_after
 
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
-      let buf_frame = self#buf_frame in
       let before_len = Generator.length gen_before in
       let rec f () =
-        let start = AFrame.position buf_frame in
-        let stop =
-          self#child_get source buf_frame;
-          AFrame.position buf_frame
-        in
-        Generator.feed
-          ~offset:(Frame.main_of_audio start)
-          ~length:(Frame.main_of_audio (stop - start))
-          gen_after buf_frame;
+        let buf_frame = self#child_get source in
+        let buf_frame, next_frame = self#split_frame buf_frame in
+        let len = AFrame.position buf_frame in
+        self#append `After buf_frame;
         let after_len = Generator.length gen_after in
         if after_len <= rms_width then (
           let pcm = AFrame.pcm buf_frame in
-          let len = stop - start in
-          let squares = Audio.squares pcm start len in
+          let squares = Audio.squares pcm 0 len in
           rms_after <- rms_after +. squares;
           rmsi_after <- rmsi_after + len);
-        self#save_last_metadata `After buf_frame;
-        self#update_cross_length buf_frame start;
-        if
-          AFrame.is_partial buf_frame
-          && not (source#is_ready ~frame:buf_frame ())
-        then Generator.add_track_mark gen_after
-        else (
-          if not (Frame.is_partial buf_frame) then Frame.clear buf_frame;
-          if after_len < before_len then f ())
+        match next_frame with
+          | None -> if 0 < len && after_len < before_len then f () else None
+          | _ -> next_frame
       in
-      f ()
+      let next_frame = f () in
+      self#create_transition;
+      match next_frame with
+        | None -> ()
+        | Some next_frame -> self#append `Before next_frame
 
     (* Sum up analysis and build the transition *)
     method private create_transition =
@@ -319,17 +275,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
-            let before =
-              new Insert_metadata.replay
-                before_metadata
-                (new Generated.consumer gen_before)
-            in
+            let before = new Generated.consumer gen_before in
             Typing.(before#frame_type <: self#frame_type);
-            let after =
-              new Insert_metadata.replay
-                after_metadata
-                (new Generated.consumer gen_after)
-            in
+            let before = new Insert_metadata.replay before_metadata before in
+            Typing.(before#frame_type <: self#frame_type);
+            let after = new Generated.consumer gen_after in
+            Typing.(after#frame_type <: self#frame_type);
+            let after = new Insert_metadata.replay after_metadata after in
             Typing.(after#frame_type <: self#frame_type);
             let () =
               before#set_id (self#id ^ "_before");
@@ -343,6 +295,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                       [
                         ("source", Lang.source a);
                         ("db_level", Lang.float db_before);
+                        ( "expected_duration",
+                          Lang.float (Frame.seconds_of_main cross_length) );
+                        ( "buffered",
+                          Lang.float
+                            (Frame.seconds_of_main
+                               (Generator.length gen_before)) );
                         ("metadata", Lang.metadata before_metadata);
                       ] );
                   ( "",
@@ -350,6 +308,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                       [
                         ("source", Lang.source b);
                         ("db_level", Lang.float db_after);
+                        ( "expected_duration",
+                          Lang.float (Frame.seconds_of_main cross_length) );
+                        ( "buffered",
+                          Lang.float
+                            (Frame.seconds_of_main (Generator.length gen_after))
+                        );
                         ("metadata", Lang.metadata after_metadata);
                       ] );
                 ]
@@ -361,11 +325,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 db_before db_after
                 (Frame.seconds_of_main (Generator.length gen_before))
                 (Frame.seconds_of_main (Generator.length gen_after));
-              if Frame.main_of_audio minimum_length < Generator.length gen_after
-              then f before after
-              else (
-                self#log#important "Not enough data for crossing.";
-                (new Sequence.sequence [before; after] :> source))
+              f before after
             in
             Clock.unify ~pos:self#pos compound#clock s#clock;
             Typing.(compound#frame_type <: self#frame_type);
@@ -374,31 +334,25 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       self#cleanup_transition_source;
       self#prepare_transition_source compound;
       pending_after <- gen_after;
-      status <- `After;
       self#reset_analysis
 
     method remaining =
       match status with
         | `Before | `Idle -> source#remaining
-        | `Limit -> -1
         | `After -> (Option.get transition_source)#remaining
 
     method seek_source =
       match status with
         | `Before | `Idle -> source#seek_source
         | `After -> (Option.get transition_source)#seek_source
-        | _ -> (self :> Source.source)
 
-    method private _is_ready ?frame () =
+    method private can_generate_frame =
       match status with
-        | `Idle | `Before -> source#is_ready ?frame ()
-        | `Limit -> true
-        | `After ->
-            (Option.get transition_source)#is_ready ?frame ()
-            || source#is_ready ?frame ()
+        | `Idle | `Before -> source#is_ready
+        | `After -> (Option.get transition_source)#is_ready || source#is_ready
 
     method abort_track =
-      if status = `After && (Option.get transition_source)#is_ready () then
+      if status = `After && (Option.get transition_source)#is_ready then
         (Option.get transition_source)#abort_track
       else source#abort_track
   end
@@ -413,6 +367,8 @@ let _ =
       [
         ("source", ([], Lang.source_t frame_t), "Source");
         ("db_level", ([], Lang.float_t), "dB level of the source.");
+        ("expected_duration", ([], Lang.float_t), "Expected buffered duration.");
+        ("buffered", ([], Lang.float_t), "Buffered duration.");
         ("metadata", ([], Lang.metadata_t), "Metadata of the source.");
       ]
   in
@@ -434,26 +390,10 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Keep duration override on track change." );
-      ( "minimum",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
-        Some
-          "Minimum duration (in sec.) for a cross: If the track ends without \
-           any warning (e.g. in case of skip) there may not be enough data for \
-           a decent composition. Set to 0. to avoid having transitions after \
-           skips, or more to avoid transitions on short tracks. With a \
-           negative default, transitions always occur." );
       ( "width",
         Lang.float_t,
         Some (Lang.float 2.),
         Some "Width of the power computation window." );
-      ( "conservative",
-        Lang.bool_t,
-        Some (Lang.bool true),
-        Some
-          "Do not trust remaining time estimations, always buffering data in \
-           advance. This avoids being tricked by skips, either manual or \
-           caused by blank.skip()." );
       ( "",
         Lang.fun_t
           [(false, "", transition_arg); (false, "", transition_arg)]
@@ -485,13 +425,10 @@ let _ =
         Lang.to_string (List.assoc "override_duration" p)
       in
       let persist_override = Lang.to_bool (List.assoc "persist_override" p) in
-      let minimum = Lang.to_float (List.assoc "minimum" p) in
-      let minimum_length = Frame.audio_of_seconds minimum in
       let rms_width = Lang.to_float (List.assoc "width" p) in
       let rms_width = Frame.audio_of_seconds rms_width in
       let transition = Lang.assoc "" 1 p in
-      let conservative = Lang.to_bool (List.assoc "conservative" p) in
       let source = Lang.assoc "" 2 p in
       new cross
-        source transition ~conservative ~duration_getter ~rms_width
-        ~minimum_length ~override_duration ~persist_override)
+        source transition ~duration_getter ~rms_width ~override_duration
+        ~persist_override)

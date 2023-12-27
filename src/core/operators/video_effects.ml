@@ -74,15 +74,15 @@ class virtual base ~name (source : source) f =
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
+    method virtual content_type : Frame.content_type
 
-    method private get_frame buf =
-      match VFrame.get_content buf source with
-        | Some (rgb, offset, length) -> (
-            try f (Content.Video.get_data rgb) offset length
-            with Content.Invalid -> ())
-        | _ -> ()
+    method private generate_frame =
+      let c = source#get_mutable_content Frame.Fields.video in
+      let video = Content.Video.get_data c in
+      f video 0 (Video.Canvas.length video);
+      source#set_frame_data Frame.Fields.video Content.Video.lift_data video
   end
 
 class effect ~name (source : source) effect =

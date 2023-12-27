@@ -49,35 +49,6 @@ let parse_uri uri =
       (String.sub uri 0 i, String.sub uri (i + 1) (String.length uri - (i + 1)))
   with _ -> None
 
-(** Metadata *)
-
-type metadata = Frame.metadata
-
-let string_of_metadata metadata =
-  let b = Buffer.create 20 in
-  let f = Format.formatter_of_buffer b in
-  let first = ref true in
-  Frame.Metadata.iter
-    (fun k v ->
-      if !first then (
-        first := false;
-        try Format.fprintf f "%s=%s" k (Lang_string.quote_utf8_string v)
-        with _ -> ())
-      else (
-        try Format.fprintf f "\n%s=%s" k (Lang_string.quote_utf8_string v)
-        with _ -> ()))
-    metadata;
-  Format.pp_print_flush f ();
-  Buffer.contents b
-
-let short_string_of_metadata m =
-  "Title: "
-  ^
-  try
-    let t = Frame.Metadata.find "title" m in
-    if String.length t < 12 then t else String.sub t 0 9 ^ "..."
-  with Not_found -> "(undef)"
-
 (** Log *)
 
 type log = (Unix.tm * string) Queue.t
@@ -125,7 +96,7 @@ let string_of_log log =
 type indicator = {
   string : string;
   temporary : bool;
-  mutable metadata : metadata;
+  mutable metadata : Frame.metadata;
 }
 
 type status = Idle | Resolving | Ready | Playing | Destroyed
@@ -149,7 +120,7 @@ type t = {
   mutable resolving : float option;
   mutable on_air : float option;
   log : log;
-  mutable root_metadata : metadata;
+  mutable root_metadata : Frame.metadata;
   mutable indicators : indicator list list;
   mutable decoder : (unit -> Decoder.file_decoder_ops) option;
 }

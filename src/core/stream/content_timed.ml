@@ -82,7 +82,7 @@ module Metadata_specs = struct
 
   type kind = [ `Metadata ]
   type params = unit
-  type data = Frame_base.metadata content
+  type data = Metadata_base.t content
 
   let internal_content_type = None
   let kind = `Metadata
@@ -100,6 +100,13 @@ module Metadata = struct
   include Content_base.MkContentBase (Metadata_specs)
 
   let format = lift_params ()
+
+  let lift_data m =
+    lift_data
+      {
+        Specs.length = Finite (List.fold_left (fun l (p, _) -> max l p) 0 m);
+        data = m;
+      }
 
   let set_data d m =
     let d = get_data d in
@@ -135,6 +142,13 @@ module Track_marks = struct
   include Content_base.MkContentBase (Track_marks_specs)
 
   let format = lift_params ()
+
+  let lift_data p =
+    lift_data
+      {
+        Specs.length = Finite (List.fold_left (fun l p -> max l p) 0 p);
+        data = List.map (fun p -> (p, ())) p;
+      }
 
   let set_data d b =
     let d = get_data d in

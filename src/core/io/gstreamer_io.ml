@@ -490,7 +490,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     (* Source is ready when ready = true and gst has some audio or some video. *)
     val mutable ready = true
 
-    method private _is_ready ?frame:_ () =
+    method private can_generate_frame =
       let pending = function
         | Some sink -> sink.pending () > 0
         | None -> false
@@ -505,7 +505,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string e);
         false
 
-    method self_sync = (`Dynamic, self#is_ready ())
+    method self_sync = (`Dynamic, self#is_ready)
     method abort_track = ()
 
     method! wake_up activations =
@@ -610,7 +610,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Content.Video.lift_data stream)
       done
 
-    method get_frame frame =
+    method generate_frame =
       let el = self#get_element in
       let conditional_fill fn = function
         | None -> ()
@@ -619,23 +619,27 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
       try
         conditional_fill self#fill_audio el.audio;
         conditional_fill self#fill_video el.video;
-        Generator.fill self#buffer frame;
+        let frame = Generator.slice self#buffer (Lazy.force Frame.size) in
         GU.flush ~log:self#log
           ~on_error:(fun err -> raise (Flushing_error err))
-          el.bin
+          el.bin;
+        frame
       with
         | Gstreamer.End_of_stream ->
             self#log#info "End of stream.";
             ready <- false;
             if restart then (
               self#log#info "Restarting.";
-              self#restart)
+              self#restart);
+            if self#can_generate_frame then self#generate_frame
+            else self#end_of_track
         | exn ->
             let bt = Printexc.get_backtrace () in
             Utils.log_exception ~log:self#log ~bt
               (Printf.sprintf "Error while processing input data: %s"
                  (Printexc.to_string exn));
-            self#on_error exn
+            self#on_error exn;
+            self#end_of_track
   end
 
 let input_proto =

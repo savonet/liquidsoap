@@ -68,7 +68,7 @@ type buffer = {
 type decoder = {
   decode : buffer -> unit;
   eof : buffer -> unit;
-  (* [seek x]: Skip [x] main ticks. Returns the number of ticks atcually
+  (* [seek x]: Skip [x] main ticks. Returns the number of ticks actually
      skipped. *)
   seek : int -> int;
 }
@@ -82,15 +82,10 @@ type input = {
   length : (unit -> int) option;
 }
 
-(** A decoder is a filling function and a closing function, called at least when
-    filling fails, i.e. the frame is partial. The closing function can be called
-    earlier e.g. if the user skips. In most cases, file decoders are wrapped
-    stream decoders. *)
 type file_decoder_ops = {
-  fill : Frame.t -> int;
-  (* Return remaining ticks. *)
+  fread : int -> Frame.t;
+  remaining : unit -> int;
   fseek : int -> int;
-  (* There is a record name clash here.. *)
   close : unit -> unit;
 }
 
@@ -483,13 +478,15 @@ let mk_buffer ~ctype generator =
   { generator; put_pcm; put_yuva420p }
 
 let mk_decoder ~filename ~close ~remaining ~buffer decoder =
-  let prebuf = Frame.main_of_seconds 0.5 in
   let decoding_done = ref false in
 
-  let remaining frame offset =
-    remaining ()
-    + Generator.length buffer.generator
-    + Frame.position frame - offset
+  let remaining () =
+    try remaining () + Generator.length buffer.generator
+    with e ->
+      log#info "Error while getting decoder's remaining time: %s"
+        (Printexc.to_string e);
+      decoding_done := true;
+      0
   in
 
   let close () =
@@ -497,10 +494,10 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
     close ()
   in
 
-  let fill frame =
+  let fread size =
     if not !decoding_done then (
       try
-        while Generator.length buffer.generator < prebuf do
+        while Generator.length buffer.generator < size do
           decoder.decode buffer
         done
       with e ->
@@ -512,15 +509,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
         decoding_done := true;
         if conf_debug#get then raise e);
 
-    let offset = Frame.position frame in
-    Generator.fill buffer.generator frame;
-
-    try remaining frame offset
-    with e ->
-      log#info "Error while getting decoder's remaining time: %s"
-        (Printexc.to_string e);
-      decoding_done := true;
-      0
+    Generator.slice buffer.generator size
   in
 
   let fseek len =
@@ -533,7 +522,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
       Generator.truncate buffer.generator len;
       len)
   in
-  { fill; fseek; close }
+  { fread; remaining; fseek; close }
 
 let file_decoder ~filename ~close ~remaining ~ctype decoder =
   let generator = Generator.create ~log:(log#info "%s") ctype in

@@ -49,19 +49,16 @@ class chord metadata_name (source : source) =
     inherit operator ~name:"chord" [source]
     method stype = source#stype
     method remaining = source#remaining
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method seek_source = source#seek_source
     method self_sync = source#self_sync
     val mutable notes_on = []
 
-    method private get_frame buf =
-      let offset = MFrame.position buf in
-      source#get buf;
-      let m = MFrame.midi buf in
-      let pos = MFrame.position buf in
-      let meta = MFrame.get_all_metadata buf in
-      let meta = List.filter (fun (p, _) -> offset <= p && p < pos) meta in
+    method private generate_frame =
+      let buf = source#get_mutable_content Frame.Fields.midi in
+      let m = Content.Midi.get_data buf in
+      let meta = Frame.get_all_metadata source#get_frame in
       let chords =
         let ans = ref [] in
         List.iter
@@ -113,7 +110,8 @@ class chord metadata_name (source : source) =
               | "m7" -> play t [c; c + 3; c + 7; c + 10]
               | "dim" -> play t [c; c + 3; c + 6]
               | m -> self#log#debug "Unknown mode: %s\n%!" m))
-        chords
+        chords;
+      source#set_frame_data Frame.Fields.midi Content.Midi.lift_data m
   end
 
 let _ =

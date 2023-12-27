@@ -460,7 +460,7 @@ let mk_decoder mode =
                    (Frame.get_all_metadata frame);
                  List.iter
                    (fun pos -> Generator.add_track_mark ~pos generator)
-                   (List.filter (fun x -> x < size) (Frame.breaks frame));
+                   (List.filter (fun x -> x < size) (Frame.track_marks frame));
                  decode_frame (`Frame frame)
              | `Flush -> decode_frame `Flush
            in

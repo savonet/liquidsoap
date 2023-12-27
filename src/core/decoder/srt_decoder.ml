@@ -56,7 +56,7 @@ let () =
           else None);
       file_decoder =
         Some
-          (fun ~metadata:_ ~ctype:_ fname ->
+          (fun ~metadata:_ ~ctype fname ->
             let srt = Srt_parser.parse_file fname in
             let srt =
               List.map
@@ -72,21 +72,29 @@ let () =
               List.map (fun (t, s) -> (Frame.main_of_seconds t, s)) srt
             in
             let srt = List.to_seq srt |> Queue.of_seq in
-            let frame_size = Lazy.force Frame.size in
             let t = ref 0 in
-            let fill frame =
-              if not (Queue.is_empty srt) then (
-                let sub_t, sub = Queue.peek srt in
-                let r = sub_t - !t in
-                assert (r >= 0);
-                if r < frame_size then (
-                  Frame.set_metadata frame r
-                    (Frame.Metadata.from_list [("subtitle", sub)]);
-                  ignore (Queue.take srt)));
-              Frame.add_break frame frame_size;
-              t := !t + frame_size;
-              -1
+            let remaining _ = -1 in
+            let fread length =
+              let rec fill frame =
+                if Queue.is_empty srt then frame
+                else (
+                  let sub_t, sub = Queue.peek srt in
+                  let r = sub_t - !t in
+                  assert (r >= 0);
+                  if r < length then (
+                    ignore (Queue.take srt);
+                    let frame =
+                      Frame.add_metadata frame r
+                        (Frame.Metadata.from_list [("subtitle", sub)])
+                    in
+                    fill frame)
+                  else frame)
+              in
+              let frame = fill (Frame.create ~length ctype) in
+              t := !t + length;
+              frame
             in
-            Decoder.{ fill; fseek = (fun _ -> 0); close = (fun () -> ()) });
+            Decoder.
+              { fread; remaining; fseek = (fun _ -> 0); close = (fun () -> ()) });
       stream_decoder = None;
     }

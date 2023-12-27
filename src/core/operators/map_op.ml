@@ -29,18 +29,17 @@ class map ~field source f =
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = Content.Audio.get_data (Frame.get buf field) in
-      for i = offset to AFrame.position buf - 1 do
+    method private generate_frame =
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
+      for i = 0 to source#frame_audio_position - 1 do
         for c = 0 to Array.length b - 1 do
           b.(c).(i) <- f b.(c).(i)
         done
-      done
+      done;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let to_fun_float f x = Lang.to_float (Lang.apply f [("", Lang.float x)])

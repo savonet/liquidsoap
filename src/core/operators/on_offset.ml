@@ -33,7 +33,7 @@ class on_offset ~force ~offset f s =
     inherit Source.operator ~name:"on_offset" [s]
     inherit Latest_metadata.source
     method stype = s#stype
-    method private _is_ready = s#is_ready
+    method private can_generate_frame = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek_source = s#seek_source
@@ -52,18 +52,25 @@ class on_offset ~force ~offset f s =
 
     method private on_new_metadata = ()
 
-    method private get_frame ab =
-      let pos = Int64.of_int (Frame.position ab) in
-      s#get ab;
-      self#save_latest_metadata ab;
-      let new_pos = Int64.of_int (Frame.position ab) in
-      elapsed <- elapsed ++ new_pos -- pos;
-      if (not executed) && self#offset <= elapsed then self#execute;
-      if Frame.is_partial ab then (
-        if force && not executed then self#execute;
-        executed <- false;
-        self#clear_latest_metadata;
-        elapsed <- 0L)
+    method private on_frame buf =
+      self#save_latest_metadata buf;
+      let new_pos = Int64.of_int (Frame.position buf) in
+      elapsed <- elapsed ++ new_pos;
+      if (not executed) && self#offset <= elapsed then self#execute
+
+    method private generate_frame =
+      let buf = s#get_frame in
+      match self#split_frame buf with
+        | frame, None ->
+            self#on_frame frame;
+            frame
+        | frame, Some new_frame ->
+            self#on_frame frame;
+            if force && not executed then self#execute;
+            executed <- false;
+            self#clear_latest_metadata;
+            elapsed <- Int64.of_int (Frame.position new_frame);
+            buf
   end
 
 let _ =

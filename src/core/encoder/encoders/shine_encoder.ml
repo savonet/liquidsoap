@@ -56,8 +56,7 @@ let encoder ~pos shine =
     while Generator.length buf > samples do
       let pcm =
         Content.Audio.get_data
-          (Frame.Fields.find Frame.Fields.audio
-             (Generator.get ~length:samples buf))
+          (Frame.Fields.find Frame.Fields.audio (Generator.slice buf samples))
       in
       Strings.Mutable.add encoded (Shine.encode_buffer enc pcm)
     done;

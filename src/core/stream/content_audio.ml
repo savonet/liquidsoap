@@ -49,8 +49,14 @@ module Specs = struct
   let compatible p p' = !!(p.channel_layout) = !!(p'.channel_layout)
 
   let blit src src_pos dst dst_pos len =
-    let ( ! ) = audio_of_main in
-    Audio.blit src !src_pos dst !dst_pos !len
+    (* For some reason we're not getting a proper stack trace from
+       this unless we re-raise. *)
+    try
+      let ( ! ) = audio_of_main in
+      Audio.blit src !src_pos dst !dst_pos !len
+    with exn ->
+      let bt = Printexc.get_raw_backtrace () in
+      Printexc.raise_with_backtrace exn bt
 
   let copy d = Audio.copy d 0 (Audio.length d)
 
@@ -77,8 +83,6 @@ module Specs = struct
 
   let default_params _ =
     param_of_channels (Lazy.force Frame_settings.audio_channels)
-
-  let clear _ = ()
 
   let make ?(length = 0) { channel_layout } =
     let channels =

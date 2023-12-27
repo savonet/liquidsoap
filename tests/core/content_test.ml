@@ -4,15 +4,15 @@ let () = Frame_settings.lazy_config_eval := true
 
 let () =
   let marks ?(offset = 0) len = List.init len (fun x -> x + offset) in
-  let c = Track_marks.(lift_data (make ~length:1000 ())) in
-  let c' = Track_marks.(lift_data (make ~length:10 ())) in
+  let c = Content.make ~length:1000 Content.Track_marks.format in
+  let c' = Content.make ~length:10 Content.Track_marks.format in
   Track_marks.set_data c (marks 1000);
   (* Track marks outside of the declared length should be ignored. *)
   Track_marks.set_data c' (marks 10);
   assert (Track_marks.get_data c' = marks 10);
   assert (Track_marks.get_data (Content.sub c 5 10) = List.init 10 (fun x -> x));
   Track_marks.set_data c' [];
-  Content.blit c' 0 c 5 10;
+  Content.fill c' 0 c 5 10;
   assert (Track_marks.get_data c = marks 5 @ marks ~offset:15 (1000 - 15))
 
 (* Test metadata uniqueness. *)
@@ -22,11 +22,11 @@ let () =
       (Lang.frame_t Lang.unit_t
          (Frame.Fields.make ~audio:(Format_type.audio ()) ()))
   in
-  let frame = Frame.create ctype in
+  let frame = Frame.create ~length:(Lazy.force Frame.size) ctype in
   let m = Frame.Metadata.from_list [("foo", "bla")] in
-  Frame.set_metadata frame 123 m;
+  let frame = Frame.add_metadata frame 123 m in
   let m = Frame.Metadata.from_list [("gni", "gno")] in
-  Frame.set_metadata frame 123 m;
+  let frame = Frame.add_metadata frame 123 m in
   assert (Frame.get_all_metadata frame = [(123, m)])
 
 (* Test content boundaries.
@@ -47,7 +47,7 @@ let () =
   let data = Content.append data thrd in
   assert (Content.length data = length);
   let final = Content.make ~length Content.(default_format Video.kind) in
-  Content.blit data 0 final 0 length;
+  Content.fill data 0 final 0 length;
   let data = Content.Video.get_data data in
   let final = Content.Video.get_data final in
   assert (Array.length data = 1);
@@ -59,7 +59,7 @@ let () =
 
 (* Another content test boundary.
    We create a source of 1 and a source of length 2 * Frame.size - 1
-   and a destination of 2 * Frame.size and blit the source into destination.
+   and a destination of 2 * Frame.size and fill the source into destination.
    The second chunk should have enough data to fill the destination. *)
 let () =
   let size = Lazy.force Frame.size in
@@ -73,7 +73,7 @@ let () =
   let dst =
     Content.make ~length:(2 * size) Content.(default_format Video.kind)
   in
-  Content.blit src 0 dst 0 (2 * size);
+  Content.fill src 0 dst 0 (2 * size);
   let src = Content.Video.get_data src in
   let dst = Content.Video.get_data dst in
   assert (Array.length src = Array.length dst);

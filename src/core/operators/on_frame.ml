@@ -24,15 +24,15 @@ class on_frame f s =
   object
     inherit Source.operator ~name:"on_frame" [s]
     method stype = s#stype
-    method private _is_ready = s#is_ready
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek_source = s#seek_source
     method self_sync = s#self_sync
 
-    method private get_frame ab =
-      s#get ab;
-      ignore (Lang.apply f [])
+    method private generate_frame =
+      ignore (Lang.apply f []);
+      s#get_frame
   end
 
 let _ =
@@ -59,7 +59,7 @@ class frame_op ~name f default s =
   object
     inherit Source.operator ~name [s]
     method stype = s#stype
-    method private _is_ready = s#is_ready
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
     method seek_source = s#seek_source
@@ -67,11 +67,11 @@ class frame_op ~name f default s =
     val mutable value = default
     method value : Lang.value = value
 
-    method private get_frame buf =
-      let off = Frame.position buf in
-      s#get buf;
+    method private generate_frame =
+      let buf = s#get_frame in
       let pos = Frame.position buf in
-      value <- f buf off (pos - off)
+      value <- f buf 0 pos;
+      buf
   end
 
 let source_frame = Lang.add_module ~base:Muxer.source "frame"

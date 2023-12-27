@@ -39,7 +39,7 @@ class virtual base source =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
   end
@@ -49,7 +49,7 @@ class virtual base_nosource =
     inherit source ~name:"lilv" ()
     method seek_source = (self :> Source.source)
     method stype = `Infallible
-    method private _is_ready ?frame:_ _ = true
+    method private can_generate_frame = true
     val mutable must_fail = false
     method abort_track = must_fail <- true
     method remaining = -1
@@ -80,15 +80,14 @@ class lilv_mono (source : source) plugin input output params =
       Array.iter Plugin.Instance.activate i;
       inst <- Some i
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let len = source#frame_audio_position in
       let chans = Array.length b in
-      let position = AFrame.position buf in
-      let len = position - offset in
       let inst = Option.get inst in
-      let ba = Audio.to_ba b offset len in
+      let ba = Audio.to_ba b 0 len in
       for c = 0 to chans - 1 do
         Plugin.Instance.connect_port_float inst.(c) input ba.(c);
         Plugin.Instance.connect_port_float inst.(c) output ba.(c);
@@ -98,8 +97,9 @@ class lilv_mono (source : source) plugin input output params =
               (constant_data len (v ())))
           params;
         Plugin.Instance.run inst.(c) len;
-        Audio.copy_from_ba ba b offset len
-      done
+        Audio.copy_from_ba ba b 0 len
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 class lilv (source : source) plugin inputs outputs params =
@@ -111,12 +111,11 @@ class lilv (source : source) plugin inputs outputs params =
 
     initializer Plugin.Instance.activate inst
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
-      let len = position - offset in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let len = source#frame_audio_position in
       List.iter
         (fun (p, v) ->
           let data =
@@ -125,7 +124,7 @@ class lilv (source : source) plugin inputs outputs params =
           Bigarray.Array1.fill data (v ());
           Plugin.Instance.connect_port_float inst p data)
         params;
-      let ba = Audio.to_ba b offset len in
+      let ba = Audio.to_ba b 0 len in
       if Array.length inputs = Array.length outputs then (
         let chans = Array.length b in
         (* The simple case: number of channels does not get changed. *)
@@ -134,25 +133,25 @@ class lilv (source : source) plugin inputs outputs params =
           Plugin.Instance.connect_port_float inst outputs.(c) ba.(c)
         done;
         Plugin.Instance.run inst len;
-        Audio.copy_from_ba ba b offset len)
+        Audio.copy_from_ba ba b 0 len)
       else (
         (* We have to change channels. *)
-        let d = AFrame.pcm buf in
-        let dba = Audio.to_ba d offset len in
+        let dba = Audio.to_ba b 0 len in
         for c = 0 to Array.length b - 1 do
           Plugin.Instance.connect_port_float inst inputs.(c) ba.(c)
         done;
-        let output_chans = Array.length d in
+        let output_chans = Array.length b in
         for c = 0 to output_chans - 1 do
           Plugin.Instance.connect_port_float inst outputs.(c) dba.(c)
         done;
         Plugin.Instance.run inst len;
-        Audio.copy_from_ba dba d offset len)
+        Audio.copy_from_ba dba b 0 len);
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 (** An LV2 plugin without audio input. *)
 class lilv_nosource plugin outputs params =
-  object
+  object (self)
     inherit base_nosource
     method self_sync = (`Static, false)
 
@@ -161,27 +160,28 @@ class lilv_nosource plugin outputs params =
 
     initializer Plugin.Instance.activate inst
 
-    method private get_frame buf =
+    method private generate_frame =
       if must_fail then (
-        AFrame.add_break buf (AFrame.position buf);
-        must_fail <- false)
+        must_fail <- false;
+        self#end_of_track)
       else (
-        let offset = AFrame.position buf in
-        let b = AFrame.pcm buf in
+        let length = Lazy.force Frame.size in
+        let buf = Frame.create ~length self#content_type in
+        let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
         let chans = Array.length b in
-        let position = AFrame.size () in
-        let len = position - offset in
-        let ba = Audio.to_ba b offset len in
+        let alen = Frame.audio_of_main length in
+        let ba = Audio.to_ba b 0 alen in
         List.iter
           (fun (p, v) ->
-            Plugin.Instance.connect_port_float inst p (constant_data len (v ())))
+            Plugin.Instance.connect_port_float inst p
+              (constant_data alen (v ())))
           params;
         for c = 0 to chans - 1 do
           Plugin.Instance.connect_port_float inst outputs.(c) ba.(c)
         done;
-        Plugin.Instance.run inst len;
-        Audio.copy_from_ba ba b offset len;
-        AFrame.add_break buf position)
+        Plugin.Instance.run inst alen;
+        Audio.copy_from_ba ba b 0 alen;
+        Frame.set_data buf Frame.Fields.audio Content.Audio.lift_data b)
   end
 
 (** An LV2 plugin without audio output (e.g. to observe the stream). The input
@@ -195,21 +195,21 @@ class lilv_noout source plugin inputs params =
 
     initializer Plugin.Instance.activate inst
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      let b = AFrame.pcm buf in
+    method private generate_frame =
+      let buf = source#get_frame in
+      let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
       let chans = Array.length b in
-      let position = AFrame.size () in
-      let len = position - offset in
-      let ba = Audio.to_ba b offset len in
+      let alen = source#frame_audio_position in
+      let ba = Audio.to_ba b 0 alen in
       List.iter
         (fun (p, v) ->
-          Plugin.Instance.connect_port_float inst p (constant_data len (v ())))
+          Plugin.Instance.connect_port_float inst p (constant_data alen (v ())))
         params;
       for c = 0 to chans - 1 do
         Plugin.Instance.connect_port_float inst inputs.(c) ba.(c)
       done;
-      Plugin.Instance.run inst len
+      Plugin.Instance.run inst alen;
+      buf
   end
 
 (* List the indexes of control ports. *)

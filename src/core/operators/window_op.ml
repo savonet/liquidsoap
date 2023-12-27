@@ -30,7 +30,7 @@ class window mode duration source =
       operator [source] ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
 
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
@@ -54,15 +54,14 @@ class window mode duration source =
     val m = Mutex.create ()
     method value = Tutils.mutexify m (fun () -> value) ()
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
+    method private generate_frame =
+      let frame = source#get_frame in
       let duration = duration () in
       if duration > 0. then (
         let duration = Frame.audio_of_seconds duration in
-        let position = AFrame.position buf in
-        let buf = AFrame.pcm buf in
-        for i = offset to position - 1 do
+        let position = AFrame.position frame in
+        let buf = AFrame.pcm frame in
+        for i = 0 to position - 1 do
           for c = 0 to self#audio_channels - 1 do
             let x = buf.(c).(i) in
             match mode with
@@ -86,7 +85,8 @@ class window mode duration source =
             in
             acc_dur <- 0;
             Tutils.mutexify m (fun () -> value <- value') ())
-        done)
+        done);
+      frame
   end
 
 let declare ?base mode name frame_t fun_ret_t f_ans =

@@ -23,44 +23,18 @@
 open Source
 
 class track_map ~name ~field ~fn s =
-  object (self)
+  object
     inherit operator ~name [s]
     method stype = s#stype
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek_source = s#seek_source
     method self_sync = s#self_sync
-    method private _is_ready = s#is_ready
-    val mutable tmp_frame = None
+    method private can_generate_frame = s#is_ready
 
-    method tmp_frame =
-      match tmp_frame with
-        | Some b -> b
-        | None ->
-            let format = Frame.Fields.find field s#content_type in
-            let f =
-              Frame.create (Frame.Fields.add field format Frame.Fields.empty)
-            in
-            tmp_frame <- Some f;
-            f
-
-    method private get_frame buf =
-      let tmp_frame = self#tmp_frame in
-      let start_pos = Frame.position buf in
-      assert (start_pos = Frame.position tmp_frame);
-      s#get tmp_frame;
-      let end_pos = Frame.position tmp_frame in
-      let len = end_pos - start_pos in
-      let src = fn (Content.sub (Frame.get tmp_frame field) start_pos len) in
-      Content.blit src 0 (Frame.get buf field) start_pos len;
-      List.iter
-        (fun (pos, m) ->
-          if start_pos <= pos && pos < end_pos then
-            Generator.add_metadata ~pos buf m)
-        (Frame.get_all_metadata tmp_frame);
-      Frame.add_break buf end_pos
-
-    initializer self#on_after_output (fun () -> Frame.clear self#tmp_frame)
+    method private generate_frame =
+      let buf = s#get_frame in
+      Frame.set buf field (fn (Frame.get buf field))
   end
 
 let to_pcm_s16 c =

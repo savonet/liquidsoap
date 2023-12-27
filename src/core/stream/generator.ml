@@ -30,15 +30,9 @@ type t = {
   content : Content.data Frame_base.Fields.t Atomic.t;
 }
 
-let add_timed_content content =
-  Frame_base.Fields.add Frame_base.Fields.track_marks
-    (Content.make Content.Track_marks.format)
-    (Frame_base.Fields.add Frame_base.Fields.metadata
-       (Content.make Content.Metadata.format)
-       content)
-
 let make_content ?length content_type =
-  add_timed_content (Frame_base.Fields.map (Content.make ?length) content_type)
+  Frame_base.add_timed_content
+    (Frame_base.Fields.map (Content.make ?length) content_type)
 
 let create ?(log = fun s -> log#info "%s" s) ?max_length ?length content_type =
   {
@@ -80,6 +74,8 @@ let length gen =
          | Some l' -> Some (min (Content.length c) l'))
        (media_content gen) None)
 
+let _length = length
+
 let buffered_length gen =
   Option.value ~default:0
     (Frame_base.Fields.fold
@@ -101,11 +97,24 @@ let _truncate gen len =
   Atomic.set gen.content
     (Frame_base.Fields.map
        (fun content ->
-         if len < Content.length content then Content.truncate content len
+         if len <= Content.length content then Content.truncate content len
          else content)
        (Atomic.get gen.content))
 
 let truncate gen = Tutils.mutexify gen.lock (_truncate gen)
+
+let _slice gen len =
+  let content = Atomic.get gen.content in
+  let len =
+    Frame_base.Fields.fold
+      (fun _ c len -> min (Content.length c) len)
+      content len
+  in
+  let slice = Frame_base.Fields.map (fun c -> Content.sub c 0 len) content in
+  _truncate gen len;
+  slice
+
+let slice gen = Tutils.mutexify gen.lock (_slice gen)
 let clear gen = Atomic.set gen.content (make_content ~length:0 gen.content_type)
 
 let _set_metadata gen =
@@ -168,138 +177,36 @@ let _put gen field new_content =
 let put gen field =
   Tutils.mutexify gen.lock (fun content -> _put gen field content)
 
-let _get =
-  let len = length in
-  fun ?length gen ->
-    let length = Option.value ~default:(len gen) length in
-    if len gen < length then
-      failwith "Requested length is greater than buffer length!";
-    let content =
-      Frame_base.Fields.map
-        (fun c -> Content.sub c 0 length)
-        (Atomic.get gen.content)
-    in
-    Atomic.set gen.content
-      (Frame_base.Fields.map
-         (fun c -> Content.truncate c length)
-         (Atomic.get gen.content));
-    content
-
-let get ?length gen = Tutils.mutexify gen.lock (fun () -> _get ?length gen) ()
 let peek gen = Atomic.get gen.content
 let peek_media gen = media_content gen
 
-(* The following is frame-specific and should hopefully go away when
-   we switch to immutable content. *)
-
-let frame_position frame =
-  match
-    List.rev
-      (Content.Track_marks.get_data
-         (Frame_base.Fields.find Frame_base.Fields.track_marks
-            (Atomic.get frame.content)))
-  with
-    | p :: _ -> p
-    | _ -> 0
-
-let frame_remaining frame =
-  Lazy.force Frame_settings.size - frame_position frame
-
-let feed ?offset ?length ?fields gen =
+let append ?(offset = 0) ?length gen =
   Tutils.mutexify gen.lock (fun frame ->
-      Tutils.mutexify frame.lock
-        (fun () ->
-          let offset = Option.value ~default:0 offset in
-          let length = Option.value ~default:(frame_position frame) length in
-
-          let gen_content = Atomic.get gen.content in
-          let frame_content = Atomic.get frame.content in
-
-          let fields =
-            Option.value
-              ~default:(List.map fst (Frame_base.Fields.bindings gen_content))
-              fields
-          in
-
-          Atomic.set gen.content
-            (List.fold_left
-               (fun content field ->
-                 match field with
-                   (* The current use of generators is to explicitly add track marks via `Generator.add_track_mark`.
-                      This will be changed when we switch to immutable content. *)
-                   | f when f = Frame_base.Fields.track_marks -> content
-                   | f when f = Frame_base.Fields.metadata ->
-                       let gen_content =
-                         Frame_base.Fields.find field gen_content
-                       in
-                       let frame_content =
-                         Frame_base.Fields.find field frame_content
-                       in
-                       Content.Metadata.set_data gen_content
-                         (Content.Metadata.get_data gen_content
-                         @ Content.Metadata.get_data frame_content);
-                       content
-                   | _ ->
-                       Frame_base.Fields.add field
-                         (Content.append
-                            (Frame_base.Fields.find field gen_content)
-                            (Content.copy
-                               (Content.sub
-                                  (Frame_base.Fields.find field frame_content)
-                                  offset length)))
-                         content)
-               gen_content fields))
-        ())
-
-let fill gen =
-  Tutils.mutexify gen.lock (fun frame ->
-      Tutils.mutexify frame.lock
-        (fun () ->
-          let available =
-            match remaining gen with -1 -> length gen | l -> l
-          in
-          let len = min (frame_remaining frame) available in
-          let pos = frame_position frame in
-          let new_pos = pos + len in
-
-          let gen_content = Atomic.get gen.content in
-          let frame_content = Atomic.get frame.content in
-
-          Atomic.set gen.content
-            (Frame_base.Fields.mapi
-               (fun field content ->
-                 let rem =
-                   Content.sub content len (Content.length content - len)
-                 in
-                 (* TODO: make this append after after switch to immutable content. *)
-                 (match field with
-                   (* Remove the track mark if it is was used to compute remaining and it's not
-                      at frame boundaries. *)
-                   | f when f = Frame_base.Fields.track_marks -> (
-                       match Content.Track_marks.get_data rem with
-                         | 0 :: d when new_pos <> Lazy.force Frame_settings.size
-                           ->
-                             Content.Track_marks.set_data rem d
-                         | _ -> ())
-                   | f when f = Frame_base.Fields.metadata ->
-                       (* For metadata, it is expected that we only add new metadata and do not replace
-                          exiting ones. *)
-                       let frame_content =
-                         Frame_base.Fields.find field frame_content
-                       in
-                       let content =
-                         Content.Metadata.get_data (Content.sub content 0 len)
-                       in
-                       let content =
-                         List.map (fun (p, m) -> (pos + p, m)) content
-                       in
-                       Content.Metadata.set_data frame_content
-                         (Content.Metadata.get_data frame_content @ content)
-                   | f ->
-                       Content.fill content 0
-                         (Frame_base.Fields.find f frame_content)
-                         pos len);
-                 rem)
-               gen_content);
-          _add_track_mark ~pos:new_pos frame)
-        ())
+      let pos = _length gen in
+      let length = Option.value ~default:(Frame_base.position frame) length in
+      Atomic.set gen.content
+        (Frame_base.Fields.mapi
+           (fun field content ->
+             match field with
+               | _ when Frame_base.Fields.track_marks = field ->
+                   List.iter
+                     (fun p -> _add_track_mark ~pos:(pos + p) gen)
+                     (Content_timed.Track_marks.get_data
+                        (Content.sub
+                           (Frame_base.Fields.find field frame)
+                           offset length));
+                   content
+               | _ when Frame_base.Fields.metadata = field ->
+                   List.iter
+                     (fun (p, m) -> _add_metadata ~pos:(pos + p) gen m)
+                     (Content_timed.Metadata.get_data
+                        (Content.sub
+                           (Frame_base.Fields.find field frame)
+                           offset length));
+                   content
+               | _ ->
+                   Content.append content
+                     (Content.sub
+                        (Frame_base.Fields.find field frame)
+                        offset length))
+           (Atomic.get gen.content)))

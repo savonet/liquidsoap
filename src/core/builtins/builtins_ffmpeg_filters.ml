@@ -116,7 +116,7 @@ let is_ready graph =
     | _ -> ());
   (not graph.failed)
   && Queue.fold
-       (fun cur (s : Source.source) -> cur && s#is_ready ())
+       (fun cur (s : Source.source) -> cur && s#is_ready)
        true graph.graph_inputs
 
 let pull graph =

@@ -80,13 +80,14 @@ class pitch every length freq_min freq_max (source : source) =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      source#get buf;
-      let buf = AFrame.pcm buf in
+    method private generate_frame =
+      let buf =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
       let ring = self#ring in
       let databuf = self#databuf in
       Ringbuffer.write ring buf;
@@ -109,7 +110,8 @@ class pitch every length freq_min freq_max (source : source) =
         let f = samples_per_second /. float !wl_opt in
         let f = if f > freq_max then 0. else f in
         self#log#important "Found frequency: %.02f (%s)\n%!" f
-          (string_of_note (note_of_freq f)))
+          (string_of_note (note_of_freq f)));
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

@@ -220,7 +220,7 @@ let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
     in
     fun frame start len ->
       let frames =
-        Ffmpeg_raw_content.Audio.(get_data (Generator.get_field frame field))
+        Ffmpeg_raw_content.Audio.(get_data (Frame.get frame field))
           .Ffmpeg_content_base.data
       in
       let frames =
@@ -492,7 +492,7 @@ let mk_video ~pos ~mode ~codec ~params ~options ~field output =
     fun frame start len ->
       let stop = start + len in
       let { Ffmpeg_raw_content.VideoSpecs.data } =
-        Ffmpeg_raw_content.Video.get_data (Generator.get_field frame field)
+        Ffmpeg_raw_content.Video.get_data (Frame.get frame field)
       in
       List.iter
         (fun (pos, { Ffmpeg_raw_content.time_base; frame; stream_idx }) ->

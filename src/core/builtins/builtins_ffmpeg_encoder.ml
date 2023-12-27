@@ -512,7 +512,7 @@ let mk_encoder mode =
                    (Frame.get_all_metadata frame);
                  List.iter
                    (fun pos -> Generator.add_track_mark ~pos generator)
-                   (List.filter (fun x -> x < size) (Frame.breaks frame));
+                   (List.filter (fun x -> x < size) (Frame.track_marks frame));
                  encode_frame (`Frame frame)
              | `Flush -> encode_frame `Flush
            in

@@ -90,7 +90,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       Start_stop.active_source
         ~get_clock ~clock_safe
         ~name:(Printf.sprintf "oss_in(%s)" dev)
-        ~on_start ~on_stop ~fallible ~autostart:start ()
+        ~on_start ~on_stop ~fallible ~autostart:start () as active_source
 
     val mutable fd = None
     method self_sync = (`Dynamic, fd <> None)
@@ -98,6 +98,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
     method remaining = -1
     method seek_source = (self :> Source.source)
     method private start = self#open_device
+    method private can_generate_frame = active_source#started
 
     method private open_device =
       let descr = Unix.openfile dev [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o400 in
@@ -112,17 +113,18 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       Unix.close (Option.get fd);
       fd <- None
 
-    method get_frame frame =
-      assert (0 = AFrame.position frame);
+    method generate_frame =
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let fd = Option.get fd in
-      let buf = AFrame.pcm frame in
       let len = 2 * Array.length buf * Audio.Mono.length buf.(0) in
       let s = Bytes.create len in
       let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r);
       Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf 0 len;
-      AFrame.add_break frame (AFrame.size ())
+      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

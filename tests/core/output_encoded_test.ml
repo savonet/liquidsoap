@@ -35,9 +35,11 @@ class encoded_test =
 let () =
   Frame_settings.lazy_config_eval := true;
   let encoded_test = new encoded_test in
-  let frame = Frame.dummy () in
-  Frame.add_break frame (Lazy.force Frame.size);
+  encoded_test#content_type_computation_allowed;
+  let frame =
+    Frame.create ~length:(Lazy.force Frame.size) encoded_test#content_type
+  in
   let m = Frame.Metadata.from_list [("foo", "bla")] in
-  Frame.set_metadata frame 0 m;
+  let frame = Frame.add_metadata frame 0 m in
   encoded_test#test_send_frame frame;
   assert !insert_metadata_called

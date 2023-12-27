@@ -38,6 +38,7 @@ let map fn = List.map (fun (k, v) -> (k, fn v))
 let filter fn = List.filter (fun (k, v) -> fn k v)
 let remove k h = List.remove_assoc k h
 let add k v h = (k, v) :: remove k h
+let append l l' = List.fold_left (fun m (k, v) -> add k v m) l l'
 let iter fn = List.iter (fun (k, v) -> fn k v)
 let for_all fn = List.for_all (fun (k, v) -> fn k v)
 let exists fn = List.exists (fun (k, v) -> fn k v)

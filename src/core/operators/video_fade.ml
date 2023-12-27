@@ -28,29 +28,23 @@ let video_fade = Lang.add_module ~base:Modules.video "fade"
 (** Fade-in at the beginning of every track.
   * The [duration] is in seconds. *)
 class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
-  object
+  object (self)
     inherit operator ~name:"video.fade.in" [source]
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
     method self_sync = source#self_sync
     method seek_source = source#seek_source
     val mutable state = `Idle
 
-    method private get_frame ab =
-      let off_ticks = Frame.position ab in
-      let video_content = VFrame.get_content ab source in
-      (* In video frames: [length] of the fade, [count] since beginning.
-         This must be done before accessing the (possibly empty video content)
-         because the state has to be updated anyway. Also, it is important
-         that the metadata is ready at the position in ticks rather than
-         video, otherwise we might miss some data. *)
+    method private process frame =
+      (* In video frames: [length] of the fade, [count] since beginning. *)
       let fade, fadefun, length, count =
         match state with
           | `Idle ->
               let duration =
-                match Frame.get_metadata ab off_ticks with
+                match Frame.get_metadata frame 0 with
                   | None -> duration
                   | Some m -> (
                       match Frame.Metadata.find_opt meta m with
@@ -66,24 +60,34 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
           | `Play (fade, fadefun, length, count) ->
               (fade, fadefun, length, count)
       in
-      if Frame.is_partial ab then state <- `Idle;
-      match video_content with
-        | Some (rgb, off, len) ->
-            let rgb = Content.Video.get_data rgb in
-            if count < length then
-              for i = 0 to min (len - 1) (length - count - 1) do
-                let m = fade (count + i) in
-                (* TODO @smimram *)
-                ignore (fadefun (Video.Canvas.get rgb (off + i)) m)
-              done;
-            if state <> `Idle then
-              state <- `Play (fade, fadefun, length, count + len)
-        | _ -> ()
+      let vlen = Frame.video_of_main length in
+      if count < length then (
+        let data =
+          Content.Video.get_data
+            (Content.copy (Frame.get frame Frame.Fields.video))
+        in
+        for i = 0 to vlen do
+          let m = fade (count + i) in
+          (* TODO @smimram *)
+          ignore (fadefun (Video.Canvas.get data i) m)
+        done;
+        state <- `Play (fade, fadefun, length, count + vlen);
+        Frame.set frame Frame.Fields.video
+          (Content.Video.lift_data ~length data))
+      else frame
+
+    method private generate_frame =
+      match self#split_frame source#get_frame with
+        | frame, None -> self#process frame
+        | end_track, Some begin_track ->
+            let end_track = self#process end_track in
+            state <- `Idle;
+            Frame.append end_track (self#process begin_track)
   end
 
 (** Fade-out after every frame. *)
 class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
-  object
+  object (self)
     inherit operator ~name:"video.fade.out" [source]
     method stype = source#stype
     method abort_track = source#abort_track
@@ -94,12 +98,12 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
      * The value is set at the beginning of every track, depending on metadata. *)
     val mutable cur_length = None
     method remaining = source#remaining
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
 
-    method private get_frame ab =
-      let n = Frame.video_of_main source#remaining in
-      let off_ticks = Frame.position ab in
-      let video_content = VFrame.get_content ab source in
+    method private process_frame ~remaining frame =
+      let n = Frame.video_of_main remaining in
+      let len = Frame.video_of_main (Frame.position frame) in
+
       (* In video frames: [length] of the fade. *)
       let fade, fadefun, length =
         match cur_length with
@@ -107,7 +111,7 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
           | None ->
               (* Set the length at the beginning of a track *)
               let duration =
-                match Frame.get_metadata ab off_ticks with
+                match Frame.get_metadata frame 0 with
                   | None -> duration
                   | Some m -> (
                       match Frame.Metadata.find_opt meta m with
@@ -121,23 +125,29 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
               cur_length <- Some (f, g, l);
               (f, g, l)
       in
-      (* Reset the length at the end of a track *)
-      if Frame.is_partial ab then cur_length <- None;
 
-      (* Do the actual processing of video samples *)
-      match video_content with
-        | Some (rgb, off, len) -> (
-            (* Process the buffer *)
-            match if n >= 0 && n < length then Some n else None with
-              | Some n ->
-                  let rgb = Content.Video.get_data rgb in
-                  for i = 0 to len - 1 do
-                    let m = fade (n - i) in
-                    (* TODO @smimram *)
-                    ignore (fadefun (Video.Canvas.get rgb (off + i)) m)
-                  done
-              | None -> ())
-        | _ -> ()
+      if n < length then (
+        let content = Frame.get frame Frame.Fields.video in
+        let data = Content.Video.get_data content in
+
+        for i = 0 to len - 1 do
+          let m = fade (n - i) in
+          (* TODO @smimram *)
+          ignore (fadefun (Video.Canvas.get data i) m)
+        done;
+
+        Frame.set frame Frame.Fields.video
+          (Content.Video.lift_data ~length:(Frame.position frame) data))
+      else frame
+
+    method private generate_frame =
+      match self#split_frame source#get_frame with
+        | frame, None -> self#process_frame ~remaining:source#remaining frame
+        | end_track, Some begin_track ->
+            let end_track = self#process_frame ~remaining:0 end_track in
+            cur_length <- None;
+            Frame.append end_track
+              (self#process_frame ~remaining:source#remaining begin_track)
   end
 
 (** Lang interface *)

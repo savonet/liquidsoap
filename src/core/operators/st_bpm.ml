@@ -26,7 +26,7 @@ class bpm (source : source) =
   object (self)
     inherit operator ~name:"bpm" [source] as super
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync
     method remaining = source#remaining
     method seek_source = source#seek_source
@@ -43,13 +43,14 @@ class bpm (source : source) =
                    (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
              (Lazy.force Frame.audio_rate))
 
-    method private get_frame buf =
+    method private generate_frame =
+      let buf =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
       let bpm = Option.get bpm in
-      let offset = AFrame.position buf in
-      source#get buf;
-      let len = AFrame.position buf - offset in
-      let buf = AFrame.pcm buf in
-      Soundtouch.BPM.put_samples_ni bpm buf offset len
+      let len = source#frame_audio_position in
+      Soundtouch.BPM.put_samples_ni bpm buf 0 len;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
 
     method bpm =
       match bpm with Some bpm -> Soundtouch.BPM.get_bpm bpm | None -> 0.

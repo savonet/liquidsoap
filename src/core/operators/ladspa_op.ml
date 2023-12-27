@@ -63,7 +63,7 @@ class virtual base source =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
   end
@@ -73,7 +73,7 @@ class virtual base_nosource =
     inherit source ~name:"ladspa" ()
     method seek_source = (self :> Source.source)
     method stype = `Infallible
-    method private _is_ready ?frame:_ _ = true
+    method private can_generate_frame = true
     method self_sync = (`Static, false)
     val mutable must_fail = false
     method abort_track = must_fail <- true
@@ -111,23 +111,23 @@ class ladspa_mono (source : source) plugin descr input output params =
       Array.iter Descriptor.activate i;
       inst <- Some i
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
-      let len = position - offset in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let len = source#frame_audio_position in
       let inst = Option.get inst in
       for c = 0 to Array.length b - 1 do
-        let buf = Audio.Mono.to_ba b.(c) offset len in
+        let buf = Audio.Mono.to_ba b.(c) 0 len in
         Descriptor.connect_port inst.(c) input buf;
         Descriptor.connect_port inst.(c) output buf;
         List.iter
           (fun (p, v) -> Descriptor.set_control_port inst.(c) p (v ()))
           params;
         Descriptor.run inst.(c) len;
-        Audio.Mono.copy_from_ba buf b.(c) offset len
-      done
+        Audio.Mono.copy_from_ba buf b.(c) 0 len
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 class ladspa (source : source) plugin descr inputs outputs params =
@@ -141,13 +141,12 @@ class ladspa (source : source) plugin descr inputs outputs params =
 
     initializer Descriptor.activate inst
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
-      let len = position - offset in
-      let ba = Audio.to_ba b offset len in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let len = source#frame_audio_position in
+      let ba = Audio.to_ba b 0 len in
       List.iter (fun (p, v) -> Descriptor.set_control_port inst p (v ())) params;
       if Array.length inputs = Array.length outputs then (
         (* The simple case: number of channels does not get changed. *)
@@ -156,23 +155,23 @@ class ladspa (source : source) plugin descr inputs outputs params =
           Descriptor.connect_port inst outputs.(c) ba.(c)
         done;
         Descriptor.run inst len;
-        Audio.copy_from_ba ba b offset len)
+        Audio.copy_from_ba ba b 0 len)
       else (
         (* We have to change channels. *)
         for c = 0 to Array.length b - 1 do
           Descriptor.connect_port inst inputs.(c) ba.(c)
         done;
-        let d = AFrame.pcm buf in
-        let dba = Audio.to_ba d offset len in
-        for c = 0 to Array.length d - 1 do
+        let dba = Audio.to_ba b 0 len in
+        for c = 0 to Array.length b - 1 do
           Descriptor.connect_port inst outputs.(c) dba.(c)
         done;
         Descriptor.run inst len;
-        Audio.copy_from_ba dba d offset len)
+        Audio.copy_from_ba dba b 0 len);
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 class ladspa_nosource plugin descr outputs params =
-  object
+  object (self)
     inherit base_nosource
 
     val inst =
@@ -182,25 +181,25 @@ class ladspa_nosource plugin descr outputs params =
 
     initializer Descriptor.activate inst
 
-    method private get_frame buf =
+    method private generate_frame =
       if must_fail then (
-        AFrame.add_break buf (AFrame.position buf);
-        must_fail <- false)
+        must_fail <- false;
+        self#end_of_track)
       else (
-        let offset = AFrame.position buf in
-        let b = AFrame.pcm buf in
-        let position = AFrame.size () in
-        let len = position - offset in
+        let length = Lazy.force Frame.size in
+        let buf = Frame.create ~length self#content_type in
+        let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
         List.iter
           (fun (p, v) -> Descriptor.set_control_port inst p (v ()))
           params;
-        let ba = Audio.to_ba b offset len in
+        let alen = Frame.audio_of_main length in
+        let ba = Audio.to_ba b 0 alen in
         for c = 0 to Array.length b - 1 do
           Descriptor.connect_port inst outputs.(c) ba.(c)
         done;
-        Descriptor.run inst len;
-        Audio.copy_from_ba ba b offset len;
-        AFrame.add_break buf position)
+        Descriptor.run inst alen;
+        Audio.copy_from_ba ba b 0 alen;
+        Frame.set_data buf Frame.Fields.audio Content.Audio.lift_data b)
   end
 
 (* List the indexes of control ports. *)

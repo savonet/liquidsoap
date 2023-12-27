@@ -90,47 +90,23 @@ type field = Fields.field
 (** Precise description of the channel types for the current track. *)
 type content_type = Content_base.format Fields.t
 
-module Metadata = struct
-  include Liquidsoap_lang.Methods
+type t = Content_base.data Fields.t
 
-  type t = (string, string) Liquidsoap_lang.Methods.t
+let position frame =
+  Option.value ~default:0
+    (Fields.fold
+       (fun _ c -> function
+         | None -> Some (Content_base.length c)
+         | Some p -> Some (min p (Content_base.length c)))
+       frame None)
 
-  let to_list m =
-    List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (bindings m)
-
-  module Export = struct
-    type metadata = t
-    type t = metadata
-
-    let from_metadata ?(cover = true) m =
-      let export = Encoder_formats.conf_export_metadata#get in
-      let export =
-        if cover then export
-        else (
-          let cover = Encoder_formats.conf_meta_cover#get in
-          List.filter (fun m -> not (List.mem m cover)) export)
-      in
-      fold
-        (fun x y m ->
-          if List.mem (String.lowercase_ascii x) export then add x y m else m)
-        m empty
-
-    let to_metadata m = m
-    let to_list m = bindings m
-
-    let equal m m' =
-      let normalize m =
-        List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (to_list m)
-      in
-      normalize m = normalize m'
-
-    let empty : t = from_list []
-    let is_empty m = to_list m = []
-  end
-end
+let remaining b = Lazy.force Frame_settings.size - position b
+let is_partial b = 0 < remaining b
 
 (** Metadata of a frame. *)
-type metadata = Metadata.t
+module Metadata = Metadata_base
+
+type metadata = Metadata_base.t
 
 let audio_format ~pcm_kind params =
   let lift_params =
@@ -148,3 +124,10 @@ let format_of_channels ~pcm_kind n =
       Content_audio.Specs.channel_layout =
         lazy (Audio_converter.Channel_layout.layout_of_channels n);
     }
+
+let add_timed_content ?length content =
+  Fields.add Fields.track_marks
+    (Content_base.make ?length Content_timed.Track_marks.format)
+    (Fields.add Fields.metadata
+       (Content_base.make ?length Content_timed.Metadata.format)
+       content)

@@ -23,28 +23,28 @@
 open Source
 
 class compand ~field (source : source) mu =
-  object
+  object (self)
     inherit operator ~name:"compand" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = Content.Audio.get_data (Frame.get buf field) in
-      for c = offset to Array.length b - 1 do
+    method private generate_frame =
+      let pos = source#frame_audio_position in
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
+      for c = 0 to self#audio_channels - 1 do
         let b_c = b.(c) in
-        for i = offset to AFrame.position buf - 1 do
+        for i = 0 to pos - 1 do
           (* Cf. http://en.wikipedia.org/wiki/Mu-law *)
           let sign = if b_c.(i) < 0. then -1. else 1. in
           b_c.(i) <-
             sign *. log (1. +. (mu *. Utils.abs_float b_c.(i))) /. log (1. +. mu)
         done
-      done
+      done;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

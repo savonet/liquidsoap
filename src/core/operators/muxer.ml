@@ -40,10 +40,6 @@ class muxer tracks =
     else `Fallible
   in
   let self_sync_type = Utils.self_sync_type sources in
-  let track_frames = ref [] in
-  let clear_track_frames () =
-    List.iter (fun (_, frame) -> Frame.clear frame) !track_frames
-  in
   object (self)
     (* Pass duplicated list to operator to make sure caching is properly enabled. *)
     inherit
@@ -57,11 +53,9 @@ class muxer tracks =
       (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
+    method private sources_ready = List.for_all (fun s -> s#is_ready) sources
 
-    method private sources_ready =
-      List.for_all (fun s -> s#is_ready ?frame:None ()) sources
-
-    method private _is_ready ?frame:_ () =
+    method private can_generate_frame =
       Generator.length self#buffer > 0 || self#sources_ready
 
     method! seek len =
@@ -94,81 +88,46 @@ class muxer tracks =
           List.fold_left
             (fun r s -> if r = -1 then s#remaining else min r s#remaining)
             (-1)
-            (List.filter (fun (s : Source.source) -> s#is_ready ()) sources) )
+            (List.filter (fun (s : Source.source) -> s#is_ready) sources) )
       with
         | -1, r -> r
         | r, _ -> r
 
-    method private track_frame source =
-      try List.assq source !track_frames
-      with Not_found ->
-        let f = Frame.create source#content_type in
-        track_frames := (source, f) :: !track_frames;
-        f
-
-    method private feed_track ~tmp ~filled ~start ~stop
-        { source_field; target_field; processor } =
-      let c = Content.sub (Frame.get tmp source_field) start (stop - start) in
+    method private feed_track ~buf { source_field; target_field; processor } =
+      let c = Frame.get buf source_field in
       match source_field with
         | f when f = Frame.Fields.metadata ->
             List.iter
               (fun (pos, m) -> Generator.add_metadata ~pos self#buffer m)
               (Content.Metadata.get_data c)
         | f when f = Frame.Fields.track_marks ->
-            if Frame.is_partial tmp then
-              Generator.add_track_mark ~pos:(stop - filled) self#buffer
+            List.iter
+              (fun pos -> Generator.add_track_mark ~pos self#buffer)
+              (Content.Track_marks.get_data c)
         | _ -> Generator.put self#buffer target_field (processor c)
 
-    method private feed_fields ~filled { fields; source } =
-      let tmp = self#track_frame source in
-      let start = Frame.position tmp in
-      if Frame.is_partial tmp && source#is_ready ~frame:tmp () then (
-        source#get tmp;
-        let stop = Frame.position tmp in
-        List.iter (self#feed_track ~tmp ~filled ~start ~stop) fields)
+    method private feed_fields { fields; source } =
+      if source#is_ready then (
+        let buf = source#get_frame in
+        List.iter (self#feed_track ~buf) fields)
 
-    (* In the current streaming model, we might still need to force
-       a source#get to get the next break/metadata at the beginning of
-       a track.
+    method private feed =
+      if self#sources_ready then List.iter self#feed_fields tracks
 
-       TODO: get rid of this! *)
-    method private feed ~force buf =
-      let filled = Frame.position buf in
-      if
-        self#sources_ready
-        && (force
-           || Generator.remaining self#buffer = -1
-              && filled + Generator.length self#buffer < Lazy.force Frame.size)
-      then (
-        List.iter (self#feed_fields ~filled) tracks;
-        self#feed ~force:false buf)
-
-    (* There are two situations here:
-       - If we are tracking track marks from a source,
-         we do need to stop at each track mark and let
-         consumers of the muxed source call us back.
-       - If we are not tracking track marks, we actually
-         need to recurse when one of the source has one.
-
-       Therefore, the implementation:
+    (* The implementation:
        - Keeps a global buffer of generated data.
-       - Keeps a temporary track for each pulled sources
-       - Implements the recursion above
-       - Clears all temporary buffer at the end of each
+       - Clears the global buffer at the end of each
          streaming cycle.
 
        This means that we do not buffer beyond the current
        frame and, also, that if one source becomes unavailable
        while streaming, we end all tracks when this source drops
        off. *)
-    method get_frame buf =
-      self#feed ~force:true buf;
-      Generator.fill self#buffer buf
+    method generate_frame =
+      self#feed;
+      Generator.slice self#buffer (Lazy.force Frame.size)
 
-    initializer
-      self#on_after_output (fun () ->
-          clear_track_frames ();
-          Generator.clear self#buffer)
+    initializer self#on_after_output (fun () -> Generator.clear self#buffer)
   end
 
 let muxer_operator p =
