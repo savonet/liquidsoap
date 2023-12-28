@@ -110,7 +110,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data; length } in
+                  let data = { Content_video.Base.params; data; length } in
                   let data = Ffmpeg_copy_content.lift_data data in
                   Generator.put generator field data
               | None -> ()
@@ -160,7 +160,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                               } ))
                           frames
                       in
-                      let data = { Ffmpeg_content_base.params; data; length } in
+                      let data = { Content_video.Base.params; data; length } in
                       let data = Ffmpeg_raw_content.Audio.lift_data data in
                       Generator.put generator field data
                   | None -> ())
@@ -294,7 +294,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data; length } in
+                  let data = { Content_video.Base.params; data; length } in
                   let data = Ffmpeg_copy_content.lift_data data in
                   Generator.put generator field data
               | None -> ()
@@ -350,7 +350,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
                             } ))
                         frames
                     in
-                    let data = { Ffmpeg_content_base.params; data; length } in
+                    let data = { Content_video.Base.params; data; length } in
                     let data = Ffmpeg_raw_content.Video.lift_data data in
                     Generator.put generator field data
                 | None -> ())

@@ -45,7 +45,7 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
                   frames
               in
               let data =
-                { Ffmpeg_content_base.params = mk_params params; data; length }
+                { Content_video.Base.params = mk_params params; data; length }
               in
               let data = lift_data data in
               put_data buffer.Decoder.generator data

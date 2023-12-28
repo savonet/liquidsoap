@@ -221,7 +221,7 @@ let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
     fun frame start len ->
       let frames =
         Ffmpeg_raw_content.Audio.(get_data (Frame.get frame field))
-          .Ffmpeg_content_base.data
+          .Content_video.Base.data
       in
       let frames =
         List.filter (fun (pos, _) -> start <= pos && pos < start + len) frames

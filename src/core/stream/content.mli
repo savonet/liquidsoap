@@ -52,6 +52,7 @@ type video_params = Content_video.Specs.params = {
   height : int Lazy.t option;
 }
 
+type video_data = (video_params, Video.Canvas.image) Content_video.Base.content
 type midi_params = Content_midi.Specs.params = { channels : int }
 
 module type ContentSpecs = sig
@@ -166,10 +167,15 @@ module Video : sig
     Content
       with type kind = [ `Canvas ]
        and type params = video_params
-       and type data = Video.Canvas.t
+       and type data = video_data
 
   val kind : Contents.kind
   val dimensions_of_format : Contents.format -> int * int
+
+  val lift_canvas :
+    ?offset:int -> ?length:int -> Video.Canvas.t -> Contents.data
+
+  val get_canvas : Contents.data -> Video.Canvas.t
 end
 
 module Midi : sig

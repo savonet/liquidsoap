@@ -20,6 +20,7 @@
 
  *****************************************************************************)
 
+open Mm
 include Content_base
 
 module MkContent (C : ContentSpecs) = struct
@@ -44,6 +45,7 @@ type video_params = Content_video.Specs.params = {
   height : int Lazy.t option;
 }
 
+type video_data = (video_params, Video.Canvas.image) Content_video.Base.content
 type midi_params = Content_midi.Specs.params = { channels : int }
 
 module Audio = Content_audio
