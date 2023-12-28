@@ -37,7 +37,7 @@ let conf =
       ]
 
 let conf_duration =
-  Conf.float ~p:(conf#plug "duration") ~d:0.04
+  Conf.float ~p:(conf#plug "duration") ~d:0.01
     "Tentative frame duration in seconds"
     ~comments:
       [
@@ -58,19 +58,6 @@ let conf_audio_samplerate =
 
 let conf_audio_channels =
   Conf.int ~p:(conf_audio#plug "channels") ~d:2 "Default number of channels"
-
-let conf_audio_size =
-  Conf.int ~p:(conf_audio#plug "size")
-    "Tentative frame duration in audio samples"
-    ~comments:
-      [
-        "Audio samplerate and video frame rate constrain the possible frame \
-         durations.";
-        "This setting is used as a hint for the duration, overriding";
-        "'frame.duration'.";
-        "Tweaking frame duration is tricky but needed when dealing with latency";
-        "or getting soundcard I/O correctly synchronized with liquidsoap.";
-      ]
 
 (* Video *)
 let conf_video = Conf.void ~p:(conf#plug "video") "Video settings"
@@ -208,42 +195,12 @@ let size =
       let audio = !!audio_rate in
       let video = !!video_rate in
       let main = !!main_rate in
-      let granularity =
-        match (audio, video) with
-          | 0, 0 -> assert false (* main_rate would error before this. *)
-          | audio, 0 -> main / audio
-          | 0, video -> main / video
-          | audio, video -> lcm (main / audio) (main / video)
-      in
-      let target =
-        log#important "Using %dHz audio, %dHz video, %dHz main." audio video
-          main;
-        log#important "Video frame size set to: %dx%d" conf_video_width#get
-          conf_video_height#get;
-        log#important
-          "Frame size must be a multiple of %d ticks = %d audio samples = %d \
-           video samples."
-          granularity
-          (audio_of_main granularity)
-          (video_of_main granularity);
-        try
-          let d = conf_audio_size#get in
-          log#important
-            "Targeting 'frame.audio.size': %d audio samples = %d ticks." d
-            (main_of_audio d);
-          main_of_audio d
-        with Conf.Undefined _ ->
-          log#important
-            "Targeting 'frame.duration': %.2fs = %d audio samples = %d ticks."
-            conf_duration#get
-            (audio_of_seconds conf_duration#get)
-            (main_of_seconds conf_duration#get);
-          main_of_seconds conf_duration#get
-      in
-      let s = upper_multiple granularity (max 1 target) in
-      log#important
-        "Frames last %.2fs = %d audio samples = %d video samples = %d ticks."
-        (seconds_of_main s) (audio_of_main s) (video_of_main s) s;
-      s)
+      let duration = conf_duration#get in
+      let size = main_of_seconds duration in
+      log#important "Using %dHz audio, %dHz video, %dHz main." audio video main;
+      log#important "Video frame size set to: %dx%d" conf_video_width#get
+        conf_video_height#get;
+      log#important "Frames last %.2fs = %d ticks." duration size;
+      size)
 
 let duration = delayed (fun () -> float !!size /. float !!main_rate)
