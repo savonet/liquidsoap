@@ -155,7 +155,7 @@ module Audio : sig
     Content
       with type kind = [ `Pcm ]
        and type params = audio_params
-       and type data = Audio.Mono.buffer array
+       and type data = Audio.t
 
   val kind : Contents.kind
   val channels_of_format : Contents.format -> int

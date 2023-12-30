@@ -184,6 +184,12 @@ class virtual source :
 
        method last_image : Frame.Fields.field -> Video.Canvas.image
 
+       method private nearest_image :
+         pos:int ->
+         last_image:Video.Canvas.image ->
+         Content.Video.data ->
+         Video.Canvas.image
+
        (** An empty frame that can be used by the source. *)
        method empty_frame : Frame.t
 

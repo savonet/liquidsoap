@@ -730,6 +730,17 @@ class virtual operator ?pos ?(name = "src") sources =
     method private generate_video ?create ~field length =
       Content.Video.generate ?create (self#video_generator field) length
 
+    method private nearest_image ~pos ~last_image buf =
+      let nearest =
+        List.fold_left
+          (fun current (p, img) ->
+            match current with
+              | Some (p', _) when abs (p - pos) < abs (p' - pos) -> Some (p, img)
+              | _ -> Some (p, img))
+          None buf.Content_video.Base.data
+      in
+      match nearest with Some (_, img) -> img | None -> last_image
+
     method private normalize_video ~field content =
       let buf = Content.Video.get_data content in
       let data = buf.Content_video.Base.data in
@@ -738,23 +749,10 @@ class virtual operator ?pos ?(name = "src") sources =
        with
         | (_, img) :: _ -> self#set_last_image ~field img
         | [] -> ());
-      let nearest pos =
-        let nearest =
-          List.fold_left
-            (fun current (p, img) ->
-              match current with
-                | Some (p', _) when abs (p - pos) < abs (p' - pos) ->
-                    Some (p, img)
-                | _ -> current)
-            None buf.Content_video.Base.data
-        in
-        match nearest with
-          | Some (_, img) -> img
-          | None -> self#last_image field
-      in
       Content.Video.lift_data
         (self#generate_video ~field
-           ~create:(fun ~pos ~width:_ ~height:_ () -> nearest pos)
+           ~create:(fun ~pos ~width:_ ~height:_ () ->
+             self#nearest_image ~pos ~last_image:(self#last_image field) buf)
            (Content.length content))
 
     method private normalize_video_content =

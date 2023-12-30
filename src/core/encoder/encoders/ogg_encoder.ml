@@ -55,15 +55,22 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
 
 (** Helper to encode video. *)
 let encode_video encoder id frame start len =
+  let content = Content.sub (Frame.get frame Frame.Fields.video) start len in
+  let buf = Content.Video.get_data content in
   let data =
-    VFrame.data frame |> Array.map (fun img -> Video.Canvas.Image.render img)
+    List.map
+      (fun (_, img) -> Video.Canvas.Image.render img)
+      buf.Content_video.Base.data
   in
-  let start = Frame.video_of_main start in
-  let len = Frame.video_of_main len in
-  let data =
-    Ogg_muxer.Video_data { Ogg_muxer.data; offset = start; length = len }
-  in
-  Ogg_muxer.encode encoder id data
+  match data with
+    | [] -> ()
+    | data ->
+        let length = List.length data in
+        let data =
+          Ogg_muxer.Video_data
+            { Ogg_muxer.data = Array.of_list data; offset = 0; length }
+        in
+        Ogg_muxer.encode encoder id data
 
 let encoder_name = function
   | Ogg_format.Vorbis _ -> "vorbis"

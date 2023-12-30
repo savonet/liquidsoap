@@ -166,20 +166,6 @@ class video_add ~field ~add tracks =
   object (self)
     inherit base ~name:"video.add" tracks
 
-    method private nearest_image ~pos ~source ~field content =
-      let buf = Content.Video.get_data content in
-      let nearest =
-        List.fold_left
-          (fun current (p, img) ->
-            match current with
-              | Some (p', _) when abs (p - pos) < abs (p' - pos) -> Some (p, img)
-              | _ -> current)
-          None buf.Content_video.Base.data
-      in
-      match nearest with
-        | Some (_, img) -> img
-        | None -> source#last_image field
-
     method private generate_frame =
       let frames = self#generate_frames in
       let pos = self#frames_position frames in
@@ -192,12 +178,14 @@ class video_add ~field ~add tracks =
                   frames
                   @ List.map
                       (fun { position; field } ->
-                        (position, field, source, Frame.get frame field))
+                        ( position,
+                          source#last_image field,
+                          Content.Video.get_data (Frame.get frame field) ))
                       fields)
           [] frames
       in
       let frames =
-        List.sort (fun (p, _, _, _) (p', _, _, _) -> Stdlib.compare p p') frames
+        List.sort (fun (p, _, _) (p', _, _) -> Stdlib.compare p p') frames
       in
       let create, frames =
         match frames with
@@ -205,9 +193,9 @@ class video_add ~field ~add tracks =
               ( (fun ~pos:_ ~width ~height () ->
                   Video.Canvas.Image.create width height),
                 [] )
-          | (_, field, source, content) :: rest ->
+          | (_, last_image, data) :: rest ->
               ( (fun ~pos ~width:_ ~height:_ () ->
-                  self#nearest_image ~pos ~source ~field content),
+                  self#nearest_image ~pos ~last_image data),
                 rest )
       in
       let buf = self#generate_video ~field ~create pos in
@@ -216,8 +204,8 @@ class video_add ~field ~add tracks =
           (fun (pos, img) ->
             ( pos,
               List.fold_left
-                (fun img (rank, field, source, content) ->
-                  add rank img (self#nearest_image ~pos ~source ~field content))
+                (fun img (rank, last_image, data) ->
+                  add rank img (self#nearest_image ~pos ~last_image data))
                 img frames ))
           buf.Content_video.Base.data
       in

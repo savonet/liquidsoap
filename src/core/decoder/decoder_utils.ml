@@ -113,32 +113,24 @@ let video_resample ~in_freq ~out_freq =
   let in_freq = in_freq.num * out_freq.den
   and out_freq = out_freq.num * in_freq.num in
   let ratio = out_freq / in_freq in
-  fun buf ->
-    let input = buf.Content_video.Base.data in
-    let len = List.length input in
-    let new_in_pos = !in_pos + len in
+  fun img ->
+    let new_in_pos = !in_pos + 1 in
     let already_out_len = !in_pos * ratio in
     let needed_out_len = new_in_pos * ratio in
     let out_len = needed_out_len - already_out_len in
     in_pos := new_in_pos mod in_freq;
-    {
-      buf with
-      Content_video.Base.data =
-        List.init out_len (fun i ->
-            let pos, img = List.nth input (i * ratio) in
-            (pos / ratio, img));
-    }
+    List.init out_len (fun _ -> img)
 
 let video_resample () =
   let state = ref None in
-  fun ~in_freq ~out_freq (data : Content.Video.data) : Content.Video.data ->
-    if in_freq = out_freq then data
+  fun ~in_freq ~out_freq img ->
+    if in_freq = out_freq then [img]
     else (
       match !state with
         | Some (resampler, _in_freq, _out_freq)
           when in_freq = _in_freq && out_freq = _out_freq ->
-            resampler data
+            resampler img
         | _ ->
             let resampler = video_resample ~in_freq ~out_freq in
             state := Some (resampler, in_freq, out_freq);
-            resampler data)
+            resampler img)

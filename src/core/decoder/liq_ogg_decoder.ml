@@ -170,14 +170,14 @@ let create_decoder ?(merge_tracks = false) source input =
       in
       let video_feed track buf =
         let info, _ = Ogg_decoder.video_info decoder track in
-        let rgb = video_convert video_scale buf in
+        let img = video_convert video_scale buf in
         let fps =
           {
             Decoder.num = info.Ogg_decoder.fps_numerator;
             den = info.Ogg_decoder.fps_denominator;
           }
         in
-        buffer.Decoder.put_yuva420p ~fps (Video.Canvas.single_image rgb)
+        buffer.Decoder.put_yuva420p ~fps (Video.Canvas.Image.make img)
       in
       let decode_audio, decode_video =
         if decode_audio && decode_video then

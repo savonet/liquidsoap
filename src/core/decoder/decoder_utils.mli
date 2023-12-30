@@ -59,5 +59,5 @@ val video_resample :
   unit ->
   in_freq:fps ->
   out_freq:fps ->
-  Content.Video.data ->
-  Content.Video.data
+  Video.Canvas.image ->
+  Video.Canvas.image list

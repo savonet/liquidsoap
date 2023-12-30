@@ -39,14 +39,17 @@ class output ~infallible ~register_telnet ~autostart ~on_start ~on_stop source =
       sleep <- false
 
     method send_frame buf =
-      let img =
-        let width, height = self#video_dimensions in
-        Video.Canvas.get (VFrame.data buf) 0
-        |> Video.Canvas.Image.viewport width height
-        |> Video.Canvas.Image.render ~transparent:false
-        |> Image.YUV420.to_int_image |> Graphics.make_image
-      in
-      Graphics.draw_image img 0 0
+      match (VFrame.data buf).Content_video.Base.data with
+        | [] -> ()
+        | (_, img) :: _ ->
+            let width, height = self#video_dimensions in
+            let img =
+              img
+              |> Video.Canvas.Image.viewport width height
+              |> Video.Canvas.Image.render ~transparent:false
+              |> Image.YUV420.to_int_image |> Graphics.make_image
+            in
+            Graphics.draw_image img 0 0
 
     method! reset = ()
   end
