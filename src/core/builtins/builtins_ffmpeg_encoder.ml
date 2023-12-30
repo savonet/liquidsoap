@@ -368,17 +368,16 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
 
   function
   | `Frame frame ->
-      let vstart = 0 in
-      let vstop = VFrame.position frame in
       let vbuf = VFrame.data frame in
-      for i = vstart to vstop - 1 do
-        let f = Video.Canvas.render vbuf i in
-        let vdata = Ffmpeg_utils.pack_image f in
-        let frame = InternalScaler.convert (Option.get !scaler) vdata in
-        Avutil.Frame.set_pts frame (Some !nb_frames);
-        nb_frames := Int64.succ !nb_frames;
-        encode_ffmpeg_frame frame
-      done
+      List.iter
+        (fun (_, img) ->
+          let f = Video.Canvas.Image.render img in
+          let vdata = Ffmpeg_utils.pack_image f in
+          let frame = InternalScaler.convert (Option.get !scaler) vdata in
+          Avutil.Frame.set_pts frame (Some !nb_frames);
+          nb_frames := Int64.succ !nb_frames;
+          encode_ffmpeg_frame frame)
+        vbuf.Content_video.Base.data
   | `Flush -> encode_frame `Flush
 
 let mk_encoder mode =

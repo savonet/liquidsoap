@@ -253,8 +253,7 @@ let decode_video_frame ~field ~mode generator =
         Ffmpeg_utils.unpack_image ~width:internal_width ~height:internal_height
           (InternalScaler.convert scaler data)
       in
-      let data = Video.Canvas.single_image img in
-      let data = Content.Video.lift_data data in
+      let data = Content.Video.lift_image (Video.Canvas.Image.make img) in
       Generator.put generator field data
     in
 
