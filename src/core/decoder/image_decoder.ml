@@ -133,10 +133,10 @@ let create_decoder ~ctype ~width ~height ~metadata img =
     let frame =
       Frame.set_data frame Frame.Fields.video Content.Video.lift_data video
     in
-    match Frame.Fields.find_opt Frame.Fields.audio frame with
+    match Frame.Fields.find_opt Frame.Fields.audio ctype with
       | None -> frame
-      | Some data ->
-          let pcm = Content.Audio.get_data data in
+      | Some format ->
+          let pcm = Content.Audio.get_data (Content.make ~length format) in
           Audio.clear pcm 0 (Frame.audio_of_main length);
           Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data pcm
   in
