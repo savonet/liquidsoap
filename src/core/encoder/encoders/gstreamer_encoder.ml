@@ -157,28 +157,33 @@ let encoder ext =
         ~duration (Option.get gst.audio_src) data 0 (Bytes.length data));
     if videochans > 0 then (
       (* Put video. *)
-      let vbuf = VFrame.data frame in
-      let vstart = Frame.video_of_main start in
-      let vlen = Frame.video_of_main len in
-      for i = vstart to vstart + vlen - 1 do
-        let img = Video.Canvas.render vbuf i in
-        (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
-        assert (Image.YUV420.y_stride img = (Image.YUV420.width img + 3) / 4 * 4);
-        assert (
-          Image.YUV420.uv_stride img
-          = ((Image.YUV420.width img / 2) + 3) / 4 * 4);
-        let y, u, v = Image.YUV420.data img in
-        let presentation_time =
-          Int64.add !presentation_time (Int64.mul (Int64.of_int i) vduration)
-        in
-        let buf =
-          Gstreamer.Buffer.of_data_list
-            (List.map (fun d -> (d, 0, Image.Data.length d)) [y; u; v])
-        in
-        Gstreamer.Buffer.set_presentation_time buf presentation_time;
-        Gstreamer.Buffer.set_duration buf vduration;
-        Gstreamer.App_src.push_buffer (Option.get gst.video_src) buf
-      done);
+      let content =
+        Content.sub (Frame.get frame Frame.Fields.video) start len
+      in
+      let buf = Content.Video.get_data content in
+      let interval = Frame.main_of_video 1 in
+      List.iter
+        (fun (pos, img) ->
+          let img = Video.Canvas.Image.render img in
+          (* TODO: Gstreamer expects multiples of 4 as strides, convert otherwise *)
+          assert (
+            Image.YUV420.y_stride img = (Image.YUV420.width img + 3) / 4 * 4);
+          assert (
+            Image.YUV420.uv_stride img
+            = ((Image.YUV420.width img / 2) + 3) / 4 * 4);
+          let y, u, v = Image.YUV420.data img in
+          let presentation_time =
+            Int64.add !presentation_time
+              (Int64.mul (Int64.of_int (pos / interval)) vduration)
+          in
+          let buf =
+            Gstreamer.Buffer.of_data_list
+              (List.map (fun d -> (d, 0, Image.Data.length d)) [y; u; v])
+          in
+          Gstreamer.Buffer.set_presentation_time buf presentation_time;
+          Gstreamer.Buffer.set_duration buf vduration;
+          Gstreamer.App_src.push_buffer (Option.get gst.video_src) buf)
+        buf.Content_video.Base.data);
     GU.flush ~log gst.bin;
 
     (* Return result. *)
