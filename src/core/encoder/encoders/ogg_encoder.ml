@@ -60,7 +60,7 @@ let encode_video encoder id frame start len =
   let data =
     List.map
       (fun (_, img) -> Video.Canvas.Image.render img)
-      buf.Content_video.Base.data
+      buf.Content.Video.data
   in
   match data with
     | [] -> ()

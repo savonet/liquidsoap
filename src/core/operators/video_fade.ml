@@ -70,11 +70,11 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
               let m = fade (Frame.video_of_main position + i) in
               ignore (fadefun img m);
               (pos, img))
-            buf.Content_video.Base.data
+            buf.Content.Video.data
         in
         state <- `Play (fade, fadefun, duration, position + Frame.position frame);
         Frame.set_data frame Frame.Fields.video Content.Video.lift_data
-          { buf with Content_video.Base.data })
+          { buf with Content.Video.data })
       else frame
 
     method private generate_frame =
@@ -135,11 +135,11 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
               (* TODO @smimram *)
               ignore (fadefun img m);
               (pos, img))
-            buf.Content_video.Base.data
+            buf.Content.Video.data
         in
 
         Frame.set_data frame Frame.Fields.video Content.Video.lift_data
-          { buf with Content_video.Base.data })
+          { buf with Content.Video.data })
       else frame
 
     method private generate_frame =

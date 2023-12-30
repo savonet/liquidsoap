@@ -240,7 +240,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     ext_ok || mime_ok)
 
 let channel_layout audio =
-  Lazy.force Content.(Audio.(get_params audio).Content.channel_layout)
+  Lazy.force Content.(Audio.(get_params audio).Content.Audio.channel_layout)
 
 let can_decode_type decoded_type target_type =
   let map_convertible cur (field, target_field) =
@@ -453,11 +453,11 @@ let mk_buffer ~ctype generator =
           in
           let params =
             {
-              Content_video.Specs.width = Some Frame.video_width;
+              Content.Video.width = Some Frame.video_width;
               height = Some Frame.video_height;
             }
           in
-          let interval = Frame.video_of_main 1 in
+          let interval = Frame.main_of_video 1 in
           fun ~fps img ->
             match video_resample ~in_freq:fps ~out_freq img with
               | [] -> ()
@@ -470,7 +470,7 @@ let mk_buffer ~ctype generator =
                   let length = List.length data * interval in
                   let buf =
                     Content.Video.lift_data
-                      { Content_video.Specs.params; length; data }
+                      { Content.Video.params; length; data }
                   in
                   Generator.put generator field buf)
         else fun ~fps:_ _ -> ()

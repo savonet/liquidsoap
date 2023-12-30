@@ -74,10 +74,10 @@ class frei0r_filter ~name bgra instance params (source : source) =
       source#set_frame_data Frame.Fields.video Content.Video.lift_data
         {
           buf with
-          Content_video.Base.data =
+          Content.Video.data =
             List.map
               (fun (pos, img) -> (pos, self#render img))
-              buf.Content_video.Base.data;
+              buf.Content.Video.data;
         }
   end
 
@@ -156,10 +156,10 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
             let img = Image.YUV420.of_RGBA32 img in
             t <- t +. dt;
             (pos, Video.Canvas.Image.make img))
-          rgb.Content_video.Base.data
+          rgb.Content.Video.data
       in
       source#set_frame_data Frame.Fields.video Content.Video.lift_data
-        { rgb with Content_video.Base.data }
+        { rgb with Content.Video.data }
   end
 
 class frei0r_source ~name bgra instance params =
@@ -198,10 +198,10 @@ class frei0r_source ~name bgra instance params =
         let data =
           List.map
             (fun (pos, img) -> (pos, self#render_image img))
-            rgb.Content_video.Base.data
+            rgb.Content.Video.data
         in
         Frame.set_data buf Frame.Fields.video Content.Video.lift_data
-          { rgb with Content_video.Base.data })
+          { rgb with Content.Video.data })
   end
 
 (** Make a list of parameters. *)

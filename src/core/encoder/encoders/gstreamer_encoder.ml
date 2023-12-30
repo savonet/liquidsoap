@@ -183,7 +183,7 @@ let encoder ext =
           Gstreamer.Buffer.set_presentation_time buf presentation_time;
           Gstreamer.Buffer.set_duration buf vduration;
           Gstreamer.App_src.push_buffer (Option.get gst.video_src) buf)
-        buf.Content_video.Base.data);
+        buf.Content.Video.data);
     GU.flush ~log gst.bin;
 
     (* Return result. *)

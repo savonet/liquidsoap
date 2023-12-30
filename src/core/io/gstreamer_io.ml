@@ -293,7 +293,7 @@ class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
                 Gstreamer.Buffer.set_duration buf duration;
                 Gstreamer.Buffer.set_presentation_time buf presentation_time;
                 Gstreamer.App_src.push_buffer (Option.get el.video) buf)
-              buf.Content_video.Base.data);
+              buf.Content.Video.data);
           presentation_time <- Int64.add presentation_time duration;
           GU.flush ~log:self#log
             ~on_error:(fun err -> raise (Flushing_error err))

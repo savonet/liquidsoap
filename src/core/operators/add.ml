@@ -207,13 +207,13 @@ class video_add ~field ~add tracks =
                 (fun img (rank, last_image, data) ->
                   add rank img (self#nearest_image ~pos ~last_image data))
                 img frames ))
-          buf.Content_video.Base.data
+          buf.Content.Video.data
       in
       let frame =
         Frame.set_data
           (Frame.create ~length:pos Frame.Fields.empty)
           field Content.Video.lift_data
-          { buf with Content_video.Base.data }
+          { buf with Content.Video.data }
       in
       self#set_metadata frame
   end

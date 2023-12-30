@@ -36,22 +36,27 @@ end
 
 include Content_timed
 
-type audio_params = Content_audio.Specs.params = {
-  channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
-}
+module Audio = struct
+  include Content_audio
 
-type video_params = Content_video.Specs.params = {
-  width : int Lazy.t option;
-  height : int Lazy.t option;
-}
-
-type video_data = (video_params, Video.Canvas.image) Content_video.Base.content
-type midi_params = Content_midi.Specs.params = { channels : int }
-
-module Audio = Content_audio
+  type audio_params = Content_audio.Specs.params = {
+    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+  }
+end
 
 module Video = struct
   include Content_video
+
+  type ('a, 'b) video_content = ('a, 'b) Content_video.Base.content = {
+    length : int;
+    mutable params : 'a;
+    mutable data : (int * 'b) list;
+  }
+
+  type video_params = Content_video.Specs.params = {
+    width : int Lazy.t option;
+    height : int Lazy.t option;
+  }
 
   let lift_image img =
     let width = Video.Canvas.Image.width img in
@@ -63,9 +68,16 @@ module Video = struct
         data = [(0, img)];
       }
 
+  let get_data content =
+    let buf = get_data content in
+    {
+      buf with
+      data = List.sort (fun (p, _) (p', _) -> Int.compare p p') buf.data;
+    }
+
   type generator = {
     interval : int;
-    params : Content_video.Specs.params;
+    params : params;
     width : int;
     height : int;
     mutable position : int64;
@@ -110,11 +122,15 @@ module Video = struct
             gen.next_sample <-
               Int64.add gen.next_sample (Int64.of_int gen.interval);
             (pos, create ~pos ~width:gen.width ~height:gen.height ()) :: data)
-          else data
+          else List.rev data
         in
         f data (pos + gen.interval))
     in
-    { Content_video.Base.params = gen.params; length; data = f [] 0 }
+    { params = gen.params; length; data = f [] 0 }
 end
 
-module Midi = Content_midi
+module Midi = struct
+  include Content_midi
+
+  type midi_params = Content_midi.Specs.params = { channels : int }
+end

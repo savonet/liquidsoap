@@ -737,13 +737,13 @@ class virtual operator ?pos ?(name = "src") sources =
             match current with
               | Some (p', _) when abs (p - pos) < abs (p' - pos) -> Some (p, img)
               | _ -> Some (p, img))
-          None buf.Content_video.Base.data
+          None buf.Content.Video.data
       in
       match nearest with Some (_, img) -> img | None -> last_image
 
     method private normalize_video ~field content =
       let buf = Content.Video.get_data content in
-      let data = buf.Content_video.Base.data in
+      let data = buf.Content.Video.data in
       (match
          List.rev (List.sort (fun (p, _) (p', _) -> Int.compare p p') data)
        with

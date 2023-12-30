@@ -14,7 +14,7 @@ let () =
       Audio.lift_params { Content.channel_layout = lazy `Five_point_one })
   in
   let canvas = Content.default_format Content_video.kind in
-  let midi = Content.(Midi.lift_params { Content.channels = 1 }) in
+  let midi = Content.(Midi.lift_params { Content.Audio.channels = 1 }) in
   assert (
     Decoder.can_decode_type
       (Frame.Fields.make ~audio:stereo ())

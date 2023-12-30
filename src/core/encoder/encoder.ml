@@ -96,7 +96,7 @@ let type_of_format f =
                     assert (channels > 0);
                     let params =
                       {
-                        Content.channel_layout =
+                        Content.Audio.channel_layout =
                           lazy
                             (Audio_converter.Channel_layout.layout_of_channels
                                channels);

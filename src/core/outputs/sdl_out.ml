@@ -87,15 +87,18 @@ class output ~infallible ~register_telnet ~on_start ~on_stop ~autostart source =
       self#process_events;
       let window = Option.get window in
       let surface = Sdl_utils.check Sdl.get_window_surface window in
-      let img =
-        let width, height = self#video_dimensions in
-        (* We only display the first image of each frame *)
-        Video.Canvas.get (VFrame.data buf) 0
-        |> Video.Canvas.Image.viewport width height
-        |> Video.Canvas.Image.render ~transparent:false
-      in
-      Sdl_utils.Surface.of_img surface img;
-      Sdl_utils.check Sdl.update_window_surface window
+      let width, height = self#video_dimensions in
+      match (VFrame.data buf).Content.Video.data with
+        | [] -> ()
+        | (_, img) :: _ ->
+            (* We only display the first image of each frame *)
+            let img =
+              img
+              |> Video.Canvas.Image.viewport width height
+              |> Video.Canvas.Image.render ~transparent:false
+            in
+            Sdl_utils.Surface.of_img surface img;
+            Sdl_utils.check Sdl.update_window_surface window
   end
 
 let output_sdl =

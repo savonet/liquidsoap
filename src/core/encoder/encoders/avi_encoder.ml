@@ -85,7 +85,7 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
           for j = 0 to (height / 2) - 1 do
             Strings.Mutable.add_substring data v (j * uv_stride) (width / 2)
           done))
-      vbuf.Content_video.Base.data;
+      vbuf.Content.Video.data;
     Avi.video_chunk_strings data
   in
   Strings.add video audio

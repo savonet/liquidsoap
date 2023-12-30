@@ -39,7 +39,7 @@ class output ~infallible ~register_telnet ~autostart ~on_start ~on_stop source =
       sleep <- false
 
     method send_frame buf =
-      match (VFrame.data buf).Content_video.Base.data with
+      match (VFrame.data buf).Content.Video.data with
         | [] -> ()
         | (_, img) :: _ ->
             let width, height = self#video_dimensions in

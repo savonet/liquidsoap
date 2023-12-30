@@ -49,7 +49,7 @@ class still_frame ~name (source : source) =
         | None -> ()
         | Some f -> (
             let v = Content.Video.get_data (Frame.get buf Frame.Fields.video) in
-            match v.Content_video.Base.data with
+            match v.Content.Video.data with
               | [] -> ()
               | (_, i) :: _ ->
                   let i =

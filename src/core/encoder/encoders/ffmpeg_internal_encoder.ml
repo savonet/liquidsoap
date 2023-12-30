@@ -221,7 +221,7 @@ let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
     fun frame start len ->
       let frames =
         Ffmpeg_raw_content.Audio.(get_data (Frame.get frame field))
-          .Content_video.Base.data
+          .Content.Video.data
       in
       let frames =
         List.filter (fun (pos, _) -> start <= pos && pos < start + len) frames
@@ -456,7 +456,7 @@ let mk_video ~pos ~mode ~codec ~params ~options ~field output =
           Avutil.Frame.set_pts frame (Some !nb_frames);
           nb_frames := Int64.succ !nb_frames;
           cb ~stream_idx ~time_base frame)
-        buf.Content_video.Base.data
+        buf.Content.Video.data
   in
 
   let raw_converter cb =

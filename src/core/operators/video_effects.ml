@@ -81,7 +81,7 @@ class virtual base ~name (source : source) f =
     method private generate_frame =
       let c = source#get_mutable_content Frame.Fields.video in
       let buf = Content.Video.get_data c in
-      let data = buf.Content_video.Base.data in
+      let data = buf.Content.Video.data in
       let data =
         if data = [] then data
         else (
@@ -89,7 +89,7 @@ class virtual base ~name (source : source) f =
             List.fold_left
               (fun (positions, images) (pos, img) ->
                 (pos :: positions, img :: images))
-              ([], []) buf.Content_video.Base.data
+              ([], []) buf.Content.Video.data
           in
           let positions = List.rev positions in
           let video = Array.of_list (List.rev images) in
@@ -97,7 +97,7 @@ class virtual base ~name (source : source) f =
           List.mapi (fun i pos -> (pos, Video.Canvas.get video i)) positions)
       in
       source#set_frame_data Frame.Fields.video Content.Video.lift_data
-        { buf with Content_video.Base.data }
+        { buf with Content.Video.data }
   end
 
 class effect ~name (source : source) effect =
