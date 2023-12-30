@@ -46,47 +46,46 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame start len
   in
   let video =
     let vbuf = VFrame.data frame in
-    let vstart = Frame.video_of_main start in
-    let vlen = Frame.video_of_main len in
     let data = Strings.Mutable.empty () in
     let scaler = Video_converter.scaler () in
-    for i = vstart to vstart + vlen - 1 do
-      let img =
-        Video.Canvas.get vbuf i
-        |> Video.Canvas.Image.resize ~scaler ~proportional:true target_width
-             target_height
-        |> Video.Canvas.Image.render ~transparent:false
-      in
-      let width = Image.YUV420.width img in
-      let height = Image.YUV420.height img in
-      if width <> target_width || height <> target_height then
-        failwith
-          (Printf.sprintf
-             "Resizing is not yet supported by AVI encoder got %dx%d instead \
-              of %dx%d"
-             width height target_width target_height);
-      let y, u, v = Image.YUV420.data img in
-      let y = Image.Data.to_string y in
-      let u = Image.Data.to_string u in
-      let v = Image.Data.to_string v in
-      let y_stride = Image.YUV420.y_stride img in
-      let uv_stride = Image.YUV420.uv_stride img in
-      if y_stride = width then Strings.Mutable.add data y
-      else
-        for j = 0 to height - 1 do
-          Strings.Mutable.add_substring data y (j * y_stride) width
-        done;
-      if uv_stride = width / 2 then (
-        Strings.Mutable.add data u;
-        Strings.Mutable.add data v)
-      else (
-        for j = 0 to (height / 2) - 1 do
-          Strings.Mutable.add_substring data u (j * uv_stride) (width / 2)
-        done;
-        for j = 0 to (height / 2) - 1 do
-          Strings.Mutable.add_substring data v (j * uv_stride) (width / 2)
-        done)
-    done;
+    List.iter
+      (fun (_, img) ->
+        let img =
+          img
+          |> Video.Canvas.Image.resize ~scaler ~proportional:true target_width
+               target_height
+          |> Video.Canvas.Image.render ~transparent:false
+        in
+        let width = Image.YUV420.width img in
+        let height = Image.YUV420.height img in
+        if width <> target_width || height <> target_height then
+          failwith
+            (Printf.sprintf
+               "Resizing is not yet supported by AVI encoder got %dx%d instead \
+                of %dx%d"
+               width height target_width target_height);
+        let y, u, v = Image.YUV420.data img in
+        let y = Image.Data.to_string y in
+        let u = Image.Data.to_string u in
+        let v = Image.Data.to_string v in
+        let y_stride = Image.YUV420.y_stride img in
+        let uv_stride = Image.YUV420.uv_stride img in
+        if y_stride = width then Strings.Mutable.add data y
+        else
+          for j = 0 to height - 1 do
+            Strings.Mutable.add_substring data y (j * y_stride) width
+          done;
+        if uv_stride = width / 2 then (
+          Strings.Mutable.add data u;
+          Strings.Mutable.add data v)
+        else (
+          for j = 0 to (height / 2) - 1 do
+            Strings.Mutable.add_substring data u (j * uv_stride) (width / 2)
+          done;
+          for j = 0 to (height / 2) - 1 do
+            Strings.Mutable.add_substring data v (j * uv_stride) (width / 2)
+          done))
+      vbuf.Content_video.Base.data;
     Avi.video_chunk_strings data
   in
   Strings.add video audio

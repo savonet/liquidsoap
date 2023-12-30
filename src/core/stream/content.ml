@@ -49,5 +49,72 @@ type video_data = (video_params, Video.Canvas.image) Content_video.Base.content
 type midi_params = Content_midi.Specs.params = { channels : int }
 
 module Audio = Content_audio
-module Video = Content_video
+
+module Video = struct
+  include Content_video
+
+  let lift_image img =
+    let width = Video.Canvas.Image.width img in
+    let height = Video.Canvas.Image.height img in
+    lift_data
+      {
+        length = Frame_settings.main_of_video 1;
+        params = { height = Some (lazy height); width = Some (lazy width) };
+        data = [(0, img)];
+      }
+
+  type generator = {
+    interval : int;
+    params : Content_video.Specs.params;
+    width : int;
+    height : int;
+    mutable position : int64;
+    mutable next_sample : int64;
+  }
+
+  let make_generator params =
+    let width =
+      Lazy.force
+        (Option.value ~default:Frame_settings.video_width
+           params.Content_video.Specs.width)
+    in
+    let height =
+      Lazy.force
+        (Option.value ~default:Frame_settings.video_height
+           params.Content_video.Specs.height)
+    in
+    {
+      params =
+        {
+          Content_video.Specs.width = Some (lazy width);
+          height = Some (lazy height);
+        };
+      width;
+      height;
+      interval = Frame_settings.main_of_video 1;
+      position = 0L;
+      next_sample = 0L;
+    }
+
+  let generate
+      ?(create =
+        fun ~pos:_ ~width ~height () ->
+          Mm.Video.Canvas.Image.create width height) gen length =
+    let initial_pos = gen.position in
+    gen.position <- Int64.add gen.position (Int64.of_int length);
+    let rec f data pos =
+      if length <= pos then List.rev data
+      else (
+        let data =
+          if gen.next_sample <= Int64.add initial_pos (Int64.of_int pos) then (
+            gen.next_sample <-
+              Int64.add gen.next_sample (Int64.of_int gen.interval);
+            (pos, create ~pos ~width:gen.width ~height:gen.height ()) :: data)
+          else data
+        in
+        f data (pos + gen.interval))
+    in
+    { Content_video.Base.params = gen.params; length; data = f [] 0 }
+end
+
 module Midi = Content_midi

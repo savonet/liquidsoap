@@ -65,6 +65,37 @@ class visu source =
         done;
         pos <- (pos + 1) mod backpoints)
 
+    method private create_image ~pos:_ ~volwidth ~volheight ~width ~height () =
+      let img = ref (Video.Canvas.Image.create width height) in
+      let line c p q =
+        img := Video.Canvas.Image.add (Video.Canvas.Image.Draw.line c p q) !img
+      in
+      for i = 0 to self#audio_channels - 1 do
+        let y = int_of_float (volheight *. float i) in
+        line (90, 90, 90, 0xff) (0, y) (width - 1, y);
+        for chan = 0 to self#audio_channels - 1 do
+          let vol = vol.(chan) in
+          let chan_height = int_of_float (volheight *. float chan) in
+          let x0 = 0 in
+          let y0 =
+            height - (int_of_float (volheight *. vol.(pos)) + chan_height) - 1
+          in
+          let pt0 = ref (x0, y0) in
+          for i = 1 to backpoints - 1 do
+            let pt1 =
+              ( int_of_float (volwidth *. float i),
+                height
+                - (chan_height
+                  + int_of_float (volheight *. vol.((i + pos) mod backpoints)))
+                - 1 )
+            in
+            line (0, 0xff, 0, 0xff) !pt0 pt1;
+            pt0 := pt1
+          done
+        done
+      done;
+      !img
+
     method private generate_frame =
       let frame = source#get_frame in
 
@@ -85,44 +116,11 @@ class visu source =
       let width, height = self#video_dimensions in
       let volwidth = float width /. float backpoints in
       let volheight = float height /. float self#audio_channels in
-      let content =
-        Content.make ~length:(Frame.position frame)
-          (Frame.Fields.find Frame.Fields.video self#content_type)
+      let buf =
+        self#generate_video ~field:Frame.Fields.video
+          ~create:(self#create_image ~volwidth ~volheight)
+          (Frame.position frame)
       in
-      let buf = Content.Video.get_data content in
-      for f = 0 to Video.Canvas.length buf - 1 do
-        let img = ref (Video.Canvas.Image.create width height) in
-        let line c p q =
-          img :=
-            Video.Canvas.Image.add (Video.Canvas.Image.Draw.line c p q) !img
-        in
-        for i = 0 to self#audio_channels - 1 do
-          let y = int_of_float (volheight *. float i) in
-          line (90, 90, 90, 0xff) (0, y) (width - 1, y);
-          for chan = 0 to self#audio_channels - 1 do
-            let vol = vol.(chan) in
-            let chan_height = int_of_float (volheight *. float chan) in
-            let x0 = 0 in
-            let y0 =
-              height - (int_of_float (volheight *. vol.(pos)) + chan_height) - 1
-            in
-            let pt0 = ref (x0, y0) in
-            for i = 1 to backpoints - 1 do
-              let pt1 =
-                ( int_of_float (volwidth *. float i),
-                  height
-                  - (chan_height
-                    + int_of_float (volheight *. vol.((i + pos) mod backpoints))
-                    )
-                  - 1 )
-              in
-              line (0, 0xff, 0, 0xff) !pt0 pt1;
-              pt0 := pt1
-            done
-          done
-        done;
-        Video.Canvas.set buf f !img
-      done;
       Frame.set_data frame Frame.Fields.video Content.Video.lift_data buf
   end
 

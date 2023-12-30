@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Liquidsoap_lang.Error
+open Mm
 
 (** In this module we define the central streaming concepts: sources, active
     sources and clocks.
@@ -698,9 +699,73 @@ class virtual operator ?pos ?(name = "src") sources =
         self#log#debug "calling on_track handlers..";
         List.iter (fun fn -> fn m) on_track)
 
+    val mutable last_images = Hashtbl.create 0
+
+    method last_image field =
+      match Hashtbl.find_opt last_images field with
+        | Some i -> i
+        | None ->
+            let width, height = self#video_dimensions in
+            let i = Video.Canvas.Image.create width height in
+            Hashtbl.replace last_images field i;
+            i
+
+    method private set_last_image ~field img =
+      Hashtbl.replace last_images field img
+
+    val mutable video_generators = Hashtbl.create 0
+
+    method private video_generator field =
+      match Hashtbl.find_opt video_generators field with
+        | Some g -> g
+        | None ->
+            let params =
+              Content.Video.get_params
+                (Frame.Fields.find field self#content_type)
+            in
+            let g = Content.Video.make_generator params in
+            Hashtbl.add video_generators field g;
+            g
+
+    method private generate_video ?create ~field length =
+      Content.Video.generate ?create (self#video_generator field) length
+
+    method private normalize_video ~field content =
+      let buf = Content.Video.get_data content in
+      let data = buf.Content_video.Base.data in
+      (match
+         List.rev (List.sort (fun (p, _) (p', _) -> Int.compare p p') data)
+       with
+        | (_, img) :: _ -> self#set_last_image ~field img
+        | [] -> ());
+      let nearest pos =
+        let nearest =
+          List.fold_left
+            (fun current (p, img) ->
+              match current with
+                | Some (p', _) when abs (p - pos) < abs (p' - pos) ->
+                    Some (p, img)
+                | _ -> current)
+            None buf.Content_video.Base.data
+        in
+        match nearest with
+          | Some (_, img) -> img
+          | None -> self#last_image field
+      in
+      Content.Video.lift_data
+        (self#generate_video ~field
+           ~create:(fun ~pos ~width:_ ~height:_ () -> nearest pos)
+           (Content.length content))
+
+    method private normalize_video_content =
+      Frame.Fields.mapi (fun field content ->
+          if Content.Video.is_data content then
+            self#normalize_video ~field content
+          else content)
+
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
-      let buf = self#generate_frame in
+      let buf = self#normalize_video_content self#generate_frame in
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
       let track_marks = Frame.track_marks buf in

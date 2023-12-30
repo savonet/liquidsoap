@@ -44,24 +44,27 @@ class still_frame ~name (source : source) =
            .bmp"
       else fname <- Some f
 
-    method private generate_frame =
+    method private still buf =
       match fname with
-        | None -> source#get_frame
-        | Some f ->
-            let v =
-              Content.Video.get_data
-                (source#get_mutable_content Frame.Fields.video)
-            in
-            let i = Video.Canvas.get v 0 in
-            let i =
-              i |> Video.Canvas.Image.render |> Image.YUV420.to_RGBA32
-              |> Image.RGBA32.to_BMP
-            in
-            let oc = open_out f in
-            output_string oc i;
-            close_out oc;
-            fname <- None;
-            source#set_frame_data Frame.Fields.video Content.Video.lift_data v
+        | None -> ()
+        | Some f -> (
+            let v = Content.Video.get_data (Frame.get buf Frame.Fields.video) in
+            match v.Content_video.Base.data with
+              | [] -> ()
+              | (_, i) :: _ ->
+                  let i =
+                    i |> Video.Canvas.Image.render |> Image.YUV420.to_RGBA32
+                    |> Image.RGBA32.to_BMP
+                  in
+                  let oc = open_out f in
+                  output_string oc i;
+                  close_out oc;
+                  fname <- None)
+
+    method private generate_frame =
+      let buf = source#get_frame in
+      self#still buf;
+      buf
   end
 
 let _ =

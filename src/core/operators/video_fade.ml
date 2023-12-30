@@ -39,8 +39,7 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
     val mutable state = `Idle
 
     method private process frame =
-      (* In video frames: [length] of the fade, [count] since beginning. *)
-      let fade, fadefun, length, count =
+      let fade, fadefun, duration, position =
         match state with
           | `Idle ->
               let duration =
@@ -52,28 +51,30 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
                             try float_of_string d with _ -> duration)
                         | None -> duration)
               in
-              let length = Frame.video_of_seconds duration in
-              let fade = fader length in
+              let fade = fader (Frame.video_of_seconds duration) in
+              let duration = Frame.main_of_seconds duration in
               let fadefun = fadefun () in
-              state <- `Play (fade, fadefun, length, 0);
-              (fade, fadefun, length, 0)
-          | `Play (fade, fadefun, length, count) ->
-              (fade, fadefun, length, count)
+              let v = (fade, fadefun, duration, 0) in
+              state <- `Play v;
+              v
+          | `Play v -> v
       in
-      let vlen = Frame.video_of_main length in
-      if count < length then (
-        let data =
+      if position < duration then (
+        let buf =
           Content.Video.get_data
             (Content.copy (Frame.get frame Frame.Fields.video))
         in
-        for i = 0 to vlen do
-          let m = fade (count + i) in
-          (* TODO @smimram *)
-          ignore (fadefun (Video.Canvas.get data i) m)
-        done;
-        state <- `Play (fade, fadefun, length, count + vlen);
-        Frame.set frame Frame.Fields.video
-          (Content.Video.lift_data ~length data))
+        let data =
+          List.mapi
+            (fun i (pos, img) ->
+              let m = fade (Frame.video_of_main position + i) in
+              ignore (fadefun img m);
+              (pos, img))
+            buf.Content_video.Base.data
+        in
+        state <- `Play (fade, fadefun, duration, position + Frame.position frame);
+        Frame.set_data frame Frame.Fields.video Content.Video.lift_data
+          { buf with Content_video.Base.data })
       else frame
 
     method private generate_frame =
@@ -101,10 +102,7 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
     method private can_generate_frame = source#is_ready
 
     method private process_frame ~remaining frame =
-      let n = Frame.video_of_main remaining in
-      let len = Frame.video_of_main (Frame.position frame) in
-
-      (* In video frames: [length] of the fade. *)
+      (* In main ticks: [length] of the fade. *)
       let fade, fadefun, length =
         match cur_length with
           | Some (f, g, l) -> (f, g, l)
@@ -119,25 +117,29 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
                         | Some d -> (
                             try float_of_string d with _ -> duration))
               in
-              let l = Frame.video_of_seconds duration in
-              let f = fader l in
+              let l = Frame.main_of_seconds duration in
+              let f = fader (Frame.video_of_seconds duration) in
               let g = fadefun () in
               cur_length <- Some (f, g, l);
               (f, g, l)
       in
 
-      if n < length then (
-        let content = Frame.get frame Frame.Fields.video in
-        let data = Content.Video.get_data content in
+      if remaining < length then (
+        let content = Content.copy (Frame.get frame Frame.Fields.video) in
+        let buf = Content.Video.get_data content in
 
-        for i = 0 to len - 1 do
-          let m = fade (n - i) in
-          (* TODO @smimram *)
-          ignore (fadefun (Video.Canvas.get data i) m)
-        done;
+        let data =
+          List.mapi
+            (fun i (pos, img) ->
+              let m = fade (Frame.video_of_main remaining - i) in
+              (* TODO @smimram *)
+              ignore (fadefun img m);
+              (pos, img))
+            buf.Content_video.Base.data
+        in
 
-        Frame.set frame Frame.Fields.video
-          (Content.Video.lift_data ~length:(Frame.position frame) data))
+        Frame.set_data frame Frame.Fields.video Content.Video.lift_data
+          { buf with Content_video.Base.data })
       else frame
 
     method private generate_frame =

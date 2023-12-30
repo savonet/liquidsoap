@@ -451,16 +451,19 @@ let mk_buffer ~ctype generator =
           let out_freq =
             Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
           in
-          fun ~fps (data : Content.Video.data) ->
-            let data = Array.map video_scale data in
-            let data = video_resample ~in_freq:fps ~out_freq data in
-            let len = Video.Canvas.length data in
-            let data =
-              Content.Video.lift_data
-                ~length:(Frame_settings.main_of_video len)
-                data
+          fun ~fps buf ->
+            let buf =
+              {
+                buf with
+                Content_video.Base.data =
+                  List.map
+                    (fun (pos, img) -> (pos, video_scale img))
+                    buf.Content_video.Base.data;
+              }
             in
-            Generator.put generator field data)
+            let buf = video_resample ~in_freq:fps ~out_freq buf in
+            let buf = Content.Video.lift_data buf in
+            Generator.put generator field buf)
         else fun ~fps:_ _ -> ()
       in
       Hashtbl.add video_handlers field handler;

@@ -119,27 +119,26 @@ let create_decoder ~ctype ~width ~height ~metadata img =
   let remaining () =
     if !duration = -1 then -1 else Frame.main_of_video !duration
   in
-  let gen = Generator.create ctype in
-  let feed () =
-    let length = Frame.main_of_video 1 in
-    let frame = Frame.create ~length ctype in
-    let video = Content.Video.get_data (Frame.get frame Frame.Fields.video) in
-    Video.Canvas.set video 0 img;
-    let frame =
-      match Frame.Fields.find_opt Frame.Fields.audio frame with
-        | None -> frame
-        | Some data ->
-            let pcm = Content.Audio.get_data data in
-            Audio.clear pcm 0 (Frame.audio_of_main length);
-            Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data pcm
-    in
-    Generator.append gen frame
+  let generator =
+    Content.Video.make_generator
+      (Content.Video.get_params (Frame.Fields.find Frame.Fields.video ctype))
   in
   let fread length =
-    while Generator.length gen < length do
-      feed ()
-    done;
-    Generator.slice gen length
+    let frame = Frame.create ~length Frame.Fields.empty in
+    let video =
+      Content.Video.generate
+        ~create:(fun ~pos:_ ~width:_ ~height:_ () -> img)
+        generator length
+    in
+    let frame =
+      Frame.set_data frame Frame.Fields.video Content.Video.lift_data video
+    in
+    match Frame.Fields.find_opt Frame.Fields.audio frame with
+      | None -> frame
+      | Some data ->
+          let pcm = Content.Audio.get_data data in
+          Audio.clear pcm 0 (Frame.audio_of_main length);
+          Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data pcm
   in
   { Decoder.fread; remaining; fseek = (fun len -> len); close }
 

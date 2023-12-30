@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 type clock_variable
 
 (** In [`CPU] mode, synchronization is governed by the CPU clock.
@@ -172,6 +174,15 @@ class virtual source :
 
        (** A buffer that can be used by the source. *)
        method buffer : Generator.t
+
+       method private generate_video :
+         ?create:
+           (pos:int -> width:int -> height:int -> unit -> Video.Canvas.image) ->
+         field:Frame.Fields.field ->
+         int ->
+         Content.Video.data
+
+       method last_image : Frame.Fields.field -> Video.Canvas.image
 
        (** An empty frame that can be used by the source. *)
        method empty_frame : Frame.t

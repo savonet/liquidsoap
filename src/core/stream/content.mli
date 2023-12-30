@@ -171,11 +171,17 @@ module Video : sig
 
   val kind : Contents.kind
   val dimensions_of_format : Contents.format -> int * int
+  val lift_image : Video.Canvas.image -> Contents.data
 
-  val lift_canvas :
-    ?offset:int -> ?length:int -> Video.Canvas.t -> Contents.data
+  type generator
 
-  val get_canvas : Contents.data -> Video.Canvas.t
+  val make_generator : params -> generator
+
+  val generate :
+    ?create:(pos:int -> width:int -> height:int -> unit -> Video.Canvas.image) ->
+    generator ->
+    int ->
+    data
 end
 
 module Midi : sig
