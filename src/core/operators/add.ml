@@ -168,7 +168,7 @@ class video_add ~field ~add tracks =
 
     method private generate_frame =
       let frames = self#generate_frames in
-      let pos = self#frames_position frames in
+      let length = self#frames_position frames in
       let frames =
         List.fold_left
           (fun frames { data; fields } ->
@@ -198,20 +198,20 @@ class video_add ~field ~add tracks =
                   self#nearest_image ~pos ~last_image data),
                 rest )
       in
-      let buf = self#generate_video ~field ~create pos in
+      let buf = self#generate_video ~field ~create length in
       let data =
         List.map
           (fun (pos, img) ->
             ( pos,
               List.fold_left
                 (fun img (rank, last_image, data) ->
-                  add rank img (self#nearest_image ~pos ~last_image data))
+                  add rank (self#nearest_image ~pos ~last_image data) img)
                 img frames ))
           buf.Content.Video.data
       in
       let frame =
         Frame.set_data
-          (Frame.create ~length:pos Frame.Fields.empty)
+          (Frame.create ~length Frame.Fields.empty)
           field Content.Video.lift_data
           { buf with Content.Video.data }
       in
