@@ -735,7 +735,7 @@ class virtual operator ?pos ?(name = "src") sources =
         List.fold_left
           (fun current (p, img) ->
             match current with
-              | Some (p', _) when abs (p - pos) < abs (p' - pos) -> Some (p, img)
+              | Some (p', _) when abs (p' - pos) < abs (p - pos) -> current
               | _ -> Some (p, img))
           None buf.Content.Video.data
       in
@@ -744,9 +744,7 @@ class virtual operator ?pos ?(name = "src") sources =
     method private normalize_video ~field content =
       let buf = Content.Video.get_data content in
       let data = buf.Content.Video.data in
-      (match
-         List.rev (List.sort (fun (p, _) (p', _) -> Int.compare p p') data)
-       with
+      (match List.rev data with
         | (_, img) :: _ -> self#set_last_image ~field img
         | [] -> ());
       Content.Video.lift_data
