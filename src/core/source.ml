@@ -746,13 +746,17 @@ class virtual operator ?pos ?(name = "src") sources =
     method private normalize_video ~field content =
       let buf = Content.Video.get_data content in
       let data = buf.Content.Video.data in
-      (match List.rev data with
-        | (_, img) :: _ -> self#set_last_image ~field img
-        | [] -> ());
+      let last_image =
+        match List.rev data with
+          | (_, img) :: _ ->
+              self#set_last_image ~field img;
+              img
+          | [] -> self#last_image field
+      in
       Content.Video.lift_data
         (self#internal_generate_video ~field ~priv:true
            ~create:(fun ~pos ~width:_ ~height:_ () ->
-             self#nearest_image ~pos ~last_image:(self#last_image field) buf)
+             self#nearest_image ~pos ~last_image buf)
            (Content.length content))
 
     method private normalize_video_content =
