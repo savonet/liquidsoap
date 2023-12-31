@@ -115,7 +115,7 @@ module Video = struct
     let initial_pos = gen.position in
     gen.position <- Int64.add gen.position (Int64.of_int length);
     let rec f data pos =
-      if length < pos then List.rev data
+      if length <= pos then List.rev data
       else (
         let data =
           if gen.next_sample <= Int64.add initial_pos (Int64.of_int pos) then (
