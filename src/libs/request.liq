@@ -111,64 +111,62 @@ def request.queue(
     s.on_wake_up(
       memoize(
         {
-          begin
-            server.register(
-              namespace=source.id(s),
-              description=
-                "Flush the queue and skip the current track",
-              "flush_and_skip",
-              fun (_) ->
-                try
-                  s.set_queue([])
-                  s.skip()
-                  "Done."
-                catch err do
-                  "Error while flushing and skipping source: #{err}"
-                end
-            )
+          server.register(
+            namespace=source.id(s),
+            description=
+              "Flush the queue and skip the current track",
+            "flush_and_skip",
+            fun (_) ->
+              try
+                s.set_queue([])
+                s.skip()
+                "Done."
+              catch err do
+                "Error while flushing and skipping source: #{err}"
+              end
+          )
 
-            server.register(
-              namespace=source.id(s),
-              description=
-                "Push a new request in the queue.",
-              usage=
-                "push <uri>",
-              "push",
-              push
-            )
+          server.register(
+            namespace=source.id(s),
+            description=
+              "Push a new request in the queue.",
+            usage=
+              "push <uri>",
+            "push",
+            push
+          )
 
-            def show_queue(_) =
-              queue = [...s.queue(), ...(queue())]
-              string.concat(
-                separator=
-                  " ",
-                list.map(fun (r) -> string(request.id(r)), queue)
-              )
-            end
-
-            server.register(
-              namespace=source.id(s),
-              description=
-                "Display current queue content.",
-              usage="queue",
-              "queue",
-              show_queue
-            )
-
-            def skip(_) =
-              s.skip()
-              "Done."
-            end
-
-            server.register(
-              namespace=source.id(s),
-              description=
-                "Skip current song.",
-              usage="skip",
-              "skip",
-              skip
+          def show_queue(_) =
+            queue = [...s.queue(), ...(queue())]
+            string.concat(
+              separator=
+                " ",
+              list.map(fun (r) -> string(request.id(r)), queue)
             )
           end
+
+          server.register(
+            namespace=source.id(s),
+            description=
+              "Display current queue content.",
+            usage="queue",
+            "queue",
+            show_queue
+          )
+
+          def skip(_) =
+            s.skip()
+            "Done."
+          end
+
+          server.register(
+            namespace=source.id(s),
+            description=
+              "Skip current song.",
+            usage="skip",
+            "skip",
+            skip
+          )
         }
       )
     )
