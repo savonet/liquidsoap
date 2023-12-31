@@ -599,7 +599,7 @@ class virtual operator ?pos ?(name = "src") sources =
                 else _cache <- Some (Frame.chunk ~start:n ~stop:(pos - n) buf)
             | _ -> ())
 
-    method get_partial_frame cb =
+    method peek_frame =
       self#has_ticked;
       match streaming_state with
         | `Unavailable ->
@@ -607,11 +607,13 @@ class virtual operator ?pos ?(name = "src") sources =
             raise Unavailable
         | `Ready fn ->
             fn ();
-            self#get_partial_frame cb
-        | `Done data ->
-            let data = cb data in
-            consumed <- max consumed (Frame.position data);
-            data
+            self#peek_frame
+        | `Done data -> data
+
+    method get_partial_frame cb =
+      let data = cb self#peek_frame in
+      consumed <- max consumed (Frame.position data);
+      data
 
     method get_frame = self#get_partial_frame (fun f -> f)
 

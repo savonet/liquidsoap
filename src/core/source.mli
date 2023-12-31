@@ -261,6 +261,9 @@ class virtual source :
            is the same as the partial chunk returned for the callback for easy method call chaining. *)
        method get_partial_frame : (Frame.t -> Frame.t) -> Frame.t
 
+       (** Check a frame without consuming any of its data. *)
+       method peek_frame : Frame.t
+
        (** This method requests a specific field of the frame that can be mutated. It is used
            by a consumer of the source that will modify the source's data (e.g. [amplify]). The
            source will do its best to minimize data copy according to the streaming context. Typically,

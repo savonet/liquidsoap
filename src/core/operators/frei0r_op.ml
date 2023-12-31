@@ -112,12 +112,17 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
     val mutable t = 0.
 
     method private generate_frame =
-      let c = source#get_mutable_content Frame.Fields.video in
-      let c' = Frame.get source2#get_frame Frame.Fields.video in
-      let length = min (Content.length c) (Content.length c') in
-
-      let c = Content.sub c 0 length in
-      let c' = Content.sub c' 0 length in
+      let length = min source#frame_position source2#frame_position in
+      let c =
+        Frame.get
+          (source#get_partial_frame (fun f -> Frame.slice f length))
+          Frame.Fields.video
+      in
+      let c' =
+        Frame.get
+          (source2#get_partial_frame (fun f -> Frame.slice f length))
+          Frame.Fields.video
+      in
 
       let rgb = Content.Video.get_data c in
       let rgb =
