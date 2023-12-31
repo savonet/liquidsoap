@@ -112,20 +112,23 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
     val mutable t = 0.
 
     method private generate_frame =
-      let rgb =
-        Content.Video.get_data (source#get_mutable_content Frame.Fields.video)
-      in
+      let c = source#get_mutable_content Frame.Fields.video in
+      let c' = Frame.get source2#get_frame Frame.Fields.video in
+      let length = min (Content.length c) (Content.length c') in
+
+      let c = Content.sub c 0 length in
+      let c' = Content.sub c' 0 length in
+
+      let rgb = Content.Video.get_data c in
       let rgb =
         self#generate_video ~field:Frame.Fields.video
           ~create:(fun ~pos ~width:_ ~height:_ () ->
             self#nearest_image ~pos
               ~last_image:(source#last_image Frame.Fields.video)
               rgb)
-          source#frame_position
+          length
       in
-      let rgb' =
-        Content.Video.get_data (Frame.get source2#get_frame Frame.Fields.video)
-      in
+      let rgb' = Content.Video.get_data c' in
 
       params ();
 
