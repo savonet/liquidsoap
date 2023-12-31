@@ -715,8 +715,8 @@ class virtual operator ?pos ?(name = "src") sources =
 
     val mutable video_generators = Hashtbl.create 0
 
-    method private video_generator field =
-      match Hashtbl.find_opt video_generators field with
+    method private video_generator ~priv field =
+      match Hashtbl.find_opt video_generators (priv, field) with
         | Some g -> g
         | None ->
             let params =
@@ -724,11 +724,13 @@ class virtual operator ?pos ?(name = "src") sources =
                 (Frame.Fields.find field self#content_type)
             in
             let g = Content.Video.make_generator params in
-            Hashtbl.add video_generators field g;
+            Hashtbl.add video_generators (priv, field) g;
             g
 
-    method private generate_video ?create ~field length =
-      Content.Video.generate ?create (self#video_generator field) length
+    method private internal_generate_video ?create ~priv ~field length =
+      Content.Video.generate ?create (self#video_generator ~priv field) length
+
+    method private generate_video = self#internal_generate_video ~priv:false
 
     method private nearest_image ~pos ~last_image buf =
       let nearest =
@@ -748,7 +750,7 @@ class virtual operator ?pos ?(name = "src") sources =
         | (_, img) :: _ -> self#set_last_image ~field img
         | [] -> ());
       Content.Video.lift_data
-        (self#generate_video ~field
+        (self#internal_generate_video ~field ~priv:true
            ~create:(fun ~pos ~width:_ ~height:_ () ->
              self#nearest_image ~pos ~last_image:(self#last_image field) buf)
            (Content.length content))
