@@ -29,10 +29,12 @@ let () =
   let frame = Frame.add_metadata frame 123 m in
   assert (Frame.get_all_metadata frame = [(123, m)])
 
+let compare_image (p, img) (p', img') = p = p' && img == img'
+
 (* Test content boundaries.
    We create 3 content chunk and make
    sure that the consolidated content
-   contains the last one's data. *)
+   contains the first one's data. *)
 let () =
   let length = Lazy.force Frame.size in
   let chunk_len = length / 3 in
@@ -41,8 +43,8 @@ let () =
   let fst = Content.sub fst 0 chunk_len in
   let snd = Content.make ~length Content.(default_format Video.kind) in
   let snd = Content.sub snd chunk_len chunk_len in
-  let thrd_d = Content.make ~length Content.(default_format Video.kind) in
-  let thrd = Content.sub thrd_d (2 * chunk_len) (length - (2 * chunk_len)) in
+  let thrd = Content.make ~length Content.(default_format Video.kind) in
+  let thrd = Content.sub thrd (2 * chunk_len) (length - (2 * chunk_len)) in
   let data = Content.append fst snd in
   let data = Content.append data thrd in
   assert (Content.length data = length);
@@ -50,12 +52,18 @@ let () =
   Content.fill data 0 final 0 length;
   let data = Content.Video.get_data data in
   let final = Content.Video.get_data final in
-  assert (Array.length data = 1);
-  assert (Array.length final = 1);
-  assert (data.(0) == final.(0));
-  let thrd_d = Content.Video.get_data thrd_d in
-  assert (Array.length thrd_d = 1);
-  assert (thrd_d.(0) == final.(0))
+  assert (List.length data.Content.Video.data = 1);
+  assert (List.length final.Content.Video.data = 1);
+  assert (
+    compare_image
+      (List.hd data.Content.Video.data)
+      (List.hd final.Content.Video.data));
+  let fst = Content.Video.get_data fst in
+  assert (List.length fst.Content.Video.data = 1);
+  assert (
+    compare_image
+      (List.hd fst.Content.Video.data)
+      (List.hd final.Content.Video.data))
 
 (* Another content test boundary.
    We create a source of 1 and a source of length 2 * Frame.size - 1
@@ -76,5 +84,9 @@ let () =
   Content.fill src 0 dst 0 (2 * size);
   let src = Content.Video.get_data src in
   let dst = Content.Video.get_data dst in
-  assert (Array.length src = Array.length dst);
-  Array.iteri (fun pos d -> assert (d == dst.(pos))) src
+  assert (
+    List.length src.Content.Video.data = List.length dst.Content.Video.data);
+  List.iteri
+    (fun pos d ->
+      assert (compare_image d (List.nth dst.Content.Video.data pos)))
+    src.Content.Video.data

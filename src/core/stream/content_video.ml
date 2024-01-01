@@ -93,6 +93,16 @@ module Specs = struct
         ("height", Option.map (fun x -> string_of_int !!x) height);
       ]
 
+  let make ?(length = 0) params =
+    let width = !!(Option.value ~default:video_width params.width) in
+    let height = !!(Option.value ~default:video_height params.height) in
+    let interval = main_of_video 1 in
+    let img = Video.Canvas.Image.create width height in
+    let data =
+      List.init (video_of_main length) (fun i -> (i * interval, img))
+    in
+    { length; params; data }
+
   let parse_param label value =
     match label with
       | "width" ->
