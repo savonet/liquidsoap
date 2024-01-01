@@ -763,8 +763,10 @@ class virtual operator ?pos ?(name = "src") sources =
 
     method private normalize_video_content =
       Frame.Fields.mapi (fun field content ->
-          if Content.Video.is_data content then
-            self#normalize_video ~field content
+          if
+            Content.Video.is_data content
+            && Frame.Fields.mem field self#content_type
+          then self#normalize_video ~field content
           else content)
 
     method private instrumented_generate_frame =
