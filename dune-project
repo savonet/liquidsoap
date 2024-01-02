@@ -56,6 +56,7 @@
     fileutils
     menhirLib
     (saturn_lockfree (>= 0.4.1))
+    moonpool
     (metadata (>= 0.2.0))
     magic-mime
     dune-build-info

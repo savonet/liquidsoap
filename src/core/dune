@@ -13,6 +13,18 @@
  (action
   (copy liquidsoap_paths.%{env:LIQUIDSOAP_BUILD_TARGET=default}.ml %{target})))
 
+(rule
+ (target clock_ready.ml)
+ (enabled_if (>= %{ocaml_version} 5))
+ (action
+  (copy clock_ready.await.ml %{target})))
+
+(rule
+ (target clock_ready.ml)
+ (enabled_if (< %{ocaml_version} 5))
+ (action
+  (copy clock_ready.blocking.ml %{target})))
+
 (library
  (name liquidsoap_core)
  (preprocess
@@ -26,6 +38,7 @@
   liquidsoap-lang
   liquidsoap-lang.console
   menhirLib
+  moonpool
   camomile.lib
   curl
   cry
@@ -64,6 +77,7 @@
   chord
   clip
   clock
+  clock_ready
   comb
   compand
   compress

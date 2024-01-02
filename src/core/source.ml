@@ -54,7 +54,7 @@ type source_t = [ `Fallible | `Infallible ]
 exception Unavailable
 
 type streaming_state =
-  [ `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+  [ `Unavailable | `Ready of Frame.t Clock_ready.t | `Done of Frame.t ]
 
 (** {1 Proto clocks}
 
@@ -546,13 +546,15 @@ class virtual operator ?pos ?(name = "src") sources =
 
     method virtual private can_generate_frame : bool
     method virtual private generate_frame : Frame.t
-    val mutable streaming_state : streaming_state = `Unavailable
+    val streaming_state : streaming_state Atomic.t = Atomic.make `Unavailable
 
     method is_ready =
       if not content_type_computation_allowed then false
       else (
         self#has_ticked;
-        match streaming_state with `Ready _ | `Done _ -> true | _ -> false)
+        match Atomic.get streaming_state with
+          | `Ready _ | `Done _ -> true
+          | _ -> false)
 
     val mutable _cache = None
 
@@ -569,28 +571,25 @@ class virtual operator ?pos ?(name = "src") sources =
           let cache_pos = Frame.position cache in
           let size = Lazy.force Frame.size in
           if cache_pos > 0 || self#can_generate_frame then
-            streaming_state <-
-              `Ready
-                (fun () ->
-                  let buf =
-                    if cache_pos < size then
-                      Frame.append cache self#instrumented_generate_frame
-                    else cache
-                  in
-                  let buf_pos = Frame.position buf in
-                  let buf =
-                    if size < buf_pos then (
-                      _cache <-
-                        Some
-                          (Frame.chunk ~start:size ~stop:(buf_pos - size) buf);
-                      Frame.slice buf size)
-                    else buf
-                  in
-                  streaming_state <- `Done buf)
-          else streaming_state <- `Unavailable);
+            Atomic.set streaming_state
+              (`Ready
+                (Clock_ready.make (fun () ->
+                     let buf =
+                       if cache_pos < size then
+                         Frame.append cache self#instrumented_generate_frame
+                       else cache
+                     in
+                     let buf_pos = Frame.position buf in
+                     if size < buf_pos then (
+                       _cache <-
+                         Some
+                           (Frame.chunk ~start:size ~stop:(buf_pos - size) buf);
+                       Frame.slice buf size)
+                     else buf)))
+          else Atomic.set streaming_state `Unavailable);
 
       self#on_after_output (fun () ->
-          match (streaming_state, consumed) with
+          match (Atomic.get streaming_state, consumed) with
             | `Done buf, 0 -> _cache <- Some buf
             | `Done buf, n ->
                 let pos = Frame.position buf in
@@ -601,12 +600,12 @@ class virtual operator ?pos ?(name = "src") sources =
 
     method peek_frame =
       self#has_ticked;
-      match streaming_state with
+      match Atomic.get streaming_state with
         | `Unavailable ->
             log#critical "source called while not ready!";
             raise Unavailable
         | `Ready fn ->
-            fn ();
+            Atomic.set streaming_state (`Done (Clock_ready.process fn));
             self#peek_frame
         | `Done data -> data
 
