@@ -137,9 +137,9 @@ class audio_add ~renorm ~power ~field tracks =
       in
       let total_weight = if power then sqrt total_weight else total_weight in
       let pos = self#frames_position frames in
-      let audio_len = Frame.audio_of_main pos in
       let buf = Frame.create ~length:pos self#content_type in
       let pcm = Content.Audio.get_data (Frame.get buf field) in
+      let audio_len = Frame.audio_of_main pos in
       Audio.clear pcm 0 audio_len;
       List.iter
         (fun { data; fields } ->
