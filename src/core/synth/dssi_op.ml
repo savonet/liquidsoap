@@ -23,7 +23,6 @@
 open Mm
 open Source
 open Dssi
-module Pcre = Re.Pcre
 
 let log = Log.make ["DSSI synthesizer"]
 
@@ -36,13 +35,13 @@ let dssi_enable =
 let dssi_load =
   try
     let venv = Unix.getenv "LIQ_DSSI_LOAD" in
-    Pcre.split ~rex:(Pcre.regexp ":") venv
+    Pcre.split ~pat:":" venv
   with Not_found -> []
 
 let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_DSSI_PATH" in
-    Pcre.split ~rex:(Pcre.regexp ":") path
+    Pcre.split ~pat:":" path
   with Not_found -> ["/usr/lib/dssi"; "/usr/local/lib/dssi"]
 
 (* Number of channels to synthesize when in all mode *)
