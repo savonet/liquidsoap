@@ -113,12 +113,3 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
           else buf)
         ()
   end
-
-(* Reads data from a fixed buffer generator. The generator shouldn't be fed anymore. *)
-class consumer buffer =
-  object
-    inherit Source.source ~name:"buffer" ()
-    inherit! source ~bufferize:0. ~empty_on_abort:true ()
-    method stype = `Fallible
-    method! buffer = buffer
-  end

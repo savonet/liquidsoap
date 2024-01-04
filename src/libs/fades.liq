@@ -57,6 +57,7 @@ def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
   def fade() =
     if start_time() < 0. then start_time := source.time(s) end
     t = source.time(s) - start_time()
+
     if
       t >= duration
     then
@@ -98,7 +99,7 @@ def fade.out(
   ~override_duration="liq_fade_out",
   ~override_type="liq_fade_type",
   ~persist_overrides=false,
-  ~track_sensitive=true,
+  ~track_sensitive=false,
   ~type="lin",
   s
 ) =
@@ -297,7 +298,7 @@ def fade.in(
   ~override_duration="liq_fade_in",
   ~override_type="liq_fade_type",
   ~persist_overrides=false,
-  ~track_sensitive=true,
+  ~track_sensitive=false,
   ~type="lin",
   s
 ) =
@@ -509,6 +510,26 @@ def cross.smart(
   end
 end
 
+# @docof cross
+# @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
+#                      removes duplicate metadata from the returned source.
+def replaces cross(%argsof(cross), ~deduplicate=true, transition, s) =
+  log(
+    level=1,
+    "cross here, deduplicate: #{deduplicate}"
+  )
+  if
+    not deduplicate
+  then
+    cross(%argsof(cross), transition, s)
+  else
+    s = cross(%argsof(cross[!id]), transition, s)
+    dedup = metadata.deduplicate(s)
+
+    dedup.{buffered=s.buffered, cross_duration=s.cross_duration}
+  end
+end
+
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Fade
@@ -535,6 +556,8 @@ end
 # @param ~medium       Smart crossfade: value, in dB, for medium sound level.
 # @param ~margin       Smart crossfade: margin to detect sources that have too different \
 #                      sound level for crossing.
+# @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
+#                      removes duplicate metadata from the returned source.
 # @param s             The input source.
 def crossfade(
   ~id=null(),
@@ -548,6 +571,7 @@ def crossfade(
   ~high=-15.,
   ~medium=-32.,
   ~margin=4.,
+  ~deduplicate=true,
   ~duration_margin=0.1,
   ~width=2.,
   s
@@ -666,6 +690,7 @@ def crossfade(
     duration=duration,
     persist_override=persist_override,
     override_duration=override_duration,
+    deduplicate=deduplicate,
     transition,
     s
   )

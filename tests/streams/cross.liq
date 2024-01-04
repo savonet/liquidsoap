@@ -34,7 +34,7 @@ def check_duplicate(m) =
   end
 end
 
-s.on_metadata(check_duplicate)
+s = source.on_metadata(s, check_duplicate)
 clock.assign_new(sync="none", [s])
 
 def on_stop() =
