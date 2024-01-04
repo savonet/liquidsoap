@@ -16,7 +16,7 @@ package() {
         export LIQUIDSOAP_BUILD_TARGET=posix
         eval "$(opam config env)"
         export OCAMLPATH=$(cat ../.ocamlpath)
-        dune build @install
+        dune build @install --release
         dune install --relocatable --prefix "${pkgdir}/usr"
 
         rm -rf "$pkgdir/usr/lib"
