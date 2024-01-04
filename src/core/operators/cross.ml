@@ -23,6 +23,21 @@
 open Mm
 open Source
 
+class consumer buffer =
+  object (self)
+    inherit Source.source ~name:"buffer" ()
+    method stype = `Fallible
+    method private can_generate_frame = 0 < Generator.length buffer
+
+    method private generate_frame =
+      Generator.slice buffer (Lazy.force Frame.size)
+
+    method abort_track = Generator.clear buffer
+    method self_sync = (`Static, false)
+    method seek_source = (self :> Source.source)
+    method remaining = Generator.length buffer
+  end
+
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
@@ -123,13 +138,16 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         : [ `Idle | `Before of Source.source | `After of Source.source ] =
       `Idle
 
+    method private leave_status =
+      match status with
+        | `Idle -> ()
+        | `Before s | `After s -> s#leave (self :> source)
+
     method! private sleep =
       source#leave (self :> source);
       s#leave (self :> source);
       Lang.iter_sources (fun s -> s#leave (self :> source)) transition;
-      match status with
-        | `Before s | `After s -> s#leave (self :> source)
-        | _ -> ()
+      self#leave_status
 
     method private child_get ~is_first source =
       let frame = ref self#empty_frame in
@@ -165,9 +183,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private prepare_before =
       self#log#info "Buffering end of track...";
-      let before = new Generated.consumer gen_before in
+      let before = new consumer gen_before in
       Typing.(before#frame_type <: self#frame_type);
       self#prepare_source before;
+      self#leave_status;
       status <- `Before (before :> Source.source);
       self#buffer_before ~is_first:true ();
       before
@@ -190,9 +209,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                      | _ -> `Ok)
                  after_source ->
             Some after_source
-        | `After after_source ->
-            after_source#leave (self :> Source.source);
-            Some self#prepare_before
+        | `After _ -> Some self#prepare_before
 
     method private buffer_before ~is_first () =
       if Generator.length gen_before < cross_length && source#is_ready then (
@@ -252,9 +269,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
-            let before = new Generated.consumer gen_before in
+            let before = new consumer gen_before in
             Typing.(before#frame_type <: self#frame_type);
-            let after = new Generated.consumer gen_after in
+            let before = new Insert_metadata.replay before_metadata before in
+            Typing.(before#frame_type <: self#frame_type);
+            let after = new consumer gen_after in
+            Typing.(after#frame_type <: self#frame_type);
+            let after = new Insert_metadata.replay after_metadata after in
             Typing.(after#frame_type <: self#frame_type);
             let () =
               before#set_id (self#id ^ "_before");
@@ -306,9 +327,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       in
       self#prepare_source after;
       self#reset_analysis;
-      (match status with
-        | `Before s -> s#leave (self :> Source.source)
-        | _ -> assert false);
+      self#leave_status;
       status <- `After after
 
     method remaining =

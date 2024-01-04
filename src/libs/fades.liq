@@ -57,7 +57,6 @@ def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
   def fade() =
     if start_time() < 0. then start_time := source.time(s) end
     t = source.time(s) - start_time()
-    duration = min(source.remaining(s), duration)
 
     if
       t >= duration
@@ -100,7 +99,7 @@ def fade.out(
   ~override_duration="liq_fade_out",
   ~override_type="liq_fade_type",
   ~persist_overrides=false,
-  ~track_sensitive=true,
+  ~track_sensitive=false,
   ~type="lin",
   s
 ) =
@@ -299,7 +298,7 @@ def fade.in(
   ~override_duration="liq_fade_in",
   ~override_type="liq_fade_type",
   ~persist_overrides=false,
-  ~track_sensitive=true,
+  ~track_sensitive=false,
   ~type="lin",
   s
 ) =

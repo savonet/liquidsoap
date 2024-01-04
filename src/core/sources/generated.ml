@@ -113,18 +113,3 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
           else buf)
         ()
   end
-
-class consumer buffer =
-  object (self)
-    inherit Source.source ~name:"buffer" ()
-    method stype = `Fallible
-    method private can_generate_frame = 0 < Generator.length buffer
-
-    method private generate_frame =
-      Generator.slice buffer (Lazy.force Frame.size)
-
-    method abort_track = Generator.clear buffer
-    method self_sync = (`Static, false)
-    method seek_source = (self :> Source.source)
-    method remaining = Generator.remaining buffer
-  end
