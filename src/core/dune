@@ -26,6 +26,7 @@
   liquidsoap-lang
   liquidsoap-lang.console
   menhirLib
+  pcre
   camomile.lib
   curl
   cry
