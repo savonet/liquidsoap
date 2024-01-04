@@ -79,10 +79,10 @@ class virtual base ~name tracks =
           Frame.position tmp)
         else start
       in
-      min pos tmp_pos
+      max pos tmp_pos
 
     method private feed ~offset tracks =
-      List.fold_left (self#feed_track ~offset) max_int tracks
+      List.fold_left (self#feed_track ~offset) 0 tracks
 
     (* For backward compatibility: set metadata from the first
        track effectively summed. This should be called after #feed *)
@@ -146,15 +146,17 @@ class audio_add ~renorm ~power ~field tracks =
       let pos = self#feed ~offset tracks in
       assert (offset <= pos);
       let audio_offset = Frame.audio_of_main offset in
-      let audio_len = Frame.audio_of_main (pos - offset) in
       let pcm = Content.Audio.get_data (Frame.get buf field) in
-      Audio.clear pcm audio_offset audio_len;
+      Audio.clear pcm audio_offset (Audio.length pcm);
       List.iter
         (fun { source; fields } ->
           let tmp = self#track_frame source in
           List.iter
             (fun { field; weight } ->
               let track_pcm = Content.Audio.get_data (Frame.get tmp field) in
+              let audio_len =
+                Frame.audio_of_main (Frame.position tmp - offset)
+              in
               let c = if renorm then weight /. total_weight else weight in
               if c <> 1. then Audio.amplify c track_pcm audio_offset audio_len;
               Audio.add pcm audio_offset track_pcm audio_offset audio_len)

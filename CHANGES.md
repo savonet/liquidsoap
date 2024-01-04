@@ -5,6 +5,10 @@ New:
 - Added support for `id3v2` metadata in `output.*.hls` when
   using `%mp3`, `%shine` or `%fdkaac` encoders (#3604)
 
+Fixed:
+
+- Pop/click at the end of fade out/in (#3318)
+
 ---
 
 # 2.2.3 (2023-12-14)
