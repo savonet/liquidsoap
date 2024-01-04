@@ -57,6 +57,8 @@ def mkfade(~type="lin", ~start=0., ~stop=1., ~duration=3., ~on_done={()}, s) =
   def fade() =
     if start_time() < 0. then start_time := source.time(s) end
     t = source.time(s) - start_time()
+    duration = min(source.remaining(s), duration)
+
     if
       t >= duration
     then
