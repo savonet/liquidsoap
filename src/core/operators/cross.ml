@@ -34,6 +34,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
   let original_duration_getter = duration_getter in
   object (self)
     inherit source ~name:"cross" () as super
+
+    inherit
+      generate_from_multiple_sources
+        ~merge:(fun () -> false)
+        ~track_sensitive:(fun () -> true)
+        ()
+
     inherit! Child_support.base ~check_self_sync:true [val_source]
     initializer Typing.(s#frame_type <: self#frame_type)
     method stype = `Fallible
@@ -100,39 +107,29 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
      * track limits. *)
     val source = s
 
-    (* Give a default value for the transition source. *)
-    val mutable transition_source = None
-    val mutable pending_after = Generator.create Frame.Fields.empty
-
-    method private prepare_transition_source s =
+    method private prepare_source s =
       let s = (s :> source) in
       s#get_ready [(self :> source)];
       Clock.unify ~pos:self#pos source#clock s#clock;
-      transition_source <- Some s;
       self#set_cross_length
-
-    method cleanup_transition_source =
-      match transition_source with
-        | None -> ()
-        | Some s ->
-            s#leave (self :> source);
-            transition_source <- None
 
     method! private wake_up a =
       self#reset_analysis;
       super#wake_up a;
       source#get_ready [(self :> source)];
-      source#get_ready [(self :> source)];
       Lang.iter_sources (fun s -> s#get_ready [(self :> source)]) transition
+
+    val mutable status
+        : [ `Idle | `Before of Source.source | `After of Source.source ] =
+      `Idle
 
     method! private sleep =
       source#leave (self :> source);
       s#leave (self :> source);
       Lang.iter_sources (fun s -> s#leave (self :> source)) transition;
-      self#cleanup_transition_source
-
-    (* in main time *)
-    val mutable status = `Idle
+      match status with
+        | `Before s | `After s -> s#leave (self :> source)
+        | _ -> ()
 
     method private child_get source =
       let frame = ref self#empty_frame in
@@ -162,50 +159,36 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Before -> Generator.append gen_before buf_frame
         | `After -> Generator.append gen_after buf_frame
 
-    val mutable cache = None
+    method private prepare_before =
+      self#log#info "Buffering end of track...";
+      let before = new Generated.consumer gen_before in
+      Typing.(before#frame_type <: self#frame_type);
+      self#prepare_source before;
+      status <- `Before (before :> Source.source);
+      self#buffering cross_length;
+      before
 
-    (* A chunk is a buffer that has at most one
-       track mark at its beginning. *)
-    method private generate_frame =
+    method private get_source ~reselect:_ () =
       match status with
-        | `Idle ->
-            let buf =
-              match cache with
-                | Some frame -> frame
-                | None -> self#child_get source
-            in
-            cache <- None;
-            let pos = Frame.position buf in
-            let p = match Frame.track_marks buf with p :: _ -> p | [] -> 0 in
-            self#log#info "Buffering end of track...";
-            self#append `Before (Frame.chunk ~start:p ~stop:pos buf);
-            status <- `Before;
-            self#buffering cross_length;
-            cache <- Some (Frame.slice buf p);
-            self#generate_frame
-        | `Before ->
-            (* We started buffering but the track didn't end.
-             * Play the beginning of the buffer while filling it more. *)
+        | `Idle -> Some self#prepare_before
+        | `Before before_source -> (
             let len = Generator.length gen_before in
             if len <= cross_length then self#buffering (cross_length - len);
-            if status = `Before then (
-              let size = Lazy.force Frame.size in
-              match cache with
-                | Some frame ->
-                    cache <- None;
-                    Frame.append frame
-                      (Generator.slice gen_before (size - Frame.position frame))
-                | None -> Generator.slice gen_before size)
-            else self#generate_frame
-        | `After ->
-            let source = Option.get transition_source in
-            let buf = self#child_get source in
-            if Frame.is_partial buf then (
-              self#cleanup_transition_source;
-              status <- `Idle;
-              cache <- Some buf;
-              self#generate_frame)
-            else buf
+            match status with
+              | `Idle -> assert false
+              | `Before before_source -> Some before_source
+              | `After after_source ->
+                  before_source#leave (self :> Source.source);
+                  Some after_source)
+        | `After after_source ->
+            let frame =
+              if after_source#is_ready then after_source#get_frame
+              else self#empty_frame
+            in
+            if Frame.is_partial frame then (
+              after_source#leave (self :> Source.source);
+              Some self#prepare_before)
+            else Some after_source
 
     (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
      * where [d=AFrame.size-1]. *)
@@ -229,7 +212,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | Some end_frame ->
             if not persist_override then
               duration_getter <- original_duration_getter;
-            status <- `After;
             self#append `After end_frame;
             self#analyze_after
 
@@ -252,13 +234,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
           | _ -> next_frame
       in
       let next_frame = f () in
-      self#create_transition;
+      self#create_after;
       match next_frame with
         | None -> ()
         | Some next_frame -> self#append `Before next_frame
 
     (* Sum up analysis and build the transition *)
-    method private create_transition =
+    method private create_after =
       let db_after =
         Audio.dB_of_lin
           (sqrt (rms_after /. float rmsi_after /. float self#audio_channels))
@@ -331,30 +313,31 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             Typing.(compound#frame_type <: self#frame_type);
             compound)
       in
-      self#cleanup_transition_source;
-      self#prepare_transition_source compound;
-      pending_after <- gen_after;
-      self#reset_analysis
+      self#prepare_source compound;
+      self#reset_analysis;
+      status <- `After compound
 
     method remaining =
       match status with
-        | `Before | `Idle -> source#remaining
-        | `After -> (Option.get transition_source)#remaining
+        | `Idle -> source#remaining
+        | `Before s -> (
+            match (s#remaining, source#remaining) with
+              | -1, _ | _, -1 -> -1
+              | r, r' -> r + r')
+        | `After s -> s#remaining
 
     method seek_source =
       match status with
-        | `Before | `Idle -> source#seek_source
-        | `After -> (Option.get transition_source)#seek_source
-
-    method private can_generate_frame =
-      match status with
-        | `Idle | `Before -> source#is_ready
-        | `After -> (Option.get transition_source)#is_ready || source#is_ready
+        | `Idle -> source#seek_source
+        | `Before s | `After s -> s#seek_source
 
     method abort_track =
-      if status = `After && (Option.get transition_source)#is_ready then
-        (Option.get transition_source)#abort_track
-      else source#abort_track
+      match status with
+        | `Idle -> source#abort_track
+        | `Before s | `After s ->
+            source#abort_track;
+            s#leave (self :> Source.source);
+            ignore self#prepare_before
   end
 
 let _ =
