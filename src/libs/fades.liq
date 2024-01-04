@@ -510,6 +510,23 @@ def cross.smart(
   end
 end
 
+# @docof cross
+# @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
+#                      removes duplicate metadata from the returned source.
+def replaces cross(%argsof(cross), ~deduplicate=true, transition, s) =
+  if
+    not deduplicate
+  then
+    cross(%argsof(cross), transition, s)
+  else
+    s = cross(%argsof(cross[!id]), transition, s)
+    def replaces s =
+      metadata.deduplicate(s)
+    end
+    s
+  end
+end
+
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Fade
@@ -664,28 +681,14 @@ def crossfade(
 
   transition = if smart then smart_transition else simple_transition end
 
-  let (cross_id, deduplicate_id) =
-    deduplicate ? (null(), null(id)) : (null(id), null())
-
-  crossed =
-    cross(
-      id=cross_id,
-      width=width,
-      duration=duration,
-      persist_override=persist_override,
-      override_duration=override_duration,
-      transition,
-      s
-    )
-
-  s =
-    if
-      deduplicate
-    then
-      metadata.deduplicate(id=deduplicate_id, crossed)
-    else
-      crossed
-    end
-
-  s.{cross_duration={crossed.cross_duration()}}
+  cross(
+    id=id,
+    width=width,
+    duration=duration,
+    persist_override=persist_override,
+    override_duration=override_duration,
+    deduplicate=deduplicate,
+    transition,
+    s
+  )
 end
