@@ -38,7 +38,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     inherit
       generate_from_multiple_sources
         ~merge:(fun () -> false)
-        ~track_sensitive:(fun () -> true)
+        ~track_sensitive:(fun () -> false)
         ()
 
     inherit! Child_support.base ~check_self_sync:true [val_source]
@@ -131,10 +131,14 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Before s | `After s -> s#leave (self :> source)
         | _ -> ()
 
-    method private child_get source =
+    method private child_get ~is_first source =
       let frame = ref self#empty_frame in
       self#child_on_output (fun () ->
-          if source#is_ready then frame := source#get_frame);
+          frame :=
+            source#get_partial_frame (fun f ->
+                match self#split_frame f with
+                  | buf, Some _ when Frame.position buf = 0 && is_first -> f
+                  | buf, _ -> buf));
       !frame
 
     method private append mode buf_frame =
@@ -165,79 +169,70 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       Typing.(before#frame_type <: self#frame_type);
       self#prepare_source before;
       status <- `Before (before :> Source.source);
-      self#buffering cross_length;
+      self#buffer_before ~is_first:true ();
       before
 
-    method private get_source ~reselect:_ () =
+    method private get_source ~reselect () =
       match status with
-        | `Idle -> Some self#prepare_before
-        | `Before before_source -> (
-            let len = Generator.length gen_before in
-            if len <= cross_length then self#buffering (cross_length - len);
+        | `Idle when source#is_ready -> Some self#prepare_before
+        | `Idle -> None
+        | `Before _ -> (
+            self#buffer_before ~is_first:false ();
             match status with
               | `Idle -> assert false
               | `Before before_source -> Some before_source
-              | `After after_source ->
-                  before_source#leave (self :> Source.source);
-                  Some after_source)
+              | `After after_source -> Some after_source)
+        | `After after_source
+          when self#can_reselect
+                 ~reselect:
+                   (match reselect with
+                     | `After_position _ -> reselect
+                     | _ -> `Ok)
+                 after_source ->
+            Some after_source
         | `After after_source ->
-            let frame =
-              if after_source#is_ready then after_source#get_frame
-              else self#empty_frame
-            in
-            if Frame.is_partial frame then (
-              after_source#leave (self :> Source.source);
-              Some self#prepare_before)
-            else Some after_source
+            after_source#leave (self :> Source.source);
+            Some self#prepare_before
 
-    (* [bufferize n] stores at most [n+d] samples from [s] in [gen_before],
-     * where [d=AFrame.size-1]. *)
-    method private buffering n =
-      let buf_frame = self#child_get source in
-      let buf_frame, next_frame = self#split_frame buf_frame in
-      let len = AFrame.position buf_frame in
-      self#append `Before buf_frame;
+    method private buffer_before ~is_first () =
+      if Generator.length gen_before < cross_length && source#is_ready then (
+        let buf_frame = self#child_get ~is_first source in
+        self#append `Before buf_frame;
+        (* Analyze them *)
+        let pcm = AFrame.pcm buf_frame in
+        let len = Audio.length pcm in
+        let squares = Audio.squares pcm 0 len in
+        rms_before <- rms_before -. mem_before.(mem_i) +. squares;
+        mem_before.(mem_i) <- squares;
+        mem_i <- (mem_i + len) mod rms_width;
+        rmsi_before <- min rms_width (rmsi_before + len);
 
-      (* Analyze them *)
-      let pcm = AFrame.pcm buf_frame in
-      let squares = Audio.squares pcm 0 len in
-      rms_before <- rms_before -. mem_before.(mem_i) +. squares;
-      mem_before.(mem_i) <- squares;
-      mem_i <- (mem_i + len) mod rms_width;
-      rmsi_before <- min rms_width (rmsi_before + len);
-
-      (* Should we buffer more or are we done ? *)
-      match next_frame with
-        | None -> if 0 < len && len < n then self#buffering (n - len)
-        | Some end_frame ->
-            if not persist_override then
-              duration_getter <- original_duration_getter;
-            self#append `After end_frame;
-            self#analyze_after
+        (* Should we buffer more or are we done ? *)
+        if Frame.is_partial buf_frame then (
+          if not persist_override then
+            duration_getter <- original_duration_getter;
+          self#analyze_after)
+        else self#buffer_before ~is_first:false ())
 
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
-      let before_len = Generator.length gen_before in
-      let rec f () =
-        let buf_frame = self#child_get source in
-        let buf_frame, next_frame = self#split_frame buf_frame in
-        let len = AFrame.position buf_frame in
-        self#append `After buf_frame;
-        let after_len = Generator.length gen_after in
-        if after_len <= rms_width then (
-          let pcm = AFrame.pcm buf_frame in
-          let squares = Audio.squares pcm 0 len in
-          rms_after <- rms_after +. squares;
-          rmsi_after <- rmsi_after + len);
-        match next_frame with
-          | None -> if 0 < len && after_len < before_len then f () else None
-          | _ -> next_frame
+      let rec f ~is_first () =
+        if
+          Generator.length gen_after < Generator.length gen_before
+          && source#is_ready
+        then (
+          let buf_frame = self#child_get ~is_first source in
+          self#append `After buf_frame;
+          if Generator.length gen_after <= rms_width then (
+            let pcm = AFrame.pcm buf_frame in
+            let len = Audio.length pcm in
+            let squares = Audio.squares pcm 0 len in
+            rms_after <- rms_after +. squares;
+            rmsi_after <- rmsi_after + len);
+          if Frame.is_partial buf_frame then () else f ~is_first:false ())
       in
-      let next_frame = f () in
-      self#create_after;
-      match next_frame with
-        | None -> ()
-        | Some next_frame -> self#append `Before next_frame
+      f ~is_first:true ();
+      self#create_after
 
     (* Sum up analysis and build the transition *)
     method private create_after =
@@ -249,7 +244,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         Audio.dB_of_lin
           (sqrt (rms_before /. float rmsi_before /. float self#audio_channels))
       in
-      let compound =
+      let after =
         Clock.collect_after (fun () ->
             let metadata = function
               | None -> Frame.Metadata.empty
@@ -259,11 +254,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             let after_metadata = metadata after_metadata in
             let before = new Generated.consumer gen_before in
             Typing.(before#frame_type <: self#frame_type);
-            let before = new Insert_metadata.replay before_metadata before in
-            Typing.(before#frame_type <: self#frame_type);
             let after = new Generated.consumer gen_after in
-            Typing.(after#frame_type <: self#frame_type);
-            let after = new Insert_metadata.replay after_metadata after in
             Typing.(after#frame_type <: self#frame_type);
             let () =
               before#set_id (self#id ^ "_before");
@@ -313,9 +304,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             Typing.(compound#frame_type <: self#frame_type);
             compound)
       in
-      self#prepare_source compound;
+      self#prepare_source after;
       self#reset_analysis;
-      status <- `After compound
+      (match status with
+        | `Before s -> s#leave (self :> Source.source)
+        | _ -> assert false);
+      status <- `After after
 
     method remaining =
       match status with
@@ -336,7 +330,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         | `Idle -> source#abort_track
         | `Before s | `After s ->
             source#abort_track;
-            s#leave (self :> Source.source);
+            status <- `After s;
             ignore self#prepare_before
   end
 

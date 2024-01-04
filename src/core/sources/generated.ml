@@ -114,11 +114,17 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
         ()
   end
 
-(* Reads data from a fixed buffer generator. The generator shouldn't be fed anymore. *)
 class consumer buffer =
-  object
+  object (self)
     inherit Source.source ~name:"buffer" ()
-    inherit! source ~bufferize:0. ~empty_on_abort:true ()
     method stype = `Fallible
-    method! buffer = buffer
+    method private can_generate_frame = 0 < Generator.length buffer
+
+    method private generate_frame =
+      Generator.slice buffer (Lazy.force Frame.size)
+
+    method abort_track = Generator.clear buffer
+    method self_sync = (`Static, false)
+    method seek_source = (self :> Source.source)
+    method remaining = Generator.remaining buffer
   end
