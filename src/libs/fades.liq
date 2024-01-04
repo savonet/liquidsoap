@@ -514,16 +514,19 @@ end
 # @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
 #                      removes duplicate metadata from the returned source.
 def replaces cross(%argsof(cross), ~deduplicate=true, transition, s) =
+  log(
+    level=1,
+    "cross here, deduplicate: #{deduplicate}"
+  )
   if
     not deduplicate
   then
     cross(%argsof(cross), transition, s)
   else
     s = cross(%argsof(cross[!id]), transition, s)
-    def replaces s =
-      metadata.deduplicate(s)
-    end
-    s
+    dedup = metadata.deduplicate(s)
+
+    dedup.{buffered=s.buffered, cross_duration=s.cross_duration}
   end
 end
 
