@@ -590,7 +590,7 @@ class virtual operator ?pos ?(name = "src") sources =
 
       self#on_after_output (fun () ->
           match (streaming_state, consumed) with
-            | `Done _, 0 -> _cache <- None
+            | `Done buf, 0 -> _cache <- Some buf
             | `Done buf, n ->
                 let pos = Frame.position buf in
                 assert (n <= pos);
