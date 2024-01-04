@@ -22,6 +22,8 @@
 
 exception Not_connected
 
+module Pcre = Re.Pcre
+
 module Metadata = struct
   include Map.Make (struct
     type t = string
@@ -296,7 +298,9 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
           (fun ret header ->
             if header <> "" then (
               try
-                let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
+                let res =
+                  Pcre.exec ~rex:(Pcre.regexp "([^:]*):\\s*(.*)") header
+                in
                 (Pcre.get_substring res 1, Pcre.get_substring res 2) :: ret
               with Not_found -> ret)
             else ret)
@@ -553,7 +557,7 @@ let register_input is_http =
                      (Lang.apply fn [("", Lang.metadata_list m)])
              | None ->
                  List.filter (fun (k, _) ->
-                     not (Pcre.pmatch ~pat:"^id3v2_priv" k))
+                     not (Pcre.pmatch ~rex:(Pcre.regexp "^id3v2_priv") k))
          in
          let deduplicate_metadata =
            Lang.to_bool (List.assoc "deduplicate_metadata" p)
