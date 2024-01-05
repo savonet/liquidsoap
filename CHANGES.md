@@ -5,6 +5,11 @@ New:
 - Added support for `id3v2` metadata in `output.*.hls` when
   using `%mp3`, `%shine` or `%fdkaac` encoders (#3604)
 
+Changed:
+
+- Disable safety type checks when displaying `-h` help documentation
+  to speed it up. Similar to passing `--unsafe`. Suggested by @gilou!
+
 Fixed:
 
 - Pop/click at the end of fade out/in (#3318)
