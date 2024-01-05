@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Liquidsoap_lang.Error
+open Mm
 
 (** In this module we define the central streaming concepts: sources, active
     sources and clocks.
@@ -598,7 +599,7 @@ class virtual operator ?pos ?(name = "src") sources =
                 else _cache <- Some (Frame.chunk ~start:n ~stop:(pos - n) buf)
             | _ -> ())
 
-    method get_partial_frame cb =
+    method peek_frame =
       self#has_ticked;
       match streaming_state with
         | `Unavailable ->
@@ -606,11 +607,13 @@ class virtual operator ?pos ?(name = "src") sources =
             raise Unavailable
         | `Ready fn ->
             fn ();
-            self#get_partial_frame cb
-        | `Done data ->
-            let data = cb data in
-            consumed <- max consumed (Frame.position data);
-            data
+            self#peek_frame
+        | `Done data -> data
+
+    method get_partial_frame cb =
+      let data = cb self#peek_frame in
+      consumed <- max consumed (Frame.position data);
+      data
 
     method get_frame = self#get_partial_frame (fun f -> f)
 
@@ -698,9 +701,77 @@ class virtual operator ?pos ?(name = "src") sources =
         self#log#debug "calling on_track handlers..";
         List.iter (fun fn -> fn m) on_track)
 
+    val mutable last_images = Hashtbl.create 0
+
+    method last_image field =
+      match Hashtbl.find_opt last_images field with
+        | Some i -> i
+        | None ->
+            let width, height = self#video_dimensions in
+            let i = Video.Canvas.Image.create width height in
+            Hashtbl.replace last_images field i;
+            i
+
+    method private set_last_image ~field img =
+      Hashtbl.replace last_images field img
+
+    val mutable video_generators = Hashtbl.create 0
+
+    method private video_generator ~priv field =
+      match Hashtbl.find_opt video_generators (priv, field) with
+        | Some g -> g
+        | None ->
+            let params =
+              Content.Video.get_params
+                (Frame.Fields.find field self#content_type)
+            in
+            let g = Content.Video.make_generator params in
+            Hashtbl.add video_generators (priv, field) g;
+            g
+
+    method private internal_generate_video ?create ~priv ~field length =
+      Content.Video.generate ?create (self#video_generator ~priv field) length
+
+    method private generate_video = self#internal_generate_video ~priv:false
+
+    method private nearest_image ~pos ~last_image buf =
+      let nearest =
+        List.fold_left
+          (fun current (p, img) ->
+            match current with
+              | Some (p', _) when abs (p' - pos) < abs (p - pos) -> current
+              | _ -> Some (p, img))
+          None buf.Content.Video.data
+      in
+      match nearest with Some (_, img) -> img | None -> last_image
+
+    method private normalize_video ~field content =
+      let buf = Content.Video.get_data content in
+      let data = buf.Content.Video.data in
+      let last_image =
+        match List.rev data with
+          | (_, img) :: _ ->
+              self#set_last_image ~field img;
+              img
+          | [] -> self#last_image field
+      in
+      Content.Video.lift_data
+        (self#internal_generate_video ~field ~priv:true
+           ~create:(fun ~pos ~width:_ ~height:_ () ->
+             self#nearest_image ~pos ~last_image buf)
+           (Content.length content))
+
+    method private normalize_video_content =
+      Frame.Fields.mapi (fun field content ->
+          if
+            Content.Video.is_data content
+            && Frame.Fields.mem field self#content_type
+          then self#normalize_video ~field content
+          else content)
+
     method private instrumented_generate_frame =
       let start_time = Unix.gettimeofday () in
-      let buf = self#generate_frame in
+      let buf = self#normalize_video_content self#generate_frame in
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
       let track_marks = Frame.track_marks buf in

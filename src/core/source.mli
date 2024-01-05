@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+open Mm
+
 type clock_variable
 
 (** In [`CPU] mode, synchronization is governed by the CPU clock.
@@ -173,6 +175,21 @@ class virtual source :
        (** A buffer that can be used by the source. *)
        method buffer : Generator.t
 
+       method private generate_video :
+         ?create:
+           (pos:int -> width:int -> height:int -> unit -> Video.Canvas.image) ->
+         field:Frame.Fields.field ->
+         int ->
+         Content.Video.data
+
+       method last_image : Frame.Fields.field -> Video.Canvas.image
+
+       method private nearest_image :
+         pos:int ->
+         last_image:Video.Canvas.image ->
+         Content.Video.data ->
+         Video.Canvas.image
+
        (** An empty frame that can be used by the source. *)
        method empty_frame : Frame.t
 
@@ -243,6 +260,9 @@ class virtual source :
            whenever possible and returned during the next streaming cycle. Final returned value
            is the same as the partial chunk returned for the callback for easy method call chaining. *)
        method get_partial_frame : (Frame.t -> Frame.t) -> Frame.t
+
+       (** Check a frame without consuming any of its data. *)
+       method peek_frame : Frame.t
 
        (** This method requests a specific field of the frame that can be mutated. It is used
            by a consumer of the source that will modify the source's data (e.g. [amplify]). The

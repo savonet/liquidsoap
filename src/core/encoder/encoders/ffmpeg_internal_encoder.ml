@@ -221,7 +221,7 @@ let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
     fun frame start len ->
       let frames =
         Ffmpeg_raw_content.Audio.(get_data (Frame.get frame field))
-          .Ffmpeg_content_base.data
+          .Content.Video.data
       in
       let frames =
         List.filter (fun (pos, _) -> start <= pos && pos < start + len) frames
@@ -440,23 +440,23 @@ let mk_video ~pos ~mode ~codec ~params ~options ~field output =
     let time_base = Ffmpeg_utils.liq_video_sample_time_base () in
     let stream_idx = 1L in
 
-    fun frame start len ->
-      let vstart = Frame.video_of_main start in
-      let vstop = Frame.video_of_main (start + len) in
-      let vbuf = VFrame.data ~field frame in
-      for i = vstart to vstop - 1 do
-        let f =
-          Video.Canvas.get vbuf i
-          (* TODO: we could scale instead of aggressively changing the viewport *)
-          |> Video.Canvas.Image.viewport src_width src_height
-          |> Video.Canvas.Image.render ~transparent:false
-        in
-        let vdata = Ffmpeg_utils.pack_image f in
-        let frame = InternalScaler.convert scaler vdata in
-        Avutil.Frame.set_pts frame (Some !nb_frames);
-        nb_frames := Int64.succ !nb_frames;
-        cb ~stream_idx ~time_base frame
-      done
+    fun frame offset length ->
+      let content = Content.sub (Frame.get frame field) offset length in
+      let buf = Content.Video.get_data content in
+      List.iter
+        (fun (_, img) ->
+          let f =
+            img
+            (* TODO: we could scale instead of aggressively changing the viewport *)
+            |> Video.Canvas.Image.viewport src_width src_height
+            |> Video.Canvas.Image.render ~transparent:false
+          in
+          let vdata = Ffmpeg_utils.pack_image f in
+          let frame = InternalScaler.convert scaler vdata in
+          Avutil.Frame.set_pts frame (Some !nb_frames);
+          nb_frames := Int64.succ !nb_frames;
+          cb ~stream_idx ~time_base frame)
+        buf.Content.Video.data
   in
 
   let raw_converter cb =

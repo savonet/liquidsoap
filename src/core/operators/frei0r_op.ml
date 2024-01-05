@@ -46,7 +46,7 @@ let plugin_dirs =
 class frei0r_filter ~name bgra instance params (source : source) =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
-  object
+  object (self)
     inherit operator ~name:("frei0r." ^ name) [source]
     method stype = source#stype
     method remaining = source#remaining
@@ -56,25 +56,30 @@ class frei0r_filter ~name bgra instance params (source : source) =
     method abort_track = source#abort_track
     val mutable t = 0.
 
+    method private render img =
+      let img = Video.Canvas.Image.render img in
+      let img = Image.YUV420.to_RGBA32 img in
+      if bgra then Image.RGBA32.swap_rb img;
+      let src = Image.RGBA32.data (Image.RGBA32.copy img) in
+      let dst = Image.RGBA32.data img in
+      Frei0r.update1 instance t src dst;
+      if bgra then Image.RGBA32.swap_rb img;
+      t <- t +. dt;
+      Video.Canvas.Image.make (Image.YUV420.of_RGBA32 img)
+
     method private generate_frame =
-      let rgb =
+      let buf =
         Content.Video.get_data (source#get_mutable_content Frame.Fields.video)
       in
       params ();
-      for i = 0 to Video.Canvas.length rgb - 1 do
-        (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
-        let img = Video.Canvas.render rgb i in
-        let img = Image.YUV420.to_RGBA32 img in
-        if bgra then Image.RGBA32.swap_rb img;
-        let src = Image.RGBA32.data (Image.RGBA32.copy img) in
-        let dst = Image.RGBA32.data img in
-        Frei0r.update1 instance t src dst;
-        if bgra then Image.RGBA32.swap_rb img;
-        let img = Image.YUV420.of_RGBA32 img in
-        Video.Canvas.put rgb i img;
-        t <- t +. dt
-      done;
-      source#set_frame_data Frame.Fields.video Content.Video.lift_data rgb
+      source#set_frame_data Frame.Fields.video Content.Video.lift_data
+        {
+          buf with
+          Content.Video.data =
+            List.map
+              (fun (pos, img) -> (pos, self#render img))
+              buf.Content.Video.data;
+        }
   end
 
 class frei0r_mixer ~name bgra instance params (source : source) source2 =
@@ -108,13 +113,29 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
     val mutable t = 0.
 
     method private generate_frame =
-      (* Get content in respective buffers *)
+      let length = min source#frame_position source2#frame_position in
+      let c =
+        Frame.get
+          (source#get_partial_frame (fun f -> Frame.slice f length))
+          Frame.Fields.video
+      in
+      let c' =
+        Frame.get
+          (source2#get_partial_frame (fun f -> Frame.slice f length))
+          Frame.Fields.video
+      in
+
+      let rgb = Content.Video.get_data c in
       let rgb =
-        Content.Video.get_data (source#get_mutable_content Frame.Fields.video)
+        self#generate_video ~field:Frame.Fields.video
+          ~create:(fun ~pos ~width:_ ~height:_ () ->
+            self#nearest_image ~pos
+              ~last_image:(source#last_image Frame.Fields.video)
+              rgb)
+          length
       in
-      let rgb' =
-        Content.Video.get_data (Frame.get source2#get_frame Frame.Fields.video)
-      in
+      let rgb' = Content.Video.get_data c' in
+
       params ();
 
       (* Mix content where the two streams are available.
@@ -122,26 +143,32 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
        * and/or attempt to get some more data in the buffers...
        * each solution has its downsides and it'll rarely matter
        * because there's usually only one image per video frame. *)
-      let length = min (Video.Canvas.length rgb) (Video.Canvas.length rgb') in
-      for i = 0 to length - 1 do
-        (* TODO: we could try to be more efficient than converting to/from RGBA32 and swap colors... *)
-        let img = Video.Canvas.render rgb i in
-        let img = Image.YUV420.to_RGBA32 img in
-        let img' = Video.Canvas.get rgb' i in
-        let img' = Video.Canvas.Image.render img' in
-        let img' = Image.YUV420.to_RGBA32 img' in
-        if bgra then Image.RGBA32.swap_rb img;
-        if bgra then Image.RGBA32.swap_rb img';
-        let src = Image.RGBA32.data (Image.RGBA32.copy img) in
-        let src' = Image.RGBA32.data img' in
-        let dst = Image.RGBA32.data img in
-        Frei0r.update2 instance t src src' dst;
-        if bgra then Image.RGBA32.swap_rb img;
-        let img = Image.YUV420.of_RGBA32 img in
-        Video.Canvas.put rgb i img;
-        t <- t +. dt
-      done;
-      source#set_frame_data Frame.Fields.video Content.Video.lift_data rgb
+      let data =
+        List.map
+          (fun (pos, img) ->
+            let img = Video.Canvas.Image.render img in
+            let img = Image.YUV420.to_RGBA32 img in
+            let img' =
+              self#nearest_image ~pos
+                ~last_image:(source2#last_image Frame.Fields.video)
+                rgb'
+            in
+            let img' = Video.Canvas.Image.render img' in
+            let img' = Image.YUV420.to_RGBA32 img' in
+            if bgra then Image.RGBA32.swap_rb img;
+            if bgra then Image.RGBA32.swap_rb img';
+            let src = Image.RGBA32.data (Image.RGBA32.copy img) in
+            let src' = Image.RGBA32.data img' in
+            let dst = Image.RGBA32.data img in
+            Frei0r.update2 instance t src src' dst;
+            if bgra then Image.RGBA32.swap_rb img;
+            let img = Image.YUV420.of_RGBA32 img in
+            t <- t +. dt;
+            (pos, Video.Canvas.Image.make img))
+          rgb.Content.Video.data
+      in
+      source#set_frame_data Frame.Fields.video Content.Video.lift_data
+        { rgb with Content.Video.data }
   end
 
 class frei0r_source ~name bgra instance params =
@@ -158,6 +185,16 @@ class frei0r_source ~name bgra instance params =
     method remaining = if must_fail then 0 else -1
     val mutable t = 0.
 
+    method private render_image img =
+      let img = Video.Canvas.Image.render img in
+      let img = Image.YUV420.to_RGBA32 img in
+      let dst = Image.RGBA32.data img in
+      Frei0r.update0 instance t dst;
+      if bgra then Image.RGBA32.swap_rb img;
+      let img = Image.YUV420.of_RGBA32 img in
+      t <- t +. dt;
+      Video.Canvas.Image.make img
+
     method private generate_frame =
       if must_fail then (
         must_fail <- false;
@@ -166,18 +203,14 @@ class frei0r_source ~name bgra instance params =
         params ();
         let length = Lazy.force Frame.size in
         let buf = Frame.create ~length self#content_type in
-        let rgb = Content.Video.get_data (Frame.get buf Frame.Fields.video) in
-        for i = 0 to Frame.video_of_main length - 1 do
-          let img = Video.Canvas.render rgb i in
-          let img = Image.YUV420.to_RGBA32 img in
-          let dst = Image.RGBA32.data img in
-          Frei0r.update0 instance t dst;
-          if bgra then Image.RGBA32.swap_rb img;
-          let img = Image.YUV420.of_RGBA32 img in
-          Video.Canvas.put rgb i img;
-          t <- t +. dt
-        done;
-        Frame.set_data buf Frame.Fields.video Content.Video.lift_data rgb)
+        let rgb = self#generate_video ~field:Frame.Fields.video length in
+        let data =
+          List.map
+            (fun (pos, img) -> (pos, self#render_image img))
+            rgb.Content.Video.data
+        in
+        Frame.set_data buf Frame.Fields.video Content.Video.lift_data
+          { rgb with Content.Video.data })
   end
 
 (** Make a list of parameters. *)

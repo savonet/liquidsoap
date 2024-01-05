@@ -62,7 +62,7 @@ type fps = Decoder_utils.fps = { num : int; den : int }
 type buffer = {
   generator : Generator.t;
   put_pcm : ?field:Frame.field -> samplerate:int -> Content.Audio.data -> unit;
-  put_yuva420p : ?field:Frame.field -> fps:fps -> Content.Video.data -> unit;
+  put_yuva420p : ?field:Frame.field -> fps:fps -> Video.Canvas.image -> unit;
 }
 
 type decoder = {
@@ -240,7 +240,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     ext_ok || mime_ok)
 
 let channel_layout audio =
-  Lazy.force Content.(Audio.(get_params audio).Content.channel_layout)
+  Lazy.force Content.(Audio.(get_params audio).Content.Audio.channel_layout)
 
 let can_decode_type decoded_type target_type =
   let map_convertible cur (field, target_field) =
@@ -451,16 +451,28 @@ let mk_buffer ~ctype generator =
           let out_freq =
             Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
           in
-          fun ~fps (data : Content.Video.data) ->
-            let data = Array.map video_scale data in
-            let data = video_resample ~in_freq:fps ~out_freq data in
-            let len = Video.Canvas.length data in
-            let data =
-              Content.Video.lift_data
-                ~length:(Frame_settings.main_of_video len)
-                data
-            in
-            Generator.put generator field data)
+          let params =
+            {
+              Content.Video.width = Some Frame.video_width;
+              height = Some Frame.video_height;
+            }
+          in
+          let interval = Frame.main_of_video 1 in
+          fun ~fps img ->
+            match video_resample ~in_freq:fps ~out_freq img with
+              | [] -> ()
+              | data ->
+                  let data =
+                    List.mapi
+                      (fun i img -> (i * interval, video_scale img))
+                      data
+                  in
+                  let length = List.length data * interval in
+                  let buf =
+                    Content.Video.lift_data
+                      { Content.Video.params; length; data }
+                  in
+                  Generator.put generator field buf)
         else fun ~fps:_ _ -> ()
       in
       Hashtbl.add video_handlers field handler;
@@ -471,8 +483,8 @@ let mk_buffer ~ctype generator =
     get_audio_handler ~field ~samplerate data
   in
 
-  let put_yuva420p ?(field = Frame.Fields.video) ~fps data =
-    get_video_handler ~field ~fps data
+  let put_yuva420p ?(field = Frame.Fields.video) ~fps img =
+    get_video_handler ~field ~fps img
   in
 
   { generator; put_pcm; put_yuva420p }

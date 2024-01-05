@@ -30,7 +30,7 @@ type 'a frame = {
 }
 
 module BaseSpecs = struct
-  include Ffmpeg_content_base
+  include Content_video.Base
 
   type kind = [ `Raw ]
 

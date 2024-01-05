@@ -43,17 +43,6 @@ exception Invalid
 (* Raised when calling [merge] below. *)
 exception Incompatible_format of Contents.format * Contents.format
 
-type audio_params = Content_audio.Specs.params = {
-  channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
-}
-
-type video_params = Content_video.Specs.params = {
-  width : int Lazy.t option;
-  height : int Lazy.t option;
-}
-
-type midi_params = Content_midi.Specs.params = { channels : int }
-
 module type ContentSpecs = sig
   type kind
   type params
@@ -150,11 +139,15 @@ val kind_of_string : string -> kind
 (** Internal content types. *)
 
 module Audio : sig
+  type audio_params = Content_audio.Specs.params = {
+    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+  }
+
   include
     Content
       with type kind = [ `Pcm ]
        and type params = audio_params
-       and type data = Audio.Mono.buffer array
+       and type data = Audio.t
 
   val kind : Contents.kind
   val channels_of_format : Contents.format -> int
@@ -162,17 +155,41 @@ module Audio : sig
 end
 
 module Video : sig
+  type ('a, 'b) video_content = ('a, 'b) Content_video.Base.content = {
+    length : int;
+    mutable params : 'a;
+    mutable data : (int * 'b) list;
+  }
+
+  type video_params = Content_video.Specs.params = {
+    width : int Lazy.t option;
+    height : int Lazy.t option;
+  }
+
   include
     Content
       with type kind = [ `Canvas ]
        and type params = video_params
-       and type data = Video.Canvas.t
+       and type data = (video_params, Video.Canvas.image) video_content
 
   val kind : Contents.kind
   val dimensions_of_format : Contents.format -> int * int
+  val lift_image : Video.Canvas.image -> Contents.data
+
+  type generator
+
+  val make_generator : params -> generator
+
+  val generate :
+    ?create:(pos:int -> width:int -> height:int -> unit -> Video.Canvas.image) ->
+    generator ->
+    int ->
+    data
 end
 
 module Midi : sig
+  type midi_params = Content_midi.Specs.params = { channels : int }
+
   include
     Content
       with type kind = [ `Midi ]

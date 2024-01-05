@@ -282,17 +282,18 @@ class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
               (Option.get el.audio) data 0 (Bytes.length data));
           if has_video then (
             let buf = VFrame.data frame in
-            for i = 0 to Video.Canvas.length buf - 1 do
-              let img = Video.Canvas.render buf i in
-              let y, u, v = Image.YUV420.data img in
-              let buf =
-                Gstreamer.Buffer.of_data_list
-                  (List.map (fun d -> (d, 0, Image.Data.length d)) [y; u; v])
-              in
-              Gstreamer.Buffer.set_duration buf duration;
-              Gstreamer.Buffer.set_presentation_time buf presentation_time;
-              Gstreamer.App_src.push_buffer (Option.get el.video) buf
-            done);
+            List.iter
+              (fun (_, img) ->
+                let img = Video.Canvas.Image.render img in
+                let y, u, v = Image.YUV420.data img in
+                let buf =
+                  Gstreamer.Buffer.of_data_list
+                    (List.map (fun d -> (d, 0, Image.Data.length d)) [y; u; v])
+                in
+                Gstreamer.Buffer.set_duration buf duration;
+                Gstreamer.Buffer.set_presentation_time buf presentation_time;
+                Gstreamer.App_src.push_buffer (Option.get el.video) buf)
+              buf.Content.Video.data);
           presentation_time <- Int64.add presentation_time duration;
           GU.flush ~log:self#log
             ~on_error:(fun err -> raise (Flushing_error err))
@@ -605,9 +606,8 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           Image.YUV420.make_data width height b (Image.Data.round 4 width)
             (Image.Data.round 4 (width / 2))
         in
-        let stream = Video.Canvas.single_image img in
         Generator.put self#buffer Frame.Fields.video
-          (Content.Video.lift_data stream)
+          (Content.Video.lift_image (Video.Canvas.Image.make img))
       done
 
     method generate_frame =

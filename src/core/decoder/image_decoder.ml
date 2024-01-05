@@ -119,16 +119,24 @@ let create_decoder ~ctype ~width ~height ~metadata img =
   let remaining () =
     if !duration = -1 then -1 else Frame.main_of_video !duration
   in
+  let generator =
+    Content.Video.make_generator
+      (Content.Video.get_params (Frame.Fields.find Frame.Fields.video ctype))
+  in
   let fread length =
-    let frame = Frame.create ~length ctype in
-    let video = Content.Video.get_data (Frame.get frame Frame.Fields.video) in
-    for i = 0 to Frame.video_of_main length - 1 do
-      Video.Canvas.set video i img
-    done;
-    match Frame.Fields.find_opt Frame.Fields.audio frame with
+    let frame = Frame.create ~length Frame.Fields.empty in
+    let video =
+      Content.Video.generate
+        ~create:(fun ~pos:_ ~width:_ ~height:_ () -> img)
+        generator length
+    in
+    let frame =
+      Frame.set_data frame Frame.Fields.video Content.Video.lift_data video
+    in
+    match Frame.Fields.find_opt Frame.Fields.audio ctype with
       | None -> frame
-      | Some data ->
-          let pcm = Content.Audio.get_data data in
+      | Some format ->
+          let pcm = Content.Audio.get_data (Content.make ~length format) in
           Audio.clear pcm 0 (Frame.audio_of_main length);
           Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data pcm
   in

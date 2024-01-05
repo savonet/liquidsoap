@@ -44,35 +44,45 @@ class blank duration =
       let was_first = is_first in
       is_first <- false;
       let length = Lazy.force Frame.size in
-      let frame = Frame.create ~length self#content_type in
       let audio_len = Frame.audio_of_main length in
-      let video_len = Frame.video_of_main length in
       let frame =
-        Frame.Fields.map
-          (fun c ->
-            match c with
-              | _ when Content.Audio.is_data c ->
-                  let data = Content.Audio.get_data c in
+        Frame.Fields.fold
+          (fun field format frame ->
+            match format with
+              | _ when Content.Audio.is_format format ->
+                  let data =
+                    Content.Audio.get_data (Content.make ~length format)
+                  in
                   Audio.clear data 0 audio_len;
-                  Content.Audio.lift_data ~length data
-              | _ when Content_pcm_s16.is_data c ->
-                  let data = Content_pcm_s16.get_data c in
+                  Frame.set_data frame field Content.Audio.lift_data data
+              | _ when Content_pcm_s16.is_format format ->
+                  let data =
+                    Content_pcm_s16.get_data (Content.make ~length format)
+                  in
                   Content_pcm_s16.clear data 0 audio_len;
-                  Content_pcm_s16.lift_data ~length data
-              | _ when Content_pcm_f32.is_data c ->
-                  let data = Content_pcm_f32.get_data c in
+                  Frame.set_data frame field Content_pcm_s16.lift_data data
+              | _ when Content_pcm_f32.is_format format ->
+                  let data =
+                    Content_pcm_f32.get_data (Content.make ~length format)
+                  in
                   Content_pcm_f32.clear data 0 audio_len;
-                  Content_pcm_f32.lift_data ~length data
-              | _ when Content.Video.is_data c ->
-                  let data = Content.Video.get_data c in
-                  Video.Canvas.blank data 0 video_len;
-                  Content.Video.lift_data ~length data
+                  Frame.set_data frame field Content_pcm_f32.lift_data data
+              | _ when Content.Video.is_format format ->
+                  let data =
+                    self#generate_video ~field
+                      ~create:(fun ~pos:_ ~width ~height () ->
+                        let img = Video.Canvas.Image.create width height in
+                        Video.Canvas.Image.iter Video.Image.blank img)
+                      length
+                  in
+                  Frame.set_data frame field Content.Video.lift_data data
               | _
-                when Content.Metadata.is_data c || Content.Track_marks.is_data c
-                ->
-                  c
+                when Content.Metadata.is_format format
+                     || Content.Track_marks.is_format format ->
+                  frame
               | _ -> failwith "Invalid content type!")
-          frame
+          self#content_type
+          (Frame.create ~length Frame.Fields.empty)
       in
       match (was_first, remaining) with
         | true, _ -> Frame.add_track_mark frame 0

@@ -83,9 +83,7 @@ let process (type a) ~put_data ~(mk_params : a mk_params)
           } ))
       packets
   in
-  let data =
-    { Ffmpeg_content_base.params = Some (mk_params params); data; length }
-  in
+  let data = { Content.Video.params = Some (mk_params params); data; length } in
   let data = Ffmpeg_copy_content.lift_data data in
   put_data generator data
 
@@ -121,7 +119,7 @@ let on_data (type a)
        a handler) ~put_data ~(get_params : a get_params)
     ~(get_packet : a get_packet) ~(mk_params : a mk_params)
     ~(mk_packet : a mk_packet) ~generator
-    ({ Ffmpeg_content_base.params; data } : Ffmpeg_copy_content.data) =
+    ({ Content.Video.params; data } : Ffmpeg_copy_content.data) =
   List.iter
     (fun (_, { Ffmpeg_copy_content.stream_idx; time_base; packet }) ->
       let handler =

@@ -23,24 +23,68 @@
 open Mm
 open Content_base
 
+module Base = struct
+  type ('a, 'b) content = {
+    length : int;
+    mutable params : 'a;
+    mutable data : (int * 'b) list;
+  }
+
+  let make ?(length = 0) params = { length; params; data = [] }
+  let length { length } = length
+
+  let blit :
+        'a 'b.
+        copy:('b -> 'b) ->
+        ('a, 'b) content ->
+        int ->
+        ('a, 'b) content ->
+        int ->
+        int ->
+        unit =
+   fun ~copy src src_pos dst dst_pos len ->
+    (* No compatibility check here, it's
+       assumed to have been done beforehand. *)
+    dst.params <- src.params;
+    let data =
+      List.filter
+        (fun (pos, _) -> pos < dst_pos || dst_pos + len <= pos)
+        dst.data
+    in
+    let src_end = src_pos + len in
+    let data =
+      List.fold_left
+        (fun data (pos, p) ->
+          if src_pos <= pos && pos < src_end then (
+            let pos = dst_pos + (pos - src_pos) in
+            (pos, copy p) :: data)
+          else data)
+        data src.data
+    in
+    dst.data <- List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
+
+  let fill :
+        'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit
+      =
+   fun src src_pos dst dst_pos len ->
+    blit ~copy:(fun x -> x) src src_pos dst dst_pos len
+
+  let copy ~copy { length; data; params } =
+    { length; data = List.map (fun (pos, x) -> (pos, copy x)) data; params }
+
+  let params { params } = params
+end
+
 module Specs = struct
   open Frame_settings
+  include Base
 
   type kind = [ `Canvas ]
   type params = { width : int Lazy.t option; height : int Lazy.t option }
-  type data = Video.Canvas.t
+  type data = (params, Video.Canvas.image) content
 
   let internal_content_type = Some `Video
   let string_of_kind = function `Canvas -> "canvas"
-
-  let make ?(length = 0) (p : params) : data =
-    let width = !!(Option.value ~default:video_width p.width) in
-    let height = !!(Option.value ~default:video_height p.height) in
-    (* We need to round off to make sure we always have room *)
-    let length = int_of_float (Float.ceil (video_of_main_f length)) in
-    Video.Canvas.make length (width, height)
-
-  let length d = main_of_video (Video.Canvas.length d)
 
   let string_of_params { width; height } =
     print_optional
@@ -48,6 +92,16 @@ module Specs = struct
         ("width", Option.map (fun x -> string_of_int !!x) width);
         ("height", Option.map (fun x -> string_of_int !!x) height);
       ]
+
+  let make ?(length = 0) params =
+    let width = !!(Option.value ~default:video_width params.width) in
+    let height = !!(Option.value ~default:video_height params.height) in
+    let interval = main_of_video 1 in
+    let img = Video.Canvas.Image.create width height in
+    let data =
+      List.init (video_of_main length) (fun i -> (i * interval, img))
+    in
+    { length; params; data }
 
   let parse_param label value =
     match label with
@@ -77,23 +131,10 @@ module Specs = struct
     in
     compare (p.width, p'.width) && compare (p.height, p'.height)
 
-  let blit src src_pos dst dst_pos len =
-    let ( ! ) = Frame_settings.video_of_main in
-    let len = !(dst_pos + len) - !dst_pos in
-    let src_pos = !src_pos in
-    let dst_pos = !dst_pos in
-    Video.Canvas.blit src src_pos dst dst_pos len
+  let blit = fill
 
-  let copy = Video.Canvas.copy
-
-  let params data =
-    if Array.length data = 0 then { width = None; height = None }
-    else (
-      let i = data.(0) in
-      {
-        width = Some (lazy (Video.Canvas.Image.width i));
-        height = Some (lazy (Video.Canvas.Image.height i));
-      })
+  let copy : 'a. ('a, 'b) content -> ('a, 'b) content =
+   fun src -> copy ~copy:(fun x -> x) src
 
   let kind = `Canvas
   let default_params _ = { width = None; height = None }
@@ -102,9 +143,6 @@ end
 
 include MkContentBase (Specs)
 
-(* Internal video chunks are rounded off to the nearest integer
-   so we do need to make sure length is always specified. *)
-let make ?(length = 0) = make ~length
 let kind = lift_kind `Canvas
 
 let dimensions_of_format p =
@@ -116,3 +154,27 @@ let dimensions_of_format p =
     Lazy.force (Option.value ~default:Frame_settings.video_height p.height)
   in
   (width, height)
+
+let lift_canvas ?(offset = 0) ?length data =
+  let interval = Frame_settings.main_of_video 1 in
+  let data = Array.(to_list (mapi (fun pos d -> (pos * interval, d)) data)) in
+  let params =
+    match data with
+      | [] -> { Specs.width = None; height = None }
+      | (_, i) :: _ ->
+          {
+            Specs.width = Some (lazy (Video.Canvas.Image.width i));
+            height = Some (lazy (Video.Canvas.Image.height i));
+          }
+  in
+  let length =
+    match length with Some l -> l | None -> List.length data * interval
+  in
+  let data =
+    List.filter (fun (pos, _) -> offset <= pos && pos < offset + length) data
+  in
+  lift_data ~length { length; params; data }
+
+let get_canvas data =
+  let { Base.data } = get_data data in
+  Array.of_list (List.map snd data)

@@ -30,35 +30,49 @@ class noise duration =
 
     method private synthesize length =
       let audio_len = Frame.audio_of_main length in
-      let video_len = Frame.video_of_main length in
 
       Frame.Fields.fold
-        (fun field typ frame ->
-          match typ with
-            | _ when Content.Audio.is_format typ ->
-                let data = Content.Audio.get_data (Frame.get frame field) in
+        (fun field format frame ->
+          match format with
+            | _ when Content.Audio.is_format format ->
+                let data =
+                  Content.Audio.get_data (Content.make ~length format)
+                in
                 Audio.Generator.white_noise data 0 audio_len;
-                Frame.set frame field (Content.Audio.lift_data ~length data)
+                Frame.set_data frame field Content.Audio.lift_data data
             (* This is not optimal. *)
-            | _ when Content_pcm_s16.is_format typ ->
-                let pcm = Content_pcm_s16.get_data (Frame.get frame field) in
+            | _ when Content_pcm_s16.is_format format ->
+                let pcm =
+                  Content_pcm_s16.get_data (Content.make ~length format)
+                in
                 let audio = Content_pcm_s16.to_audio pcm in
                 Audio.Generator.white_noise audio 0 audio_len;
                 Content_pcm_s16.blit_audio audio 0 pcm 0 audio_len;
-                Frame.set frame field (Content_pcm_s16.lift_data ~length pcm)
-            | _ when Content_pcm_f32.is_format typ ->
-                let pcm = Content_pcm_f32.get_data (Frame.get frame field) in
+                Frame.set_data frame field Content_pcm_s16.lift_data pcm
+            | _ when Content_pcm_f32.is_format format ->
+                let pcm =
+                  Content_pcm_f32.get_data (Content.make ~length format)
+                in
                 let audio = Content_pcm_f32.to_audio pcm in
                 Audio.Generator.white_noise audio 0 audio_len;
                 Content_pcm_f32.blit_audio audio 0 pcm 0 audio_len;
                 Frame.set frame field (Content_pcm_f32.lift_data ~length pcm)
-            | _ when Content.Video.is_format typ ->
-                let data = Content.Video.get_data (Frame.get frame field) in
-                Video.Canvas.iter Image.YUV420.randomize data 0 video_len;
-                Frame.set frame field (Content.Video.lift_data ~length data)
+            | _ when Content.Video.is_format format ->
+                let data =
+                  self#generate_video ~field
+                    ~create:(fun ~pos:_ ~width ~height () ->
+                      let img = Video.Canvas.Image.create width height in
+                      Video.Canvas.Image.iter Image.YUV420.randomize img)
+                    length
+                in
+                Frame.set_data frame field Content.Video.lift_data data
+            | _
+              when Content.Metadata.is_format format
+                   || Content.Track_marks.is_format format ->
+                frame
             | _ -> failwith "Invalid content type!")
         self#content_type
-        (Frame.create ~length self#content_type)
+        (Frame.create ~length Frame.Fields.empty)
   end
 
 let _ =

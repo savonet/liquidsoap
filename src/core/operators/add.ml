@@ -71,7 +71,9 @@ class virtual base ~name tracks =
               (fun ({ weight } as field) -> { field with weight = weight () })
               fields
           in
-          let data = if source#is_ready then Some source#get_frame else None in
+          let data =
+            if source#is_ready then Some (source, source#get_frame) else None
+          in
           { fields; data } :: frames)
         [] tracks
 
@@ -81,8 +83,8 @@ class virtual base ~name tracks =
            (fun pos { data } ->
              match (pos, data) with
                | _, None -> pos
-               | None, Some frame -> Some (Frame.position frame)
-               | Some p, Some frame -> Some (max p (Frame.position frame)))
+               | None, Some (_, frame) -> Some (Frame.position frame)
+               | Some p, Some (_, frame) -> Some (max p (Frame.position frame)))
            None frames)
 
     method seek_source =
@@ -144,7 +146,7 @@ class audio_add ~renorm ~power ~field tracks =
         (fun { data; fields } ->
           match data with
             | None -> ()
-            | Some frame ->
+            | Some (_, frame) ->
                 List.iter
                   (fun { field; weight } ->
                     let track_pcm =
@@ -166,42 +168,54 @@ class video_add ~field ~add tracks =
 
     method private generate_frame =
       let frames = self#generate_frames in
-      let pos = self#frames_position frames in
-      let vbuf =
-        Content.Video.make ~length:pos
-          (Content.Video.get_params (Frame.Fields.find field self#content_type))
-      in
-      let ( ! ) = Frame.video_of_main in
+      let length = self#frames_position frames in
       let frames =
         List.fold_left
           (fun frames { data; fields } ->
             match data with
               | None -> frames
-              | Some frame ->
+              | Some (source, frame) ->
                   frames
                   @ List.map
-                      (fun { position; field } -> (position, field, frame))
+                      (fun { position; field } ->
+                        ( position,
+                          source#last_image field,
+                          Content.Video.get_data (Frame.get frame field) ))
                       fields)
           [] frames
       in
       let frames =
         List.sort (fun (p, _, _) (p', _, _) -> Stdlib.compare p p') frames
       in
-      List.iteri
-        (fun rank (position, field, tmp) ->
-          let vtmp = Content.Video.get_data (Frame.get tmp field) in
-          for i = 0 to !pos - 1 do
-            let img =
-              if rank = 0 then Video.Canvas.get vtmp i
-              else
-                add position (Video.Canvas.get vtmp i) (Video.Canvas.get vbuf i)
-            in
-            Video.Canvas.set vbuf i img
-          done)
-        frames;
-      let buf = Frame.create ~length:pos Frame.Fields.empty in
-      let buf = Frame.Fields.add field (Content.Video.lift_data vbuf) buf in
-      self#set_metadata buf
+      let create, frames =
+        match frames with
+          | [] ->
+              ( (fun ~pos:_ ~width ~height () ->
+                  Video.Canvas.Image.create width height),
+                [] )
+          | (_, last_image, data) :: rest ->
+              ( (fun ~pos ~width:_ ~height:_ () ->
+                  self#nearest_image ~pos ~last_image data),
+                rest )
+      in
+      let buf = self#generate_video ~field ~create length in
+      let data =
+        List.map
+          (fun (pos, img) ->
+            ( pos,
+              List.fold_left
+                (fun img (rank, last_image, data) ->
+                  add rank (self#nearest_image ~pos ~last_image data) img)
+                img frames ))
+          buf.Content.Video.data
+      in
+      let frame =
+        Frame.set_data
+          (Frame.create ~length Frame.Fields.empty)
+          field Content.Video.lift_data
+          { buf with Content.Video.data }
+      in
+      self#set_metadata frame
   end
 
 let get_tracks ~mk_weight p =

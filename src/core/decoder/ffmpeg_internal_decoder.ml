@@ -159,10 +159,9 @@ let mk_video_decoder ~width ~height ~stream ~field codec =
   let pixel_aspect = Av.get_pixel_aspect stream in
   let cb ~buffer frame =
     let img = scale frame in
-    let content = Video.Canvas.single img in
     buffer.Decoder.put_yuva420p ~field
       ~fps:{ Decoder.num = target_fps; den = 1 }
-      content;
+      img;
     let metadata = Avutil.Frame.metadata frame in
     if metadata <> [] then
       Generator.add_metadata buffer.Decoder.generator
