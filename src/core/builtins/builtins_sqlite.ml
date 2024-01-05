@@ -43,7 +43,7 @@ let insert_value_constr =
       (fun ~subtype:_ ~satisfies b ->
         let rec check typ =
           match (deref typ).descr with
-            | Var _ -> satisfies b
+            | Var _ -> satisfies typ
             | Nullable typ -> check typ
             | Custom { typ = Ground.Float.Type }
             | Custom { typ = Ground.Int.Type }

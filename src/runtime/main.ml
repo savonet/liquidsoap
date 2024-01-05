@@ -161,6 +161,7 @@ let load_libs () =
 
 let lang_doc name =
   run_streams := false;
+  Typing.do_occur_check := false;
   load_libs ();
   try Lang_string.kprint_string ~pager:true (Doc.Value.print name)
   with Not_found -> Printf.printf "Plugin not found!\n%!"
