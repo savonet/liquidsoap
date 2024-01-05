@@ -54,22 +54,16 @@ class muxer tracks =
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private sources_ready = List.for_all (fun s -> s#is_ready) sources
-
-    method private can_generate_frame =
-      Generator.length self#buffer > 0 || self#sources_ready
+    method private can_generate_frame = self#sources_ready
 
     method! seek len =
-      let gen_len = min (Generator.length self#buffer) len in
-      Generator.truncate self#buffer gen_len;
-      if gen_len = len then len
-      else (
-        let s = self#seek_source in
-        if s == (self :> Source.source) then (
-          self#log#info
-            "Operator is muxing from multiple sources and cannot seek without \
-             risking losing content synchronization!";
-          gen_len)
-        else gen_len + s#seek (len - gen_len))
+      let s = self#seek_source in
+      if s == (self :> Source.source) then (
+        self#log#info
+          "Operator is muxing from multiple sources and cannot seek without \
+           risking losing content synchronization!";
+        len)
+      else s#seek len
 
     method seek_source =
       match
@@ -83,51 +77,27 @@ class muxer tracks =
         | _ -> (self :> Source.source)
 
     method remaining =
-      match
-        ( Generator.remaining self#buffer,
-          List.fold_left
-            (fun r s -> if r = -1 then s#remaining else min r s#remaining)
-            (-1)
-            (List.filter (fun (s : Source.source) -> s#is_ready) sources) )
-      with
-        | -1, r -> r
-        | r, _ -> r
+      List.fold_left
+        (fun r s -> if r = -1 then s#remaining else min r s#remaining)
+        (-1)
+        (List.filter (fun (s : Source.source) -> s#is_ready) sources)
 
-    method private feed_track ~buf { source_field; target_field; processor } =
-      let c = Frame.get buf source_field in
-      match source_field with
-        | f when f = Frame.Fields.metadata ->
-            List.iter
-              (fun (pos, m) -> Generator.add_metadata ~pos self#buffer m)
-              (Content.Metadata.get_data c)
-        | f when f = Frame.Fields.track_marks ->
-            List.iter
-              (fun pos -> Generator.add_track_mark ~pos self#buffer)
-              (Content.Track_marks.get_data c)
-        | _ -> Generator.put self#buffer target_field (processor c)
-
-    method private feed_fields { fields; source } =
-      if source#is_ready then (
-        let buf = source#get_frame in
-        List.iter (self#feed_track ~buf) fields)
-
-    method private feed =
-      if self#sources_ready then List.iter self#feed_fields tracks
-
-    (* The implementation:
-       - Keeps a global buffer of generated data.
-       - Clears the global buffer at the end of each
-         streaming cycle.
-
-       This means that we do not buffer beyond the current
-       frame and, also, that if one source becomes unavailable
-       while streaming, we end all tracks when this source drops
-       off. *)
     method generate_frame =
-      self#feed;
-      Generator.slice self#buffer (Lazy.force Frame.size)
-
-    initializer self#on_after_output (fun () -> Generator.clear self#buffer)
+      let length = Lazy.force Frame.size in
+      let pos, frame =
+        List.fold_left
+          (fun (pos, frame) { fields; source } ->
+            let buf = source#get_frame in
+            ( min pos (Frame.position buf),
+              List.fold_left
+                (fun frame { source_field; target_field; processor } ->
+                  let c = processor (Frame.get buf source_field) in
+                  Frame.set frame target_field c)
+                frame fields ))
+          (length, Frame.create ~length Frame.Fields.empty)
+          tracks
+      in
+      Frame.slice frame pos
   end
 
 let muxer_operator p =

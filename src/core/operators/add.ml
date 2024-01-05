@@ -84,7 +84,7 @@ class virtual base ~name tracks =
              match (pos, data) with
                | _, None -> pos
                | None, Some (_, frame) -> Some (Frame.position frame)
-               | Some p, Some (_, frame) -> Some (min p (Frame.position frame)))
+               | Some p, Some (_, frame) -> Some (max p (Frame.position frame)))
            None frames)
 
     method seek_source =
@@ -139,10 +139,9 @@ class audio_add ~renorm ~power ~field tracks =
       in
       let total_weight = if power then sqrt total_weight else total_weight in
       let pos = self#frames_position frames in
-      let audio_len = Frame.audio_of_main pos in
       let buf = Frame.create ~length:pos self#content_type in
       let pcm = Content.Audio.get_data (Frame.get buf field) in
-      Audio.clear pcm 0 audio_len;
+      Audio.clear pcm 0 (Audio.length pcm);
       List.iter
         (fun { data; fields } ->
           match data with
@@ -154,6 +153,7 @@ class audio_add ~renorm ~power ~field tracks =
                       Content.Audio.get_data (Frame.get frame field)
                     in
                     let c = if renorm then weight /. total_weight else weight in
+                    let audio_len = Audio.length track_pcm in
                     if c <> 1. then Audio.amplify c track_pcm 0 audio_len;
                     Audio.add pcm 0 track_pcm 0 audio_len)
                   fields)

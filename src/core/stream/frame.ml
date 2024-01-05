@@ -143,4 +143,4 @@ let free_metadata frame pos =
   in
   Content.Metadata.set_data new_metadata
     (List.filter (fun (p, _) -> p <> pos) (Content.Metadata.get_data metadata));
-  Fields.add Fields.metadata metadata frame
+  Fields.add Fields.metadata new_metadata frame

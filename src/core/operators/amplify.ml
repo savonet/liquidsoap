@@ -35,16 +35,13 @@ class amplify ~field (source : source) override_field coeff =
     method self_sync = source#self_sync
 
     method private process buf =
-      let content = Frame.get buf field in
       let k = match override with Some o -> o | None -> coeff () in
-      let content =
-        if k <> 1. then (
-          let data = Content.Audio.get_data content in
-          Audio.amplify k data 0 (Frame.audio_of_main (Content.length content));
-          Content.Audio.lift_data data)
-        else content
-      in
-      Frame.set buf field content
+      if k <> 1. then (
+        let content = Frame.get buf field in
+        let data = Content.Audio.get_data content in
+        Audio.amplify k data 0 (Audio.length data);
+        Frame.set_data buf field Content.Audio.lift_data data)
+      else buf
 
     method private set_override buf =
       match override_field with
