@@ -23,6 +23,7 @@
 open Mm
 open Source
 open Extralib
+module Pcre = Re.Pcre
 
 let video_frei0r = Lang.add_module ~base:Modules.video "frei0r"
 
@@ -39,7 +40,7 @@ let frei0r_enable =
 let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_FREI0R_PATH" in
-    Pcre.split ~pat:":" path
+    Pcre.split ~rex:(Pcre.regexp ":") path
   with Not_found -> Frei0r.default_paths
 
 class frei0r_filter ~name bgra instance params (source : source) =
@@ -324,7 +325,7 @@ let register_plugin fname =
   let explanation =
     let e = info.Frei0r.explanation in
     let e = String.capitalize_ascii e in
-    let e = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") e in
+    let e = Pcre.substitute ~rex:(Pcre.regexp "@") ~subst:(fun _ -> "(at)") e in
     if e = "" then e
     else if e.[String.length e - 1] = '.' then
       String.sub e 0 (String.length e - 1)
@@ -332,7 +333,7 @@ let register_plugin fname =
   in
   let author =
     let a = info.Frei0r.author in
-    let a = Pcre.substitute ~pat:"@" ~subst:(fun _ -> "(at)") a in
+    let a = Pcre.substitute ~rex:(Pcre.regexp "@") ~subst:(fun _ -> "(at)") a in
     a
   in
   let descr = Printf.sprintf "%s (by %s)." explanation author in

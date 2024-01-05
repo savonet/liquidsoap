@@ -22,6 +22,7 @@
 
 open Value
 open Ground
+module Pcre = Re.Pcre
 
 type decode_type = [ `Raw | `Internal ]
 type content_type = [ `Audio | `Video ]
@@ -118,8 +119,8 @@ let stream_media_type ~to_pos ~to_static_string name args =
   match (name, args) with
     | _ when has_content ~to_static_string "audio_content" args -> `Audio
     | _ when has_content ~to_static_string "video_content" args -> `Video
-    | _ when Pcre.pmatch ~pat:"audio" name -> `Audio
-    | _ when Pcre.pmatch ~pat:"video" name -> `Video
+    | _ when Pcre.pmatch ~rex:(Pcre.regexp "audio") name -> `Audio
+    | _ when Pcre.pmatch ~rex:(Pcre.regexp "video") name -> `Video
     | _ -> (
         match List.assoc_opt "codec" args with
           | Some t -> (
