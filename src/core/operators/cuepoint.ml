@@ -133,6 +133,11 @@ class cue_cut ~m_cue_in ~m_cue_out ~on_cue_in ~on_cue_out source_val =
       in
 
       let buf = Frame.add_track_mark buf 0 in
+      let buf =
+        match (Frame.get_all_metadata buf, source#last_metadata) with
+          | [], Some m -> Frame.add_metadata buf 0 m
+          | _ -> buf
+      in
 
       match out_pos with
         | None ->
