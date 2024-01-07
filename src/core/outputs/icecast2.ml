@@ -218,6 +218,12 @@ let proto frame_t =
       ("name", Lang.nullable_t Lang.string_t, Some Lang.null, None);
       ("host", Lang.string_t, Some (Lang.string "localhost"), None);
       ("port", Lang.int_t, Some (Lang.int 8000), None);
+      ( "prefer_address",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some
+          "Preferred address type when resolving hostnames. One of: `\"ipv4\"` \
+           or `\"ipv6\"`. Defaults to system default when `null`." );
       ( "transport",
         Lang.http_transport_base_t,
         Some (Lang.base_http_transport Http.unix_transport),
@@ -421,6 +427,27 @@ class output p =
   let host = s "host" in
   let port = e Lang.to_int "port" in
   let transport = e Lang.to_http_transport "transport" in
+  let prefer_address =
+    let v = List.assoc "prefer_address" p in
+    match Lang.to_valued_option Lang.to_string v with
+      | None -> `System_default
+      | Some "ipv4" -> `Ipv4
+      | Some "ipv6" -> `Ipv6
+      | Some _ ->
+          raise (Error.Invalid_value (v, "Valid values are: 'ipv4' or 'ipv6'."))
+  in
+  let transport = (transport :> Cry.transport) in
+  let transport =
+    object
+      method name = transport#name
+      method protocol = transport#protocol
+      method default_port = transport#default_port
+
+      method connect ?bind_address ?timeout ?prefer =
+        transport#connect ?bind_address ?timeout
+          ~prefer:(Option.value ~default:prefer_address prefer)
+    end
+  in
   let user =
     match (protocol, s_opt "user") with
       | Cry.Http _, None -> "source"
@@ -450,7 +477,6 @@ class output p =
         f (Lang.to_product v))
       (Lang.to_list (List.assoc "headers" p))
   in
-  let transport = (transport :> Cry.transport) in
   let connection = Cry.create ~timeout ~transport ?connection_timeout () in
   object (self)
     inherit

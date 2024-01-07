@@ -25,7 +25,13 @@ and transport =
   < name : string
   ; protocol : string
   ; default_port : int
-  ; connect : ?bind_address:string -> ?timeout:float -> string -> int -> socket
+  ; connect :
+      ?bind_address:string ->
+      ?timeout:float ->
+      ?prefer:[ `System_default | `Ipv4 | `Ipv6 ] ->
+      string ->
+      int ->
+      socket
   ; server : server >
 
 let connect = Cry.unix_connect
@@ -48,8 +54,8 @@ and unix_transport () =
     method protocol = Cry.unix_transport#protocol
     method default_port = Cry.unix_transport#default_port
 
-    method connect ?bind_address ?timeout host port =
-      let fd = Cry.unix_connect ?bind_address ?timeout host port in
+    method connect ?bind_address ?timeout ?prefer host port =
+      let fd = Cry.unix_connect ?bind_address ?timeout ?prefer host port in
       unix_socket fd
 
     method server =

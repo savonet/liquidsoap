@@ -209,7 +209,7 @@ let transport ~read_timeout ~write_timeout ~certificate ~key () =
     method protocol = "https"
     method default_port = 443
 
-    method connect ?bind_address ?timeout host port =
+    method connect ?bind_address ?timeout ?prefer host port =
       let domain = Domain_name.host_exn (Domain_name.of_string_exn host) in
       let authenticator = Result.get_ok (Ca_certs.authenticator ()) in
       let certificate_authenticator =
@@ -233,7 +233,7 @@ let transport ~read_timeout ~write_timeout ~certificate ~key () =
               if Result.is_ok r then r else authenticator ?ip ~host certs
       in
       let client = Tls.Config.client ~authenticator ~peer_name:domain () in
-      let fd = Http.connect ?bind_address ?timeout host port in
+      let fd = Http.connect ?bind_address ?timeout ?prefer host port in
       let session = Liq_tls.init_client ~client fd in
       tls_socket ~session self
 
