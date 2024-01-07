@@ -50,7 +50,7 @@
     (mm (>= 0.8.4))
     (pcre (>= 7.5.0))
     (ocurl (>= 0.9.2))
-    (cry (>= 1.0.0))
+    (cry (>= 1.0.2))
     (camomile (>= 2.0.0))
     uri
     fileutils

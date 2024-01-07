@@ -4,6 +4,7 @@ New:
 
 - Added support for `id3v2` metadata in `output.*.hls` when
   using `%mp3`, `%shine` or `%fdkaac` encoders (#3604)
+- Added option to set preferred address class (`ipv4`, `ipv6 or system default) when resolving hostnames in http transports and `output.icecast`
 
 Changed:
 
