@@ -32,6 +32,16 @@ let conf_ffmpeg_decoder =
 let conf_codecs =
   Dtools.Conf.unit ~p:(conf_ffmpeg_decoder#plug "codecs") "Codecs settings"
 
+let conf_max_interleave_duration =
+  Dtools.Conf.float
+    ~p:(conf_ffmpeg_decoder#plug "max_interleave_duration")
+    ~d:5. "Maximum data buffered while waiting for all streams."
+
+let conf_max_interleave_delta =
+  Dtools.Conf.float
+    ~p:(conf_ffmpeg_decoder#plug "max_interleave_delta")
+    ~d:0.04 "Maximum delay between interleaved streams."
+
 let conf_codecs =
   let codecs = Hashtbl.create 10 in
   List.iter
