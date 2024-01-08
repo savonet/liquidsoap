@@ -27,6 +27,14 @@ let _ =
     ~descr:"Create a request from an URI."
     [
       ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
+      ( "cue_in_metadata",
+        Lang.nullable_t Lang.string_t,
+        Some (Lang.string "liq_cue_in"),
+        Some "Metadata for cue in points. Disabled if `null`." );
+      ( "cue_out_metadata",
+        Lang.nullable_t Lang.string_t,
+        Some (Lang.string "liq_cue_out"),
+        Some "Metadata for cue out points. Disabled if `null`." );
       ( "persistent",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -50,6 +58,12 @@ let _ =
       let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
       let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
+      let cue_in_metadata =
+        Lang.to_valued_option Lang.to_string (List.assoc "cue_in_metadata" p)
+      in
+      let cue_out_metadata =
+        Lang.to_valued_option Lang.to_string (List.assoc "cue_out_metadata" p)
+      in
       let initial = Lang.to_string (List.assoc "" p) in
       let l = String.length initial in
       let initial =
@@ -66,7 +80,8 @@ let _ =
         else indicators
       in
       Request.Value.to_value
-        (Request.create ~resolve_metadata ~persistent ~indicators initial))
+        (Request.create ~resolve_metadata ~persistent ~indicators
+           ?cue_in_metadata ?cue_out_metadata initial))
 
 let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap
