@@ -13,7 +13,9 @@ Changed:
 
 Fixed:
 
-- Pop/click at the end of fade out/in (#3318)
+- Fix pop/click at the end of fade out/in (#3318)
+- Fix audio/video synchronization issues when decoding
+  live streams using ffmpeg.
 
 ---
 
