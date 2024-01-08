@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 1.03075194359
+  unit: "s"
+  time: 1704732865.07
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.89150094986
+  unit: "s"
+  time: 1704732866.96
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 3.52337503433
+  unit: "s"
+  time: 1704732870.49
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 7.58179283142
+  unit: "s"
+  time: 1704732878.07
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2217.
+  unit: "functions"
+  time: 1704732963.66
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1704732963.66
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 180.1875
+  unit: "Mio"
+  time: 1704732966.46
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 852.5
+  unit: "Mio"
+  time: 1704732966.46
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1704732966.46
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1704732966.46
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 5926.046875
+  unit: "Mio"
+  time: 1704732966.46
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 5926.046875
+  unit: "Mio"
+  time: 1704732966.46
+  min: 0.
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.33160018921
+  unit: "s"
+  time: 1704733116.52
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.48779988289
+  unit: "s"
+  time: 1704733205.96
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 4.0615708828
+  unit: "s"
+  time: 1704733210.02
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1704733213.96
+  min: 0.
+
+- commit: f7d05d63d62719c0d8a0aee3f13df88d11e7eaa0
+  branch: wait-for-all-streams
+  time: 1704733214
