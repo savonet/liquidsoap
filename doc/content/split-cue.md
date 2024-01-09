@@ -23,10 +23,6 @@ with `id3v2` tags:
  # returned value:
  s = snd(x)
 
- # Add a cue_cut to cue-in/cue-out according to
- # markers in "sheet.cue"
- s = cue_cut(s)
-
  # Shove all that to a output.file operator.
  output.file(%mp3(id3v2=true,bitrate=320),
              fallible=true,
