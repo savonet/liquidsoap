@@ -10,11 +10,9 @@ is_first = ref(true)
 
 def on_frame() =
   if
-    is_first() and 5. <= source.duration(s)
+    is_first()
   then
-    test.pass()
-  else
-    test.fail()
+    if 5. <= source.duration(s) then test.pass() else test.fail() end
   end
   is_first := false
 end
