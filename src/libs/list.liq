@@ -198,6 +198,28 @@ def list.assoc(~default=null(), key, l) =
   end
 end
 
+# `list.assoc.mem(key,l)` returns `true` if `l` contains a pair (key,value).
+# @category List
+# @param a Key to look for.
+# @param l List of pairs (key,value).
+def list.assoc.mem(a, l) =
+  err = error.register("find")
+  try
+    list.iter(fun (el) -> if fst(el) == a then error.raise(err, "found") end, l)
+    false
+  catch _ : [err] do
+    true
+  end
+end
+
+# Associate a value to a key in an association list. This functions is similar
+# to `list.assoc` excepting that it returns `null` if no value exists for the
+# key.
+# @category List
+def list.assoc.nullable(key, l) =
+  if list.assoc.mem(key, l) then list.assoc(key, l) else null() end
+end
+
 # Keep only the elements of an association list satisfying a given predicate.
 # @category List
 def list.assoc.filter(p, l) =
@@ -321,20 +343,6 @@ end
 # @param l List
 def list.index(p, l) =
   list.ind(l, 0, fun (x, _, r) -> if p(x) then 0 else r + 1 end)
-end
-
-# `list.assoc.mem(key,l)` returns `true` if `l` contains a pair (key,value).
-# @category List
-# @param a Key to look for
-# @param l List of pairs (key,value)
-def list.assoc.mem(a, l) =
-  err = error.register("find")
-  try
-    list.iter(fun (el) -> if fst(el) == a then error.raise(err, "found") end, l)
-    false
-  catch _ : [err] do
-    true
-  end
 end
 
 # Create an iterator over the elements of a list.
