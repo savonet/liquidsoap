@@ -652,7 +652,9 @@ let get_decoder r =
                       if Frame.is_partial frame then
                         r.logger#important
                           "End of track reached before cue-out point!";
-                      min rem (cue_out - new_pos)))
+                      match (rem, cue_out - new_pos) with
+                        | -1, r -> r
+                        | r, r' -> min r r'))
         in
         Some { decoder with fill }
 
