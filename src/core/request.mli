@@ -43,6 +43,8 @@ val create :
   ?metadata:(string * string) list ->
   ?persistent:bool ->
   ?indicators:indicator list ->
+  cue_in_metadata:string option ->
+  cue_out_metadata:string option ->
   string ->
   t
 

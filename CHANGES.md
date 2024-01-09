@@ -9,6 +9,7 @@ New:
 Changed:
 
 - Disable safety type checks when displaying `-h` help documentation to speed it up. Similar to passing `--unsafe`. Suggested by @gilou!
+- `cue_cut` operator has been removed. Cueing mechanisms have been moved to underlying file-based sources. See migration notes for more details.
 
 Fixed:
 
