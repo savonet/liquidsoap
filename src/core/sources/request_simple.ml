@@ -81,7 +81,7 @@ class unqueued ~timeout request =
     method get_next_file = `Request request
   end
 
-class queued uri prefetch timeout =
+class queued uri ~cue_in_metadata ~cue_out_metadata prefetch timeout =
   object (self)
     inherit Request_source.queued ~name:"single" ~prefetch ~timeout () as super
 
@@ -93,7 +93,7 @@ class queued uri prefetch timeout =
     * in the metadatas of the request. *)
     method private create_request ?(metadata = []) =
       let metadata = ("source", self#id) :: metadata in
-      Request.create ~metadata
+      Request.create ~metadata ~cue_in_metadata ~cue_out_metadata
 
     method get_next_request = `Request (self#create_request uri)
   end
@@ -107,22 +107,40 @@ let single =
       "Loop on a request. It never fails if the request is static, meaning \
        that it can be fetched once. Typically, http, ftp, say requests are \
        static, and time is not."
-    (("", Lang.string_t, None, Some "URI where to find the file")
-    :: ( "fallible",
+    ([
+       ("", Lang.string_t, None, Some "URI where to find the file");
+       ( "fallible",
          Lang.bool_t,
          Some (Lang.bool false),
-         Some "Enforce fallibility of the request." )
-    :: queued_proto)
+         Some "Enforce fallibility of the request." );
+       ( "cue_in_metadata",
+         Lang.nullable_t Lang.string_t,
+         Some (Lang.string "liq_cue_in"),
+         Some "Metadata for cue in points. Disabled if `null`." );
+       ( "cue_out_metadata",
+         Lang.nullable_t Lang.string_t,
+         Some (Lang.string "liq_cue_out"),
+         Some "Metadata for cue out points. Disabled if `null`." );
+     ]
+    @ queued_proto)
     ~return_t
     (fun p ->
       let val_uri = List.assoc "" p in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let l, t = extract_queued_params p in
+      let cue_in_metadata =
+        Lang.to_valued_option Lang.to_string (List.assoc "cue_in_metadata" p)
+      in
+      let cue_out_metadata =
+        Lang.to_valued_option Lang.to_string (List.assoc "cue_out_metadata" p)
+      in
       let uri = Lang.to_string val_uri in
       if (not fallible) && Request.is_static uri then (
-        let request = Request.create ~persistent:true uri in
+        let request =
+          Request.create ~cue_in_metadata ~cue_out_metadata ~persistent:true uri
+        in
         (new unqueued ~timeout:t request :> source))
-      else (new queued uri l t :> source))
+      else (new queued ~cue_in_metadata ~cue_out_metadata uri l t :> source))
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in

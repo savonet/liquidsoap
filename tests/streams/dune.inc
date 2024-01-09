@@ -201,6 +201,28 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  cue-cut.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} cue-cut.liq liquidsoap %{test_liq} cue-cut.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   dtmf.liq
   ./file1.mp3
   ./file2.mp3
@@ -548,6 +570,28 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} never.liq liquidsoap %{test_liq} never.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  no-cue-cut.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} no-cue-cut.liq liquidsoap %{test_liq} no-cue-cut.liq)))
 
 (rule
  (alias citest)

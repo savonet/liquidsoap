@@ -549,7 +549,7 @@ let clean () =
   Pool.clear ()
 
 let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
-    ?(indicators = []) ?cue_in_metadata ?cue_out_metadata u =
+    ?(indicators = []) ~cue_in_metadata ~cue_out_metadata u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in

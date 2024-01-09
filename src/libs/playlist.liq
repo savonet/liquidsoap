@@ -104,7 +104,7 @@ end
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
 # @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri Path to the playlist
-def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., ~cue_in_metadata="liq_cue_in", ~cue_out_metadata="liq_cue_out", uri) =
+def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., ~cue_in_metadata=null("liq_cue_in"), ~cue_out_metadata=null("liq_cue_out"), uri) =
   id = id ?? playlist.id(default="playlist.files", uri)
   if file.is_directory(uri) then
     log.info(label=id, "Playlist is a directory.")
@@ -168,7 +168,7 @@ let stdlib_native = native
 # @method remaining_files Songs remaining to be played.
 def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
                   ~mode="normal", ~native=false, ~on_loop={()}, ~on_done={()}, ~max_fail=10,
-                  ~cue_in_metadata="liq_cue_in", ~cue_out_metadata="liq_cue_out",
+                  ~cue_in_metadata=null("liq_cue_in"), ~cue_out_metadata=null("liq_cue_out"),
                   ~on_fail=null(), ~timeout=20., playlist)
   id = string.id.default(default="playlist.list", id)
   ignore(native)
@@ -366,8 +366,8 @@ def replaces playlist(
   ~reload=0,
   ~reload_mode="seconds",
   ~timeout=20.,
-  ~cue_in_metadata="liq_cue_in",
-  ~cue_out_metadata="liq_cue_out",
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
   uri
 ) =
   id = id ?? playlist.id(default="playlist", uri)
@@ -429,7 +429,9 @@ def replaces playlist(
 
   s = playlist.list(
     id=id, check_next=check_next, prefetch=prefetch, loop=loop, mode=mode,
-    native=native, on_loop=on_loop, on_fail=on_fail, timeout=timeout, files())
+    native=native, on_loop=on_loop, on_fail=on_fail, timeout=timeout,
+    cue_in_metadata=cue_in_metadata, cue_out_metadata=cue_out_metadata,
+    files())
 
   # The reload function
   def s.reload(~empty_queue=true, ~uri=null()) =

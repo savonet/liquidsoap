@@ -81,7 +81,7 @@ let _ =
       in
       Request.Value.to_value
         (Request.create ~resolve_metadata ~persistent ~indicators
-           ?cue_in_metadata ?cue_out_metadata initial))
+           ~cue_in_metadata ~cue_out_metadata initial))
 
 let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap
