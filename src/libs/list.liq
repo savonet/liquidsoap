@@ -217,7 +217,11 @@ end
 # key.
 # @category List
 def list.assoc.nullable(key, l) =
-  if list.assoc.mem(key, l) then list.assoc(key, l) else null() end
+  try
+    list.assoc(key, l)
+  catch _ do
+    null()
+  end
 end
 
 # Keep only the elements of an association list satisfying a given predicate.
