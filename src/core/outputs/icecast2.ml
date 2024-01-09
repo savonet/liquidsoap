@@ -220,7 +220,7 @@ let proto frame_t =
       ("port", Lang.int_t, Some (Lang.int 8000), None);
       ( "prefer_address",
         Lang.nullable_t Lang.string_t,
-        Some Lang.null,
+        Some (Lang.string "ipv4"),
         Some
           "Preferred address type when resolving hostnames. One of: `\"ipv4\"` \
            or `\"ipv6\"`. Defaults to system default when `null`." );
