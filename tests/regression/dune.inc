@@ -32,7 +32,6 @@
   3553.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
-  ../streams/file1.png
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
@@ -337,19 +336,6 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} GH3093.liq liquidsoap %{test_liq} GH3093.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH3121.liq
-  ../media/all_media_files
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH3121.liq liquidsoap %{test_liq} GH3121.liq)))
 
 (rule
  (alias citest)

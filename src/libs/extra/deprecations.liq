@@ -16,9 +16,7 @@ def deprecated(old, new) =
     end
   log.severe(
     label="lang.deprecated",
-    "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{
-      new
-    }"
+    "WARNING: \"#{old}\" is deprecated and will be removed in future version.#{new}"
   )
 end
 
