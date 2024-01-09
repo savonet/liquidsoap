@@ -38,9 +38,7 @@ let conf_cue_in_metadata =
          request with";
         "a cue-in metadata containing the index. If you want to make use of \
          this index,";
-        "you should specify here what label you want for this metadata and use \
-         the cue_cut";
-        "operator on the resulting source";
+        "you should specify here what label you want for this metadata.";
       ]
 
 let conf_cue_out_metadata =
@@ -54,9 +52,7 @@ let conf_cue_out_metadata =
          request with";
         "a cue-in metadata containing the index. If you want to make use of \
          this index,";
-        "you should specify here what label you want for this metadata and use \
-         the cue_cut";
-        "operator on the resulting source";
+        "you should specify here what label you want for this metadata.";
       ]
 
 (** A playlist is list of metadatas,uri *)

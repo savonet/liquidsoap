@@ -80,7 +80,7 @@
  *
  * About dependent clocks:
  * - The following is mostly implemented in [Child_support] for reference.
- * - In some operators such as [cross], [cue_cut], [soundtouch] and etc, the main
+ * - In some operators such as [cross], [soundtouch] and etc, the main
  *   operator wants full control over the children's clock.
  * - In this case, the children's source must all be statically non [self_sync]
  * - A main clock and a children clock are created. All children are placed in the
