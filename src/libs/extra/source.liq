@@ -274,6 +274,7 @@ def source.cue(s, filename, ~title=null(), ~performer=null(), ~file=null()) =
 
   # Append to the file.
   def w(data) =
+    data = data ^ "\n"
     stdlib_file.write(append=true, data=data, filename)
   end
 
@@ -283,7 +284,7 @@ def source.cue(s, filename, ~title=null(), ~performer=null(), ~file=null()) =
       null.defined(value)
     then
       s =
-        "#{string.spaces(indent)} #{name} \"#{null.get(value)}\""
+        "#{string.spaces(indent)}#{name} \"#{null.get(value)}\""
       w(s)
     end
   end
