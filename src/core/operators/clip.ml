@@ -29,16 +29,16 @@ class clip ~field (source : source) =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = Content.Audio.get_data (Frame.get buf field) in
-      let position = AFrame.position buf in
-      Audio.clip b offset (position - offset)
+    method private generate_frame =
+      let c = source#get_mutable_content field in
+      let b = Content.Audio.get_data c in
+      let position = source#frame_audio_position in
+      Audio.clip b 0 position;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

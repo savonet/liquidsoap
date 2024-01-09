@@ -51,15 +51,13 @@ class board ?duration img0 () =
               (x', y') (x, y);
             last_point <- Some (x, y)
 
-    method private synthesize frame off len =
-      let frame_width, frame_height = self#video_dimensions in
-      let off = Frame.video_of_main off in
-      let len = Frame.video_of_main len in
-      let buf = VFrame.data frame in
-      for i = off to off + len - 1 do
-        buf.(i) <-
-          Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
-      done
+    method private synthesize length =
+      let frame = Frame.create ~length Frame.Fields.empty in
+      let create ~pos:_ ~width ~height () =
+        Video.Canvas.Image.make ~width ~height img
+      in
+      let buf = self#generate_video ~field:Frame.Fields.video ~create length in
+      Frame.set_data frame Frame.Fields.video Content.Video.lift_data buf
   end
 
 let _ =
@@ -90,7 +88,7 @@ let _ =
   let line_to board =
     Lang.val_fun
       [
-        ("color", "c", Some (Lang.int 0xffffff));
+        ("color", "c", Some (Lang.hex_int 0xffffff));
         ("", "x", None);
         ("", "y", None);
       ]

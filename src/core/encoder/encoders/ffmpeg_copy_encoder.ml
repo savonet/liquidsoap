@@ -41,8 +41,8 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
   let initialized_stream = Av.new_uninitialized_stream_copy output in
 
   let mk_stream frame =
-    let { Ffmpeg_content_base.params } =
-      Ffmpeg_copy_content.get_data (Generator.get_field frame field)
+    let { Content.Video.params } =
+      Ffmpeg_copy_content.get_data (Frame.get frame field)
     in
     let mk_stream params =
       let s = Av.initialize_stream_copy ~params initialized_stream in
@@ -164,10 +164,8 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
   in
 
   let encode frame start len =
-    let content = Content.sub (Generator.get_field frame field) start len in
-    let data =
-      (Ffmpeg_copy_content.get_data content).Ffmpeg_content_base.data
-    in
+    let content = Content.sub (Frame.get frame field) start len in
+    let data = (Ffmpeg_copy_content.get_data content).Content.Video.data in
 
     was_keyframe := false;
 

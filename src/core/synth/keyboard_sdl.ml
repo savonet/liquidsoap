@@ -88,15 +88,14 @@ class keyboard velocity =
     inherit Source.active_source ~name:"input.keyboard.sdl" ()
     method seek_source = (self :> Source.source)
     method stype = `Infallible
-    method private _is_ready ?frame:_ _ = true
+    method private can_generate_frame = true
     method remaining = -1
     method abort_track = ()
     method self_sync = (`Static, false)
 
     method output =
       self#has_ticked;
-      if self#is_ready ~frame:self#memo () && AFrame.is_partial self#memo then
-        self#get self#memo
+      if self#is_ready then ignore self#get_frame
 
     val mutable window = None
 
@@ -113,9 +112,7 @@ class keyboard velocity =
     val mutable velocity = velocity
     method reset = ()
 
-    method get_frame frame =
-      assert (0 = MFrame.position frame);
-      let m = MFrame.midi frame in
+    method generate_frame =
       let t =
         let ans = MIDI.create (MFrame.size ()) in
         Sdl.pump_events ();
@@ -148,11 +145,8 @@ class keyboard velocity =
         done;
         ans
       in
-      for c = 0 to Array.length m - 1 do
-        MIDI.clear_all m.(c);
-        MIDI.merge m.(c) t
-      done;
-      MFrame.add_break frame (MFrame.size ())
+      Frame.set_data self#empty_frame Frame.Fields.midi Content.Midi.lift_data
+        [| t |]
   end
 
 let _ =

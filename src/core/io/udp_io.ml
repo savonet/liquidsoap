@@ -108,7 +108,7 @@ class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
 class input ~hostname ~port ~get_stream_decoder ~bufferize =
   let max_length = Some (2 * Frame.main_of_seconds bufferize) in
   object (self)
-    inherit Generated.source ~empty_on_abort:false ~bufferize ()
+    inherit Generated.source ~empty_on_abort:false ~bufferize () as generated
 
     inherit!
       Start_stop.active_source
@@ -119,6 +119,9 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
     val mutable wait_feeding = None
     val mutable decoder_factory = None
     method private decoder_factory = Option.get decoder_factory
+
+    method! private can_generate_frame =
+      super#started && generated#can_generate_frame
 
     method private start =
       begin

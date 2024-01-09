@@ -1,9 +1,6 @@
 log.level.set(4)
 
 def f(m) =
-  print(
-    "Got metadata!"
-  )
   if
     m ==
       [
@@ -15,7 +12,7 @@ def f(m) =
           "s'",
           "That's me!"
         ),
-        ("test", "bla")
+        ("test", "blo")
       ]
   then
     test.pass()
@@ -26,6 +23,7 @@ end
 
 s = sine()
 s = insert_metadata(s)
+
 s' = sine()
 s' = insert_metadata(s')
 

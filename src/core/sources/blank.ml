@@ -33,48 +33,67 @@ class blank duration =
 
     method remaining = remaining
     method stype = `Infallible
-    method private _is_ready ?frame:_ _ = true
+    method private can_generate_frame = true
     method self_sync = (`Static, false)
     method! seek x = x
     method seek_source = (self :> Source.source)
     method abort_track = remaining <- 0
+    val mutable is_first = true
 
-    method get_frame ab =
-      let position = Frame.position ab in
-      let length =
-        if remaining < 0 then Lazy.force Frame.size - position
-        else min remaining (Lazy.force Frame.size - position)
-      in
-      let audio_pos = Frame.audio_of_main position in
+    method generate_frame =
+      let was_first = is_first in
+      is_first <- false;
+      let length = Lazy.force Frame.size in
       let audio_len = Frame.audio_of_main length in
-      let video_pos = Frame.video_of_main position in
-      let video_len = Frame.video_of_main length in
-
-      Frame.Fields.iter
-        (fun field typ ->
-          match typ with
-            | _ when Content.Audio.is_format typ ->
-                Audio.clear
-                  (Content.Audio.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content_pcm_s16.is_format typ ->
-                Content_pcm_s16.clear
-                  (Content_pcm_s16.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content_pcm_f32.is_format typ ->
-                Content_pcm_f32.clear
-                  (Content_pcm_f32.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content.Video.is_format typ ->
-                Video.Canvas.blank
-                  (Content.Video.get_data (Frame.get ab field))
-                  video_pos video_len
-            | _ -> failwith "Invalid content type!")
-        self#content_type;
-
-      Frame.add_break ab (position + length);
-      if Frame.is_partial ab then remaining <- ticks
-      else if remaining > 0 then remaining <- remaining - length
+      let frame =
+        Frame.Fields.fold
+          (fun field format frame ->
+            match format with
+              | _ when Content.Audio.is_format format ->
+                  let data =
+                    Content.Audio.get_data (Content.make ~length format)
+                  in
+                  Audio.clear data 0 audio_len;
+                  Frame.set_data frame field Content.Audio.lift_data data
+              | _ when Content_pcm_s16.is_format format ->
+                  let data =
+                    Content_pcm_s16.get_data (Content.make ~length format)
+                  in
+                  Content_pcm_s16.clear data 0 audio_len;
+                  Frame.set_data frame field Content_pcm_s16.lift_data data
+              | _ when Content_pcm_f32.is_format format ->
+                  let data =
+                    Content_pcm_f32.get_data (Content.make ~length format)
+                  in
+                  Content_pcm_f32.clear data 0 audio_len;
+                  Frame.set_data frame field Content_pcm_f32.lift_data data
+              | _ when Content.Video.is_format format ->
+                  let data =
+                    self#generate_video ~field
+                      ~create:(fun ~pos:_ ~width ~height () ->
+                        let img = Video.Canvas.Image.create width height in
+                        Video.Canvas.Image.iter Video.Image.blank img)
+                      length
+                  in
+                  Frame.set_data frame field Content.Video.lift_data data
+              | _
+                when Content.Metadata.is_format format
+                     || Content.Track_marks.is_format format ->
+                  frame
+              | _ -> failwith "Invalid content type!")
+          self#content_type
+          (Frame.create ~length Frame.Fields.empty)
+      in
+      match (was_first, remaining) with
+        | true, _ -> Frame.add_track_mark frame 0
+        | _, -1 -> frame
+        | _, r ->
+            if r < length then (
+              remaining <- length - r;
+              Frame.add_track_mark frame r)
+            else (
+              remaining <- r - length;
+              frame)
   end
 
 let blank =

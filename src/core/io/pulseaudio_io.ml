@@ -121,7 +121,7 @@ class input p =
     inherit
       Start_stop.active_source
         ~get_clock ~name:"input.pulseaudio" ~clock_safe ~on_start ~on_stop
-          ~autostart:start ~fallible ()
+          ~autostart:start ~fallible () as active_source
 
     inherit base ~client ~device
     method private start = self#open_device
@@ -130,6 +130,7 @@ class input p =
     method remaining = -1
     method abort_track = ()
     method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     method private open_device =
       let ss =
@@ -148,13 +149,13 @@ class input p =
       Pulseaudio.Simple.free (Option.get stream);
       stream <- None
 
-    method get_frame frame =
-      assert (0 = AFrame.position frame);
+    method generate_frame =
+      let size = Lazy.force Frame.size in
+      let frame = Frame.create ~length:size self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let stream = Option.get stream in
-      let len = AFrame.size () in
-      let buf = AFrame.pcm frame in
-      Simple.read stream buf 0 len;
-      AFrame.add_break frame (AFrame.size ())
+      Simple.read stream buf 0 (Frame.audio_of_main size);
+      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let proto =

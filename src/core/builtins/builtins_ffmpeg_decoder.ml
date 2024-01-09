@@ -98,7 +98,7 @@ let decode_audio_frame ~field ~mode generator =
     | `Frame frame ->
         let data, params =
           match Ffmpeg_copy_content.get_data frame with
-            | { Ffmpeg_content_base.data; params = Some (`Audio params) } ->
+            | { Content.Video.data; params = Some (`Audio params) } ->
                 (data, params)
             | _ -> assert false
         in
@@ -165,7 +165,7 @@ let decode_audio_frame ~field ~mode generator =
 
     function
     | `Frame frame ->
-        let { Ffmpeg_content_base.data; params } =
+        let { Content.Video.data; params } =
           Ffmpeg_raw_content.Audio.get_data frame
         in
         let data =
@@ -181,14 +181,14 @@ let decode_audio_frame ~field ~mode generator =
 
   let convert
         : 'a 'b.
-          get_data:(Content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
+          get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
           decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
           [ `Frame of Frame.t | `Flush ] ->
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
         let frame = Frame.get frame field in
-        let { Ffmpeg_content_base.data; _ } = get_data frame in
+        let { Content.Video.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
   in
@@ -253,8 +253,7 @@ let decode_video_frame ~field ~mode generator =
         Ffmpeg_utils.unpack_image ~width:internal_width ~height:internal_height
           (InternalScaler.convert scaler data)
       in
-      let data = Video.Canvas.single_image img in
-      let data = Content.Video.lift_data data in
+      let data = Content.Video.lift_image (Video.Canvas.Image.make img) in
       Generator.put generator field data
     in
 
@@ -318,7 +317,7 @@ let decode_video_frame ~field ~mode generator =
     | `Frame frame ->
         let data, params =
           match Ffmpeg_copy_content.get_data frame with
-            | { Ffmpeg_content_base.data; params = Some (`Video params) } ->
+            | { Content.Video.data; params = Some (`Video params) } ->
                 (data, params)
             | _ -> assert false
         in
@@ -364,7 +363,7 @@ let decode_video_frame ~field ~mode generator =
     let last_params = ref None in
     function
     | `Frame frame ->
-        let { Ffmpeg_content_base.data; _ } =
+        let { Content.Video.data; _ } =
           Ffmpeg_raw_content.Video.get_data frame
         in
         let data =
@@ -385,14 +384,14 @@ let decode_video_frame ~field ~mode generator =
 
   let convert
         : 'a 'b.
-          get_data:(Content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
+          get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
           decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
           [ `Frame of Frame.t | `Flush ] ->
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
         let frame = Frame.get frame field in
-        let { Ffmpeg_content_base.data; _ } = get_data frame in
+        let { Content.Video.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
   in
@@ -460,7 +459,7 @@ let mk_decoder mode =
                    (Frame.get_all_metadata frame);
                  List.iter
                    (fun pos -> Generator.add_track_mark ~pos generator)
-                   (List.filter (fun x -> x < size) (Frame.breaks frame));
+                   (List.filter (fun x -> x < size) (Frame.track_marks frame));
                  decode_frame (`Frame frame)
              | `Flush -> decode_frame `Flush
            in

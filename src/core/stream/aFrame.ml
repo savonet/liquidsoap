@@ -25,42 +25,10 @@ open Frame
 
 type t = Frame.t
 
-(* Samples of ticks, and vice versa. *)
 let sot = audio_of_main
-let tos = main_of_audio
 let content b = try Frame.audio b with Not_found -> raise Content.Invalid
 let pcm b = Content.Audio.get_data (content b)
-
-let to_s16le b =
-  let fpcm = pcm b in
-  assert (Audio.channels fpcm = 2);
-  Audio.S16LE.make fpcm 0 (Audio.length fpcm)
-
 let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
 let position t = sot (position t)
-let breaks t = List.map sot (breaks t)
-let add_break t i = add_break t (tos i)
-let set_breaks t l = set_breaks t (List.map tos l)
-let is_partial = is_partial
-let clear = clear
-
-exception No_metadata
-
-type metadata = Frame.metadata
-
-let set_metadata t i m = set_metadata t (tos i) m
-let get_metadata t i = get_metadata t (tos i)
-
-let get_all_metadata t =
-  List.map (fun (x, y) -> (sot x, y)) (get_all_metadata t)
-
-let set_all_metadata t l =
-  set_all_metadata t (List.map (fun (x, y) -> (tos x, y)) l)
-
-let free_metadata = free_metadata
-let free_all_metadata = free_all_metadata
-let blankify b off len = Audio.clear (pcm b) off len
-let multiply b off len c = Audio.amplify c (pcm b) off len
-let add b1 off1 b2 off2 len = Audio.add (pcm b1) off1 (pcm b2) off2 len
 let rms b off len = Audio.Analyze.rms (pcm b) off len

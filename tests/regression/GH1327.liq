@@ -1,5 +1,7 @@
 log.level.set(5)
+
 selected = ref([])
+
 s1 = blank(duration=0.1)
 
 def m1(_) =
@@ -7,6 +9,7 @@ def m1(_) =
 end
 
 s1 = metadata.map(id="s1", m1, s1)
+
 s2 = blank(duration=0.1)
 
 def m2(_) =
@@ -20,6 +23,7 @@ def f(m) =
 end
 
 s = rotate(weights=[2, 1], [s1, s2])
+
 s.on_track(f)
 
 def m_noise(_) =
@@ -27,7 +31,9 @@ def m_noise(_) =
 end
 
 noise = metadata.map(id="noise", m_noise, noise())
+
 ready = ref(false)
+
 s = switch(track_sensitive=false, [({!ready}, s), ({true}, noise)])
 
 def f(_) =
@@ -35,9 +41,11 @@ def f(_) =
 end
 
 s.on_track(f)
+
 output.dummy(s)
 
 def on_done() =
+  print(!selected)
   s = list.rev(!selected)
   if
     list.nth(default="", s, 0) == "s1"

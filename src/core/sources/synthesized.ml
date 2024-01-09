@@ -30,33 +30,46 @@ class virtual source ?name ~seek duration =
     inherit Source.source ?name ()
     method stype = if track_size = None then `Infallible else `Fallible
     val mutable remaining = track_size
-    method private _is_ready ?frame:_ _ = remaining <> Some 0
-    method! seek x = if seek then x else 0
+    method private can_generate_frame = remaining <> Some 0
+
+    method! seek x =
+      match (seek, remaining) with
+        | false, _ -> 0
+        | true, None -> x
+        | true, Some r when x <= r ->
+            remaining <- Some (r - x);
+            x
+        | true, Some r ->
+            remaining <- Some 0;
+            r
+
     method seek_source = (self :> Source.source)
     method self_sync = (`Static, false)
 
     method remaining =
       match remaining with None -> -1 | Some remaining -> remaining
 
-    val mutable must_fail = false
-    method abort_track = must_fail <- true
-    method virtual private synthesize : Frame.t -> int -> int -> unit
+    val mutable add_track_mark = true
 
-    method private get_frame frame =
-      if must_fail then (
-        Frame.add_break frame (Frame.position frame);
-        must_fail <- false;
-        if track_size <> None then remaining <- Some 0)
-      else (
-        let off = Frame.position frame in
-        let len =
-          match remaining with
-            | None -> Lazy.force Frame.size - off
-            | Some r ->
-                let len = min (Lazy.force Frame.size - off) r in
-                remaining <- Some (r - len);
-                len
-        in
-        self#synthesize frame off len;
-        Frame.add_break frame (off + len))
+    method abort_track =
+      add_track_mark <- true;
+      remaining <- Some (-1)
+
+    method virtual private synthesize : int -> Frame.t
+
+    method private generate_frame =
+      let len =
+        match remaining with
+          | Some -1 | None -> Lazy.force Frame.size
+          | Some r ->
+              let len = min (Lazy.force Frame.size) r in
+              remaining <- Some (r - len);
+              len
+      in
+      let buf = self#synthesize len in
+      if add_track_mark then (
+        add_track_mark <- false;
+        remaining <- track_size;
+        Frame.add_track_mark buf 0)
+      else buf
   end

@@ -22,65 +22,48 @@
 
 class merge_metadata tracks =
   let sources = List.map snd tracks in
-  let stype =
-    if List.for_all (fun s -> s#stype = `Infallible) sources then `Infallible
-    else `Fallible
-  in
   let self_sync_type = Utils.self_sync_type sources in
   object (self)
     inherit Source.operator ~name:"track.metadata.merge" sources
     initializer Typing.(self#frame_type <: Lang.unit_t)
-    method stype = stype
+    method stype = `Infallible
 
     method self_sync =
-      (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
+      ( Lazy.force self_sync_type,
+        List.exists (fun s -> s#is_ready && snd s#self_sync) sources )
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
+    method private ready_sources = List.filter (fun s -> s#is_ready) sources
+    method private can_generate_frame = self#ready_sources <> []
 
-    method private _is_ready ?frame () =
-      List.for_all (fun s -> s#is_ready ?frame ()) sources
+    method seek_source =
+      match self#ready_sources with
+        | s :: [] -> s
+        | _ -> (self :> Source.source)
 
-    method seek_source = (self :> Source.source)
-    method remaining = -1
-    val mutable track_frames = []
+    method remaining =
+      match self#ready_sources with s :: [] -> s#remaining | _ -> -1
 
-    method private track_frame source =
-      try List.assq source track_frames
-      with Not_found ->
-        let f = Frame.create source#content_type in
-        track_frames <- (source, f) :: track_frames;
-        f
-
-    method get_frame buf =
-      let pos = Frame.position buf in
-      let max_pos =
-        List.fold_left
-          (fun max_pos (source : Source.source) ->
-            let tmp_frame = self#track_frame source in
-            if source#is_ready ~frame:tmp_frame () && Frame.is_partial tmp_frame
-            then (
-              source#get tmp_frame;
-              List.iter
-                (fun (p, m) ->
-                  if pos <= p then (
-                    let m =
-                      match Frame.get_metadata buf p with
-                        | None -> m
-                        | Some m' ->
-                            Frame.Metadata.fold
-                              (fun lbl v m -> Frame.Metadata.add lbl v m)
-                              m' m
-                    in
-                    Frame.set_metadata buf p m))
-                (Frame.get_all_metadata tmp_frame));
-            max max_pos (Frame.position tmp_frame))
-          (Frame.position buf) sources
-      in
-      Frame.add_break buf max_pos
-
-    initializer
-      self#on_after_output (fun () ->
-          List.iter (fun (_, frame) -> Frame.clear frame) track_frames)
+    method private generate_frame =
+      match self#ready_sources with
+        | [] -> assert false
+        | s :: rest ->
+            List.fold_left
+              (fun frame source ->
+                let l = Frame.get_all_metadata source#get_frame in
+                let l =
+                  List.fold_left
+                    (fun l (pos, m) ->
+                      ( pos,
+                        Frame.Metadata.append
+                          (Option.value ~default:Frame.Metadata.empty
+                             (Frame.get_metadata frame pos))
+                          m )
+                      :: l)
+                    [] l
+                in
+                Frame.add_all_metadata frame l)
+              s#get_frame rest
   end
 
 let _ =

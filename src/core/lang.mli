@@ -277,6 +277,8 @@ val http_transport_base_t : t
 
 val unit : value
 val int : int -> value
+val octal_int : int -> value
+val hex_int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value

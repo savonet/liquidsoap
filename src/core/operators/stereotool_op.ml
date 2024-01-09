@@ -75,18 +75,16 @@ class stereotool ~field ~handler source =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let b = Content.Audio.get_data (Frame.get buf field) in
+    method private generate_frame =
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
       Stereotool.process
         ~samplerate:(Lazy.force Frame.audio_rate)
-        handler b offset (position - offset)
+        handler b 0 source#frame_audio_position;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

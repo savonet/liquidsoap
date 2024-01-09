@@ -4,20 +4,25 @@
 # @param ~id Force the value of the source ID.
 def server.rms(~id=null(), s) =
   let s = rms(id=id, s)
-  id = source.id(s)
 
   def rms(_) =
     rms = s.rms()
     "#{rms}"
   end
 
-  server.register(
-    namespace="#{id}",
-    description=
-      "Return the current RMS of the source.",
-    usage="rms",
-    "rms",
-    rms
+  s.on_wake_up(
+    memoize(
+      {
+        server.register(
+          namespace="#{source.id(s)}",
+          description=
+            "Return the current RMS of the source.",
+          usage="rms",
+          "rms",
+          rms
+        )
+      }
+    )
   )
 
   s
@@ -45,15 +50,20 @@ def server.insert_metadata(~id=null(), s) =
     end
   end
 
-  id = source.id(s)
-  server.register(
-    namespace="#{id}",
-    description=
-      "Insert a metadata chunk.",
-    usage=
-      "insert key1=\"val1\",key2=\"val2\",..",
-    "insert",
-    insert
+  s.on_wake_up(
+    memoize(
+      {
+        server.register(
+          namespace="#{source.id(s)}",
+          description=
+            "Insert a metadata chunk.",
+          usage=
+            "insert key1=\"val1\",key2=\"val2\",..",
+          "insert",
+          insert
+        )
+      }
+    )
   )
 
   s
@@ -163,13 +173,17 @@ def add_skip_command(s) =
     "Done!"
   end
 
-  # Register the command:
-  server.register(
-    namespace="#{source.id(s)}",
-    usage="skip",
-    description=
-      "Skip the current song.",
-    "skip",
-    skip
+  s.on_wake_up(
+    {
+      # Register the command:
+      server.register(
+        namespace="#{source.id(s)}",
+        usage="skip",
+        description=
+          "Skip the current song.",
+        "skip",
+        skip
+      )
+    }
   )
 end

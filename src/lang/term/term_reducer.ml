@@ -830,6 +830,12 @@ let rec to_ast ~pos : parsed_ast -> Term.runtime_ast = function
   | `List l -> list_reducer ~pos ~to_term (List.rev l)
   | `Tuple l -> `Tuple (List.map to_term l)
   | `String (sep, s) -> `Ground (String (render_string ~pos ~sep s))
+  | `Int i
+    when String.length i >= 2 && String.(lowercase_ascii (sub i 0 2)) = "0x" ->
+      `Ground (HexInt (int_of_string i))
+  | `Int i
+    when String.length i >= 2 && String.(lowercase_ascii (sub i 0 2)) = "0o" ->
+      `Ground (OctalInt (int_of_string i))
   | `Int i -> `Ground (Int (int_of_string i))
   | `Float (sign, ipart, fpart) ->
       let fpart =

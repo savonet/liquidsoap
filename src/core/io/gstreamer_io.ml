@@ -282,17 +282,18 @@ class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
               (Option.get el.audio) data 0 (Bytes.length data));
           if has_video then (
             let buf = VFrame.data frame in
-            for i = 0 to Video.Canvas.length buf - 1 do
-              let img = Video.Canvas.render buf i in
-              let y, u, v = Image.YUV420.data img in
-              let buf =
-                Gstreamer.Buffer.of_data_list
-                  (List.map (fun d -> (d, 0, Image.Data.length d)) [y; u; v])
-              in
-              Gstreamer.Buffer.set_duration buf duration;
-              Gstreamer.Buffer.set_presentation_time buf presentation_time;
-              Gstreamer.App_src.push_buffer (Option.get el.video) buf
-            done);
+            List.iter
+              (fun (_, img) ->
+                let img = Video.Canvas.Image.render img in
+                let y, u, v = Image.YUV420.data img in
+                let buf =
+                  Gstreamer.Buffer.of_data_list
+                    (List.map (fun d -> (d, 0, Image.Data.length d)) [y; u; v])
+                in
+                Gstreamer.Buffer.set_duration buf duration;
+                Gstreamer.Buffer.set_presentation_time buf presentation_time;
+                Gstreamer.App_src.push_buffer (Option.get el.video) buf)
+              buf.Content.Video.data);
           presentation_time <- Int64.add presentation_time duration;
           GU.flush ~log:self#log
             ~on_error:(fun err -> raise (Flushing_error err))
@@ -490,7 +491,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     (* Source is ready when ready = true and gst has some audio or some video. *)
     val mutable ready = true
 
-    method private _is_ready ?frame:_ () =
+    method private can_generate_frame =
       let pending = function
         | Some sink -> sink.pending () > 0
         | None -> false
@@ -505,7 +506,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string e);
         false
 
-    method self_sync = (`Dynamic, self#is_ready ())
+    method self_sync = (`Dynamic, self#is_ready)
     method abort_track = ()
 
     method! wake_up activations =
@@ -605,12 +606,11 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           Image.YUV420.make_data width height b (Image.Data.round 4 width)
             (Image.Data.round 4 (width / 2))
         in
-        let stream = Video.Canvas.single_image img in
         Generator.put self#buffer Frame.Fields.video
-          (Content.Video.lift_data stream)
+          (Content.Video.lift_image (Video.Canvas.Image.make img))
       done
 
-    method get_frame frame =
+    method generate_frame =
       let el = self#get_element in
       let conditional_fill fn = function
         | None -> ()
@@ -619,23 +619,27 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
       try
         conditional_fill self#fill_audio el.audio;
         conditional_fill self#fill_video el.video;
-        Generator.fill self#buffer frame;
+        let frame = Generator.slice self#buffer (Lazy.force Frame.size) in
         GU.flush ~log:self#log
           ~on_error:(fun err -> raise (Flushing_error err))
-          el.bin
+          el.bin;
+        frame
       with
         | Gstreamer.End_of_stream ->
             self#log#info "End of stream.";
             ready <- false;
             if restart then (
               self#log#info "Restarting.";
-              self#restart)
+              self#restart);
+            if self#can_generate_frame then self#generate_frame
+            else self#end_of_track
         | exn ->
             let bt = Printexc.get_backtrace () in
             Utils.log_exception ~log:self#log ~bt
               (Printf.sprintf "Error while processing input data: %s"
                  (Printexc.to_string exn));
-            self#on_error exn
+            self#on_error exn;
+            self#end_of_track
   end
 
 let input_proto =

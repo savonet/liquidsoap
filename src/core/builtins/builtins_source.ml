@@ -87,7 +87,7 @@ let _ =
        available), or currently streaming."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
-    (fun p -> Lang.bool ((Lang.to_source (List.assoc "" p))#is_ready ()))
+    (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#is_ready)
 
 let _ =
   Lang.add_builtin ~base:source "is_up" ~category:`System
@@ -138,8 +138,7 @@ let _ =
         else 0
       in
       let frame_position = Lazy.force Frame.duration *. float ticks in
-      let in_frame_position = Frame.seconds_of_main (Frame.position s#memo) in
-      Lang.float (frame_position +. in_frame_position))
+      Lang.float frame_position)
 
 let _ =
   Lang.add_builtin ~base:source "on_shutdown" ~category:(`Source `Liquidsoap)
@@ -200,9 +199,19 @@ let _ =
     (fun p ->
       let module Time = (val Clock.time_implementation () : Liq_time.T) in
       let open Time in
+      let stopped = ref false in
       let proto =
         let p = Pipe_output.file_proto (Lang.univ_t ()) in
-        List.filter_map (fun (l, _, v, _) -> Option.map (fun v -> (l, v)) v) p
+        List.filter_map
+          (fun (l, _, v, _) ->
+            if l <> "on_stop" then Option.map (fun v -> (l, v)) v
+            else
+              Some
+                ( "on_stop",
+                  Lang.val_fun [] (fun _ ->
+                      stopped := true;
+                      Lang.unit) ))
+          p
       in
       let proto = ("fallible", Lang.bool true) :: proto in
       let s = Lang.to_source (Lang.assoc "" 3 p) in
@@ -214,7 +223,7 @@ let _ =
       Clock.unify ~pos:fo#pos fo#clock (Clock.create_known clock);
       ignore (clock#start_outputs (fun _ -> true) ());
       log#info "Start dumping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && fo#is_ready () do
+      while (not (Atomic.get should_stop)) && not !stopped do
         let start_time = Time.time () in
         clock#end_tick;
         sleep_until (start_time |+| latency)
@@ -242,11 +251,12 @@ let _ =
       let module Time = (val Clock.time_implementation () : Liq_time.T) in
       let open Time in
       let s = List.assoc "" p |> Lang.to_source in
+      let stopped = ref false in
       let o =
         new Output.dummy
           ~infallible:false
           ~on_start:(fun () -> ())
-          ~on_stop:(fun () -> ())
+          ~on_stop:(fun () -> stopped := true)
           ~register_telnet:false ~autostart:true (Lang.source s)
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
@@ -255,7 +265,7 @@ let _ =
       Clock.unify ~pos:o#pos o#clock (Clock.create_known clock);
       ignore (clock#start_outputs (fun _ -> true) ());
       log#info "Start dropping source (ratio: %.02fx)" ratio;
-      while (not (Atomic.get should_stop)) && o#is_ready () do
+      while (not (Atomic.get should_stop)) && not !stopped do
         let start_time = Time.time () in
         clock#end_tick;
         sleep_until (start_time |+| latency)

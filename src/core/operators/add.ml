@@ -26,10 +26,10 @@ open Mm
 let max_remaining a b = if b = -1 || a = -1 then -1 else max a b
 
 type 'a field = { position : int; weight : 'a; field : Frame.field }
-type 'a track = { mutable fields : 'a field list; source : Source.source }
+type ('a, 'b) track = { mutable fields : 'a field list; data : 'b }
 
 class virtual base ~name tracks =
-  let sources = List.map (fun { source } -> source) tracks in
+  let sources = List.map (fun { data } -> data) tracks in
   let self_sync_type = Utils.self_sync_type sources in
   object (self)
     inherit Source.operator ~name sources
@@ -51,69 +51,67 @@ class virtual base ~name tracks =
       List.fold_left f (-1)
         (List.map
            (fun s -> s#remaining)
-           (List.filter (fun (s : Source.source) -> s#is_ready ()) sources))
+           (List.filter (fun (s : Source.source) -> s#is_ready) sources))
 
     method abort_track = List.iter (fun s -> s#abort_track) sources
 
-    method private _is_ready ?frame () =
-      List.exists (fun s -> s#is_ready ?frame ()) sources
+    method private can_generate_frame =
+      List.exists (fun s -> s#is_ready) sources
+
+    method private sources_ready = List.filter (fun s -> s#is_ready) sources
+
+    method private tracks_ready =
+      List.filter (fun { data = s } -> s#is_ready) tracks
+
+    method private generate_frames =
+      List.fold_left
+        (fun frames { fields; data = source } ->
+          let fields =
+            List.map
+              (fun ({ weight } as field) -> { field with weight = weight () })
+              fields
+          in
+          let data =
+            if source#is_ready then Some (source, source#get_frame) else None
+          in
+          { fields; data } :: frames)
+        [] tracks
+
+    method private frames_position frames =
+      Option.value ~default:0
+        (List.fold_left
+           (fun pos { data } ->
+             match (pos, data) with
+               | _, None -> pos
+               | None, Some (_, frame) -> Some (Frame.position frame)
+               | Some p, Some (_, frame) -> Some (max p (Frame.position frame)))
+           None frames)
 
     method seek_source =
       match sources with [s] -> s#seek_source | _ -> (self :> Source.source)
 
-    val mutable track_frames = []
-
-    method private track_frame source =
-      try List.assq source track_frames
-      with Not_found ->
-        let f = Frame.create source#content_type in
-        track_frames <- (source, f) :: track_frames;
-        f
-
-    method private feed_track ~offset pos { source } =
-      let tmp = self#track_frame source in
-      let start = Frame.position tmp in
-      let tmp_pos =
-        if start <= offset then (
-          source#get tmp;
-          Frame.position tmp)
-        else start
-      in
-      min pos tmp_pos
-
-    method private feed ~offset tracks =
-      List.fold_left (self#feed_track ~offset) max_int tracks
-
     (* For backward compatibility: set metadata from the first
-       track effectively summed. This should be called after #feed *)
-    method private set_metadata buf offset position =
+       track effectively summed. *)
+    method private set_metadata buf =
       match
         List.fold_left
-          (fun cur { fields; source } ->
-            if not (source#is_ready ~frame:buf ()) then cur
-            else
-              List.fold_left
-                (fun cur { position; _ } ->
-                  match cur with
-                    | None -> Some (source, position)
-                    | Some (_, pos) when position < pos ->
-                        Some (source, position)
-                    | _ -> cur)
-                cur fields)
-          None tracks
+          (fun cur { fields; data = source } ->
+            List.fold_left
+              (fun cur { position; _ } ->
+                match cur with
+                  | None -> Some (source, position)
+                  | Some (_, pos) when position < pos -> Some (source, position)
+                  | _ -> cur)
+              cur fields)
+          None self#tracks_ready
       with
-        | None -> ()
+        | None -> buf
         | Some (source, _) ->
-            let tmp = self#track_frame source in
-            List.iter
-              (fun (pos, m) ->
-                if offset <= pos && pos <= position then
-                  Frame.set_metadata buf pos m)
-              (Frame.get_all_metadata tmp)
-
-    initializer
-      self#on_after_output (fun () ->
-          List.iter (fun (_, frame) -> Frame.clear frame) track_frames)
+            let metadata =
+              Content.Metadata.get_data
+                (Frame.Fields.find Frame.Fields.metadata source#get_frame)
+            in
+            Frame.add_all_metadata buf metadata
   end
 
 (** Add/mix several sources together.
@@ -122,91 +120,102 @@ class audio_add ~renorm ~power ~field tracks =
   object (self)
     inherit base ~name:"audio.add" tracks
 
-    method private get_frame buf =
+    method private generate_frame =
       let renorm = renorm () in
       let power = power () in
-      let total_weight, tracks =
+      let frames = self#generate_frames in
+      let total_weight =
         List.fold_left
-          (fun (total_weight, tracks) { source; fields } ->
-            let source_weight, fields =
+          (fun total_weight { fields } ->
+            let source_weight =
               List.fold_left
-                (fun (source_weight, fields) field ->
-                  let weight = field.weight () in
+                (fun source_weight { weight } ->
                   let weight = if power then weight *. weight else weight in
-                  (source_weight +. weight, { field with weight } :: fields))
-                (0., []) fields
+                  source_weight +. weight)
+                0. fields
             in
-            ( total_weight +. source_weight,
-              if source#is_ready ~frame:buf () then { source; fields } :: tracks
-              else tracks ))
-          (0., []) tracks
+            total_weight +. source_weight)
+          0. frames
       in
       let total_weight = if power then sqrt total_weight else total_weight in
-      let offset = Frame.position buf in
-      let pos = self#feed ~offset tracks in
-      assert (offset <= pos);
-      let audio_offset = Frame.audio_of_main offset in
-      let audio_len = Frame.audio_of_main (pos - offset) in
+      let pos = self#frames_position frames in
+      let buf = Frame.create ~length:pos self#content_type in
       let pcm = Content.Audio.get_data (Frame.get buf field) in
-      Audio.clear pcm audio_offset audio_len;
+      Audio.clear pcm 0 (Audio.length pcm);
       List.iter
-        (fun { source; fields } ->
-          let tmp = self#track_frame source in
-          List.iter
-            (fun { field; weight } ->
-              let track_pcm = Content.Audio.get_data (Frame.get tmp field) in
-              let c = if renorm then weight /. total_weight else weight in
-              if c <> 1. then Audio.amplify c track_pcm audio_offset audio_len;
-              Audio.add pcm audio_offset track_pcm audio_offset audio_len)
-            fields)
-        tracks;
-      Frame.add_break buf pos;
-      self#set_metadata buf offset pos
+        (fun { data; fields } ->
+          match data with
+            | None -> ()
+            | Some (_, frame) ->
+                List.iter
+                  (fun { field; weight } ->
+                    let track_pcm =
+                      Content.Audio.get_data (Frame.get frame field)
+                    in
+                    let c = if renorm then weight /. total_weight else weight in
+                    let audio_len = Audio.length track_pcm in
+                    if c <> 1. then Audio.amplify c track_pcm 0 audio_len;
+                    Audio.add pcm 0 track_pcm 0 audio_len)
+                  fields)
+        frames;
+      let buf = Frame.Fields.add field (Content.Audio.lift_data pcm) buf in
+      self#set_metadata buf
   end
 
 class video_add ~field ~add tracks =
   object (self)
     inherit base ~name:"video.add" tracks
 
-    method private get_frame buf =
-      let tracks =
+    method private generate_frame =
+      let frames = self#generate_frames in
+      let length = self#frames_position frames in
+      let frames =
         List.fold_left
-          (fun tracks track ->
-            if track.source#is_ready ~frame:buf () then track :: tracks
-            else tracks)
-          [] tracks
+          (fun frames { data; fields } ->
+            match data with
+              | None -> frames
+              | Some (source, frame) ->
+                  frames
+                  @ List.map
+                      (fun { position; field } ->
+                        ( position,
+                          source#last_image field,
+                          Content.Video.get_data (Frame.get frame field) ))
+                      fields)
+          [] frames
       in
-      let offset = Frame.position buf in
-      let pos = self#feed ~offset tracks in
-      let vbuf = Content.Video.get_data (Frame.get buf field) in
-      let ( ! ) = Frame.video_of_main in
-      let tracks =
-        List.fold_left
-          (fun tracks { source; fields } ->
-            let tmp = self#track_frame source in
-            tracks
-            @ List.map
-                (fun { position; field } -> (position, field, tmp))
-                fields)
-          [] tracks
+      let frames =
+        List.sort (fun (p, _, _) (p', _, _) -> Stdlib.compare p p') frames
       in
-      let tracks =
-        List.sort (fun (p, _, _) (p', _, _) -> Stdlib.compare p p') tracks
+      let create, frames =
+        match frames with
+          | [] ->
+              ( (fun ~pos:_ ~width ~height () ->
+                  Video.Canvas.Image.create width height),
+                [] )
+          | (_, last_image, data) :: rest ->
+              ( (fun ~pos ~width:_ ~height:_ () ->
+                  self#nearest_image ~pos ~last_image data),
+                rest )
       in
-      List.iteri
-        (fun rank (position, field, tmp) ->
-          let vtmp = Content.Video.get_data (Frame.get tmp field) in
-          for i = !offset to !pos - 1 do
-            let img =
-              if rank = 0 then Video.Canvas.get vtmp i
-              else
-                add position (Video.Canvas.get vtmp i) (Video.Canvas.get vbuf i)
-            in
-            Video.Canvas.set vbuf i img
-          done)
-        tracks;
-      Frame.add_break buf pos;
-      self#set_metadata buf offset pos
+      let buf = self#generate_video ~field ~create length in
+      let data =
+        List.map
+          (fun (pos, img) ->
+            ( pos,
+              List.fold_left
+                (fun img (rank, last_image, data) ->
+                  add rank (self#nearest_image ~pos ~last_image data) img)
+                img frames ))
+          buf.Content.Video.data
+      in
+      let frame =
+        Frame.set_data
+          (Frame.create ~length Frame.Fields.empty)
+          field Content.Video.lift_data
+          { buf with Content.Video.data }
+      in
+      self#set_metadata frame
   end
 
 let get_tracks ~mk_weight p =
@@ -217,11 +226,11 @@ let get_tracks ~mk_weight p =
       let weight = mk_weight v in
       let field = { position; weight; field } in
       let track =
-        match List.find_opt (fun { source } -> s == source) tracks with
+        match List.find_opt (fun { data = source } -> s == source) tracks with
           | Some track ->
               track.fields <- track.fields @ [field];
               tracks
-          | None -> tracks @ [{ source = s; fields = [field] }]
+          | None -> tracks @ [{ data = s; fields = [field] }]
       in
       (track, position + 1))
     ([], 0) track_values
@@ -264,7 +273,7 @@ let _ =
     ~return_t:frame_t add_audio_tracks
 
 let add_video_tracks p =
-  let tracks, _ = get_tracks ~mk_weight:(fun _ -> ()) p in
+  let tracks, _ = get_tracks ~mk_weight:(fun _ () -> ()) p in
   let add _ = Video.Canvas.Image.add in
   let field = Frame.Fields.video in
   (field, new video_add ~add ~field tracks)
@@ -306,7 +315,7 @@ let _ =
     ]
     ~return_t:frame_t
     (fun p ->
-      let tracks, total_tracks = get_tracks ~mk_weight:(fun _ -> ()) p in
+      let tracks, total_tracks = get_tracks ~mk_weight:(fun _ () -> ()) p in
       let proportional = Lang.to_bool (List.assoc "proportional" p) in
       let tp = tile_pos total_tracks in
       let scale = Video_converter.scaler () in

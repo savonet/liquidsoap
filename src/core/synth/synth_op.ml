@@ -30,25 +30,26 @@ class synth (synth : Synth.synth) (source : source) chan volume =
     method stype = source#stype
     method self_sync = source#self_sync
     method remaining = source#remaining
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method seek_source = source#seek_source
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
+    method private generate_frame =
+      let buf = source#get_frame in
       let midi = MFrame.midi buf in
       if chan >= Array.length midi then (
         self#log#important
           "Cannot read MIDI channel %d, stream only has %d channels." chan
           (Array.length midi);
-        source#get buf)
+        buf)
       else (
         let evs = midi.(chan) in
-        source#get buf;
-        let b = AFrame.pcm buf in
-        let position = AFrame.position buf in
-        let len = position - offset in
-        synth#play evs offset b offset len)
+        let b =
+          Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+        in
+        let len = source#frame_audio_position in
+        synth#play evs 0 b 0 len;
+        source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b)
   end
 
 let register obj name descr =
@@ -154,7 +155,7 @@ let register obj name descr =
            List.mapi
              (fun position (weight, source) ->
                {
-                 Add.source;
+                 Add.data = source;
                  fields = [{ position; weight; field = Frame.Fields.audio }];
                })
              (Array.to_list synths)

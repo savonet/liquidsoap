@@ -38,14 +38,11 @@ class testsrc ?(duration = None) ~width ~height () =
     val mutable duy' = 3
     val mutable dvy' = 2
 
-    method private synthesize frame off len =
-      let frame_width, frame_height = self#video_dimensions in
-      let width = if width < 0 then frame_width else width in
-      let height = if height < 0 then frame_height else height in
-      let off = Frame.video_of_main off in
-      let len = Frame.video_of_main len in
-      let buf = VFrame.data frame in
-      for i = off to off + len - 1 do
+    method private synthesize length =
+      let frame = Frame.create ~length Frame.Fields.empty in
+      let create ~pos:_ ~width:frame_width ~height:frame_height () =
+        let width = if width < 0 then frame_width else width in
+        let height = if height < 0 then frame_height else height in
         let img = Image.YUV420.create width height in
         u0 <- u0 + u0';
         if u0 < 0 then u0' <- abs u0';
@@ -68,9 +65,10 @@ class testsrc ?(duration = None) ~width ~height () =
         Image.YUV420.gradient_uv img (u0, v0)
           (u0 + dux, v0 + dvx)
           (u0 + duy, v0 + dvy);
-        buf.(i) <-
-          Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
-      done
+        Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
+      in
+      let buf = self#generate_video ~field:Frame.Fields.video ~create length in
+      Frame.set_data frame Frame.Fields.video Content.Video.lift_data buf
   end
 
 let _ =

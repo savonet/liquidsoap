@@ -629,100 +629,108 @@ def replaces playlist(
     s.on_shutdown(watcher_shutdown)
   end
 
-  # Set up telnet commands
-  server.register(
-    namespace=id,
-    description=
-      "Skip current song in the playlist.",
-    usage="skip",
-    "skip",
-    fun (_) ->
-      begin
-        s.skip()
-        "OK"
-      end
-  )
+  s.on_wake_up(
+    memoize(
+      {
+        let id = source.id(s)
 
-  server.register(
-    namespace=id,
-    description=
-      "Return up to 10 next URIs to be played.",
-    usage="next",
-    "next",
-    fun (n) ->
-      begin
-        n = max(10, int_of_string(default=10, n))
-        requests =
-          list.fold(
-            (fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur ),
-            [],
-            s.queue()
-          )
-
-        string.concat(
-          separator="\n",
-          list.map(
-            (
-              fun (r) ->
-                begin
-                  m = request.metadata(r)
-                  get = fun (lbl) -> list.assoc(default="?", lbl, m)
-                  status = get("status")
-                  uri = get("initial_uri")
-                  "[#{status}] #{uri}"
-                end
-            ),
-            requests
-          )
+        # Set up telnet commands
+        server.register(
+          namespace=id,
+          description=
+            "Skip current song in the playlist.",
+          usage="skip",
+          "skip",
+          fun (_) ->
+            begin
+              s.skip()
+              "OK"
+            end
         )
-      end
-  )
 
-  server.register(
-    namespace=id,
-    description=
-      "Reload the playlist, unless already being loaded.",
-    usage="reload",
-    "reload",
-    fun (_) ->
-      begin
-        s.reload()
-        "OK"
-      end
-  )
+        server.register(
+          namespace=id,
+          description=
+            "Return up to 10 next URIs to be played.",
+          usage="next",
+          "next",
+          fun (n) ->
+            begin
+              n = max(10, int_of_string(default=10, n))
+              requests =
+                list.fold(
+                  (fun (cur, el) -> list.length(cur) < n ? [...cur, el] : cur ),
+                  [],
+                  s.queue()
+                )
 
-  def uri_cmd(uri') =
-    if
-      uri' == ""
-    then
-      playlist_uri()
-    else
-      if
-        reload_mode == "watch"
-      then
-        log.important(
-          label=id,
-          "Warning: the watched file is not updated for now when changing the \
-           uri!"
+              string.concat(
+                separator="\n",
+                list.map(
+                  (
+                    fun (r) ->
+                      begin
+                        m = request.metadata(r)
+                        get = fun (lbl) -> list.assoc(default="?", lbl, m)
+                        status = get("status")
+                        uri = get("initial_uri")
+                        "[#{status}] #{uri}"
+                      end
+                  ),
+                  requests
+                )
+              )
+            end
         )
-      end
 
-      # TODO
-      playlist_uri := uri'
-      s.reload(uri=uri')
-      "OK"
-    end
-  end
+        server.register(
+          namespace=id,
+          description=
+            "Reload the playlist, unless already being loaded.",
+          usage="reload",
+          "reload",
+          fun (_) ->
+            begin
+              s.reload()
+              "OK"
+            end
+        )
 
-  server.register(
-    namespace=id,
-    description=
-      "Print playlist URI if called without an argument, otherwise set a new one \
-       and load it.",
-    usage=
-      "uri [<uri>]",
-    "uri",
-    uri_cmd
+        def uri_cmd(uri') =
+          if
+            uri' == ""
+          then
+            playlist_uri()
+          else
+            if
+              reload_mode == "watch"
+            then
+              log.important(
+                label=id,
+                "Warning: the watched file is not updated for now when changing \
+                 the uri!"
+              )
+            end
+
+            # TODO
+            playlist_uri := uri'
+            s.reload(uri=uri')
+            "OK"
+          end
+        end
+
+        server.register(
+          namespace=id,
+          description=
+            "Print playlist URI if called without an argument, otherwise set a \
+             new one and load it.",
+          usage=
+            "uri [<uri>]",
+          "uri",
+          uri_cmd
+        )
+      }
+    )
   )
 
   s

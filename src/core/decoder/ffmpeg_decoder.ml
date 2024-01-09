@@ -756,13 +756,45 @@ let mk_eof streams buffer =
     streams
 
 let mk_decoder ~streams ~target_position container =
-  let check_pts stream pts =
+  let streams_seen = Hashtbl.create 0 in
+  let position ~pts stream =
+    let { Avutil.num; den } = Av.get_time_base stream in
+    Int64.to_float pts *. float num /. float den
+  in
+  let decodable = ref [] in
+  let push (position, decode) =
+    decodable :=
+      (position, decode)
+      :: List.filter
+           (fun (p, _) ->
+             Float.abs (p -. position)
+             <= Ffmpeg_decoder_common.conf_max_interleave_duration#get)
+           !decodable
+  in
+  let flush position =
+    let d = List.sort (fun (p, _) (p', _) -> Float.compare p p') !decodable in
+    let min_position =
+      position -. Ffmpeg_decoder_common.conf_max_interleave_delta#get
+    in
+    List.iter (fun (p, decode) -> if min_position <= p then decode ()) d;
+    decodable := []
+  in
+  let check_pts ~decode stream pts =
     match (pts, !target_position) with
       | Some pts, Some target_position ->
-          let { Avutil.num; den } = Av.get_time_base stream in
-          let position = Int64.to_float pts *. float num /. float den in
-          target_position <= position
-      | _ -> true
+          if target_position <= position ~pts stream then decode ()
+      | Some pts, None ->
+          Hashtbl.replace streams_seen (Hashtbl.hash stream) true;
+          let position = position ~pts stream in
+          if Hashtbl.length streams_seen = Streams.cardinal streams then (
+            flush position;
+            decode ())
+          else push (position, decode)
+      | None, _ ->
+          log#important
+            "Got packet or frame with no timestamp! Synchronization issues may \
+             happen.";
+          decode ()
   in
   let audio_frame =
     Streams.fold
@@ -802,32 +834,40 @@ let mk_decoder ~streams ~target_position container =
           | `Audio_frame (i, frame) -> (
               match Streams.find_opt i streams with
                 | Some (`Audio_frame (s, decode)) ->
-                    if check_pts s (Avutil.Frame.pts frame) then
-                      decode ~buffer (`Frame frame)
+                    check_pts s
+                      ~decode:(fun () -> decode ~buffer (`Frame frame))
+                      (Avutil.Frame.pts frame)
                 | _ -> f ())
           | `Audio_packet (i, packet) -> (
               match Streams.find_opt i streams with
                 | Some (`Audio_packet (s, decode)) ->
-                    if check_pts s (Avcodec.Packet.get_pts packet) then
-                      decode ~buffer packet
+                    check_pts
+                      ~decode:(fun () -> decode ~buffer packet)
+                      s
+                      (Avcodec.Packet.get_pts packet)
                 | _ -> f ())
           | `Video_frame (i, frame) -> (
               match Streams.find_opt i streams with
                 | Some (`Video_frame (s, decode)) ->
-                    if check_pts s (Avutil.Frame.pts frame) then
-                      decode ~buffer (`Frame frame)
+                    check_pts
+                      ~decode:(fun () -> decode ~buffer (`Frame frame))
+                      s (Avutil.Frame.pts frame)
                 | _ -> f ())
           | `Video_packet (i, packet) -> (
               match Streams.find_opt i streams with
                 | Some (`Video_packet (s, decode)) ->
-                    if check_pts s (Avcodec.Packet.get_pts packet) then
-                      decode ~buffer packet
+                    check_pts
+                      ~decode:(fun () -> decode ~buffer packet)
+                      s
+                      (Avcodec.Packet.get_pts packet)
                 | _ -> f ())
           | `Data_packet (i, packet) -> (
               match Streams.find_opt i streams with
                 | Some (`Data_packet (s, decode)) ->
-                    if check_pts s (Avcodec.Packet.get_pts packet) then
-                      decode ~buffer packet
+                    check_pts
+                      ~decode:(fun () -> decode ~buffer packet)
+                      s
+                      (Avcodec.Packet.get_pts packet)
                 | _ -> f ())
           | _ -> ()
       with
@@ -1006,27 +1046,29 @@ let mk_streams ~ctype ~decode_first_metadata container =
 
 let create_decoder ~ctype ~metadata fname =
   let args, format = parse_file_decoder_args metadata in
-  let duration = duration ~metadata fname in
-  let remaining = ref duration in
-  let m = Mutex.create () in
-  let set_remaining stream pts =
-    Tutils.mutexify m
-      (fun () ->
-        match (duration, pts) with
-          | None, _ | Some _, None -> ()
-          | Some d, Some pts -> (
-              let { Avutil.num; den } = Av.get_time_base stream in
-              let position =
-                Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
-              in
-              match !remaining with
-                | None -> remaining := Some (d -. position)
-                | Some r -> remaining := Some (min (d -. position) r)))
-      ()
+  let file_duration = duration ~metadata fname in
+  let remaining = Atomic.make file_duration in
+  let set_remaining ~pts ~duration stream =
+    let pts =
+      Option.map
+        (fun pts -> Int64.add pts (Option.value ~default:0L duration))
+        pts
+    in
+    match (file_duration, pts) with
+      | None, _ | Some _, None -> ()
+      | Some d, Some pts -> (
+          let { Avutil.num; den } = Av.get_time_base stream in
+          let position =
+            Int64.to_float (Int64.mul (Int64.of_int num) pts) /. float den
+          in
+          match Atomic.get remaining with
+            | None -> Atomic.set remaining (Some (d -. position))
+            | Some r -> Atomic.set remaining (Some (min (d -. position) r)))
   in
-  let get_remaining =
-    Tutils.mutexify m (fun () ->
-        match !remaining with None -> -1 | Some r -> Frame.main_of_seconds r)
+  let get_remaining () =
+    match Atomic.get remaining with
+      | None -> -1
+      | Some r -> Frame.main_of_seconds r
   in
   let opts = Hashtbl.create 10 in
   List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
@@ -1041,28 +1083,36 @@ let create_decoder ~ctype ~metadata fname =
       (function
         | `Audio_packet (stream, decoder) ->
             let decoder ~buffer packet =
-              set_remaining stream (Avcodec.Packet.get_pts packet);
+              set_remaining stream
+                ~pts:(Avcodec.Packet.get_pts packet)
+                ~duration:(Avcodec.Packet.get_duration packet);
               decoder ~buffer packet
             in
             `Audio_packet (stream, decoder)
         | `Audio_frame (stream, decoder) ->
             let decoder ~buffer frame =
               (match frame with
-                | `Frame frame -> set_remaining stream (Avutil.Frame.pts frame)
+                | `Frame frame ->
+                    set_remaining stream ~pts:(Avutil.Frame.pts frame)
+                      ~duration:(Avutil.Frame.duration frame)
                 | _ -> ());
               decoder ~buffer frame
             in
             `Audio_frame (stream, decoder)
         | `Video_packet (stream, decoder) ->
             let decoder ~buffer packet =
-              set_remaining stream (Avcodec.Packet.get_pts packet);
+              set_remaining stream
+                ~pts:(Avcodec.Packet.get_pts packet)
+                ~duration:(Avcodec.Packet.get_duration packet);
               decoder ~buffer packet
             in
             `Video_packet (stream, decoder)
         | `Video_frame (stream, decoder) ->
             let decoder ~buffer frame =
               (match frame with
-                | `Frame frame -> set_remaining stream (Avutil.Frame.pts frame)
+                | `Frame frame ->
+                    set_remaining stream ~pts:(Avutil.Frame.pts frame)
+                      ~duration:(Avutil.Frame.duration frame)
                 | _ -> ());
               decoder ~buffer frame
             in
@@ -1075,7 +1125,7 @@ let create_decoder ~ctype ~metadata fname =
   ( {
       Decoder.seek =
         (fun ticks ->
-          match duration with
+          match file_duration with
             | None -> -1
             | Some d -> (
                 let target =

@@ -22,6 +22,8 @@
 
 exception Not_connected
 
+module Pcre = Re.Pcre
+
 module Metadata = struct
   include Map.Make (struct
     type t = string
@@ -77,7 +79,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
     method private is_connected = Atomic.get container <> None
-    method! is_ready ?frame () = super#is_ready ?frame () && self#is_connected
+    method can_generate_frame = super#started && self#is_connected
 
     method private get_self_sync =
       match self_sync () with Some v -> v | None -> false
@@ -166,6 +168,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
           else []
         in
         on_connect input;
+        Generator.add_track_mark self#buffer;
         Atomic.set container
           (Some { input; decoder; buffer; get_metadata; closed });
         Atomic.set source_status (`Connected url);
@@ -231,9 +234,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | None -> raise Not_connected
         | Some c -> c
 
-    method private get_frame frame =
-      let pos = Frame.position frame in
-      let breaks = Frame.breaks frame in
+    method private generate_frame =
+      let size = Lazy.force Frame.size in
       try
         let { decoder; buffer; closed } = self#get_connected_container in
         while Generator.length self#buffer < Lazy.force Frame.size do
@@ -245,30 +247,26 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         if meta <> [] then (
           Generator.add_metadata self#buffer (Frame.Metadata.from_list meta);
           if new_track_on_metadata then Generator.add_track_mark self#buffer);
-        Generator.fill self#buffer frame;
-        let stop = Frame.position frame in
+        let frame = Generator.slice self#buffer size in
         (* Metadata can be added by the decoder and the demuxer so we filter at the frame level. *)
         let metadata =
           List.fold_left
             (fun metadata (p, m) ->
-              if p < pos || stop < p then (p, m) :: metadata
-              else (
-                let m = metadata_filter m in
-                if 0 < Frame.Metadata.cardinal m then (p, m) :: metadata
-                else metadata))
+              let m = metadata_filter m in
+              if 0 < Frame.Metadata.cardinal m then (p, m) :: metadata
+              else metadata)
             []
             (Frame.get_all_metadata frame)
         in
-        Frame.set_all_metadata frame metadata
+        Frame.add_all_metadata frame metadata
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log
           ~bt:(Printexc.raw_backtrace_to_string bt)
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn);
-        if List.length breaks = List.length (Frame.breaks frame) then
-          Frame.add_break frame pos;
-        self#reconnect
+        self#reconnect;
+        Frame.append (Generator.slice self#buffer size) self#end_of_track
   end
 
 let http_log = Log.make ["input"; "http"]
@@ -295,7 +293,9 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
           (fun ret header ->
             if header <> "" then (
               try
-                let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
+                let res =
+                  Pcre.exec ~rex:(Pcre.regexp "([^:]*):\\s*(.*)") header
+                in
                 (Pcre.get_substring res 1, Pcre.get_substring res 2) :: ret
               with Not_found -> ret)
             else ret)
@@ -552,7 +552,7 @@ let register_input is_http =
                      (Lang.apply fn [("", Lang.metadata_list m)])
              | None ->
                  List.filter (fun (k, _) ->
-                     not (Pcre.pmatch ~pat:"^id3v2_priv" k))
+                     not (Pcre.pmatch ~rex:(Pcre.regexp "^id3v2_priv") k))
          in
          let deduplicate_metadata =
            Lang.to_bool (List.assoc "deduplicate_metadata" p)

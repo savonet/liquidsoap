@@ -169,7 +169,7 @@ let _ =
                      (width * height * 3));
               let data = (Option.get !video_converter) data in
               Generator.put buffer Frame.Fields.video
-                (Content.Video.lift_data (Video.Canvas.single data))
+                (Content.Video.lift_image data)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
               let data, ofs, len =
@@ -234,8 +234,7 @@ let _ =
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
         Generator.put buffer Frame.Fields.video
-          (Content.Video.lift_data
-             (Video.Canvas.single (Video.Canvas.Image.make data)))
+          (Content.Video.lift_image (Video.Canvas.Image.make data))
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in

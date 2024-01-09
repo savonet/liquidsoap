@@ -27,25 +27,24 @@ class pan ~field (source : source) phi phi_0 =
   object
     inherit operator ~name:"pan" [source]
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let buffer = Content.Audio.get_data (Frame.get buf field) in
+    method private generate_frame =
+      let buffer = Content.Audio.get_data (source#get_mutable_content field) in
       (* Degrees to radians + half field. *)
       let phi_0 = phi_0 () *. Float.pi /. 360. in
       (* Map -1 / 1 to radians. *)
       let phi = phi () *. phi_0 in
       let gain_left = (tan phi_0 +. tan phi) /. 2. in
       let gain_right = (tan phi_0 -. tan phi) /. 2. in
-      let len = AFrame.position buf - offset in
-      Audio.Mono.amplify gain_left buffer.(0) offset len;
-      Audio.Mono.amplify gain_right buffer.(1) offset len
+      let len = source#frame_audio_position in
+      Audio.Mono.amplify gain_left buffer.(0) 0 len;
+      Audio.Mono.amplify gain_right buffer.(1) 0 len;
+      source#set_frame_data field Content.Audio.lift_data buffer
   end
 
 let _ =

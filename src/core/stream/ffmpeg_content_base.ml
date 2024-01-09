@@ -20,62 +20,13 @@
 
  *****************************************************************************)
 
-type ('a, 'b) content = {
-  length : int;
-  mutable params : 'a;
-  mutable data : (int * 'b) list;
-}
-
 let conf_ffmpeg_content =
   Dtools.Conf.void
     ~p:(Ffmpeg_utils.conf_ffmpeg#plug "content")
     "FFmpeg content configuration"
 
-let make ?(length = 0) params = { length; params; data = [] }
-let length { length } = length
-let clear d = d.data <- []
 let stream_idx = ref 0L
 
 let new_stream_idx () =
   stream_idx := Int64.succ !stream_idx;
   !stream_idx
-
-let compare (x : int) (y : int) = x - y [@@inline always]
-
-let blit :
-      'a 'b.
-      copy:('b -> 'b) ->
-      ('a, 'b) content ->
-      int ->
-      ('a, 'b) content ->
-      int ->
-      int ->
-      unit =
- fun ~copy src src_pos dst dst_pos len ->
-  (* No compatibility check here, it's
-     assumed to have been done beforehand. *)
-  dst.params <- src.params;
-  let data =
-    List.filter (fun (pos, _) -> pos < dst_pos || dst_pos + len <= pos) dst.data
-  in
-  let src_end = src_pos + len in
-  let data =
-    List.fold_left
-      (fun data (pos, p) ->
-        if src_pos <= pos && pos < src_end then (
-          let pos = dst_pos + (pos - src_pos) in
-          (pos, copy p) :: data)
-        else data)
-      data src.data
-  in
-  dst.data <- List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
-
-let fill :
-      'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit =
- fun src src_pos dst dst_pos len ->
-  blit ~copy:(fun x -> x) src src_pos dst dst_pos len
-
-let copy ~copy { length; data; params } =
-  { length; data = List.map (fun (pos, x) -> (pos, copy x)) data; params }
-
-let params { params } = params

@@ -25,28 +25,41 @@ class on_end ~delay f s =
     inherit Source.operator ~name:"on_end" [s]
     inherit Latest_metadata.source
     val mutable executed = false
+    val mutable started = false
     method stype = s#stype
-    method private _is_ready = s#is_ready
+    method private can_generate_frame = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek_source = s#seek_source
     method self_sync = s#self_sync
     method private on_new_metadata = ()
 
-    method private get_frame ab =
-      s#get ab;
-      self#save_latest_metadata ab;
-      let rem = Frame.seconds_of_main s#remaining in
-      if
-        (not executed) && ((0. <= rem && rem <= delay ()) || Frame.is_partial ab)
-      then (
+    method private on_end rem =
+      if not executed then
         ignore
           (Lang.apply f
              [("", Lang.float rem); ("", Lang.metadata latest_metadata)]);
-        executed <- true);
-      if Frame.is_partial ab then (
-        self#clear_latest_metadata;
-        executed <- false)
+      executed <- true
+
+    method private generate_frame =
+      let rem = Frame.seconds_of_main s#remaining in
+      let frame = s#get_frame in
+      let has_started = started in
+      started <- true;
+      match self#split_frame frame with
+        | buf, None ->
+            self#save_latest_metadata buf;
+            if 0. <= rem && rem <= delay () then self#on_end rem;
+            buf
+        | buf, Some new_track ->
+            if has_started && not executed then (
+              self#log#important
+                "New track occurred before the expected delay was reached!";
+              self#on_end (Frame.seconds_of_main (Frame.position buf)));
+            self#clear_latest_metadata;
+            self#save_latest_metadata new_track;
+            executed <- false;
+            frame
   end
 
 let _ =

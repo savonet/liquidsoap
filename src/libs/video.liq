@@ -45,7 +45,8 @@ def image(
   end
 
   current_file = ref(getter.get(file))
-  set(current_file())
+  s.on_wake_up({set(current_file())})
+
   s =
     source.on_frame(
       s,

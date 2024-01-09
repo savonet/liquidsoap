@@ -31,7 +31,7 @@ class filter (source : source) freq q wet mode =
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     val mutable low = [||]
@@ -56,18 +56,17 @@ class filter (source : source) freq q wet mode =
 
        Maybe should we implement Chamberlin's version instead, which handles freq
        <= rate/2. See http://www.musicdsp.org/archive.php?classid=3#142 *)
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+    method private generate_frame =
+      let c = source#get_mutable_content Frame.Fields.audio in
+      let b = Content.Audio.get_data c in
+      let position = source#frame_audio_position in
       let freq = freq () in
       let q = q () in
       let wet = wet () in
       let f = 2. *. sin (Float.pi *. freq /. rate) in
       for c = 0 to Array.length b - 1 do
         let b_c = b.(c) in
-        for i = offset to position - 1 do
+        for i = 0 to position - 1 do
           low.(c) <- low.(c) +. (f *. band.(c));
           high.(c) <- (q *. b_c.(i)) -. low.(c) -. (q *. band.(c));
           band.(c) <- (f *. high.(c)) +. band.(c);
@@ -82,7 +81,8 @@ class filter (source : source) freq q wet mode =
               | Notch -> notch.(c))
             +. ((1. -. wet) *. b_c.(i))
         done
-      done
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let filter =

@@ -28,40 +28,49 @@ class amplify ~field (source : source) override_field coeff =
     inherit operator ~name:"track.audio.amplify" [source]
     val mutable override = None
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      begin
-        match override_field with
-          | Some f ->
-              List.iter
-                (fun (p, m) ->
-                  if p >= offset then (
-                    try
-                      let s = Frame.Metadata.find f m in
-                      let k =
-                        try Scanf.sscanf s " %f dB" Audio.lin_of_dB
-                        with _ -> float_of_string s
-                      in
-                      self#log#info "Overriding amplification: %f." k;
-                      override <- Some k
-                    with _ -> ()))
-                (AFrame.get_all_metadata buf)
-          | None -> ()
-      end;
+    method private process buf =
       let k = match override with Some o -> o | None -> coeff () in
       if k <> 1. then (
-        let data = Content.Audio.get_data (Frame.get buf field) in
-        Audio.amplify k data offset (AFrame.position buf - offset));
-      if AFrame.is_partial buf && override <> None then (
-        self#log#info "End of the current overriding.";
-        override <- None)
+        let content = Frame.get buf field in
+        let data = Content.Audio.get_data content in
+        Audio.amplify k data 0 (Audio.length data);
+        Frame.set_data buf field Content.Audio.lift_data data)
+      else buf
+
+    method private set_override buf =
+      match override_field with
+        | Some f ->
+            if override <> None then
+              self#log#info "End of the current overriding.";
+            override <- None;
+            List.iter
+              (fun (_, m) ->
+                try
+                  let s = Frame.Metadata.find f m in
+                  let k =
+                    try Scanf.sscanf s " %f dB" Audio.lin_of_dB
+                    with _ -> float_of_string s
+                  in
+                  self#log#info "Overriding amplification: %f." k;
+                  override <- Some k
+                with _ -> ())
+              (Frame.get_all_metadata buf)
+        | _ -> ()
+
+    method private generate_frame =
+      let buf = source#get_mutable_frame field in
+      match self#split_frame buf with
+        | buf, None -> self#process buf
+        | buf, Some new_track ->
+            let buf = self#process buf in
+            self#set_override new_track;
+            Frame.append buf (self#process new_track)
   end
 
 let _ =

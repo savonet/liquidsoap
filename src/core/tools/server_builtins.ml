@@ -52,7 +52,7 @@ let () =
       match Request.from_id id with
         | Some r ->
             let m = Request.get_all_metadata r in
-            Request.string_of_metadata m
+            Frame.Metadata.to_string m
         | None -> "No such request.");
   add "uptime" ~descr:"Print the uptime for this instance." (fun _ ->
       let date = int_of_float (Utils.uptime ()) in

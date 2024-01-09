@@ -27,7 +27,7 @@ class map_metadata source rewrite_f insert_missing update strip =
     inherit operator ~name:"metadata.map" [source]
     initializer Typing.(self#frame_type <: Lang.unit_t)
     method stype = source#stype
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -45,26 +45,29 @@ class map_metadata source rewrite_f insert_missing update strip =
       let m = if not update then Frame.Metadata.empty else m in
       List.fold_left replace_val m (Lang.to_list m')
 
-    val mutable in_track = false
-
-    method private get_frame buf =
-      let p = Frame.position buf in
-      source#get buf;
-      if insert_missing && (not in_track) && Frame.position buf > p then (
-        in_track <- true;
-        match Frame.get_metadata buf p with
-          | None ->
-              self#log#important "Inserting missing metadata.";
-              Frame.set_metadata buf p Frame.Metadata.empty
-          | Some _ -> ());
-      if Frame.is_partial buf then in_track <- false;
-      List.iter
-        (fun (t, m) ->
-          if t >= p then (
-            let m = self#rewrite m in
-            if strip && Frame.Metadata.is_empty m then Frame.free_metadata buf t
-            else Frame.set_metadata buf t m))
+    method private process buf =
+      List.fold_left
+        (fun buf (t, m) ->
+          let m = self#rewrite m in
+          if strip && Frame.Metadata.is_empty m then Frame.free_metadata buf t
+          else Frame.add_metadata buf t m)
+        buf
         (Frame.get_all_metadata buf)
+
+    method private generate_frame =
+      match self#split_frame source#get_frame with
+        | frame, None -> self#process frame
+        | frame, Some new_track ->
+            let frame = self#process frame in
+            let new_track = self#process new_track in
+            Frame.append frame
+              (match (insert_missing, Frame.get_metadata new_track 0) with
+                | false, _ -> new_track
+                | true, None ->
+                    self#log#important "Inserting missing metadata.";
+                    Frame.add_metadata new_track 0
+                      (self#rewrite Frame.Metadata.empty)
+                | true, Some _ -> new_track)
   end
 
 let register =

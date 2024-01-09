@@ -49,8 +49,8 @@ type fps = { num : int; den : int }
     - Implicit content drop *)
 type buffer = {
   generator : Generator.t;
-  put_pcm : ?field:Frame.field -> samplerate:int -> Content.Audio.data -> unit;
-  put_yuva420p : ?field:Frame.field -> fps:fps -> Content.Video.data -> unit;
+  put_pcm : ?field:Frame.field -> samplerate:int -> Audio.t -> unit;
+  put_yuva420p : ?field:Frame.field -> fps:fps -> Video.Canvas.image -> unit;
 }
 
 type decoder = {
@@ -62,7 +62,8 @@ type decoder = {
 }
 
 type file_decoder_ops = {
-  fill : Frame.t -> int;
+  fread : int -> Frame.t;
+  remaining : unit -> int;
   fseek : int -> int;
   close : unit -> unit;
 }

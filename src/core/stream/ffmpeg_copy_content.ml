@@ -47,7 +47,7 @@ type packet_payload = {
 }
 
 module Specs = struct
-  include Ffmpeg_content_base
+  include Content_video.Base
 
   type kind = [ `Copy ]
   type params = params_payload option

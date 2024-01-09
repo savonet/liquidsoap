@@ -22,6 +22,8 @@
 
 (** SRT input *)
 
+module Pcre = Re.Pcre
+
 exception Done
 exception Not_connected
 
@@ -291,7 +293,9 @@ let conf_enforced_encryption =
 let log = Log.make ["srt"]
 
 let log_handler { Srt.Log.message } =
-  let message = Pcre.substitute ~pat:"[ \r\n]+$" ~subst:(fun _ -> "") message in
+  let message =
+    Pcre.substitute ~rex:(Pcre.regexp "[ \r\n]+$") ~subst:(fun _ -> "") message
+  in
   log#f conf_level#get "%s" message
 
 (** Common polling task for all srt input/output.
@@ -683,8 +687,8 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
 
-    method! is_ready ?frame () =
-      super#is_ready ?frame () && (not self#should_stop) && self#is_connected
+    method private can_generate_frame =
+      super#started && (not self#should_stop) && self#is_connected
 
     method self_sync = (`Dynamic, self#is_connected)
 
@@ -716,8 +720,8 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
       in
       create_decoder { Decoder.read; tell = None; length = None; lseek = None }
 
-    method private get_frame frame =
-      let pos = Frame.position frame in
+    method private generate_frame =
+      let size = Lazy.force Frame.size in
       try
         let _, socket = self#get_socket in
         let decoder, buffer =
@@ -728,20 +732,21 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
                 in
                 let decoder = self#create_decoder socket in
                 decoder_data <- Some (decoder, buffer);
+                Generator.add_track_mark self#buffer;
                 (decoder, buffer)
             | Some d -> d
         in
-        while Generator.length self#buffer < Lazy.force Frame.size do
+        while Generator.length self#buffer < size do
           decoder.Decoder.decode buffer
         done;
-        Generator.fill self#buffer frame
+        Generator.slice self#buffer size
       with exn ->
         let bt = Printexc.get_backtrace () in
         Utils.log_exception ~log:self#log ~bt
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         self#disconnect;
         if not self#should_stop then self#connect;
-        Frame.add_break frame pos
+        Frame.append (Generator.slice self#buffer size) self#end_of_track
 
     method private start =
       self#set_should_stop false;

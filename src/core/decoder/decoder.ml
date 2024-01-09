@@ -62,13 +62,13 @@ type fps = Decoder_utils.fps = { num : int; den : int }
 type buffer = {
   generator : Generator.t;
   put_pcm : ?field:Frame.field -> samplerate:int -> Content.Audio.data -> unit;
-  put_yuva420p : ?field:Frame.field -> fps:fps -> Content.Video.data -> unit;
+  put_yuva420p : ?field:Frame.field -> fps:fps -> Video.Canvas.image -> unit;
 }
 
 type decoder = {
   decode : buffer -> unit;
   eof : buffer -> unit;
-  (* [seek x]: Skip [x] main ticks. Returns the number of ticks atcually
+  (* [seek x]: Skip [x] main ticks. Returns the number of ticks actually
      skipped. *)
   seek : int -> int;
 }
@@ -82,15 +82,10 @@ type input = {
   length : (unit -> int) option;
 }
 
-(** A decoder is a filling function and a closing function, called at least when
-    filling fails, i.e. the frame is partial. The closing function can be called
-    earlier e.g. if the user skips. In most cases, file decoders are wrapped
-    stream decoders. *)
 type file_decoder_ops = {
-  fill : Frame.t -> int;
-  (* Return remaining ticks. *)
+  fread : int -> Frame.t;
+  remaining : unit -> int;
   fseek : int -> int;
-  (* There is a record name clash here.. *)
   close : unit -> unit;
 }
 
@@ -245,7 +240,7 @@ let test_file ?(log = log) ?mimes ?extensions fname =
     ext_ok || mime_ok)
 
 let channel_layout audio =
-  Lazy.force Content.(Audio.(get_params audio).Content.channel_layout)
+  Lazy.force Content.(Audio.(get_params audio).Content.Audio.channel_layout)
 
 let can_decode_type decoded_type target_type =
   let map_convertible cur (field, target_field) =
@@ -456,16 +451,28 @@ let mk_buffer ~ctype generator =
           let out_freq =
             Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
           in
-          fun ~fps (data : Content.Video.data) ->
-            let data = Array.map video_scale data in
-            let data = video_resample ~in_freq:fps ~out_freq data in
-            let len = Video.Canvas.length data in
-            let data =
-              Content.Video.lift_data
-                ~length:(Frame_settings.main_of_video len)
-                data
-            in
-            Generator.put generator field data)
+          let params =
+            {
+              Content.Video.width = Some Frame.video_width;
+              height = Some Frame.video_height;
+            }
+          in
+          let interval = Frame.main_of_video 1 in
+          fun ~fps img ->
+            match video_resample ~in_freq:fps ~out_freq img with
+              | [] -> ()
+              | data ->
+                  let data =
+                    List.mapi
+                      (fun i img -> (i * interval, video_scale img))
+                      data
+                  in
+                  let length = List.length data * interval in
+                  let buf =
+                    Content.Video.lift_data
+                      { Content.Video.params; length; data }
+                  in
+                  Generator.put generator field buf)
         else fun ~fps:_ _ -> ()
       in
       Hashtbl.add video_handlers field handler;
@@ -476,20 +483,22 @@ let mk_buffer ~ctype generator =
     get_audio_handler ~field ~samplerate data
   in
 
-  let put_yuva420p ?(field = Frame.Fields.video) ~fps data =
-    get_video_handler ~field ~fps data
+  let put_yuva420p ?(field = Frame.Fields.video) ~fps img =
+    get_video_handler ~field ~fps img
   in
 
   { generator; put_pcm; put_yuva420p }
 
 let mk_decoder ~filename ~close ~remaining ~buffer decoder =
-  let prebuf = Frame.main_of_seconds 0.5 in
   let decoding_done = ref false in
 
-  let remaining frame offset =
-    remaining ()
-    + Generator.length buffer.generator
-    + Frame.position frame - offset
+  let remaining () =
+    try remaining () + Generator.length buffer.generator
+    with e ->
+      log#info "Error while getting decoder's remaining time: %s"
+        (Printexc.to_string e);
+      decoding_done := true;
+      0
   in
 
   let close () =
@@ -497,10 +506,10 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
     close ()
   in
 
-  let fill frame =
+  let fread size =
     if not !decoding_done then (
       try
-        while Generator.length buffer.generator < prebuf do
+        while Generator.length buffer.generator < size do
           decoder.decode buffer
         done
       with e ->
@@ -512,15 +521,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
         decoding_done := true;
         if conf_debug#get then raise e);
 
-    let offset = Frame.position frame in
-    Generator.fill buffer.generator frame;
-
-    try remaining frame offset
-    with e ->
-      log#info "Error while getting decoder's remaining time: %s"
-        (Printexc.to_string e);
-      decoding_done := true;
-      0
+    Generator.slice buffer.generator size
   in
 
   let fseek len =
@@ -533,7 +534,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
       Generator.truncate buffer.generator len;
       len)
   in
-  { fill; fseek; close }
+  { fread; remaining; fseek; close }
 
 let file_decoder ~filename ~close ~remaining ~ctype decoder =
   let generator = Generator.create ~log:(log#info "%s") ctype in

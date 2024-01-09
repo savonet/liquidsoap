@@ -2,6 +2,15 @@
 
 New:
 
+- Rewrote the streaming API to work with immutable frame content. This
+  should greatly impact impredictable side-effect of the previous models w.r.t.
+  track marks, content sharing and more. This also impacts multiple operators
+  behavior. Mostly, things should be roughly the same with differences around
+  behavors related to track marks (`source.on_track` and etc). See @TODO@ for
+  more details (#3577)
+- Allow frames smaller than one video frames, typically values under `0.04s`.
+  Smaller frames means less latency and memory consumption at the expense of
+  a higher CPU usage. See @TODO@ for more details (#3607)
 - Allow trailing commas in record definition (#3300).
 - Add `metadata.getter.source.float` (#3356).
 - Added optional `main_playlist_writer` to `output.file.hls` and

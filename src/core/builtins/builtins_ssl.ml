@@ -102,7 +102,7 @@ let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
     method protocol = "https"
     method default_port = 443
 
-    method connect ?bind_address ?timeout host port =
+    method connect ?bind_address ?timeout ?prefer host port =
       try
         let ctx =
           Ssl.create_context (Ssl.SSLv23 [@alert "-deprecated"])
@@ -123,7 +123,9 @@ let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
          with _ -> ());
         Ssl.set_verify_depth ctx 3;
         ignore (Ssl.set_default_verify_paths ctx);
-        let unix_socket = Http.connect ?bind_address ?timeout host port in
+        let unix_socket =
+          Http.connect ?bind_address ?timeout ?prefer host port
+        in
         try
           let socket = Ssl.embed_socket unix_socket ctx in
           (try Ssl.set_client_SNI_hostname socket host with _ -> ());

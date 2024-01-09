@@ -110,7 +110,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data; length } in
+                  let data = { Content.Video.params; data; length } in
                   let data = Ffmpeg_copy_content.lift_data data in
                   Generator.put generator field data
               | None -> ()
@@ -160,7 +160,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                               } ))
                           frames
                       in
-                      let data = { Ffmpeg_content_base.params; data; length } in
+                      let data = { Content.Video.params; data; length } in
                       let data = Ffmpeg_raw_content.Audio.lift_data data in
                       Generator.put generator field data
                   | None -> ())
@@ -294,7 +294,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data; length } in
+                  let data = { Content.Video.params; data; length } in
                   let data = Ffmpeg_copy_content.lift_data data in
                   Generator.put generator field data
               | None -> ()
@@ -350,7 +350,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
                             } ))
                         frames
                     in
-                    let data = { Ffmpeg_content_base.params; data; length } in
+                    let data = { Content.Video.params; data; length } in
                     let data = Ffmpeg_raw_content.Video.lift_data data in
                     Generator.put generator field data
                 | None -> ())
@@ -368,17 +368,16 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
 
   function
   | `Frame frame ->
-      let vstart = 0 in
-      let vstop = VFrame.position frame in
       let vbuf = VFrame.data frame in
-      for i = vstart to vstop - 1 do
-        let f = Video.Canvas.render vbuf i in
-        let vdata = Ffmpeg_utils.pack_image f in
-        let frame = InternalScaler.convert (Option.get !scaler) vdata in
-        Avutil.Frame.set_pts frame (Some !nb_frames);
-        nb_frames := Int64.succ !nb_frames;
-        encode_ffmpeg_frame frame
-      done
+      List.iter
+        (fun (_, img) ->
+          let f = Video.Canvas.Image.render img in
+          let vdata = Ffmpeg_utils.pack_image f in
+          let frame = InternalScaler.convert (Option.get !scaler) vdata in
+          Avutil.Frame.set_pts frame (Some !nb_frames);
+          nb_frames := Int64.succ !nb_frames;
+          encode_ffmpeg_frame frame)
+        vbuf.Content.Video.data
   | `Flush -> encode_frame `Flush
 
 let mk_encoder mode =
@@ -512,7 +511,7 @@ let mk_encoder mode =
                    (Frame.get_all_metadata frame);
                  List.iter
                    (fun pos -> Generator.add_track_mark ~pos generator)
-                   (List.filter (fun x -> x < size) (Frame.breaks frame));
+                   (List.filter (fun x -> x < size) (Frame.track_marks frame));
                  encode_frame (`Frame frame)
              | `Flush -> encode_frame `Flush
            in

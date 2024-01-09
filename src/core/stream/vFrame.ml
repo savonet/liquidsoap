@@ -24,8 +24,6 @@ open Frame
 
 type t = Frame.t
 
-let tov = Frame.main_of_video
-
 let vot ?round x =
   match round with
     | None | Some `Down -> Frame.video_of_main x
@@ -35,18 +33,4 @@ let content ?(field = Frame.Fields.video) b =
   try Frame.get b field with Not_found -> raise Content.Invalid
 
 let data ?field b = Content.Video.get_data (content ?field b)
-let size _ = vot (Lazy.force size)
-let next_sample_position t = vot ~round:`Up (Frame.position t)
-let add_break t i = add_break t (tov i)
-let is_partial t = is_partial t
 let position t = vot (position t)
-
-let get_content frame source =
-  let p0 = Frame.position frame in
-  let p1 =
-    source#get frame;
-    Frame.position frame
-  in
-  let v0 = vot ~round:`Up p0 in
-  let v1 = vot ~round:`Down p1 in
-  if v0 < v1 then Some (content frame, v0, v1 - v0) else None

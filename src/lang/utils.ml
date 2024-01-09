@@ -22,6 +22,7 @@
 
 (* Resolve a path. *)
 let resolve_path ?current_dir path =
+  let path = Lang_string.home_unrelate path in
   let current_dir =
     match current_dir with
       | None -> Sys.getcwd ()

@@ -55,7 +55,6 @@ class defer ~delay ~overhead ~field source =
     val mutable deferred = true
     val mutable generator = None
     val mutable data = None
-    val mutable tmp_frame = None
 
     method private data =
       match data with
@@ -79,26 +78,16 @@ class defer ~delay ~overhead ~field source =
             generator <- Some gen;
             gen
 
-    method private tmp_frame =
-      match tmp_frame with
-        | Some tmp_frame -> tmp_frame
-        | None ->
-            let frame = Frame.create source#content_type in
-            tmp_frame <- Some frame;
-            frame
-
     method private buffer_data =
       let { offset; position } = state in
       let data = self#data.(position) in
       let chunk_len = Content_pcm_base.length data in
       let data_rem = chunk_len - offset in
 
-      let tmp_frame = self#tmp_frame in
-      Frame.clear tmp_frame;
+      let tmp_frame =
+        if source#is_ready then source#get_frame else self#empty_frame
+      in
 
-      while Frame.is_partial tmp_frame && source#is_ready ~frame:tmp_frame () do
-        source#get tmp_frame
-      done;
       let gen_len = Frame.position tmp_frame in
 
       let gen = self#generator in
@@ -113,7 +102,7 @@ class defer ~delay ~overhead ~field source =
         (fun pos ->
           if pos < gen_len then
             Generator.add_track_mark ~pos:(pos + buffered) gen)
-        (Frame.breaks tmp_frame);
+        (Frame.track_marks tmp_frame);
 
       let frame_content = Frame.get tmp_frame field in
       let frame_pcm = Content_pcm_s16.get_data frame_content in
@@ -137,7 +126,7 @@ class defer ~delay ~overhead ~field source =
     method private queue_output =
       let clock = Source.Clock_variables.get self#clock in
       clock#on_output (fun () ->
-          if source#is_ready () then self#buffer_data;
+          if source#is_ready then self#buffer_data;
           if should_queue then
             clock#on_before_output (fun () -> self#queue_output))
 
@@ -147,10 +136,11 @@ class defer ~delay ~overhead ~field source =
           self#queue_output);
       self#on_sleep (fun () -> should_queue <- false)
 
-    method private _is_ready ?frame:_ _ =
+    method private can_generate_frame =
       (not deferred) && Generator.length self#generator > 0
 
-    method private get_frame buf = Generator.fill self#generator buf
+    method private generate_frame =
+      Generator.slice self#generator (Lazy.force Frame.size)
   end
 
 let _ =

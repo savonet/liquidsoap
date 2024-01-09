@@ -65,20 +65,18 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
+    method private normalize buf =
+      let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
       let rmst = rmst () in
       let kup = kup () in
       let kdown = kdown () in
       let threshold = threshold () in
       let gmin = gmin () in
       let gmax = gmax () in
-      for i = offset to AFrame.position buf - 1 do
+      for i = 0 to source#frame_audio_position - 1 do
         for c = 0 to self#audio_channels - 1 do
           let bc = b.(c) in
           let x = bc.(i) in
@@ -100,9 +98,15 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
           rms <- 0.;
           rmsc <- 0)
       done;
+      Frame.set_data buf Frame.Fields.audio Content.Audio.lift_data b
 
-      (* Reset values if it is the end of the track. *)
-      if track_sensitive && AFrame.is_partial buf then self#init
+    method private generate_frame =
+      match self#split_frame (source#get_mutable_frame Frame.Fields.audio) with
+        | buf, None -> self#normalize buf
+        | buf, Some new_track ->
+            let buf = self#normalize buf in
+            if track_sensitive then self#init;
+            Frame.append buf (self#normalize new_track)
   end
 
 let normalize = Lang.add_module "normalize"

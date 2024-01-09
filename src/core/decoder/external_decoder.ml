@@ -158,11 +158,12 @@ let external_input_oblivious process filename prebuf =
   let buffer = Decoder.mk_buffer ~ctype gen in
   let prebuf = Frame.main_of_seconds prebuf in
   let decoder = Wav_aiff_decoder.create input in
-  let fill frame =
+  let fread len =
     begin
       try
         while
-          Generator.length gen < prebuf && not (Process_handler.stopped process)
+          Generator.length gen < max prebuf len
+          && not (Process_handler.stopped process)
         do
           decoder.Decoder.decode buffer
         done
@@ -170,13 +171,14 @@ let external_input_oblivious process filename prebuf =
         log#info "Decoding %s ended: %s." command (Printexc.to_string e);
         close ()
     end;
-    Generator.fill gen frame;
-
+    Generator.slice gen len
+  in
+  let remaining () =
     (* We return -1 while the process is not yet
      * finished. *)
     if Process_handler.stopped process then Generator.length gen else -1
   in
-  { Decoder.fill; fseek = decoder.Decoder.seek; close }
+  { Decoder.fread; remaining; fseek = decoder.Decoder.seek; close }
 
 let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
     ~process prebuf =

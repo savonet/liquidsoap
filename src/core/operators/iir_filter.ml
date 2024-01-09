@@ -415,14 +415,13 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method private _is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable v_offs = 0
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
+    method private generate_frame =
+      let c = source#get_mutable_content Frame.Fields.audio in
+      let b = Content.Audio.get_data c in
       let v_len = Array.length xv.(0) in
       let coeffs_len = Array.length xcoeffs in
       let fold_left2 init v coeffs l =
@@ -437,7 +436,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
         let xvc = xv.(c) in
         let yvc = yv.(c) in
         let bc = b.(c) in
-        for i = offset to AFrame.position buf - 1 do
+        for i = 0 to source#frame_audio_position - 1 do
           v_offs <- (v_offs + 1) mod v_len;
           xvc.((coeffs_len - 1 + v_offs) mod v_len) <- bc.(i) /. gain;
           let insert =
@@ -447,7 +446,8 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
           yvc.((coeffs_len - 1 + v_offs) mod v_len) <- insert;
           bc.(i) <- insert
         done
-      done
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let filter_iir = Lang.add_module ~base:Filter.filter "iir"

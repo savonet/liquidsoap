@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Avutil
+module Pcre = Re.Pcre
 
 type 'a frame = {
   stream_idx : Int64.t;
@@ -29,7 +30,7 @@ type 'a frame = {
 }
 
 module BaseSpecs = struct
-  include Ffmpeg_content_base
+  include Content_video.Base
 
   type kind = [ `Raw ]
 

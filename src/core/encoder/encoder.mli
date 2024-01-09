@@ -106,7 +106,7 @@ type hls = {
   video_size : unit -> (int * int) option;
 }
 
-val dummy_hls : (Generator.t -> int -> int -> Strings.t) -> hls
+val dummy_hls : (Frame.t -> int -> int -> Strings.t) -> hls
 
 type encoder = {
   insert_metadata : Frame.Metadata.Export.t -> unit;
