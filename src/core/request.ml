@@ -638,7 +638,9 @@ let get_decoder r =
                     buf))
               in
               let remaining () =
-                min (decoder.remaining ()) (cue_out - Atomic.get pos)
+                match (decoder.remaining (), cue_out - Atomic.get pos) with
+                  | -1, r -> r
+                  | r, r' -> min r r'
               in
               Some { decoder with fread; remaining })
 
