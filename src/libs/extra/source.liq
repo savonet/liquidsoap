@@ -295,7 +295,7 @@ def source.cue(s, filename, ~title=null(), ~performer=null(), ~file=null()) =
     null.defined(file)
   then
     w(
-      "FILE \"file\" MP3"
+      "FILE \"#{null.get(file)}\" MP3"
     )
   end
 
