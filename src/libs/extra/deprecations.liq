@@ -730,7 +730,7 @@ def video.line(%argsof(video.add_line), src, tgt, s)
   video.add_line(%argsof(video.add_line), src, tgt, s)
 end
 
-# Derecated: integrated into request resolution.
+# Derecated: integrated into requests resolution.
 # @flag deprecated
 def cue_cut(
   ~id=_,
@@ -742,7 +742,7 @@ def cue_cut(
 ) =
   log.severe(
     label="lang.deprecated",
-    "WARNING: cue_cut has been removed and integrated directly into request \
+    "WARNING: cue_cut has been removed and integrated directly into requests \
      resolution! This operator can be safely removed from your script now."
   )
   s

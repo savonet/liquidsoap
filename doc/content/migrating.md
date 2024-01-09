@@ -43,6 +43,12 @@ Starting with version `2.2.1`, on HLS outputs, `on_file_change` events are now `
 was required to reflect the fact that file changes are now atomic. See [this issue](https://github.com/savonet/liquidsoap/issues/3284)
 for more details.
 
+### `cue_cut`
+
+Starting with version `2.2.4`, the `cue_cut` operator has been removed. Requests cue-in and cue-out processing has been integrated
+directly into requests resolution. In most cases, you simply can remove the operator from your script. In some cases, you might
+need to disable `cue_in_metadata` and `cue_out_metadat` either when creating new requests or when creating `playlist` sources.
+
 ### Harbor HTTP server and SSL support
 
 The API for registering HTTP server endpoint and using SSL was completely rewritten. It should be more flexible and
