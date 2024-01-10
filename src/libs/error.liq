@@ -38,8 +38,9 @@ end
 # @category Programming
 def ensure(~finally, fn) =
   try
-    fn ()
+    ret = fn()
     finally()
+    ret
   catch err do
     finally()
     error.raise(err)
