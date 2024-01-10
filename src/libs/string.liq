@@ -126,6 +126,18 @@ def string.to_int(~default=0, s) =
   int_of_string(default=default, s)
 end
 
+# Convert an int to string.
+# @category String
+# @param ~digits Minimal number of digits (pad with 0s on the left if necessary).
+def string.of_int(~digits=0, n)
+  s = string(n)
+  if string.length(s) >= digits then
+    s
+  else
+    string.make(char_code=48, digits - string.length(s)) ^ s
+  end
+end
+
 # Convert a string to a float.
 # @category String
 def string.to_float(~default=0., s) =
@@ -134,7 +146,8 @@ end
 
 let string.binary = ()
 
-# Value of a positive (unsigned) integer encoded using native memory representation.
+# Value of a positive (unsigned) integer encoded using native memory
+# representation.
 # @category String
 # @param ~little_endian Whether the memory representation is little endian.
 # @param s String containing the binary representation.
@@ -406,4 +419,11 @@ def string.escape.html(%argsof(string.escape[encoding]), s) =
     escape_char=escape_char,
     s
   )
+end
+
+# Generate a given number of spaces (this can be useful for indenting).
+# @category String
+# @param n Number of spaces.
+def string.spaces(n)
+  string.make(char_code=32, n)
 end

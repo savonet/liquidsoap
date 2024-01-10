@@ -37,12 +37,18 @@ def f() =
   test.equals(list.rev([1, 2, 3]), [3, 2, 1])
   test.equals(list.assoc(default=0, "", [("a", 1), ("b", 2)]), 0)
   test.equals(list.assoc("b", [("a", 1), ("b", 2)]), 2)
+  test.equals(list.assoc.nullable("b", [("a", 1), ("b", 2)]), 2)
+  test.equals(list.assoc.nullable("x", [("a", 1), ("b", 2)]), null())
   test.equals(
     list.assoc.remove("a", [("b", 2), ("a", 1), ("a", 3)]), [("b", 2), ("a", 3)]
   )
 
-  test.equals(list.assoc.remove.all("c", [("c", 1), ("b", 2), ("c", 2)]), [("b", 2)])
-  test.equals(list.assoc.remove.all("c", [("a", 1), ("b", 2)]), [("a", 1), ("b", 2)])
+  test.equals(
+    list.assoc.remove.all("c", [("c", 1), ("b", 2), ("c", 2)]), [("b", 2)]
+  )
+  test.equals(
+    list.assoc.remove.all("c", [("a", 1), ("b", 2)]), [("a", 1), ("b", 2)]
+  )
   test.equals(list.for_all(fun (n) -> n > 0, []), true)
   test.equals(list.for_all(fun (n) -> n > 0, [1, 2, 3]), true)
   test.equals(list.for_all(fun (n) -> n > 0, [1, 0, 3]), false)
@@ -92,7 +98,7 @@ def f() =
   # There used to be a bug where [x] would loose all its methods.
   x = 1
   let x.foo = "bla"
-  list.add(x, [2.{foo="gni"}])
+  _ = list.add(x, [2.{foo="gni"}])
   try
     ignore(list.insert(23, 2, [1, 2, 3]))
     test.fail()

@@ -24,6 +24,13 @@ def f() =
   test.equals(string.contains(suffix="dc", "abcd"), false)
   test.equals(string.contains(substring="bc", "abcd"), true)
   test.equals(string.contains(substring="bc", "acbd"), false)
+  test.equals(string.spaces(0), "")
+  test.equals(
+    string.spaces(4),
+    "    "
+  )
+  test.equals(string.of_int(45), "45")
+  test.equals(string.of_int(digits=4, 45), "0045")
   test.equals(string.binary.to_int(little_endian=true, "abcd"), 0x64636261)
   test.equals(string.binary.to_int(little_endian=false, "abcd"), 0x61626364)
   test.equals(string.binary.of_int(little_endian=true, 0x64636261), "abcd")

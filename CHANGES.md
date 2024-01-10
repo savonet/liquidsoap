@@ -25,6 +25,10 @@ New:
 - Add `copy:` protocol (#3506)
 - Add `file.touch`.
 - Add support for sqlite databases (#3575).
+- Add `string.of_int` and `string.spaces`.
+- Add `list.assoc.nullable`.
+- Add `source.cue` (#3620).
+- Added atomic file write operations.
 
 Changed:
 

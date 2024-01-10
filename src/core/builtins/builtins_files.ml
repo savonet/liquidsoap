@@ -599,6 +599,13 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Do not prompt for confirmation if the destination path exists." );
+      ( "atomic",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Move the file atomically. Implies `force` and raises \
+           `error.file.cross_device` if atomic move fails because the source \
+           and destination files are not on the same partition." );
       ("", Lang.string_t, None, Some "Source");
       ("", Lang.string_t, None, Some "Destination");
     ]
@@ -608,17 +615,26 @@ let _ =
         if Lang.to_bool (List.assoc "force" p) then FileUtil.Force
         else FileUtil.Ask (fun _ -> false)
       in
+      let atomic = Lang.to_bool (List.assoc "atomic" p) in
       let src = Lang.to_string (Lang.assoc "" 1 p) in
       let dst = Lang.to_string (Lang.assoc "" 2 p) in
       let error message _ =
         Runtime_error.raise ~pos:(Lang.pos p) ~message "file"
       in
       try
-        FileUtil.mv ~force ~error src dst;
+        if atomic then Unix.rename src dst
+        else FileUtil.mv ~force ~error src dst;
         Lang.unit
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+      with
+        | Unix.Unix_error (Unix.EXDEV, _, _) ->
+            Runtime_error.raise ~pos:(Lang.pos p)
+              ~message:
+                "Rename failed! Directory for temporary files appears to be on \
+                 a different filesystem"
+              "file.cross_device"
+        | exn ->
+            let bt = Printexc.get_raw_backtrace () in
+            Lang.raise_as_runtime ~bt ~kind:"file" exn)
 
 let () =
   if not Sys.win32 then (
