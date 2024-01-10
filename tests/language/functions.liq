@@ -1,14 +1,3 @@
-def t(x, y) =
-  if
-    x != y
-  then
-    print(
-      "Failure: got #{x} instead of #{y}"
-    )
-    test.fail()
-  end
-end
-
 def f() =
   def f(~(foo:int), ~(bar:string)="123", (x:source), (y:int)=123) =
     ()
@@ -19,7 +8,7 @@ def f() =
     x
   end
 
-  t(f(2, 3), 3)
+  test.equals(f(2, 3), 3)
 
   # Free variables with same name
   x = 4
@@ -29,7 +18,7 @@ def f() =
     x
   end
 
-  t(f(), 5)
+  test.equals(f(), 5)
 
   def recf() =
     ()

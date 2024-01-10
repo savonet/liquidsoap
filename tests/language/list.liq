@@ -36,6 +36,7 @@ def f() =
   test.equals(list.append([1, 2], [3, 4, 5]), [1, 2, 3, 4, 5])
   test.equals(list.rev([1, 2, 3]), [3, 2, 1])
   test.equals(list.assoc(default=0, "", [("a", 1), ("b", 2)]), 0)
+  test.equals(list.assoc("b", [("a", 1), ("b", 2)]), 2)
   test.equals(list.assoc.nullable("b", [("a", 1), ("b", 2)]), 2)
   test.equals(list.assoc.nullable("x", [("a", 1), ("b", 2)]), null())
   test.equals(
@@ -111,6 +112,7 @@ def f() =
 
   # Test huge lists, see #2162.
   # l = list.init(100000, fun(i) -> i)
+
   test.pass()
 end
 

@@ -105,6 +105,8 @@ type t = {
   id : int;
   initial_uri : string;
   resolve_metadata : bool;
+  cue_in_metadata : string option;
+  cue_out_metadata : string option;
   mutable ctype : Frame.content_type option;
   (* No kind for raw requests *)
   persistent : bool;
@@ -119,6 +121,7 @@ type t = {
   mutable status : status;
   mutable resolving : float option;
   mutable on_air : float option;
+  logger : Log.t;
   log : log;
   mutable root_metadata : Frame.metadata;
   mutable indicators : indicator list list;
@@ -193,7 +196,10 @@ let get_all_metadata t =
 
 (** Logging *)
 
-let add_log t i = Queue.add (Unix.localtime (Unix.time ()), i) t.log
+let add_log t i =
+  t.logger#info "%s" i;
+  Queue.add (Unix.localtime (Unix.time ()), i) t.log
+
 let get_log t = t.log
 
 (* Indicator tree management *)
@@ -464,12 +470,15 @@ module Pool = Pool.Make (struct
     {
       id = 0;
       initial_uri = "";
+      cue_in_metadata = None;
+      cue_out_metadata = None;
       ctype = None;
       resolve_metadata = false;
       persistent = false;
       status = Destroyed;
       resolving = None;
       on_air = None;
+      logger = Log.make [];
       log = Queue.create ();
       root_metadata = Frame.Metadata.empty;
       indicators = [];
@@ -527,7 +536,7 @@ let clean () =
   Pool.clear ()
 
 let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
-    ?(indicators = []) u =
+    ?(indicators = []) ~cue_in_metadata ~cue_out_metadata u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in
@@ -542,6 +551,8 @@ let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
       {
         id = 0;
         initial_uri = u;
+        cue_in_metadata;
+        cue_out_metadata;
         ctype = None;
         resolve_metadata;
         (* This is fixed when resolving the request. *)
@@ -550,12 +561,14 @@ let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
         resolving = None;
         status = Idle;
         decoder = None;
+        logger = Log.make [];
         log = Queue.create ();
         root_metadata = Frame.Metadata.empty;
         indicators = [];
       }
     in
-    Pool.add (fun id -> { req with id })
+    Pool.add (fun id ->
+        { req with id; logger = Log.make ["request"; string_of_int id] })
   in
   List.iter
     (fun (k, v) -> t.root_metadata <- Frame.Metadata.add k v t.root_metadata)
@@ -569,7 +582,67 @@ let on_air t =
   t.status <- Playing;
   add_log t "Currently on air."
 
-let get_decoder r = match r.decoder with None -> None | Some d -> Some (d ())
+let get_cue ~r = function
+  | None -> None
+  | Some m -> (
+      match get_metadata r m with
+        | None -> None
+        | Some v -> (
+            match float_of_string_opt v with
+              | None ->
+                  r.logger#important "Invalid cue metadata %s: %s" m v;
+                  None
+              | Some v -> Some v))
+
+let get_decoder r =
+  match r.decoder with
+    | None -> None
+    | Some d -> (
+        let decoder = d () in
+        let open Decoder in
+        let initial_pos =
+          match get_cue ~r r.cue_in_metadata with
+            | Some cue_in ->
+                r.logger#info "Cueing in to position: %.02f" cue_in;
+                let cue_in = Frame.main_of_seconds cue_in in
+                let seeked = decoder.fseek cue_in in
+                if seeked <> cue_in then
+                  r.logger#important
+                    "Initial seek mismatch! Expected: %d, effective: %d" cue_in
+                    seeked;
+                seeked
+            | None -> 0
+        in
+        match get_cue ~r r.cue_out_metadata with
+          | None -> Some decoder
+          | Some cue_out ->
+              let cue_out = Frame.main_of_seconds cue_out in
+              let pos = Atomic.make initial_pos in
+              let fread len =
+                if cue_out <= Atomic.get pos then decoder.fread 0
+                else (
+                  let old_pos = Atomic.get pos in
+                  let len = min len (cue_out - old_pos) in
+                  let buf = decoder.fread len in
+                  let filled = Frame.position buf in
+                  let new_pos = old_pos + filled in
+                  Atomic.set pos new_pos;
+                  if cue_out <= new_pos then (
+                    r.logger#info "Cueing out at position: %.02f"
+                      (Frame.seconds_of_main cue_out);
+                    Frame.slice buf (cue_out - old_pos))
+                  else (
+                    if Frame.is_partial buf then
+                      r.logger#important
+                        "End of track reached before cue-out point!";
+                    buf))
+              in
+              let remaining () =
+                match (decoder.remaining (), cue_out - Atomic.get pos) with
+                  | -1, r -> r
+                  | r, r' -> min r r'
+              in
+              Some { decoder with fread; remaining })
 
 (** Plugins registration. *)
 

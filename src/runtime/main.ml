@@ -169,7 +169,7 @@ let lang_doc name =
 let process_request s =
   load_libs ();
   run_streams := false;
-  let req = Request.create s in
+  let req = Request.create ~cue_in_metadata:None ~cue_out_metadata:None s in
   match Request.resolve ~ctype:None req 20. with
     | Request.Failed ->
         Printf.eprintf "Request resolution failed.\n";

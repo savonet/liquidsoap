@@ -239,12 +239,16 @@ end
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~timeout Timeout (in sec.) for a single download.
 # @param ~fallible Enforce fallibility of the request.
+# @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
+# @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri URI where to find the file
 def single(
   ~id=null("single"),
   ~prefetch=1,
   ~timeout=20.,
   ~fallible=false,
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
   uri
 ) =
   id = string.id.default(default="single", id)
@@ -269,7 +273,13 @@ def single(
           label=id,
           "#{uri} is static, resolving once for all..."
         )
-        r = request.create(persistent=true, uri)
+        r =
+          request.create(
+            persistent=true,
+            cue_in_metadata=cue_in_metadata,
+            cue_out_metadata=cue_out_metadata,
+            uri
+          )
         if
           not request.resolve(r, timeout=timeout, content_type=s_ref())
         then
@@ -284,7 +294,13 @@ def single(
       end
 
       def next() =
-        static_request() ?? request.create(uri)
+        static_request()
+          ??
+            request.create(
+              cue_in_metadata=cue_in_metadata,
+              cue_out_metadata=cue_out_metadata,
+              uri
+            )
       end
 
       s = request.dynamic(prefetch=prefetch, next)
