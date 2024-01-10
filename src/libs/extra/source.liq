@@ -266,60 +266,151 @@ stdlib_file = file
 # @category Source / Track processing
 # @flag extra
 # @param filename Path where the CUE file should be written.
-def source.cue(s, filename, ~title=null(), ~performer=null(), ~file=null()) =
-  t0 = source.time(s)
-  track = ref(0)
-
-  # Empty file.
-  stdlib_file.write(append=false, data="", filename)
-
-  # Append to the file.
-  def w(data) =
-    data = data ^ "\n"
-    stdlib_file.write(append=true, data=data, filename)
-  end
-
-  # Write a tag.
-  def tag(~indent=0, name, value) =
-    if
-      null.defined(value)
-    then
-      s =
-        "#{string.spaces(indent)}#{name} \"#{null.get(value)}\""
-      w(s)
-    end
-  end
-
-  tag("TITLE", title)
-  tag("PERFORMER", performer)
+# @param max_length Set the maximum of track info retained by the function. \
+#                   Infinite when `null`.
+# @param ~temp_dir Temporary directory for atomic write.
+# @param ~delete Delete the CUE files when starting if it exists.
+def source.cue(
+  ~title=null(),
+  ~performer=null(),
+  ~file=null(),
+  ~max_length=null(),
+  ~temp_dir=null(),
+  ~delete=true,
+  filename,
+  s
+) =
   if
-    null.defined(file)
+    delete and stdlib_file.exists(filename)
   then
-    w(
-      "FILE \"#{null.get(file)}\" MP3"
-    )
+    stdlib_file.remove(filename)
   end
+
+  is_first = ref(true)
+
+  def write(~append, entries) =
+    if
+      append
+    then
+      log(
+        label="source.cue",
+        level=4,
+        "Writing new entry to #{filename}"
+      )
+    else
+      log(
+        label="source.cue",
+        level=4,
+        "Writing full CUE file at #{filename}"
+      )
+    end
+
+    write =
+      stdlib_file.write.stream(
+        append=append, atomic=true, temp_dir=temp_dir, filename
+      )
+
+    # Append to the file.
+    def w(data) =
+      write(data ^ "\n")
+    end
+
+    # Write a tag.
+    def tag(~indent=0, name, (value:string?)) =
+      if
+        null.defined(value)
+      then
+        s =
+          "#{string.spaces(indent)}#{name} #{string.quote(null.get(value))}"
+        w(s)
+      end
+    end
+
+    if
+      is_first() or not append
+    then
+      is_first := false
+
+      tag("TITLE", title)
+      tag("PERFORMER", performer)
+      if
+        null.defined(file)
+      then
+        w(
+          "FILE \"#{null.get(file)}\" MP3"
+        )
+      end
+    end
+
+    list.iter(
+      fun (entry) ->
+        begin
+          let {position = p, time = t, metadata = m} = entry
+
+          w(
+            "  TRACK #{string.of_int(digits=2, p)} AUDIO"
+          )
+          tag(indent=4, "TITLE", list.assoc.nullable("title", m))
+          tag(indent=4, "PERFORMER", list.assoc.nullable("artist", m))
+          tag(
+            indent=4,
+            "REM ALBUM",
+            list.assoc.nullable("album", m)
+          )
+
+          t = int_of_float(t)
+          let {hours, minutes, seconds} = duration.split(t)
+          h = string.of_int(digits=2, hours)
+          m = string.of_int(digits=2, minutes)
+          s = string.of_int(digits=2, seconds)
+          w(
+            "    INDEX 01 #{h}:#{m}:#{s}"
+          )
+        end,
+      entries
+    )
+
+    write("")
+  end
+
+  entries = ref([])
+  current_entry = ref(null())
 
   def handle_metadata(m) =
-    ref.incr(track)
-    w(
-      "  TRACK #{string.of_int(digits=2, track())} AUDIO"
-    )
-    tag(indent=4, "TITLE", list.assoc.nullable("title", m))
-    tag(indent=4, "PERFORMER", list.assoc.nullable("artist", m))
-    tag(
-      indent=4,
-      "REM ALBUM",
-      list.assoc.nullable("album", m)
-    )
-    t = int_of_float(source.time(s) - t0)
-    let {hours, minutes, seconds} = duration.split(t)
-    h = string.of_int(digits=2, hours)
-    m = string.of_int(digits=2, minutes)
-    s = string.of_int(digits=2, seconds)
-    w(
-      "    INDEX 01 #{h}:#{m}:#{s}"
-    )
+    last_entry = current_entry()
+    current_entry :=
+      {
+        position=null.case(last_entry, {1}, fun (entry) -> entry.position + 1),
+        time=source.time(s),
+        metadata=m
+      }
+
+    if
+      null.defined(last_entry)
+    then
+      let {position = p, time = t0, metadata = m} = null.get(last_entry)
+      entry = {position=p, time=source.time(s) - t0, metadata=m}
+
+      if
+        null.defined(max_length)
+      then
+        current_entries =
+          null.case(
+            max_length,
+            entries,
+            fun (max_length) ->
+              list.rev(list.prefix(max_length - 1, list.rev(entries())))
+          )
+        entries :=
+          list.mapi(
+            fun (pos, entry) -> entry.{position=pos + 1},
+            [...current_entries, entry]
+          )
+        write(append=false, entries())
+      else
+        write(append=true, [entry])
+      end
+    end
   end
 
   source.on_metadata(s, handle_metadata)

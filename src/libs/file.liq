@@ -28,13 +28,61 @@ let file.write = ()
 # @category File
 # @param ~append Append data if file exists.
 # @param ~perms Default file rights if created. Default: `0o644`.
+# @param ~atomic Make the write atomic by writing to a temporary file and moving \
+#                the file to destination once writing has succeeded.
+# @param ~temp_dir Temporary directory for atomic write.
 # @param path Path to write to
-def file.write.stream(~perms=0o644, ~append=false, path) =
-  fd = file.open(write=true, append=append, perms=perms, path)
+def file.write.stream(
+  ~perms=0o644,
+  ~append=false,
+  ~atomic=false,
+  ~temp_dir=null(),
+  p
+) =
+  let (fd, finally) =
+    if
+      atomic
+    then
+      let (temp_dir, finally) = if null.defined(temp_dir) then (null.get(temp_dir), {()}) else
+        temp_dir = file.temp_dir("temp", "dir")
+        (temp_dir, {file.rmdir(temp_dir)})
+      end
+      tmp = path.concat(temp_dir, "atomic.write")
+      if append and file.exists(p) then file.copy(p, tmp) end
+      def finally() =
+        ensure(
+          finally=finally,
+          {
+            try
+              file.move(atomic=true, tmp, p)
+            catch _ : [error.file.cross_device] do
+              log(
+                label="file.write",
+                "Atomic rename failed! Directory for temporary files appears to \
+                 be on a different file system. Please set it to the same one \
+                 using `temp_dir` argument to guarantee atomic file operations!"
+              )
+              file.copy(force=true, tmp, p)
+            end
+          }
+        )
+      end
+      fd = file.open(write=true, append=append, perms=perms, tmp)
+      (fd, finally)
+    else
+      (file.open(write=true, append=append, perms=perms, p), {()})
+    end
 
   def write(s) =
     s = s ?? ""
-    if s == "" then fd.close() else fd.write(s) end
+    if
+      s == ""
+    then
+      fd.close()
+      finally()
+    else
+      fd.write(s)
+    end
   end
 
   write
@@ -46,9 +94,22 @@ end
 #              must return `null` or `""` when it has finished sending all its data.
 # @param ~append Append data if file exists.
 # @param ~perms Default file rights if created. Default: `0o644`.
+# @param ~atomic Make the write atomic by writing to a temporary file and moving \
+#                the file to destination once writing has succeeded.
+# @param ~temp_dir Temporary directory for atomic write.
 # @param path Path to write to.
-def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
-  cb = file.write.stream(append=append, perms=perms, path)
+def replaces file.write(
+  ~data,
+  ~perms=0o644,
+  ~append=false,
+  ~atomic=false,
+  ~temp_dir=null(),
+  path
+) =
+  cb =
+    file.write.stream(
+      append=append, perms=perms, atomic=atomic, temp_dir=temp_dir, path
+    )
 
   def rec write() =
     s = getter.get(data) ?? ""

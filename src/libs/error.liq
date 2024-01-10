@@ -1,6 +1,7 @@
 let error.assertion = error.register("assertion")
 let error.eval = error.register("eval")
 let error.file = error.register("file")
+let error.file.cross_device = error.register("file.cross_device")
 let error.http = error.register("http")
 let error.invalid = error.register("invalid")
 let error.json = error.register("json")
@@ -31,4 +32,16 @@ let error.failure = error.register("failure")
 # @param msg Explanation about the failure.
 def failwith(msg) =
   error.raise(error.failure, msg)
+end
+
+# Ensure that a given computation is always executed
+# @category Programming
+def ensure(~finally, fn) =
+  try
+    fn ()
+    finally()
+  catch err do
+    finally()
+    error.raise(err)
+  end
 end

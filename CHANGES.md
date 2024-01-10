@@ -28,6 +28,7 @@ New:
 - Add `string.of_int` and `string.spaces`.
 - Add `list.assoc.nullable`.
 - Add `source.cue` (#3620).
+- Added atomic file write operations.
 
 Changed:
 
