@@ -261,7 +261,8 @@ end
 
 stdlib_file = file
 
-# Generate a CUE file for the source.
+# Generate a CUE file for the source. This function will generate a new track in
+# the file for each metadata of the source.
 # @category Source / Track processing
 # @flag extra
 # @param filename Path where the CUE file should be written.
