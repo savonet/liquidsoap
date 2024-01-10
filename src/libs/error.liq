@@ -37,12 +37,14 @@ end
 # Ensure that a given computation is always executed
 # @category Programming
 def ensure(~finally, fn) =
+  finally_called = ref(false)
   try
     ret = fn()
+    finally_called := true
     finally()
     ret
   catch err do
-    finally()
+    if not finally_called() then finally() end
     error.raise(err)
   end
 end
