@@ -25,6 +25,7 @@
 ## For 2.3
 
 ~~- Rewrite streaming loop~~
+
 - rewrite the clock system
   - the code is unreadable and overengineered ⇒ simplify it
   - we want to get rid of the assumption clock = thread
@@ -50,7 +51,6 @@
 - rework buffer.adaptative
 - allow showing graphs (of buffer.adaptative for instance)
 - reimplement video.tile in native liq
-
 
 ## Backlog
 
