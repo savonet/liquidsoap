@@ -1,3 +1,5 @@
+success = ref(true)
+
 file = "interactive.json"
 
 def f() =
@@ -8,8 +10,8 @@ def f() =
   interactive.load(file)
   test.equals(x(), 2.)
   try
-    interactive.float("bla", 0.)
-    interactive.float("bla", 0.)
+    _ = interactive.float("bla", 0.)
+    _ = interactive.float("bla", 0.)
     log.critical(
       "Did not detect double registration."
     )
