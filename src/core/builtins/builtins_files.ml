@@ -604,8 +604,8 @@ let _ =
         Some (Lang.bool false),
         Some
           "Move the file atomically. Implies `force` and raises \
-           `error.file.cross_device` error if atomic move fails because the \
-           source and destination files are not on the same partition." );
+           `error.file.cross_device` if atomic move fails because the source \
+           and destination files are not on the same partition." );
       ("", Lang.string_t, None, Some "Source");
       ("", Lang.string_t, None, Some "Destination");
     ]
