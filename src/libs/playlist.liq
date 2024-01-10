@@ -100,8 +100,17 @@ end
 # @category File
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic detection.
 # @param ~timeout Timeout for resolving the playlist
+# @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
+# @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri Path to the playlist
-def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
+def playlist.files(
+  ~id=null(),
+  ~mime_type=null(),
+  ~timeout=20.,
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
+  uri
+) =
   id = id ?? playlist.id(default="playlist.files", uri)
 
   if
@@ -115,7 +124,10 @@ def playlist.files(~id=null(), ~mime_type=null(), ~timeout=20., uri) =
     files = list.filter(fun (f) -> not (file.is_directory(f)), files)
     files
   else
-    pl = request.create(uri)
+    pl =
+      request.create(
+        cue_in_metadata=cue_in_metadata, cue_out_metadata=cue_out_metadata, uri
+      )
     result =
       if
         request.resolve(timeout=timeout, pl)
@@ -178,6 +190,8 @@ let stdlib_native = native
 # @param ~max_fail When this number of requests fail to resolve, the whole playlists is considered as failed and `on_fail` is called.
 # @param ~on_fail Function executed when too many requests failed and returning the contents of a fixed playlist.
 # @param ~timeout Timeout (in sec.) for a single download.
+# @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
+# @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
 # @method remaining_files Songs remaining to be played.
@@ -193,6 +207,8 @@ def playlist.list(
   ~max_fail=10,
   ~on_fail=null(),
   ~timeout=20.,
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
   playlist
 ) =
   ignore(native)
@@ -342,7 +358,12 @@ def playlist.list(
         label=id,
         "Next song will be \"#{file}\"."
       )
-      r = request.create(file)
+      r =
+        request.create(
+          cue_in_metadata=cue_in_metadata,
+          cue_out_metadata=cue_out_metadata,
+          file
+        )
       if
         not request.resolve(content_type=s, r)
       then
@@ -432,6 +453,8 @@ end
 #  the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is \
 #  changed).
 # @param ~timeout Timeout (in sec.) for a single download.
+# @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
+# @param ~cue_out_metadata Metadata for cue out points. Disabled if `null`.
 # @param uri Playlist URI.
 # @method reload Reload the playlist.
 # @method length Length of the of the playlist (the number of songs it contains).
@@ -452,6 +475,8 @@ def replaces playlist(
   ~reload=0,
   ~reload_mode="seconds",
   ~timeout=20.,
+  ~cue_in_metadata=null("liq_cue_in"),
+  ~cue_out_metadata=null("liq_cue_out"),
   uri
 ) =
   id = id ?? playlist.id(default="playlist", uri)
@@ -493,7 +518,12 @@ def replaces playlist(
     files =
       try
         playlist.files(
-          id=id, mime_type=mime_type, timeout=timeout, playlist_uri
+          id=id,
+          mime_type=mime_type,
+          timeout=timeout,
+          cue_in_metadata=cue_in_metadata,
+          cue_out_metadata=cue_out_metadata,
+          playlist_uri
         )
       catch err do
         log.info(
@@ -560,6 +590,8 @@ def replaces playlist(
       on_loop=on_loop,
       on_fail=on_fail,
       timeout=timeout,
+      cue_in_metadata=cue_in_metadata,
+      cue_out_metadata=cue_out_metadata,
       files()
     )
 

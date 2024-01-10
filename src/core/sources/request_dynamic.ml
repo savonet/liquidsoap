@@ -125,7 +125,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                        Tutils.mutexify m (fun len -> decoder.Decoder.fseek len);
                      close = decoder.Decoder.close;
                    });
-              remaining <- -1;
+              remaining <- decoder.Decoder.remaining ();
               first_fill <- true;
               true
           | `Request req ->

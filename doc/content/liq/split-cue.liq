@@ -10,12 +10,11 @@ cue = "/path/to/sheet.cue"
 # are done.
 s = playlist(cue, on_done=shutdown)
 
-# Add a cue_cut to cue-in/cue-out according to markers in `sheet.cue`.
-s = cue_cut(s)
-
 # Shove all that to a output.file operator.
-output.file(%mp3(id3v2=true,bitrate=320),
-            fallible=true,
-            reopen_on_metadata=fun(_) -> true,
-            "/path/to/$(track) - $(title).mp3",
-            s)
+output.file(
+  %mp3(id3v2 = true, bitrate = 320),
+  fallible=true,
+  reopen_on_metadata=fun (_) -> true,
+  "/path/to/$(track) - $(title).mp3",
+  s
+)
