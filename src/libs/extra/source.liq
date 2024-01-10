@@ -313,9 +313,10 @@ def source.cue(s, filename, ~title=null(), ~performer=null(), ~file=null()) =
       list.assoc.nullable("album", m)
     )
     t = int_of_float(source.time(s) - t0)
-    h = string.of_int(digits=2, t / 3600)
-    m = string.of_int(digits=2, (t / 60) mod 60)
-    s = string.of_int(digits=2, t mod 60)
+    let {hours, minutes, seconds} = duration.split(t)
+    h = string.of_int(digits=2, hours)
+    m = string.of_int(digits=2, minutes)
+    s = string.of_int(digits=2, seconds)
     w(
       "    INDEX 01 #{h}:#{m}:#{s}"
     )

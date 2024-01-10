@@ -65,3 +65,11 @@ def memoize(fn) =
       end
     end
 end
+
+let duration = ()
+
+# Convert a duration in seconds to hour/minutes/seconds
+# @category Time
+def duration.split(d) =
+  {hours=d / 3600, minutes=(t / 60) mod 60, seconds=t mod 60}
+end
