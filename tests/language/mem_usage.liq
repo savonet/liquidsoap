@@ -1,5 +1,4 @@
 #!../../liquidsoap ../test.liq
-success = ref(true)
 
 def f() =
   mu = runtime.mem_usage()

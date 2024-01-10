@@ -1,5 +1,3 @@
-success = ref(true)
-
 def predicate.to_list(n, p) =
   list.init(n, fun (_) -> p())
 end
@@ -22,19 +20,8 @@ def predicate.from(n) =
     end
 end
 
-def t(x, y) =
-  if
-    x != y
-  then
-    print(
-      "Failure: got #{x} instead of #{y}"
-    )
-    success := false
-  end
-end
-
 def tl(p, l) =
-  t(predicate.to_list(4, p), l)
+  test.equals(predicate.to_list(4, p), l)
 end
 
 def f() =
@@ -44,11 +31,12 @@ def f() =
   tl(predicate.changes(predicate.nth(2)), [false, true, true, false])
   tl(predicate.once(predicate.from(2)), [false, false, true, false])
   p = predicate.signal()
-  t(p(), false)
+  test.equals(p(), false)
   p.signal()
-  t(p(), true)
-  t(p(), false)
-  if success() then test.pass() else test.fail() end
+  test.equals(p(), true)
+  test.equals(p(), false)
+
+  test.pass()
 end
 
 test.check(f)
