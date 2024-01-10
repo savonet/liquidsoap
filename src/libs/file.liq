@@ -43,10 +43,15 @@ def file.write.stream(
     if
       atomic
     then
-      let (temp_dir, finally) = if null.defined(temp_dir) then (null.get(temp_dir), {()}) else
-        temp_dir = file.temp_dir("temp", "dir")
-        (temp_dir, {file.rmdir(temp_dir)})
-      end
+      let (temp_dir, finally) =
+        if
+          null.defined(temp_dir)
+        then
+          (null.get(temp_dir), {()})
+        else
+          temp_dir = file.temp_dir("temp", "dir")
+          (temp_dir, {file.rmdir(temp_dir)})
+        end
       tmp = path.concat(temp_dir, "atomic.write")
       if append and file.exists(p) then file.copy(p, tmp) end
       def finally() =
