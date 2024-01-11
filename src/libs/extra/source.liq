@@ -268,6 +268,10 @@ stdlib_file = file
 # @param filename Path where the CUE file should be written.
 # @param max_length Set the maximum of track info retained by the function. \
 #                   Infinite when `null`.
+# @param ~title Title of the stream.
+# @param ~file File where the stream is stored.
+# @param ~file_type Format in which the stream is stored.
+# @param ~comment Comment about the stream.
 # @param ~temp_dir Temporary directory for atomic write.
 # @param ~delete Delete the CUE files when starting if it exists.
 def source.cue(
@@ -275,6 +279,7 @@ def source.cue(
   ~performer=null(),
   ~file=null(),
   ~file_type="mp3",
+  ~comment=null(),
   ~max_length=null(),
   ~temp_dir=null(),
   ~delete=true,
@@ -334,6 +339,10 @@ def source.cue(
 
       tag("TITLE", title)
       tag("PERFORMER", performer)
+      tag(
+        "REM COMMENT",
+        comment
+      )
       if
         null.defined(file)
       then
