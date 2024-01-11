@@ -67,7 +67,7 @@ liquidsoap when streaming is finished.
 When making backups of streams in audio files, it can be useful to generate CUE
 files, which store the times where the various tracks occur along with their
 metadata (those could then be used later on to split the file for
-instance). This can be achieved using CUE files
+instance). This can be achieved using the `source.cue` operator:
 
 ```{.liquidsoap include="source-cue.liq" from="BEGIN" to="END"}
 
