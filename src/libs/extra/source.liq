@@ -274,6 +274,7 @@ def source.cue(
   ~title=null(),
   ~performer=null(),
   ~file=null(),
+  ~file_type="mp3",
   ~max_length=null(),
   ~temp_dir=null(),
   ~delete=true,
@@ -337,7 +338,7 @@ def source.cue(
         null.defined(file)
       then
         w(
-          "FILE \"#{null.get(file)}\" MP3"
+          "FILE \"#{null.get(file)}\" #{string.uppercase(file_type)}"
         )
       end
     end
