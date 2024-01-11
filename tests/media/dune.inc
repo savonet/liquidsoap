@@ -1483,6 +1483,19 @@
  (package liquidsoap)
  (deps
   all_media_files
+  ffmpeg_bitstream_filter.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg bitstream filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4" liquidsoap %{test_liq} ffmpeg_bitstream_filter.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps
+  all_media_files
   ffmpeg_raw_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1574,6 +1587,19 @@
  (package liquidsoap)
  (deps
   all_media_files
+  ffmpeg_bitstream_filter.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg bitstream filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4" liquidsoap %{test_liq} ffmpeg_bitstream_filter.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps
+  all_media_files
   ffmpeg_raw_decoder.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
@@ -1660,6 +1686,19 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} "FFmpeg filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4" liquidsoap %{test_liq} ffmpeg_filter.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4")))
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps
+  all_media_files
+  ffmpeg_bitstream_filter.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg bitstream filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4" liquidsoap %{test_liq} ffmpeg_bitstream_filter.liq -- "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264',r=12]].mp4")))
 (rule
  (alias mediatest)
  (package liquidsoap)

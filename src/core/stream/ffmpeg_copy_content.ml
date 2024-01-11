@@ -22,6 +22,7 @@
 
 open Avutil
 open Avcodec
+include Content_video.Base
 
 let conf_ffmpeg_copy =
   Dtools.Conf.void
