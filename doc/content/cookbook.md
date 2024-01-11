@@ -73,6 +73,23 @@ instance). This can be achieved using the `source.cue` operator:
 
 ```
 
+which will generate a CUE file of the following form
+
+```
+TITLE "My stream"
+FILE "backup.mp3" MP3
+  TRACK 01 AUDIO
+    TITLE "title1"
+    PERFORMER "artist1"
+    REM ALBUM "album1"
+    INDEX 01 00:00:00
+  TRACK 02 AUDIO
+    TITLE "title2"
+    PERFORMER "artist2"
+    REM ALBUM "album2"
+    INDEX 01 00:05:00
+```
+
 ## RTMP server
 
 With our [FFmpeg support](ffmpeg.html), it is possible to create a simple RTMP server with no re-encoding:
