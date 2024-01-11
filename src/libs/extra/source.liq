@@ -359,13 +359,15 @@ def source.cue(
             list.assoc.nullable("album", m)
           )
 
+          frames = int_of_float((t - floor(t)) * 75.)
           t = int_of_float(t)
-          let {hours, minutes, seconds} = duration.split(t)
-          h = string.of_int(digits=2, hours)
+          minutes = t / 60
+          seconds = t mod 60
           m = string.of_int(digits=2, minutes)
           s = string.of_int(digits=2, seconds)
+          f = string.of_int(digits=2, frames)
           w(
-            "    INDEX 01 #{h}:#{m}:#{s}"
+            "    INDEX 01 #{m}:#{s}:#{f}"
           )
         end,
       entries

@@ -39,17 +39,17 @@ FILE "bla.mp3" MP3
     TITLE "title1"
     PERFORMER "artist1"
     REM ALBUM "album1"
-    INDEX 01 00:00:01
+    INDEX 01 00:01:00
   TRACK 02 AUDIO
     TITLE "title2"
     PERFORMER "artist2"
     REM ALBUM "album2"
-    INDEX 01 00:00:02
+    INDEX 01 00:02:00
   TRACK 03 AUDIO
     TITLE "title3"
     PERFORMER "artist3"
     REM ALBUM "album3"
-    INDEX 01 00:00:03\n'
+    INDEX 01 00:03:00\n'
 
 create_expected =
   'TITLE "tit"
@@ -59,12 +59,12 @@ FILE "bla.mp3" MP3
     TITLE "title2"
     PERFORMER "artist2"
     REM ALBUM "album2"
-    INDEX 01 00:00:02
+    INDEX 01 00:02:00
   TRACK 02 AUDIO
     TITLE "title3"
     PERFORMER "artist3"
     REM ALBUM "album3"
-    INDEX 01 00:00:03\n'
+    INDEX 01 00:03:00\n'
 
 def check() =
   test.equals(file.contents(append_cuefile), append_expected)
