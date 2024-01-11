@@ -62,6 +62,17 @@ liquidsoap when streaming is finished.
 
 ```
 
+## Generating CUE files
+
+When making backups of streams in audio files, it can be useful to generate CUE
+files, which store the times where the various tracks occur along with their
+metadata (those could then be used later on to split the file for
+instance). This can be achieved using CUE files
+
+```{.liquidsoap include="source-cue.liq" from="BEGIN" to="END"}
+
+```
+
 ## RTMP server
 
 With our [FFmpeg support](ffmpeg.html), it is possible to create a simple RTMP server with no re-encoding:
