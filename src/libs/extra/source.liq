@@ -272,6 +272,7 @@ stdlib_file = file
 # @param ~file File where the stream is stored.
 # @param ~file_type Format in which the stream is stored.
 # @param ~comment Comment about the stream.
+# @param ~date Year for the stream.
 # @param ~temp_dir Temporary directory for atomic write.
 # @param ~delete Delete the CUE files when starting if it exists.
 def source.cue(
@@ -280,6 +281,7 @@ def source.cue(
   ~file=null(),
   ~file_type="mp3",
   ~comment=null(),
+  ~date=null(),
   ~max_length=null(),
   ~temp_dir=null(),
   ~delete=true,
@@ -343,6 +345,13 @@ def source.cue(
         "REM COMMENT",
         comment
       )
+      if
+        null.defined(date)
+      then
+        w(
+          "DATE null.get((date:int))"
+        )
+      end
       if
         null.defined(file)
       then
