@@ -258,8 +258,9 @@ let _ =
 let _ =
   Lang.add_builtin "ceil" ~category:`Math
     ~descr:
-      "Round above to an integer value. `ceil(f) returns the least integer \
-       value greater than or equal to `f`. The result is returned as a float."
+      "Round above to an integer value. `ceil(x)` returns the least integer \
+       whose value is greater than or equal to `x`. The result is returned as \
+       a float."
     [("", Lang.float_t, None, None)]
     Lang.float_t
     (fun p ->
@@ -269,8 +270,9 @@ let _ =
 let _ =
   Lang.add_builtin "floor" ~category:`Math
     ~descr:
-      "Round below to an integer value. `ceil(f) returns the greatest integer \
-       value less than or equal to `f`. The result is returned as a float."
+      "Round below to an integer value. `floor(x)` returns the greatest \
+       integer whose value is less than or equal to `x`. The result is \
+       returned as a float."
     [("", Lang.float_t, None, None)]
     Lang.float_t
     (fun p ->
