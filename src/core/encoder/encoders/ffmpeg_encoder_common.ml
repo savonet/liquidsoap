@@ -49,6 +49,7 @@ type handler = {
 type stream_data = {
   idx : Int64.t;
   mutable last_start : Int64.t;
+  mutable position : Int64.t;
   mutable ready_count : int;
   mutable ready : bool;
 }
@@ -77,7 +78,8 @@ let mk_stream_store total_count =
   let store = Stream.create 1 in
   let add ~last_start ~ready idx =
     let data =
-      Stream.merge store { idx; ready_count = 0; last_start; ready = false }
+      Stream.merge store
+        { idx; ready_count = 0; last_start; position = 0L; ready = false }
     in
     if ready then data.ready_count <- data.ready_count + 1;
     if data.ready_count = total_count then data.ready <- true;
