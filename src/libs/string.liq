@@ -129,9 +129,11 @@ end
 # Convert an int to string.
 # @category String
 # @param ~digits Minimal number of digits (pad with 0s on the left if necessary).
-def string.of_int(~digits=0, n)
+def string.of_int(~digits=0, n) =
   s = string(n)
-  if string.length(s) >= digits then
+  if
+    string.length(s) >= digits
+  then
     s
   else
     string.make(char_code=48, digits - string.length(s)) ^ s
@@ -424,6 +426,18 @@ end
 # Generate a given number of spaces (this can be useful for indenting).
 # @category String
 # @param n Number of spaces.
-def string.spaces(n)
+def string.spaces(n) =
   string.make(char_code=32, n)
+end
+
+# Convert a string to uppercase.
+# @category String
+def string.uppercase(s) =
+  string.case(lower=false, s)
+end
+
+# Convert a string to lowercase.
+# @category String
+def string.lowercase(s) =
+  string.case(lower=true, s)
 end

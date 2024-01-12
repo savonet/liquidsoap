@@ -268,12 +268,20 @@ stdlib_file = file
 # @param filename Path where the CUE file should be written.
 # @param max_length Set the maximum of track info retained by the function. \
 #                   Infinite when `null`.
+# @param ~title Title of the stream.
+# @param ~file File where the stream is stored.
+# @param ~file_type Format in which the stream is stored.
+# @param ~comment Comment about the stream.
+# @param ~date Year for the stream.
 # @param ~temp_dir Temporary directory for atomic write.
 # @param ~delete Delete the CUE files when starting if it exists.
 def source.cue(
   ~title=null(),
   ~performer=null(),
   ~file=null(),
+  ~file_type="mp3",
+  ~comment=null(),
+  ~date=null(),
   ~max_length=null(),
   ~temp_dir=null(),
   ~delete=true,
@@ -333,11 +341,22 @@ def source.cue(
 
       tag("TITLE", title)
       tag("PERFORMER", performer)
+      tag(
+        "REM COMMENT",
+        comment
+      )
+      if
+        null.defined(date)
+      then
+        w(
+          "DATE null.get((date:int))"
+        )
+      end
       if
         null.defined(file)
       then
         w(
-          "FILE \"#{null.get(file)}\" MP3"
+          "FILE \"#{null.get(file)}\" #{string.uppercase(file_type)}"
         )
       end
     end
@@ -358,13 +377,15 @@ def source.cue(
             list.assoc.nullable("album", m)
           )
 
+          frames = int_of_float((t - floor(t)) * 75.)
           t = int_of_float(t)
-          let {hours, minutes, seconds} = duration.split(t)
-          h = string.of_int(digits=2, hours)
+          minutes = t / 60
+          seconds = t mod 60
           m = string.of_int(digits=2, minutes)
           s = string.of_int(digits=2, seconds)
+          f = string.of_int(digits=2, frames)
           w(
-            "    INDEX 01 #{h}:#{m}:#{s}"
+            "    INDEX 01 #{m}:#{s}:#{f}"
           )
         end,
       entries
@@ -374,42 +395,31 @@ def source.cue(
   end
 
   entries = ref([])
-  current_entry = ref(null())
+  current_position = ref(1)
+  t0 = source.time(s)
 
   def handle_metadata(m) =
-    last_entry = current_entry()
-    current_entry :=
-      {
-        position=null.case(last_entry, {1}, fun (entry) -> entry.position + 1),
-        time=source.time(s),
-        metadata=m
-      }
+    entry = {position=current_position(), time=source.time(s) - t0, metadata=m}
+    ref.incr(current_position)
 
     if
-      null.defined(last_entry)
+      null.defined(max_length)
     then
-      let {position = p, time = t0, metadata = m} = null.get(last_entry)
-      entry = {position=p, time=source.time(s) - t0, metadata=m}
-
-      if
-        null.defined(max_length)
-      then
-        current_entries =
-          null.case(
-            max_length,
-            entries,
-            fun (max_length) ->
-              list.rev(list.prefix(max_length - 1, list.rev(entries())))
-          )
-        entries :=
-          list.mapi(
-            fun (pos, entry) -> entry.{position=pos + 1},
-            [...current_entries, entry]
-          )
-        write(append=false, entries())
-      else
-        write(append=true, [entry])
-      end
+      current_entries =
+        null.case(
+          max_length,
+          entries,
+          fun (max_length) ->
+            list.rev(list.prefix(max_length - 1, list.rev(entries())))
+        )
+      entries :=
+        list.mapi(
+          fun (pos, entry) -> entry.{position=pos + 1},
+          [...current_entries, entry]
+        )
+      write(append=false, entries())
+    else
+      write(append=true, [entry])
     end
   end
 

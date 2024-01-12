@@ -39,17 +39,17 @@ FILE "bla.mp3" MP3
     TITLE "title1"
     PERFORMER "artist1"
     REM ALBUM "album1"
-    INDEX 01 00:00:01
+    INDEX 01 00:00:00
   TRACK 02 AUDIO
     TITLE "title2"
     PERFORMER "artist2"
     REM ALBUM "album2"
-    INDEX 01 00:00:02
+    INDEX 01 00:02:00
   TRACK 03 AUDIO
     TITLE "title3"
     PERFORMER "artist3"
     REM ALBUM "album3"
-    INDEX 01 00:00:03\n'
+    INDEX 01 00:03:00\n'
 
 create_expected =
   'TITLE "tit"
@@ -59,12 +59,12 @@ FILE "bla.mp3" MP3
     TITLE "title2"
     PERFORMER "artist2"
     REM ALBUM "album2"
-    INDEX 01 00:00:02
+    INDEX 01 00:02:00
   TRACK 02 AUDIO
     TITLE "title3"
     PERFORMER "artist3"
     REM ALBUM "album3"
-    INDEX 01 00:00:03\n'
+    INDEX 01 00:03:00\n'
 
 def check() =
   test.equals(file.contents(append_cuefile), append_expected)
@@ -82,18 +82,14 @@ s =
         then
           f([("artist", "artist1"), ("album", "album1"), ("title", "title1")])
         elsif
-          track_pos() == 2 and source.time(s) == 1.
+          track_pos() == 2 and source.time(s) == 2.
         then
           f([("artist", "artist2"), ("album", "album2"), ("title", "title2")])
         elsif
           track_pos() == 3 and source.time(s) == 3.
         then
           f([("artist", "artist3"), ("album", "album3"), ("title", "title3")])
-        elsif
-          track_pos() == 4 and source.time(s) == 6.
-        then
-          f([("artist", "artist4"), ("album", "album4"), ("title", "title4")])
-        elsif track_pos() == 5 then check()
+        elsif track_pos() == 4 then check()
         end
       end
   )
