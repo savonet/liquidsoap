@@ -69,8 +69,7 @@ let modes name (codecs : Avcodec.id list) =
         []
 
 let process (type a) ~put_data ~(mk_params : a mk_params)
-    ~(mk_packet : a mk_packet) ~generator
-    ({ time_base; params; stream_idx } : a handler)
+    ~(mk_packet : a mk_packet) ({ time_base; params; stream_idx } : a handler)
     ((length, packets) : int * (int * a Avcodec.Packet.t) list) =
   let data =
     List.map
@@ -83,11 +82,13 @@ let process (type a) ~put_data ~(mk_params : a mk_params)
           } ))
       packets
   in
-  let data = { Content.Video.params = Some (mk_params params); data; length } in
+  let data =
+    { Ffmpeg_copy_content.params = Some (mk_params params); data; length }
+  in
   let data = Ffmpeg_copy_content.lift_data data in
-  put_data generator data
+  put_data data
 
-let flush_filter ~generator ~put_data ~mk_params ~mk_packet handler =
+let flush_filter ~put_data ~mk_params ~mk_packet handler =
   let rec f () =
     match
       Ffmpeg_utils.Duration.push handler.duration_converter
@@ -95,38 +96,40 @@ let flush_filter ~generator ~put_data ~mk_params ~mk_packet handler =
     with
       | None -> f ()
       | Some v ->
-          process ~put_data ~mk_params ~mk_packet ~generator handler v;
+          process ~put_data ~mk_params ~mk_packet handler v;
           f ()
       | (exception Avutil.Error `Eagain) | (exception Avutil.Error `Eof) -> ()
   in
   f ()
 
 let flush (type a) ~put_data ~(mk_params : a mk_params)
-    ~(mk_packet : a mk_packet) ~generator (handler : a handler option) =
+    ~(mk_packet : a mk_packet) (handler : a handler option) =
   match handler with
     | None -> ()
     | Some h ->
         Avcodec.BitstreamFilter.send_eof h.filter;
-        flush_filter ~put_data ~mk_params ~mk_packet ~generator h;
-        process ~put_data ~mk_params ~mk_packet ~generator h
+        flush_filter ~put_data ~mk_params ~mk_packet h;
+        process ~put_data ~mk_params ~mk_packet h
           (0, Ffmpeg_utils.Duration.flush h.duration_converter)
 
 let on_data (type a)
     ~(get_handler :
+       put_data:(Content.data -> unit) ->
        stream_idx:int64 ->
        time_base:Avutil.rational ->
        a Avcodec.params ->
        a handler) ~put_data ~(get_params : a get_params)
     ~(get_packet : a get_packet) ~(mk_params : a mk_params)
-    ~(mk_packet : a mk_packet) ~generator
-    ({ Content.Video.params; data } : Ffmpeg_copy_content.data) =
+    ~(mk_packet : a mk_packet)
+    ({ Ffmpeg_copy_content.params; data } : Ffmpeg_copy_content.data) =
   List.iter
     (fun (_, { Ffmpeg_copy_content.stream_idx; time_base; packet }) ->
       let handler =
-        get_handler ~stream_idx ~time_base (get_params (Option.get params))
+        get_handler ~put_data ~stream_idx ~time_base
+          (get_params (Option.get params))
       in
       Avcodec.BitstreamFilter.send_packet handler.filter (get_packet packet);
-      flush_filter ~put_data ~mk_packet ~mk_params ~generator handler)
+      flush_filter ~put_data ~mk_packet ~mk_params handler)
     data
 
 let mk_filter ~opts ~filter = Avcodec.BitstreamFilter.init ~opts filter
@@ -143,24 +146,24 @@ let mk_handler (type a) ~stream_idx ~time_base
         ~get_ts:Avcodec.Packet.get_dts ~set_ts:Avcodec.Packet.set_dts ();
   }
 
-let handler_getters (type a) ~put_data ~(mk_params : a mk_params)
-    ~(mk_packet : a mk_packet) ~generator ~filter ~filter_opts =
-  let handler : a handler option ref = ref None in
-  let current_handler () : a handler option = !handler in
-  let clear_handler () = handler := None in
-  let get_handler ~stream_idx ~time_base (params : a Avcodec.params) =
-    match !handler with
+let handler_getters (type a) ~(mk_params : a mk_params)
+    ~(mk_packet : a mk_packet) ~filter ~filter_opts =
+  let handler : a handler option Atomic.t = Atomic.make None in
+  let current_handler () : a handler option = Atomic.get handler in
+  let clear_handler () = Atomic.set handler None in
+  let get_handler ~put_data ~stream_idx ~time_base (params : a Avcodec.params) =
+    match Atomic.get handler with
       | None ->
           let filter, params = mk_filter ~filter ~opts:filter_opts params in
           let h = mk_handler ~stream_idx ~time_base ~filter params in
-          handler := Some h;
+          Atomic.set handler (Some h);
           (h : a handler)
       | Some h ->
           if h.stream_idx <> stream_idx then (
-            flush ~put_data ~mk_params ~mk_packet ~generator (Some h);
+            flush ~put_data ~mk_params ~mk_packet (Some h);
             let filter, params = mk_filter ~filter ~opts:filter_opts params in
             let h = mk_handler ~stream_idx ~time_base ~filter params in
-            handler := Some h;
+            Atomic.set handler (Some h);
             (h : a handler))
           else (h : a handler)
   in
@@ -178,42 +181,23 @@ let register_filters () =
       in
       List.iter
         (fun mode ->
-          let name, source_fields_t =
+          let typ =
+            Type.make
+              (Format_type.descr
+                 (`Format (Content.default_format Ffmpeg_copy_content.kind)))
+          in
+          let name, field, source_fields_t =
             match mode with
               | `Audio ->
-                  ( "audio",
-                    fun () ->
-                      Frame.Fields.make
-                        ~audio:
-                          (Type.make
-                             (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
-                        () )
+                  ("audio", Frame.Fields.audio, Frame.Fields.make ~audio:typ ())
               | `Audio_only ->
-                  ( name,
-                    fun () ->
-                      Frame.Fields.make
-                        ~audio:
-                          (Type.make
-                             (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
-                        () )
+                  (name, Frame.Fields.audio, Frame.Fields.make ~audio:typ ())
               | `Video ->
-                  ( "video",
-                    fun () ->
-                      Frame.Fields.make
-                        ~video:
-                          (Type.make
-                             (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
-                        () )
+                  ("video", Frame.Fields.video, Frame.Fields.make ~video:typ ())
               | `Video_only ->
-                  ( name,
-                    fun () ->
-                      Frame.Fields.make
-                        ~video:
-                          (Type.make
-                             (Format_type.descr (`Kind Ffmpeg_copy_content.kind)))
-                        () )
+                  (name, Frame.Fields.video, Frame.Fields.make ~video:typ ())
           in
-          let source_t = Lang.frame_t (Lang.univ_t ()) (source_fields_t ()) in
+          let source_t = Lang.frame_t (Lang.univ_t ()) source_fields_t in
           let args_t = ("", Lang.source_t source_t, None, None) :: args in
           ignore
             (Lang.add_operator ~category:`FFmpegFilter name ~base
@@ -228,74 +212,59 @@ let register_filters () =
 
                  let filter_opts = args_of_args (args_parser p []) in
 
+                 let flush, process =
+                   match mode with
+                     | `Audio | `Audio_only ->
+                         let mk_packet p = `Audio p in
+                         let get_packet = function
+                           | `Audio p -> p
+                           | _ -> assert false
+                         in
+                         let mk_params p = `Audio p in
+                         let get_params = function
+                           | `Audio p -> p
+                           | _ -> assert false
+                         in
+                         let current_handler, get_handler, clear_handler =
+                           handler_getters ~mk_packet ~mk_params ~filter
+                             ~filter_opts
+                         in
+                         let flush ~put_data =
+                           flush ~put_data ~mk_packet ~mk_params
+                             (current_handler ());
+                           clear_handler ()
+                         in
+                         ( flush,
+                           on_data ~get_handler ~get_params ~get_packet
+                             ~mk_packet ~mk_params )
+                     | `Video | `Video_only ->
+                         let mk_packet p = `Video p in
+                         let get_packet = function
+                           | `Video p -> p
+                           | _ -> assert false
+                         in
+                         let mk_params p = `Video p in
+                         let get_params = function
+                           | `Video p -> p
+                           | _ -> assert false
+                         in
+                         let current_handler, get_handler, clear_handler =
+                           handler_getters ~mk_packet ~mk_params ~filter
+                             ~filter_opts
+                         in
+                         let flush ~put_data =
+                           flush ~put_data ~mk_packet ~mk_params
+                             (current_handler ());
+                           clear_handler ()
+                         in
+                         ( flush,
+                           on_data ~get_handler ~get_params ~get_packet
+                             ~mk_packet ~mk_params )
+                 in
+
                  let encode_frame generator =
-                   let flush, process =
-                     match mode with
-                       | `Audio | `Audio_only ->
-                           let put_data g =
-                             Generator.put g Frame.Fields.audio
-                           in
-                           let mk_packet p = `Audio p in
-                           let get_packet = function
-                             | `Audio p -> p
-                             | _ -> assert false
-                           in
-                           let mk_params p = `Audio p in
-                           let get_params = function
-                             | `Audio p -> p
-                             | _ -> assert false
-                           in
-                           let current_handler, get_handler, clear_handler =
-                             handler_getters ~mk_packet ~mk_params ~put_data
-                               ~generator ~filter ~filter_opts
-                           in
-                           let flush () =
-                             flush ~mk_packet ~mk_params ~put_data ~generator
-                               (current_handler ());
-                             clear_handler ()
-                           in
-                           ( flush,
-                             fun frame ->
-                               let pos = Frame.position frame in
-                               Generator.put generator Frame.Fields.video
-                                 (Content.copy (Frame.video frame));
-                               on_data ~get_handler ~get_params ~get_packet
-                                 ~put_data ~mk_packet ~mk_params ~generator
-                                 (Ffmpeg_copy_content.get_data
-                                    (Content.sub (Frame.audio frame) 0 pos)) )
-                       | `Video | `Video_only ->
-                           let put_data g =
-                             Generator.put g Frame.Fields.video
-                           in
-                           let mk_packet p = `Video p in
-                           let get_packet = function
-                             | `Video p -> p
-                             | _ -> assert false
-                           in
-                           let mk_params p = `Video p in
-                           let get_params = function
-                             | `Video p -> p
-                             | _ -> assert false
-                           in
-                           let current_handler, get_handler, clear_handler =
-                             handler_getters ~mk_packet ~mk_params ~put_data
-                               ~generator ~filter ~filter_opts
-                           in
-                           let flush () =
-                             flush ~mk_packet ~mk_params ~put_data ~generator
-                               (current_handler ());
-                             clear_handler ()
-                           in
-                           ( flush,
-                             fun frame ->
-                               let pos = Frame.position frame in
-                               Generator.put generator Frame.Fields.audio
-                                 (Content.copy (Frame.audio frame));
-                               on_data ~get_handler ~get_params ~get_packet
-                                 ~put_data ~mk_packet ~mk_params ~generator
-                                 (Ffmpeg_copy_content.get_data
-                                    (Content.sub (Frame.video frame) 0 pos)) )
-                   in
+                   let put_data = Generator.put generator field in
+
                    function
                    | `Frame frame ->
                        List.iter
@@ -307,26 +276,31 @@ let register_filters () =
                          (List.filter
                             (fun x -> x < Lazy.force Frame.size)
                             (Frame.track_marks frame));
-                       process frame
-                   | `Flush -> flush ()
+                       Frame.Fields.iter
+                         (fun f data ->
+                           match f with
+                             | _ when f = Frame.Fields.metadata -> ()
+                             | _ when f = Frame.Fields.track_marks -> ()
+                             | _ when f = field ->
+                                 process ~put_data
+                                   (Ffmpeg_copy_content.get_data data)
+                             | _ -> Generator.put generator f data)
+                         frame
+                   | `Flush -> flush ~put_data
                  in
 
-                 let frame_t =
-                   Lang.frame_t (Lang.univ_t ()) (source_fields_t ())
-                 in
                  let consumer =
                    new Producer_consumer.consumer
                      ~write_frame:encode_frame ~name:(name ^ ".consumer")
                      ~source ()
                  in
-                 Typing.(consumer#frame_type <: frame_t);
 
                  let producer =
                    new Producer_consumer.producer
                      ~check_self_sync:false ~consumers:[consumer]
                      ~name:(name ^ ".producer") ()
                  in
-                 Typing.(producer#frame_type <: frame_t);
+                 Typing.(producer#frame_type <: consumer#frame_type);
                  producer)))
         modes)
     Avcodec.BitstreamFilter.filters
