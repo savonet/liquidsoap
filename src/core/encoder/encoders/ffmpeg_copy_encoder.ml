@@ -72,7 +72,6 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
     Ffmpeg_utils.convert_time_base ~src:time_base ~dst:main_time_base v
   in
 
-  let current_position = ref 0L in
   let current_stream =
     ref (get_stream ~last_start:Int64.min_int ~ready:false 0L)
   in
@@ -80,6 +79,7 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
   let was_keyframe = ref false in
   let waiting_for_keyframe = ref false in
   let last_dts = ref None in
+  let last_position = ref 0L in
 
   (* [true] if we should process new packets for this stream *)
   let check_stream ~packet stream_idx =
@@ -87,6 +87,7 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
       waiting_for_keyframe :=
         keyframe_opt = `Wait_for_keyframe && not !intra_only;
       remove_stream !current_stream;
+      last_position := !current_stream.position;
       (* Mark the stream as ready if it is not waiting for keyframes. *)
       current_stream :=
         get_stream ~last_start:Int64.min_int
@@ -100,7 +101,7 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
 
   let begin_stream ~dts idx =
     let offset = Option.value ~default:0L dts in
-    let last_start = Int64.sub !current_position offset in
+    let last_start = Int64.sub !last_position offset in
     (* Mark the stream as ready if it was waiting for keyframes. *)
     current_stream := get_stream ~last_start ~ready:!waiting_for_keyframe idx;
     stream_started := true;
@@ -114,7 +115,7 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
   let check_dts dts =
     let offset =
       if !stream_started then !current_stream.last_start
-      else Int64.sub !current_position (Option.value ~default:0L dts)
+      else Int64.sub !last_position (Option.value ~default:0L dts)
     in
     match (dts, !last_dts) with
       | None, _ ->
@@ -138,12 +139,13 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
       let pts = adjust_ts pts in
       let dts = adjust_ts dts in
 
-      ignore (Option.map (fun dts -> current_position := dts) dts);
-      ignore
-        (Option.map
-           (fun duration ->
-             current_position := Int64.add !current_position duration)
-           duration);
+      (match dts with
+        | None -> ()
+        | Some dts ->
+            !current_stream.position <-
+              max
+                (Int64.add (Option.value ~default:1L duration) dts)
+                !current_stream.position);
 
       last_dts := dts;
 
