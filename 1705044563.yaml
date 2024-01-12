@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 1.03001713753
+  unit: "s"
+  time: 1705044183.47
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.87992310524
+  unit: "s"
+  time: 1705044185.36
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 3.50954294205
+  unit: "s"
+  time: 1705044188.87
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 4.75103712082
+  unit: "s"
+  time: 1705044193.62
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2223.
+  unit: "functions"
+  time: 1705044297.23
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1705044297.23
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 181.609375
+  unit: "Mio"
+  time: 1705044299.5
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 852.40625
+  unit: "Mio"
+  time: 1705044299.5
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1705044299.5
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1705044299.5
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 6244.1875
+  unit: "Mio"
+  time: 1705044299.5
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 6244.1875
+  unit: "Mio"
+  time: 1705044299.5
+  min: 0.
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.46888589859
+  unit: "s"
+  time: 1705044454.33
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.69506001472
+  unit: "s"
+  time: 1705044554.82
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 4.30884599686
+  unit: "s"
+  time: 1705044559.13
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1705044563.03
+  min: 0.
+
+- commit: 7c3868e1fac4096d686edbb67f8221be278a477c
+  branch: fix-copy-pts-continuity
+  time: 1705044563
