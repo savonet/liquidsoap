@@ -113,7 +113,8 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
     method private generate_frame =
       List.iter (fun c -> c#set_output_enabled true) consumers;
       while
-        Generator.length self#buffer < Lazy.force Frame.size && self#is_ready
+        Generator.length self#buffer < Lazy.force Frame.size
+        && self#can_generate_frame
       do
         self#child_tick
       done;

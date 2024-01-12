@@ -215,8 +215,7 @@ let type_of_encoder =
                     Type.make
                       (Format_type.descr
                          (`Format
-                           Content.(
-                             default_format (kind_of_string "ffmpeg.copy"))))
+                           (Content.default_format Ffmpeg_copy_content.kind)))
                 | `Raw ->
                     Type.make
                       (Format_type.descr
@@ -227,13 +226,11 @@ let type_of_encoder =
                                 args
                             with
                              | `Audio ->
-                                 Content.(
-                                   default_format
-                                     (kind_of_string "ffmpeg.audio.raw"))
+                                 Content.default_format
+                                   Ffmpeg_raw_content.Audio.kind
                              | `Video ->
-                                 Content.(
-                                   default_format
-                                     (kind_of_string "ffmpeg.video.raw")))))
+                                 Content.default_format
+                                   Ffmpeg_raw_content.Video.kind)))
                 | `Internal ->
                     Type.make
                       (Format_type.descr
