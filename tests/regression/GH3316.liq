@@ -1,3 +1,5 @@
+#!../../liquidsoap ../test.liq
+
 log.level := 4
 s = sine()
 count = ref(0)
