@@ -77,17 +77,16 @@ which will generate a CUE file of the following form
 
 ```
 TITLE "My stream"
+PERFORMER "The performer"
 FILE "backup.mp3" MP3
   TRACK 01 AUDIO
-    TITLE "title1"
-    PERFORMER "artist1"
-    REM ALBUM "album1"
+    TITLE "Title 1"
+    PERFORMER "Artist 1"
     INDEX 01 00:00:00
   TRACK 02 AUDIO
-    TITLE "title2"
-    PERFORMER "artist2"
-    REM ALBUM "album2"
-    INDEX 01 00:05:00
+    TITLE "Title 2"
+    PERFORMER "Artist 2"
+    INDEX 01 01:12:67
 ```
 
 ## RTMP server
