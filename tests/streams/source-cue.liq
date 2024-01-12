@@ -39,7 +39,7 @@ FILE "bla.mp3" MP3
     TITLE "title1"
     PERFORMER "artist1"
     REM ALBUM "album1"
-    INDEX 01 00:01:00
+    INDEX 01 00:00:00
   TRACK 02 AUDIO
     TITLE "title2"
     PERFORMER "artist2"
@@ -82,18 +82,14 @@ s =
         then
           f([("artist", "artist1"), ("album", "album1"), ("title", "title1")])
         elsif
-          track_pos() == 2 and source.time(s) == 1.
+          track_pos() == 2 and source.time(s) == 2.
         then
           f([("artist", "artist2"), ("album", "album2"), ("title", "title2")])
         elsif
           track_pos() == 3 and source.time(s) == 3.
         then
           f([("artist", "artist3"), ("album", "album3"), ("title", "title3")])
-        elsif
-          track_pos() == 4 and source.time(s) == 6.
-        then
-          f([("artist", "artist4"), ("album", "album4"), ("title", "title4")])
-        elsif track_pos() == 5 then check()
+        elsif track_pos() == 4 then check()
         end
       end
   )

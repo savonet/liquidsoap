@@ -395,42 +395,31 @@ def source.cue(
   end
 
   entries = ref([])
-  current_entry = ref(null())
+  current_position = ref(1)
+  t0 = source.time(s)
 
   def handle_metadata(m) =
-    last_entry = current_entry()
-    current_entry :=
-      {
-        position=null.case(last_entry, {1}, fun (entry) -> entry.position + 1),
-        time=source.time(s),
-        metadata=m
-      }
+    entry = {position=current_position(), time=source.time(s) - t0, metadata=m}
+    current_position := !current_position + 1
 
     if
-      null.defined(last_entry)
+      null.defined(max_length)
     then
-      let {position = p, time = t0, metadata = m} = null.get(last_entry)
-      entry = {position=p, time=source.time(s) - t0, metadata=m}
-
-      if
-        null.defined(max_length)
-      then
-        current_entries =
-          null.case(
-            max_length,
-            entries,
-            fun (max_length) ->
-              list.rev(list.prefix(max_length - 1, list.rev(entries())))
-          )
-        entries :=
-          list.mapi(
-            fun (pos, entry) -> entry.{position=pos + 1},
-            [...current_entries, entry]
-          )
-        write(append=false, entries())
-      else
-        write(append=true, [entry])
-      end
+      current_entries =
+        null.case(
+          max_length,
+          entries,
+          fun (max_length) ->
+            list.rev(list.prefix(max_length - 1, list.rev(entries())))
+        )
+      entries :=
+        list.mapi(
+          fun (pos, entry) -> entry.{position=pos + 1},
+          [...current_entries, entry]
+        )
+      write(append=false, entries())
+    else
+      write(append=true, [entry])
     end
   end
 
