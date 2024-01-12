@@ -762,24 +762,26 @@ let mk_decoder ~streams ~target_position container =
     Int64.to_float pts *. float num /. float den
   in
   let decodable = ref [] in
-  let push (position, decode) =
+  let push (position, ts, decode) =
     decodable :=
-      (position, decode)
+      (position, ts, decode)
       :: List.filter
-           (fun (p, _) ->
+           (fun (p, _, _) ->
              Float.abs (p -. position)
              <= Ffmpeg_decoder_common.conf_max_interleave_duration#get)
            !decodable
   in
   let flush position =
-    let d = List.sort (fun (p, _) (p', _) -> Float.compare p p') !decodable in
+    let d =
+      List.sort (fun (_, p, _) (_, p', _) -> Int64.compare p p') !decodable
+    in
     let min_position =
       position -. Ffmpeg_decoder_common.conf_max_interleave_delta#get
     in
-    List.iter (fun (p, decode) -> if min_position <= p then decode ()) d;
+    List.iter (fun (p, _, decode) -> if min_position <= p then decode ()) d;
     decodable := []
   in
-  let check_pts ~decode stream pts =
+  let check_pts ~decode ~ts stream pts =
     match (pts, !target_position) with
       | Some pts, Some target_position ->
           if target_position <= position ~pts stream then decode ()
@@ -789,7 +791,7 @@ let mk_decoder ~streams ~target_position container =
           if Hashtbl.length streams_seen = Streams.cardinal streams then (
             flush position;
             decode ())
-          else push (position, decode)
+          else push (position, ts, decode)
       | None, _ ->
           log#important
             "Got packet or frame with no timestamp! Synchronization issues may \
@@ -835,6 +837,7 @@ let mk_decoder ~streams ~target_position container =
               match Streams.find_opt i streams with
                 | Some (`Audio_frame (s, decode)) ->
                     check_pts s
+                      ~ts:(Option.value ~default:0L (Avutil.Frame.pts frame))
                       ~decode:(fun () -> decode ~buffer (`Frame frame))
                       (Avutil.Frame.pts frame)
                 | _ -> f ())
@@ -842,6 +845,9 @@ let mk_decoder ~streams ~target_position container =
               match Streams.find_opt i streams with
                 | Some (`Audio_packet (s, decode)) ->
                     check_pts
+                      ~ts:
+                        (Option.value ~default:0L
+                           (Avcodec.Packet.get_dts packet))
                       ~decode:(fun () -> decode ~buffer packet)
                       s
                       (Avcodec.Packet.get_pts packet)
@@ -850,6 +856,7 @@ let mk_decoder ~streams ~target_position container =
               match Streams.find_opt i streams with
                 | Some (`Video_frame (s, decode)) ->
                     check_pts
+                      ~ts:(Option.value ~default:0L (Avutil.Frame.pts frame))
                       ~decode:(fun () -> decode ~buffer (`Frame frame))
                       s (Avutil.Frame.pts frame)
                 | _ -> f ())
@@ -857,6 +864,9 @@ let mk_decoder ~streams ~target_position container =
               match Streams.find_opt i streams with
                 | Some (`Video_packet (s, decode)) ->
                     check_pts
+                      ~ts:
+                        (Option.value ~default:0L
+                           (Avcodec.Packet.get_dts packet))
                       ~decode:(fun () -> decode ~buffer packet)
                       s
                       (Avcodec.Packet.get_pts packet)
@@ -865,6 +875,9 @@ let mk_decoder ~streams ~target_position container =
               match Streams.find_opt i streams with
                 | Some (`Data_packet (s, decode)) ->
                     check_pts
+                      ~ts:
+                        (Option.value ~default:0L
+                           (Avcodec.Packet.get_dts packet))
                       ~decode:(fun () -> decode ~buffer packet)
                       s
                       (Avcodec.Packet.get_pts packet)
