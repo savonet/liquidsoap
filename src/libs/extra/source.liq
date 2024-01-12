@@ -400,7 +400,7 @@ def source.cue(
 
   def handle_metadata(m) =
     entry = {position=current_position(), time=source.time(s) - t0, metadata=m}
-    current_position := !current_position + 1
+    current_position := ref.incr(current_position)
 
     if
       null.defined(max_length)
