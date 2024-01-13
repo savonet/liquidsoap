@@ -26,6 +26,8 @@ s =
     title="tit",
     performer="perf",
     file="bla.mp3",
+    comment="this is a comment",
+    date="2023",
     max_tracks=2,
     create_cuefile,
     s
@@ -54,6 +56,8 @@ FILE "bla.mp3" MP3
 create_expected =
   'TITLE "tit"
 PERFORMER "perf"
+REM COMMENT "this is a comment"
+DATE 2023
 FILE "bla.mp3" MP3
   TRACK 01 AUDIO
     TITLE "title2"

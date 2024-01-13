@@ -351,7 +351,7 @@ def source.cue(
         null.defined(date)
       then
         w(
-          "DATE #{(null.get(date) : int)}"
+          "DATE #{(null.get(date) : string)}"
         )
       end
       if
