@@ -16,7 +16,7 @@ track_pos = ref(1)
 
 def f(m) =
   track_pos := track_pos() + 1
-  s.insert_metadata(m)
+  s.insert_metadata(new_track=true, m)
 end
 
 s = source.cue(title="tit", performer="perf", file="bla.mp3", append_cuefile, s)
