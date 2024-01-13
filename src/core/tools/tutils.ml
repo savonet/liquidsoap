@@ -329,7 +329,7 @@ type event =
   | `Write of Unix.file_descr
   | `Both of Unix.file_descr ]
 
-(* Wait for [`Read socker], [`Write socket] or [`Both socket] for at most
+(* Wait for [`Read socket], [`Write socket] or [`Both socket] for at most
  * [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
  * if timeout is reached. *)
 let wait_for ?(log = fun _ -> ()) event timeout =

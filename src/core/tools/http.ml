@@ -19,7 +19,8 @@ type socket =
   ; close : unit >
 
 and server =
-  < transport : transport ; accept : Unix.file_descr -> socket * Unix.sockaddr >
+  < transport : transport
+  ; accept : ?timeout:float -> Unix.file_descr -> socket * Unix.sockaddr >
 
 and transport =
   < name : string
@@ -35,6 +36,28 @@ and transport =
   ; server : server >
 
 let connect = Cry.unix_connect
+
+let rec accept ?timeout sock =
+  let has_timeout = timeout <> None in
+  let check_timeout () =
+    Tutils.wait_for (`Read sock) (Option.get timeout);
+    match Unix.getsockopt_error sock with
+      | Some err -> raise (Unix.Unix_error (err, "accept", ""))
+      | None ->
+          Unix.clear_nonblock sock;
+          accept ?timeout sock
+  in
+  try
+    if has_timeout then Unix.set_nonblock sock;
+    let fd, addr = Unix.accept ~cloexec:true sock in
+    if has_timeout then (
+      Unix.clear_nonblock sock;
+      Unix.clear_nonblock fd);
+    (fd, addr)
+  with
+    | Unix.Unix_error (Unix.EAGAIN, _, _) when has_timeout -> check_timeout ()
+    | Unix.Unix_error (Unix.EWOULDBLOCK, _, _) when has_timeout ->
+        check_timeout ()
 
 let rec unix_socket fd =
   let s = Cry.unix_socket fd in
@@ -62,8 +85,8 @@ and unix_transport () =
       object
         method transport = self
 
-        method accept fd =
-          let fd, addr = Unix.accept ~cloexec:true fd in
+        method accept ?timeout fd =
+          let fd, addr = accept ?timeout fd in
           (unix_socket fd, addr)
       end
   end
@@ -180,3 +203,8 @@ let read_chunked ~timeout (socket : socket) =
   let s = really_read socket ~timeout len in
   ignore (read_crlf ~count:1 ~timeout socket);
   (s, len)
+
+let set_socket_default ~read_timeout ~write_timeout fd =
+  Unix.set_close_on_exec fd;
+  Unix.setsockopt_float fd Unix.SO_RCVTIMEO read_timeout;
+  Unix.setsockopt_float fd Unix.SO_SNDTIMEO write_timeout

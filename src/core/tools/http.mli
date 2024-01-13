@@ -12,7 +12,8 @@ type socket =
   ; close : unit >
 
 and server =
-  < transport : transport ; accept : Unix.file_descr -> socket * Unix.sockaddr >
+  < transport : transport
+  ; accept : ?timeout:float -> Unix.file_descr -> socket * Unix.sockaddr >
 
 and transport =
   < name : string
@@ -42,6 +43,12 @@ val connect :
   string ->
   int ->
   Unix.file_descr
+
+val accept :
+  ?timeout:float -> Unix.file_descr -> Unix.file_descr * Unix.sockaddr
+
+val set_socket_default :
+  read_timeout:float -> write_timeout:float -> Unix.file_descr -> unit
 
 (** Unix transport and socket. *)
 val unix_transport : transport

@@ -1018,7 +1018,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let server = transport#server in
     let process_client sock =
       try
-        let socket, caller = server#accept sock in
+        let socket, caller =
+          server#accept ?timeout:(Some conf_accept_timeout#get) sock
+        in
         let ip = Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller in
         log#info "New client on port %i: %s" port ip;
         let unix_socket = T.file_descr_of_socket socket in
