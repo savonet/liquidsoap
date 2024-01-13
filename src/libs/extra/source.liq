@@ -273,6 +273,7 @@ stdlib_file = file
 # @param ~file_type Format in which the stream is stored.
 # @param ~comment Comment about the stream.
 # @param ~date Year for the stream.
+# @param ~map_metadata Function to apply to metadata before writing the CUE file (useful for pre-processing metadata).
 # @param ~temp_dir Temporary directory for atomic write.
 # @param ~delete Delete the CUE files when starting if it exists.
 def source.cue(
@@ -282,6 +283,7 @@ def source.cue(
   ~file_type="mp3",
   ~comment=null(),
   ~date=null(),
+  ~map_metadata=fun (m) -> m,
   ~max_length=null(),
   ~temp_dir=null(),
   ~delete=true,
@@ -399,6 +401,7 @@ def source.cue(
   t0 = source.time(s)
 
   def handle_metadata(m) =
+    m = map_metadata(m)
     entry = {position=current_position(), time=source.time(s) - t0, metadata=m}
     ref.incr(current_position)
 
