@@ -283,7 +283,7 @@ def source.cue(
   ~file_type="mp3",
   ~comment=null(),
   ~date=null(),
-  ~map_metadata=fun (m) -> m,
+  ~map_metadata=fun (m) -> (m : [(string*string)]),
   ~max_length=null(),
   ~temp_dir=null(),
   ~delete=true,
@@ -358,7 +358,7 @@ def source.cue(
         null.defined(file)
       then
         w(
-          "FILE \"#{null.get(file)}\" #{string.uppercase(file_type)}"
+          "FILE \"#{(null.get(file) : string)}\" #{string.uppercase(file_type)}"
         )
       end
     end
