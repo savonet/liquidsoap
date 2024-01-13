@@ -266,7 +266,7 @@ stdlib_file = file
 # @category Source / Track processing
 # @flag extra
 # @param filename Path where the CUE file should be written.
-# @param max_length Set the maximum of track info retained by the function. \
+# @param max_tracks Set the maximum of track info retained by the function. \
 #                   Infinite when `null`.
 # @param ~title Title of the stream.
 # @param ~file File where the stream is stored.
@@ -284,7 +284,7 @@ def source.cue(
   ~comment=null(),
   ~date=null(),
   ~map_metadata=fun (m) -> (m : [(string*string)]),
-  ~max_length=null(),
+  ~max_tracks=null(),
   ~temp_dir=null(),
   ~delete=true,
   filename,
@@ -406,14 +406,14 @@ def source.cue(
     ref.incr(current_position)
 
     if
-      null.defined(max_length)
+      null.defined(max_tracks)
     then
       current_entries =
         null.case(
-          max_length,
+          max_tracks,
           entries,
-          fun (max_length) ->
-            list.rev(list.prefix(max_length - 1, list.rev(entries())))
+          fun (max_tracks) ->
+            list.rev(list.prefix(max_tracks - 1, list.rev(entries())))
         )
       entries :=
         list.mapi(

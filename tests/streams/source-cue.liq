@@ -26,7 +26,7 @@ s =
     title="tit",
     performer="perf",
     file="bla.mp3",
-    max_length=2,
+    max_tracks=2,
     create_cuefile,
     s
   )
