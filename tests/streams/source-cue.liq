@@ -26,9 +26,26 @@ s =
     title="tit",
     performer="perf",
     file="bla.mp3",
-    comment="this is a comment",
+    comment=
+      "this is a comment",
     date="2023",
     max_tracks=2,
+    map_metadata=
+      fun (m) ->
+        list.assoc.filter_map(
+          fun (x, y) ->
+            if
+              y == "title2"
+            then
+              (
+                x,
+                "title 2"
+              )
+            else
+              (x, y)
+            end,
+          m
+        ),
     create_cuefile,
     s
   )
@@ -60,7 +77,7 @@ REM COMMENT "this is a comment"
 DATE 2023
 FILE "bla.mp3" MP3
   TRACK 01 AUDIO
-    TITLE "title2"
+    TITLE "title 2"
     PERFORMER "artist2"
     REM ALBUM "album2"
     INDEX 01 00:02:00
@@ -93,7 +110,14 @@ s =
           track_pos() == 2 and source.time(s) == 2.1
         then
           # This one should be deduplicated.
-          f([("artist", "artist2"), ("album", "album2"), ("title", "title2"), ("foo", "bar")])
+          f(
+            [
+              ("artist", "artist2"),
+              ("album", "album2"),
+              ("title", "title2"),
+              ("foo", "bar")
+            ]
+          )
         elsif
           track_pos() == 3 and source.time(s) == 3.
         then
