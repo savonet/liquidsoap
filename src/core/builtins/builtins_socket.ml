@@ -390,10 +390,14 @@ module Socket_value = struct
     Lang.method_t server_t
       [
         ( "accept",
-          ([], Lang.fun_t [] (Lang.product_t t Socket_addr.base_t)),
+          ( [],
+            Lang.fun_t
+              [(true, "timeout", Lang.nullable_t Lang.float_t)]
+              (Lang.product_t t Socket_addr.base_t) ),
           "Accept connections on the given socket. The returned socket is a \
            socket connected to the client; the returned address is the address \
-           of the connecting client." );
+           of the connecting client. Timeout defaults to harbor's \
+           accept_timeout if `null`." );
         ( "connect",
           ([], Lang.fun_t [(false, "", Socket_addr.base_t)] Lang.unit_t),
           "Connect a socket to an address." );
@@ -405,8 +409,17 @@ module Socket_value = struct
     Lang.meth (to_server_value socket)
       [
         ( "accept",
-          Lang.val_fun [] (fun _ ->
-              let fd, sockaddr = server#accept socket#file_descr in
+          Lang.val_fun
+            [
+              ( "timeout",
+                "timeout",
+                Some (Lang.float Harbor_base.conf_accept_timeout#get) );
+            ]
+            (fun p ->
+              let timeout =
+                Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+              in
+              let fd, sockaddr = server#accept ?timeout socket#file_descr in
               Lang.product (to_value fd) (Socket_addr.to_value sockaddr)) );
         ( "connect",
           Lang.val_fun

@@ -146,11 +146,6 @@ module Liq_tls = struct
     Unix.close h.fd
 end
 
-let set_socket_default ~read_timeout ~write_timeout fd =
-  Unix.set_close_on_exec fd;
-  ignore (Option.map (Unix.setsockopt_float fd Unix.SO_RCVTIMEO) read_timeout);
-  ignore (Option.map (Unix.setsockopt_float fd Unix.SO_SNDTIMEO) write_timeout)
-
 let tls_socket ~session transport =
   object
     method typ = "tls"
@@ -191,11 +186,16 @@ let server ~read_timeout ~write_timeout ~certificate ~key transport =
   object
     method transport = transport
 
-    method accept sock =
-      let fd, caller = Unix.accept ~cloexec:true sock in
+    method accept ?timeout sock =
+      let fd, caller = Http.accept ?timeout sock in
       try
+        (match timeout with
+          | Some timeout ->
+              Http.set_socket_default ~read_timeout:timeout
+                ~write_timeout:timeout fd
+          | None -> ());
         let session = Liq_tls.init_server ~server fd in
-        set_socket_default ~read_timeout ~write_timeout fd;
+        Http.set_socket_default ~read_timeout ~write_timeout fd;
         (tls_socket ~session transport, caller)
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
@@ -247,11 +247,11 @@ let _ =
       ( "read_timeout",
         Lang.nullable_t Lang.float_t,
         Some Lang.null,
-        Some "Read timeout" );
+        Some "Read timeout. Defaults to harbor's timeout if `null`." );
       ( "write_timeout",
         Lang.nullable_t Lang.float_t,
         Some Lang.null,
-        Some "Write timeout" );
+        Some "Write timeout. Defaults to harbor's timeout if `null`." );
       ( "certificate",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
@@ -271,8 +271,14 @@ let _ =
       let read_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
       in
+      let read_timeout =
+        Option.value ~default:Harbor_base.conf_timeout#get read_timeout
+      in
       let write_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "write_timeout" p)
+      in
+      let write_timeout =
+        Option.value ~default:Harbor_base.conf_timeout#get write_timeout
       in
       let find name () =
         match Lang.to_valued_option Lang.to_string (List.assoc name p) with
