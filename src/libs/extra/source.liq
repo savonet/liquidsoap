@@ -426,5 +426,5 @@ def source.cue(
     end
   end
 
-  source.on_metadata(s, handle_metadata)
+  source.on_track(s, handle_metadata)
 end
