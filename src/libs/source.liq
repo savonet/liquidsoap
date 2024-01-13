@@ -27,11 +27,27 @@ def source.video(~id=null("source.video"), video) =
 end
 
 # Remove duplicate metadata in a track.
+# @param ~using Labels to use to compare the metadata. Defaults to all of them \
+#               when `null`.
 # @category Metadata
-def track.metadata.deduplicate(~id=null("track.metadata.deduplicate"), t) =
+def track.metadata.deduplicate(
+  ~id=null("track.metadata.deduplicate"),
+  ~using=null(),
+  t
+) =
   last_meta = ref([])
 
   def f(m) =
+    m =
+      if
+        null.defined(using)
+      then
+        using = null.get(using)
+        list.filter(fun (x) -> list.mem(fst(x), using), m)
+      else
+        m
+      end
+
     if
       m == last_meta()
     then
@@ -49,11 +65,16 @@ end
 
 # Remove duplicate metadata in a source.
 # @category Metadata
+# @param ~using Labels to use to compare the metadata. Defaults to all of them \
+#               when `null`.
 # @param ~id Source id
 # @param s source
-def metadata.deduplicate(~id=null("metadata.deduplicate"), s) =
+def metadata.deduplicate(~id=null("metadata.deduplicate"), ~using=null(), s) =
   tracks = source.tracks(s)
-  source(id=id, tracks.{metadata=track.metadata.deduplicate(tracks.metadata)})
+  source(
+    id=id,
+    tracks.{metadata=track.metadata.deduplicate(using=using, tracks.metadata)}
+  )
 end
 
 # Rewrite metadata on the fly using a function.

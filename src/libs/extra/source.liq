@@ -275,6 +275,9 @@ stdlib_file = file
 # @param ~date Year for the stream.
 # @param ~map_metadata Function to apply to metadata before writing the CUE file (useful for pre-processing metadata).
 # @param ~temp_dir Temporary directory for atomic write.
+# @param ~deduplicate_using To avoid duplicate entries, duplicate metadata are \
+#                           filtered. Set this to a list of labels to use for detecting \
+#                           duplicated metadata.
 # @param ~delete Delete the CUE files when starting if it exists.
 def source.cue(
   ~title=null(),
@@ -286,6 +289,7 @@ def source.cue(
   ~map_metadata=fun (m) -> (m : [(string*string)]),
   ~max_tracks=null(),
   ~temp_dir=null(),
+  ~deduplicate_using=["title", "artist", "album"],
   ~delete=true,
   filename,
   s
@@ -426,5 +430,6 @@ def source.cue(
     end
   end
 
-  source.on_track(s, handle_metadata)
+  s = metadata.deduplicate(using=deduplicate_using, s)
+  source.on_metadata(s, handle_metadata)
 end

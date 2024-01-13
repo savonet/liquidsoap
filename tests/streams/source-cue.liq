@@ -90,6 +90,11 @@ s =
         then
           f([("artist", "artist2"), ("album", "album2"), ("title", "title2")])
         elsif
+          track_pos() == 2 and source.time(s) == 2.1
+        then
+          # This one should be deduplicated.
+          f([("artist", "artist2"), ("album", "album2"), ("title", "title2"), ("foo", "bar")])
+        elsif
           track_pos() == 3 and source.time(s) == 3.
         then
           f([("artist", "artist3"), ("album", "album3"), ("title", "title3")])
