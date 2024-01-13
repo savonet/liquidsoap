@@ -15,6 +15,7 @@ Fixed:
 
 - Fix pop/click at the end of fade out/in (#3318)
 - Fix audio/video synchronization issues when decoding live streams using ffmpeg.
+- Fix issues with TLS connecting clients not being properly timed out (#3598)
 
 ---
 

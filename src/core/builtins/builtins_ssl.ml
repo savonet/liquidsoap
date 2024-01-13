@@ -21,10 +21,6 @@
 
  *****************************************************************************)
 
-let set_socket_default ~read_timeout ~write_timeout fd =
-  ignore (Option.map (Unix.setsockopt_float fd Unix.SO_RCVTIMEO) read_timeout);
-  ignore (Option.map (Unix.setsockopt_float fd Unix.SO_SNDTIMEO) write_timeout)
-
 let log = Log.make ["ssl"]
 
 let protocol_of_value protocol_val =
@@ -82,12 +78,17 @@ let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
   object
     method transport = transport
 
-    method accept sock =
-      let s, caller = Unix.accept ~cloexec:true sock in
+    method accept ?timeout sock =
+      let s, caller = Http.accept ?timeout sock in
       try
-        set_socket_default ~read_timeout ~write_timeout s;
+        (match timeout with
+          | Some timeout ->
+              Http.set_socket_default ~read_timeout:timeout
+                ~write_timeout:timeout s
+          | None -> ());
         let ssl_s = Ssl.embed_socket s context in
         Ssl.accept ssl_s;
+        Http.set_socket_default ~read_timeout ~write_timeout s;
         (ssl_socket transport ssl_s, caller)
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
@@ -208,8 +209,14 @@ let _ =
       let read_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
       in
+      let read_timeout =
+        Option.value ~default:Harbor_base.conf_timeout#get read_timeout
+      in
       let write_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "write_timeout" p)
+      in
+      let write_timeout =
+        Option.value ~default:Harbor_base.conf_timeout#get write_timeout
       in
       let password =
         Lang.to_valued_option Lang.to_string (List.assoc "password" p)
