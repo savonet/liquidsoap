@@ -7,7 +7,7 @@ let send_called = ref false
 class encoded_test =
   object (self)
     inherit
-      Output.encoded
+      [unit] Output.encoded
         ~output_kind:"foo" ~name:"encoded_test" ~infallible:false
           ~register_telnet:false
         ~on_start:(fun _ -> ())

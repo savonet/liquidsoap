@@ -58,7 +58,7 @@ class virtual output :
 (** Default methods on output values. *)
 val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
 
-class virtual encoded :
+class virtual ['a] encoded :
   output_kind:string
   -> name:string
   -> infallible:bool

@@ -57,7 +57,7 @@ class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
   ~hostname ~port ~encoder_factory source =
   object (self)
     inherit
-      Output.encoded
+      [Strings.t] Output.encoded
         ~output_kind:"udp" ~on_start ~on_stop ~register_telnet ~infallible
           ~autostart ~export_cover_metadata:false
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)

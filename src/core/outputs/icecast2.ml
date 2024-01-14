@@ -480,7 +480,7 @@ class output p =
   let connection = Cry.create ~timeout ~transport ?connection_timeout () in
   object (self)
     inherit
-      Output.encoded
+      [Strings.t] Output.encoded
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false ~on_start ~on_stop ~name source
 
