@@ -48,6 +48,16 @@ def f() =
   test.equals(round(0.), 0.)
   test.equals(round(infinity), infinity)
   test.equals(round(nan), nan)
+
+  def f(x) =
+    print(
+      "x.foo is: " ^
+        x.foo
+    )
+    x + 1
+  end
+  test.equals(f(1.{foo="gni"}), 2)
+
   test.pass()
 end
 
