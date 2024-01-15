@@ -30,9 +30,10 @@ let num_constr =
     constr_descr = "a number type";
     univ_descr = None;
     satisfied =
-      (fun ~subtype:_ ~satisfies:_ b ->
+      (fun ~subtype:_ ~satisfies b ->
         let b = demeth b in
         match b.descr with
+          | Var _ -> satisfies b
           | Custom { typ = Ground.Never.Type }
           | Custom { typ = Ground.Int.Type }
           | Custom { typ = Ground.Float.Type } ->
