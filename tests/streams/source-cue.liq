@@ -26,7 +26,26 @@ s =
     title="tit",
     performer="perf",
     file="bla.mp3",
-    max_length=2,
+    comment=
+      "this is a comment",
+    year=2023,
+    last_tracks=2,
+    map_metadata=
+      fun (m) ->
+        list.assoc.filter_map(
+          fun (x, y) ->
+            if
+              y == "title2"
+            then
+              (
+                x,
+                "title 2"
+              )
+            else
+              (x, y)
+            end,
+          m
+        ),
     create_cuefile,
     s
   )
@@ -39,6 +58,8 @@ FILE "bla.mp3" MP3
     TITLE "title1"
     PERFORMER "artist1"
     REM ALBUM "album1"
+    REM DATE 2021
+    ISRC bla
     INDEX 01 00:00:00
   TRACK 02 AUDIO
     TITLE "title2"
@@ -54,13 +75,15 @@ FILE "bla.mp3" MP3
 create_expected =
   'TITLE "tit"
 PERFORMER "perf"
+REM COMMENT "this is a comment"
+REM DATE 2023
 FILE "bla.mp3" MP3
-  TRACK 01 AUDIO
-    TITLE "title2"
+  TRACK 02 AUDIO
+    TITLE "title 2"
     PERFORMER "artist2"
     REM ALBUM "album2"
     INDEX 01 00:02:00
-  TRACK 02 AUDIO
+  TRACK 03 AUDIO
     TITLE "title3"
     PERFORMER "artist3"
     REM ALBUM "album3"
@@ -80,11 +103,23 @@ s =
         if
           track_pos() == 1 and source.time(s) == 0.
         then
-          f([("artist", "artist1"), ("album", "album1"), ("title", "title1")])
+          f([("artist", "artist1"), ("album", "album1"), ("title", "title1"), ("cue_year", "2021"), ("isrc", "bla")])
         elsif
           track_pos() == 2 and source.time(s) == 2.
         then
           f([("artist", "artist2"), ("album", "album2"), ("title", "title2")])
+        elsif
+          track_pos() == 2 and source.time(s) == 2.1
+        then
+          # This one should be deduplicated.
+          f(
+            [
+              ("artist", "artist2"),
+              ("album", "album2"),
+              ("title", "title2"),
+              ("foo", "bar")
+            ]
+          )
         elsif
           track_pos() == 3 and source.time(s) == 3.
         then
