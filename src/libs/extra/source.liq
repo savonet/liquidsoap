@@ -262,17 +262,19 @@ end
 stdlib_file = file
 
 # Generate a CUE file for the source. This function will generate a new track in
-# the file for each metadata of the source.
+# the file for each metadata of the source. This function tries to map metadata to
+# the appropriate CUE file standard values. You can use the `map_metadata` argument
+# to add your own pre-processing. The following metadata are recognized on tracks:
+# `"title"`, `"artist"`, `"album"`, `"isrc"`, and `"cue_year"`.
 # @category Source / Track processing
 # @flag extra
 # @param filename Path where the CUE file should be written.
-# @param max_tracks Set the maximum of track info retained by the function. \
-#                   Infinite when `null`.
+# @param ~last_tracks Only report the number of last tracks.
 # @param ~title Title of the stream.
 # @param ~file File where the stream is stored.
 # @param ~file_type Format in which the stream is stored.
 # @param ~comment Comment about the stream.
-# @param ~date Year for the stream.
+# @param ~year Year for the stream.
 # @param ~map_metadata Function to apply to metadata before writing the CUE file (useful for pre-processing metadata).
 # @param ~temp_dir Temporary directory for atomic write.
 # @param ~deduplicate_using To avoid duplicate entries, duplicate metadata are \
@@ -283,13 +285,13 @@ def source.cue(
   ~title=null(),
   ~performer=null(),
   ~file=null(),
-  ~file_type="mp3",
+  ~file_type=null(),
   ~comment=null(),
-  ~date=null(),
+  ~year=null(),
   ~map_metadata=fun (m) -> (m : [(string*string)]),
-  ~max_tracks=null(),
+  ~last_tracks=null(),
   ~temp_dir=null(),
-  ~deduplicate_using=["title", "artist", "album"],
+  ~deduplicate_using=["title", "artist", "album", "isrc", "cue_year"],
   ~delete=true,
   filename,
   s
@@ -299,6 +301,8 @@ def source.cue(
   then
     stdlib_file.remove(filename)
   end
+
+  file_type = file_type ?? stdlib_file.extension(leading_dot=false, file ?? "")
 
   is_first = ref(true)
 
@@ -330,12 +334,14 @@ def source.cue(
     end
 
     # Write a tag.
-    def tag(~indent=0, name, (value:string?)) =
+    def tag(~indent=0, ~quote=true, name, (value:string?)) =
+      quote = if quote then fun (v) -> string.quote(v) else fun (v) -> v end
+
       if
         null.defined(value)
       then
         s =
-          "#{string.spaces(indent)}#{name} #{string.quote(null.get(value))}"
+          "#{string.spaces(indent)}#{name} #{quote(null.get(value))}"
         w(s)
       end
     end
@@ -351,13 +357,11 @@ def source.cue(
         "REM COMMENT",
         comment
       )
-      if
-        null.defined(date)
-      then
-        w(
-          "DATE #{(null.get(date) : string)}"
-        )
-      end
+      tag(
+        quote=false,
+        "REM DATE",
+        null.map(string.of_int, year)
+      )
       if
         null.defined(file)
       then
@@ -372,8 +376,11 @@ def source.cue(
         begin
           let {position = p, time = t, metadata = m} = entry
 
-          w(
-            "  TRACK #{string.of_int(digits=2, p)} AUDIO"
+          tag(
+            indent=2,
+            quote=false,
+            "TRACK",
+            "#{string.of_int(digits=2, p)} AUDIO"
           )
           tag(indent=4, "TITLE", list.assoc.nullable("title", m))
           tag(indent=4, "PERFORMER", list.assoc.nullable("artist", m))
@@ -382,6 +389,13 @@ def source.cue(
             "REM ALBUM",
             list.assoc.nullable("album", m)
           )
+          tag(
+            indent=4,
+            quote=false,
+            "REM DATE",
+            list.assoc.nullable("cue_year", m)
+          )
+          tag(indent=4, quote=false, "ISRC", list.assoc.nullable("isrc", m))
 
           frames = int_of_float((t - floor(t)) * 75.)
           t = int_of_float(t)
@@ -390,8 +404,11 @@ def source.cue(
           m = string.of_int(digits=2, minutes)
           s = string.of_int(digits=2, seconds)
           f = string.of_int(digits=2, frames)
-          w(
-            "    INDEX 01 #{m}:#{s}:#{f}"
+          tag(
+            indent=4,
+            quote=false,
+            "INDEX 01",
+            "#{m}:#{s}:#{f}"
           )
         end,
       entries
@@ -410,20 +427,16 @@ def source.cue(
     ref.incr(current_position)
 
     if
-      null.defined(max_tracks)
+      null.defined(last_tracks)
     then
       current_entries =
         null.case(
-          max_tracks,
+          last_tracks,
           entries,
-          fun (max_tracks) ->
-            list.rev(list.prefix(max_tracks - 1, list.rev(entries())))
+          fun (last_tracks) ->
+            list.rev(list.prefix(last_tracks - 1, list.rev(entries())))
         )
-      entries :=
-        list.mapi(
-          fun (pos, entry) -> entry.{position=pos + 1},
-          [...current_entries, entry]
-        )
+      entries := [...current_entries, entry]
       write(append=false, entries())
     else
       write(append=true, [entry])

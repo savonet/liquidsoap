@@ -28,8 +28,8 @@ s =
     file="bla.mp3",
     comment=
       "this is a comment",
-    date="2023",
-    max_tracks=2,
+    year=2023,
+    last_tracks=2,
     map_metadata=
       fun (m) ->
         list.assoc.filter_map(
@@ -58,6 +58,8 @@ FILE "bla.mp3" MP3
     TITLE "title1"
     PERFORMER "artist1"
     REM ALBUM "album1"
+    REM DATE 2021
+    ISRC bla
     INDEX 01 00:00:00
   TRACK 02 AUDIO
     TITLE "title2"
@@ -74,14 +76,14 @@ create_expected =
   'TITLE "tit"
 PERFORMER "perf"
 REM COMMENT "this is a comment"
-DATE 2023
+REM DATE 2023
 FILE "bla.mp3" MP3
-  TRACK 01 AUDIO
+  TRACK 02 AUDIO
     TITLE "title 2"
     PERFORMER "artist2"
     REM ALBUM "album2"
     INDEX 01 00:02:00
-  TRACK 02 AUDIO
+  TRACK 03 AUDIO
     TITLE "title3"
     PERFORMER "artist3"
     REM ALBUM "album3"
@@ -101,7 +103,7 @@ s =
         if
           track_pos() == 1 and source.time(s) == 0.
         then
-          f([("artist", "artist1"), ("album", "album1"), ("title", "title1")])
+          f([("artist", "artist1"), ("album", "album1"), ("title", "title1"), ("cue_year", "2021"), ("isrc", "bla")])
         elsif
           track_pos() == 2 and source.time(s) == 2.
         then
