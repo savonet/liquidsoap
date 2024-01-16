@@ -43,14 +43,13 @@ To make sure that all these requirements operate correctly, you should make sure
 keyframe per segment.
 
 For instance, if your segments are at most `2s` long and encoded using `libx264`, you can use the `keyint` and `keyint-min` parameters, which are expressed
-in number of frames. If your video frame rate is `25fps` (liquidsoap's default), you should have at least one keyframe every `12` frames, which is `25/2` rounded
-to the lowest integer:
+in number of frames. If your video frame rate is `25fps` (liquidsoap's default), you should have at least one keyframe every `2 * 25 = 50` frames.
 
 ```liquidsoap
 %ffmpeg(
   ...,
   %video(codec="libx264",
-         x264opts="keyint=12:min-keyint=12")
+         x264opts="keyint=50:min-keyint=50")
 )
 ```
 
