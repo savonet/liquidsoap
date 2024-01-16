@@ -51,7 +51,9 @@ module Sys_time = struct
         clock_nanosleep
           ~clock:(if Sys.os_type = "Unix" then `Monotonic else `Realtime)
           ~absolute:true t
-      with Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t)
+      with
+        | Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t
+        | Unix.Unix_error (Unix.EINVAL, _, _) -> ())
 end
 
 let posix_time : (module Liq_time.T) = (module Sys_time)
