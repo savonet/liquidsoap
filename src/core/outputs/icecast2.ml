@@ -547,6 +547,7 @@ class output p =
 
     method icecast_send b =
       try
+        if Cry.get_status connection = Cry.Disconnected then self#icecast_start;
         Strings.iter
           (fun s offset length -> Cry.send connection ~offset ~length s)
           b;
@@ -567,8 +568,7 @@ class output p =
     method send b =
       match Cry.get_status connection with
         | Cry.Disconnected when Unix.time () > restart_time ->
-            self#icecast_start;
-            self#send b
+            self#icecast_send b
         | Cry.Connected _ -> self#icecast_send b
         | _ -> ()
 
