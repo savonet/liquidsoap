@@ -194,6 +194,28 @@ type segment = {
   mutable last_segmentable_position : (int * int) option;
 }
 
+(* We used to encode optional entries with null but
+   it's more future-proof to use undefined. These routines
+   abstract it away. *)
+let json_optional lbl f = function None -> [] | Some v -> [(lbl, f v)]
+
+let parse_json_optional lbl f l =
+  match List.assoc_opt lbl l with
+    | Some `Null | None -> None
+    | Some v -> Some (f v)
+
+let parse_json lbl f l =
+  match List.assoc_opt lbl l with Some v -> f v | None -> raise Invalid_state
+
+let parse_json_int lbl l =
+  parse_json lbl (function `Int i -> i | _ -> raise Invalid_state) l
+
+let parse_json_bool lbl l =
+  parse_json lbl (function `Bool b -> b | _ -> raise Invalid_state) l
+
+let parse_json_string lbl l =
+  parse_json lbl (function `String s -> s | _ -> raise Invalid_state) l
+
 let json_of_segment
     {
       id;
@@ -206,49 +228,49 @@ let json_of_segment
       last_segmentable_position;
     } =
   `Assoc
-    [
-      ("id", `Int id);
-      ("discontinuous", `Bool discontinuous);
-      ("current_discontinuity", `Int current_discontinuity);
-      ("filename", `String filename);
-      ( "init_filename",
-        match init_filename with Some f -> `String f | None -> `Null );
-      ("extra_tags", `Tuple (List.map (fun s -> `String s) segment_extra_tags));
-      ("len", `Int len);
-      ( "last_segmentable_position",
-        match last_segmentable_position with
-          | None -> `Null
-          | Some (len, offset) -> `Tuple [`Int len; `Int offset] );
-    ]
+    ([
+       ("id", `Int id);
+       ("discontinuous", `Bool discontinuous);
+       ("current_discontinuity", `Int current_discontinuity);
+       ("filename", `String filename);
+     ]
+    @ json_optional "init_filename" (fun s -> `String s) init_filename
+    @ [
+        ("extra_tags", `Tuple (List.map (fun s -> `String s) segment_extra_tags));
+        ("len", `Int len);
+      ]
+    @ json_optional "last_segmentable_position"
+        (fun (len, offset) -> `Tuple [`Int len; `Int offset])
+        last_segmentable_position)
 
 let segment_of_json = function
-  | `Assoc
-      [
-        ("id", `Int id);
-        ("discontinuous", `Bool discontinuous);
-        ("current_discontinuity", `Int current_discontinuity);
-        ("filename", `String filename);
-        ("init_filename", init_filename);
-        ("extra_tags", `Tuple segment_extra_tags);
-        ("len", `Int len);
-        ("last_segmentable_position", last_segmentable_position);
-      ] ->
+  | `Assoc l ->
+      let id = parse_json_int "id" l in
+      let discontinuous = parse_json_bool "discontinuous" l in
+      let current_discontinuity = parse_json_int "current_discontinuity" l in
+      let filename = parse_json_string "filename" l in
       let segment_extra_tags =
-        List.map
-          (function `String t -> t | _ -> raise Invalid_state)
-          segment_extra_tags
+        parse_json "extra_tags"
+          (function
+            | `Tuple l ->
+                List.map
+                  (function `String s -> s | _ -> raise Invalid_state)
+                  l
+            | _ -> raise Invalid_state)
+          l
       in
+      let len = parse_json_int "len" l in
       let init_filename =
-        match init_filename with
-          | `String f -> Some f
-          | `Null -> None
-          | _ -> raise Invalid_state
+        parse_json_optional "init_filename"
+          (function `String s -> s | _ -> raise Invalid_state)
+          l
       in
       let last_segmentable_position =
-        match last_segmentable_position with
-          | `Tuple [`Int len; `Int offset] -> Some (len, offset)
-          | `Null -> None
-          | _ -> raise Invalid_state
+        parse_json_optional "last_segmentable_position"
+          (function
+            | `Tuple [`Int len; `Int offset] -> (len, offset)
+            | _ -> raise Invalid_state)
+          l
       in
       {
         id;
