@@ -177,6 +177,9 @@ let hls_proto frame_t =
 type atomic_out_channel =
   < output_string : string -> unit
   ; output_substring : string -> int -> int -> unit
+  ; position : int
+  ; truncate : int -> unit
+  ; read : int -> int -> string
   ; close : unit >
 
 type segment = {
@@ -188,7 +191,30 @@ type segment = {
   mutable init_filename : string option;
   mutable out_channel : atomic_out_channel option;
   mutable len : int;
+  mutable last_segmentable_position : (int * int) option;
 }
+
+(* We used to encode optional entries with null but
+   it's more future-proof to use undefined. These routines
+   abstract it away. *)
+let json_optional lbl f = function None -> [] | Some v -> [(lbl, f v)]
+
+let parse_json_optional lbl f l =
+  match List.assoc_opt lbl l with
+    | Some `Null | None -> None
+    | Some v -> Some (f v)
+
+let parse_json lbl f l =
+  match List.assoc_opt lbl l with Some v -> f v | None -> raise Invalid_state
+
+let parse_json_int lbl l =
+  parse_json lbl (function `Int i -> i | _ -> raise Invalid_state) l
+
+let parse_json_bool lbl l =
+  parse_json lbl (function `Bool b -> b | _ -> raise Invalid_state) l
+
+let parse_json_string lbl l =
+  parse_json lbl (function `String s -> s | _ -> raise Invalid_state) l
 
 let json_of_segment
     {
@@ -199,40 +225,52 @@ let json_of_segment
       init_filename;
       segment_extra_tags;
       len;
+      last_segmentable_position;
     } =
   `Assoc
-    [
-      ("id", `Int id);
-      ("discontinuous", `Bool discontinuous);
-      ("current_discontinuity", `Int current_discontinuity);
-      ("filename", `String filename);
-      ( "init_filename",
-        match init_filename with Some f -> `String f | None -> `Null );
-      ("extra_tags", `Tuple (List.map (fun s -> `String s) segment_extra_tags));
-      ("len", `Int len);
-    ]
+    ([
+       ("id", `Int id);
+       ("discontinuous", `Bool discontinuous);
+       ("current_discontinuity", `Int current_discontinuity);
+       ("filename", `String filename);
+     ]
+    @ json_optional "init_filename" (fun s -> `String s) init_filename
+    @ [
+        ("extra_tags", `Tuple (List.map (fun s -> `String s) segment_extra_tags));
+        ("len", `Int len);
+      ]
+    @ json_optional "last_segmentable_position"
+        (fun (len, offset) -> `Tuple [`Int len; `Int offset])
+        last_segmentable_position)
 
 let segment_of_json = function
-  | `Assoc
-      [
-        ("id", `Int id);
-        ("discontinuous", `Bool discontinuous);
-        ("current_discontinuity", `Int current_discontinuity);
-        ("filename", `String filename);
-        ("init_filename", init_filename);
-        ("extra_tags", `Tuple segment_extra_tags);
-        ("len", `Int len);
-      ] ->
+  | `Assoc l ->
+      let id = parse_json_int "id" l in
+      let discontinuous = parse_json_bool "discontinuous" l in
+      let current_discontinuity = parse_json_int "current_discontinuity" l in
+      let filename = parse_json_string "filename" l in
       let segment_extra_tags =
-        List.map
-          (function `String t -> t | _ -> raise Invalid_state)
-          segment_extra_tags
+        parse_json "extra_tags"
+          (function
+            | `Tuple l ->
+                List.map
+                  (function `String s -> s | _ -> raise Invalid_state)
+                  l
+            | _ -> raise Invalid_state)
+          l
       in
+      let len = parse_json_int "len" l in
       let init_filename =
-        match init_filename with
-          | `String f -> Some f
-          | `Null -> None
-          | _ -> raise Invalid_state
+        parse_json_optional "init_filename"
+          (function `String s -> s | _ -> raise Invalid_state)
+          l
+      in
+      let last_segmentable_position =
+        parse_json_optional "last_segmentable_position"
+          (function
+            | `Tuple [`Int len; `Int offset] -> (len, offset)
+            | _ -> raise Invalid_state)
+          l
       in
       {
         id;
@@ -243,6 +281,7 @@ let segment_of_json = function
         len;
         segment_extra_tags;
         out_channel = None;
+        last_segmentable_position;
       }
   | _ -> raise Invalid_state
 
@@ -568,7 +607,7 @@ class hls_output p =
   in
   object (self)
     inherit
-      Output.encoded
+      [(int * Strings.t option * Strings.t) list] Output.encoded
         ~infallible ~register_telnet ~on_start ~on_stop ~autostart
           ~export_cover_metadata:false ~output_kind:"output.file"
           ~name:main_playlist_filename source
@@ -590,17 +629,36 @@ class hls_output p =
 
     method private open_out filename =
       let state = if Sys.file_exists filename then `Updated else `Created in
-      let mode = [Open_wronly; Open_creat; Open_trunc] in
-      let tmp_file, oc =
-        Filename.open_temp_file ?temp_dir ~mode ~perms "liq" "tmp"
+      let tmp_file = Filename.temp_file ?temp_dir "liq" "tmp" in
+      Unix.chmod tmp_file perms;
+      let fd =
+        Unix.openfile tmp_file
+          [Unix.O_RDWR; Unix.O_CREAT; Unix.O_TRUNC; Unix.O_CLOEXEC]
+          perms
       in
-      set_binary_mode_out oc true;
       object
-        method output_string = output_string oc
-        method output_substring = output_substring oc
+        method output_string s = Utils.write_all fd (Bytes.unsafe_of_string s)
+
+        method output_substring s ofs len =
+          Utils.write_all fd (Bytes.sub (Bytes.unsafe_of_string s) ofs len)
+
+        method position = Unix.lseek fd 0 Unix.SEEK_CUR
+        method truncate = Unix.ftruncate fd
+
+        method read ofs len =
+          Unix.fsync fd;
+          assert (ofs = Unix.lseek fd ofs Unix.SEEK_SET);
+          let b = Bytes.create len in
+          let rec f n =
+            if n < len then (
+              let r = Unix.read fd b n (len - n) in
+              if r <> 0 then f (n + r) else n)
+            else n
+          in
+          Bytes.sub_string b 0 (f 0)
 
         method close =
-          Stdlib.close_out_noerr oc;
+          (try Unix.close fd with _ -> ());
           Fun.protect
             ~finally:(fun () -> try Sys.remove tmp_file with _ -> ())
             (fun () ->
@@ -611,7 +669,9 @@ class hls_output p =
                     on a different file system. Please set it to the same one \
                     using `temp_dir` argument to guarantee atomic file \
                     operations!";
-                 Utils.copy ~mode ~perms tmp_file filename;
+                 Utils.copy
+                   ~mode:[Open_creat; Open_trunc; Open_binary]
+                   ~perms tmp_file filename;
                  Sys.remove tmp_file);
               on_file_change ~state filename)
       end
@@ -624,34 +684,32 @@ class hls_output p =
         self#log#important "Could not remove file %s: %s" filename
           (Unix.error_message e)
 
-    method private close_segment s =
-      ignore
-        (Option.map
-           (fun segment ->
-             (Option.get segment.out_channel)#close;
-             segment.out_channel <- None;
-             let segments = List.assoc s.name segments in
-             push_segment segment segments;
-             if List.length !segments >= max_segments then (
-               let segment = remove_segment segments in
-               self#unlink segment.filename;
-               ignore
-                 (Option.map
-                    (fun filename ->
-                      if
-                        Sys.file_exists filename
-                        && not
-                             (List.exists
-                                (fun s ->
-                                  s.init_filename = segment.init_filename)
-                                !segments)
-                      then self#unlink filename)
-                    segment.init_filename)))
-           s.current_segment);
-      s.current_segment <- None;
-      if state <> `Stopped then (
-        self#write_playlist s;
-        self#write_main_playlist)
+    method private close_segment =
+      function
+      | { current_segment = Some ({ out_channel = Some oc } as segment) } as s
+        ->
+          oc#close;
+          segment.out_channel <- None;
+          let segments = List.assoc s.name segments in
+          push_segment segment segments;
+          if List.length !segments >= max_segments then (
+            let segment = remove_segment segments in
+            self#unlink segment.filename;
+            match segment.init_filename with
+              | None -> ()
+              | Some filename ->
+                  if
+                    Sys.file_exists filename
+                    && not
+                         (List.exists
+                            (fun s -> s.init_filename = segment.init_filename)
+                            !segments)
+                  then self#unlink filename);
+          s.current_segment <- None;
+          if state <> `Stopped then (
+            self#write_playlist s;
+            self#write_main_playlist)
+      | _ -> ()
 
     method private open_segment s =
       self#log#debug "Opening segment %d for stream %s." s.position s.name;
@@ -682,6 +740,7 @@ class hls_output p =
           init_filename =
             (match s.init_state with `Has_init f -> Some f | _ -> None);
           out_channel = Some out_channel;
+          last_segmentable_position = None;
         }
       in
       s.current_segment <- Some segment;
@@ -697,10 +756,28 @@ class hls_output p =
             | `Sent _ | `None -> []
         in
         let frame_position, sample_position = current_position in
-        ignore
-          (Option.map out_channel#output_string
-             (s.encoder.hls.insert_id3 ~frame_position ~sample_position m)));
+        match s.encoder.hls.insert_id3 ~frame_position ~sample_position m with
+          | None -> ()
+          | Some s -> out_channel#output_string s);
       if discontinuous then s.discontinuity_count <- s.discontinuity_count + 1
+
+    method reopen_segment ~position:(len, offset) =
+      function
+      | {
+          current_segment =
+            Some
+              ({ len = current_len; out_channel = Some oc } as current_segment);
+        } as s ->
+          let rem = oc#read offset (oc#position - offset) in
+          current_segment.len <- len;
+          oc#truncate offset;
+          self#close_segment s;
+          self#open_segment s;
+          let segment = Option.get s.current_segment in
+          let oc = Option.get segment.out_channel in
+          oc#output_string rem;
+          segment.len <- current_len - len
+      | _ -> assert false
 
     method private cleanup_streams =
       List.iter
@@ -838,7 +915,7 @@ class hls_output p =
       self#toggle_state `Stop;
       (try
          let data =
-           List.map (fun s -> (None, s.encoder.Encoder.stop ())) streams
+           List.map (fun s -> (0, None, s.encoder.Encoder.stop ())) streams
          in
          self#send data
        with _ -> ());
@@ -955,19 +1032,22 @@ class hls_output p =
         ( true,
           Printf.sprintf
             "Terminating current segment on stream %s to insert new metadata"
-            s.name )
+            s.name,
+          false )
       else if Atomic.get s.pending_extra_tags <> [] then
         ( true,
           Printf.sprintf
             "Terminating current segment on stream %s to insert pending extra \
              tags"
-            s.name )
+            s.name,
+          false )
       else if segment.len + len > segment_main_duration then
         ( true,
           Printf.sprintf
             "Terminating current segment on stream %s to make expected length"
-            s.name )
-      else (false, "")
+            s.name,
+          true )
+      else (false, "", false)
 
     method encode frame ofs len =
       let frame_pos, samples_pos = current_position in
@@ -985,33 +1065,43 @@ class hls_output p =
                   Encoder.(s.encoder.hls.init_encode frame ofs len)
                 in
                 self#process_init ~init ~segment s;
-                (None, encoded)
-              with Encoder.Not_enough_data -> (None, Strings.empty))
+                (len, None, encoded)
+              with Encoder.Not_enough_data -> (len, None, Strings.empty))
             else (
-              let should_reopen, reason = self#should_reopen ~segment ~len s in
-              if should_reopen then (
-                match Encoder.(s.encoder.hls.split_encode frame ofs len) with
-                  | `Ok (flushed, encoded) ->
-                      self#log#info "%s" reason;
-                      (Some flushed, encoded)
-                  | `Nope encoded -> (None, encoded))
-              else (None, Encoder.(s.encoder.encode frame ofs len)))
+              match Encoder.(s.encoder.hls.split_encode frame ofs len) with
+                | `Ok (flushed, encoded) -> (len, Some flushed, encoded)
+                | `Nope encoded -> (len, None, encoded))
           in
           let segment = Option.get s.current_segment in
           segment.len <- segment.len + len;
           b)
         streams
 
-    method private write_pipe s (flushed, data) =
-      let { out_channel } = Option.get s.current_segment in
-      ignore
-        (Option.map
-           (fun b ->
-             let oc = Option.get out_channel in
-             Strings.iter oc#output_substring b;
-             self#close_segment s;
-             self#open_segment s)
-           flushed);
+    method private write_pipe s (len, flushed, data) =
+      let ({ out_channel } as segment) = Option.get s.current_segment in
+      let oc = Option.get out_channel in
+      (match flushed with
+        | None -> ()
+        | Some b ->
+            Strings.iter oc#output_substring b;
+            segment.last_segmentable_position <- Some (segment.len, oc#position));
+      (match
+         (self#should_reopen ~segment ~len s, segment.last_segmentable_position)
+       with
+        | (false, _, _), _ | (true, _, false), None -> ()
+        | (true, reason, _), position ->
+            let position =
+              match position with
+                | None ->
+                    self#log#important
+                      "Splitting segment without a new keyframe! You might \
+                       want to adjust your encoder's parameters to increase \
+                       the keyframe frequency!";
+                    (segment.len, oc#position)
+                | Some p -> p
+            in
+            self#log#info "%s" reason;
+            self#reopen_segment ~position s);
       let { out_channel } = Option.get s.current_segment in
       let oc = Option.get out_channel in
       Strings.iter oc#output_substring data

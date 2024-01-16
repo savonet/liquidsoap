@@ -893,7 +893,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
     inherit base
 
     inherit
-      Output.encoded
+      [Strings.t] Output.encoded
         ~output_kind:"srt" ~on_start ~on_stop ~infallible ~register_telnet
           ~export_cover_metadata:false ~autostart ~name:"output.srt" source
 

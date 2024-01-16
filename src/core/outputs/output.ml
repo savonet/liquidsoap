@@ -231,7 +231,7 @@ let _ =
 
 (** More concrete abstract-class, which takes care of the #send_frame method for
     outputs based on encoders. *)
-class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
+class virtual ['a] encoded ~output_kind ~name ~infallible ~on_start ~on_stop
   ~register_telnet ~autostart ~export_cover_metadata source =
   object (self)
     inherit

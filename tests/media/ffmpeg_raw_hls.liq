@@ -9,26 +9,24 @@ debian_version =
   )
 
 if debian_version == "10" then test.skip() end
+
 raw_encoder = %ffmpeg(%audio.raw, %video.raw)
+
 mpegts =
   %ffmpeg(
     format = "mpegts",
     %audio.raw(codec = "aac", b = "128k", channels = 2, ar = 44100),
-    %video.raw(codec = "libx264", b = "5M", flags = "+global_header")
+    %video.raw(codec = "libx264", x264opts = "keyint=12:min-keyint=12")
   )
 
-mp4 =
-  %ffmpeg(
-    format = "mp4",
-    movflags = "+dash+skip_sidx+skip_trailer+frag_custom",
-    frag_duration = 2,
-    %audio.raw(codec = "aac", b = "128k", channels = 2, ar = 44100),
-    %video.raw(codec = "libx264", b = "5M", flags = "+global_header")
-  )
+a = source.tracks(sine(duration=10.)).audio
+v = source.tracks(video.testsrc.ffmpeg(duration=10.)).video
 
-s = noise()
+s = source({audio=a, video=v})
+
 raw = ffmpeg.raw.encode.audio_video(raw_encoder, s)
-streams = [("mp4", mp4), ("mpegts", mpegts)]
+
+streams = [("mpegts", mpegts)]
 output_dir = file.temp_dir("liq", "hls")
 
 def cleanup() =
@@ -50,7 +48,7 @@ def check_stream() =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
           output_dir
-        }/mp4.m3u8"
+        }/mpegts.m3u8"
       )
 
     let json.parse (parsed :
@@ -101,7 +99,7 @@ def segment_name(~position, ~extname, stream_name) =
   "#{stream_name}_#{timestamp}_#{position}.#{extname}"
 end
 
-##clock.assign_new(sync='none',[raw])
+clock.assign_new(sync='none', [raw])
 output.file.hls(
   playlist="live.m3u8",
   segment_duration=2.0,

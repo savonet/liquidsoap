@@ -60,7 +60,7 @@ class virtual base ~source ~name p =
   in
   object (self)
     inherit
-      Output.encoded
+      [Strings.t] Output.encoded
         ~infallible ~register_telnet ~on_start ~on_stop ~autostart
           ~export_cover_metadata ~output_kind:"output.file" ~name source
 

@@ -28,6 +28,31 @@ Liquidsoap also provides `output.harbor.hls` which allows to serve HLS streams d
 liquidsoap. Their options should be the same as `output.file.hls`, except for harbor-specifc options `port` and `path`. It is
 not recommended for listener-facing setup but can be useful to sync up with a caching system such as cloudfront.
 
+## Keyframes and segment length
+
+In codec terminology, a `keyframe` can be understood as a piece of encoded data that contains enough information to start decoding the stream.
+Keyframes are very common in video codecs and can exist in audio codecs.
+
+In order to make sure that a HLS playlist can be decoded starting from any segment, liquidsoap tries to split segments on keyframe boundaries. When not possible,
+you will see a warning in the logs.
+
+Segment split is forced when reaching the value specified by `EXT-X-TARGETDURATION` to follow the HLS specifications. For metadata and extra tags, segment split will
+occur at the next keyframe.
+
+To make sure that all these requirements operate correctly, you should make sure to set a keyframe frequency in your encoder's settings that generates at lease one
+keyframe per segment.
+
+For instance, if your segments are at most `2s` long and encoded using `libx264`, you can use the `keyint` and `keyint-min` parameters, which are expressed
+in number of frames. If your video frame rate is `25fps` (liquidsoap's default), you should have at least one keyframe every `2 * 25 = 50` frames.
+
+```liquidsoap
+%ffmpeg(
+  ...,
+  %video(codec="libx264",
+         x264opts="keyint=50:min-keyint=50")
+)
+```
+
 ## Metadata
 
 HLS outputs supports metadata in two ways:

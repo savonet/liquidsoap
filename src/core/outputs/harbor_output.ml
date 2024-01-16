@@ -415,7 +415,7 @@ class output p =
   object (self)
     (** File descriptor where to dump. *)
     inherit
-      Output.encoded
+      [Strings.t] Output.encoded
         ~output_kind:"output.harbor" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false ~on_start ~on_stop ~name:mount source
 
