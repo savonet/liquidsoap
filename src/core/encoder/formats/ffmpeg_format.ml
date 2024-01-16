@@ -69,6 +69,7 @@ type t = {
   format : string option;
   output : output;
   streams : (Frame.field * stream) list;
+  interleaved : [ `Default | `True | `False ];
   opts : opts;
 }
 
@@ -157,6 +158,14 @@ let to_string m =
                 (string_of_options stream_opts)
               :: opts)
       opts m.streams
+  in
+  let opts =
+    Printf.sprintf "interleaved=%s"
+      (match m.interleaved with
+        | `Default -> "\"default\""
+        | `True -> "true"
+        | `False -> "false")
+    :: opts
   in
   let opts =
     match m.format with

@@ -130,6 +130,12 @@ let encoder ~pos ~mk_streams ffmpeg meta =
       len
     in
     let format = mk_format ffmpeg in
+    let interleaved =
+      match ffmpeg.interleaved with
+        | `Default -> 0 < List.length ffmpeg.streams
+        | `True -> true
+        | `False -> false
+    in
     let output =
       match ffmpeg.Ffmpeg_format.output with
         | `Stream ->
@@ -140,10 +146,9 @@ let encoder ~pos ~mk_streams ffmpeg meta =
                     Lang_encoder.raise_error ~pos
                       (Printf.sprintf
                          "No ffmpeg format could be found for format=%S" fmt));
-            Av.open_output_stream ~interleaved:false ~opts:options write
+            Av.open_output_stream ~interleaved ~opts:options write
               (Option.get format)
-        | `Url url ->
-            Av.open_output ?format ~interleaved:false ~opts:options url
+        | `Url url -> Av.open_output ?format ~interleaved ~opts:options url
     in
     let streams = mk_streams output in
     if Hashtbl.length options > 0 then

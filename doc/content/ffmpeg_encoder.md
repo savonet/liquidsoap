@@ -5,6 +5,26 @@ and [encoders](https://www.ffmpeg.org/ffmpeg-codecs.html), including private con
 key/values, with values being of types: `string`, `int`, or `float`. If an option is not recognized (or: unused), it will raise an error
 during the instantiation of the encoder. Here are some configuration examples:
 
+### Interleaved muxing
+
+FFmpeg provides two different APIs for muxing data, interleaved or not. The interleaved API buffers packets waiting to be
+outputted to make sure that all streams, e.g. audio and video, have their packets as close to each other as possible. This
+ensures that for instance, the stream does not start with a long chunk of audio data without any video content. However, this
+can come with some increased memory usage due to buffering.
+
+On the other hand, the non-interleaved API allows to send encoded packets directly to the output without intermediate buffering.
+This can sometimes result in better latency and lower memory usage.
+
+The `%ffmpeg` encoder can use either API. By default, it uses the interleaved API when encoding more than one stream. You can also
+specify the interleaving mode by passing the `interleaved` parameter: `%ffmpeg(interleaved=<true|false|"default">, ...)`.
+
+You might also want to take this into consideration when setting your encoder's parameters. Some video encoders can buffer frames for
+a while before outputting the first encoded frame, which can also create issues even with the interleaved API enabled (the interleaving
+buffer has a max size too!). Typically, with `libx264`, you can set `tune = "zerolatency"` to make sure that the encoder starts outputting
+data right away.
+
+### Encoding examples
+
 - **AAC encoding at `22050kHz` using `fdk-aac` encoder and `mpegts` muxer**
 
 ```liquidsoap

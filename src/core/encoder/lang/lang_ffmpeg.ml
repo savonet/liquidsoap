@@ -298,6 +298,7 @@ let ffmpeg_gen params =
       Ffmpeg_format.format = None;
       output = `Stream;
       streams = [];
+      interleaved = `Default;
       opts = Hashtbl.create 0;
     }
   in
@@ -504,6 +505,10 @@ let ffmpeg_gen params =
           { f with Ffmpeg_format.format = None }
       | `Option ("format", { value = Ground (String fmt); _ }) ->
           { f with Ffmpeg_format.format = Some fmt }
+      | `Option ("interleaved", { value = Ground (Bool b); _ }) ->
+          { f with Ffmpeg_format.interleaved = (if b then `True else `False) }
+      | `Option ("interleaved", { value = Ground (String "default"); _ }) ->
+          { f with Ffmpeg_format.interleaved = `Default }
       | `Option (k, { value = Ground (String s); _ }) ->
           Hashtbl.add f.Ffmpeg_format.opts k (`String s);
           f

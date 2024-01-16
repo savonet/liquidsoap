@@ -6,6 +6,7 @@ let () =
   let vorbis_enc =
     {
       format = Some "ogg";
+      interleaved = `Default;
       output = `Stream;
       streams =
         [
@@ -36,6 +37,7 @@ let () =
   let mixed_enc =
     {
       format = Some "ogg";
+      interleaved = `Default;
       output = `Stream;
       streams =
         [
