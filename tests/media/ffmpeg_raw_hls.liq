@@ -12,11 +12,16 @@ if debian_version == "10" then test.skip() end
 
 raw_encoder = %ffmpeg(%audio.raw, %video.raw)
 
-mpegts =
+mp4 =
   %ffmpeg(
-    format = "mpegts",
+    format = "mp4",
     %audio.raw(codec = "aac", b = "128k", channels = 2, ar = 44100),
-    %video.raw(codec = "libx264", x264opts = "keyint=12:min-keyint=12")
+    %video.raw(
+      codec = "libx264",
+      b = "5M",
+      tune = "zerolatency",
+      x264opts = "keyint=12:min-keyint=12"
+    )
   )
 
 a = source.tracks(sine(duration=10.)).audio
@@ -26,7 +31,7 @@ s = source({audio=a, video=v})
 
 raw = ffmpeg.raw.encode.audio_video(raw_encoder, s)
 
-streams = [("mpegts", mpegts)]
+streams = [("mp4", mp4)]
 output_dir = file.temp_dir("liq", "hls")
 
 def cleanup() =
@@ -48,7 +53,7 @@ def check_stream() =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams #{
           output_dir
-        }/mpegts.m3u8"
+        }/mp4.m3u8"
       )
 
     let json.parse (parsed :

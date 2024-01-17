@@ -89,8 +89,8 @@ conflicts: [
   "dssi-windows" {< "0.1.3"}
   "faad-windows" {< "0.5.0"}
   "fdkaac-windows" {< "0.3.1"}
-  "ffmpeg-windows" {< "1.1.8"}
-  "ffmpeg-avutil-windows" {< "1.1.8"}
+  "ffmpeg-windows" {< "1.1.10"}
+  "ffmpeg-avutil-windows" {< "1.1.10"}
   "flac-windows" {< "0.3.0"}
   "frei0r-windows" {< "0.1.0"}
   "gstreamer-windows" {< "0.3.1"}

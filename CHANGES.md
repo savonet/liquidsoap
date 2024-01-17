@@ -11,6 +11,8 @@ New:
 - Allow frames smaller than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage. See @TODO@ for more details (#3607)
+- Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
+  one stream is encoded.
 - Allow trailing commas in record definition (#3300).
 - Add `metadata.getter.source.float` (#3356).
 - Added optional `main_playlist_writer` to `output.file.hls` and
