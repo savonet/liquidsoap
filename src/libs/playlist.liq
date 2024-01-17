@@ -358,55 +358,57 @@ def playlist.list(
         label=id,
         "Next song will be \"#{file}\"."
       )
+
       r =
         request.create(
           cue_in_metadata=cue_in_metadata,
           cue_out_metadata=cue_out_metadata,
           file
         )
+
       if
-        not request.resolve(content_type=s, r)
+        check_next(r)
       then
+        if
+          not request.resolve(content_type=s, r)
+        then
+          log.info(
+            label=id,
+            "Could not resolve request: #{request.uri(r)}."
+          )
+          request.destroy(r)
+          ref.incr(failed_count)
+
+          # Playlist failed, call handler.
+          if
+            failed_count() < max_fail
+          then
+            log.info(
+              label=id,
+              "Playlist failed."
+            )
+            if
+              null.defined(on_fail)
+            then
+              f = null.get(on_fail)
+              reload(f())
+            end
+          end
+
+          failed_time := time()
+          (next() : request?)
+        else
+          failed_count := 0
+          r
+        end
+      else
         log.info(
           label=id,
-          "Could not resolve request: #{request.uri(r)}."
+          "Request #{request.uri(r)} rejected by check_next."
         )
+
         request.destroy(r)
-        ref.incr(failed_count)
-
-        # Playlist failed, call handler.
-        if
-          failed_count() < max_fail
-        then
-          log.info(
-            label=id,
-            "Playlist failed."
-          )
-          if
-            null.defined(on_fail)
-          then
-            f = null.get(on_fail)
-            reload(f())
-          end
-        end
-
-        failed_time := time()
-        (next() : request?)
-      else
-        failed_count := 0
-        if
-          check_next(r)
-        then
-          r
-        else
-          log.info(
-            label=id,
-            "Request #{request.uri(r)} rejected by check_next."
-          )
-
-          request.destroy(r)
-          next()
-        end
+        next()
       end
     end
   end

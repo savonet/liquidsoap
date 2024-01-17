@@ -41,6 +41,7 @@ Changed:
   mechanism for updating it (#3355).
 - Disable output paging when `TERM` environment variable is not set.
 - Allow running as `root` user inside `docker` container by default (#3406).
+- Run `check_next` before playlist's requests resolutions (#3625)
 - Set `force` to `true` by default in `file.copy` to make operator behave
   as expected.
 - BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
