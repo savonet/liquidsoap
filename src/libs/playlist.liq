@@ -173,11 +173,9 @@ let stdlib_native = native
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param ~check_next Function used to filter next tracks. A candidate track is \
-#   only validated if the function returns true on it. The function is called \
-#   before resolution, hence metadata will only be available for requests \
-#   corresponding to local files. This is typically used to avoid repetitions, \
-#   but be careful: if the function rejects all attempts, the playlist will \
-#   enter into a consuming loop and stop playing anything.
+#   only validated if the function returns true on it. This is typically used \
+#   to avoid repetitions, but be careful: if the function rejects all attempts, \
+#   the playlist will enter into a consuming loop and stop playing anything.
 # @param ~prefetch How many requests should be queued in advance.
 # @param ~loop Loop on the playlist.
 # @param ~mode Play the files in the playlist either in the order ("normal" mode), \
