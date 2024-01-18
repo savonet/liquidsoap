@@ -1069,7 +1069,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         in
         Duppy.Monad.run ~return:reply ~raise:reply (handle_client ~port ~icy h)
       with e ->
-        log#severe "Failed to accept new client: %s" (Printexc.to_string e)
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log ~bt
+          (Printf.sprintf "Failed to accept new client: %s"
+             (Printexc.to_string e))
     in
     let rec incoming ~port ~icy events (out_s : Unix.file_descr) e =
       if List.mem (`Read out_s) e then (
