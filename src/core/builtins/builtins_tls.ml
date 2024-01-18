@@ -36,6 +36,14 @@ module Liq_tls = struct
     let n = Unix.read h.fd h.buf 0 (min len buf_len) in
     Cstruct.of_bytes ~len:n h.buf
 
+  let read_pending h = function
+    | None -> ()
+    | Some data -> Buffer.add_string h.read_pending (Cstruct.to_string data)
+
+  let write_response h = function
+    | None -> ()
+    | Some data -> write_all h.fd data
+
   let handshake h =
     let rec f () =
       if Tls.Engine.handshake_in_progress h.state then (
@@ -44,21 +52,18 @@ module Liq_tls = struct
               Runtime_error.raise ~pos:[]
                 ~message:"Connection closed while negotiating TLS handshake!"
                 "tls"
-          | Ok (`Alert alert, `Response response, _) ->
-              ignore (Option.map (write_all h.fd) response);
-              Runtime_error.raise ~pos:[]
-                ~message:
-                  (Printf.sprintf "TLS handshake error: %s"
-                     (Tls.Packet.alert_type_to_string alert))
-                "tls"
-          | Ok (`Ok state, `Response response, `Data data) ->
-              ignore
-                (Option.map
-                   (fun data ->
-                     Buffer.add_string h.read_pending (Cstruct.to_string data))
-                   data);
-              ignore (Option.map (write_all h.fd) response);
-              h.state <- state;
+          | Ok ((`Ok _ as step), `Response response, `Data data)
+          | Ok ((`Alert _ as step), `Response response, `Data data) ->
+              read_pending h data;
+              write_response h response;
+              (match step with
+                | `Ok state -> h.state <- state
+                | `Alert alert ->
+                    Runtime_error.raise ~pos:[]
+                      ~message:
+                        (Printf.sprintf "TLS handshake error: %s"
+                           (Tls.Packet.alert_type_to_string alert))
+                      "tls");
               f ()
           | Error (error, `Response response) ->
               write_all h.fd response;
