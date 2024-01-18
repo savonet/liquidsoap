@@ -288,6 +288,11 @@ save a file per hour in wav format, the following script can be used:
 
 ```
 
+Here, the function `time.string` generates the file name by replacing `%H` by
+the hour, etc. The fact that it is between curly brackets,
+i.e. `{time.string(...)}`, ensures that it is re-evaluated each time a new file
+is created, the changing the file name each time according to the current time.
+
 In the following variant we write a new mp3 file each time new metadata is
 coming from `s`:
 
@@ -299,10 +304,10 @@ In the two examples we use [string interpolation](language.html) and time
 literals to generate the output file name.
 
 In order to limit the disk space used by this archive, on unix systems we can
-regularly call `find` to cleanup the folder ; if we can to keep 31 days of
-recording :
+regularly call `find` to cleanup the folder; if we can to keep 31 days of
+recording:
 
-```{liquidsoap include="archive-cleaner.liq"}
+```{.liquidsoap include="archive-cleaner.liq"}
 
 ```
 

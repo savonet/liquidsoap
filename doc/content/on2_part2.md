@@ -354,7 +354,7 @@ The method we propose here consists in using `metadata.map`, which we have alrea
 to update the metadata with a `"replay_gain"` metadata when we see the `"type"` metadata
 with the value `"song"`. Thus, we add the following function in `library.liq`:
 
-```{liquidsoap include="on2-replaygain.liq"}
+```{.liquidsoap include="on2-replaygain.liq"}
 
 ```
 
