@@ -74,13 +74,14 @@ def request.queue(
   end
 
   default =
-    request.dynamic(
-      id=id,
-      prefetch=prefetch,
-      timeout=timeout,
-      available={not list.is_empty(queue())},
-      next
-    )
+    fun () ->
+      request.dynamic(
+        id=id,
+        prefetch=prefetch,
+        timeout=timeout,
+        available={not list.is_empty(queue())},
+        next
+      )
 
   s =
 %ifdef native
@@ -89,10 +90,10 @@ def request.queue(
     then
       stdlib_native.request.dynamic(id=id, timeout=timeout, next)
     else
-      default
+      default()
     end
 %else
-    default
+    default()
 %endif
 
   s.set_queue(initial_queue)

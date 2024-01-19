@@ -147,13 +147,20 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
       match selected with
         | Some s
           when satisfied s.predicate
-               && self#can_reselect ~reselect s.effective_source ->
+               && self#can_reselect
+                    ~reselect:
+                      (* We want to force a re-select on each new track. *)
+                      (match reselect with
+                        | `After_position _ -> `Force
+                        | v -> v)
+                    s.effective_source ->
             Some s.effective_source
         | _ -> (
             begin
               match
                 ( selected,
                   self#select
+                  (* If we've returned the same source, it should be accepted now. *)
                     ~reselect:(match reselect with `Force -> `Ok | v -> v)
                     () )
               with
