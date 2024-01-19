@@ -874,6 +874,12 @@ class virtual active_source ?pos ?name () =
     inherit active_operator ?pos ?name []
   end
 
+(* Reselect type. This drives the choice of next source.
+   In cases where the underlying source returns the same
+   choice after calling [get_source], we need to refuse
+   that source unless if can continue filling up the frame
+   that is being worked on. This what [`After_position]
+   captures. *)
 type reselect = [ `Ok | `Force | `After_position of int ]
 
 class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
@@ -883,6 +889,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
     method virtual private set_last_metadata : Frame.t -> unit
+    method virtual log : Log.t
 
     method private can_generate_frame =
       match

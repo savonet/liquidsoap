@@ -383,6 +383,7 @@ class virtual generate_from_multiple_sources :
        method virtual empty_frame : Frame.t
        method virtual private execute_on_track : Frame.t -> unit
        method virtual private set_last_metadata : Frame.t -> unit
+       method virtual log : Log.t
        method private can_reselect : reselect:reselect -> source -> bool
        method private can_generate_frame : bool
        method private generate_frame : Frame.t
