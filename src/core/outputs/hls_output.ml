@@ -166,11 +166,11 @@ let hls_proto frame_t =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Fail if an invalid saved state exists." );
+      ("", Lang.string_t, None, Some "Directory for generated files.");
       ( "",
         Lang.list_t stream_info_t,
         None,
         Some "List of specifications for each stream: (name, format)." );
-      ("", Lang.string_t, None, Some "Directory for generated files.");
       ("", Lang.source_t frame_t, None, None);
     ]
 
