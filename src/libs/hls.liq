@@ -58,8 +58,8 @@ def replaces output.file.hls(
         )
       )
   ),
-  streams,
   dir,
+  streams,
   s
 ) =
   output.file.hls(
