@@ -1028,7 +1028,13 @@ class hls_output p =
         | Some _ -> raise Encoder.Not_enough_data
 
     method private should_reopen ~segment ~len s =
-      if s.id3_enabled && pending_metadata s.metadata then
+      if segment.len + len > segment_main_duration then
+        ( true,
+          Printf.sprintf
+            "Terminating current segment on stream %s to make expected length"
+            s.name,
+          true )
+      else if s.id3_enabled && pending_metadata s.metadata then
         ( true,
           Printf.sprintf
             "Terminating current segment on stream %s to insert new metadata"
@@ -1041,12 +1047,6 @@ class hls_output p =
              tags"
             s.name,
           false )
-      else if segment.len + len > segment_main_duration then
-        ( true,
-          Printf.sprintf
-            "Terminating current segment on stream %s to make expected length"
-            s.name,
-          true )
       else (false, "", false)
 
     method encode frame ofs len =
