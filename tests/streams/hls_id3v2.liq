@@ -14,10 +14,14 @@ def f() =
 end
 
 thread.run(every=2., f)
+
 s = mksafe(s)
+
 tmp_dir = file.temp_dir("tmp")
 on_cleanup({file.rmdir(tmp_dir)})
+
 output.file.hls(
+  segment_duration=2.,
   tmp_dir,
   [
     ("aac", %ffmpeg(format = "adts", %audio(codec = "aac")).{id3_version=3}),
