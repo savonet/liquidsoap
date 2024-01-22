@@ -3,7 +3,7 @@
 # Typical usage is to set cover art in a `on_metadata` handler and retrieve
 # it in a `video.add_image` operator.
 # @category Metadata
-# @param ~default_cover_file Default cover file when no cover is available
+# @param ~default Default cover file when no cover is available
 # @param ~mime_types Recognized mime types and their corresponding file extensions.
 def file.cover.manager(
   ~id=null(),
@@ -14,7 +14,7 @@ def file.cover.manager(
     ("image/png", "png"),
     ("image/webp", "webp")
   ],
-  ~default_cover_file
+  ~default
 ) =
   id = string.id.default(id, default="cover")
   temp_dir = file.temp_dir("cover-manager")
