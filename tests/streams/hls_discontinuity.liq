@@ -5,7 +5,7 @@ s = sine()
 
 is_on = ref(true)
 
-s = switch([(is_on, s)])
+s = switch(track_sensitive=false, [(is_on, s)])
 
 clock.assign_new(sync="none", [s])
 
@@ -20,7 +20,7 @@ first_playlist =
   "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:0\r\n#EXT-X-DISCONTINUITY-SEQUENCE:0\r\n#EXTINF:2.040,\r\nstream_1.ts\r\n#EXTINF:2.040,\r\nstream_2.ts\r\n#EXTINF:2.040,\r\nstream_3.ts\r\n#EXTINF:2.040,\r\nstream_4.ts\r\n"
 
 second_playlist =
-  "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:2\r\n#EXT-X-DISCONTINUITY-SEQUENCE:0\r\n#EXTINF:2.040,\r\nstream_3.ts\r\n#EXTINF:2.040,\r\nstream_4.ts\r\n#EXTINF:0.000,\r\nstream_5.ts\r\n#EXT-X-DISCONTINUITY\r\n#EXTINF:2.040,\r\nstream_7.ts\r\n"
+  "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:2\r\n#EXT-X-DISCONTINUITY-SEQUENCE:0\r\n#EXTINF:2.040,\r\nstream_3.ts\r\n#EXTINF:2.040,\r\nstream_4.ts\r\n#EXTINF:0.040,\r\nstream_5.ts\r\n#EXT-X-DISCONTINUITY\r\n#EXTINF:2.040,\r\nstream_7.ts\r\n"
 
 third_playlist =
   "#EXTM3U\r\n#EXT-X-TARGETDURATION:2\r\n#EXT-X-VERSION:3\r\n#EXT-X-MEDIA-SEQUENCE:6\r\n#EXT-X-DISCONTINUITY-SEQUENCE:1\r\n#EXTINF:2.040,\r\nstream_7.ts\r\n#EXTINF:2.040,\r\nstream_8.ts\r\n#EXTINF:2.040,\r\nstream_9.ts\r\n#EXTINF:2.040,\r\nstream_10.ts\r\n"
@@ -35,11 +35,17 @@ def on_file_change(~state=_, fname) =
     then
       test.equals(file.contents(fname), first_playlist)
       is_on := false
+      print(
+        "in_on: false"
+      )
       thread.run(
         delay=0.1,
         {
           has_restarted := true
           segments_count := 0
+          print(
+            "is_on: true"
+          )
           is_on := true
         }
       )
