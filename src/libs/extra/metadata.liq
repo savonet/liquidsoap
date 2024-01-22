@@ -23,6 +23,8 @@ def file.cover.manager(
 
   def set_current_cover(filename) =
     current_cover = current_cover_file()
+    current_cover_file := filename
+
     if
       current_cover != default
     then
@@ -32,7 +34,6 @@ def file.cover.manager(
       )
       file.remove(current_cover)
     end
-    current_cover_file := filename
   end
 
   def save_cover_to_file(cover) =
