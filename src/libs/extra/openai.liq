@@ -1,4 +1,4 @@
-let error.chatgpt = error.register("chatgpt")
+let error.openai = error.register("openai")
 
 openai = ()
 
@@ -10,7 +10,7 @@ def parse_openai_error(ans, err) =
     e = e.error
 
     error.raise(
-      error.chatgpt,
+      error.openai,
       "#{e.type}: #{e.message}"
     )
   catch _ do
@@ -26,7 +26,7 @@ end
 # @param messages Messages initially exchanged.
 # @category Internet
 # @flag extra
-def openai.chatgpt(
+def openai.chat(
   ~key,
   ~base_url="https://api.openai.com",
   ~model="gpt-3.5-turbo",
