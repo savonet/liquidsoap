@@ -160,8 +160,7 @@ let _ =
                     "NaN floating point number cannot be converted to integers!"
                   "invalid";
               log#important "At %s: floating point number is `NaN`!"
-                (Pos.Option.to_string
-                   (try Some (List.hd pos) with Not_found -> None));
+                (Pos.Option.to_string (try Some (List.hd pos) with _ -> None));
               0
           | `Float x -> int_of_float x
       in
