@@ -68,7 +68,7 @@ def file.cover.manager(
         label=id,
         "File #{string.quote(filename)} has no cover."
       )
-      current_cover_file := default
+      set_current_cover(default)
     elsif
       cover_file == null()
     then
@@ -78,7 +78,7 @@ def file.cover.manager(
           string.quote(mime)
         }."
       )
-      current_cover_file := default
+      set_current_cover(default)
     else
       cover_file = null.get(cover_file)
       log.important(
