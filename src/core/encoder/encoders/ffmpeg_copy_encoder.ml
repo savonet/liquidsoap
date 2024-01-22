@@ -27,7 +27,8 @@ open Ffmpeg_encoder_common
 
 let log = Log.make ["ffmpeg"; "copy"; "encoder"]
 
-let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
+let mk_stream_copy ~get_stream ~on_keyframe ~remove_stream ~keyframe_opt ~field
+    output =
   let stream = ref None in
   let video_size_ref = ref None in
   let codec_attr = ref None in
@@ -76,7 +77,6 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
     ref (get_stream ~last_start:Int64.min_int ~ready:false 0L)
   in
   let stream_started = ref false in
-  let was_keyframe = ref false in
   let waiting_for_keyframe = ref false in
   let last_dts = ref None in
   let last_position = ref 0L in
@@ -149,8 +149,15 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
 
       last_dts := dts;
 
-      if List.mem `Keyframe Avcodec.Packet.(get_flags packet) then
-        was_keyframe := true;
+      (match
+         ( on_keyframe,
+           List.mem `Keyframe Avcodec.Packet.(get_flags packet) || !intra_only
+         )
+       with
+        | Some on_keyframe, true ->
+            if not !intra_only then Av.flush output;
+            on_keyframe ()
+        | _ -> ());
 
       let packet = Avcodec.Packet.dup packet in
       Packet.set_pts packet pts;
@@ -169,8 +176,6 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
     let content = Content.sub (Frame.get frame field) start len in
     let data = (Ffmpeg_copy_content.get_data content).Content.Video.data in
 
-    was_keyframe := false;
-
     List.iter
       (fun (_, { Ffmpeg_copy_content.packet; time_base; stream_idx }) ->
         match (packet, !stream) with
@@ -182,11 +187,8 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
       data
   in
 
-  let can_split () = !intra_only || !was_keyframe in
-
   {
     Ffmpeg_encoder_common.mk_stream;
-    can_split;
     encode;
     flush = (fun () -> ());
     codec_attr;

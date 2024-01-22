@@ -81,14 +81,6 @@ let get_channel_layout ~pos channels =
           %d channels.."
          channels)
 
-let can_split stream =
-  let params = Av.get_codec_params stream in
-  match Avcodec.descriptor params with
-    | None -> fun () -> true
-    | Some { Avcodec.properties } when List.mem `Intra_only properties ->
-        fun () -> true
-    | _ -> fun () -> Av.was_keyframe stream
-
 (* This function optionally splits frames into [frame_size]
    and also adds PTS based on targeted [time_base], [sample_rate]
    and number of channel. *)
@@ -130,7 +122,7 @@ let write_audio_frame ~time_base ~sample_rate ~channel_layout ~sample_format
           add_filter_frame_pts frame;
           Avfilter.Utils.convert_audio converter write_frame (`Frame frame)
 
-let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
+let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   let internal_resampler =
     match params.Ffmpeg_format.pcm_kind with
       | pcm_kind when Content_audio.is_kind pcm_kind ->
@@ -269,6 +261,21 @@ let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
       (Printf.sprintf "Unrecognized options: %s"
          (Ffmpeg_format.string_of_options options));
 
+  let intra_only =
+    let params = Av.get_codec_params stream in
+    match Avcodec.descriptor params with
+      | None -> true
+      | Some { Avcodec.properties } -> List.mem `Intra_only properties
+  in
+
+  let on_keyframe =
+    Option.map
+      (fun on_keyframe () ->
+        if not intra_only then Av.flush output;
+        on_keyframe ())
+      on_keyframe
+  in
+
   let codec_attr () = Av.codec_attr stream in
 
   let bitrate () = Av.bitrate stream in
@@ -284,7 +291,8 @@ let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
     try
       write_audio_frame ~time_base:(Av.get_time_base stream)
         ~sample_rate:target_samplerate ~channel_layout:target_channel_layout
-        ~sample_format:target_sample_format ~frame_size (Av.write_frame stream)
+        ~sample_format:target_sample_format ~frame_size
+        (Av.write_frame ?on_keyframe stream)
     with e ->
       log#severe "Error writing audio frame: %s." (Printexc.to_string e);
       raise e
@@ -296,7 +304,6 @@ let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
 
   {
     Ffmpeg_encoder_common.mk_stream;
-    can_split = can_split stream;
     encode;
     flush = (fun () -> ());
     codec_attr;
@@ -304,7 +311,7 @@ let mk_audio ~pos ~mode ~codec ~params ~options ~field output =
     video_size;
   }
 
-let mk_video ~pos ~mode ~codec ~params ~options ~field output =
+let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   let codec =
     try Avcodec.Video.find_encoder_by_name codec
     with e ->
@@ -363,6 +370,21 @@ let mk_video ~pos ~mode ~codec ~params ~options ~field output =
       (Printf.sprintf "Unrecognized options: %s"
          (Ffmpeg_format.string_of_options options));
 
+  let intra_only =
+    let params = Av.get_codec_params stream in
+    match Avcodec.descriptor params with
+      | None -> true
+      | Some { Avcodec.properties } -> List.mem `Intra_only properties
+  in
+
+  let on_keyframe =
+    Option.map
+      (fun on_keyframe () ->
+        if not intra_only then Av.flush output;
+        on_keyframe ())
+      on_keyframe
+  in
+
   let codec_attr () = Av.codec_attr stream in
 
   let bitrate () = Av.bitrate stream in
@@ -407,7 +429,7 @@ let mk_video ~pos ~mode ~codec ~params ~options ~field output =
     in
     Avutil.Frame.set_pts frame frame_pts;
     start_pts := Int64.succ !start_pts;
-    Av.write_frame stream frame
+    Av.write_frame ?on_keyframe stream frame
   in
 
   let fps_converter ~stream_idx ~time_base frame =
@@ -509,7 +531,6 @@ let mk_video ~pos ~mode ~codec ~params ~options ~field output =
 
   {
     Ffmpeg_encoder_common.mk_stream;
-    can_split = can_split stream;
     encode;
     flush;
     codec_attr;

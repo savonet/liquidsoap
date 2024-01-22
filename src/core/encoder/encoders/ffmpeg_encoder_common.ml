@@ -28,7 +28,6 @@ type encoder = {
   mk_stream : Frame.t -> unit;
   encode : Frame.t -> int -> int -> unit;
   flush : unit -> unit;
-  can_split : unit -> bool;
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
   video_size : unit -> (int * int) option;
@@ -120,7 +119,7 @@ let convert_options opts =
     | `String layout -> `Int64 Avutil.Channel_layout.(get_id (find layout))
     | _ -> assert false)
 
-let encoder ~pos ~mk_streams ffmpeg meta =
+let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
   let buf = Strings.Mutable.empty () in
   let make () =
     let options = Hashtbl.copy ffmpeg.Ffmpeg_format.opts in
@@ -282,13 +281,29 @@ let encoder ~pos ~mk_streams ffmpeg meta =
   in
   let split_encode frame start len =
     let encoder = !encoder in
-    Av.flush encoder.output;
-    let flushed = Strings.Mutable.flush buf in
-    encode ~encoder frame start len;
+    let can_split () =
+      List.for_all (fun (_, keyframe) -> Atomic.get keyframe) keyframes
+    in
+    let flushed =
+      if can_split () then Atomic.make (Some (Strings.Mutable.flush buf))
+      else (
+        let flushed = Atomic.make None in
+        Atomic.set on_keyframe (fun () ->
+            match (can_split (), Atomic.get flushed) with
+              | true, None ->
+                  Atomic.set flushed (Some (Strings.Mutable.flush buf))
+              | _ -> ());
+        flushed)
+    in
+    Fun.protect
+      (fun () -> encode ~encoder frame start len)
+      ~finally:(fun () -> Atomic.set on_keyframe (fun () -> ()));
     let encoded = Strings.Mutable.flush buf in
-    if Frame.Fields.exists (fun _ c -> not (c.can_split ())) encoder.streams
-    then `Nope (Strings.append flushed encoded)
-    else `Ok (flushed, encoded)
+    match Atomic.get flushed with
+      | Some flushed ->
+          List.iter (fun (_, keyframe) -> Atomic.set keyframe false) keyframes;
+          `Ok (flushed, encoded)
+      | None -> `Nope encoded
   in
   let encode frame start len =
     encode ~encoder:!encoder frame start len;

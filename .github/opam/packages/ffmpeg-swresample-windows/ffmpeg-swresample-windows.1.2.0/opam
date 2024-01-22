@@ -1,0 +1,38 @@
+opam-version: "2.0"
+synopsis: "Bindings for the ffmpeg swresample library"
+maintainer: "Romain Beauxis <toots@rastageeks.org>"
+authors: "The Savonet Team <savonet-users@lists.sourceforge.net>"
+license: "LGPL-2.1-only"
+homepage: "https://github.com/savonet/ocaml-ffmpeg"
+bug-reports: "https://github.com/savonet/ocaml-ffmpeg/issues"
+depends: [
+  "conf-pkg-config" {build}
+  "ocaml-windows" {>= "4.08.0"}
+  "dune" {>= "3.6"}
+  "dune-configurator" {build}
+  "ffmpeg-avutil-windows" {= version}
+  "ffmpeg-avcodec-windows" {= version}
+]
+conflicts: [
+  "ffmpeg-windows" {< "0.5.0"}
+]
+depexts: [
+  ["ffmpeg"] {os-distribution = "mxe"}
+]
+build: [
+  [
+    "dune"
+    "build"
+    "-p"
+    "ffmpeg-swresample"
+    "-x"
+    "windows"
+    "-j"
+    jobs
+    "@install"
+  ]
+]
+dev-repo: "git+https://github.com/savonet/ocaml-ffmpeg.git"
+url {
+  src: "https://github.com/savonet/ocaml-ffmpeg/archive/main.tar.gz"
+}
