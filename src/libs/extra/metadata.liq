@@ -22,14 +22,15 @@ def file.cover.manager(
   current_cover_file = ref(default)
 
   def set_current_cover(filename) =
+    current_cover = current_cover_file()
     if
-      current_cover_file() != default
+      current_cover != default
     then
       log.info(
         label=id,
-        "Removing #{string.quote(current_cover_file())}"
+        "Removing #{string.quote(current_cover)}"
       )
-      file.remove(current_cover_file())
+      file.remove(current_cover)
     end
     current_cover_file := filename
   end
