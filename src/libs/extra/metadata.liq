@@ -19,11 +19,11 @@ def file.cover.manager(
   temp_dir = file.temp_dir("cover-manager")
   on_cleanup({file.rmdir(temp_dir)})
 
-  current_cover_file = ref(default_cover_file)
+  current_cover_file = ref(default)
 
   def set_current_cover(filename) =
     if
-      current_cover_file() != default_cover_file
+      current_cover_file() != default
     then
       log.info(
         label=id,
@@ -68,7 +68,7 @@ def file.cover.manager(
         label=id,
         "File #{string.quote(filename)} has no cover."
       )
-      current_cover_file := default_cover_file
+      current_cover_file := default
     elsif
       cover_file == null()
     then
@@ -78,7 +78,7 @@ def file.cover.manager(
           string.quote(mime)
         }."
       )
-      current_cover_file := default_cover_file
+      current_cover_file := default
     else
       cover_file = null.get(cover_file)
       log.important(
