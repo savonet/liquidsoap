@@ -34,7 +34,7 @@ class on_track f s =
       let buf = s#get_frame in
       if Frame.track_marks buf <> [] then begin
         let m =
-          match Frame.get_metadata buf 0 with
+          match s#last_metadata with
             | None -> Lang.list []
             | Some m -> Lang.metadata m
         in
