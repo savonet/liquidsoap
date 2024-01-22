@@ -31,6 +31,7 @@ New:
 - Add `list.assoc.nullable`.
 - Add `source.cue` (#3620).
 - Added atomic file write operations.
+- Added `file.cover.manager` from an original code by @vitoyucepi (#3651)
 
 Changed:
 

@@ -173,14 +173,21 @@ let _ =
       "Return a fresh temporary filename. The temporary file is created empty, \
        with permissions 0o600 (readable and writable only by the file owner)."
     [
+      ( "dir",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Directory where to create the file." );
       ("", Lang.string_t, None, Some "File prefix");
       ("", Lang.string_t, None, Some "File suffix");
     ]
     Lang.string_t
     (fun p ->
+      let temp_dir =
+        Lang.to_valued_option Lang.to_string (List.assoc "dir" p)
+      in
       try
         Lang.string
-          (Filename.temp_file
+          (Filename.temp_file ?temp_dir
              (Lang.to_string (Lang.assoc "" 1 p))
              (Lang.to_string (Lang.assoc "" 2 p)))
       with exn ->
