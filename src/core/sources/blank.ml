@@ -89,7 +89,7 @@ class blank duration =
         | _, -1 -> frame
         | _, r ->
             if r < length then (
-              remaining <- length - r;
+              remaining <- ticks - r;
               Frame.add_track_mark frame r)
             else (
               remaining <- r - length;
