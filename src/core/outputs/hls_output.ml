@@ -624,13 +624,16 @@ class hls_output p =
       in
       let out_channel = self#open_out filename in
       Strings.iter out_channel#output_substring (s.encoder.Encoder.header ());
-      let discontinuous = state = `Restarted in
+      let discontinuous, current_discontinuity =
+        if state = `Restarted then (true, s.discontinuity_count + 1)
+        else (false, s.discontinuity_count)
+      in
       state <- `Started;
       let segment =
         {
           id = s.position;
           discontinuous;
-          current_discontinuity = s.discontinuity_count;
+          current_discontinuity;
           len = 0;
           filename;
           segment_extra_tags = Atomic.get s.pending_extra_tags;
@@ -640,6 +643,7 @@ class hls_output p =
         }
       in
       s.current_segment <- Some segment;
+      s.discontinuity_count <- current_discontinuity;
       s.position <- s.position + 1;
       Atomic.set s.pending_extra_tags [];
       if s.id3_enabled then (
@@ -652,10 +656,9 @@ class hls_output p =
             | `Sent _ | `None -> []
         in
         let frame_position, sample_position = current_position in
-        ignore
-          (Option.map out_channel#output_string
-             (s.encoder.hls.insert_id3 ~frame_position ~sample_position m)));
-      if discontinuous then s.discontinuity_count <- s.discontinuity_count + 1
+        match s.encoder.hls.insert_id3 ~frame_position ~sample_position m with
+          | None -> ()
+          | Some s -> out_channel#output_string s)
 
     method private cleanup_streams =
       List.iter
@@ -716,7 +719,7 @@ class hls_output p =
             s.stream_extra_tags;
           List.iteri
             (fun pos segment ->
-              if segment.discontinuous then
+              if 0 < pos && segment.discontinuous then
                 oc#output_string "#EXT-X-DISCONTINUITY\r\n";
               if pos = 0 || segment.discontinuous then (
                 match segment.init_filename with
@@ -801,8 +804,7 @@ class hls_output p =
          in
          self#send data
        with _ -> ());
-      streams <- mk_streams ();
-      match persist_at with
+      (match persist_at with
         | Some persist_at ->
             self#log#info "Saving state to %s.."
               (Lang_string.quote_string persist_at);
@@ -810,13 +812,12 @@ class hls_output p =
             self#write_state persist_at
         | None ->
             self#cleanup_streams;
-            self#cleanup_playlists
+            self#cleanup_playlists);
+      streams <- mk_streams ()
 
     method! reset = self#toggle_state `Restart
 
     method private write_state persist_at =
-      self#log#info "Reading state file at %s.."
-        (Lang_string.quote_string persist_at);
       let fd = open_out_bin persist_at in
       let streams =
         `Tuple
