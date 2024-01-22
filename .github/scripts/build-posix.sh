@@ -25,6 +25,19 @@ make update
 
 echo "::endgroup::"
 
+echo "::group::Checking out CI commit"
+
+cd /tmp/liquidsoap-full/liquidsoap
+
+git fetch origin "$GITHUB_SHA"
+git checkout "$GITHUB_SHA"
+mv .github /tmp
+rm -rf ./*
+mv /tmp/.github .
+git reset --hard
+
+echo "::endgroup::"
+
 echo "::group::Setting up specific dependencies"
 
 cd /tmp/liquidsoap-full/liquidsoap
@@ -39,19 +52,6 @@ cd /tmp/liquidsoap-full
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
-
-echo "::endgroup::"
-
-echo "::group::Checking out CI commit"
-
-cd /tmp/liquidsoap-full/liquidsoap
-
-git fetch origin "$GITHUB_SHA"
-git checkout "$GITHUB_SHA"
-mv .github /tmp
-rm -rf ./*
-mv /tmp/.github .
-git reset --hard
 
 echo "::endgroup::"
 

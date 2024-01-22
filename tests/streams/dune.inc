@@ -583,6 +583,35 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  hls_discontinuity.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} hls_discontinuity.liq liquidsoap %{test_liq} hls_discontinuity.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   hls_global_headers.liq
   ./file1.mp3
   ./file2.mp3
