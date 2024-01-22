@@ -10,7 +10,6 @@ def file.cover.manager(
   ~mime_types=[
     ("image/gif", "gif"),
     ("image/jpeg", "jpeg"),
-    ("image/jpg", "jpeg"),
     ("image/png", "png"),
     ("image/webp", "webp")
   ],
