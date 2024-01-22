@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.37922501564
+  unit: "s"
+  time: 1705888715.72
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.757395982742
+  unit: "s"
+  time: 1705888716.48
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.39687180519
+  unit: "s"
+  time: 1705888717.88
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 3.06695985794
+  unit: "s"
+  time: 1705888720.95
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 179.71875
+  unit: "Mio"
+  time: 1705888778.78
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 852.46875
+  unit: "Mio"
+  time: 1705888778.78
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1705888778.78
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7605.453125
+  unit: "Mio"
+  time: 1705888778.78
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 6397.265625
+  unit: "Mio"
+  time: 1705888778.78
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 6397.265625
+  unit: "Mio"
+  time: 1705888778.78
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2225.
+  unit: "functions"
+  time: 1705888780.37
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1705888780.37
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.27326703072
+  unit: "s"
+  time: 1705888920.59
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.34598398209
+  unit: "s"
+  time: 1705889009.05
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.65269088745
+  unit: "s"
+  time: 1705889012.7
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 253.1953125
+  unit: "Mio"
+  time: 1705889016.25
+  min: 0.
+
+- commit: bd0e7c5b8b8d541bbd9c2f39bc5ff0379cdb5023
+  branch: gh-readonly-queue_main_pr-3650-431afee033b078a0eb077ef5b113fd74ebf9a24c
+  time: 1705889016
