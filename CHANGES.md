@@ -50,10 +50,6 @@ Changed:
 - BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
 - Added `parents` option of `file.mkdir` (#3600, #3601).
 
-Fixed:
-
-- Fixed HLS segments size when creating content with keyframes (#3630)
-
 ---
 
 # 2.2.2 (2023-11-02)
