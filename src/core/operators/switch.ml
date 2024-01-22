@@ -146,7 +146,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
     method get_source ~reselect () =
       match selected with
         | Some s
-          when satisfied s.predicate
+          when (track_sensitive () || satisfied s.predicate)
                && self#can_reselect
                     ~reselect:
                       (* We want to force a re-select on each new track. *)
