@@ -259,6 +259,43 @@ def single(
   s_ref = ref((fallback([]) : source))
   done = ref(false)
 
+  def on_wake_up() =
+    if
+      infallible
+    then
+      log.important(
+        label=id,
+        "#{uri} is static, resolving once for all..."
+      )
+      r =
+        request.create(
+          persistent=true,
+          cue_in_metadata=cue_in_metadata,
+          cue_out_metadata=cue_out_metadata,
+          uri
+        )
+      if
+        not request.resolve(r, timeout=timeout, content_type=s_ref())
+      then
+        request.destroy(r)
+        error.raise(
+          error.invalid,
+          "Could not resolve uri: #{uri}"
+        )
+      else
+        static_request := r
+      end
+    end
+  end
+
+  def on_shutdown() =
+    if
+      null.defined(static_request())
+    then
+      request.destroy(force=true, null.get(static_request()))
+    end
+  end
+
   def next() =
     if
       done()
@@ -266,33 +303,6 @@ def single(
       null()
     else
       done := true
-
-      if
-        infallible
-      then
-        log.important(
-          label=id,
-          "#{uri} is static, resolving once for all..."
-        )
-        r =
-          request.create(
-            persistent=true,
-            cue_in_metadata=cue_in_metadata,
-            cue_out_metadata=cue_out_metadata,
-            uri
-          )
-        if
-          not request.resolve(r, timeout=timeout, content_type=s_ref())
-        then
-          request.destroy(r)
-          error.raise(
-            error.invalid,
-            "Could not resolve uri: #{uri}"
-          )
-        else
-          static_request := r
-        end
-      end
 
       def next() =
         static_request()
@@ -314,6 +324,8 @@ def single(
     source.dynamic(
       id=id, infallible=infallible, self_sync=false, track_sensitive=true, next
     )
+  s.on_wake_up(on_wake_up)
+  s.on_shutdown(on_shutdown)
   s_ref := (s : source)
   (s : source_methods)
 end
