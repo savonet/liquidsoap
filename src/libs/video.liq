@@ -762,3 +762,55 @@ def video.plot(~lines=true, ~min=0., ~max=1., ~speed=100., ~color=0xffffff, y) =
 
   source.on_frame(s', update)
 end
+
+let video.canvas = ()
+
+# Create a virtual canvas that can be used to return video position and sizes
+# that are independent of the frame's dimensions.
+# @category Source / Video processing
+# @param ~virtualSize Virtual size, in pixels, of the canvas
+# @param ~actualSize Actual size, in pixels, of the canvas
+# @param ~fontSize Font size, in virtual pixels.
+# @method ~px Map a virtual size in pixel to the actual size.
+# @method ~rem Map a fraction of the virtual font size into an actual font size
+def video.canvas.make(~virtualSize, ~actualSize, ~fontSize) =
+  virtualSize = float(virtualSize)
+  actualSize = float(actualSize)
+  ratio = actualSize / virtualSize
+  fontRatio = float(fontSize) * ratio
+
+  def px(v) =
+    int_of_float(float(v) * ratio)
+  end
+
+  def rem(v) =
+    int_of_float(v * fontRatio)
+  end
+
+  {px=px, rem=rem}
+end
+
+# Standard video canvas
+# @category Source / Video processing
+def video.canvas.ten_k =
+  {
+    seven_20p=
+      {
+        width=1280,
+        height=720,
+        ...video.canvas.make(virtualSize=10000, actualSize=1280, fontSize=156)
+      },
+    ten_80p=
+      {
+        width=1920,
+        height=1080,
+        ...video.canvas.make(virtualSize=10000, actualSize=1920, fontSize=156)
+      },
+    four_k=
+      {
+        width=3840,
+        height=2160,
+        ...video.canvas.make(virtualSize=10000, actualSize=3840, fontSize=156)
+      }
+  }
+end
