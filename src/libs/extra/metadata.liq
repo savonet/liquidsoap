@@ -19,20 +19,22 @@ def file.cover.manager(
   temp_dir = file.temp_dir("cover-manager")
   on_cleanup({file.rmdir(temp_dir)})
 
+  last_cover_file = ref(default)
   current_cover_file = ref(default)
 
   def set_current_cover(filename) =
-    current_cover = current_cover_file()
+    last_cover = last_cover_file()
+    last_cover_file := current_cover_file()
     current_cover_file := filename
 
     if
-      current_cover != default
+      last_cover != default
     then
       log.info(
         label=id,
-        "Removing #{string.quote(current_cover)}"
+        "Removing #{string.quote(last_cover)}"
       )
-      file.remove(current_cover)
+      file.remove(last_cover)
     end
   end
 
