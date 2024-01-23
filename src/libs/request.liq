@@ -294,6 +294,7 @@ def single(
     then
       request.destroy(force=true, null.get(static_request()))
     end
+    static_request := null()
   end
 
   def next() =
