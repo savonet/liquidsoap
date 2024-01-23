@@ -779,7 +779,7 @@ def video.canvas.make(~virtualSize, ~actualSize, ~fontSize) =
   ratio = actualSize / virtualSize
   fontRatio = float(fontSize) * ratio
 
-  def px(v) =
+  def px((v:int)) =
     int_of_float(float(v) * ratio)
   end
 
@@ -792,6 +792,9 @@ end
 
 # Standard video canvas
 # @category Source / Video processing
+# @method seven_20p Standard 720p video canvas
+# @method ten_80p Standard 1080p video canvas
+# @method four_k Standard 4k video canvas
 def video.canvas.ten_k =
   {
     seven_20p=
