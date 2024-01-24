@@ -768,7 +768,7 @@ let video.canvas = ()
 # Create a virtual canvas that can be used to return video position and sizes
 # that are independent of the frame's dimensions.
 # @category Source / Video processing
-# @param ~virtual_height Virtual height, in pixels, of the canvas
+# @param ~virtual_width Virtual height, in pixels, of the canvas
 # @param ~actual_size Actual size, in pixels, of the canvas
 # @param ~font_size Font size, in virtual pixels.
 # @method ~px Map a virtual size in pixel to the actual size.
@@ -777,11 +777,11 @@ let video.canvas = ()
 #             of the canvas height
 # @method ~vw Return a position in percent (as a value between `0.` and `1.`) \
 #             of the canvas width
-def video.canvas.make(~virtual_height, ~actual_size, ~font_size) =
-  virtual_height = float(virtual_height)
+def video.canvas.make(~virtual_width, ~actual_size, ~font_size) =
+  virtual_width = float(virtual_width)
   actual_height = float(actual_size.height)
   actual_width = float(actual_size.width)
-  ratio = actual_height / virtual_height
+  ratio = actual_width / virtual_width
   font_ratio = float(font_size) * ratio
 
   def px((v:int)) =
@@ -806,9 +806,9 @@ end
 # Standard video canvas based off a `10k` virtual canvas.
 # @category Source / Video processing
 def video.canvas.virtual_10k =
-  def make(height, width) =
+  def make(width, height) =
     video.canvas.make(
-      virtual_height=10000,
+      virtual_width=10000,
       actual_size={width=width, height=height},
       font_size=160
     )
