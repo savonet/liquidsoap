@@ -768,52 +768,59 @@ let video.canvas = ()
 # Create a virtual canvas that can be used to return video position and sizes
 # that are independent of the frame's dimensions.
 # @category Source / Video processing
-# @param ~virtualSize Virtual size, in pixels, of the canvas
-# @param ~actualSize Actual size, in pixels, of the canvas
-# @param ~fontSize Font size, in virtual pixels.
+# @param ~virtual_height Virtual height, in pixels, of the canvas
+# @param ~actual_size Actual size, in pixels, of the canvas
+# @param ~font_size Font size, in virtual pixels.
 # @method ~px Map a virtual size in pixel to the actual size.
 # @method ~rem Map a fraction of the virtual font size into an actual font size
-def video.canvas.make(~virtualSize, ~actualSize, ~fontSize) =
-  virtualSize = float(virtualSize)
-  actualSize = float(actualSize)
-  ratio = actualSize / virtualSize
-  fontRatio = float(fontSize) * ratio
+# @method ~vh Return a position in percent (as a value between `0.` and `1.`) \
+#             of the canvas height
+# @method ~vw Return a position in percent (as a value between `0.` and `1.`) \
+#             of the canvas width
+def video.canvas.make(~virtual_height, ~actual_size, ~font_size) =
+  virtual_height = float(virtual_height)
+  actual_height = float(actual_size.height)
+  actual_width = float(actual_size.width)
+  ratio = actual_height / virtual_height
+  font_ratio = float(font_size) * ratio
 
   def px((v:int)) =
     int_of_float(float(v) * ratio)
   end
 
-  def rem(v) =
-    int_of_float(v * fontRatio)
+  def vh(v) =
+    int_of_float(v * actual_height)
   end
 
-  {px=px, rem=rem}
+  def vw(v) =
+    int_of_float(v * (float(actual_width)))
+  end
+
+  def rem(v) =
+    int_of_float(v * font_ratio)
+  end
+
+  {px=px, rem=rem, vw=vw, vh=vh, ...actual_size}
 end
 
-# Standard video canvas
+# Standard video canvas based off a `10k` virtual canvas.
 # @category Source / Video processing
-# @method seven_20p Standard 720p video canvas
-# @method ten_80p Standard 1080p video canvas
-# @method four_k Standard 4k video canvas
-def video.canvas.ten_k =
+def video.canvas.virtual_10k =
+  def make(height, width) =
+    video.canvas.make(
+      virtual_height=10000,
+      actual_size={width=width, height=height},
+      font_size=156
+    )
+  end
+
   {
-    seven_20p=
-      {
-        width=1280,
-        height=720,
-        ...video.canvas.make(virtualSize=10000, actualSize=1280, fontSize=156)
-      },
-    ten_80p=
-      {
-        width=1920,
-        height=1080,
-        ...video.canvas.make(virtualSize=10000, actualSize=1920, fontSize=156)
-      },
-    four_k=
-      {
-        width=3840,
-        height=2160,
-        ...video.canvas.make(virtualSize=10000, actualSize=3840, fontSize=156)
-      }
+    actual_360p=make(640, 360),
+    actual_480p=make(640, 480),
+    actual_720p=make(1280, 720),
+    actual_1080p=make(1920, 1080),
+    actual_1440p=make(2560, 1440),
+    actual_4k=make(3840, 2160),
+    actual_8k=make(7680, 4320)
   }
 end
