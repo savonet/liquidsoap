@@ -823,6 +823,7 @@ let rec to_ast ~pos : parsed_ast -> Term.runtime_ast = function
       to_ast ~pos (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
   | `Def p | `Let p | `Binding p -> mk_let ~pos ~to_term p
   | `Coalesce (t, default) -> mk_coalesce ~pos ~to_term ~default t
+  | `At (t, t') -> `App (to_term t', [("", to_term t)])
   | `Time t -> mk_time_pred ~pos (during ~pos t)
   | `Time_interval (t, t') -> mk_time_pred ~pos (between ~pos t t')
   | `Ground g -> `Ground g

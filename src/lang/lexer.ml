@@ -245,6 +245,7 @@ let rec token lexbuf =
     | '{' -> LCUR
     | '}' -> RCUR
     | ',' -> COMMA
+    | '@' -> AT
     | "::" -> COLONCOLON
     | ':' -> COLON
     | ';' -> SEQ
