@@ -25,6 +25,16 @@ open Source
 
 let log = Log.make ["video"]
 
+let cached_effect effect =
+  let cache = ref None in
+  fun args ->
+    match !cache with
+      | Some (old_args, result) when old_args = args -> result
+      | _ ->
+          let result = effect args in
+          cache := Some (args, result);
+          result
+
 let rgb_of_int c =
   let c =
     if c < 0 || c > 0xffffff then (
@@ -252,14 +262,21 @@ let _ =
       let height = List.assoc "height" p |> Lang.to_int_getter in
       let c, a = color_arg p in
       let src = List.assoc "" p |> Lang.to_source in
+      let effect =
+        cached_effect (fun (width, height, color, alpha) ->
+            let r = Image.YUV420.create width height in
+            Image.YUV420.fill r color;
+            Image.YUV420.fill_alpha r alpha;
+            r)
+      in
       new effect_map ~name:"video.add_rectangle" src (fun buf ->
           let x = x () in
           let y = y () in
           let width = width () in
           let height = height () in
-          let r = Image.YUV420.create width height in
-          Image.YUV420.fill r (c ());
-          Image.YUV420.fill_alpha r (a ());
+          let color = c () in
+          let alpha = a () in
+          let r = effect (width, height, color, alpha) in
           let r = Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) r in
           Video.Canvas.Image.add r buf))
 
@@ -521,11 +538,14 @@ let _ =
       let q = Lang.assoc "" 2 param |> to_point_getter in
       let s = Lang.assoc "" 3 param |> Lang.to_source in
       let c, a = color_arg param in
+      let effect =
+        cached_effect (fun (r, g, b, a) ->
+            Video.Canvas.Image.Draw.line (r, g, b, a) (p ()) (q ()))
+      in
       new effect_map ~name:"video.add_line" s (fun buf ->
           let r, g, b = c () in
           let a = a () in
-          (* TODO: we could keep the image if the values did not change *)
-          let line = Video.Canvas.Image.Draw.line (r, g, b, a) (p ()) (q ()) in
+          let line = effect (r, g, b, a) in
           Video.Canvas.Image.add line buf))
 
 let _ =
