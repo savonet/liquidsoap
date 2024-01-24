@@ -810,7 +810,7 @@ def video.canvas.virtual_10k =
     video.canvas.make(
       virtual_height=10000,
       actual_size={width=width, height=height},
-      font_size=156
+      font_size=160
     )
   end
 
