@@ -33,16 +33,12 @@
   uri
   saturn_lockfree
   metadata
+  magic-mime
   (select
    file_watcher.ml
    from
    (inotify -> file_watcher.inotify.ml)
-   (-> file_watcher.mtime.ml))
-  (select
-   liqmagic.ml
-   from
-   (magic -> liqmagic.enabled.ml)
-   (-> liqmagic.disabled.ml)))
+   (-> file_watcher.mtime.ml)))
  (foreign_stubs
   (language c)
   (names unix_c defer_c))
@@ -162,7 +158,6 @@
   liqcurl
   lifecycle
   liq_time
-  liqmagic
   liquidsoap_paths
   log
   lufs
@@ -528,14 +523,6 @@
  (modules mad_decoder))
 
 (library
- (name liquidsoap_magic)
- (libraries magic liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules builtins_magic))
-
-(library
  (name liquidsoap_ogg)
  (libraries ogg ogg.decoder liquidsoap_core)
  (library_flags -linkall)
@@ -780,7 +767,6 @@
   lilv_option
   lo_option
   mad_option
-  magic_option
   mem_usage_option
   memtrace_option
   ogg_option
@@ -924,11 +910,6 @@
    from
    (liquidsoap_mad -> mad_option.enabled.ml)
    (-> mad_option.disabled.ml))
-  (select
-   magic_option.ml
-   from
-   (liquidsoap_magic -> magic_option.enabled.ml)
-   (-> magic_option.disabled.ml))
   (select
    mem_usage_option.ml
    from

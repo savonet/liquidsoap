@@ -40,12 +40,12 @@ let file_extensions =
     "File extensions used for decoding metadata using native parser."
     ~d:["avi"; "mp4"]
 
-let get_tags ~metadata:_ fname =
+let get_tags ~metadata:_ ~extension ~mime fname =
   try
     if
       not
-        (Decoder.test_file ~log ~mimes:mime_types#get
-           ~extensions:file_extensions#get fname)
+        (Decoder.test_file ~log ~mime ~extension ~mimes:(Some mime_types#get)
+           ~extensions:(Some file_extensions#get) fname)
     then raise Metadata.Invalid;
     Metadata.Video.parse_file fname
   with

@@ -24,6 +24,7 @@
 
 exception End_of_file
 exception No_stream
+exception Invalid_file
 
 let log = Log.make ["decoder"; "ffmpeg"]
 
@@ -564,26 +565,40 @@ let () =
 
 let tags_substitutions = [("track", "tracknumber")]
 
-let get_tags ~metadata file =
-  let args, format = parse_file_decoder_args metadata in
-  let opts = Hashtbl.create 10 in
-  List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
-  let container = Av.open_input ?format ~opts file in
-  Fun.protect
-    ~finally:(fun () -> Av.close container)
-    (fun () ->
-      (* For now we only add the metadata from the best audio track *)
-      let audio_tags =
-        try
-          let _, s, _ = Av.find_best_audio_stream container in
-          Av.get_metadata s
-        with _ -> []
-      in
-      let tags = Av.get_input_metadata container in
-      List.map
-        (fun (lbl, v) ->
-          try (List.assoc lbl tags_substitutions, v) with _ -> (lbl, v))
-        (audio_tags @ tags))
+let get_tags ~metadata ~extension ~mime file =
+  try
+    if
+      not
+        (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+           ~extensions:(Some file_extensions#get) file)
+    then raise Invalid_file;
+    let args, format = parse_file_decoder_args metadata in
+    let opts = Hashtbl.create 10 in
+    List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+    let container = Av.open_input ?format ~opts file in
+    Fun.protect
+      ~finally:(fun () -> Av.close container)
+      (fun () ->
+        (* For now we only add the metadata from the best audio track *)
+        let audio_tags =
+          try
+            let _, s, _ = Av.find_best_audio_stream container in
+            Av.get_metadata s
+          with _ -> []
+        in
+        let tags = Av.get_input_metadata container in
+        List.map
+          (fun (lbl, v) ->
+            try (List.assoc lbl tags_substitutions, v) with _ -> (lbl, v))
+          (audio_tags @ tags))
+  with
+    | Invalid_file -> []
+    | e ->
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log ~bt
+          (Printf.sprintf "Error while decoding file tags: %s"
+             (Printexc.to_string e));
+        raise Not_found
 
 let () = Plug.register Request.mresolvers "ffmpeg" ~doc:"" get_tags
 

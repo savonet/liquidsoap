@@ -108,7 +108,7 @@ let priority =
     ~p:(Decoder.conf_priorities#plug "flac")
     "Priority for the flac decoder" ~d:1
 
-(* Get the number of channels of audio in an MP3 file.
+(* Get the number of channels of audio in a flac file.
  * This is done by decoding a first chunk of data, thus checking
  * that libmad can actually open the file -- which doesn't mean much. *)
 let file_type filename =
@@ -149,11 +149,11 @@ let () =
 
 let log = Log.make ["metadata"; "flac"]
 
-let get_tags ~metadata:_ file =
+let get_tags ~metadata:_ ~extension ~mime file =
   if
     not
-      (Decoder.test_file ~log ~mimes:mime_types#get
-         ~extensions:file_extensions#get file)
+      (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+         ~extensions:(Some file_extensions#get) file)
   then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o640 in
   Fun.protect
@@ -166,13 +166,12 @@ let get_tags ~metadata:_ file =
 let () = Plug.register Request.mresolvers "flac" ~doc:"" get_tags
 
 let check filename =
-  match Liqmagic.file_mime filename with
-    | Some mime -> List.mem mime mime_types#get
-    | None -> (
-        try
-          ignore (file_type filename);
-          true
-        with _ -> false)
+  List.mem (Magic_mime.lookup filename) mime_types#get
+  ||
+  try
+    ignore (file_type filename);
+    true
+  with _ -> false
 
 let duration ~metadata:_ file =
   if not (check file) then raise Not_found;

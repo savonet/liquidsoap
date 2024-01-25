@@ -275,11 +275,11 @@ let () =
 
 let log = Log.make ["metadata"; "mp4"]
 
-let get_tags ~metadata:_ file =
+let get_tags ~metadata:_ ~extension ~mime file =
   if
     not
-      (Decoder.test_file ~log ~mimes:mp4_mime_types#get
-         ~extensions:mp4_file_extensions#get file)
+      (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mp4_mime_types#get)
+         ~extensions:(Some mp4_file_extensions#get) file)
   then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o644 in
   Fun.protect
