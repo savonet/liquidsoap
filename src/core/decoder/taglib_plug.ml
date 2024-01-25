@@ -55,12 +55,12 @@ let tag_aliases = [("track", "tracknumber")]
 
 (** We used to force the format. However, now that we check extensions, taglib's
   * automatic format detection should work. *)
-let get_tags ~metadata:_ fname =
+let get_tags ~metadata:_ ~extension ~mime fname =
   try
     if
       not
-        (Decoder.test_file ~log ~mimes:mime_types#get
-           ~extensions:file_extensions#get fname)
+        (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+           ~extensions:(Some file_extensions#get) fname)
     then raise Invalid_file;
     let f =
       try Taglib.File.open_file `OggOpus fname

@@ -347,10 +347,14 @@ let read_metadata t =
           fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
         else fun _ x -> x
       in
+      let extension = try Some (Utils.get_ext name) with _ -> None in
+      let mime = Magic_mime.lookup name in
       List.iter
         (fun (_, resolver) ->
           try
-            let ans = resolver ~metadata:indicator.metadata name in
+            let ans =
+              resolver ~metadata:indicator.metadata ~extension ~mime name
+            in
             List.iter
               (fun (k, v) ->
                 let k = String.lowercase_ascii (convert k k) in

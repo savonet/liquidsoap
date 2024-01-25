@@ -56,6 +56,7 @@
     fileutils
     menhirLib
     (metadata (>= 0.2.0))
+    magic-mime
     dune-build-info
     (liquidsoap-lang (= :version))
     (ppx_string :build))
@@ -84,7 +85,6 @@
     lilv
     lo
     mad
-    magic
     memtrace
     mem_usage
     ogg

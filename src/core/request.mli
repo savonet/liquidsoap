@@ -194,7 +194,12 @@ val dresolvers : (metadata:Frame.metadata -> string -> float) Plug.t
 (** Functions for resolving metadata. Metadata filling isn't included in Decoder
     because we want it to occur immediately after request resolution. *)
 val mresolvers :
-  (metadata:Frame.metadata -> string -> (string * string) list) Plug.t
+  (metadata:Frame.metadata ->
+  extension:string option ->
+  mime:string ->
+  string ->
+  (string * string) list)
+  Plug.t
 
 (** Functions for resolving URIs. *)
 val protocols : protocol Plug.t
