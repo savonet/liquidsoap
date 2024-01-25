@@ -115,7 +115,6 @@ let build_config =
    - jemalloc          : %{Jemalloc_option.detected}
    - lastfm            : %{Lastfm_option.detected}
    - lo                : %{Lo_option.detected}
-   - magic             : %{Magic_option.detected}
    - memtrace          : %{Memtrace_option.detected}
    - mem_usage         : %{Mem_usage_option.detected}
    - osc               : %{Osc_option.detected}

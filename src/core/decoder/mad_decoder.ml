@@ -181,13 +181,12 @@ let () =
     }
 
 let check filename =
-  match Liqmagic.file_mime filename with
-    | Some mime -> List.mem mime mime_types#get
-    | None -> (
-        try
-          ignore (file_type filename);
-          true
-        with _ -> false)
+  List.mem (Magic_mime.lookup filename) mime_types#get
+  ||
+  try
+    ignore (file_type filename);
+    true
+  with _ -> false
 
 let duration ~metadata:_ file =
   if not (check file) then raise Not_found;

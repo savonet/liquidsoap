@@ -56,12 +56,12 @@ let file_extensions =
      parser"
     ~d:["mp3"; "wav"]
 
-let get_tags ~metadata:_ parse fname =
+let get_tags ~metadata:_ ~extension ~mime parse fname =
   try
     if
       not
-        (Decoder.test_file ~log ~mimes:mime_types#get
-           ~extensions:file_extensions#get fname)
+        (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+           ~extensions:(Some file_extensions#get) fname)
     then raise Metadata.Invalid;
     parse fname
   with

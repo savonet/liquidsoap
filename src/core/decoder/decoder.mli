@@ -107,7 +107,13 @@ val conf_priorities : Dtools.Conf.ut
 
 (** Test file extension and mime if available *)
 val test_file :
-  ?log:Log.t -> ?mimes:string list -> ?extensions:string list -> string -> bool
+  log:Log.t ->
+  extension:string option ->
+  mime:stream ->
+  mimes:stream list option ->
+  extensions:string list option ->
+  stream ->
+  bool
 
 (** Test if we can decode for a content_type. This include cases where we
     know how to convert channel layout. *)

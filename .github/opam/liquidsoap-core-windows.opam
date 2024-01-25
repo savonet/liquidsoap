@@ -27,6 +27,7 @@ depends: [
   "saturn_lockfree-windows" {>= "0.4.1"}
   "sedlex" {>= "3.2"}
   "sedlex-windows" {>= "3.2"}
+  "magic-mime-windows"
   "menhir"
   "menhirLib-windows"
   "metadata-windows"
@@ -57,7 +58,6 @@ depopts: [
   "lilv-windows"
   "lo-windows"
   "mad-windows"
-  "magic-windows"
   "memtrace-windows"
   "mem_usage-windows"
   "curl-windows"

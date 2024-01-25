@@ -299,11 +299,11 @@ let () =
 
 (** Metadata *)
 
-let get_tags ~metadata:_ file =
+let get_tags ~metadata:_ ~extension ~mime file =
   if
     not
-      (Decoder.test_file ~log ~mimes:mime_types#get
-         ~extensions:file_extensions#get file)
+      (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+         ~extensions:(Some file_extensions#get) file)
   then raise Not_found;
   let decoder, fd = Ogg_decoder.init_from_file ~log:demuxer_log file in
   let tracks = Ogg_decoder.get_standard_tracks decoder in
