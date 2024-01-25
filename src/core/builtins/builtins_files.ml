@@ -471,11 +471,13 @@ let file_metadata =
       let exclude =
         List.map Lang.to_string (Lang.to_list (List.assoc "exclude" p))
       in
+      let extension = try Some (Utils.get_ext uri) with _ -> None in
+      let mime = Magic_mime.lookup uri in
       let metadata = Hashtbl.create 0 in
       Plug.iter Request.mresolvers (fun name decoder ->
           try
             if List.mem name exclude then failwith "excluded!";
-            let m = decoder ~metadata:(Hashtbl.create 0) uri in
+            let m = decoder ~metadata:(Hashtbl.create 0) ~extension ~mime uri in
             List.iter
               (fun (k, v) ->
                 Hashtbl.replace metadata (String.lowercase_ascii k) v)
@@ -500,8 +502,13 @@ let () =
                  ("Read metadata from a file using the " ^ name ^ " decoder.")
                (fun p ->
                  let uri = Lang.to_string (List.assoc "" p) in
+                 let extension =
+                   try Some (Utils.get_ext uri) with _ -> None
+                 in
+                 let mime = Magic_mime.lookup uri in
                  let m =
-                   try decoder ~metadata:(Hashtbl.create 0) uri with _ -> []
+                   try decoder ~metadata:(Hashtbl.create 0) ~extension ~mime uri
+                   with _ -> []
                  in
                  let m =
                    List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
@@ -632,3 +639,12 @@ let () =
          (fun p ->
            set_umask (Lang.to_int (List.assoc "" p));
            Lang.unit)))
+
+let _ =
+  Lang.add_builtin ~base:Modules.file_mime "magic" ~category:`File
+    ~descr:"Get the MIME type of a file."
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
+      let file = Lang.to_string (Lang.assoc "" 1 p) in
+      Lang.string (Magic_mime.lookup file))

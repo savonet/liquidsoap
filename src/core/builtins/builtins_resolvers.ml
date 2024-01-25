@@ -43,7 +43,7 @@ let _ =
     (fun p ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let resolver ~metadata name =
+      let resolver ~metadata ~extension:_ ~mime:_ name =
         let ret =
           Lang.apply f
             [("metadata", Lang.metadata metadata); ("", Lang.string name)]
