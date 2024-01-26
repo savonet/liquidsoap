@@ -52,15 +52,15 @@ let extract_queued_params p =
   let t = Lang.to_float (List.assoc "timeout" p) in
   (l, t)
 
+let should_fail = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"request.dynamic shutdown" (fun () ->
+      Atomic.set should_fail true)
+
 class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
-  let should_fail = Atomic.make false in
   let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
-    initializer
-      Lifecycle.before_core_shutdown
-        ~name:(Printf.sprintf "%s shutdown" self#id) (fun () ->
-          Atomic.set should_fail true)
-
     inherit source ~name:"request.dynamic" () as super
     method stype = `Fallible
     val mutable remaining = 0

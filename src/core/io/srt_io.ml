@@ -398,18 +398,17 @@ let mk_socket ~payload_size ~messageapi () =
   s
 
 let close_socket s = Srt.close s
+let shutdown = Atomic.make false
+
+let () =
+  Lifecycle.on_core_shutdown ~name:"srt shutdown" (fun () ->
+      Atomic.set shutdown true)
 
 class virtual base =
-  object (self)
-    method virtual id : string
-    method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
-    val mutable should_stop = false
-    method private should_stop = self#mutexify (fun () -> should_stop) ()
-    method private set_should_stop = self#mutexify (fun b -> should_stop <- b)
-
-    initializer
-      Lifecycle.on_core_shutdown ~name:(Printf.sprintf "%s shutdown" self#id)
-        (fun () -> self#set_should_stop true)
+  object
+    val should_stop = Atomic.make false
+    method private should_stop = Atomic.get shutdown || Atomic.get should_stop
+    method private set_should_stop = Atomic.set should_stop
   end
 
 class virtual networking_agent =
@@ -436,6 +435,16 @@ class virtual output_networking_agent =
         : Srt.socket -> exn -> Printexc.raw_backtrace -> unit
   end
 
+module ToDisconnect = Liquidsoap_lang.Active_value.Make (struct
+  type t = < disconnect : unit >
+end)
+
+let to_disconnect = ToDisconnect.create 10
+
+let () =
+  Lifecycle.on_core_shutdown ~name:"Srt disconnect" (fun () ->
+      ToDisconnect.iter (fun s -> s#disconnect) to_disconnect)
+
 class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~payload_size ~messageapi ~hostname ~port ~connection_timeout
   ~read_timeout ~write_timeout ~on_connect ~on_disconnect =
@@ -445,10 +454,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
     val mutable connect_task = None
     val task_should_stop = Atomic.make false
     val socket = Atomic.make None
-
-    initializer
-      Lifecycle.on_core_shutdown ~name:(Printf.sprintf "%s shutdown" self#id)
-        (fun () -> self#disconnect)
+    initializer ToDisconnect.add to_disconnect (self :> ToDisconnect.data)
 
     method private get_socket =
       match Atomic.get socket with Some s -> s | None -> raise Not_connected
@@ -511,7 +517,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
             connect_task <- Some t;
             Duppy.Async.wake_up t
 
-    method private disconnect =
+    method disconnect =
       (match Atomic.exchange socket None with
         | None -> ()
         | Some (_, socket) ->
@@ -535,10 +541,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
     method virtual should_stop : bool
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     val listening_socket = Atomic.make None
-
-    initializer
-      Lifecycle.on_core_shutdown ~name:(Printf.sprintf "%s shutdown" self#id)
-        (fun () -> self#disconnect)
+    initializer ToDisconnect.add to_disconnect (self :> ToDisconnect.data)
 
     method private is_connected =
       self#mutexify (fun () -> client_sockets <> []) ()
@@ -627,7 +630,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
             Poll.add_socket ~mode:`Read self#listening_socket accept_connection)
           ()
 
-    method private disconnect =
+    method disconnect =
       let should_stop = self#should_stop in
       self#mutexify
         (fun () ->
@@ -950,7 +953,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
         ()
 
     method private start =
-      self#mutexify (fun () -> should_stop <- false) ();
+      self#mutexify (fun () -> Atomic.set should_stop false) ();
       self#connect
 
     method! private reset =
@@ -958,7 +961,7 @@ class virtual output_base ~payload_size ~messageapi ~on_start ~on_stop
       self#stop
 
     method private stop =
-      self#mutexify (fun () -> should_stop <- true) ();
+      self#mutexify (fun () -> Atomic.set should_stop true) ();
       self#disconnect
 
     method private encode frame ofs len =

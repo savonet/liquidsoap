@@ -27,6 +27,12 @@ let address_resolver s =
   Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
     (Unix.getpeername s)
 
+let should_shutdown = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"input.harbor shutdown" (fun () ->
+      Atomic.set should_shutdown true)
+
 class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
   ~on_disconnect ~login ~debug ~timeout () =
@@ -34,13 +40,6 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   object (self)
     inherit Source.active_source ~name:"input.harbor" () as super
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
-    val should_shutdown = Atomic.make false
-
-    initializer
-      Lifecycle.before_core_shutdown
-        ~name:(Printf.sprintf "%s shutdown" self#id) (fun () ->
-          Atomic.set should_shutdown true)
-
     val mutable relay_socket = None
 
     (** Function to read on socket. *)

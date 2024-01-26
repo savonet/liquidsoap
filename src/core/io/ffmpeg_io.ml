@@ -56,6 +56,12 @@ type container = {
   closed : bool Atomic.t;
 }
 
+let shutdown = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"input.ffmpeg shutdown" (fun () ->
+      Atomic.set shutdown true)
+
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
   ~clock_safe ~max_buffer ~on_error ~on_stop ~on_start ~on_connect
   ~metadata_filter ~on_disconnect ~new_track_on_metadata ?format ~opts ~trim_url
@@ -68,13 +74,6 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
     val connect_task = Atomic.make None
     val container = Atomic.make None
-    val shutdown = Atomic.make false
-
-    initializer
-      Lifecycle.before_core_shutdown
-        ~name:(Printf.sprintf "%s shutdown" self#id) (fun () ->
-          Atomic.set shutdown true)
-
     method seek_source = (self :> Source.source)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
