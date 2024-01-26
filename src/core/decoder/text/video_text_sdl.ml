@@ -48,19 +48,20 @@ let render_text ~font ~size text =
           ())
       ~finally:(fun () -> Ttf.close_font font)
   in
-  Fun.protect
-    (fun () ->
-      let img = Sdl_utils.Surface.to_img ts in
-      let w = Video.Image.width img in
-      let h = Video.Image.height img in
+  let img =
+    Fun.protect
+      (fun () -> Sdl_utils.Surface.to_img ts)
+      ~finally:(fun () -> Sdl.free_surface ts)
+  in
+  let w = Video.Image.width img in
+  let h = Video.Image.height img in
 
-      (* TODO: improve performance *)
-      let get_pixel x y =
-        assert (0 <= x && x < w);
-        assert (0 <= y && y < h);
-        Image.YUV420.get_pixel_a img x y
-      in
-      (w, h, get_pixel))
-    ~finally:(fun () -> Sdl.free_surface ts)
+  (* TODO: improve performance *)
+  let get_pixel x y =
+    assert (0 <= x && x < w);
+    assert (0 <= y && y < h);
+    Image.YUV420.get_pixel_a img x y
+  in
+  (w, h, get_pixel)
 
 let () = Video_text.register "sdl" init render_text
