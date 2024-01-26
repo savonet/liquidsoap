@@ -154,17 +154,17 @@ let _ =
       let request = Request.Value.of_value (List.assoc "" p) in
       (new unqueued ~timeout:60. request :> source))
 
+let should_fail = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"request.dynamic shutdown" (fun () ->
+      Atomic.set should_fail true)
+
 class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
-  let should_fail = Atomic.make false in
   let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
     inherit
       Request_source.queued ~name:"request.dynamic" ~prefetch ~timeout () as super
-
-    initializer
-      Lifecycle.before_core_shutdown
-        ~name:(Printf.sprintf "%s shutdown" self#id) (fun () ->
-          Atomic.set should_fail true)
 
     val mutable retry_status = None
 
