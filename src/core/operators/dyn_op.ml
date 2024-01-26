@@ -22,7 +22,7 @@
 
 class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
   object (self)
-    inherit Source.source ~name:"source.dynamic" () as super
+    inherit Source.source ~name:"source.dynamic" ()
 
     inherit
       Source.generate_from_multiple_sources
@@ -30,6 +30,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
         ~track_sensitive ()
 
     method stype = if infallible then `Infallible else `Fallible
+    val mutable activation = []
     val source : Source.source option Atomic.t = Atomic.make init
 
     method private exchange_source new_source =
@@ -44,7 +45,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
     method private prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
-      s#get_ready [(self :> Source.source)];
+      s#get_ready activation;
       self#exchange_source (Some s);
       if s#is_ready then Some s else None
 
@@ -86,16 +87,15 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
     (* Source methods: attempt to #get_source as soon as it could be useful for the
        selection function to change the source. *)
     method! private wake_up ancestors =
-      super#wake_up ancestors;
+      activation <- (self :> Source.source) :: ancestors;
       Lang.iter_sources
         (fun s ->
           Typing.(s#frame_type <: self#frame_type);
-          s#get_ready [(self :> Source.source)])
+          s#get_ready activation)
         f;
       ignore (self#get_source ~reselect:`Force ())
 
     method! private sleep =
-      super#sleep;
       Lang.iter_sources (fun s -> s#leave (self :> Source.source)) f;
       self#exchange_source None
 
