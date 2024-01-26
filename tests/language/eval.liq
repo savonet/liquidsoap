@@ -58,6 +58,10 @@ def f() =
   # Eval with type cast
   let eval ([x, y] : [int]) = "[123,456]"
   t("25", {(x, y) == (123, 456)})
+
+  # @ infix notation
+  def f(x) = 2 * x end
+  t("26", {2@f == 4})
   if fail() then test.fail() else test.pass() end
 end
 
