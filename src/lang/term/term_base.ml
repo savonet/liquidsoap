@@ -569,12 +569,9 @@ module MkAbstract (Def : AbstractDef) = struct
   let is_term t = match t.term with `Ground (Value _) -> true | _ -> false
 end
 
-module ActiveTerm = Weak.Make (struct
+module ActiveTerm = Active_value.Make (struct
   type typ = t
   type t = typ
-
-  let equal t t' = t == t'
-  let hash = Hashtbl.hash
 end)
 
 let active_terms = ActiveTerm.create 1024

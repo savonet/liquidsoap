@@ -435,11 +435,8 @@ class virtual output_networking_agent =
         : Srt.socket -> exn -> Printexc.raw_backtrace -> unit
   end
 
-module ToDisconnect = Weak.Make (struct
-  type t = < disconnect : unit ; id : string >
-
-  let equal t t' = t == t'
-  let hash = Hashtbl.hash
+module ToDisconnect = Liquidsoap_lang.Active_value.Make (struct
+  type t = < disconnect : unit >
 end)
 
 let to_disconnect = ToDisconnect.create 10
