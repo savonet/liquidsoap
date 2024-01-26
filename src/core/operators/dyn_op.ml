@@ -50,30 +50,24 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
       if s#is_ready then Some s else None
 
     method private get_next reselect =
-      (* Avoid that a new source gets assigned to the default clock. *)
-      Clock.collect_after
-        (self#mutexify (fun () ->
-             match Atomic.exchange proposed None with
-               | Some s -> self#prepare s
-               | None -> (
-                   last_select <- Unix.gettimeofday ();
-                   let s =
-                     Lang.apply f [] |> Lang.to_option
-                     |> Option.map Lang.to_source
-                   in
-                   match s with
-                     | None -> (
-                         match Atomic.get source with
-                           | Some s
-                             when self#can_reselect
-                                    ~reselect:
-                                      (match reselect with
-                                        | `Force -> `Ok
-                                        | v -> v)
-                                    s ->
-                               Some s
-                           | _ -> None)
-                     | Some s -> self#prepare s)))
+      match Atomic.exchange proposed None with
+        | Some s -> self#prepare s
+        | None -> (
+            last_select <- Unix.gettimeofday ();
+            let s =
+              Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
+            in
+            match s with
+              | None -> (
+                  match Atomic.get source with
+                    | Some s
+                      when self#can_reselect
+                             ~reselect:
+                               (match reselect with `Force -> `Ok | v -> v)
+                             s ->
+                        Some s
+                    | _ -> None)
+              | Some s -> self#prepare s)
 
     method private get_source ~reselect () =
       match (Atomic.get source, reselect) with
