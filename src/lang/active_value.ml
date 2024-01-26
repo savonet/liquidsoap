@@ -27,18 +27,22 @@ module type T = sig
 end
 
 module Make (T : T) = struct
-  type entry = { id : int; value : T.t }
+  type entry = { id : int; hash : int; value : T.t }
 
   include Weak.Make (struct
     type t = entry
 
     let equal t t' = t.id = t'.id
-    let hash t = t.id
+    let hash t = t.hash
   end)
 
   type data = T.t
 
-  let mk value = { id = Hashtbl.hash value; value }
+  let counter = Atomic.make 0
+
+  let mk value =
+    { id = Atomic.fetch_and_add counter 1; hash = Hashtbl.hash value; value }
+
   let merge t v = (merge t (mk v)).value
   let add t v = add t (mk v)
   let remove t v = remove t (mk v)
