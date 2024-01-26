@@ -334,12 +334,9 @@ let rec to_string v =
         (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
     ^ "}")
 
-module ActiveTerm = Weak.Make (struct
+module ActiveTerm = Active_value.Make (struct
   type typ = t
   type t = typ
-
-  let equal t t' = t == t'
-  let hash = Hashtbl.hash
 end)
 
 let active_terms = ActiveTerm.create 1024

@@ -51,7 +51,7 @@ end
 let has_started = ref false
 
 let () =
-  Lifecycle.before_start ~name:"land_encoder initialization" (fun () ->
+  Lifecycle.before_start ~name:"lang_encoder initialization" (fun () ->
       has_started := true)
 
 let raise_error ~pos message =
