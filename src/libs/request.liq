@@ -277,7 +277,7 @@ def single(
       if
         not request.resolve(r, timeout=timeout, content_type=s_ref())
       then
-        request.destroy(r)
+        request.destroy(force=true, r)
         error.raise(
           error.invalid,
           "Could not resolve uri: #{uri}"
