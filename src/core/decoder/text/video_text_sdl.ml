@@ -39,28 +39,28 @@ let get_font font size =
 let render_text ~font ~size text =
   let text = if text = "" then " " else text in
   let font = get_font font size in
-  Fun.protect
-    (fun () ->
-      let white = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
-      let ts =
+  let ts =
+    Fun.protect
+      (fun () ->
+        let white = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
         Sdl_utils.check
           (fun () -> Ttf.render_utf8_blended_wrapped font text white Int32.zero)
-          ()
-      in
-      Fun.protect
-        (fun () ->
-          let img = Sdl_utils.Surface.to_img ts in
-          let w = Video.Image.width img in
-          let h = Video.Image.height img in
+          ())
+      ~finally:(fun () -> Ttf.close_font font)
+  in
+  Fun.protect
+    (fun () ->
+      let img = Sdl_utils.Surface.to_img ts in
+      let w = Video.Image.width img in
+      let h = Video.Image.height img in
 
-          (* TODO: improve performance *)
-          let get_pixel x y =
-            assert (0 <= x && x < w);
-            assert (0 <= y && y < h);
-            Image.YUV420.get_pixel_a img x y
-          in
-          (w, h, get_pixel))
-        ~finally:(fun () -> Sdl.free_surface ts))
-    ~finally:(fun () -> Ttf.close_font font)
+      (* TODO: improve performance *)
+      let get_pixel x y =
+        assert (0 <= x && x < w);
+        assert (0 <= y && y < h);
+        Image.YUV420.get_pixel_a img x y
+      in
+      (w, h, get_pixel))
+    ~finally:(fun () -> Sdl.free_surface ts)
 
 let () = Video_text.register "sdl" init render_text
