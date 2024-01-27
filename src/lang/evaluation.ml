@@ -99,7 +99,12 @@ let rec eval_pat pat v =
                 try List.assoc lbl m
                 with Not_found when pat = `Nullable ->
                   Value.
-                    { pos = v.Value.pos; value = Null; methods = Methods.empty }
+                    {
+                      pos = v.Value.pos;
+                      value = Null;
+                      methods = Methods.empty;
+                      id = Value.id ();
+                    }
               in
               (match pat with
                 | `None | `Nullable -> []
@@ -236,7 +241,13 @@ and apply ?pos ~eval_check f l =
 
 and eval_base_term ~eval_check (env : Env.t) tm =
   let mk v =
-    Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
+    Value.
+      {
+        pos = tm.t.Type.pos;
+        value = v;
+        methods = Methods.empty;
+        id = Value.id ();
+      }
   in
   match tm.term with
     | `Ground g -> mk (Value.Ground g)

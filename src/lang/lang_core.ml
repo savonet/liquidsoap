@@ -33,6 +33,7 @@ type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
+  id : int;
 }
 
 (** Type construction *)
@@ -83,7 +84,7 @@ let ref_t a = Type.reference a
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value; methods = Methods.empty }
+let mk ?pos value = { pos; value; methods = Methods.empty; id = id () }
 let unit = mk unit
 let int i = mk (Ground (Int i))
 let octal_int i = mk (Ground (OctalInt i))
@@ -176,6 +177,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
             ffi_fn = f;
           };
       methods = Methods.empty;
+      id = id ();
     }
   in
   let doc () =
@@ -263,7 +265,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
 
 let add_builtin_base ~category ~descr ?flags ?base name value t =
   add_builtin_value ~category ~descr ?flags ?base name
-    { pos = t.Type.pos; value; methods = Methods.empty }
+    { pos = t.Type.pos; value; methods = Methods.empty; id = id () }
     t
 
 let add_module ?base name =

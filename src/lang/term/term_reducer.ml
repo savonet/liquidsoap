@@ -944,7 +944,12 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
                   { p with doc = Doc.parse_doc ~pos (String.concat "\n" doc) }
             | ast, _ -> ast
         in
-        { t = Type.var ~pos:tm.pos (); term; methods = Methods.empty }
+        {
+          t = Type.var ~pos:tm.pos ();
+          term;
+          methods = Methods.empty;
+          id = Term_base.id ();
+        }
 
 and to_term parsed_term =
   let term = to_term_base parsed_term in
