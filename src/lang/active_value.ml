@@ -24,32 +24,15 @@
 
 module type T = sig
   type t
+
+  val id : t -> int
 end
 
 module Make (T : T) = struct
-  type entry = { id : int; hash : int; value : T.t }
-
   include Weak.Make (struct
-    type t = entry
+    type t = T.t
 
-    let equal t t' = t.id = t'.id
-    let hash t = t.hash
+    let equal t t' = T.id t = T.id t'
+    let hash t = T.id t
   end)
-
-  type data = T.t
-
-  let counter = Atomic.make 0
-
-  let mk value =
-    { id = Atomic.fetch_and_add counter 1; hash = Hashtbl.hash value; value }
-
-  let merge t v = (merge t (mk v)).value
-  let add t v = add t (mk v)
-  let remove t v = remove t (mk v)
-  let find t v = (find t (mk v)).value
-  let find_opt t v = Option.map (fun { value; _ } -> value) (find_opt t (mk v))
-  let find_all t v = List.map (fun { value; _ } -> value) (find_all t (mk v))
-  let mem t v = mem t (mk v)
-  let iter fn = iter (fun { value; _ } -> fn value)
-  let fold fn = fold (fun { value; _ } acc -> fn value acc)
 end

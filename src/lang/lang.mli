@@ -53,6 +53,7 @@ type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
+  id : int;
 }
 
 and env = (string * value) list

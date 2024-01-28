@@ -123,7 +123,13 @@ module Methods : sig
   type 'a t = 'a typ
 end
 
-type t = private { mutable t : Type.t; term : in_term; methods : t Methods.t }
+type t = private {
+  mutable t : Type.t;
+  term : in_term;
+  methods : t Methods.t;
+  id : int;
+}
+
 and doc = Doc.Value.t
 
 and let_t = {
