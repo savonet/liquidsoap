@@ -24,6 +24,8 @@
 
 module type T = sig
   type t
+
+  val id : t -> int
 end
 
 module Make (T : T) : sig

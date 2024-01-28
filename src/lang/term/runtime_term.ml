@@ -19,7 +19,12 @@ type pattern =
 
 and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
 
-type 'a term = { mutable t : Type.t; term : 'a; methods : 'a term Methods.t }
+type 'a term = {
+  mutable t : Type.t;
+  term : 'a;
+  methods : 'a term Methods.t;
+  id : int;
+}
 
 (* ~l1:x1 .. ?li:(xi=defi) .. *)
 type ('a, 'b) func_argument = {

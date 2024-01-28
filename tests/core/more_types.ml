@@ -72,6 +72,7 @@ let () =
       Term.t = typ;
       term = `Ground (Term.Ground.Int 1);
       methods = Term.Methods.empty;
+      id = 123;
     }
   in
   let invoke =
@@ -80,6 +81,7 @@ let () =
       term =
         `Invoke { Term.invoked = term; invoke_default = None; meth = "opt" };
       methods = Term.Methods.empty;
+      id = 234;
     }
   in
   try

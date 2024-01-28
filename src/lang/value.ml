@@ -27,7 +27,13 @@ module Ground = Term.Ground
 
 module Methods = Term.Methods
 
-type t = { pos : Pos.Option.t; value : in_value; methods : t Methods.t }
+type t = {
+  pos : Pos.Option.t;
+  value : in_value;
+  methods : t Methods.t;
+  id : int;
+}
+
 and env = (string * t) list
 
 (* Some values have to be lazy in the environment because of recursive functions. *)
@@ -49,6 +55,10 @@ and in_value =
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
   | FFI of ffi
+
+let id =
+  let counter = Atomic.make 0 in
+  fun () -> Atomic.fetch_and_add counter 1
 
 let unit : in_value = Tuple []
 
@@ -155,10 +165,12 @@ let compare a b =
                          pos = None;
                          value = Ground (Ground.String lbl);
                          methods = Methods.empty;
+                         id = id ();
                        };
                        v;
                      ];
                  methods = Methods.empty;
+                 id = id ();
                })
              a)
       in
@@ -175,10 +187,12 @@ let compare a b =
                          pos = None;
                          value = Ground (Ground.String lbl);
                          methods = Methods.empty;
+                         id = id ();
                        };
                        v;
                      ];
                  methods = Methods.empty;
+                 id = id ();
                })
              b)
       in
@@ -203,7 +217,7 @@ module MkAbstractFromTerm (Term : Term.Abstract) = struct
   include Term
 
   let to_value ?pos c =
-    { pos; value = Ground (to_ground c); methods = Methods.empty }
+    { pos; value = Ground (to_ground c); methods = Methods.empty; id = id () }
 
   let of_value t =
     match t.value with

@@ -222,7 +222,12 @@ let print_settings () =
     | (Value.Fun ([], _, _) | Value.FFI { ffi_args = []; _ }) as value ->
         let value =
           Lang.apply
-            { Value.pos = None; value; methods = Value.Methods.empty }
+            {
+              Value.pos = None;
+              value;
+              methods = Value.Methods.empty;
+              id = Value.id ();
+            }
             []
         in
         [
@@ -242,7 +247,12 @@ let print_settings () =
 ```
 |} path
             (Value.to_string
-               { Value.pos = None; value; methods = Value.Methods.empty });
+               {
+                 Value.pos = None;
+                 value;
+                 methods = Value.Methods.empty;
+                 id = Value.id ();
+               });
         ]
   in
   let rec print_descr ~level ~path descr =
