@@ -391,11 +391,17 @@ let () =
   Lifecycle.on_core_shutdown ~name:"srt shutdown" (fun () ->
       Atomic.set shutdown true)
 
+let id =
+  let counter = Atomic.make 0 in
+  fun () -> Atomic.fetch_and_add counter 1
+
 class virtual base =
   object
     val should_stop = Atomic.make false
+    val id = id ()
     method private should_stop = Atomic.get shutdown || Atomic.get should_stop
     method private set_should_stop = Atomic.set should_stop
+    method srt_id = id
   end
 
 class virtual networking_agent =
@@ -423,7 +429,9 @@ class virtual output_networking_agent =
   end
 
 module ToDisconnect = Liquidsoap_lang.Active_value.Make (struct
-  type t = < disconnect : unit >
+  type t = < disconnect : unit ; srt_id : int >
+
+  let id t = t#srt_id
 end)
 
 let to_disconnect = ToDisconnect.create 10

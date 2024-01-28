@@ -53,6 +53,7 @@ type value = Liquidsoap_lang.Value.t = {
   pos : Liquidsoap_lang.Pos.Option.t;
   value : in_value;
   methods : value Liquidsoap_lang.Value.Methods.t;
+  id : int;
 }
 
 and env = (string * value) list

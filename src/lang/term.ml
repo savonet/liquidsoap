@@ -191,7 +191,7 @@ module Methods = struct
   type 'a t = 'a typ
 end
 
-type t = { mutable t : Type.t; term : in_term; methods : t Methods.t }
+type t = { mutable t : Type.t; term : in_term; methods : t Methods.t; id : int }
 
 (** Documentation for declarations: general documentation, parameters, methods. *)
 and doc = Doc.Value.t
@@ -337,6 +337,8 @@ let rec to_string v =
 module ActiveTerm = Active_value.Make (struct
   type typ = t
   type t = typ
+
+  let id { id } = id
 end)
 
 let active_terms = ActiveTerm.create 1024
@@ -344,15 +346,20 @@ let active_terms = ActiveTerm.create 1024
 let trim_runtime_types () =
   ActiveTerm.iter (fun term -> term.t <- Type.deep_demeth term.t) active_terms
 
+let id =
+  let counter = Atomic.make 0 in
+  fun () -> Atomic.fetch_and_add counter 1
+
 (** Create a new value. *)
 let make ?pos ?t ?(methods = Methods.empty) e =
+  let id = id () in
   let t = match t with Some t -> t | None -> Type.var ?pos () in
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
       (Pos.Option.to_string t.Type.pos)
-      (try to_string { t; term = e; methods } with _ -> "<?>")
+      (try to_string { t; term = e; methods; id } with _ -> "<?>")
       (Repr.string_of_type t);
-  let term = { t; term = e; methods } in
+  let term = { t; term = e; methods; id } in
   ActiveTerm.add active_terms term;
   term
 
@@ -596,7 +603,12 @@ module MkAbstract (Def : AbstractDef) = struct
   let of_term t = match t.term with Ground (Value c) -> c | _ -> assert false
 
   let to_term c =
-    { t = Type.make T.descr; term = Ground (Value c); methods = Methods.empty }
+    {
+      t = Type.make T.descr;
+      term = Ground (Value c);
+      methods = Methods.empty;
+      id = id ();
+    }
 
   let is_term t = match t.term with Ground (Value _) -> true | _ -> false
 end

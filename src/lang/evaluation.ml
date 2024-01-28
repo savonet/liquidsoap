@@ -225,7 +225,13 @@ and apply ?pos ~eval_check f l =
 
 and eval_base_term ~eval_check (env : Env.t) tm =
   let mk v =
-    Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
+    Value.
+      {
+        pos = tm.t.Type.pos;
+        value = v;
+        methods = Methods.empty;
+        id = Value.id ();
+      }
   in
   match tm.term with
     | Ground g -> mk (Value.Ground g)
