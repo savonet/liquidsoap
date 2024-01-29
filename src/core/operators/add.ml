@@ -72,17 +72,13 @@ class virtual base ~name tracks =
 
     method private feed_track ~offset pos { source } =
       let tmp = self#track_frame source in
-      let start = Frame.position tmp in
-      let tmp_pos =
-        if start <= offset then (
-          source#get tmp;
-          Frame.position tmp)
-        else start
-      in
-      max pos tmp_pos
+      Frame.clear tmp;
+      Frame.add_break tmp offset;
+      source#get tmp;
+      max pos (Frame.position tmp)
 
     method private feed ~offset tracks =
-      List.fold_left (self#feed_track ~offset) 0 tracks
+      List.fold_left (self#feed_track ~offset) offset tracks
 
     (* For backward compatibility: set metadata from the first
        track effectively summed. This should be called after #feed *)
@@ -110,10 +106,6 @@ class virtual base ~name tracks =
                 if offset <= pos && pos <= position then
                   Frame.set_metadata buf pos m)
               (Frame.get_all_metadata tmp)
-
-    initializer
-      self#on_after_output (fun () ->
-          List.iter (fun (_, frame) -> Frame.clear frame) track_frames)
   end
 
 (** Add/mix several sources together.
