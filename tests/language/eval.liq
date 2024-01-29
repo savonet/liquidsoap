@@ -10,7 +10,15 @@ def echo(s) =
 end
 
 def t(lbl, f) =
-  if f() then echo(lbl) else echo("fail #{lbl}") end
+  if
+    f()
+  then
+    echo(lbl)
+  else
+    echo(
+      "fail #{lbl}"
+    )
+  end
 end
 
 def f() =
@@ -40,16 +48,19 @@ def f() =
   t("17", {"foo" == (false ? "bla" : "foo" )})
 
   # Generic eval
-  let eval x = "{foo = 123, gni = \"aabbcc\"}"
+  let eval x =
+    "{foo = 123, gni = \"aabbcc\"}"
   t("18", {x.foo == 123})
   t("19", {x.gni == "aabbcc"})
 
   # Eval with sources!
-  let eval x = "output.dummy(id='bla', blank())"
+  let eval x =
+    "output.dummy(id='bla', blank())"
   t("20", {x.id() == "bla"})
 
   # Eval with patterns
-  let eval {foo, gni = [x, y]} = "{foo = 123, gni = [1,2]}"
+  let eval {foo, gni = [x, y]} =
+    "{foo = 123, gni = [1,2]}"
   t("21", {foo == 123})
   t("22", {gni == [1, 2]})
   t("23", {x == 1})
@@ -60,8 +71,10 @@ def f() =
   t("25", {(x, y) == (123, 456)})
 
   # @ infix notation
-  def f(x) = 2 * x end
-  t("26", {2@f == 4})
+  def f(x) =
+    2 * x
+  end
+  t("26", {2 @ f == 4})
   if fail() then test.fail() else test.pass() end
 end
 
