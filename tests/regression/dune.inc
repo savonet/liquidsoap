@@ -498,6 +498,21 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  GH3675.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3675.liq liquidsoap %{test_liq} GH3675.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   LS268.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
