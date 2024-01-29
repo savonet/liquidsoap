@@ -89,9 +89,9 @@ open Parser_helper
 %left OR
 %left QUESTION_DOT
 %nonassoc NOT
-%left BIN1
+%left BIN1 AT
 %left BIN2 MINUS
-%left BIN3 TIMES AT
+%left BIN3 TIMES
 %right COLONCOLON
 %nonassoc GET          (* (!x)+2 *)
 %left DOT
