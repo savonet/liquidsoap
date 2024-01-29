@@ -388,7 +388,7 @@ let set_reducer ~pos ~to_term = function
           (`Invoke
             { invoked = to_term tm; invoke_default = None; meth = "set" })
       in
-      `App (op, [("", to_term v)])
+      `Cast (mk ~pos (`App (op, [("", to_term v)])), Type.make ~pos Type.unit)
 
 let if_reducer ~pos ~to_term = function
   | `Inline_if { if_condition; if_then; if_elsif; if_else }
