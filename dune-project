@@ -167,7 +167,7 @@
     (ocaml (>= 4.14.0))
     (liquidsoap-lang (= :version))
     js_of_ocaml-ppx
-    js_of_ocaml)
+    (js_of_ocaml (< 5.6.0)))
   (conflicts
     (liquidsoap (<> :version)))
   (synopsis "Liquidsoap language - javascript wrapper"))
