@@ -18,6 +18,7 @@ Fixed:
 - Make sure reconnection errors are router through the regulat `on_error` callback in `output.icecast` (#3635)
 - Fixed discontinuity count after a restart in HLS outputs.
 - Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmepg`, SRT sources and `request.dynamic`)
+- Fixed invalid array fill in `add` (#3678)
 
 ---
 
