@@ -28,7 +28,7 @@ repos:
       - id: ocamlformat
 
   - repo: https://github.com/savonet/pre-commit-liquidsoap
-    rev: 5fadc94
+    rev: 1e33b9e
     hooks:
       - id: liquidsoap-prettier
 
