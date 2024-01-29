@@ -17,6 +17,7 @@ Fixed:
 - Fix issues with TLS connecting clients not being properly timed out (#3598)
 - Make sure reconnection errors are router through the regulat `on_error` callback in `output.icecast` (#3635)
 - Fixed discontinuity count after a restart in HLS outputs.
+- Fixed file header logic when reopening in `output.file` (#3675)
 - Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmepg`, SRT sources and `request.dynamic`)
 
 ---
