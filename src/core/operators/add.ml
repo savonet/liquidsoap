@@ -147,7 +147,7 @@ class audio_add ~renorm ~power ~field tracks =
       assert (offset <= pos);
       let audio_offset = Frame.audio_of_main offset in
       let pcm = Content.Audio.get_data (Frame.get buf field) in
-      Audio.clear pcm audio_offset (Audio.length pcm);
+      Audio.clear pcm audio_offset (Audio.length pcm - audio_offset);
       List.iter
         (fun { source; fields } ->
           let tmp = self#track_frame source in
