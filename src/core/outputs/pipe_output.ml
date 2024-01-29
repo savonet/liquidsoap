@@ -373,7 +373,9 @@ class virtual piped_output ~name p =
         (try self#cleanup_pipe with _ -> ());
         self#reopen_on_error ~bt exn
 
-    method! send b =
+    method! send b = if self#is_open then base#send b
+
+    method! encode frame ofs len =
       (match self#is_open with
         | false when open_date <= Unix.gettimeofday () -> self#prepare_pipe
         | true when Atomic.get need_reopen ->
@@ -381,10 +383,9 @@ class virtual piped_output ~name p =
         | true
           when open_date +. reopen_delay () <= Unix.gettimeofday ()
                && reopen_when () ->
-            Atomic.set need_reopen true;
-            open_date <- Unix.gettimeofday ()
+            self#reopen
         | _ -> ());
-      if self#is_open then base#send b
+      base#encode frame ofs len
 
     method! insert_metadata metadata =
       if reopen_on_metadata (Frame.Metadata.Export.to_metadata metadata) then
