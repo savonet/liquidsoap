@@ -26,6 +26,39 @@ size of videos have a great impact on computations; if your machine cannot
 handle a stream (i.e. it's always catching up) you can try to encode to smaller
 videos for a start.
 
+### Setting up frame size and positions
+
+We provide an abstract API to specify video frame sizes and positions that is idependent
+from the actual rendered size. This way, you can define all your elements and have them
+being rendered at different frame size without having to change their placement or size values!
+
+This works by setting up a _virtual canvas_ that is larger than the _actual canvas_. You specify
+your positions, sizes etc. in terms of units for the larger canvas and they are translated automatically
+to values that apply for the actual canvas.
+
+We provide some default values. They are all `16:9` ratio using a virtual canvas of `10 000` pixels height:
+
+```{.liquidsoap include="video-default-canvas.liq"}
+
+```
+
+The returned canvas is a record with the following methods:
+
+- `width`/`height`: size of the actual frame
+- `px`: define values in terms of virtual pixels
+- `vw`/`vh`: define values in terms of percentage (between `0.` and `1.`) of, resp., the actual frame width and height
+- `rem`: define values in terms of percentage (between `0.` and `1.`) of the default font size
+
+All the positioning methods are functions. For convenience, you can use the infix operator `@` to make things more readable. For instance,
+instead of writing `px(120)` to define a size of `120px`, you can write: `120 @ px`. These two notations are equivalent but the second
+one is more readable in this context.
+
+Here's an example of how to use this:
+
+```{.liquidsoap include="video-canvas-example.liq"}
+
+```
+
 ### Encoding with FFmpeg
 
 The `%ffmpeg` encoder is the recommended encoder when working with video. Not only does it support a wide range
