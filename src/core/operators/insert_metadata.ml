@@ -117,7 +117,7 @@ let _ =
 (** Insert metadata at the beginning if none is set. Currently used by the
    switch classes. *)
 class replay meta src =
-  object
+  object (self)
     inherit operator ~name:"replay_metadata" [src]
     val mutable first = true
     method stype = src#stype
@@ -137,6 +137,10 @@ class replay meta src =
             (fun (pos, _) -> start <= pos && pos <= stop)
             (Frame.get_all_metadata ab)
           = []
-        then Frame.set_metadata ab start meta;
+        then (
+          self#log#debug "Replaying metadata: %s at position: %d"
+            Export_metadata.(to_string (metadata meta))
+            start;
+          Frame.set_metadata ab start meta);
         first <- false)
   end
