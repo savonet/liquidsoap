@@ -502,16 +502,6 @@ let concat_with_last ~last sep l =
     | x :: l ->
         Printf.sprintf "%s %s %s" (String.concat sep (List.rev l)) last x
 
-let write_all fd b =
-  let rec f ofs len =
-    match Unix.write fd b ofs len with
-      | 0 -> raise End_of_file
-      | n when n = len -> ()
-      | n -> f (ofs + n) (len - n)
-  in
-  let len = Bytes.length b in
-  if len > 0 then f 0 len
-
 (* Stdlib.abs_float is not inlined!. *)
 let abs_float (f : float) = if f < 0. then -.f else f [@@inline always]
 
