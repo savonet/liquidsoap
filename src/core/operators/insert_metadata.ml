@@ -98,7 +98,7 @@ let _ =
    switch classes. *)
 class replay meta src =
   object
-    inherit operator ~name:"replay_metadata" [src]
+    inherit operator ~name:"replay_metadata" [src] as super
     val mutable first = true
     method stype = src#stype
     method private can_generate_frame = src#is_ready
@@ -106,6 +106,7 @@ class replay meta src =
     method remaining = src#remaining
     method self_sync = src#self_sync
     method seek_source = src#seek_source
+    method! last_metadata = if first then Some meta else super#last_metadata
 
     method private generate_frame =
       let buf = src#get_frame in
