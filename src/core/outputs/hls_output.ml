@@ -637,10 +637,10 @@ class hls_output p =
           perms
       in
       object
-        method output_string s = Utils.write_all fd (Bytes.unsafe_of_string s)
+        method output_string s = Tutils.write_all fd (Bytes.unsafe_of_string s)
 
         method output_substring s ofs len =
-          Utils.write_all fd (Bytes.sub (Bytes.unsafe_of_string s) ofs len)
+          Tutils.write_all fd (Bytes.sub (Bytes.unsafe_of_string s) ofs len)
 
         method position = Unix.lseek fd 0 Unix.SEEK_CUR
         method truncate = Unix.ftruncate fd
