@@ -126,7 +126,7 @@ class replay meta src =
     method remaining = src#remaining
     method self_sync = src#self_sync
     method seek_source = src#seek_source
-    method! last_metadata = if first then meta else super#last_metadata
+    method! last_metadata = if first then Some meta else super#last_metadata
 
     method private get_frame ab =
       let start = Frame.position ab in
