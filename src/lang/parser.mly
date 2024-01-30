@@ -63,6 +63,7 @@ open Parser_helper
 %token <string> BIN1
 %token <string> BIN2
 %token <string> BIN3
+%token AT
 %token TIMES
 %token MINUS UMINUS
 %token UNDERSCORE
@@ -88,7 +89,7 @@ open Parser_helper
 %left OR
 %left QUESTION_DOT
 %nonassoc NOT
-%left BIN1
+%left BIN1 AT
 %left BIN2 MINUS
 %left BIN3 TIMES
 %right COLONCOLON
@@ -281,6 +282,7 @@ expr:
   | expr BIN3 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
   | expr TIMES expr                { mk ~pos:$loc (`Infix ($1, "*", $3)) }
   | expr MINUS expr                { mk ~pos:$loc (`Infix ($1, "-", $3)) }
+  | expr AT expr                   { mk ~pos:$loc (`At ($1, $3)) }
   | time_predicate                 { $1 }
 
 invoke:

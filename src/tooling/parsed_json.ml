@@ -517,6 +517,9 @@ let rec to_ast_json ~to_json = function
       ast_node ~typ:"include_extra" [("value", `String inc_name)]
   | `Coalesce (t, t') ->
       ast_node ~typ:"coalesce" [("left", to_json t); ("right", to_json t')]
+  | `At (t, t') ->
+      ast_node ~typ:"infix"
+        [("left", to_json t); ("op", `String "@"); ("right", to_json t')]
   | `Var s -> ast_node ~typ:"var" [("value", `String s)]
   | `Seq (t, t') ->
       ast_node ~typ:"seq" [("left", to_json t); ("right", to_json t')]
