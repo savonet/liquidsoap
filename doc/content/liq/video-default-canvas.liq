@@ -1,9 +1,9 @@
 # Standard video canvas based off a `10k` virtual canvas.
 # @category Source / Video processing
 def video.canvas.virtual_10k =
-  def make(height, width) =
+  def make(width, height) =
     video.canvas.make(
-      virtual_height=10000,
+      virtual_width=10000,
       actual_size={width=width, height=height},
       font_size=160
     )
