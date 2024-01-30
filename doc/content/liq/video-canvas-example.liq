@@ -11,7 +11,7 @@ background =
     y=0.01 @ vh,
     width=1562 @ px,
     height=1562 @ px,
-    file=cover_files,
+    file="/path/to/cover.jpg",
     background
   )
 
