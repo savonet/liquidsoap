@@ -1,3 +1,6 @@
+background = blank()
+
+# BEGIN
 # Change to video.canvas.virtual_10k.actual_720p etc.. to render
 # in different sizes without changing the values below!
 let {px, rem, vh, vw, width, height} = video.canvas.virtual_10k.actual_1080p
@@ -18,11 +21,13 @@ background =
 background =
   video.add_text(
     color=0xFCB900,
-    font=myfont,
     speed=0,
     x=234 @ px,
     y=4437 @ px,
     size=1.5 @ rem,
-    {nowplaying()},
+    "Some text",
     background
   )
+# END
+
+output.dummy(fallible=true, background)
