@@ -24,6 +24,7 @@ type clock_variable = Source.clock_variable
 type source = Source.source
 type active_source = Source.active_source
 
+module Future = Moonpool.Fut
 include Source.Clock_variables
 
 let create_known s = create_known (s :> Source.clock)
@@ -311,25 +312,33 @@ module MkClock (Time : Liq_time.T) = struct
         let todo = on_before_output in
         on_before_output <- [];
         List.iter (fun fn -> fn ()) todo;
+        let futures =
+          List.map
+            (fun s ->
+              let exec () =
+                try
+                  s#output;
+                  None
+                with exn -> (
+                  let bt = Printexc.get_raw_backtrace () in
+                  match on_error with
+                    | None ->
+                        log#severe "Source %s failed while streaming: %s!\n%s"
+                          s#id (Printexc.to_string exn)
+                          (Printexc.raw_backtrace_to_string bt);
+                        leave ~failed_to_start:true s;
+                        Some s
+                    | Some on_error ->
+                        on_error exn bt;
+                        None)
+              in
+              Future.spawn ~on:Clock_ready.clock_pool exec)
+            active
+        in
         let error =
-          List.fold_left
-            (fun e s ->
-              try
-                s#output;
-                e
-              with exn -> (
-                let bt = Printexc.get_raw_backtrace () in
-                match on_error with
-                  | None ->
-                      log#severe "Source %s failed while streaming: %s!\n%s"
-                        s#id (Printexc.to_string exn)
-                        (Printexc.raw_backtrace_to_string bt);
-                      leave ~failed_to_start:true s;
-                      s :: e
-                  | Some on_error ->
-                      on_error exn bt;
-                      e))
-            [] active
+          List.filter_map
+            (fun x -> x)
+            (Future.wait_block_exn (Future.join_list futures))
         in
         let todo = on_output in
         on_output <- [];

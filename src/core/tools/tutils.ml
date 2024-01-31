@@ -260,7 +260,9 @@ let rec error_handler ~bt exn =
         error_handler ~bt exn
 
 let scheduler : priority Duppy.scheduler =
-  Duppy.create
+  let log = Log.make ["scheduler"] in
+  let log m = if scheduler_log#get then log#info "%s" m in
+  Duppy.create ~log
     ~on_error:(fun exn raw_bt ->
       let bt = Printexc.raw_backtrace_to_string raw_bt in
       if not (error_handler ~bt exn) then
@@ -273,38 +275,21 @@ let () =
       Duppy.stop scheduler;
       log#important "Scheduler shut down.")
 
-let scheduler_log n =
-  if scheduler_log#get then (
-    let log = Log.make [n] in
-    fun m -> log#info "%s" m)
-  else fun _ -> ()
-
-let new_queue ?priorities ~name () =
-  let qlog = scheduler_log name in
-  let queue () =
-    match priorities with
-      | None -> Duppy.queue scheduler ~log:qlog name
-      | Some priorities -> Duppy.queue scheduler ~log:qlog ~priorities name
-  in
-  ignore (create ~queue:true queue () name)
+let new_pool ?(priorities = fun _ -> true) ~size ~name () =
+  Duppy.pool scheduler ~priorities ~size name
 
 let create f x name = create ~queue:false f x name
 let join_all () = join_all ~set:all ()
 
 let start () =
   if Atomic.compare_and_set state `Idle `Starting then (
-    for i = 1 to generic_queues#get do
-      let name = Printf.sprintf "generic queue #%d" i in
-      new_queue ~name ()
-    done;
-    for i = 1 to fast_queues#get do
-      let name = Printf.sprintf "fast queue #%d" i in
-      new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
-    done;
-    for i = 1 to non_blocking_queues#get do
-      let name = Printf.sprintf "non-blocking queue #%d" i in
-      new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
-    done)
+    new_pool ~name:"generic pool" ~size:generic_queues#get ();
+    new_pool ~name:"fast pool"
+      ~priorities:(fun x -> x = `Maybe_blocking)
+      ~size:fast_queues#get ();
+    new_pool ~name:"non-blocking pool"
+      ~priorities:(fun x -> x = `Non_blocking)
+      ~size:non_blocking_queues#get ())
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =

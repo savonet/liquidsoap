@@ -50,7 +50,7 @@ type source_t = [ `Fallible | `Infallible ]
 exception Unavailable
 
 type streaming_state =
-  [ `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+  [ `Unavailable | `Ready of Frame.t Clock_ready.t | `Done of Frame.t ]
 
 (** Instrumentation. *)
 
