@@ -44,6 +44,7 @@ val create :
   ?log:(string -> unit) ->
   ?max_length:int ->
   ?length:int ->
+  ?content:Frame.t ->
   Frame_base.content_type ->
   t
 
