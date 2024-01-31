@@ -116,7 +116,6 @@ let build_config =
    - lastfm            : %{Lastfm_option.detected}
    - lo                : %{Lo_option.detected}
    - memtrace          : %{Memtrace_option.detected}
-   - mem_usage         : %{Mem_usage_option.detected}
    - osc               : %{Osc_option.detected}
    - ssl               : %{Ssl_option.detected}
    - sqlite3           : %{Sqlite3_option.detected}

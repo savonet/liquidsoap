@@ -33,6 +33,7 @@
   uri
   saturn_lockfree
   metadata
+  mem_usage
   magic-mime
   (select
    file_watcher.ml
@@ -275,6 +276,7 @@
   builtins_harbor
   builtins_http
   builtins_metadata
+  builtins_mem_usage
   builtins_process
   builtins_request
   builtins_resolvers
@@ -320,14 +322,6 @@
  (wrapped false)
  (optional)
  (modules camlimages_decoder))
-
-(library
- (name liquidsoap_mem_usage)
- (libraries mem_usage liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules builtins_mem_usage))
 
 (library
  (name liquidsoap_memtrace)
@@ -767,7 +761,6 @@
   lilv_option
   lo_option
   mad_option
-  mem_usage_option
   memtrace_option
   ogg_option
   opus_option
@@ -910,11 +903,6 @@
    from
    (liquidsoap_mad -> mad_option.enabled.ml)
    (-> mad_option.disabled.ml))
-  (select
-   mem_usage_option.ml
-   from
-   (liquidsoap_mem_usage -> mem_usage_option.enabled.ml)
-   (-> mem_usage_option.disabled.ml))
   (select
    memtrace_option.ml
    from
