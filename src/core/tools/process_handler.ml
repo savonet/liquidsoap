@@ -21,26 +21,14 @@
  *****************************************************************************)
 
 type process = { stdin : out_channel; stdout : in_channel; stderr : in_channel }
-
-let open_process cmd env =
-  let stdout, stdin, stderr = Unix.open_process_full cmd env in
-  { stdin; stdout; stderr }
-
-let close_process { stdout; stdin; stderr } =
-  try Unix.close_process_full (stdout, stdin, stderr)
-  with Unix.Unix_error (Unix.ECHILD, _, _) -> Unix.WEXITED 0
-
-let wait { stdout; stdin; stderr } =
-  let pid = Unix.process_full_pid (stdout, stdin, stderr) in
-  try Unix.waitpid [] pid
-  with Unix.Unix_error (Unix.ECHILD, _, _) -> (pid, Unix.WEXITED 0)
+type status = [ `Exception of exn | `Status of Unix.process_status ]
 
 type _t = {
   in_pipe : Unix.file_descr;
   out_pipe : Unix.file_descr;
   p : process;
   mutable priority : Tutils.priority;
-  mutable status : Unix.process_status option;
+  mutable status : status option;
   mutable stopped : bool;
 }
 
@@ -56,7 +44,24 @@ type continuation =
 type 'a callback = 'a -> continuation
 type pull = Bytes.t -> int -> int -> int
 type push = Bytes.t -> int -> int -> int
-type status = [ `Exception of exn | `Status of Unix.process_status ]
+
+let open_process cmd env =
+  let stdout, stdin, stderr = Unix.open_process_full cmd env in
+  { stdin; stdout; stderr }
+
+let close_process { stdout; stdin; stderr } =
+  try `Status (Unix.close_process_full (stdout, stdin, stderr)) with
+    | Unix.Unix_error (Unix.ECHILD, _, _) -> `Status (Unix.WEXITED 0)
+    | exn -> `Exception exn
+
+let wait { stdout; stdin; stderr } =
+  let pid = Unix.process_full_pid (stdout, stdin, stderr) in
+  try
+    let pid, status = Unix.waitpid [] pid in
+    (pid, `Status status)
+  with
+    | Unix.Unix_error (Unix.ECHILD, _, _) -> (pid, `Status (Unix.WEXITED 0))
+    | exn -> (pid, `Exception exn)
 
 exception Finished
 
@@ -280,15 +285,20 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           in
           let descr =
             match status with
-              | Unix.WEXITED c -> Printf.sprintf "Process exited with code %d" c
-              | Unix.WSIGNALED s ->
+              | `Status (Unix.WEXITED c) ->
+                  Printf.sprintf "Process exited with code %d" c
+              | `Status (Unix.WSIGNALED s) ->
                   Printf.sprintf "Process was killed by signal %d" s
-              | Unix.WSTOPPED s ->
+              | `Status (Unix.WSTOPPED s) ->
                   Printf.sprintf "Process was stopped by signal %d" s
+              | `Exception exn ->
+                  Printf.sprintf
+                    "Exception %s was raised while stopping the process."
+                    (Printexc.to_string exn)
           in
           log descr;
           t.process <- None;
-          restart_decision (on_stop (`Status status))
+          restart_decision (on_stop status)
       | e -> (
           let bt = Printexc.get_backtrace () in
           let f e =
