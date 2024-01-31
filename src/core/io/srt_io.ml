@@ -656,7 +656,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
         ()
   end
 
-class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
+class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
   ~payload_size ~dump ~on_start ~on_stop ~autostart format =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
@@ -701,7 +701,8 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
     method private can_generate_frame =
       super#started && (not self#should_stop) && self#is_connected
 
-    method self_sync = (`Dynamic, self#is_connected)
+    method self_sync =
+      if self_sync then (`Dynamic, self#is_connected) else (`Static, false)
 
     method private create_decoder socket =
       let create_decoder =
@@ -769,14 +770,14 @@ class virtual input_base ~max ~clock_safe ~on_connect ~on_disconnect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect
-  ~read_timeout ~write_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart
-  format =
+  ~bind_address ~max ~payload_size ~self_sync ~clock_safe ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~messageapi ~dump ~on_start
+  ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect ~dump
-          ~on_start ~on_stop ~autostart format
+        ~max ~payload_size ~self_sync ~clock_safe ~on_connect ~on_disconnect
+          ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       listener
@@ -792,14 +793,14 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   end
 
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~hostname ~port ~max ~payload_size ~clock_safe ~on_connect
-  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
-  ~dump ~on_start ~on_stop ~autostart format =
+  ~polling_delay ~hostname ~port ~max ~payload_size ~self_sync ~clock_safe
+  ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
+  ~messageapi ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~clock_safe ~on_connect ~on_disconnect ~dump
-          ~on_start ~on_stop ~autostart format
+        ~max ~payload_size ~self_sync ~clock_safe ~on_connect ~on_disconnect
+          ~dump ~on_start ~on_stop ~autostart format
 
     inherit
       caller
@@ -823,6 +824,13 @@ let _ =
           Lang.float_t,
           Some (Lang.float 10.),
           Some "Maximum duration of the buffered data." );
+        ( "self_sync",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some
+            "`true` if the source controls its own latency (i.e. the SRT \
+             stream is in `live` mode), `false` otherwise (i.e. the stream is \
+             in `file` mode." );
         ( "dump",
           Lang.string_t,
           Some (Lang.string ""),
@@ -865,6 +873,7 @@ let _ =
       in
       let max = Lang.to_float (List.assoc "max" p) in
       let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -880,17 +889,17 @@ let _ =
             (new input_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~read_timeout ~write_timeout ~payload_size
-               ~clock_safe ~on_connect ~on_disconnect ~messageapi ~max ~dump
-               ~on_start ~on_stop ~autostart format
+               ~self_sync ~clock_safe ~on_connect ~on_disconnect ~messageapi
+               ~max ~dump ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-               ~polling_delay ~hostname ~port ~payload_size ~clock_safe
-               ~on_connect ~read_timeout ~write_timeout ~connection_timeout
-               ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
-               ~autostart format
+               ~polling_delay ~hostname ~port ~payload_size ~self_sync
+               ~clock_safe ~on_connect ~read_timeout ~write_timeout
+               ~connection_timeout ~on_disconnect ~messageapi ~max ~dump
+               ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 
