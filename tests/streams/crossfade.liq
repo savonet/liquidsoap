@@ -6,7 +6,9 @@ a = metadata.map(update=false, (fun (_) -> [("title","a1")]), a)
 b = sine(duration=20.,880.)
 b = metadata.map(update=false, (fun (_) -> [("title","b1")]), b)
 
-s = sequence([a,b])
+c= sine(duration=20.,880.)
+
+s = sequence([a,b, c])
 
 fa = crossfade(smart=true, deduplicate=true, s)
 
@@ -16,7 +18,11 @@ a = metadata.map(update=false, (fun (_) -> [("title","a2")]), a)
 b = sine(duration=20.,880.)
 b = metadata.map(update=false, (fun (_) -> [("title","b2")]), b)
 
-s = sequence([a,b])
+c= sine(duration=20.,880.)
+
+s = sequence([a,b, c])
+
+s = sequence([a,b, c])
 
 fb = crossfade(smart=true, deduplicate=false, conservative=false, s)
 
