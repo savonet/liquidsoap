@@ -295,12 +295,9 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
           rmsi_after <- rmsi_after + len);
         self#save_last_metadata `After buf_frame;
         self#update_cross_length buf_frame start;
-        if
-          AFrame.is_partial buf_frame
-          && not (source#is_ready ~frame:buf_frame ())
-        then Generator.add_track_mark gen_after
+        if AFrame.is_partial buf_frame then Generator.add_track_mark gen_after
         else (
-          if not (Frame.is_partial buf_frame) then Frame.clear buf_frame;
+          Frame.clear buf_frame;
           if after_len < before_len then f ())
       in
       f ()
@@ -315,27 +312,58 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         Audio.dB_of_lin
           (sqrt (rms_before /. float rmsi_before /. float self#audio_channels))
       in
+      let buffered_before = Generator.length gen_before in
+      let buffered_after = Generator.length gen_after in
+      let buffered = min buffered_before buffered_after in
       let compound =
         Clock.collect_after (fun () ->
             let metadata = function None -> Hashtbl.create 0 | Some m -> m in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
+            let before_head =
+              if buffered < buffered_before then (
+                let head =
+                  Generator.get ~length:(buffered_before - buffered) gen_before
+                in
+                let head_gen =
+                  Generator.create ~content:head
+                    (Generator.content_type gen_before)
+                in
+                let s = new Generated.consumer head_gen in
+                s#set_id (self#id ^ "_before_head");
+                Typing.(s#frame_type <: self#frame_type);
+                Some s)
+              else None
+            in
             let before =
               new Insert_metadata.replay
                 before_metadata
                 (new Generated.consumer gen_before)
             in
             Typing.(before#frame_type <: self#frame_type);
+            let after_tail =
+              if buffered < buffered_after then (
+                let head = Generator.get ~length:buffered gen_after in
+                let head_gen =
+                  Generator.create ~content:head
+                    (Generator.content_type gen_after)
+                in
+                let tail_gen = gen_after in
+                gen_after <- head_gen;
+                let s = new Generated.consumer tail_gen in
+                Typing.(s#frame_type <: self#frame_type);
+                s#set_id (self#id ^ "_after_tail");
+                Some s)
+              else None
+            in
             let after =
               new Insert_metadata.replay
                 after_metadata
                 (new Generated.consumer gen_after)
             in
             Typing.(after#frame_type <: self#frame_type);
-            let () =
-              before#set_id (self#id ^ "_before");
-              after#set_id (self#id ^ "_after")
-            in
+            before#set_id (self#id ^ "_before");
+            after#set_id (self#id ^ "_after");
             let f a b =
               let params =
                 [
@@ -360,13 +388,26 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             let compound =
               self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)"
                 db_before db_after
-                (Frame.seconds_of_main (Generator.length gen_before))
-                (Frame.seconds_of_main (Generator.length gen_after));
-              if Frame.main_of_audio minimum_length < Generator.length gen_after
-              then f before after
+                (Frame.seconds_of_main buffered_before)
+                (Frame.seconds_of_main buffered_after);
+              if Frame.main_of_audio minimum_length < buffered then (
+                self#log#important
+                  "Computing crossfade over first and last %.2fs"
+                  (Frame.seconds_of_main buffered);
+                f before after)
               else (
                 self#log#important "Not enough data for crossing.";
                 (new Sequence.sequence [before; after] :> source))
+            in
+            Typing.(compound#frame_type <: self#frame_type);
+            let compound =
+              match (before_head, after_tail) with
+                | None, None -> compound
+                | Some s, None ->
+                    new Sequence.sequence ~merge:true [s; compound]
+                | None, Some s ->
+                    new Sequence.sequence ~merge:true [compound; s]
+                | Some _, Some _ -> assert false
             in
             Clock.unify ~pos:self#pos compound#clock s#clock;
             Typing.(compound#frame_type <: self#frame_type);

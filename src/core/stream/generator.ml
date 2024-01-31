@@ -40,13 +40,18 @@ let add_timed_content content =
 let make_content ?length content_type =
   add_timed_content (Frame_base.Fields.map (Content.make ?length) content_type)
 
-let create ?(log = fun s -> log#info "%s" s) ?max_length ?length content_type =
+let create ?(log = fun s -> log#info "%s" s) ?max_length ?length ?content
+    content_type =
   {
     lock = Mutex.create ();
     max_length = Atomic.make max_length;
     log;
     content_type;
-    content = Atomic.make (make_content ?length content_type);
+    content =
+      Atomic.make
+        (match content with
+          | Some c -> c
+          | None -> make_content ?length content_type);
   }
 
 let get_field gen field = Frame_base.Fields.find field (Atomic.get gen.content)
