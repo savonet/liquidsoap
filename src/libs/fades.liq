@@ -361,7 +361,7 @@ def fade.in(
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
     log(
-      "Fading in with type: #{type()}, curve: #{curve()} and duration: #{
+      "Fading in with type: #{type()}, curve: #{curve_log} and duration: #{
         duration()
       }s."
     )
