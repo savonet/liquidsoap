@@ -55,6 +55,7 @@
     uri
     fileutils
     menhirLib
+    mem_usage
     (saturn_lockfree (>= 0.4.1))
     (metadata (>= 0.2.0))
     magic-mime
@@ -87,7 +88,6 @@
     lo
     mad
     memtrace
-    mem_usage
     ogg
     opus
     osc-unix
@@ -129,7 +129,6 @@
     (lo (< 0.2.0))
     (mad (< 0.5.0))
     (magic (< 0.6))
-    (mem_usage (< 0.0.3))
     (ogg (< 0.7.4))
     (opus (< 0.2.0))
     (portaudio (< 0.2.0))

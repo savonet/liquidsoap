@@ -34,7 +34,6 @@ let () =
       ("lilv", Lilv_option.enabled);
       ("lo", Lo_option.enabled);
       ("mad", Mad_option.enabled);
-      ("mem_usage", Mem_usage_option.enabled);
       ("memtrace", Memtrace_option.enabled);
       ("ogg", Ogg_option.enabled);
       ("opus", Opus_option.enabled);

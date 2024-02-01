@@ -1,7 +1,7 @@
 #!../../liquidsoap ../test.liq
 
 def f() =
-  mu = runtime.mem_usage()
+  mu = runtime.memory()
   print(
     "Memory usage:\n#{mu}"
   )
@@ -60,7 +60,7 @@ def f() =
   )
 
   # See #2427
-  thread.run({ignore(runtime.mem_usage())})
+  thread.run({ignore(runtime.memory())})
   test.pass()
 end
 

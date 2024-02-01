@@ -52,10 +52,9 @@ let _ =
       ]
   in
   let runtime_mem_usage =
-    Lang.add_builtin ~base:Modules.runtime "mem_usage" ~category:`System
-      ~flags:[`Hidden]
-      ~descr:"Return stats about the system and process memory." [] mem_usage_t
-      (fun _ -> mem_usage (Mem_usage.info ()))
+    Lang.add_builtin ~base:Modules.runtime "memory" ~category:`System
+      ~descr:"Returns information about the system and process' memory." []
+      mem_usage_t (fun _ -> mem_usage (Mem_usage.info ()))
   in
   Lang.add_builtin ~base:runtime_mem_usage "prettify_bytes" ~category:`String
     ~descr:"Returns a human-redable description of an amount of bytes."
