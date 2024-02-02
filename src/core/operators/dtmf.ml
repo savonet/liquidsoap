@@ -292,7 +292,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
   let nbands = bands in
   let size = float nbands in
   object (self)
-    inherit operator ~name:"sine.detect" [source]
+    inherit operator ~name:"dtmf.detect" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
@@ -310,7 +310,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
 
     method private generate_frame =
       let b =
-        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+        Content.Audio.get_data (Frame.get source#get_frame Frame.Fields.audio)
       in
       let position = source#frame_audio_position in
       let channels = self#audio_channels in

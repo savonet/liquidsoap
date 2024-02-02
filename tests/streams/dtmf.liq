@@ -1,5 +1,6 @@
 log.level.set(4)
 keys = "1234567890*#ABCD"
+last_key = ref("")
 detected = ref("")
 
 def f(k) =
@@ -8,7 +9,10 @@ def f(k) =
   print(
     "Detected key #{k}"
   )
-  detected := !detected ^ k
+
+  if last_key() != k then detected := !detected ^ k end
+  last_key := k
+
   if
     k == "D"
   then
