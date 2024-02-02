@@ -113,7 +113,7 @@ def fade.out(
   ~duration=3.,
   ~delay=0.,
   ~override_duration="liq_fade_out",
-  ~override_type="liq_fade_type",
+  ~override_type="liq_fade_out_type",
   ~override_curve="liq_fade_out_curve",
   ~override_delay="liq_fade_out_delay",
   ~persist_overrides=false,

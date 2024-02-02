@@ -4,7 +4,7 @@ a = sine(duration=5.,440.)
 a = metadata.map(update=false, (fun (_) -> [("source", "a")]), a)
 
 b = sine(duration=5.,880.)
-b = metadata.map(update=false, (fun (_) -> [("source", "b"), ("liq_fade_out","1.1"), ("liq_fade_type","lin"), ("liq_fade_in","1.")]), b)
+b = metadata.map(update=false, (fun (_) -> [("source", "b"), ("liq_fade_out","1.1"), ("liq_fade_out_type","lin"), ("liq_fade_in_type","exp"), ("liq_fade_in","1.")]), b)
 
 c = sine(duration=5.,440.)
 c = metadata.map(update=false, (fun (_) -> [("source", "c")]), c)
@@ -23,7 +23,7 @@ def on_track(m) =
     if m["source"] != "b" then test.fail() end
     if fade_in.fade_duration() != 1. then test.fail() end
     if fade_out.fade_duration() != 1.1 then test.fail() end
-    if fade_in.fade_type() != "lin" then test.fail() end
+    if fade_in.fade_type() != "exp" then test.fail() end
     if fade_out.fade_type() != "lin" then test.fail() end
   end
 
@@ -31,7 +31,7 @@ def on_track(m) =
     if m["source"] != "c" then test.fail() end
     if fade_in.fade_duration() != 1. then test.fail() end
     if fade_out.fade_duration() != 1.1 then test.fail() end
-    if fade_in.fade_type() != "lin" then test.fail() end
+    if fade_in.fade_type() != "exp" then test.fail() end
     if fade_out.fade_type() != "lin" then test.fail() end
     success := true
   end
