@@ -320,49 +320,19 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             let metadata = function None -> Hashtbl.create 0 | Some m -> m in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
-            let before_head =
-              if buffered < buffered_before then (
-                let head =
-                  Generator.get ~length:(buffered_before - buffered) gen_before
-                in
-                let head_gen =
-                  Generator.create ~content:head
-                    (Generator.content_type gen_before)
-                in
-                let s = new Generated.consumer head_gen in
-                s#set_id (self#id ^ "_before_head");
-                Typing.(s#frame_type <: self#frame_type);
-                Some s)
-              else None
-            in
             let before =
               new Insert_metadata.replay
                 before_metadata
                 (new Generated.consumer gen_before)
             in
             Typing.(before#frame_type <: self#frame_type);
-            let after_tail =
-              if buffered < buffered_after then (
-                let head = Generator.get ~length:buffered gen_after in
-                let head_gen =
-                  Generator.create ~content:head
-                    (Generator.content_type gen_after)
-                in
-                let tail_gen = gen_after in
-                gen_after <- head_gen;
-                let s = new Generated.consumer tail_gen in
-                Typing.(s#frame_type <: self#frame_type);
-                s#set_id (self#id ^ "_after_tail");
-                Some s)
-              else None
-            in
+            before#set_id (self#id ^ "_before");
             let after =
               new Insert_metadata.replay
                 after_metadata
                 (new Generated.consumer gen_after)
             in
             Typing.(after#frame_type <: self#frame_type);
-            before#set_id (self#id ^ "_before");
             after#set_id (self#id ^ "_after");
             let f a b =
               let params =
@@ -400,17 +370,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 (new Sequence.sequence [before; after] :> source))
             in
             Typing.(compound#frame_type <: self#frame_type);
-            let compound =
-              match (before_head, after_tail) with
-                | None, None -> compound
-                | Some s, None ->
-                    new Sequence.sequence ~merge:true [s; compound]
-                | None, Some s ->
-                    new Sequence.sequence ~merge:true [compound; s]
-                | Some _, Some _ -> assert false
-            in
             Clock.unify ~pos:self#pos compound#clock s#clock;
-            Typing.(compound#frame_type <: self#frame_type);
             compound)
       in
       self#cleanup_transition_source;
