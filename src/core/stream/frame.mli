@@ -104,8 +104,8 @@ val create : length:int -> content_type -> t
 (** Get at most length data from the start of the given frame. *)
 val slice : t -> int -> t
 
-(** Get a chunk delimitated by [start] and [stop] *)
-val chunk : start:int -> stop:int -> t -> t
+(** Get the tail part of a frame. *)
+val tail : t -> int -> t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type
