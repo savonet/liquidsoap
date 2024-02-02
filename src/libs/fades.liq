@@ -141,11 +141,20 @@ def fade.out(
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
     start_time := source.time(s)
-    duration = if d < duration() then d else duration() end
+    let (delay, duration) =
+      if d < delay() + duration() then
+        if d < duration() then
+          (0., d)
+        else
+          (max(0., delay() - d + duration()), duration())
+        end
+      else
+        (delay(), duration())
+      end
 
-    log("Fading out with type: #{type()}, curve: #{curve_log}, delay: #{delay()}s, duration: #{duration}s and #{d}s remaining.")
+    log("Fading out with type: #{type()}, curve: #{curve_log}, delay: #{delay}s, duration: #{duration}s and #{d}s remaining.")
 
-    fn := mkfade(start=1., stop=0., type=type(), curve=curve(), delay=delay(), duration=duration, s)
+    fn := mkfade(start=1., stop=0., type=type(), curve=curve(), delay=delay, duration=duration, s)
     started := true
   end
 
