@@ -358,7 +358,6 @@ def fade.in(
   end
 
   def update_fade(m) =
-  print("bla: #{m}, #{override_duration}, #{m[override_duration]}")
     if m[override_duration] != "" then
       duration := float_of_string(default=duration(),m[override_duration])
       log("New fade duration: #{duration()}s.")
