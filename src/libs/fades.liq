@@ -342,7 +342,7 @@ def fade.skip(
   s = source.on_track(s, reset_overrides)
   s = source.on_metadata(s, update_fade)
   s = source.on_track(s, stop_fade)
-  fade.scale(id=id, apply, s).{fade_duration = duration, fade_delay = delay, fade_type = type }
+  fade.scale(id=id, apply, s).{fade_duration = {duration()}, fade_delay = {delay()}, fade_type = {type()} }
 end
 
 # Fade the beginning of tracks.
