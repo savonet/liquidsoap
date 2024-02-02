@@ -6,6 +6,7 @@ New:
 - Added option to set preferred address class (`ipv4`, `ipv6` or system default) when resolving hostnames in http transports and `output.icecast`
 - Added `self_sync` option to `input.srt` to accommodate for streams in file mode (#3684)
 - Added `curve` parameter to fade functions and `liq_fade_{in,skip,out}_curve` metadata override (#3691)
+- Added `delay` parameter to fade functions to make it possible to add delay before fade happens. Add `liq_fade_{in,skip,out}_delay` metadata override.
 
 Changed:
 
