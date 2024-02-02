@@ -146,7 +146,7 @@ def fade.out(
         if d < duration() then
           (0., d)
         else
-          (max(0., delay() - d + duration()), duration())
+          (max(0., d - duration()), duration())
         end
       else
         (delay(), duration())
