@@ -193,11 +193,16 @@ def fade.out(
     if track_sensitive then
       source.on_track(s, stop_fade)
     else
-      source.on_frame(s, memoize({start_fade(duration(), [])}))
+      s
     end
 
   delay = fun () -> duration()
-  s = if track_sensitive then source.on_end(s, delay=delay, start_fade) else s end
+  s =
+    if track_sensitive then
+      source.on_end(s, delay=delay, start_fade)
+    else
+      source.on_frame(s, memoize({start_fade(source.remaining(s), [])}))
+    end
   fade.scale(id=id, apply, s).{fade_duration = {duration()}, fade_type = {type()}}
 end
 
