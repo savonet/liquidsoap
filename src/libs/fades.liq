@@ -7,6 +7,7 @@ fade = ()
 # @param ~type Fade shape. One of: `"sin"`, `"exp"`, `"log"`, `"lin"`
 # @param ~start Start value.
 # @param ~stop Stop value.
+# @param ~delay Initial delay before starting fade.
 # @param ~duration Duration in seconds.
 # @param ~on_done Function to execute when the fade is finished
 def mkfade(
@@ -14,6 +15,7 @@ def mkfade(
   ~type="lin",
   ~start=0.,
   ~stop=1.,
+  ~delay=0.,
   ~duration=3.,
   ~on_done={()},
   s
@@ -63,19 +65,24 @@ def mkfade(
     end
 
   start_time = ref(-1.)
+  increasing_fade = start <= stop
 
   def fade() =
     if start_time() < 0. then start_time := source.time(s) end
-    t = source.time(s) - start_time()
 
+    t = source.time(s) - start_time() - delay
     if
+      t <= 0.
+    then
+      if increasing_fade then 0. else 1. end
+    elsif
       t >= duration
     then
       on_done()
       stop
     else
       if
-        start <= stop
+        increasing_fade
       then
         start + shape(t / duration) * (stop - start)
       else
@@ -98,19 +105,23 @@ end
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~delay Initial delay before starting fade.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
 # @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
 #                        to set to default value.
+# @param ~override_delay Metadata field which, if presents and correct, overrides the initial fade delay.
 # @param ~persist_overrides Keep duration and type overrides on track change.
 # @param ~track_sensitive Be track sensitive (if `false` we only fade ou once at the beginning of the track).
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.out(
   ~id="fade.out",
   ~duration=3.,
+  ~delay=0.,
   ~override_duration="liq_fade_out",
   ~override_type="liq_fade_type",
-  ~override_curve="liq_fade_curve",
+  ~override_curve="liq_fade_out_curve",
+  ~override_delay="liq_fade_out_delay",
   ~persist_overrides=false,
   ~track_sensitive=false,
   ~type="lin",
@@ -126,6 +137,8 @@ def fade.out(
   curve = ref(null())
   original_duration = duration
   duration = ref(duration)
+  original_delay = delay
+  delay = ref(original_delay)
   start_time = ref(-1.)
   started = ref(false)
 
@@ -137,14 +150,20 @@ def fade.out(
     duration = if d < duration() then d else duration() end
 
     log(
-      "Fading out with type: #{type()}, curve: #{curve_log}, duration: #{
-        duration
-      } and #{d}s remaining."
+      "Fading out with type: #{type()}, curve: #{curve_log}, delay: #{
+        delay()
+      }s, duration: #{duration}s and #{d}s remaining."
     )
 
     fn :=
       mkfade(
-        start=1., stop=0., type=type(), curve=curve(), duration=duration, s
+        start=1.,
+        stop=0.,
+        type=type(),
+        curve=curve(),
+        delay=delay(),
+        duration=duration,
+        s
       )
     started := true
   end
@@ -170,6 +189,15 @@ def fade.out(
       duration := float_of_string(default=duration(), m[override_duration])
       log(
         "New fade duration: #{duration()}s."
+      )
+    end
+
+    if
+      m[override_delay] != ""
+    then
+      delay := float_of_string(default=0., m[override_delay])
+      log(
+        "New fade delay: #{delay()}s."
       )
     end
 
@@ -207,6 +235,7 @@ def fade.out(
       not persist_overrides
     then
       duration := original_duration
+      delay := original_delay
       type := original_type
     end
   end
@@ -225,7 +254,6 @@ def fade.out(
         before=false, s, memoize({start_fade(source.remaining(s), [])})
       )
     end
-
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
 
@@ -233,19 +261,23 @@ end
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~delay Initial delay before starting fade.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
 # @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
 #                        to set to default value.
+# @param ~override_delay Metadata field which, if presents and correct, overrides the initial fade delay.
 # @param ~override_skip Metadata field which, when present and set to "true", will trigger the fade
 # @param ~persist_overrides Keep duration and type overrides on track change.
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.skip(
   ~id="fade.skip",
   ~duration=5.,
+  ~delay=0.,
   ~override_duration="liq_fade_skip",
-  ~override_type="liq_fade_type",
-  ~override_curve="liq_fade_curve",
+  ~override_type="liq_fade_skip_type",
+  ~override_curve="liq_fade_skip_curve",
+  ~override_delay="liq_fade_skip_delay",
   ~persist_overrides=false,
   ~override_skip="liq_skip_meta",
   ~type="lin",
@@ -261,6 +293,8 @@ def fade.skip(
   curve = ref(null())
   original_duration = duration
   duration = ref(duration)
+  original_delay = delay
+  delay = ref(original_delay)
 
   def apply() =
     fn = fn()
@@ -294,6 +328,7 @@ def fade.skip(
           type=type(),
           curve=curve(),
           duration=duration,
+          delay=delay(),
           on_done=skip,
           s
         )
@@ -304,114 +339,16 @@ def fade.skip(
     then
       duration := float_of_string(default=duration(), m[override_duration])
       log(
-        "New fade duration: #{duration()}"
+        "New fade duration: #{duration()}s"
       )
     end
 
     if
-      m[override_curve] != ""
+      m[override_delay] != ""
     then
-      if
-        m[override_curve] == "default"
-      then
-        curve := null()
-      else
-        try
-          curve := float_of_string(m[override_curve])
-        catch _ do
-          curve := null()
-        end
-      end
+      delay := float_of_string(default=0., m[override_delay])
       log(
-        "New fade curve: #{curve()}."
-      )
-    end
-
-    if
-      m[override_type] != ""
-    then
-      type := m[override_type]
-      log(
-        "New fade type: #{type()}"
-      )
-    end
-  end
-
-  def reset_overrides(_) =
-    if
-      not persist_overrides
-    then
-      duration := original_duration
-      type := original_type
-    end
-  end
-
-  s = source.on_track(s, reset_overrides)
-  s = source.on_metadata(s, update_fade)
-  s = source.on_track(s, stop_fade)
-  fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
-end
-
-# Fade the beginning of tracks.
-# @category Source / Fade
-# @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
-# @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
-#                        to set to default value.
-# @param ~persist_overrides Keep duration and type overrides on track change.
-# @param ~track_sensitive Be track sensitive (if `false` we only fade in once at the beginning of the track).
-# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
-def fade.in(
-  ~id="fade.in",
-  ~duration=3.,
-  ~override_duration="liq_fade_in",
-  ~override_type="liq_fade_type",
-  ~override_curve="liq_fade_curve",
-  ~persist_overrides=false,
-  ~track_sensitive=false,
-  ~type="lin",
-  s
-) =
-  def log(x) =
-    log(label=source.id(s), level=4, x)
-  end
-
-  fn = ref(fun () -> 0.)
-  original_duration = duration
-  duration = ref(duration)
-  original_type = type
-  type = ref(type)
-  curve = ref(null())
-
-  def apply() =
-    fn = fn()
-    fn()
-  end
-
-  def start_fade(_) =
-    curve_log =
-      if null.defined(curve()) then string(null.get(curve())) else "default" end
-
-    log(
-      "Fading in with type: #{type()}, curve: #{curve_log} and duration: #{
-        duration()
-      }s."
-    )
-    fn :=
-      mkfade(
-        start=0., stop=1., type=type(), curve=curve(), duration=duration(), s
-      )
-  end
-
-  def update_fade(m) =
-    if
-      m[override_duration] != ""
-    then
-      duration := float_of_string(default=duration(), m[override_duration])
-      log(
-        "New fade duration: #{duration()}s."
+        "New fade delay: #{delay()}s."
       )
     end
 
@@ -449,6 +386,129 @@ def fade.in(
       not persist_overrides
     then
       duration := original_duration
+      type := original_type
+    end
+  end
+
+  s = source.on_track(s, reset_overrides)
+  s = source.on_metadata(s, update_fade)
+  s = source.on_track(s, stop_fade)
+
+  fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
+end
+
+# Fade the beginning of tracks.
+# @category Source / Fade
+# @param ~id Force the value of the source ID.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~delay Initial delay before starting fade.
+# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
+# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
+# @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
+#                        to set to default value.
+# @param ~override_delay Metadata field which, if presents and correct, overrides the initial fade delay.
+# @param ~persist_overrides Keep duration and type overrides on track change.
+# @param ~track_sensitive Be track sensitive (if `false` we only fade in once at the beginning of the track).
+# @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
+def fade.in(
+  ~id="fade.in",
+  ~duration=3.,
+  ~delay=0.,
+  ~override_duration="liq_fade_in",
+  ~override_type="liq_fade_in_type",
+  ~override_curve="liq_fade_in_curve",
+  ~override_delay="liq_fade_in_delay",
+  ~persist_overrides=false,
+  ~track_sensitive=false,
+  ~type="lin",
+  s
+) =
+  def log(x) =
+    log(label=source.id(s), level=4, x)
+  end
+
+  fn = ref(fun () -> 0.)
+  original_duration = duration
+  duration = ref(duration)
+  original_delay = delay
+  delay = ref(original_delay)
+  original_type = type
+  type = ref(type)
+  curve = ref(null())
+
+  def apply() =
+    fn = fn()
+    fn()
+  end
+
+  def start_fade(_) =
+    curve_log =
+      if null.defined(curve()) then string(null.get(curve())) else "default" end
+
+    log(
+      "Fading in with type: #{type()}, curve: #{curve_log}, delay: #{delay()}s \
+       and duration: #{duration()}s."
+    )
+    fn :=
+      mkfade(
+        start=0., stop=1., type=type(), curve=curve(), duration=duration(), s
+      )
+  end
+
+  def update_fade(m) =
+    if
+      m[override_duration] != ""
+    then
+      duration := float_of_string(default=duration(), m[override_duration])
+      log(
+        "New fade duration: #{duration()}s."
+      )
+    end
+
+    if
+      m[override_delay] != ""
+    then
+      delay := float_of_string(default=0., m[override_delay])
+      log(
+        "New fade delay: #{delay()}s."
+      )
+    end
+
+    if
+      m[override_curve] != ""
+    then
+      if
+        m[override_curve] == "default"
+      then
+        curve := null()
+      else
+        try
+          curve := float_of_string(m[override_curve])
+        catch _ do
+          curve := null()
+        end
+      end
+      log(
+        "New fade curve: #{curve()}."
+      )
+    end
+
+    if
+      m[override_type] != ""
+    then
+      type := m[override_type]
+      log(
+        "New fade type: #{type()}."
+      )
+    end
+  end
+
+  def reset_overrides(_) =
+    if
+      not persist_overrides
+    then
+      duration := original_duration
+      delay := original_delay
       type := original_type
     end
   end
