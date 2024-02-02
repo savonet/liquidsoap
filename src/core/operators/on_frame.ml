@@ -31,8 +31,9 @@ class on_frame f s =
     method self_sync = s#self_sync
 
     method private generate_frame =
+      let ret = s#get_frame in
       ignore (Lang.apply f []);
-      s#get_frame
+      ret
   end
 
 let _ =
