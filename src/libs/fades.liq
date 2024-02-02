@@ -133,15 +133,19 @@ def fade.out(
     curve_log =
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
+    start_time := source.time(s)
+    duration = if d < duration() then d else duration() end
+
     log(
       "Fading out with type: #{type()}, curve: #{curve_log}, duration: #{
-        duration()
+        duration
       } and #{d}s remaining."
     )
 
-    start_time := source.time(s)
-    d = if d < duration() then d else duration() end
-    fn := mkfade(start=1., stop=0., type=type(), curve=curve(), duration=d, s)
+    fn :=
+      mkfade(
+        start=1., stop=0., type=type(), curve=curve(), duration=duration, s
+      )
     started := true
   end
 
@@ -215,8 +219,7 @@ def fade.out(
     then
       source.on_track(s, stop_fade)
     else
-      start_fade(duration(), [])
-      s
+      source.on_frame(s, memoize({start_fade(duration(), [])}))
     end
 
   delay = fun () -> duration()
@@ -458,8 +461,7 @@ def fade.in(
     then
       source.on_track(s, start_fade)
     else
-      start_fade([])
-      s
+      source.on_frame(s, memoize({start_fade([])}))
     end
 
   fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
