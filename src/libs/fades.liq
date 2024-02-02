@@ -258,6 +258,7 @@ def fade.out(
 end
 
 # Fade when the metadata trigger is received and then skip.
+# @flag extra
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
