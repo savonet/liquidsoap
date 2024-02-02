@@ -128,15 +128,12 @@ def fade.out(
     curve_log =
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
-    log(
-      "Fading out with type: #{type()}, curve: #{curve_log}, duration: #{
-        duration()
-      } and #{d}s remaining."
-    )
-
     start_time := source.time(s)
-    d = if d < duration() then d else duration() end
-    fn := mkfade(start=1., stop=0., type=type(), curve=curve(), duration=d, s)
+    duration = if d < duration() then d else duration() end
+
+    log("Fading out with type: #{type()}, curve: #{curve_log}, duration: #{duration} and #{d}s remaining.")
+
+    fn := mkfade(start=1., stop=0., type=type(), curve=curve(), duration=duration, s)
     started := true
   end
 
@@ -172,9 +169,7 @@ def fade.out(
           curve := null()
         end
       end
-      log(
-        "New fade curve: #{curve()}."
-      )
+      log("New fade curve: #{curve()}.")
     end
 
     if
@@ -198,8 +193,7 @@ def fade.out(
     if track_sensitive then
       source.on_track(s, stop_fade)
     else
-      start_fade(duration(), [])
-      s
+      source.on_frame(s, memoize({start_fade(duration(), [])}))
     end
 
   delay = fun () -> duration()
@@ -258,9 +252,7 @@ def fade.skip(
     if m[override_skip] == "true" then
       remaining = source.remaining(s)
       duration = if remaining < duration() then remaining else duration() end
-      log(
-        "Skip fade executed for: #{duration}s"
-      )
+      log("Skip fade executed for: #{duration}s")
       fn :=
         mkfade(
           start=1.,
@@ -360,18 +352,13 @@ def fade.in(
     curve_log =
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
-    log(
-      "Fading in with type: #{type()}, curve: #{curve_log} and duration: #{
-        duration()
-      }s."
-    )
+    log("Fading in with type: #{type()}, curve: #{curve_log} and duration: #{duration()}s.")
     fn :=
-      mkfade(
-        start=0., stop=1., type=type(), curve=curve(), duration=duration(), s
-      )
+      mkfade(start=0., stop=1., type=type(), curve=curve(), duration=duration(), s)
   end
 
   def update_fade(m) =
+  print("bla: #{m}, #{override_duration}, #{m[override_duration]}")
     if m[override_duration] != "" then
       duration := float_of_string(default=duration(),m[override_duration])
       log("New fade duration: #{duration()}s.")
@@ -391,9 +378,7 @@ def fade.in(
           curve := null()
         end
       end
-      log(
-        "New fade curve: #{curve()}."
-      )
+      log("New fade curve: #{curve()}.")
     end
 
     if
@@ -413,7 +398,7 @@ def fade.in(
 
   s = source.on_track(s, reset_overrides)
   s = source.on_metadata(s, update_fade)
-  s = if track_sensitive then source.on_track(s, start_fade) else start_fade([]); s end
+  s = if track_sensitive then source.on_track(s, start_fade) else source.on_frame(s, memoize({start_fade([])})) end
 
   fade.scale(id=id, apply, s).{fade_duration = {duration()}, fade_type = {type()} }
 end
