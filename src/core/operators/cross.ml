@@ -295,7 +295,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
           rmsi_after <- rmsi_after + len);
         self#save_last_metadata `After buf_frame;
         self#update_cross_length buf_frame start;
-        if AFrame.is_partial buf_frame then Generator.add_track_mark gen_after
+        if AFrame.is_partial buf_frame then (
+          self#log#critical
+            "End of track reached while buffering next track data, crossfade \
+             duration is longer than the track's duration. Make sure to adjust \
+             the crossfade duration to avoid issues.";
+          Generator.add_track_mark gen_after)
         else (
           Frame.clear buf_frame;
           if after_len < before_len then f ())
