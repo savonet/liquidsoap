@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-class on_frame f s =
+class on_frame ~before f s =
   object
     inherit Source.operator ~name:"on_frame" [s]
     method stype = s#stype
@@ -31,8 +31,9 @@ class on_frame f s =
     method self_sync = s#self_sync
 
     method private generate_frame =
+      if before then ignore (Lang.apply f []);
       let ret = s#get_frame in
-      ignore (Lang.apply f []);
+      if not before then ignore (Lang.apply f []);
       ret
   end
 
@@ -40,6 +41,10 @@ let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
   Lang.add_operator ~base:Muxer.source "on_frame"
     [
+      ( "before",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Execute the callback before computing the next frame." );
       ("", Lang.source_t frame_t, None, None);
       ( "",
         Lang.fun_t [] Lang.unit_t,
@@ -51,9 +56,10 @@ let _ =
     ~category:`Track ~descr:"Call a given handler on every frame."
     ~return_t:frame_t
     (fun p ->
+      let before = List.assoc "before" p |> Lang.to_bool in
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
-      new on_frame f s)
+      new on_frame ~before f s)
 
 (** Operations on frames. *)
 class frame_op ~name f default s =
