@@ -246,7 +246,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             let squares = Audio.squares pcm 0 len in
             rms_after <- rms_after +. squares;
             rmsi_after <- rmsi_after + len);
-          if Frame.is_partial buf_frame then () else f ~is_first:false ())
+          if Frame.is_partial buf_frame then
+            self#log#critical
+              "End of track reached while buffering next track data, crossfade \
+               duration is longer than the track's duration. Make sure to \
+               adjust the crossfade duration to avoid issues."
+          else f ~is_first:false ())
       in
       f ~is_first:true ();
       self#create_after
