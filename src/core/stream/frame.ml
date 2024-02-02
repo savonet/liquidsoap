@@ -61,8 +61,9 @@ let create ~length content_type =
 
 let content_type = Fields.map Content.format
 
-let chunk ~start ~stop frame =
-  Fields.map (fun c -> Content.sub c start (stop - start)) frame
+let tail frame offset =
+  let len = position frame - offset in
+  Fields.map (fun c -> Content.sub c offset len) frame
 
 let slice frame len =
   Fields.map

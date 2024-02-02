@@ -580,9 +580,7 @@ class virtual operator ?pos ?(name = "src") sources =
                   let buf_pos = Frame.position buf in
                   let buf =
                     if size < buf_pos then (
-                      _cache <-
-                        Some
-                          (Frame.chunk ~start:size ~stop:(buf_pos - size) buf);
+                      _cache <- Some (Frame.tail buf size);
                       Frame.slice buf size)
                     else buf
                   in
@@ -596,7 +594,7 @@ class virtual operator ?pos ?(name = "src") sources =
                 let pos = Frame.position buf in
                 assert (n <= pos);
                 if pos = n then _cache <- None
-                else _cache <- Some (Frame.chunk ~start:n ~stop:(pos - n) buf)
+                else _cache <- Some (Frame.tail buf n)
             | _ -> ())
 
     method peek_frame =
@@ -636,9 +634,7 @@ class virtual operator ?pos ?(name = "src") sources =
     method private split_frame frame =
       match Frame.track_marks frame with
         | 0 :: _ -> (self#empty_frame, Some frame)
-        | p :: _ ->
-            ( Frame.slice frame p,
-              Some (Frame.chunk ~start:p ~stop:(Frame.position frame) frame) )
+        | p :: _ -> (Frame.slice frame p, Some (Frame.tail frame p))
         | [] -> (frame, None)
 
     method frame_has_track_mark = Frame.has_track_marks self#get_frame
@@ -944,10 +940,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                   s#get_partial_frame (fun frame ->
                       Frame.slice frame (last_chunk_pos + rem))
                 in
-                let new_track =
-                  Frame.chunk ~start:last_chunk_pos
-                    ~stop:(Frame.position remainder) remainder
-                in
+                let new_track = Frame.tail remainder last_chunk_pos in
                 f ~last_source:s ~last_chunk:remainder
                   (Frame.append buf (self#begin_track new_track))
             | Some s ->
