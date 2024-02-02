@@ -360,11 +360,8 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 db_before db_after
                 (Frame.seconds_of_main buffered_before)
                 (Frame.seconds_of_main buffered_after);
-              if Frame.main_of_audio minimum_length < buffered then (
-                self#log#important
-                  "Computing crossfade over first and last %.2fs"
-                  (Frame.seconds_of_main buffered);
-                f before after)
+              if Frame.main_of_audio minimum_length < buffered then
+                f before after
               else (
                 self#log#important "Not enough data for crossing.";
                 (new Sequence.sequence [before; after] :> source))
