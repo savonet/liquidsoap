@@ -24,20 +24,30 @@ open Mm
 open Source
 
 class blank duration =
-  let ticks = if duration < 0. then -1 else Frame.main_of_seconds duration in
+  let ticks () =
+    let d = duration () in
+    if d < 0. then -1 else Frame.main_of_seconds d
+  in
   object (self)
     inherit source ~name:"blank" ()
 
     (** Remaining time, -1 for infinity. *)
-    val mutable remaining = ticks
+    val mutable remaining = None
 
-    method remaining = remaining
+    method remaining =
+      match remaining with
+        | Some r -> r
+        | None ->
+            let r = ticks () in
+            remaining <- Some r;
+            r
+
     method stype = `Infallible
     method private can_generate_frame = true
     method self_sync = (`Static, false)
     method! seek x = x
     method seek_source = (self :> Source.source)
-    method abort_track = remaining <- 0
+    method abort_track = remaining <- Some 0
     val mutable is_first = true
 
     method generate_frame =
@@ -84,15 +94,15 @@ class blank duration =
           self#content_type
           (Frame.create ~length Frame.Fields.empty)
       in
-      match (was_first, remaining) with
+      match (was_first, self#remaining) with
         | true, _ -> Frame.add_track_mark frame 0
         | _, -1 -> frame
         | _, r ->
             if r < length then (
-              remaining <- ticks - r;
+              remaining <- Some (ticks () - r);
               Frame.add_track_mark frame r)
             else (
-              remaining <- r - length;
+              remaining <- Some (r - length);
               frame)
   end
 
@@ -102,12 +112,12 @@ let blank =
     ~descr:"Produce silence and blank images." ~return_t
     [
       ( "duration",
-        Lang.float_t,
+        Lang.getter_t Lang.float_t,
         Some (Lang.float (-1.)),
         Some
           "Duration of blank tracks in seconds, Negative value means forever."
       );
     ]
     (fun p ->
-      let d = Lang.to_float (List.assoc "duration" p) in
+      let d = Lang.to_float_getter (List.assoc "duration" p) in
       (new blank d :> source))
