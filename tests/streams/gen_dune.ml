@@ -42,6 +42,8 @@ let () =
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)

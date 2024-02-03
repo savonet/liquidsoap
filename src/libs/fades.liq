@@ -320,7 +320,6 @@ end
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
 # @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
 #                        to set to default value.
-# @param ~override_delay Metadata field which, if presents and correct, overrides the initial fade delay.
 # @param ~override_skip Metadata field which, when present and set to "true", will trigger the fade
 # @param ~persist_overrides Keep duration and type overrides on track change.
 # @param ~initial_metadata Initial metadata.
@@ -333,7 +332,6 @@ def fade.skip(
   ~override_duration="liq_fade_skip",
   ~override_type="liq_fade_skip_type",
   ~override_curve="liq_fade_skip_curve",
-  ~override_delay="liq_fade_skip_delay",
   ~persist_overrides=false,
   ~override_skip="liq_skip_meta",
   ~initial_metadata=[],
