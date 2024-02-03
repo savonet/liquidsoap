@@ -106,8 +106,8 @@ let _truncate gen len =
   Atomic.set gen.content
     (Frame_base.Fields.map
        (fun content ->
-         if len < Content.length content then Content.truncate content len
-         else content)
+         assert (len <= Content.length content);
+         Content.truncate content len)
        (Atomic.get gen.content))
 
 let truncate gen = Tutils.mutexify gen.lock (_truncate gen)
