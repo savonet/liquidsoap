@@ -303,7 +303,6 @@ end
 # @flag extra
 # @param ~id Force the value of the source ID.
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
-# @param ~delay Initial delay before starting fade.
 # @param ~curve Fade curve. Default if `null`.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
 # @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
@@ -316,7 +315,6 @@ end
 def fade.skip(
   ~id="fade.skip",
   ~duration=5.,
-  ~delay=0.,
   ~curve=null(),
   ~override_duration="liq_fade_skip",
   ~override_type="liq_fade_skip_type",
@@ -338,8 +336,6 @@ def fade.skip(
   curve = ref(curve)
   original_duration = duration
   duration = ref(duration)
-  original_delay = delay
-  delay = ref(original_delay)
   last_metadata = ref(initial_metadata)
 
   def apply() =
@@ -374,7 +370,6 @@ def fade.skip(
           type=type(),
           curve=curve(),
           duration=duration,
-          delay=delay(),
           on_done=skip,
           s
         )
@@ -445,10 +440,9 @@ def fade.skip(
     then
       log(
         "Setting fade skip to default duration: #{original_duration}s, \
-        delay: #{original_delay}s, type: #{original_type}, curve: #{original_curve}"
+        type: #{original_type}, curve: #{original_curve}"
       )
       duration := original_duration
-      delay := original_delay
       type := original_type
       curve := original_curve
     end
@@ -459,7 +453,6 @@ def fade.skip(
   s = source.on_track(s, stop_fade)
   fade.scale(id=id, apply, s).{
     fade_duration={duration()},
-    fade_delay={delay()},
     fade_type={type()}
   }
 end
