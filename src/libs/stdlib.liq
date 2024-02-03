@@ -51,5 +51,6 @@
 %include_extra "extra/interactive.liq"
 %include_extra "extra/gstreamer.liq"
 %include_extra "extra/visualization.liq"
+%include_extra "extra/fades.liq"
 
 set_settings_ref(settings)

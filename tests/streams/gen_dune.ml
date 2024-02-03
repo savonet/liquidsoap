@@ -35,6 +35,8 @@ let () =
   ./jingles
   ./playlist
   ./huge_playlist
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
