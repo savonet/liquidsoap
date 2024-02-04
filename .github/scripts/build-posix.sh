@@ -45,7 +45,7 @@ cd /tmp/liquidsoap-full/liquidsoap
 ./.github/scripts/checkout-deps.sh
 
 opam update
-opam install -y magic-mime
+opam install -y magic-mime poll
 
 cd /tmp/liquidsoap-full
 
