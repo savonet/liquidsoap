@@ -22,6 +22,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -51,6 +53,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -80,6 +84,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -109,6 +115,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -138,6 +146,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -167,11 +177,44 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} cross.liq liquidsoap %{test_liq} cross.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  crossfade-plot.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} crossfade-plot.liq liquidsoap %{test_liq} crossfade-plot.liq)))
 
 (rule
  (alias citest)
@@ -196,6 +239,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -225,6 +270,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -254,6 +301,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -283,6 +332,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -312,6 +363,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -341,6 +394,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -370,6 +425,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -399,6 +456,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -428,6 +487,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -457,6 +518,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -486,6 +549,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -515,6 +580,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -544,6 +611,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -573,6 +642,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -602,6 +673,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -631,6 +704,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -660,6 +735,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -689,6 +766,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -718,6 +797,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -747,6 +828,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -776,6 +859,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -805,6 +890,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -834,6 +921,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -863,6 +952,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -892,6 +983,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -921,6 +1014,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -950,6 +1045,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -979,6 +1076,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1008,6 +1107,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1037,6 +1138,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1066,6 +1169,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1095,6 +1200,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1124,6 +1231,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1153,6 +1262,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1182,6 +1293,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1211,6 +1324,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1240,6 +1355,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1269,6 +1386,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1298,6 +1417,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1327,6 +1448,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1356,6 +1479,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1385,6 +1510,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1414,6 +1541,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1443,6 +1572,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1472,6 +1603,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1501,6 +1634,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1530,6 +1665,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)
@@ -1559,6 +1696,8 @@
   ./r128_track_gain.opus
   ./replaygain_r128_track_gain.opus
   ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)

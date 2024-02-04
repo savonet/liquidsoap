@@ -17,6 +17,27 @@ so, always best to first to a trial run before putting things to production!
 
 ## From 2.2.x to 2.3.x
 
+### Crossfade transitions and track marks
+
+Track marks can now be properly passed through crossfade transitions. This means that you also have to make sure
+that your transition function is fallible! For instance, this silly transition function:
+
+```liquidsoap
+def transition(_, _) =
+  blank(duration=2.)
+end
+```
+
+Will never terminate!
+
+Typically, to insert a jingle you would do:
+
+```liquidsoap
+def transition(old, new) =
+  sequence([old.source, single("/path/to/jingle.mp3"), new.source])
+end
+```
+
 ### Replaygain
 
 - There is a new `metadata.replaygain` function that extracts the replay gain value in _dB_ from the metadata.
