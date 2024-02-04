@@ -23,8 +23,6 @@
 module Pcre = Re.Pcre
 include Liquidsoap_lang.Utils
 
-let select = if Sys.win32 then Unix.select else Duppy.poll
-
 (* Util to log exception and backtrace together
    when log level is set to info and just exception
    as severe otherwise. Backtrace should be captured as early

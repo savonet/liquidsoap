@@ -167,10 +167,10 @@ let set_done, wait_done =
   let set_done () = ignore (Unix.write write_done (Bytes.create 1) 0 1) in
   let wait_done () =
     let rec wait_for_done () =
-      try Utils.select [read_done] [] [] (-1.)
+      try Duppy.poll [read_done] [] (-1.)
       with Unix.Unix_error (Unix.EINTR, _, _) -> wait_for_done ()
     in
-    let r, _, _ = wait_for_done () in
+    let r, _ = wait_for_done () in
     assert (r = [read_done])
   in
   (set_done, wait_done)
@@ -346,9 +346,9 @@ let wait_for =
         | `Both socket -> ([socket], [socket])
     in
     let rec wait t =
-      let r, w, _ =
-        try Utils.select (end_r :: r) w [] t
-        with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
+      let r, w =
+        try Duppy.poll (end_r :: r) w t
+        with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [])
       in
       if List.mem end_r r then raise Exit;
       if r = [] && w = [] then (
