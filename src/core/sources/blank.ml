@@ -24,26 +24,37 @@ open Mm
 open Source
 
 class blank duration =
-  let ticks = if duration < 0. then -1 else Frame.main_of_seconds duration in
+  let ticks () =
+    let d = duration () in
+    if d < 0. then -1 else Frame.main_of_seconds d
+  in
   object (self)
     inherit source ~name:"blank" ()
 
     (** Remaining time, -1 for infinity. *)
-    val mutable remaining = ticks
+    val mutable remaining = None
 
-    method remaining = remaining
+    method remaining =
+      match remaining with
+        | Some r -> r
+        | None ->
+            let r = ticks () in
+            remaining <- Some r;
+            r
+
     method stype = `Infallible
     method private _is_ready ?frame:_ _ = true
     method self_sync = (`Static, false)
     method! seek x = x
     method seek_source = (self :> Source.source)
-    method abort_track = remaining <- 0
+    method abort_track = remaining <- Some 0
 
     method get_frame ab =
       let position = Frame.position ab in
+      let rem = self#remaining in
       let length =
-        if remaining < 0 then Lazy.force Frame.size - position
-        else min remaining (Lazy.force Frame.size - position)
+        if rem < 0 then Lazy.force Frame.size - position
+        else min rem (Lazy.force Frame.size - position)
       in
       let audio_pos = Frame.audio_of_main position in
       let audio_len = Frame.audio_of_main length in
@@ -73,8 +84,8 @@ class blank duration =
         self#content_type;
 
       Frame.add_break ab (position + length);
-      if Frame.is_partial ab then remaining <- ticks
-      else if remaining > 0 then remaining <- remaining - length
+      if Frame.is_partial ab then remaining <- None
+      else if rem > 0 then remaining <- Some (rem - length)
   end
 
 let blank =
@@ -83,12 +94,12 @@ let blank =
     ~descr:"Produce silence and blank images." ~return_t
     [
       ( "duration",
-        Lang.float_t,
+        Lang.getter_t Lang.float_t,
         Some (Lang.float (-1.)),
         Some
           "Duration of blank tracks in seconds, Negative value means forever."
       );
     ]
     (fun p ->
-      let d = Lang.to_float (List.assoc "duration" p) in
+      let d = Lang.to_float_getter (List.assoc "duration" p) in
       (new blank d :> source))
