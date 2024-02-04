@@ -46,14 +46,12 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
     method seek_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
 
-    method! private wake_up l =
-      active_source#wake_up l;
-      let blank () = Audio.make self#audio_channels buffer_length 0. in
-      ioring#init blank
+    initializer
+      self#on_wake_up (fun () ->
+          let blank () = Audio.make self#audio_channels buffer_length 0. in
+          ioring#init blank);
 
-    method! private sleep =
-      active_source#sleep;
-      ioring#sleep
+      self#on_sleep (fun () -> ioring#sleep)
 
     method abort_track = ()
     method remaining = -1

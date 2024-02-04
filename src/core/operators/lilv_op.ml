@@ -63,22 +63,22 @@ let constant_data len x =
 (** A mono LV2 plugin: a plugin is created for each channel. *)
 class lilv_mono (source : source) plugin input output params =
   object (self)
-    inherit base source as super
+    inherit base source
     val mutable inst = None
 
-    method! wake_up a =
-      super#wake_up a;
-      let i =
-        Array.init
-          (Content.Audio.channels_of_format
-             (Option.get
-                (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
-          (fun _ ->
-            Plugin.instantiate plugin
-              (float_of_int (Lazy.force Frame.audio_rate)))
-      in
-      Array.iter Plugin.Instance.activate i;
-      inst <- Some i
+    initializer
+      self#on_wake_up (fun () ->
+          let i =
+            Array.init
+              (Content.Audio.channels_of_format
+                 (Option.get
+                    (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
+              (fun _ ->
+                Plugin.instantiate plugin
+                  (float_of_int (Lazy.force Frame.audio_rate)))
+          in
+          Array.iter Plugin.Instance.activate i;
+          inst <- Some i)
 
     method private generate_frame =
       let b =

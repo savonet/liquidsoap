@@ -214,7 +214,6 @@ let _ =
           p
       in
       let proto = ("fallible", Lang.bool true) :: proto in
-      let s = Lang.to_source (Lang.assoc "" 3 p) in
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
       let fo = Pipe_output.new_file_output p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
@@ -229,7 +228,6 @@ let _ =
         sleep_until (start_time |+| latency)
       done;
       log#info "Source dumped.";
-      fo#leave s;
       Lang.unit)
 
 let _ =
@@ -271,5 +269,4 @@ let _ =
         sleep_until (start_time |+| latency)
       done;
       log#info "Source dropped.";
-      o#leave s;
       Lang.unit)

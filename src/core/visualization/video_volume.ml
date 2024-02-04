@@ -31,7 +31,7 @@ let f_group_size = float group_size
 
 class visu source =
   object (self)
-    inherit operator ~name:"video.volume" [source] as super
+    inherit operator ~name:"video.volume" [source]
     method stype = source#stype
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
@@ -48,10 +48,11 @@ class visu source =
     val mutable cur_rms = [||]
     val mutable group = 0
 
-    method! wake_up a =
-      super#wake_up a;
-      vol <- Array.init self#audio_channels (fun _ -> Array.make backpoints 0.);
-      cur_rms <- Array.make self#audio_channels 0.
+    initializer
+      self#on_wake_up (fun () ->
+          vol <-
+            Array.init self#audio_channels (fun _ -> Array.make backpoints 0.);
+          cur_rms <- Array.make self#audio_channels 0.)
 
     method private add_vol v =
       for c = 0 to self#audio_channels - 1 do

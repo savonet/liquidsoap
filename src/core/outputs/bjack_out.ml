@@ -39,14 +39,14 @@ class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
-    method! wake_up a =
-      super#wake_up a;
-      let blank () =
-        Bytes.make
-          (samples_per_frame * self#audio_channels * bytes_per_sample)
-          '0'
-      in
-      ioring#init blank
+    initializer
+      self#on_wake_up (fun () ->
+          let blank () =
+            Bytes.make
+              (samples_per_frame * self#audio_channels * bytes_per_sample)
+              '0'
+          in
+          ioring#init blank)
 
     method! private set_clock =
       super#set_clock;

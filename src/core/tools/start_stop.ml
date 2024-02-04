@@ -76,8 +76,10 @@ class virtual active_source ?get_clock ~name ~clock_safe
     inherit Source.active_source ~name () as super
     inherit base ~on_start ~on_stop as base
     method stype = if fallible then `Fallible else `Infallible
-    method! private wake_up _ = if autostart then base#transition_to `Started
-    method! private sleep = base#transition_to `Stopped
+
+    initializer
+      self#on_wake_up (fun () -> if autostart then base#transition_to `Started)
+
     method private started = state = `Started
     val mutable clock = None
 

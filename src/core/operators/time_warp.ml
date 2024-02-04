@@ -229,7 +229,7 @@ module AdaptativeBuffer = struct
        https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant *)
     let alpha = AFrame.duration () /. averaging in
     object (self)
-      inherit Source.source ~name:"buffer.adaptative.producer" () as super
+      inherit Source.source ~name:"buffer.adaptative.producer" ()
       method seek_source = (self :> Source.source)
       method stype = `Fallible
       method self_sync = (`Static, false)
@@ -245,11 +245,11 @@ module AdaptativeBuffer = struct
 
       val mutable converter = None
 
-      method! wake_up a =
-        super#wake_up a;
-        if resample then
-          converter <-
-            Some (Audio_converter.Samplerate.create self#audio_channels)
+      initializer
+        self#on_wake_up (fun () ->
+            if resample then
+              converter <-
+                Some (Audio_converter.Samplerate.create self#audio_channels))
 
       method private generate_frame =
         proceed c (fun () ->

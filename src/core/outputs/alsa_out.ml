@@ -43,10 +43,10 @@ class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start ~start
     inherit [Content.Audio.data] IoRing.output ~nb_blocks as ioring
     val mutable initialized = false
 
-    method! wake_up a =
-      super#wake_up a;
-      let blank () = Audio.make self#audio_channels buffer_length 0. in
-      ioring#init blank
+    initializer
+      self#on_wake_up (fun () ->
+          let blank () = Audio.make self#audio_channels buffer_length 0. in
+          ioring#init blank)
 
     method! private set_clock =
       super#set_clock;

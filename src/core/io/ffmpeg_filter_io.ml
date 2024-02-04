@@ -101,16 +101,7 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
     method start = ()
     method stop = ()
     method! reset = ()
-    val mutable is_up = false
-    method! can_generate_frame = is_up && super#can_generate_frame
-
-    method! wake_up l =
-      is_up <- true;
-      super#wake_up l
-
-    method! sleep =
-      is_up <- false;
-      super#sleep
+    method! can_generate_frame = self#is_up && super#can_generate_frame
 
     method virtual raw_ffmpeg_frames
         : Content.data -> 'a Ffmpeg_raw_content.frame list

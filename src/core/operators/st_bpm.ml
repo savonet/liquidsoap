@@ -24,7 +24,7 @@ open Source
 
 class bpm (source : source) =
   object (self)
-    inherit operator ~name:"bpm" [source] as super
+    inherit operator ~name:"bpm" [source]
     method stype = source#stype
     method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync
@@ -33,15 +33,16 @@ class bpm (source : source) =
     method abort_track = source#abort_track
     val mutable bpm = None
 
-    method! wake_up a =
-      super#wake_up a;
-      bpm <-
-        Some
-          (Soundtouch.BPM.make
-             (Content.Audio.channels_of_format
-                (Option.get
-                   (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
-             (Lazy.force Frame.audio_rate))
+    initializer
+      self#on_wake_up (fun () ->
+          bpm <-
+            Some
+              (Soundtouch.BPM.make
+                 (Content.Audio.channels_of_format
+                    (Option.get
+                       (Frame.Fields.find_opt Frame.Fields.audio
+                          self#content_type)))
+                 (Lazy.force Frame.audio_rate)))
 
     method private generate_frame =
       let buf =

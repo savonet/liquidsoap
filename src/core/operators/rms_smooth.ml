@@ -25,14 +25,13 @@ open Source
 class rms ~tau source =
   let samplerate = float (Lazy.force Frame.audio_rate) in
   object (self)
-    inherit operator [source] ~name:"rms" as super
+    inherit operator [source] ~name:"rms"
     method stype = source#stype
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    method! wake_up a = super#wake_up a
     val mutable rms = 0.
     method rms = sqrt rms
 

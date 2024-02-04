@@ -54,7 +54,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
   let bytes = Bytes.create Utils.pagesize in
   let source = Lang.to_source source_val in
   object (self)
-    inherit source ~name:"pipe" () as super
+    inherit source ~name:"pipe" ()
 
     (* We are expecting real-rate with a couple of hickups.. *)
     inherit! Child_support.base ~check_self_sync:false [source_val]
@@ -240,21 +240,20 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
                 true
             | _, `Nothing -> restart)
 
-    method! wake_up a =
-      super#wake_up a;
-      converter <-
-        Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
-          ~samplesize;
+    initializer
+      self#on_wake_up (fun () ->
+          converter <-
+            Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
+              ~samplesize;
 
-      source#get_ready [(self :> source)];
-      (* Now we can create the log function *)
-      log_ref := self#log#info "%s";
-      log_error := self#log#debug "%s";
-      handler <-
-        Some
-          (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
-             ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
-             ~priority:`Blocking ~on_stderr:self#on_stderr ~log process)
+          (* Now we can create the log function *)
+          log_ref := self#log#info "%s";
+          log_error := self#log#debug "%s";
+          handler <-
+            Some
+              (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
+                 ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
+                 ~priority:`Blocking ~on_stderr:self#on_stderr ~log process))
 
     method! abort_track = source#abort_track
 

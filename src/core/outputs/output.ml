@@ -121,34 +121,29 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
     method seek_source = source#seek_source
 
     (* Operator startup *)
-    method! private wake_up activation =
-      (* We prefer [name] as an ID over the default, but do not overwrite
-         user-defined ID. Our ID will be used for the server interface. *)
-      if name <> "" then self#set_id ~definitive:false name;
+    initializer
+      self#on_wake_up (fun () ->
+          (* We prefer [name] as an ID over the default, but do not overwrite
+             user-defined ID. Our ID will be used for the server interface. *)
+          if name <> "" then self#set_id ~definitive:false name;
 
-      self#log#debug "Clock is %s."
-        (Source.Clock_variables.to_string self#clock);
-      self#log#important "Content type is %s."
-        (Frame.string_of_content_type self#content_type);
+          self#log#debug "Clock is %s."
+            (Source.Clock_variables.to_string self#clock);
+          self#log#important "Content type is %s."
+            (Frame.string_of_content_type self#content_type);
 
-      if Frame.Fields.is_empty self#content_type then
-        failwith
-          (Printf.sprintf
-             "Empty content-type detected for output %s. You might want to use \
-              an expliciy type annotation!"
-             self#id);
+          if Frame.Fields.is_empty self#content_type then
+            failwith
+              (Printf.sprintf
+                 "Empty content-type detected for output %s. You might want to \
+                  use an expliciy type annotation!"
+                 self#id);
 
-      (* Get our source ready. This can take a while (preparing playlists,
-         etc). *)
-      source#get_ready ((self :> operator) :: activation);
+          if not autostart then start_stop#transition_to `Stopped;
 
-      if not autostart then start_stop#transition_to `Stopped;
+          self#register_telnet);
 
-      self#register_telnet
-
-    method! private sleep =
-      start_stop#transition_to `Stopped;
-      source#leave (self :> operator)
+      self#on_sleep (fun () -> start_stop#transition_to `Stopped)
 
     (* Metadata stuff: keep track of what was streamed. *)
     val q_length = 10

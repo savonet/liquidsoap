@@ -315,6 +315,15 @@ let add_new_output, iterate_new_outputs =
         List.iter f !l;
         l := []) )
 
+let sleep s =
+  source_log#info "Source %s gets down." s#id;
+  try s#sleep
+  with e ->
+    let bt = Printexc.get_backtrace () in
+    Utils.log_exception ~log:source_log ~bt
+      (Printf.sprintf "Error when leaving output %s: %s!" s#id
+         (Printexc.to_string e))
+
 class virtual operator ?pos ?(name = "src") sources =
   let frame_type = Type.var () in
   object (self)
@@ -440,22 +449,6 @@ class virtual operator ?pos ?(name = "src") sources =
         (Option.get
            (Frame.Fields.find_opt Frame.Fields.video self#content_type))
 
-    (** Startup/shutdown.
-
-      Get the source ready for streaming on demand, have it release resources
-      when it's not used any more, and decide whether the source should run in
-      caching mode.
-
-      Before that a source P accesses another source S it must activate it. The
-      An activation is identified by the path to the source which required it.
-      It is possible that two identical activations are done, and they should
-      not be treated as a single one.
-
-      It is assumed that all streaming is done in one thread for a given clock,
-      so the activation management API is not thread-safe. *)
-
-    val mutable caching = false
-    val mutable activations : operator list list = []
     val mutable on_wake_up = []
     method on_wake_up fn = on_wake_up <- fn :: on_wake_up
 
@@ -470,59 +463,31 @@ class virtual operator ?pos ?(name = "src") sources =
               w.wake_up ~stype:self#stype ~is_active:self#is_active ~id:self#id
                 ~ctype:self#content_type ~clock_id ~clock_sync_mode))
 
-    (* Ask for initialization.
-       The current implementation makes it dangerous to call #get_ready from
-       another thread than the Root one, as interleaving with #get is
-       forbidden. *)
-    method get_ready (activation : operator list) =
-      self#content_type_computation_allowed;
-      if log == source_log then self#create_log;
-      if activations = [] then (
+    val mutable is_up = false
+    method is_up = is_up
+
+    method wake_up =
+      if not is_up then (
+        is_up <- true;
+        self#content_type_computation_allowed;
+        if log == source_log then self#create_log;
         source_log#info "Source %s gets up with content type: %s." id
           (Frame.string_of_content_type self#content_type);
-        self#wake_up activation;
-        List.iter (fun fn -> fn ()) on_wake_up);
-      activations <- activation :: activations
+        self#log#debug "Clock is %s." (variable_to_string self#clock);
+        self#log#important "Content type is %s."
+          (Frame.string_of_content_type self#content_type);
+        List.iter (fun fn -> fn ()) on_wake_up)
 
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- fn :: on_sleep
 
+    method sleep =
+      source_log#info "Source %s gets down." id;
+      List.iter (fun fn -> fn ()) on_sleep
+
     initializer
+      Gc.finalise sleep self;
       self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
-
-    (* Release the source, which will shutdown if possible.
-       The current implementation makes it dangerous to call #leave from
-       another thread than the Root one, as interleaving with #get is
-       forbidden. *)
-    method leave ?(failed_to_start = true) src =
-      let rec remove acc = function
-        | [] when failed_to_start -> []
-        | [] ->
-            self#log#critical "Got ill-balanced activations (from %s)!" src#id;
-            assert false
-        | (s :: _) :: tl when s = src -> List.rev_append acc tl
-        | h :: tl -> remove (h :: acc) tl
-      in
-      activations <- remove [] activations;
-      if activations = [] then (
-        source_log#info "Source %s gets down." id;
-        self#sleep;
-        List.iter (fun fn -> try fn () with _ -> ()) on_sleep)
-
-    method is_up = activations <> []
-
-    (** Two methods called for initialization and shutdown of the source *)
-    method private wake_up activation =
-      self#log#debug "Clock is %s." (variable_to_string self#clock);
-      self#log#important "Content type is %s."
-        (Frame.string_of_content_type self#content_type);
-      let activation = (self :> operator) :: activation in
-      List.iter (fun s -> s#get_ready activation) sources
-
-    method private sleep =
-      List.iter
-        (fun s -> s#leave ?failed_to_start:None (self :> operator))
-        sources
 
     (** Streaming *)
 
@@ -549,10 +514,9 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable streaming_state : streaming_state = `Unavailable
 
     method is_ready =
-      if not content_type_computation_allowed then false
-      else (
-        self#has_ticked;
-        match streaming_state with `Ready _ | `Done _ -> true | _ -> false)
+      self#wake_up;
+      self#has_ticked;
+      match streaming_state with `Ready _ | `Done _ -> true | _ -> false
 
     val mutable _cache = None
 

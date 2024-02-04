@@ -690,9 +690,9 @@ class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
             | None -> ());
           on_disconnect_cur ()
 
-    method! wake_up act =
-      super#wake_up act;
-      Generator.set_max_length self#buffer max_length
+    initializer
+      self#on_wake_up (fun () ->
+          Generator.set_max_length self#buffer max_length)
 
     method seek_source = (self :> Source.source)
     method remaining = -1

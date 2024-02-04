@@ -99,15 +99,19 @@ class keyboard velocity =
 
     val mutable window = None
 
-    method! wake_up _ =
-      window <-
-        Some
-          (Sdl_utils.check
-             (fun () ->
-               Sdl.create_window "Liquidsoap" ~w:640 ~h:480 Sdl.Window.windowed)
-             ())
+    initializer
+      self#on_wake_up (fun () ->
+          window <-
+            Some
+              (Sdl_utils.check
+                 (fun () ->
+                   Sdl.create_window "Liquidsoap" ~w:640 ~h:480
+                     Sdl.Window.windowed)
+                 ()));
 
-    method! private sleep = Sdl.quit ()
+      (* TODO: could this be too radical? *)
+      self#on_sleep Sdl.quit
+
     val mutable reader = None
     val mutable velocity = velocity
     method reset = ()

@@ -95,22 +95,22 @@ let instantiate d samplerate =
 (* A plugin is created for each channel. *)
 class ladspa_mono (source : source) plugin descr input output params =
   object (self)
-    inherit base source as super
+    inherit base source
     val mutable inst = None
 
-    method! wake_up a =
-      super#wake_up a;
-      let p = Plugin.load plugin in
-      let d = Descriptor.descriptor p descr in
-      let i =
-        Array.init
-          (Content.Audio.channels_of_format
-             (Option.get
-                (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
-          (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
-      in
-      Array.iter Descriptor.activate i;
-      inst <- Some i
+    initializer
+      self#on_wake_up (fun () ->
+          let p = Plugin.load plugin in
+          let d = Descriptor.descriptor p descr in
+          let i =
+            Array.init
+              (Content.Audio.channels_of_format
+                 (Option.get
+                    (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
+              (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
+          in
+          Array.iter Descriptor.activate i;
+          inst <- Some i)
 
     method private generate_frame =
       let b =

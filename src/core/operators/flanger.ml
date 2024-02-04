@@ -28,7 +28,7 @@ let pi = acos (-1.)
 class flanger (source : source) delay freq feedback phase =
   let past_len = Frame.audio_of_seconds delay in
   object (self)
-    inherit operator ~name:"flanger" [source] as super
+    inherit operator ~name:"flanger" [source]
     method stype = source#stype
     method remaining = source#remaining
     method seek_source = source#seek_source
@@ -37,9 +37,9 @@ class flanger (source : source) delay freq feedback phase =
     method abort_track = source#abort_track
     val mutable past = Audio.make 0 0 0.
 
-    method! wake_up a =
-      super#wake_up a;
-      past <- Audio.make self#audio_channels past_len 0.
+    initializer
+      self#on_wake_up (fun () ->
+          past <- Audio.make self#audio_channels past_len 0.)
 
     val mutable past_pos = 0
     val mutable omega = 0.

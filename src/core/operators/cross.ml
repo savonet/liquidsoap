@@ -48,7 +48,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
-    inherit source ~name:"cross" () as super
+    inherit source ~name:"cross" ()
 
     inherit
       generate_from_multiple_sources
@@ -124,30 +124,14 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private prepare_source s =
       let s = (s :> source) in
-      s#get_ready [(self :> source)];
       Clock.unify ~pos:self#pos source#clock s#clock;
       self#set_cross_length
 
-    method! private wake_up a =
-      self#reset_analysis;
-      super#wake_up a;
-      source#get_ready [(self :> source)];
-      Lang.iter_sources (fun s -> s#get_ready [(self :> source)]) transition
+    initializer self#on_wake_up (fun () -> self#reset_analysis)
 
     val mutable status
         : [ `Idle | `Before of Source.source | `After of Source.source ] =
       `Idle
-
-    method private leave_status =
-      match status with
-        | `Idle -> ()
-        | `Before s | `After s -> s#leave (self :> source)
-
-    method! private sleep =
-      source#leave (self :> source);
-      s#leave (self :> source);
-      Lang.iter_sources (fun s -> s#leave (self :> source)) transition;
-      self#leave_status
 
     method private child_get ~is_first source =
       let frame = ref self#empty_frame in
@@ -186,7 +170,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let before = new consumer gen_before in
       Typing.(before#frame_type <: self#frame_type);
       self#prepare_source before;
-      self#leave_status;
       status <- `Before (before :> Source.source);
       self#buffer_before ~is_first:true ();
       before
@@ -322,7 +305,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       in
       self#prepare_source after;
       self#reset_analysis;
-      self#leave_status;
       status <- `After after
 
     method remaining =
