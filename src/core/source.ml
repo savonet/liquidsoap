@@ -463,27 +463,35 @@ class virtual operator ?pos ?(name = "src") sources =
               w.wake_up ~stype:self#stype ~is_active:self#is_active ~id:self#id
                 ~ctype:self#content_type ~clock_id ~clock_sync_mode))
 
-    val mutable is_up = false
-    method is_up = is_up
+    val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
+    method is_up = Atomic.get is_up = `True
 
     method wake_up =
-      if not is_up then (
-        is_up <- true;
-        self#content_type_computation_allowed;
-        if log == source_log then self#create_log;
-        source_log#info "Source %s gets up with content type: %s." id
-          (Frame.string_of_content_type self#content_type);
-        self#log#debug "Clock is %s." (variable_to_string self#clock);
-        self#log#important "Content type is %s."
-          (Frame.string_of_content_type self#content_type);
-        List.iter (fun fn -> fn ()) on_wake_up)
+      if Atomic.compare_and_set is_up `False `True then (
+        try
+          self#content_type_computation_allowed;
+          if log == source_log then self#create_log;
+          source_log#info "Source %s gets up with content type: %s." id
+            (Frame.string_of_content_type self#content_type);
+          self#log#debug "Clock is %s." (variable_to_string self#clock);
+          self#log#important "Content type is %s."
+            (Frame.string_of_content_type self#content_type);
+          List.iter (fun fn -> fn ()) on_wake_up
+        with exn ->
+          Atomic.set is_up `Error;
+          self#sleep;
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log ~bt
+            (Printf.sprintf "Error when starting source %s: %s!" self#id
+               (Printexc.to_string exn)))
 
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- fn :: on_sleep
 
     method sleep =
-      source_log#info "Source %s gets down." id;
-      List.iter (fun fn -> fn ()) on_sleep
+      if Atomic.compare_and_set is_up `True `False then (
+        source_log#info "Source %s gets down." id;
+        List.iter (fun fn -> fn ()) on_sleep)
 
     initializer
       Gc.finalise sleep self;
