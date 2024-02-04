@@ -68,7 +68,13 @@ class sequence ?(merge = false) sources =
     method private get_source ~reselect () =
       match (self#has_started, Atomic.get seq_sources) with
         | _, [] -> None
-        | true, s :: [] -> if s#is_ready then Some s else None
+        | true, s :: [] ->
+            if
+              self#can_reselect
+                ~reselect:(match reselect with `Force -> `Ok | _ -> reselect)
+                s
+            then Some s
+            else None
         | true, s :: rest ->
             if
               self#can_reselect
