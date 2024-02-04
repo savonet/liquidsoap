@@ -35,7 +35,7 @@ class sequence ?(merge = false) sources =
 
     inherit
       generate_from_multiple_sources
-        ~merge:(fun () -> merge && Atomic.get seq_sources <> [])
+        ~merge:(fun () -> merge && List.length (Atomic.get seq_sources) <> 1)
         ~track_sensitive:(fun () -> true)
         ()
 
@@ -68,6 +68,13 @@ class sequence ?(merge = false) sources =
     method private get_source ~reselect () =
       match (self#has_started, Atomic.get seq_sources) with
         | _, [] -> None
+        | true, s :: [] ->
+            if
+              self#can_reselect
+                ~reselect:(match reselect with `Force -> `Ok | _ -> reselect)
+                s
+            then Some s
+            else None
         | true, s :: rest ->
             if
               self#can_reselect
