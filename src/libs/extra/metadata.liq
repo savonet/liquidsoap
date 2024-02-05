@@ -1,8 +1,10 @@
 # Store and retrieve file covers using metadata. This returns a set of
 # getter/setter methods that can be used to store and retrieve cover art.
 # Typical usage is to set cover art in a `on_metadata` handler and retrieve
-# it in a `video.add_image` operator.
+# it in a `video.add_image` operator. See `video.add_cover` for an implementation
+# example.
 # @category Metadata
+# @flag extra
 # @param ~default Default cover file when no cover is available
 # @param ~mime_types Recognized mime types and their corresponding file extensions.
 def file.cover.manager(
@@ -46,7 +48,7 @@ def file.cover.manager(
       if
         extension != ""
       then
-        cover_file = file.temp(dir=temp_dir, "#{id}_", ".#{extension}")
+        cover_file = file.temp(directory=temp_dir, "#{id}_", ".#{extension}")
         file.write(cover_file, data=cover)
         cover_file
       else
