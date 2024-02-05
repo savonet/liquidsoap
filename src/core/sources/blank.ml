@@ -24,68 +24,64 @@ open Mm
 open Source
 
 class blank duration =
-  let ticks () =
-    let d = duration () in
-    if d < 0. then -1 else Frame.main_of_seconds d
-  in
   object (self)
     inherit source ~name:"blank" ()
 
-    (** Remaining time, -1 for infinity. *)
-    val mutable remaining = None
+    val position : [ `New_track | `Elapsed of int ] Atomic.t =
+      Atomic.make (`Elapsed 0)
 
     method remaining =
-      match remaining with
-        | Some r -> r
-        | None ->
-            let r = ticks () in
-            remaining <- Some r;
-            r
+      match (Atomic.get position, duration ()) with
+        | `New_track, _ -> 0
+        | `Elapsed _, d when d < 0. -> -1
+        | `Elapsed e, d -> max 0 (Frame.main_of_seconds d - e)
 
     method stype = `Infallible
     method private _is_ready ?frame:_ _ = true
     method self_sync = (`Static, false)
     method! seek x = x
     method seek_source = (self :> Source.source)
-    method abort_track = remaining <- Some 0
+    method abort_track = Atomic.set position `New_track
 
     method get_frame ab =
-      let position = Frame.position ab in
-      let rem = self#remaining in
-      let length =
-        if rem < 0 then Lazy.force Frame.size - position
-        else min rem (Lazy.force Frame.size - position)
-      in
-      let audio_pos = Frame.audio_of_main position in
-      let audio_len = Frame.audio_of_main length in
-      let video_pos = Frame.video_of_main position in
-      let video_len = Frame.video_of_main length in
+      match (Atomic.get position, self#remaining) with
+        | `New_track, _ -> Frame.add_break ab (Frame.position ab)
+        | `Elapsed elapsed, rem ->
+            let pos = Frame.position ab in
+            let length =
+              if rem < 0 then Lazy.force Frame.size - pos
+              else min rem (Lazy.force Frame.size - pos)
+            in
+            let audio_pos = Frame.audio_of_main pos in
+            let audio_len = Frame.audio_of_main length in
+            let video_pos = Frame.video_of_main pos in
+            let video_len = Frame.video_of_main length in
 
-      Frame.Fields.iter
-        (fun field typ ->
-          match typ with
-            | _ when Content.Audio.is_format typ ->
-                Audio.clear
-                  (Content.Audio.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content_pcm_s16.is_format typ ->
-                Content_pcm_s16.clear
-                  (Content_pcm_s16.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content_pcm_f32.is_format typ ->
-                Content_pcm_f32.clear
-                  (Content_pcm_f32.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content.Video.is_format typ ->
-                Video.Canvas.blank
-                  (Content.Video.get_data (Frame.get ab field))
-                  video_pos video_len
-            | _ -> failwith "Invalid content type!")
-        self#content_type;
+            Frame.Fields.iter
+              (fun field typ ->
+                match typ with
+                  | _ when Content.Audio.is_format typ ->
+                      Audio.clear
+                        (Content.Audio.get_data (Frame.get ab field))
+                        audio_pos audio_len
+                  | _ when Content_pcm_s16.is_format typ ->
+                      Content_pcm_s16.clear
+                        (Content_pcm_s16.get_data (Frame.get ab field))
+                        audio_pos audio_len
+                  | _ when Content_pcm_f32.is_format typ ->
+                      Content_pcm_f32.clear
+                        (Content_pcm_f32.get_data (Frame.get ab field))
+                        audio_pos audio_len
+                  | _ when Content.Video.is_format typ ->
+                      Video.Canvas.blank
+                        (Content.Video.get_data (Frame.get ab field))
+                        video_pos video_len
+                  | _ -> failwith "Invalid content type!")
+              self#content_type;
 
-      Frame.add_break ab (position + length);
-      if Frame.is_partial ab then remaining <- None
-      else if rem > 0 then remaining <- Some (rem - length)
+            Frame.add_break ab (pos + length);
+            Atomic.set position
+              (`Elapsed (if Frame.is_partial ab then 0 else elapsed + length))
   end
 
 let blank =
