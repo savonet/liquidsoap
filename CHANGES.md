@@ -11,6 +11,7 @@ New:
 Changed:
 
 - `cue_cut` operator has been removed. Cueing mechanisms have been moved to underlying file-based sources. See migration notes for more details.
+- Reverted `add` to `2.1.x` code, removed track-specific `add` operators (#3610)
 
 Fixed:
 

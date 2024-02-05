@@ -50,8 +50,8 @@ def image(~id=null(), ~fallible=false, ~width=null(), ~height=null(), ~x=getter(
   s.{set=set}
 end
 
-# Add a static image on the given video track.
-# @category Track / Video processing
+# Add a static image on the source video channel.
+# @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
@@ -59,24 +59,9 @@ end
 # @param ~x x position.
 # @param ~y y position.
 # @param ~file Path to the image file.
-def track.video.add_image(~id=null("track.video.add_image"), ~fallible=false, ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, v)
+def video.add_image(~id=null("video.add_image"), ~fallible=false, ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, (s:source))
   image = image(id=id, fallible=fallible, x=x, y=y, width=width, height=height, file)
-  let {video=image} = source.tracks(image)
-  track.video.add([v, image])
-end
-
-# Add a static image on the source video channel.
-# @category Source / Video processing
-# @param ~id Force the value of the source ID.
-# @param ~width Scale to width
-# @param ~height Scale to height
-# @param ~x x position.
-# @param ~y y position.
-# @param ~file Path to the image file.
-def video.add_image(~id=null("video.add_image"), ~width=null(), ~height=null(), ~x=getter(0), ~y=getter(0), ~file, (s:source))
-  let {video, ...tracks} = source.tracks(s)
-  video = track.video.add_image(width=width, height=height, x=x, y=y, file=file, video)
-  source(id=id, tracks.{video=video})
+  add([s, image])
 end
 
 # Generate a video source containing cover-art for current track of input audio
@@ -226,11 +211,7 @@ def add_text_builder(f) =
     t = source.available(t, available)
 
     # Add the text to the original source.
-    let { video = v, ...tracks } = source.tracks(s)
-    let { video = t } = source.tracks(t)
-    let v = track.video.add([v, t])
-
-    source(tracks.{video=v})
+    add([s, t])
   end
   at
 end
@@ -398,11 +379,7 @@ def video.add_subtitle(~override="subtitle", ~size=18, ~color=0xffffff, ~offset=
   end
   s = source.on_metadata(s, meta)
 
-  let { video = v, ...tracks } = source.tracks(s)
-  let { video = t } = source.tracks(t)
-  let v = track.video.add([v, t])
-
-  source(tracks.{video=v})
+  add([s, t])
 end
 
 # Display a slideshow (typically of pictures).
@@ -459,37 +436,6 @@ end
 # @param color Color (in 0xRRGGBB format).
 def video.color(color)
   video.fill(color=color, blank())
-end
-
-# Tile sources
-# @category Source / Video processing
-# @argsof track.video.tile
-# @argsof track.audio.add[!id]
-def video.tile(~id=null("video.tile"), %argsof(track.audio.add[!id]), %argsof(track.video.tile[!id]), ~weights=[], sources) =
-  tracks = list.map(fun (s) -> source.tracks(s), sources)
-  video_tracks = list.map(fun (t) -> t.video, tracks)
-  new_tracks = {
-    video = track.video.tile(%argsof(track.video.tile[!id]), video_tracks)
-  }
-
-  new_tracks =
-    if list.length(tracks) != 0 and null.defined(list.hd(tracks)?.audio) then
-      def mk_audio_track(pos, track) =
-        weight =
-          try
-            list.nth(weights, pos)
-          catch _ do
-            getter(1.)
-          end
-        null.get(track?.audio).{weight=weight}
-      end
-      audio_tracks = list.mapi(mk_audio_track, tracks)
-      new_tracks.{audio = track.audio.add(%argsof(track.audio.add[!id]), audio_tracks)}
-    else
-      new_tracks
-    end
-
-  source(id=id, new_tracks)
 end
 
 # Plot a floating point value.
