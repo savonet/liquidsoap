@@ -94,6 +94,7 @@ end
 # Add a static image on the source video channel.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
+# @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
 # @param ~x x position.
@@ -101,6 +102,7 @@ end
 # @param ~file Path to the image file.
 def video.add_image(
   ~id=null("video.add_image"),
+  ~fallible=false,
   ~width=null(),
   ~height=null(),
   ~x=getter(0),
@@ -111,7 +113,7 @@ def video.add_image(
   let {video, ...tracks} = source.tracks(s)
   video =
     track.video.add_image(
-      width=width, height=height, x=x, y=y, file=file, video
+      fallible=fallible, width=width, height=height, x=x, y=y, file=file, video
     )
 
   source(id=id, tracks.{video=video})

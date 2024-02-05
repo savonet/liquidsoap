@@ -56,5 +56,6 @@
 %include_extra "extra/openai.liq"
 %include_extra "extra/metadata.liq"
 %include_extra "extra/fades.liq"
+%include_extra "extra/video.liq"
 
 set_settings_ref(settings)
