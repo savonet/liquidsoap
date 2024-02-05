@@ -24,35 +24,27 @@ open Mm
 open Source
 
 class blank duration =
-  let ticks () =
-    let d = duration () in
-    if d < 0. then -1 else Frame.main_of_seconds d
-  in
   object (self)
     inherit source ~name:"blank" ()
 
-    (** Remaining time, -1 for infinity. *)
-    val mutable remaining = None
+    val position : [ `New_track | `Elapsed of int ] Atomic.t =
+      Atomic.make `New_track
 
+    (** Remaining time, -1 for infinity. *)
     method remaining =
-      match remaining with
-        | Some r -> r
-        | None ->
-            let r = ticks () in
-            remaining <- Some r;
-            r
+      match (Atomic.get position, duration ()) with
+        | `New_track, _ -> 0
+        | `Elapsed _, d when d < 0. -> -1
+        | `Elapsed e, d -> max 0 (Frame.main_of_seconds d - e)
 
     method stype = `Infallible
     method private can_generate_frame = true
     method self_sync = (`Static, false)
     method! seek x = x
     method seek_source = (self :> Source.source)
-    method abort_track = remaining <- Some 0
-    val mutable is_first = true
+    method abort_track = Atomic.set position `New_track
 
     method generate_frame =
-      let was_first = is_first in
-      is_first <- false;
       let length = Lazy.force Frame.size in
       let audio_len = Frame.audio_of_main length in
       let frame =
@@ -94,15 +86,19 @@ class blank duration =
           self#content_type
           (Frame.create ~length Frame.Fields.empty)
       in
-      match (was_first, self#remaining) with
-        | true, _ -> Frame.add_track_mark frame 0
-        | _, -1 -> frame
-        | _, r ->
+      match (Atomic.get position, self#remaining) with
+        | `New_track, _ ->
+            Atomic.set position (`Elapsed length);
+            Frame.add_track_mark frame 0
+        | `Elapsed d, -1 ->
+            Atomic.set position (`Elapsed (d + length));
+            frame
+        | `Elapsed d, r ->
             if r < length then (
-              remaining <- Some (ticks () - r);
+              Atomic.set position (`Elapsed (length - r));
               Frame.add_track_mark frame r)
             else (
-              remaining <- Some (r - length);
+              Atomic.set position (`Elapsed (d + length));
               frame)
   end
 
