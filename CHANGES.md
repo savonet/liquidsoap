@@ -22,7 +22,6 @@ Fixed:
 - Fixed file header logic when reopening in `output.file` (#3675)
 - Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmepg`, SRT sources and `request.dynamic`)
 - Fixed invalid array fill in `add` (#3678)
-- Fixed empty metadata when switching to new source (#3373)
 - Fixed deadlock when connecting to a non-SSL icecast using the TLS transport (#3681)
 - Fixed crash when closing external process (#3685)
 
