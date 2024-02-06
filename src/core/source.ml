@@ -523,6 +523,7 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable streaming_state : streaming_state = `Unavailable
 
     method is_ready =
+      self#wake_up;
       self#has_ticked;
       match streaming_state with `Ready _ | `Done _ -> true | _ -> false
 
