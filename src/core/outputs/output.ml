@@ -141,6 +141,8 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
 
           if not autostart then start_stop#transition_to `Stopped;
 
+          source#wake_up;
+
           self#register_telnet);
 
       self#on_sleep (fun () -> start_stop#transition_to `Stopped)
