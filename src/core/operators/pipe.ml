@@ -242,6 +242,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     initializer
       self#on_wake_up (fun () ->
+          source#wake_up;
           converter <-
             Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
               ~samplesize;
