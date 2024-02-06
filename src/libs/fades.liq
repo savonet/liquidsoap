@@ -511,9 +511,16 @@ def fade.in(
     curve_log =
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
+     duration =
+       if source.remaining(s) < duration() then
+         source.remaining(s)
+       else
+         duration()
+        end
+
     log(
       "Fading in with type: #{type()}, curve: #{curve_log}, delay: #{delay()}s \
-       and duration: #{duration()}s."
+       and duration: #{duration}s."
     )
     fn :=
       mkfade(
@@ -522,7 +529,7 @@ def fade.in(
         type=type(),
         curve=curve(),
         delay=delay(),
-        duration=duration(),
+        duration=duration,
         s
       )
   end
