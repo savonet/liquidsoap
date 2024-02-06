@@ -128,7 +128,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       Clock.unify ~pos:self#pos source#clock s#clock;
       self#set_cross_length
 
-    initializer self#on_wake_up (fun () -> self#reset_analysis)
+    initializer
+      self#on_wake_up (fun () ->
+          source#wake_up;
+          self#reset_analysis)
 
     val mutable status
         : [ `Idle | `Before of Source.source | `After of Source.source ] =
