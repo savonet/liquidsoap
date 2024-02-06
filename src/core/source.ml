@@ -480,11 +480,11 @@ class virtual operator ?pos ?(name = "src") sources =
           List.iter (fun fn -> fn ()) on_wake_up
         with exn ->
           Atomic.set is_up `Error;
-          self#sleep;
           let bt = Printexc.get_backtrace () in
           Utils.log_exception ~log ~bt
             (Printf.sprintf "Error when starting source %s: %s!" self#id
-               (Printexc.to_string exn)))
+               (Printexc.to_string exn));
+          Tutils.shutdown 1)
 
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- fn :: on_sleep
