@@ -163,6 +163,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                         | _ -> c.source
                     in
                     Typing.(new_source#frame_type <: self#frame_type);
+                    new_source#wake_up;
                     selected <-
                       Some
                         { predicate; child = c; effective_source = new_source }
@@ -219,6 +220,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                         in
                         Typing.(s#frame_type <: self#frame_type);
                         Clock.unify ~pos:self#pos s#clock self#clock;
+                        s#wake_up;
                         selected <-
                           Some { predicate; child = c; effective_source = s })
             end;

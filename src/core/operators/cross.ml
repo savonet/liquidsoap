@@ -124,6 +124,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private prepare_source s =
       let s = (s :> source) in
+      s#wake_up;
       Clock.unify ~pos:self#pos source#clock s#clock;
       self#set_cross_length
 

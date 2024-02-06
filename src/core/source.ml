@@ -459,6 +459,7 @@ class virtual operator ?pos ?(name = "src") sources =
               | Known c -> (c#id, (c#sync_mode :> clock_sync_mode))
               | _ -> ("unknown", `Unknown)
           in
+          List.iter (fun s -> s#wake_up) sources;
           self#iter_watchers (fun w ->
               w.wake_up ~stype:self#stype ~is_active:self#is_active ~id:self#id
                 ~ctype:self#content_type ~clock_id ~clock_sync_mode))
@@ -522,7 +523,6 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable streaming_state : streaming_state = `Unavailable
 
     method is_ready =
-      self#wake_up;
       self#has_ticked;
       match streaming_state with `Ready _ | `Done _ -> true | _ -> false
 

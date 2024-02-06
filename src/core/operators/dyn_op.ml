@@ -39,6 +39,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
     method private prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
+      s#wake_up;
       Atomic.set source (Some s);
       if s#is_ready then Some s else None
 
