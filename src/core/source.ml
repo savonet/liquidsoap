@@ -935,14 +935,14 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
           match
             self#get_source ~reselect:(`After_position last_chunk_pos) ()
           with
-            | Some s' when last_source == s' ->
+            | Some s when last_source == s ->
                 let remainder =
-                  s#get_partial_frame (fun frame ->
+                  last_source#get_partial_frame (fun frame ->
                       Frame.slice frame (last_chunk_pos + rem))
                 in
                 let new_track = Frame.tail remainder last_chunk_pos in
-                f ~last_source:s ~last_chunk:remainder
-                  (Frame.append buf (self#begin_track new_track))
+                f ~last_source ~last_chunk:remainder
+                  (Frame.append buf new_track)
             | Some s ->
                 assert s#is_ready;
                 let new_track =
