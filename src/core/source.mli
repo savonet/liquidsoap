@@ -258,11 +258,20 @@ class virtual source :
            that was effectively used. This method is used when a consumer of the source's data
            only uses an initial chunk of the frame. In this case, the remaining data is cached
            whenever possible and returned during the next streaming cycle. Final returned value
-           is the same as the partial chunk returned for the callback for easy method call chaining. *)
+           is the same as the partial chunk returned from the callback for easy method call chaining.
+
+           Calling this method is equivalent to doing: {[
+             let frame = Frame.slice source#peek_frame len in
+             source#consumed (Frame.position frame);
+             frame
+           ]} *)
        method get_partial_frame : (Frame.t -> Frame.t) -> Frame.t
 
        (** Check a frame without consuming any of its data. *)
        method peek_frame : Frame.t
+
+       (** Manually mark amount of consumed data from the source. *)
+       method consumed : int -> unit
 
        (** This method requests a specific field of the frame that can be mutated. It is used
            by a consumer of the source that will modify the source's data (e.g. [amplify]). The
