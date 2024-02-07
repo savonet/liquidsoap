@@ -87,7 +87,7 @@ class muxer tracks =
       let pos, frame =
         List.fold_left
           (fun (pos, frame) { fields; source } ->
-            let buf = source#get_frame in
+            let buf = source#peek_frame in
             ( min pos (Frame.position buf),
               List.fold_left
                 (fun frame { source_field; target_field; processor } ->
@@ -97,7 +97,10 @@ class muxer tracks =
           (length, Frame.create ~length Frame.Fields.empty)
           tracks
       in
-      Frame.slice frame pos
+      let frame = Frame.slice frame pos in
+      let consumed = Frame.position frame in
+      List.iter (fun { source } -> source#consumed consumed) tracks;
+      frame
   end
 
 let muxer_operator p =

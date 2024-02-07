@@ -613,6 +613,7 @@ class virtual operator ?pos ?(name = "src") sources =
       consumed <- max consumed (Frame.position data);
       data
 
+    method consumed n = consumed <- max consumed n
     method get_frame = self#get_partial_frame (fun f -> f)
 
     method get_mutable_content field =
