@@ -101,7 +101,7 @@ class muxer tracks =
         track_frames := (source, f) :: !track_frames;
         f
 
-    method private feed_track ~tmp ~filled ~start ~stop
+    method private feed_track ~tmp ~generator_length ~start ~stop
         { source_field; target_field; processor } =
       let c = Content.sub (Frame.get tmp source_field) start (stop - start) in
       match source_field with
@@ -111,16 +111,18 @@ class muxer tracks =
               (Content.Metadata.get_data c)
         | f when f = Frame.Fields.track_marks ->
             if Frame.is_partial tmp then
-              Generator.add_track_mark ~pos:(stop - filled) self#buffer
+              Generator.add_track_mark
+                ~pos:(generator_length + stop - start)
+                self#buffer
         | _ -> Generator.put self#buffer target_field (processor c)
 
-    method private feed_fields ~filled { fields; source } =
+    method private feed_fields ~generator_length { fields; source } =
       let tmp = self#track_frame source in
       let start = Frame.position tmp in
       if Frame.is_partial tmp && source#is_ready ~frame:tmp () then (
         source#get tmp;
         let stop = Frame.position tmp in
-        List.iter (self#feed_track ~tmp ~filled ~start ~stop) fields)
+        List.iter (self#feed_track ~tmp ~generator_length ~start ~stop) fields)
 
     (* In the current streaming model, we might still need to force
        a source#get to get the next break/metadata at the beginning of
@@ -128,14 +130,15 @@ class muxer tracks =
 
        TODO: get rid of this! *)
     method private feed ~force buf =
-      let filled = Frame.position buf in
+      let position = Frame.position buf in
+      let generator_length = Generator.length self#buffer in
       if
         self#sources_ready
         && (force
            || Generator.remaining self#buffer = -1
-              && filled + Generator.length self#buffer < Lazy.force Frame.size)
+              && position + generator_length < Lazy.force Frame.size)
       then (
-        List.iter (self#feed_fields ~filled) tracks;
+        List.iter (self#feed_fields ~generator_length) tracks;
         self#feed ~force:false buf)
 
     (* There are two situations here:
@@ -157,13 +160,11 @@ class muxer tracks =
        while streaming, we end all tracks when this source drops
        off. *)
     method get_frame buf =
-      self#feed ~force:true buf;
+      let rem = Lazy.force Frame.size - Frame.position buf in
+      if Generator.length self#buffer < rem then self#feed ~force:true buf;
       Generator.fill self#buffer buf
 
-    initializer
-      self#on_after_output (fun () ->
-          clear_track_frames ();
-          Generator.clear self#buffer)
+    initializer self#on_after_output (fun () -> clear_track_frames ())
   end
 
 let muxer_operator p =
