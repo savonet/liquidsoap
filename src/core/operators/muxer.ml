@@ -107,7 +107,9 @@ class muxer tracks =
       match source_field with
         | f when f = Frame.Fields.metadata ->
             List.iter
-              (fun (pos, m) -> Generator.add_metadata ~pos self#buffer m)
+              (fun (pos, m) ->
+                Generator.add_metadata ~pos:(generator_length + pos) self#buffer
+                  m)
               (Content.Metadata.get_data c)
         | f when f = Frame.Fields.track_marks ->
             if Frame.is_partial tmp then
