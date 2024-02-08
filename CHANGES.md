@@ -1,3 +1,11 @@
+# 2.2.5 (unreleased)
+
+Fixed:
+
+- Handle invalid crossfade duration of `0.` seconds.
+
+---
+
 # 2.2.4 (2024-02-04)
 
 New:
