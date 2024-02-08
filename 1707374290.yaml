@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 1.05777978897
+  unit: "s"
+  time: 1707373938.19
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 1.79249501228
+  unit: "s"
+  time: 1707373939.98
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.51012396812
+  unit: "s"
+  time: 1707373941.49
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 3.00929307938
+  unit: "s"
+  time: 1707373944.5
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 156.828125
+  unit: "Mio"
+  time: 1707374045.56
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 924.34375
+  unit: "Mio"
+  time: 1707374045.56
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7540.40625
+  unit: "Mio"
+  time: 1707374045.56
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7540.40625
+  unit: "Mio"
+  time: 1707374045.56
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 6160.59375
+  unit: "Mio"
+  time: 1707374045.56
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 6160.59375
+  unit: "Mio"
+  time: 1707374045.56
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2230.
+  unit: "functions"
+  time: 1707374048.14
+
+- name: "protocols"
+  category: "language"
+  value: 20.
+  unit: "protocols"
+  time: 1707374048.14
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.10727405548
+  unit: "s"
+  time: 1707374186.22
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.56303691864
+  unit: "s"
+  time: 1707374283.13
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.68245005608
+  unit: "s"
+  time: 1707374286.81
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 291.17578125
+  unit: "Mio"
+  time: 1707374290.44
+  min: 0.
+
+- commit: 846560b04805478f06bda3a202fe8275e9a73007
+  branch: main
+  time: 1707374290
