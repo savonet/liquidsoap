@@ -26,7 +26,11 @@ module Pcre = Re.Pcre
 exception Unavailable
 
 type streaming_state =
-  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+  [ `Pending
+  | `Processing of unit Future.t
+  | `Unavailable
+  | `Ready of unit Future.t
+  | `Done of Frame.t ]
 
 type active = < reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
@@ -218,10 +222,10 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
           self#log#debug "Clock is %s." (Clock.id self#clock);
           self#log#important "Content type is %s."
             (Frame.string_of_content_type self#content_type);
-          List.iter (fun fn -> fn ()) on_wake_up
+          List.iter (( |> ) ()) on_wake_up
         with exn ->
-          Atomic.set is_up `Error;
           let bt = Printexc.get_backtrace () in
+          Atomic.set is_up `Error;
           Utils.log_exception ~log ~bt
             (Printf.sprintf "Error when starting source %s: %s!" self#id
                (Printexc.to_string exn));
@@ -233,7 +237,7 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
     method force_sleep =
       if Atomic.compare_and_set is_up `True `False then (
         source_log#info "Source %s gets down." id;
-        List.iter (fun fn -> fn ()) on_sleep)
+        List.iter (( |> ) ()) on_sleep)
 
     method sleep =
       match Atomic.get streaming_state with
@@ -296,38 +300,50 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
       self#on_after_streaming_cycle (fun () ->
           self#iter_watchers (fun w -> w.after_streaming_cycle ()))
 
+    method private pending_process =
+      List.iter (( |> ) ()) on_before_streaming_cycle;
+      consumed <- 0;
+      let cache = Option.value ~default:self#empty_frame _cache in
+      let cache_pos = Frame.position cache in
+      let size = Lazy.force Frame.size in
+      let can_generate_frame = self#can_generate_frame in
+      Clock.after_tick self#clock (fun () -> self#after_streaming_cycle);
+      if cache_pos > 0 || can_generate_frame then
+        Atomic.set streaming_state
+          (`Ready
+            (Clock.future ~clock:self#clock (fun () ->
+                 let buf =
+                   if can_generate_frame && cache_pos < size then
+                     Frame.append cache self#instrumented_generate_frame
+                   else cache
+                 in
+                 let buf_pos = Frame.position buf in
+                 let buf =
+                   if size < buf_pos then (
+                     _cache <- Some (Frame.after buf size);
+                     Frame.slice buf size)
+                   else (
+                     _cache <- None;
+                     buf)
+                 in
+                 Atomic.set streaming_state (`Done buf))))
+      else Atomic.set streaming_state `Unavailable
+
     (* This is the implementation of the main streaming logic. *)
     method private before_streaming_cycle =
       match Atomic.get streaming_state with
+        | `Ready _ | `Done _ | `Unavailable -> ()
+        | `Processing future -> Clock.await future
         | `Pending ->
-            List.iter (fun fn -> fn ()) on_before_streaming_cycle;
-            consumed <- 0;
-            let cache = Option.value ~default:self#empty_frame _cache in
-            let cache_pos = Frame.position cache in
-            let size = Lazy.force Frame.size in
-            let can_generate_frame = self#can_generate_frame in
-            if cache_pos > 0 || can_generate_frame then
-              Atomic.set streaming_state
-                (`Ready
-                  (fun () ->
-                    let buf =
-                      if can_generate_frame && cache_pos < size then
-                        Frame.append cache self#instrumented_generate_frame
-                      else cache
-                    in
-                    let buf_pos = Frame.position buf in
-                    let buf =
-                      if size < buf_pos then (
-                        _cache <- Some (Frame.after buf size);
-                        Frame.slice buf size)
-                      else (
-                        _cache <- None;
-                        buf)
-                    in
-                    Atomic.set streaming_state (`Done buf)))
-            else Atomic.set streaming_state `Unavailable;
-            Clock.after_tick self#clock (fun () -> self#after_streaming_cycle)
-        | _ -> ()
+            let future =
+              Clock.future ~clock:self#clock (fun () -> self#pending_process)
+            in
+            if
+              not
+                (Atomic.compare_and_set streaming_state `Pending
+                   (`Processing future))
+            then Domain.cpu_relax ();
+            self#before_streaming_cycle
 
     method private after_streaming_cycle =
       (match (Atomic.get streaming_state, consumed) with
@@ -340,11 +356,12 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
 
     method peek_frame =
       match Atomic.get streaming_state with
-        | `Pending | `Unavailable ->
-            log#critical "source called while not ready!";
-            raise Unavailable
-        | `Ready fn ->
-            fn ();
+        | `Pending | `Unavailable -> raise Unavailable
+        | `Processing future ->
+            Clock.await future;
+            self#peek_frame
+        | `Ready future ->
+            Clock.await future;
             self#peek_frame
         | `Done data -> data
 

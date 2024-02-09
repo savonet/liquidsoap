@@ -2,7 +2,7 @@ open Type
 
 exception Failed
 
-let () = Frame_settings.lazy_config_eval := true
+let () = Frame_settings.allow_lazy_config_eval ()
 
 let should_work t t' r =
   let t = make t in

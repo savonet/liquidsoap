@@ -19,7 +19,7 @@ class failed =
   end
 
 let () =
-  Frame_settings.lazy_config_eval := true;
+  Frame_settings.allow_lazy_config_eval ();
   let started = ref false in
   let on_start () = started := true in
   let o =

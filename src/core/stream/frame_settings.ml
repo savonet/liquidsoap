@@ -106,8 +106,9 @@ let conf_midi_channels =
 
 (* This variable prevents forcing the value of a lazy configuration
  * item before the user gets a chance to override the default. *)
-let lazy_config_eval = ref false
+let lazy_config_eval = Atomic.make false
 let delayed_eval = Queue.create ()
+let allow_lazy_config_eval () = Atomic.set lazy_config_eval true
 
 let delayed f =
   let ret = Lazy.from_fun f in
@@ -120,7 +121,7 @@ let () =
 
 let delayed_conf ~to_string x =
   delayed (fun () ->
-      assert !lazy_config_eval;
+      assert (Atomic.get lazy_config_eval);
       let ret = x#get in
       let routes = List.flatten (conf#routes x#ut) in
       log#info "frame.%s set to: %s" (String.concat "." routes) (to_string ret);

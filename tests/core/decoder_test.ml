@@ -1,5 +1,5 @@
 let () =
-  Frame_settings.lazy_config_eval := true;
+  Frame_settings.allow_lazy_config_eval ();
   Frame_settings.conf_video_default#set true
 
 let () =

@@ -167,7 +167,7 @@ let _ =
     (fun p ->
       let fn = List.assoc "" p in
       let fn () = Lang.apply fn [] in
-      Evaluation.after_eval ~force:true fn)
+      Evaluation.after_eval ~mode:`Force fn)
 
 let _ =
   Lang.add_builtin_base ~base:liquidsoap "executable" ~category:`Liquidsoap

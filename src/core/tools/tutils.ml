@@ -21,6 +21,9 @@
  *****************************************************************************)
 
 module Pcre = Re.Pcre
+module WeakQueue = Liquidsoap_lang.Queues.Queue
+
+type thread = unit Future.t
 
 let conf_scheduler =
   Dtools.Conf.void
@@ -122,109 +125,72 @@ let seems_locked =
 
 let log = Log.make ["threads"]
 
-(** Manage a set of threads and make sure they terminate correctly,
-  * i.e. not by raising an exception. *)
-
-let lock = Mutex.create ()
-
-module Set = Set.Make (struct
-  type t = string * Condition.t
-
-  let compare = compare
-end)
-
-let all = ref Set.empty
-let queues = ref Set.empty
+(* Manage threads. *)
+let all = WeakQueue.create ()
+let queues = WeakQueue.create ()
 
 let join_all ~set () =
   let rec f () =
-    try
-      Mutex.mutexify lock
-        (fun () ->
-          let name, c = Set.choose !set in
-          log#info "Waiting for thread %s to shutdown" name;
-          Condition.wait c lock)
-        ();
-      f ()
-    with Not_found -> ()
+    match WeakQueue.pop_opt set with
+      | Some future ->
+          Future.await future;
+          f ()
+      | None -> ()
   in
-  f ()
+  Future.eval f
 
-let set_done, wait_done =
-  let read_done, write_done = Unix.pipe ~cloexec:true () in
-  let set_done () = ignore (Unix.write write_done (Bytes.create 1) 0 1) in
-  let wait_done () =
-    let rec wait_for_done () =
-      try Utils.select [read_done] [] [] (-1.)
-      with Unix.Unix_error (Unix.EINTR, _, _) -> wait_for_done ()
-    in
-    let r, _, _ = wait_for_done () in
-    assert (r = [read_done])
-  in
-  (set_done, wait_done)
+let set_done, wait_done = Future.make_promise ()
 
 exception Exit
 
 let create ~queue f x s =
-  let c = Condition.create () in
   let set = if queue then queues else all in
-  Mutex.mutexify lock
-    (fun () ->
-      let id =
-        let process x =
+  let thread_ref = Atomic.make None in
+  let thread =
+    Future.make (fun () ->
+        try
+          Fun.protect
+            ~finally:(fun () -> Atomic.set thread_ref None)
+            (fun () -> f x);
+          log#info "Thread %S terminated (%d remaining)." s
+            (WeakQueue.length set)
+        with exn -> (
+          let raw_bt = Printexc.get_raw_backtrace () in
+          let bt = Printexc.get_backtrace () in
           try
-            f x;
-            Mutex.mutexify lock
-              (fun () ->
-                set := Set.remove (s, c) !set;
-                log#info "Thread %S terminated (%d remaining)." s
-                  (Set.cardinal !set);
-                Condition.signal c)
-              ()
-          with e -> (
-            let raw_bt = Printexc.get_raw_backtrace () in
-            let bt = Printexc.get_backtrace () in
-            try
-              match e with
-                | Exit -> log#info "Thread %S exited." s
-                | Failure e as exn ->
-                    log#important "Thread %S failed: %s!" s e;
-                    Printexc.raise_with_backtrace exn raw_bt
-                | e when queue ->
-                    Dtools.Init.exec Dtools.Log.stop;
-                    Printf.printf "Queue %s crashed with exception %s\n%s" s
-                      (Printexc.to_string e) bt;
-                    Printf.printf
-                      "PANIC: Liquidsoap has crashed, exiting.,\n\
-                       Please report at: https://github.com/savonet/liquidsoap";
-                    Printf.printf "Queue %s crashed with exception %s\n%s" s
-                      (Printexc.to_string e) bt;
-                    flush_all ();
-                    _exit 1
-                | e ->
-                    log#important "Thread %S aborts with exception %s!" s
-                      (Printexc.to_string e);
-                    Printexc.raise_with_backtrace e raw_bt
-            with e ->
-              let l = Pcre.split ~rex:(Pcre.regexp "\n") bt in
-              List.iter (log#info "%s") l;
-              Mutex.mutexify lock
-                (fun () ->
-                  set := Set.remove (s, c) !set;
-                  if
-                    Atomic.compare_and_set state `Running
-                      (`Done (`Error (raw_bt, e)))
-                  then set_done ();
-                  Condition.signal c)
-                ();
-              Printexc.raise_with_backtrace e raw_bt)
-        in
-        Thread.create process x
-      in
-      set := Set.add (s, c) !set;
-      log#info "Created thread %S (%d total)." s (Set.cardinal !set);
-      id)
-    ()
+            match exn with
+              | Exit -> log#info "Thread %S exited." s
+              | Failure e as exn ->
+                  log#important "Thread %S failed: %s!" s e;
+                  Printexc.raise_with_backtrace exn raw_bt
+              | e when queue ->
+                  Dtools.Init.exec Dtools.Log.stop;
+                  Printf.printf "Queue %s crashed with exception %s\n%s" s
+                    (Printexc.to_string e) bt;
+                  Printf.printf
+                    "PANIC: Liquidsoap has crashed, exiting.,\n\
+                     Please report at: https://github.com/savonet/liquidsoap";
+                  Printf.printf "Queue %s crashed with exception %s\n%s" s
+                    (Printexc.to_string e) bt;
+                  flush_all ();
+                  _exit 1
+              | e ->
+                  log#important "Thread %S aborts with exception %s!" s
+                    (Printexc.to_string e);
+                  Printexc.raise_with_backtrace e raw_bt
+          with e ->
+            let l = Pcre.split ~rex:(Pcre.regexp "\n") bt in
+            List.iter (log#info "%s") l;
+            if
+              Atomic.compare_and_set state `Running (`Done (`Error (raw_bt, e)))
+            then set_done ();
+            Printexc.raise_with_backtrace e raw_bt))
+  in
+  Atomic.set thread_ref (Some thread);
+  WeakQueue.push set thread;
+  log#info "Created thread %S (%d total)." s (WeakQueue.length set);
+  Future.compute thread;
+  thread
 
 type priority =
   [ `Blocking  (** For example a last.fm submission. *)
@@ -294,15 +260,6 @@ let start () =
       new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
     done)
 
-(** Waits for [f()] to become true on condition [c]. *)
-let wait c m f =
-  Mutex.mutexify m
-    (fun () ->
-      while not (f ()) do
-        Condition.wait c m
-      done)
-    ()
-
 exception Timeout of float
 
 let error_translator = function
@@ -349,13 +306,15 @@ let wait_for =
     wait (min 1. timeout)
 
 let main () =
-  if Atomic.compare_and_set state `Starting `Running then wait_done ();
-  log#important "Main loop exited";
-  match Atomic.get state with
-    | `Done _ -> ()
-    | _ ->
-        log#critical "Internal state error!";
-        _exit internal_error_code
+  Future.eval (fun () ->
+      if Atomic.compare_and_set state `Starting `Running then
+        Future.await wait_done;
+      log#important "Main loop exited";
+      match Atomic.get state with
+        | `Done _ -> ()
+        | _ ->
+            log#critical "Internal state error!";
+            _exit internal_error_code)
 
 let shutdown code =
   let new_state = `Done (`Exit code) in

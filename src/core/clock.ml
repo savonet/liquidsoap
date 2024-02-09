@@ -174,6 +174,7 @@ type active_params = {
   passive_sources : source WeakQueue.t;
   on_tick : (unit -> unit) Queue.t;
   after_tick : (unit -> unit) Queue.t;
+  after_eval : (unit -> unit) Queue.t;
   ticks : int Atomic.t;
 }
 
@@ -346,10 +347,25 @@ let _target_time { time_implementation; t0; frame_duration; ticks } =
   let module Time = (val time_implementation : Liq_time.T) in
   Time.(t0 |+| (frame_duration |*| of_float (float_of_int (Atomic.get ticks))))
 
+let active_params c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Stopping s | `Started s -> s
+    | _ -> raise Invalid_state
+
+let await_list ~after_eval l =
+  let future = Future.make_list ~after_eval l in
+  Future.await ~run_after_eval:false future
+
 let _after_tick ~clock x =
-  Queue.flush x.after_tick (fun fn ->
-      check_stopped ();
-      fn ());
+  await_list ~after_eval:x.after_eval
+    (Queue.fold_flush x.after_tick
+       (fun fn pending ->
+         let fn () =
+           check_stopped ();
+           fn ()
+         in
+         fn :: pending)
+       []);
   let module Time = (val x.time_implementation : Liq_time.T) in
   let end_time = Time.time () in
   let target_time = _target_time x in
@@ -374,52 +390,71 @@ let _after_tick ~clock x =
           x.log#severe "We must catchup %.2f seconds!"
             Time.(to_float (end_time |-| target_time)))
 
-let rec active_params c =
-  match Atomic.get (Unifier.deref c).state with
-    | `Stopping s | `Started s -> s
-    | _ -> raise Invalid_state
+let rec _do_tick ~clock x =
+  await_list ~after_eval:x.after_eval
+    (Queue.fold_flush clock.pending_activations
+       (fun s pending ->
+         let fn () =
+           check_stopped ();
+           s#wake_up;
+           match s#source_type with
+             | `Active _ -> WeakQueue.push x.active_sources s
+             | `Output _ -> Queue.push x.outputs s
+             | `Passive -> WeakQueue.push x.passive_sources s
+         in
+         fn :: pending)
+       []);
+  let sub_clocks =
+    List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
+  in
+  let sources = _animated_sources x in
+  await_list ~after_eval:x.after_eval
+    (List.fold_left
+       (fun pending s ->
+         let fn () =
+           check_stopped ();
+           try
+             match s#source_type with
+               | `Output s | `Active s -> s#output
+               | _ -> assert false
+           with exn ->
+             let bt = Printexc.get_raw_backtrace () in
+             if Queue.is_empty clock.on_error then (
+               log#severe "Source %s failed while streaming: %s!\n%s" s#id
+                 (Printexc.to_string exn)
+                 (Printexc.raw_backtrace_to_string bt);
+               if not allow_streaming_errors#get then Tutils.shutdown 1
+               else _detach clock s)
+             else Queue.iter clock.on_error (fun fn -> fn exn bt)
+         in
+         fn :: pending)
+       [] sources);
+  await_list ~after_eval:x.after_eval
+    (Queue.fold_flush x.on_tick
+       (fun fn pending ->
+         let fn () =
+           check_stopped ();
+           fn ()
+         in
+         fn :: pending)
+       []);
+  await_list ~after_eval:x.after_eval
+    (List.fold_left
+       (fun pending (c, old_ticks) ->
+         let fn () =
+           if ticks c = old_ticks then
+             _tick ~clock:(Unifier.deref c) (active_params c)
+         in
+         fn :: pending)
+       [] sub_clocks);
+  Atomic.incr x.ticks;
+  check_stopped ();
+  _after_tick ~clock x
 
 and _tick ~clock x =
-  Evaluation.after_eval (fun () ->
-      Queue.flush clock.pending_activations (fun s ->
-          check_stopped ();
-          s#wake_up;
-          match s#source_type with
-            | `Active _ -> WeakQueue.push x.active_sources s
-            | `Output _ -> Queue.push x.outputs s
-            | `Passive -> WeakQueue.push x.passive_sources s);
-      let sub_clocks =
-        List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
-      in
-      let sources = _animated_sources x in
-      List.iter
-        (fun s ->
-          check_stopped ();
-          try
-            match s#source_type with
-              | `Output s | `Active s -> s#output
-              | _ -> assert false
-          with exn ->
-            let bt = Printexc.get_raw_backtrace () in
-            if Queue.is_empty clock.on_error then (
-              log#severe "Source %s failed while streaming: %s!\n%s" s#id
-                (Printexc.to_string exn)
-                (Printexc.raw_backtrace_to_string bt);
-              if not allow_streaming_errors#get then Tutils.shutdown 1
-              else _detach clock s)
-            else Queue.iter clock.on_error (fun fn -> fn exn bt))
-        sources;
-      Queue.flush x.on_tick (fun fn ->
-          check_stopped ();
-          fn ());
-      List.iter
-        (fun (c, old_ticks) ->
-          if ticks c = old_ticks then
-            _tick ~clock:(Unifier.deref c) (active_params c))
-        sub_clocks;
-      Atomic.incr x.ticks;
-      check_stopped ();
-      _after_tick ~clock x)
+  Evaluation.after_eval ~mode:(`Collect x.after_eval) (fun () ->
+      _do_tick ~clock x);
+  Queue.flush x.after_eval (fun fn -> fn ())
 
 and _clock_thread ~clock x =
   let has_sources_to_process () =
@@ -442,7 +477,15 @@ and _clock_thread ~clock x =
         _tick ~clock x;
         run ())
       else on_stop ()
-    with Has_stopped -> on_stop ()
+    with
+      | Has_stopped -> on_stop ()
+      | exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Utils.log_exception ~log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Error when running clock %s: %s!" (_id clock)
+               (Printexc.to_string exn));
+          Printexc.raise_with_backtrace exn bt
   in
   ignore
     (Tutils.create
@@ -491,6 +534,7 @@ and start ?(force = false) c =
             passive_sources = WeakQueue.create ();
             on_tick = Queue.create ();
             after_tick = Queue.create ();
+            after_eval = Queue.create ();
             outputs = Queue.create ();
             ticks = Atomic.make 0;
           }
@@ -541,8 +585,9 @@ let self_sync c =
     | _ -> false
 
 let tick clock =
-  try _tick ~clock:(Unifier.deref clock) (active_params clock)
-  with Has_stopped -> ()
+  Future.eval (fun () ->
+      try _tick ~clock:(Unifier.deref clock) (active_params clock)
+      with Has_stopped -> ())
 
 let set_pos c pos = Atomic.set (Unifier.deref c).pos pos
 
@@ -556,3 +601,9 @@ let clocks () =
   List.sort_uniq
     (fun c c' -> Stdlib.compare (Unifier.deref c) (Unifier.deref c'))
     (WeakQueue.elements clocks)
+
+let future ~clock fn =
+  Future.make ~after_eval:(active_params clock).after_eval fn
+
+let await : 'a. 'a Future.t -> 'a =
+ fun fn -> Future.await ~run_after_eval:false fn

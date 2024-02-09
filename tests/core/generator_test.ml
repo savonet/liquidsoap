@@ -1,4 +1,4 @@
-let () = Frame_settings.lazy_config_eval := true
+let () = Frame_settings.allow_lazy_config_eval ()
 let audio = Content.Audio.format_of_channels 2
 let video = Content.default_format Content.Video.kind
 

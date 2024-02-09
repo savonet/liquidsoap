@@ -33,7 +33,11 @@ class encoded_test =
   end
 
 let () =
+<<<<<<< HEAD
   Frame_settings.lazy_config_eval := true;
+=======
+  Frame_settings.allow_lazy_config_eval ();
+>>>>>>> 587adb0ab (First pass.)
   let encoded_test =
     Liquidsoap_lang.Evaluation.after_eval (fun () -> new encoded_test)
   in
