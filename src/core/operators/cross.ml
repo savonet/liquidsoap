@@ -364,7 +364,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                     (new Sequence.sequence ~merge:true [s; compound]
                       :> Source.source)
                 | None, Some s ->
-                    (new Sequence.sequence ~merge:true [compound; s]
+                    (new Sequence.sequence ~single_track:false [compound; s]
                       :> Source.source)
                 | Some _, Some _ -> assert false
             in
