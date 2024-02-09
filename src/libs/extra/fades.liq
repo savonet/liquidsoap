@@ -70,7 +70,7 @@ def cross.plot(~png=null(), ~dir=null(), s) =
         }
       )
 
-    sequence(merge=true, [add(normalize=false, [new, old]), s])
+    sequence(single_track=false, [add(normalize=false, [new, old]), s])
   end
 
   cross(transition, s)
