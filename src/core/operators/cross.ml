@@ -416,7 +416,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 | Some s, None ->
                     new Sequence.sequence ~merge:true [s; compound]
                 | None, Some s ->
-                    new Sequence.sequence ~merge:true [compound; s]
+                    new Sequence.sequence ~single_track:false [compound; s]
                 | Some _, Some _ -> assert false
             in
             Clock.unify ~pos:self#pos compound#clock s#clock;
