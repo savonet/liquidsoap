@@ -25,7 +25,7 @@ open Source
 class compress ~field (source : source) mu =
   object (self)
     inherit operator ~name:"compress" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track

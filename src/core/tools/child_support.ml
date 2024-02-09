@@ -23,17 +23,8 @@
 (** Utility for operators that need to control child source clocks. See [clock.mli]
     for a more detailed description. *)
 
-let finalise_child_clock child_clock source =
-  Clock.forget source#clock child_clock
-
-class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
+class virtual base ~check_self_sync children_val =
   let children = List.map Lang.to_source children_val in
-  let create_child_clock id =
-    if create_known_clock then
-      Clock.create_known
-        (Clock.clock ~start:false (Printf.sprintf "%s.child" id))
-    else Clock.create_unknown ~start:false ~sources:[] ~sub_clocks:[] ()
-  in
   object (self)
     initializer
       if check_self_sync then
@@ -47,59 +38,31 @@ class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
                       used with this operator." )))
           children_val
 
-    val mutable child_clock = None
-
-    (* If [true] during [#after_output], issue a [#end_tick] call
-       on the child clock, which makes it perform a whole streaming
-       loop. *)
-    val mutable needs_tick = true
     method virtual id : string
-    method virtual clock : Source.clock_variable
-    method private child_clock = Option.get child_clock
+    method virtual clock : Clock.t
     method virtual pos : Pos.Option.t
+    val child_clock = Atomic.make None
 
-    method private set_clock =
-      child_clock <- Some (create_child_clock self#id);
-
-      Clock.unify ~pos:self#pos self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock] ());
-
-      List.iter
-        (fun c -> Clock.unify ~pos:c#pos self#child_clock c#clock)
-        children;
-
-      Gc.finalise (finalise_child_clock self#child_clock) self
-
-    method private child_tick =
-      (Clock.get self#child_clock)#end_tick;
-      needs_tick <- false
-
-    (* This always set [need_tick] to true. If the source is not
-       [#is_ready], [#after_output] is called during a clock tick,
-       which means that the children clock is _always_ animated by the
-       main clock when the source becomes unavailable. Otherwise, we
-       expect the source to make a decision about executing a child clock
-       tick as part of its [#get_frame] implementation. See [cross.ml] or
-       [soundtouch.ml] as examples. *)
-    method virtual on_wake_up : (unit -> unit) -> unit
-
-    method private child_before_output =
-      needs_tick <- true;
-      let clock = Source.Clock_variables.get self#clock in
-      clock#on_after_output (fun () -> self#child_after_output)
-
-    method private child_on_output fn =
-      let clock = Source.Clock_variables.get self#child_clock in
-      clock#on_output fn;
-      self#child_tick
-
-    method private child_after_output =
-      if needs_tick then self#child_tick;
-      let clock = Source.Clock_variables.get self#clock in
-      clock#on_before_output (fun () -> self#child_before_output)
+    method child_clock =
+      match Atomic.get child_clock with
+        | Some c -> c
+        | None ->
+            let c =
+              Clock.create_sub_clock
+                ~id:(Clock.id self#clock ^ ".child")
+                self#clock
+            in
+            Atomic.set child_clock (Some c);
+            c
 
     initializer
-      self#on_wake_up (fun () ->
-          let clock = Source.Clock_variables.get self#clock in
-          clock#on_before_output (fun () -> self#child_before_output))
+      List.iter
+        (fun s -> Clock.unify ~pos:self#pos self#child_clock s#clock)
+        children
+
+    method child_tick = Clock.tick self#child_clock
+
+    method on_child_tick fn =
+      Clock.on_tick self#child_clock fn;
+      self#child_tick
   end

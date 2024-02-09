@@ -25,8 +25,8 @@ open Source
 
 class echo (source : source) delay feedback ping_pong =
   object (self)
-    inherit operator ~name:"echo" [source] as super
-    method stype = source#stype
+    inherit operator ~name:"echo" [source]
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
@@ -34,13 +34,13 @@ class echo (source : source) delay feedback ping_pong =
     method abort_track = source#abort_track
     val mutable effect = None
 
-    method! private wake_up a =
-      super#wake_up a;
-      effect <-
-        Some
-          (Audio.Effect.delay self#audio_channels
-             (Lazy.force Frame.audio_rate)
-             ~ping_pong (delay ()) (feedback ()))
+    initializer
+      self#on_wake_up (fun () ->
+          effect <-
+            Some
+              (Audio.Effect.delay self#audio_channels
+                 (Lazy.force Frame.audio_rate)
+                 ~ping_pong (delay ()) (feedback ())))
 
     val mutable past_pos = 0
 

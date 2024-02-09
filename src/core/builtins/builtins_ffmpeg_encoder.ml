@@ -568,8 +568,8 @@ let mk_encoder mode =
          ( field,
            new Producer_consumer.producer
            (* We are expecting real-rate with a couple of hickups.. *)
-             ?pos ~create_known_clock:false ~check_self_sync:false
-             ~consumers:[consumer] ~name:(id ^ ".producer") () )))
+             ?pos ~check_self_sync:false ~consumers:[consumer]
+             ~name:(id ^ ".producer") () )))
 
 let () =
   List.iter mk_encoder [`Audio_encoded; `Audio_raw; `Video_encoded; `Video_raw]

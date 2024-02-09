@@ -43,16 +43,8 @@ class sequence ?(merge = false) ?(single_track = true) sources =
       ( Lazy.force self_sync_type,
         match sources with hd :: _ -> snd hd#self_sync | [] -> None )
 
-    method stype =
-      match List.rev sources with hd :: _ -> hd#stype | [] -> `Fallible
-
-    method! private wake_up activation =
-      List.iter
-        (fun s -> (s :> source)#get_ready ((self :> source) :: activation))
-        sources
-
-    method! private sleep =
-      List.iter (fun s -> (s :> source)#leave (self :> source)) sources
+    method fallible =
+      match List.rev sources with hd :: _ -> hd#fallible | [] -> true
 
     (* We have to wait until at least one source is ready. *)
     val mutable has_started = false
@@ -86,7 +78,6 @@ class sequence ?(merge = false) ?(single_track = true) sources =
             then Some s
             else (
               self#log#info "Finished with %s" s#id;
-              (s :> source)#leave (self :> source);
               Atomic.set seq_sources rest;
               self#get_source ~reselect:`Ok ())
         | _ -> None
@@ -114,7 +105,7 @@ class sequence ?(merge = false) ?(single_track = true) sources =
 class merge_tracks source =
   object
     inherit operator ~name:"sequence" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = -1

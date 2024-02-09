@@ -27,7 +27,7 @@ type mode = Encode | Decode
 class msstereo ~field (source : source) mode width =
   object
     inherit operator ~name:"stereo.ms.encode" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
@@ -88,7 +88,7 @@ let _ =
 class spatializer ~field ~width (source : source) =
   object
     inherit operator ~name:"stereo.width" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source

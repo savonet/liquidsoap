@@ -24,7 +24,7 @@ class fail name =
   object (self)
     inherit Source.source ~name ()
     method seek_source = (self :> Source.source)
-    method stype = `Fallible
+    method fallible = true
     method private can_generate_frame = false
     method self_sync = (`Static, None)
     method remaining = 0
@@ -43,11 +43,13 @@ let fail =
     ~return_t [] (fun _ -> (new fail "source.fail" :> Source.source))
 
 class fail_init =
-  object
+  object (self)
     inherit fail "source.fail.init"
 
-    method! wake_up _ =
-      Lang.raise_error ~pos:[] ~message:"Source's initialization failed" "debug"
+    initializer
+      self#on_wake_up (fun () ->
+          Lang.raise_error ~pos:[] ~message:"Source's initialization failed"
+            "debug")
   end
 
 let _ =

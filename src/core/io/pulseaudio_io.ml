@@ -23,7 +23,7 @@
 open Mm
 open Pulseaudio
 
-module SyncSource = Source.MkSyncSource (struct
+module SyncSource = Clock.MkSyncSource (struct
   type t = unit
 
   let to_string _ = "pulseaudio"
@@ -48,7 +48,7 @@ class virtual base ~self_sync ~client ~device =
     val dev = device
     method virtual log : Log.t
 
-    method self_sync : Source.self_sync =
+    method self_sync : Clock.self_sync =
       if self_sync then
         (`Dynamic, if dev <> None then Some sync_source else None)
       else (`Static, None)

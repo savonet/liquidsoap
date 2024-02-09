@@ -30,7 +30,7 @@ let video_fade = Lang.add_module ~base:Modules.video "fade"
 class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
   object (self)
     inherit operator ~name:"video.fade.in" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
@@ -90,7 +90,7 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
 class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
   object (self)
     inherit operator ~name:"video.fade.out" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     method seek_source = source#seek_source

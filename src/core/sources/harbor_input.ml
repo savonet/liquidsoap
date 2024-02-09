@@ -38,7 +38,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   ~on_disconnect ~login ~debug ~timeout () =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
-    inherit Source.active_source ~name:"input.harbor" () as super
+    inherit Source.active_source ~name:"input.harbor" ()
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
     val mutable relay_socket = None
 
@@ -62,17 +62,14 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         | Some addr -> Printf.sprintf "source client connected from %s" addr
         | None -> "no source client connected"
 
-    method private output =
-      self#has_ticked;
-      if self#is_ready then ignore self#get_frame
-
+    method private output = if self#is_ready then ignore self#get_frame
     method reset = self#disconnect ~lock:true
     method buffer_length_cmd = Frame.seconds_of_audio self#length
 
     method login : string * (socket:Harbor.socket -> string -> string -> bool) =
       login
 
-    method stype = `Fallible
+    method fallible = true
     method icy_charset = icy_charset
     method meta_charset = meta_charset
 
@@ -161,17 +158,17 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
     val mutable is_registered = false
 
-    method! private wake_up act =
-      super#wake_up act;
-      Generator.set_max_length self#buffer max_length;
-      Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
-        (self :> Harbor.source);
-      is_registered <- true
+    initializer
+      self#on_wake_up (fun () ->
+          Generator.set_max_length self#buffer max_length;
+          Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
+            (self :> Harbor.source);
+          is_registered <- true);
 
-    method! private sleep =
-      self#disconnect ~lock:true;
-      if is_registered then Harbor.remove_source ~port ~mountpoint ();
-      is_registered <- false
+      self#on_sleep (fun () ->
+          self#disconnect ~lock:true;
+          if is_registered then Harbor.remove_source ~port ~mountpoint ();
+          is_registered <- false)
 
     method register_decoder mime =
       let mime =
@@ -255,15 +252,6 @@ let _ =
   Lang.add_operator ~base:Modules.input "harbor" ~return_t:(Lang.univ_t ())
     ~meth:
       [
-        ( "shutdown",
-          ([], Lang.fun_t [] Lang.unit_t),
-          "Shutdown the output or source.",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                if Source.Clock_variables.is_known s#clock then
-                  (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-                      (s' :> Source.source) = (s :> Source.source));
-                Lang.unit) );
         ( "stop",
           ([], Lang.fun_t [] Lang.unit_t),
           "Disconnect the client currently connected to the harbor. Does \

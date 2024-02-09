@@ -22,8 +22,6 @@
 
 open Mm
 
-type clock_variable
-
 (** In [`CPU] mode, synchronization is governed by the CPU clock.
   * In [`None] mode, there is no synchronization control. Latency in
   * is governed by the time it takes for the sources to produce and
@@ -36,30 +34,15 @@ type clock_variable
   * protocol such as [input.srt]. *)
 type sync = [ `Auto | `CPU | `None ]
 
-type sync_source
+(** A source can be: passive, active or output. Active sources and outputs are
+    animated on each clock cycle. Output are kept around until they are manually
+    shutdown. Active and passive sources can be garbage collected if they are not connected to
+    any output. The argument passed with [`Active] and [`Output] sources is a reset
+    function, used when there is too much latency. *)
+type active = < reset : unit >
 
-val string_of_sync_source : sync_source -> string
-
-module type SyncSource = sig
-  type t
-
-  val to_string : t -> string
-end
-
-module MkSyncSource (S : SyncSource) : sig
-  val make : S.t -> sync_source
-end
-
-(** Type for source's self_sync. The boolean indicates whether the operator
-    takes care of synchronization by itself or not. The first component indicates
-    whether this value can change during the source's lifetime (it cannot if this
-    is [`Static]. *)
-type self_sync = [ `Static | `Dynamic ] * sync_source option
-
-(** The liveness type of a source indicates whether or not it can
-  * fail to broadcast.
-  * A `Infallible source never fails; it is always ready. *)
-type source_t = [ `Fallible | `Infallible ]
+type output = < reset : unit ; output : unit >
+type source_type = [ `Passive | `Active of active | `Output of output ]
 
 exception Unavailable
 
@@ -69,16 +52,14 @@ type streaming_state =
 (** Instrumentation. *)
 
 type metadata = (int * Frame.metadata) list
-type clock_sync_mode = [ sync | `Unknown ]
 
 type watcher = {
   wake_up :
-    stype:source_t ->
-    is_active:bool ->
+    fallible:bool ->
+    source_type:source_type ->
     id:string ->
     ctype:Frame.content_type ->
     clock_id:string ->
-    clock_sync_mode:clock_sync_mode ->
     unit;
   sleep : unit -> unit;
   generate_frame :
@@ -88,8 +69,8 @@ type watcher = {
     has_track_mark:bool ->
     metadata:metadata ->
     unit;
-  before_output : unit -> unit;
-  after_output : unit -> unit;
+  before_generate_frame : unit -> unit;
+  after_generate_frame : unit -> unit;
 }
 
 (** The [source] use is to send data frames through the [get] method. *)
@@ -113,19 +94,24 @@ class virtual source :
 
        method set_pos : Pos.Option.t -> unit
 
-       (* {1 Liveness type}
-          [stype] is the liveness type, telling whether a scheduler is
-          fallible or not, i.e. [get] will never fail.
-          It is defined by each operator based on its sources' types. *)
-       method virtual stype : source_t
+       (** {1 Source characteristics} *)
+
+       (** If [false], [is_ready] should always return [true]. *)
+       method virtual fallible : bool
+
+       (** The source type. Defaults to [`Passive] *)
+       method source_type : source_type
+
+       (** [true] if the source needs to be animated on each clock tick. *)
+       method active : bool
 
        (** {1 Init/shutdown} *)
 
        (** Register a callback, to be executed when source shuts down. *)
        method on_sleep : (unit -> unit) -> unit
 
-       (** The clock under which the source will run, initially unknown. *)
-       method clock : clock_variable
+       (** The clock under which the source will run. *)
+       method clock : Clock.t
 
        (** Does the source provide its own synchronization?
            Examples: Alsa, AO, SRT I/O, etc.. This information
@@ -138,33 +124,21 @@ class virtual source :
            clock), we simply decide based on whether there is one [self_sync]
            source or not. This logic should dictate how the method is
            implemented by the various operators. *)
-       method virtual self_sync : self_sync
+       method virtual self_sync : Clock.self_sync
 
-       method source_sync : bool -> sync_source option
-
-       (** Choose your clock, by adjusting to your children source,
-           or anything custom. *)
-       method private set_clock : unit
-
-       (** The operator says to the source that he will ask it frames. It may be called multiple times. *)
-       method get_ready : source list -> unit
+       method source_sync : bool -> Clock.sync_source option
 
        (** Register a callback when wake_up is called. *)
        method on_wake_up : (unit -> unit) -> unit
 
-       (** Called when the source must be ready and had no active operator,
-           means that the source has to initialize. This method is called by
-           [get_ready] and not called externally. It should be called only once
-           over the course of the source use. *)
-       method private wake_up : source list -> unit
-
-       (** Opposite of [get_ready] : the operator no longer needs the source. it may be called multiple times. *)
-       method leave : ?failed_to_start:bool -> source -> unit
+       (** Called when the source must be ready. Can be called multiple times *)
+       method wake_up : unit
 
        (** Register a callback when sleep is called. *)
        method on_sleep : (unit -> unit) -> unit
 
-       method private sleep : unit
+       (** Called when the source can release all its resources. Can be called multiple times. *)
+       method sleep : unit
 
        (** Check if a source is up or not. *)
        method is_up : bool
@@ -255,6 +229,11 @@ class virtual source :
            the source can produce data during the current streaming cycle. *)
        method virtual private can_generate_frame : bool
 
+       method before_streaming_cycle : unit
+       method after_streaming_cycle : unit
+       method on_before_generate_frame : (unit -> unit) -> unit
+       method on_after_generate_frame : (unit -> unit) -> unit
+
        (** Sources must implement this method. It should return the data
            produced during the current streaming cycle. Sources are responsible
            for producing as much data as possible, up-to the frame size setting. *)
@@ -331,18 +310,6 @@ class virtual source :
        (** Tells the source to end its current track. *)
        method virtual abort_track : unit
 
-       method is_active : bool
-
-       (* Register callback to be executed on #before_output. *)
-       method on_before_output : (unit -> unit) -> unit
-
-       (* Register callback to be executed on #output. *)
-       method on_output : (unit -> unit) -> unit
-
-       (* Register callback to be executed on #after_output. *)
-       method on_after_output : (unit -> unit) -> unit
-       method private has_ticked : unit
-
        (** {1 Utilities} *)
 
        method log : Log.t
@@ -356,9 +323,6 @@ and virtual active_source :
   -> unit
   -> object
        inherit source
-
-       (** Start a new output round, triggers computation of a new frame. *)
-       method virtual output : unit
 
        (** Do whatever needed when the latency gets too big and is reset. *)
        method virtual reset : unit
@@ -413,67 +377,3 @@ class virtual generate_from_multiple_sources :
        method private can_generate_frame : bool
        method private generate_frame : Frame.t
      end
-
-val has_outputs : unit -> bool
-val iterate_new_outputs : (active_source -> unit) -> unit
-
-(** {1 Clocks}
-    Tick identifiers are useful (cf. [#get_tick]) but we don't need much
-    more than the guarantee that the next tick is different from the
-    current one. Booleans should be OK, in any case an overflow on int
-    is not a problem. *)
-
-class type clock =
-  object
-    (** Identifier of the clock. *)
-    method id : string
-
-    method sync_mode : sync
-    method start : bool
-    method stop : unit
-
-    (** Attach an active source to the clock. *)
-    method attach : active_source -> unit
-
-    (** Detach active sources that satisfy a given criterion. *)
-    method detach : (active_source -> bool) -> unit
-
-    (** true if the source is currently attached to the clock. *)
-    method is_attached : active_source -> bool
-
-    (** Manage subordinate clocks *)
-
-    method attach_clock : clock_variable -> unit
-    method detach_clock : clock_variable -> unit
-    method sub_clocks : clock_variable list
-
-    (** Streaming *)
-
-    method start_outputs : (active_source -> bool) -> unit -> active_source list
-    method on_before_output : (unit -> unit) -> unit
-    method on_output : (unit -> unit) -> unit
-    method on_after_output : (unit -> unit) -> unit
-    method get_tick : int
-    method end_tick : unit
-  end
-
-module Clock_variables : sig
-  val to_string : clock_variable -> string
-
-  val create_unknown :
-    ?start:bool ->
-    sources:active_source list ->
-    sub_clocks:clock_variable list ->
-    unit ->
-    clock_variable
-
-  val create_known : clock -> clock_variable
-  val unify : pos:Pos.Option.t -> clock_variable -> clock_variable -> unit
-  val forget : clock_variable -> clock_variable -> unit
-  val get : clock_variable -> clock
-  val is_known : clock_variable -> bool
-  val should_start : clock_variable -> bool
-
-  (* This is exported for testing purposes only at the moment. *)
-  val subclocks : clock_variable -> clock_variable list
-end

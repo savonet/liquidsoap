@@ -78,7 +78,7 @@ let _ =
     ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
-    (fun p -> Lang.bool ((Lang.to_source (List.assoc "" p))#stype == `Fallible))
+    (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#fallible)
 
 let _ =
   Lang.add_builtin ~base:source "is_ready" ~category:(`Source `Liquidsoap)
@@ -132,11 +132,7 @@ let _ =
     Lang.float_t
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
-      let ticks =
-        if Source.Clock_variables.is_known s#clock then
-          (Source.Clock_variables.get s#clock)#get_tick
-        else 0
-      in
+      let ticks = Clock.ticks s#clock in
       let frame_position = Lazy.force Frame.duration *. float ticks in
       Lang.float frame_position)
 
@@ -156,27 +152,6 @@ let _ =
       let wrap_f () = ignore (Lang.apply f []) in
       s#on_sleep wrap_f;
       Lang.unit)
-
-let _ =
-  let s_t = Lang.source_t (Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty) in
-  Lang.add_builtin ~base:source "init" ~category:(`Source `Liquidsoap)
-    ~descr:
-      "Simultaneously initialize sources, return the sublist of sources that \
-       failed to initialize."
-    ~flags:[`Experimental]
-    [("", Lang.list_t s_t, None, None)]
-    (Lang.list_t s_t)
-    (fun p ->
-      let l = Lang.to_list (List.assoc "" p) in
-      let l = List.map Lang.to_source l in
-      let l =
-        (* TODO this whole function should be about active sources,
-         *   just like source.shutdown() but the language has no runtime
-         *   difference between sources and active sources, so we use
-         *   this trick to compare active sources and passive ones... *)
-        Clock.force_init (fun x -> List.exists (fun y -> Oo.id x = Oo.id y) l)
-      in
-      Lang.list (List.map (fun x -> Lang.source (x :> Source.source)) l))
 
 let _ =
   let log = Log.make ["source"; "dump"] in
@@ -214,22 +189,21 @@ let _ =
           p
       in
       let proto = ("fallible", Lang.bool true) :: proto in
-      let s = Lang.to_source (Lang.assoc "" 3 p) in
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
       let fo = Pipe_output.new_file_output p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      let clock = Clock.clock ~start:false "source_dumper" in
-      Clock.unify ~pos:fo#pos fo#clock (Clock.create_known clock);
-      ignore (Clock.force_init (fun _ -> true));
+      let clock = Clock.create ~id:"source_dumper" () in
+      Clock.attach clock (fo :> Clock.source);
+      Clock.start ~sync:`Passive clock;
       log#info "Start dumping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && not !stopped do
         let start_time = Time.time () in
-        clock#end_tick;
+        Clock.tick clock;
         sleep_until (start_time |+| latency)
       done;
       log#info "Source dumped.";
-      fo#leave s;
+      Clock.detach clock (fo :> Clock.source);
       Lang.unit)
 
 let _ =
@@ -261,15 +235,15 @@ let _ =
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      let clock = Clock.clock ~start:false "source_dropper" in
-      Clock.unify ~pos:o#pos o#clock (Clock.create_known clock);
-      ignore (Clock.force_init (fun _ -> true));
+      let clock = Clock.create ~id:"source_dumper" () in
+      Clock.attach clock (o :> Clock.source);
+      Clock.start ~sync:`Passive clock;
       log#info "Start dropping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && not !stopped do
         let start_time = Time.time () in
-        clock#end_tick;
+        Clock.tick clock;
         sleep_until (start_time |+| latency)
       done;
       log#info "Source dropped.";
-      o#leave s;
+      Clock.detach clock (o :> Clock.source);
       Lang.unit)

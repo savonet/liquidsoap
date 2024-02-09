@@ -26,7 +26,7 @@ open Source
 class pan ~field (source : source) phi phi_0 =
   object
     inherit operator ~name:"pan" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source

@@ -30,7 +30,7 @@ type config = {
 
 class stereotool ~field ~handler source =
   object (self)
-    inherit Source.operator ~name:"stereotool" [source] as super
+    inherit Source.operator ~name:"stereotool" [source]
 
     val config =
       lazy
@@ -52,27 +52,27 @@ class stereotool ~field ~handler source =
 
     method config = Lazy.force config
 
-    method! wake_up l =
-      super#wake_up l;
-      let {
-        unlincensed_used_features;
-        valid_license;
-        latency;
-        api_version;
-        software_version;
-      } =
-        self#config
-      in
-      self#log#important
-        "Stereotool initialized! Valid license: %b, latency: %.02fs, \
-         API/software version: %d/%d"
-        valid_license latency api_version software_version;
-      if not valid_license then self#log#severe "Using invalid license!";
-      match unlincensed_used_features with
-        | None -> ()
-        | Some s -> self#log#severe "Using unlicensed features: %s" s
+    initializer
+      self#on_wake_up (fun () ->
+          let {
+            unlincensed_used_features;
+            valid_license;
+            latency;
+            api_version;
+            software_version;
+          } =
+            self#config
+          in
+          self#log#important
+            "Stereotool initialized! Valid license: %b, latency: %.02fs, \
+             API/software version: %d/%d"
+            valid_license latency api_version software_version;
+          if not valid_license then self#log#severe "Using invalid license!";
+          match unlincensed_used_features with
+            | None -> ()
+            | Some s -> self#log#severe "Using unlicensed features: %s" s)
 
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method private can_generate_frame = source#is_ready

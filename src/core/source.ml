@@ -20,309 +20,38 @@
 
  *****************************************************************************)
 
-open Liquidsoap_lang.Error
 open Mm
-
-(** In this module we define the central streaming concepts: sources, active
-    sources and clocks.
-
-    Sources can produce a stream, if something pulls it.
-    Sources can pull streams from other sources (such non-elementary sources
-    are called operators). But who starts pulling?
-
-    Some sources have a noticeable effect, for example outputs.
-    Some are indirectly needed by outputs.
-    Some are useless, they have no direct or indirect observable effect.
-    We only want to pull data from sources that have an effect,
-    thereby "animating them". Those sources are called active.
-
-    Clocks are in charge of animating active sources.
-    Each clock "owns" a number of active sources, and indirectly some
-    sources owned by those active sources, and controls access to their
-    streams. *)
-
 module Pcre = Re.Pcre
-
-(** Fallibility type MUST be defined BEFORE clocks.
-    Otherwise the module cannot be well-typed since the list of all
-    clock variables refers to active sources and hence to #stype : source_t.
-    Don't mess with this, type errors will give you a hard time!
-    (By the way, there's no problem of scope escaping for class type
-    since those are structural, not nominal like a variant type.) *)
-type source_t = [ `Fallible | `Infallible ]
 
 exception Unavailable
 
 type streaming_state =
   [ `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
-(** {1 Proto clocks}
-
-    Roughly describe what a clock is, and build a notion of clock variable
-    on top of that. More concrete clock stuff is done the [Clock] module.
-
-    Clocks play two roles:
-     (1) making sure that one source belongs to only one time flow,
-     (2) giving a handle on how to run a time flow.
-
-    Most clocks are passive, i.e. they don't run anything
-    directly, but may only tick when something happens to a source.
-    The clock is the default, active clock:
-    when started, it launches a thread which keeps ticking regularly.
-
-    A clock needs to know all the active sources under its control,
-    so it can execute them. This might seem surprising in some cases:
-      cross(s)       <-- create a clock, assigns it to s
-      output.file(s) <-- also assigns it to the output
-    In effect, we make it equivalent to
-      cross(output.file(s))
-    Anyway, it'd be very strange that an output isn't animated at all.
-
-    Clock variables can represent an unknown clock, with attached outputs.
-    A source gets assigned a clock variable, which might leave it
-    a chance to choose that clock (by attempting to unify it).
-
-    The idea is that when an output is created it assigns a clock to itself
-    according to its sources' clocks. Eventually, all remaining unknown clocks
-    are forced to clock.
- *)
-
+type active = < reset : unit >
+type output = < reset : unit ; output : unit >
+type source_type = [ `Passive | `Active of active | `Output of output ]
 type sync = [ `Auto | `CPU | `None ]
-type sync_source = ..
-type self_sync = [ `Static | `Dynamic ] * sync_source option
 
-module Queue = Liquidsoap_lang.Queues.Queue
-
-exception Sync_source_name of string
-
-let sync_sources_handlers = Queue.create ()
-
-let string_of_sync_source s =
-  try
-    Queue.iter sync_sources_handlers (fun fn -> fn s);
-    assert false
-  with Sync_source_name s -> s
-
-module type SyncSource = sig
-  type t
-
-  val to_string : t -> string
-end
-
-module MkSyncSource (S : SyncSource) = struct
-  type sync_source += Sync_source of S.t
-
-  let make v = Sync_source v
-
-  let () =
-    Queue.push sync_sources_handlers (function
-      | Sync_source v -> raise (Sync_source_name (S.to_string v))
-      | _ -> ())
-end
-
-module SourceSync = MkSyncSource (struct
+module SourceSync = Clock.MkSyncSource (struct
   type t = < id : string >
 
   let to_string s = Printf.sprintf "source(id=%s)" s#id
 end)
-
-class type ['a, 'b] proto_clock =
-  object
-    method id : string
-    method sync_mode : sync
-    method start : bool
-    method stop : unit
-
-    (** Attach an active source, detach active sources by filter. *)
-
-    method attach : 'a -> unit
-    method detach : ('a -> bool) -> unit
-    method is_attached : 'a -> bool
-
-    (** Attach a sub_clock, get all subclocks, see below. *)
-
-    method attach_clock : 'b -> unit
-    method detach_clock : 'b -> unit
-    method sub_clocks : 'b list
-    method start_outputs : ('a -> bool) -> unit -> 'a list
-    method on_before_output : (unit -> unit) -> unit
-    method on_output : (unit -> unit) -> unit
-    method on_after_output : (unit -> unit) -> unit
-    method get_tick : int
-    method end_tick : unit
-  end
-
-(** {1 Clock variables}
-    Used to infer what clock a source belongs to.
-    Each variable comes with
-      - a list of active sources belonging to the clock, unused during
-        inference/unification, but animated by the clock when running
-      - a list of sub-clocks, used during unification's occurs-check
-        to avoid cycles which would result in unsound behavior
-        e.g. add([s,cross(f,s)]).
-    Clock constants are objects of type [proto_clock], but need to also
-    maintain the information attached to variables.
-
-    The unification algorithm can be described as follows, ignoring
-    the active source maintenance.
-    X[Y1,Y2,..,Yn] denotes a variable or constant clock with the set Gamma
-       of subclocks,
-       from a first-order unification perspective it should be thought of
-       as a term X(Y1,Y2,..,Yn,...) where the second ... denotes a
-       row variable: we don't know if there are more parameters there
-       (more subclocks)
-    We write X[Gamma] with Gamma list of clocks, and X[..Y..] when
-    Y belongs to the subclocks of X, or the subclocks of the subclocks,
-    etc.
-    Unification rules are:
-      X[..Y..] = Y[..]    ---> ERROR (occurs-check)
-      c1[...]  = c2[...]  ---> ERROR (rigid-rigid)
-      X[Gamma] = Y[Delta] ---> X,Y:=Z[Gamma,Delta]
-         Here Gamma,Delta denotes an union. It is possible that two
-         distinct variables might become unified, in which case we'll
-         end up with two occurrences of the same subclock.
-  *)
-
-(** Clock variables. *)
-type 'a var =
-  | Link of 'a link_t ref  (** a universal variable *)
-  | Known of ('a, 'a var) proto_clock  (** a constant variable *)
-
-and 'a unknown_source = {
-  start : bool option;
-  sources : 'a list;
-  sub_clocks : 'a var list;
-}
-
-(** Contents of a clock variable. *)
-and 'a link_t =
-  | Unknown of 'a unknown_source
-      (** the clock variable is unknown but depends on other variables *)
-  | Same_as of 'a var  (** the clock variable is substituted by another *)
-
-let debug = Sys.getenv_opt "LIQUIDSOAP_DEBUG" <> None
-let create_known c = Known c
-
-let create_unknown ?start ~sources ~sub_clocks () =
-  Link (ref (Unknown { start; sources; sub_clocks }))
-
-let rec deref = function Link { contents = Same_as a } -> deref a | x -> x
-
-let rec variable_to_string = function
-  | Link { contents = Same_as c } -> variable_to_string c
-  | Link ({ contents = Unknown { start; sources; sub_clocks } } as r) ->
-      Printf.sprintf "{id:%x,start:%s,sources=[%s],sub_clocks=[%s]}"
-        (Obj.magic r)
-        (match start with None -> "default" | Some v -> string_of_bool v)
-        (String.concat "," (List.map (fun s -> s#id) sources))
-        (String.concat "," (List.map variable_to_string sub_clocks))
-  | Known c ->
-      Printf.sprintf "%s[%s]" c#id
-        (String.concat "," (List.map variable_to_string c#sub_clocks))
-
-(** Equality modulo dereferencing, does not identify two variables with the same
-    sources and clocks. *)
-let var_eq a b =
-  let a = deref a in
-  let b = deref b in
-  match (a, b) with
-    | Link a, Link b -> a == b
-    | Known a, Known b -> a = b
-    | _, _ -> false
-
-let rec sub_clocks = function
-  | Known c -> c#sub_clocks
-  | Link { contents = Unknown { sub_clocks } } -> sub_clocks
-  | Link { contents = Same_as x } -> sub_clocks x
-
-let occurs_check ~pos x y =
-  let rec aux = function
-    | [] -> ()
-    | [] :: tl -> aux tl
-    | (x' :: clocks) :: tl ->
-        if var_eq x x' then
-          raise (Clock_loop (pos, variable_to_string x, variable_to_string y));
-        aux (sub_clocks x' :: clocks :: tl)
-  in
-  aux [sub_clocks y]
-
-let occurs_check ~pos x y =
-  occurs_check ~pos x y;
-  occurs_check ~pos y x
-
-let rec unify ~pos a b =
-  match (a, b) with
-    | Link { contents = Same_as a }, _ -> unify ~pos a b
-    | _, Link { contents = Same_as b } -> unify ~pos a b
-    | Known s, Known s' ->
-        if s <> s' then
-          raise
-            (Clock_conflict (pos, variable_to_string a, variable_to_string b))
-    | Link ra, Link rb when ra == rb -> ()
-    | ( Link
-          ({ contents = Unknown { start; sources = sa; sub_clocks = ca } } as
-          ra),
-        Link
-          ({
-             contents =
-               Unknown { start = start'; sources = sb; sub_clocks = cb };
-           } as rb) ) ->
-        let start =
-          match (start, start') with
-            | None, s | s, None -> s
-            | Some v, Some v' when v = v' -> Some v
-            | _ ->
-                raise
-                  (Clock_conflict
-                     (pos, variable_to_string a, variable_to_string b))
-        in
-        occurs_check ~pos a b;
-        let merge =
-          let s = List.sort_uniq Stdlib.compare (List.rev_append sa sb) in
-          let sc = List.sort_uniq Stdlib.compare (List.rev_append ca cb) in
-          Link (ref (Unknown { start; sources = s; sub_clocks = sc }))
-        in
-        ra := Same_as merge;
-        rb := Same_as merge
-    | ( Known c,
-        Link
-          ({ contents = Unknown { start; sources = s; sub_clocks = sc } } as r)
-      )
-    | ( Link
-          ({ contents = Unknown { start; sources = s; sub_clocks = sc } } as r),
-        Known c ) ->
-        if start <> None && c#start <> Option.get start then
-          raise
-            (Clock_conflict (pos, variable_to_string a, variable_to_string b));
-        occurs_check ~pos (Known c) (Link r);
-        List.iter c#attach s;
-        List.iter c#attach_clock sc;
-        r := Same_as (Known c)
-
-let rec forget var subclock =
-  match var with
-    | Known c -> c#detach_clock subclock
-    | Link { contents = Same_as a } -> forget a subclock
-    | Link ({ contents = Unknown ({ sub_clocks } as c) } as r) ->
-        r :=
-          Unknown
-            { c with sub_clocks = List.filter (( <> ) subclock) sub_clocks }
 
 (** {1 Sources} *)
 
 (** Instrumentation. *)
 
 type metadata = (int * Frame.metadata) list
-type clock_sync_mode = [ sync | `Unknown ]
 
 type watcher = {
   wake_up :
-    stype:source_t ->
-    is_active:bool ->
+    fallible:bool ->
+    source_type:source_type ->
     id:string ->
     ctype:Frame.content_type ->
     clock_id:string ->
-    clock_sync_mode:clock_sync_mode ->
     unit;
   sleep : unit -> unit;
   generate_frame :
@@ -332,32 +61,42 @@ type watcher = {
     has_track_mark:bool ->
     metadata:metadata ->
     unit;
-  before_output : unit -> unit;
-  after_output : unit -> unit;
+  before_generate_frame : unit -> unit;
+  after_generate_frame : unit -> unit;
 }
 
 let source_log = Log.make ["source"]
 
-(** Has any output been created? This is used by Main to decide if there's
-    anything "to run". Note that we could get rid of it, since outputs (active
-    sources) are actually registered to clock variables. *)
-let has_outputs = ref false
-
-let add_new_output, iterate_new_outputs =
-  let l = Queue.create () in
-  (Queue.push l, Queue.flush l)
+let sleep s =
+  source_log#info "Source %s gets down." s#id;
+  try s#sleep
+  with e ->
+    let bt = Printexc.get_backtrace () in
+    Utils.log_exception ~log:source_log ~bt
+      (Printf.sprintf "Error when leaving output %s: %s!" s#id
+         (Printexc.to_string e))
 
 class virtual operator ?pos ?(name = "src") sources =
   let frame_type = Type.var () in
+  let clock = Clock.create ?pos () in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
 
     method add_watcher w = watchers <- w :: watchers
     method private iter_watchers fn = List.iter fn watchers
+    method clock = clock
+
+    initializer
+      List.iter (fun s -> Clock.unify ~pos:self#pos s#clock self#clock) sources;
+      Clock.attach self#clock (self :> Clock.source)
+
     val mutable pos : Pos.Option.t = pos
     method pos = pos
-    method set_pos p = pos <- p
+
+    method set_pos p =
+      pos <- p;
+      Clock.set_pos clock pos
 
     (** Logging and identification *)
 
@@ -385,48 +124,27 @@ class virtual operator ?pos ?(name = "src") sources =
          changes, and [log] has already been initialized, reset it. *)
       if log != source_log then self#create_log
 
-    initializer
-      if debug then
-        Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
-
     val mutex = Mutex.create ()
 
     method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
       Tutils.mutexify mutex
 
-    (** Is the source infallible, i.e. is it always guaranteed that there will
-        be always be a next track immediately available. *)
-    method virtual stype : source_t
+    method virtual fallible : bool
+    method source_type : source_type = `Passive
 
-    (** Is the source active *)
-    method is_active = false
+    method active =
+      match self#source_type with
+        | `Passive -> false
+        | `Output _ | `Active _ -> true
 
     (** Children sources *)
     val mutable sources : operator list = sources
 
-    (* Clock setup
-       Each source starts with an unknown clock.
-       This clock will be unified with children clocks in most cases.
-       Once the clock has been set to a concrete clock, it cannot be
-       changed anymore: a source lives in only one time flow.
-
-       We need a #set_clock method with a default behavior that can
-       be overridden, and it needs to be called at initialization:
-       #wake_up is too late since it's the clock who initiates it. *)
-    val clock : active_operator var =
-      create_unknown ~sources:[] ~sub_clocks:[] ()
-
-    method clock = clock
-    method virtual self_sync : self_sync
+    method virtual self_sync : Clock.self_sync
 
     method source_sync self_sync =
       if self_sync then Some (SourceSync.make (self :> < id : string >))
       else None
-
-    method private set_clock =
-      List.iter (fun s -> unify ~pos self#clock s#clock) sources
-
-    initializer self#set_clock
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
@@ -476,89 +194,50 @@ class virtual operator ?pos ?(name = "src") sources =
         (Option.get
            (Frame.Fields.find_opt Frame.Fields.video self#content_type))
 
-    (** Startup/shutdown.
-
-      Get the source ready for streaming on demand, have it release resources
-      when it's not used any more, and decide whether the source should run in
-      caching mode.
-
-      Before that a source P accesses another source S it must activate it. The
-      An activation is identified by the path to the source which required it.
-      It is possible that two identical activations are done, and they should
-      not be treated as a single one.
-
-      It is assumed that all streaming is done in one thread for a given clock,
-      so the activation management API is not thread-safe. *)
-
-    val mutable caching = false
-    val mutable activations : operator list list = []
     val mutable on_wake_up = []
     method on_wake_up fn = on_wake_up <- fn :: on_wake_up
 
     initializer
       self#on_wake_up (fun () ->
-          let clock_id, clock_sync_mode =
-            match deref self#clock with
-              | Known c -> (c#id, (c#sync_mode :> clock_sync_mode))
-              | _ -> ("unknown", `Unknown)
-          in
+          List.iter (fun s -> s#wake_up) sources;
           self#iter_watchers (fun w ->
-              w.wake_up ~stype:self#stype ~is_active:self#is_active ~id:self#id
-                ~ctype:self#content_type ~clock_id ~clock_sync_mode))
+              w.wake_up ~fallible:self#fallible ~source_type:self#source_type
+                ~id:self#id ~ctype:self#content_type
+                ~clock_id:(Clock.id self#clock)))
 
-    (* Ask for initialization.
-       The current implementation makes it dangerous to call #get_ready from
-       another thread than the Root one, as interleaving with #get is
-       forbidden. *)
-    method get_ready (activation : operator list) =
-      self#content_type_computation_allowed;
-      if log == source_log then self#create_log;
-      if activations = [] then (
-        source_log#info "Source %s gets up with content type: %s." id
-          (Frame.string_of_content_type self#content_type);
-        self#wake_up activation;
-        List.iter (fun fn -> fn ()) on_wake_up);
-      activations <- activation :: activations
+    val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
+    method is_up = Atomic.get is_up = `False
+
+    method wake_up =
+      if Atomic.compare_and_set is_up `False `True then (
+        try
+          self#content_type_computation_allowed;
+          if log == source_log then self#create_log;
+          source_log#info "Source %s gets up with content type: %s." id
+            (Frame.string_of_content_type self#content_type);
+          self#log#debug "Clock is %s." (Clock.id self#clock);
+          self#log#important "Content type is %s."
+            (Frame.string_of_content_type self#content_type);
+          List.iter (fun fn -> fn ()) on_wake_up
+        with exn ->
+          Atomic.set is_up `Error;
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log ~bt
+            (Printf.sprintf "Error when starting source %s: %s!" self#id
+               (Printexc.to_string exn));
+          Tutils.shutdown 1)
 
     val mutable on_sleep = []
     method on_sleep fn = on_sleep <- fn :: on_sleep
 
-    initializer
-      self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
-
-    (* Release the source, which will shutdown if possible.
-       The current implementation makes it dangerous to call #leave from
-       another thread than the Root one, as interleaving with #get is
-       forbidden. *)
-    method leave ?(failed_to_start = true) src =
-      let rec remove acc = function
-        | [] when failed_to_start -> []
-        | [] ->
-            self#log#critical "Got ill-balanced activations (from %s)!" src#id;
-            assert false
-        | (s :: _) :: tl when s = src -> List.rev_append acc tl
-        | h :: tl -> remove (h :: acc) tl
-      in
-      activations <- remove [] activations;
-      if activations = [] then (
+    method sleep =
+      if Atomic.compare_and_set is_up `True `False then (
         source_log#info "Source %s gets down." id;
-        self#sleep;
-        List.iter (fun fn -> try fn () with _ -> ()) on_sleep)
+        List.iter (fun fn -> fn ()) on_sleep)
 
-    method is_up = activations <> []
-
-    (** Two methods called for initialization and shutdown of the source *)
-    method private wake_up activation =
-      self#log#debug "Clock is %s." (variable_to_string self#clock);
-      self#log#important "Content type is %s."
-        (Frame.string_of_content_type self#content_type);
-      let activation = (self :> operator) :: activation in
-      List.iter (fun s -> s#get_ready activation) sources
-
-    method private sleep =
-      List.iter
-        (fun s -> s#leave ?failed_to_start:None (self :> operator))
-        sources
+    initializer
+      Gc.finalise sleep self;
+      self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
 
     (** Streaming *)
 
@@ -585,43 +264,40 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable streaming_state : streaming_state = `Unavailable
 
     method is_ready =
-      if not content_type_computation_allowed then false
-      else (
-        self#has_ticked;
-        match streaming_state with `Ready _ | `Done _ -> true | _ -> false)
+      match streaming_state with `Ready _ | `Done _ -> true | _ -> false
 
     val mutable _cache = None
     val mutable consumed = 0
 
     (* This is the implementation of the main streaming logic. *)
-    initializer
-      self#on_before_output (fun () ->
-          consumed <- 0;
-          let cache = Option.value ~default:self#empty_frame _cache in
-          let cache_pos = Frame.position cache in
-          let size = Lazy.force Frame.size in
-          let can_generate_frame = self#can_generate_frame in
-          if cache_pos > 0 || can_generate_frame then
-            streaming_state <-
-              `Ready
-                (fun () ->
-                  let buf =
-                    if can_generate_frame && cache_pos < size then
-                      Frame.append cache self#instrumented_generate_frame
-                    else cache
-                  in
-                  let buf_pos = Frame.position buf in
-                  let buf =
-                    if size < buf_pos then (
-                      _cache <- Some (Frame.after buf size);
-                      Frame.slice buf size)
-                    else (
-                      _cache <- None;
-                      buf)
-                  in
-                  streaming_state <- `Done buf)
-          else streaming_state <- `Unavailable);
+    method before_streaming_cycle =
+      consumed <- 0;
+      let cache = Option.value ~default:self#empty_frame _cache in
+      let cache_pos = Frame.position cache in
+      let size = Lazy.force Frame.size in
+      let can_generate_frame = self#can_generate_frame in
+      if cache_pos > 0 || can_generate_frame then
+        streaming_state <-
+          `Ready
+            (fun () ->
+              let buf =
+                if can_generate_frame && cache_pos < size then
+                  Frame.append cache self#instrumented_generate_frame
+                else cache
+              in
+              let buf_pos = Frame.position buf in
+              let buf =
+                if size < buf_pos then (
+                  _cache <- Some (Frame.after buf size);
+                  Frame.slice buf size)
+                else (
+                  _cache <- None;
+                  buf)
+              in
+              streaming_state <- `Done buf)
+      else streaming_state <- `Unavailable
 
+    method after_streaming_cycle =
       self#on_after_output (fun () ->
           match (streaming_state, consumed) with
             | `Done buf, n when n < Frame.position buf ->
@@ -630,7 +306,6 @@ class virtual operator ?pos ?(name = "src") sources =
             | _ -> ())
 
     method peek_frame =
-      self#has_ticked;
       match streaming_state with
         | `Unavailable ->
             log#critical "source called while not ready!";
@@ -713,7 +388,10 @@ class virtual operator ?pos ?(name = "src") sources =
     val mutable on_metadata : (Frame.metadata -> unit) List.t = []
     method on_metadata fn = on_metadata <- fn :: on_metadata
     val mutable on_track_called = false
-    initializer self#on_before_output (fun () -> on_track_called <- false)
+
+    initializer
+      self#on_before_generate_frame (fun () -> on_track_called <- false)
+
     val mutable on_track : (Frame.metadata -> unit) List.t = []
     method on_track fn = on_track <- fn :: on_track
 
@@ -830,62 +508,36 @@ class virtual operator ?pos ?(name = "src") sources =
       buf
 
     (* Set to [true] when we're inside an output cycle. *)
-    val mutable in_output = false
-    val mutable on_before_output = []
-    method on_before_output fn = on_before_output <- fn :: on_before_output
+    val mutable on_before_generate_frame = []
+
+    method on_before_generate_frame fn =
+      on_before_generate_frame <- fn :: on_before_generate_frame
 
     initializer
-      self#on_before_output (fun () ->
-          self#iter_watchers (fun w -> w.before_output ()))
+      self#on_before_generate_frame (fun () ->
+          self#iter_watchers (fun w -> w.before_generate_frame ()))
 
-    (* Prepare for output round. *)
-    method private before_output =
-      List.iter (fun fn -> fn ()) on_before_output;
-      in_output <- true
+    method private before_generate_frame =
+      List.iter (fun fn -> fn ()) on_before_generate_frame
 
-    val mutable on_output : (unit -> unit) List.t = []
-    method on_output fn = on_output <- fn :: on_output
-    val mutable on_after_output = []
-    method on_after_output fn = on_after_output <- fn :: on_after_output
+    val mutable on_after_generate_frame = []
+
+    method on_after_generate_frame fn =
+      on_after_generate_frame <- fn :: on_after_generate_frame
 
     initializer
-      self#on_after_output (fun () ->
-          self#iter_watchers (fun w -> w.after_output ()))
+      self#on_after_generate_frame (fun () ->
+          self#iter_watchers (fun w -> w.after_generate_frame ()))
 
-    (* Cleanup after output round. *)
-    method private after_output =
-      List.iter (fun fn -> fn ()) on_after_output;
-      in_output <- false
-
-    method private has_ticked =
-      match deref clock with
-        | Known c ->
-            if not in_output then (
-              in_output <- true;
-              self#before_output;
-              c#on_output (fun () -> List.iter (fun fn -> fn ()) on_output);
-              c#on_after_output (fun () -> self#after_output))
-        | _ -> ()
+    method private after_generate_frame =
+      List.iter (fun fn -> fn ()) on_after_generate_frame
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
 and virtual active_operator ?pos ?name sources =
   object (self)
     inherit operator ?pos ?name sources
-
-    initializer
-      has_outputs := true;
-      add_new_output (self :> active_operator);
-      ignore
-        (unify ~pos:self#pos self#clock
-           (create_unknown
-              ~sources:[(self :> active_operator)]
-              ~sub_clocks:[] ()))
-
-    method! is_active = true
-
-    (** Start a new output round, may trigger the computation of a frame. *)
-    method virtual output : unit
+    method! source_type : source_type = `Active (self :> active)
 
     (** Do whatever needed when the latency gets too big and is reset. *)
     method virtual reset : unit
@@ -968,9 +620,9 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
           match
             self#get_source ~reselect:(`After_position last_chunk_pos) ()
           with
-            | Some s when last_source == s ->
+            | Some s' when last_source == s' ->
                 let remainder =
-                  last_source#get_partial_frame (fun frame ->
+                  s#get_partial_frame (fun frame ->
                       Frame.slice frame (last_chunk_pos + rem))
                 in
                 let new_track = Frame.after remainder last_chunk_pos in
@@ -994,51 +646,3 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
       current_source <- Some last_source;
       buf
   end
-
-(** Specialized shortcuts *)
-
-type clock_variable = active_source var
-
-class type clock =
-  object
-    method id : string
-    method start : bool
-    method stop : unit
-    method sync_mode : sync
-    method attach : active_source -> unit
-    method detach : (active_source -> bool) -> unit
-    method is_attached : active_source -> bool
-    method attach_clock : clock_variable -> unit
-    method detach_clock : clock_variable -> unit
-    method sub_clocks : clock_variable list
-    method start_outputs : (active_source -> bool) -> unit -> active_source list
-    method on_before_output : (unit -> unit) -> unit
-    method on_output : (unit -> unit) -> unit
-    method on_after_output : (unit -> unit) -> unit
-    method get_tick : int
-    method end_tick : unit
-  end
-
-module Clock_variables = struct
-  let to_string = variable_to_string
-  let create_unknown = create_unknown
-  let create_known = create_known
-
-  let subclocks v =
-    match deref v with
-      | Link { contents = Unknown { sub_clocks } } -> sub_clocks
-      | _ -> assert false
-
-  let unify = unify
-  let forget = forget
-  let get v = match deref v with Known c -> c | _ -> assert false
-  let is_known v = match deref v with Known _ -> true | _ -> false
-
-  let should_start v =
-    match deref v with
-      | Link { contents = Unknown { start } } ->
-          Option.value ~default:true start
-      | _ -> assert false
-end
-
-let has_outputs () = !has_outputs

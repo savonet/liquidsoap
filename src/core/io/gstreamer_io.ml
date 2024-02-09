@@ -25,7 +25,7 @@ open Extralib
 open Gstreamer
 module GU = Gstreamer_utils
 
-module SyncSource = Source.MkSyncSource (struct
+module SyncSource = Clock.MkSyncSource (struct
   type t = unit
 
   let to_string _ = "gstreamer"
@@ -487,7 +487,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     method pause_cmd = self#set_state Element.State_paused
     method play_cmd = self#set_state Element.State_playing
     method restart_cmd = self#restart
-    method stype = `Fallible
+    method fallible = true
     method remaining = -1
     method seek_source = (self :> Source.source)
 

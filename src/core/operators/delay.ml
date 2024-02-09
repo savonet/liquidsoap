@@ -29,7 +29,7 @@ class delay ~initial (source : source) delay =
   object (self)
     inherit operator ~name:"delay" [source]
     val mutable last_track = if initial then Unix.time () else 0.
-    method stype = `Fallible
+    method fallible = true
     method remaining = source#remaining
 
     method abort_track =

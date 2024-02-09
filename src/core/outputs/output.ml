@@ -54,7 +54,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
     initializer
       (* This should be done before the active_operator initializer attaches us
          to a clock. *)
-      if !fallibility_check && infallible && source#stype <> `Infallible then
+      if !fallibility_check && infallible && source#fallible then
         raise (Error.Invalid_value (val_source, "That source is fallible."))
 
     initializer Typing.(source#frame_type <: self#frame_type)
@@ -64,7 +64,8 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
     method virtual private stop : unit
     method virtual private send_frame : Frame.t -> unit
     method self_sync = source#self_sync
-    method stype = if infallible then `Infallible else `Fallible
+    method fallible = not infallible
+    method! source_type : source_type = `Output (self :> Source.output)
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)
@@ -121,34 +122,27 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
     method seek_source = source#seek_source
 
     (* Operator startup *)
-    method! private wake_up activation =
-      (* We prefer [name] as an ID over the default, but do not overwrite
-         user-defined ID. Our ID will be used for the server interface. *)
-      if name <> "" then self#set_id ~definitive:false name;
+    initializer
+      self#on_wake_up (fun () ->
+          (* We prefer [name] as an ID over the default, but do not overwrite
+             user-defined ID. Our ID will be used for the server interface. *)
+          if name <> "" then self#set_id ~definitive:false name;
 
-      self#log#debug "Clock is %s."
-        (Source.Clock_variables.to_string self#clock);
-      self#log#important "Content type is %s."
-        (Frame.string_of_content_type self#content_type);
+          self#log#debug "Clock is %s." (Clock.id self#clock);
+          self#log#important "Content type is %s."
+            (Frame.string_of_content_type self#content_type);
 
-      if Frame.Fields.is_empty self#content_type then
-        failwith
-          (Printf.sprintf
-             "Empty content-type detected for output %s. You might want to use \
-              an expliciy type annotation!"
-             self#id);
+          if Frame.Fields.is_empty self#content_type then
+            failwith
+              (Printf.sprintf
+                 "Empty content-type detected for output %s. You might want to \
+                  use an expliciy type annotation!"
+                 self#id);
 
-      (* Get our source ready. This can take a while (preparing playlists,
-         etc). *)
-      source#get_ready ((self :> operator) :: activation);
+          if not autostart then start_stop#transition_to `Stopped;
 
-      if not autostart then start_stop#transition_to `Stopped;
-
-      self#register_telnet
-
-    method! private sleep =
-      start_stop#transition_to `Stopped;
-      source#leave (self :> operator)
+          self#register_telnet);
+      self#on_sleep (fun () -> start_stop#transition_to `Stopped)
 
     (* Metadata stuff: keep track of what was streamed. *)
     val q_length = 10
@@ -165,8 +159,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
     method private skip = skip <- true
     method private generate_frame = source#get_frame
 
-    method private output =
-      self#has_ticked;
+    method output =
       if self#can_generate_frame && state <> `Stopped then
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
@@ -182,19 +175,16 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
         (* Output that frame if it has some data *)
         if Frame.position data > 0 then self#send_frame data;
         if Frame.is_partial data then (
-          if self#stype = `Infallible then (
+          if not self#fallible then (
             self#log#critical "Infallible source produced a partial frame!";
             assert false);
           self#log#important "Source failed (no more tracks) stopping output...";
-          self#transition_to `Idle))
+          self#transition_to `Idle);
 
-    initializer
-      self#on_after_output (fun () ->
-          (* Perform skip if needed *)
-          if skip then (
-            self#log#important "Performing user-requested skip";
-            skip <- false;
-            self#abort_track))
+        if skip then (
+          self#log#important "Performing user-requested skip";
+          skip <- false;
+          self#abort_track))
   end
 
 class dummy ~infallible ~on_start ~on_stop ~autostart ~register_telnet source =

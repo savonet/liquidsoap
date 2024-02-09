@@ -28,7 +28,7 @@ exception Error
 class insert_metadata source =
   object
     inherit operator ~name:"insert_metadata" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
@@ -100,7 +100,7 @@ class replay meta src =
   object
     inherit operator ~name:"replay_metadata" [src]
     val mutable first = true
-    method stype = src#stype
+    method fallible = src#fallible
     method private can_generate_frame = src#is_ready
     method abort_track = src#abort_track
     method remaining = src#remaining

@@ -101,16 +101,10 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
     method start = ()
     method stop = ()
     method! reset = ()
-    val mutable is_up = false
-    method! can_generate_frame = is_up && super#can_generate_frame
-
-    method! wake_up l =
-      is_up <- true;
-      super#wake_up l
-
-    method! sleep =
-      is_up <- false;
-      super#sleep
+    val is_up = Atomic.make false
+    method! can_generate_frame = Atomic.get is_up && super#can_generate_frame
+    initializer self#on_wake_up (fun () -> Atomic.set is_up true)
+    initializer self#on_sleep (fun () -> Atomic.set is_up false)
 
     method virtual raw_ffmpeg_frames
         : Content.data -> 'a Ffmpeg_raw_content.frame list
@@ -177,7 +171,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
     inherit Source.source ~name ()
     initializer Typing.(self#frame_type <: frame_t)
     method seek_source = (self :> Source.source)
-    method stype : Source.source_t = `Fallible
+    method fallible = true
     method remaining = Generator.remaining self#buffer
     method abort_track = ()
     method virtual buffer : Generator.t
@@ -239,7 +233,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
               self#put_data ~length frames
           | None -> ()
 
-    method self_sync : Source.self_sync = self_sync ()
+    method self_sync : Clock.self_sync = self_sync ()
 
     method pull =
       try

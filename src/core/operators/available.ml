@@ -25,7 +25,7 @@ open Source
 class available ~track_sensitive ~override p (source : source) =
   object (self)
     inherit operator ~name:"source.available" [source]
-    method stype = `Fallible
+    method fallible = true
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source

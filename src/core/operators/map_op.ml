@@ -25,7 +25,7 @@ open Source
 class map ~field source f =
   object
     inherit operator ~name:"audio.map" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync

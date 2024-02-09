@@ -26,7 +26,7 @@ class on_end ~delay f s =
     inherit Latest_metadata.source
     val mutable executed = false
     val mutable started = false
-    method stype = s#stype
+    method fallible = s#fallible
     method private can_generate_frame = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track

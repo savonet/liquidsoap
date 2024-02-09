@@ -26,9 +26,9 @@ open Source
 class delay (source : source) duration =
   let length () = Frame.audio_of_seconds (duration ()) in
   object (self)
-    inherit operator ~name:"amplify" [source] as super
+    inherit operator ~name:"amplify" [source]
     val mutable override = None
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
@@ -50,9 +50,7 @@ class delay (source : source) duration =
         buffer <- Audio.create self#audio_channels n;
         buffer_length <- n)
 
-    method! wake_up a =
-      super#wake_up a;
-      self#prepare (length ())
+    initializer self#on_wake_up (fun () -> self#prepare (length ()))
 
     method private generate_frame =
       let buf =

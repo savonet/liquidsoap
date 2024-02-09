@@ -48,7 +48,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
   let dt = 1. /. float fps in
   object (self)
     inherit operator ~name:("frei0r." ^ name) [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method private can_generate_frame = source#is_ready
@@ -89,11 +89,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
   object (self)
     inherit operator ~name:("frei0r." ^ name) [source; source2]
     method seek_source = (self :> Source.source)
-
-    method stype =
-      match (source#stype, source2#stype) with
-        | `Infallible, `Infallible -> `Infallible
-        | _ -> `Fallible
+    method fallible = source#fallible && source2#fallible
 
     method remaining =
       match (source#remaining, source2#remaining) with
@@ -174,7 +170,7 @@ class frei0r_source ~name bgra instance params =
   object (self)
     inherit source ~name:("frei0r." ^ name) ()
     method seek_source = (self :> Source.source)
-    method stype = `Infallible
+    method fallible = false
     method private can_generate_frame = true
     method self_sync = (`Static, None)
     val mutable must_fail = false

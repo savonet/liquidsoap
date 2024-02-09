@@ -26,7 +26,7 @@ open Source
 class virtual base ~name (source : source) =
   object
     inherit operator ~name [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync

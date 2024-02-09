@@ -25,7 +25,7 @@ open Source
 class compand ~field (source : source) mu =
   object (self)
     inherit operator ~name:"compand" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync

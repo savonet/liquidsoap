@@ -77,7 +77,7 @@ class pitch every length freq_min freq_max (source : source) =
         (Lazy.from_fun (fun () -> Audio.create self#audio_channels length))
 
     val mutable computations = -1
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method private can_generate_frame = source#is_ready

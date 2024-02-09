@@ -92,7 +92,7 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
   object (self)
     inherit operator ~name:"blank.detect" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
@@ -121,7 +121,7 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
        - keep pulling data from the source during those times. *)
     inherit active_operator ~name:"blank.strip" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-    method stype = `Fallible
+    method fallible = true
     method private can_generate_frame = (not self#is_blank) && source#is_ready
     method remaining = if self#is_blank then 0 else source#remaining
 
@@ -137,7 +137,6 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       buf
 
     method private output =
-      self#has_ticked;
       if source#is_ready && self#is_blank then ignore self#get_frame
 
     method reset = ()
@@ -150,14 +149,14 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     (* Eating blank is trickier than stripping. *)
     inherit operator ~name:"blank.eat" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-    inherit! Child_support.base ~check_self_sync:true [source_val]
+    inherit Child_support.base ~check_self_sync:true [source_val]
 
     (** We strip when the source is silent, but only at the beginning of tracks
         if [at_beginning] is passed. *)
 
     val mutable stripping = false
     val mutable beginning = true
-    method stype = `Fallible
+    method fallible = true
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method seek_source = source#seek_source
@@ -169,7 +168,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
       let frame = ref self#empty_frame in
       while !first || stripping do
         first := false;
-        self#child_on_output (fun () -> frame := source#get_frame);
+        self#on_child_tick (fun () -> frame := source#get_frame);
         let frame = !frame in
         if track_sensitive () && Frame.track_marks frame <> [] then (
           stripping <- false;

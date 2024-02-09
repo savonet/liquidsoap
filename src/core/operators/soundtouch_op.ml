@@ -36,10 +36,10 @@ class soundtouch source_val rate tempo pitch =
     Typing.(source#frame_type <: consumer#frame_type)
   in
   object (self)
-    inherit operator ~name:"soundtouch" [(consumer :> Source.source)] as super
-    inherit! Child_support.base ~check_self_sync:true [source_val]
+    inherit operator ~name:"soundtouch" [(consumer :> Source.source)]
+    inherit Child_support.base ~check_self_sync:true [source_val]
     val mutable st = None
-    method stype = source#stype
+    method fallible = source#fallible
     method self_sync = source#self_sync
     method private can_generate_frame = source#is_ready
     method seek_source = source#seek_source
@@ -84,13 +84,15 @@ class soundtouch source_val rate tempo pitch =
       consumer#set_output_enabled false;
       Generator.slice self#buffer size
 
-    method! wake_up a =
-      super#wake_up a;
-      st <-
-        Some (Soundtouch.make self#audio_channels (Lazy.force Frame.audio_rate));
-      self#log#important "Using soundtouch %s."
-        (Soundtouch.get_version_string (Option.get st));
-      write_frame_ref := self#write_frame
+    initializer
+      self#on_wake_up (fun () ->
+          st <-
+            Some
+              (Soundtouch.make self#audio_channels
+                 (Lazy.force Frame.audio_rate));
+          self#log#important "Using soundtouch %s."
+            (Soundtouch.get_version_string (Option.get st));
+          write_frame_ref := self#write_frame)
   end
 
 let _ =

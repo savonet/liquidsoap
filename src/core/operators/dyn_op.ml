@@ -29,15 +29,9 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
         ~merge:(fun () -> false)
         ~track_sensitive ()
 
-    method stype = if infallible then `Infallible else `Fallible
+    method fallible = not infallible
     val mutable activation = []
     val source : Source.source option Atomic.t = Atomic.make init
-
-    method private exchange_source new_source =
-      match Atomic.exchange source new_source with
-        | Some s -> s#leave (self :> Source.source)
-        | None -> ()
-
     val mutable last_select = Unix.gettimeofday ()
     val proposed = Atomic.make None
     method propose s = Atomic.set proposed (Some s)
@@ -45,8 +39,8 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
     method private prepare s =
       Typing.(s#frame_type <: self#frame_type);
       Clock.unify ~pos:self#pos s#clock self#clock;
-      s#get_ready activation;
-      self#exchange_source (Some s);
+      s#wake_up;
+      Atomic.set source (Some s);
       if s#is_ready then Some s else None
 
     method private get_next reselect =
@@ -83,20 +77,12 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
             None
         | _ -> self#get_next reselect
 
-    (* Source methods: attempt to #get_source as soon as it could be useful for the
-       selection function to change the source. *)
-    method! private wake_up ancestors =
-      activation <- (self :> Source.source) :: ancestors;
-      Lang.iter_sources
-        (fun s ->
-          Typing.(s#frame_type <: self#frame_type);
-          s#get_ready activation)
-        f;
-      ignore (self#get_source ~reselect:`Force ())
-
-    method! private sleep =
-      Lang.iter_sources (fun s -> s#leave (self :> Source.source)) f;
-      self#exchange_source None
+    initializer
+      self#on_wake_up (fun () ->
+          Lang.iter_sources
+            (fun s -> Typing.(s#frame_type <: self#frame_type))
+            f;
+          ignore (self#get_source ~reselect:`Force ()))
 
     method remaining =
       match Atomic.get source with Some s -> s#remaining | None -> -1

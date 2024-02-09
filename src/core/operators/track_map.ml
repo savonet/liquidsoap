@@ -25,7 +25,7 @@ open Source
 class track_map ~name ~field ~fn s =
   object
     inherit operator ~name [s]
-    method stype = s#stype
+    method fallible = s#fallible
     method remaining = s#remaining
     method abort_track = s#abort_track
     method seek_source = s#seek_source

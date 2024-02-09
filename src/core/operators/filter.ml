@@ -27,8 +27,8 @@ type mode = Low_pass | High_pass | Band_pass | Notch
 class filter (source : source) freq q wet mode =
   let rate = float (Lazy.force Frame.audio_rate) in
   object (self)
-    inherit operator ~name:"filter" [source] as super
-    method stype = source#stype
+    inherit operator ~name:"filter" [source]
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method private can_generate_frame = source#is_ready
@@ -39,13 +39,13 @@ class filter (source : source) freq q wet mode =
     val mutable band = [||]
     val mutable notch = [||]
 
-    method! wake_up a =
-      super#wake_up a;
-      let channels = self#audio_channels in
-      low <- Array.make channels 0.;
-      high <- Array.make channels 0.;
-      band <- Array.make channels 0.;
-      notch <- Array.make channels 0.
+    initializer
+      self#on_wake_up (fun () ->
+          let channels = self#audio_channels in
+          low <- Array.make channels 0.;
+          high <- Array.make channels 0.;
+          band <- Array.make channels 0.;
+          notch <- Array.make channels 0.)
 
     (* State vartiable filter, see
        http://www.musicdsp.org/archive.php?classid=3#23

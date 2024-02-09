@@ -517,7 +517,6 @@ We hope you enjoy this snapshot build of Liquidsoap!
 let initial_cleanup () =
   if !Term.profile then
     log#important "Profiler stats:\n\n%s" (Profiler.stats ());
-  Clock.stop ();
   Tutils.cleanup ()
 
 let final_cleanup () =
@@ -661,7 +660,7 @@ let () =
 
       if
         (not !interactive)
-        && (not (Source.has_outputs ()))
+        && List.length (Clock.clocks ()) = 0
         && not force_start#get
       then (
         final_cleanup ();
@@ -716,7 +715,6 @@ let () =
          an exception and dtools catches it so we don't get a backtrace (by
          default at least). *)
       Server.start ();
-      Clock.start ();
       Tutils.start ();
 
       if !interactive then (

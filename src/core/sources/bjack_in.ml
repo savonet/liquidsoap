@@ -24,7 +24,7 @@ open Mm
 
 let log = Log.make ["input"; "jack"]
 
-module SyncSource = Source.MkSyncSource (struct
+module SyncSource = Clock.MkSyncSource (struct
   type t = unit
 
   let to_string _ = "jack"
@@ -48,20 +48,17 @@ class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
     method seek_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
 
-    method! private wake_up l =
-      active_source#wake_up l;
-      (* We need to know the number of channels to initialize the ioring. We
-           defer this until the kind is known. *)
-      let blank () =
-        Bytes.make
-          (samples_per_frame * self#audio_channels * bytes_per_sample)
-          '0'
-      in
-      ioring#init blank
-
-    method! private sleep =
-      active_source#sleep;
-      ioring#sleep
+    initializer
+      self#on_wake_up (fun () ->
+          (* We need to know the number of channels to initialize the ioring. We
+               defer this until the kind is known. *)
+          let blank () =
+            Bytes.make
+              (samples_per_frame * self#audio_channels * bytes_per_sample)
+              '0'
+          in
+          ioring#init blank);
+      self#on_sleep (fun () -> ioring#sleep)
 
     method abort_track = ()
     method remaining = -1

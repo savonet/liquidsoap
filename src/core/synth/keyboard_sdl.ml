@@ -87,27 +87,27 @@ class keyboard velocity =
   object (self)
     inherit Source.active_source ~name:"input.keyboard.sdl" ()
     method seek_source = (self :> Source.source)
-    method stype = `Infallible
+    method fallible = false
     method private can_generate_frame = true
     method remaining = -1
     method abort_track = ()
     method self_sync = (`Static, None)
-
-    method output =
-      self#has_ticked;
-      if self#is_ready then ignore self#get_frame
-
+    method output = if self#is_ready then ignore self#get_frame
     val mutable window = None
 
-    method! wake_up _ =
-      window <-
-        Some
-          (Sdl_utils.check
-             (fun () ->
-               Sdl.create_window "Liquidsoap" ~w:640 ~h:480 Sdl.Window.windowed)
-             ())
+    initializer
+      self#on_wake_up (fun () ->
+          window <-
+            Some
+              (Sdl_utils.check
+                 (fun () ->
+                   Sdl.create_window "Liquidsoap" ~w:640 ~h:480
+                     Sdl.Window.windowed)
+                 ()));
 
-    method! private sleep = Sdl.quit ()
+      (* TODO: could this be too radical? *)
+      self#on_sleep Sdl.quit
+
     val mutable reader = None
     val mutable velocity = velocity
     method reset = ()
