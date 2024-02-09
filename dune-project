@@ -9,7 +9,7 @@
 (homepage "https://github.com/savonet/liquidsoap")
 (bug_reports "https://github.com/savonet/liquidsoap/issues")
 
-(version 2.2.4)
+(version 2.2.4-1)
 (generate_opam_files true)
 (executables_implicit_empty_intf true)
 

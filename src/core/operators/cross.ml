@@ -44,6 +44,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
     val mutable cross_length = 0
+    val mutable rejected_cross_length = None
     val mutable duration_getter = original_duration_getter
     method cross_duration = duration_getter ()
 
@@ -52,12 +53,15 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let main_new_cross_length = Frame.main_of_seconds new_cross_length in
 
       if main_new_cross_length <> cross_length then
-        if new_cross_length < 0. then
-          self#log#important
-            "Cannot set crossfade duration to negative value %f!"
-            new_cross_length
+        if new_cross_length <= 0. then (
+          if rejected_cross_length <> Some new_cross_length then (
+            self#log#critical "Invalid cross duration: %.2f <= 0.!"
+              new_cross_length;
+            rejected_cross_length <- Some new_cross_length);
+          cross_length <- Lazy.force Frame.size)
         else (
           self#log#info "Setting crossfade duration to %.2fs" new_cross_length;
+          rejected_cross_length <- None;
           cross_length <- main_new_cross_length)
 
     initializer self#set_cross_length
@@ -412,7 +416,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 | Some s, None ->
                     new Sequence.sequence ~merge:true [s; compound]
                 | None, Some s ->
-                    new Sequence.sequence ~merge:true [compound; s]
+                    new Sequence.sequence ~single_track:false [compound; s]
                 | Some _, Some _ -> assert false
             in
             Clock.unify ~pos:self#pos compound#clock s#clock;
