@@ -27,7 +27,7 @@ open Source
   * advancing in the sequence. The [merge] flag will *not* merge tracks
   * while looping on the last source -- this behavior would not be suited
   * to the current use of [sequence] in transitions. *)
-class sequence ?(merge = false) sources =
+class sequence ?(merge = false) ?(single_track = true) sources =
   let self_sync_type = Utils.self_sync_type sources in
   let seq_sources = Atomic.make sources in
   object (self)
@@ -79,7 +79,9 @@ class sequence ?(merge = false) sources =
             if
               self#can_reselect
                 ~reselect:
-                  (match reselect with `After_position _ -> `Force | v -> v)
+                  (match reselect with
+                    | `After_position _ when single_track -> `Force
+                    | v -> v)
                 s
             then Some s
             else (
@@ -137,14 +139,21 @@ let _ =
           "Merge tracks when advancing from one source to the next one. This \
            will NOT merge consecutive tracks from the last source; see \
            merge_tracks() if you need that too." );
+      ( "single_track",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Advance to the new track in the sequence on new track. Set to \
+           `false` to play each source until it becomes unavailable." );
       ("", Lang.list_t (Lang.source_t frame_t), None, None);
     ]
     ~category:`Track
     ~descr:
-      "Play only one track of every successive source, except for the last one \
-       which is played as much as available."
+      "Play a sequence of sources. By default, play one track per source, \
+       except for the last one which is played as much as available."
     ~return_t:frame_t
     (fun p ->
       new sequence
         ~merge:(Lang.to_bool (List.assoc "merge" p))
+        ~single_track:(Lang.to_bool (List.assoc "single_track" p))
         (Lang.to_source_list (List.assoc "" p)))
