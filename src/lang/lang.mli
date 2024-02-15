@@ -40,6 +40,7 @@ module Ground : sig
     descr : t -> string;
     to_json : pos:Pos.t list -> t -> Json.t;
     compare : t -> t -> int;
+    comparison_op : t Term.Ground.comparison_op option;
     typ : (module Type.Ground.Custom);
   }
 

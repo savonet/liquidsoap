@@ -47,6 +47,8 @@ Changed:
 - Run `check_next` before playlist's requests resolutions (#3625)
 - Set `force` to `true` by default in `file.copy` to make operator behave
   as expected.
+- BREAKING: Float comparison now follows the expected specs, in particular: `nan == x` is always `false` and
+  `nan != x` is always `true`. Use `float.is_nan` to test if a float is `nan`.
 - BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
 - BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
 - Added `parents` option of `file.mkdir` (#3600, #3601).

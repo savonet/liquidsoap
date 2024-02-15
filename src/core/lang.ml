@@ -34,6 +34,7 @@ module HttpTransport = struct
 
     let descr transport = Printf.sprintf "<%s_transport>" transport#name
     let compare = Stdlib.compare
+    let comparison_op = None
   end)
 
   let meths =

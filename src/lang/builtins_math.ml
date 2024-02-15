@@ -98,7 +98,7 @@ let () =
     ( ** );
   register_op "Remainder of division" "mod" ( mod ) mod_float
 
-let _ =
+let float =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "float" ~category:`Math ~descr:"Convert a number to a float."
     [("", t, None, None)]
@@ -109,14 +109,14 @@ let _ =
       Lang.float x)
 
 let _ =
-  Lang.add_builtin "is_nan" ~category:`Math
+  Lang.add_builtin ~base:float "is_nan" ~category:`Math
     ~descr:"Return `true` if the floating point number is `NaN`."
     [("", Lang.float_t, None, None)]
     Lang.bool_t
     (fun p -> Lang.bool (Float.is_nan (Lang.to_float (List.assoc "" p))))
 
 let _ =
-  Lang.add_builtin "is_infinite" ~category:`Math
+  Lang.add_builtin ~base:float "is_infinite" ~category:`Math
     ~descr:"Return `true` if the floating point number is infinite."
     [("", Lang.float_t, None, None)]
     Lang.bool_t

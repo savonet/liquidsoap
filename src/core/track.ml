@@ -34,4 +34,5 @@ include Liquidsoap_lang.Lang_core.MkAbstract (struct
       "json"
 
   let compare (f1, s1) (f2, s2) = Stdlib.compare (f1, s1#id) (f2, s2#id)
+  let comparison_op = None
 end)

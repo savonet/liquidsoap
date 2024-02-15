@@ -36,6 +36,7 @@ module V = Lang_core.MkAbstract (struct
       "json"
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end)
 
 module L = struct

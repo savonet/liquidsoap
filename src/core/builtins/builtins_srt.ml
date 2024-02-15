@@ -258,6 +258,7 @@ module Socket_value = struct
 
     let descr _ = "<srt_socket>"
     let compare = Stdlib.compare
+    let comparison_op = None
   end)
 
   let meths =

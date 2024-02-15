@@ -36,6 +36,7 @@ module Socket_domain = struct
       | Unix.PF_INET6 -> "socket.domain.inet6"
 
     let compare = Stdlib.compare
+    let comparison_op = None
   end)
 
   let unix = to_value Unix.PF_UNIX
@@ -63,6 +64,7 @@ module Socket_type = struct
       | Unix.SOCK_SEQPACKET -> assert false
 
     let compare = Stdlib.compare
+    let comparison_op = None
   end)
 
   let stream = to_value Unix.SOCK_STREAM
@@ -87,6 +89,8 @@ module Inet_addr = struct
 
     let compare s s' =
       Stdlib.compare (Unix.string_of_inet_addr s) (Unix.string_of_inet_addr s')
+
+    let comparison_op = None
   end)
 
   let base_t = t
@@ -132,6 +136,7 @@ module Socket_addr = struct
             port
 
     let compare = Stdlib.compare
+    let comparison_op = None
   end)
 
   let base_t = t
@@ -180,6 +185,7 @@ module Socket_value = struct
 
     let descr s = Printf.sprintf "<%s socket>" s#typ
     let compare = Stdlib.compare
+    let comparison_op = None
   end)
 
   let meths =
