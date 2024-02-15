@@ -76,6 +76,7 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
   echo "docker_release=${DOCKER_RELEASE}"
   echo "is_rolling_release=${IS_ROLLING_RELEASE}"
   echo "sha=${SHA}"
+  echo "s3-artifact-basepath=s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
   echo "is_fork=${IS_FORK}"
   echo "minimal_exclude_deps=${MINIMAL_EXCLUDE_DEPS}"
   echo "save_traces=${SAVE_TRACES}"
