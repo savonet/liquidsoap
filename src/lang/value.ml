@@ -243,4 +243,5 @@ module RuntimeType = MkAbstract (struct
       "json"
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end)

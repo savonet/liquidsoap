@@ -62,6 +62,7 @@ module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
       "json"
 
   let compare s1 s2 = Stdlib.compare s1#id s2#id
+  let comparison_op = None
 end)
 
 let source_methods =

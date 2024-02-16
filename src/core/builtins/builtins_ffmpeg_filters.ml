@@ -146,6 +146,7 @@ module Graph = Value.MkAbstract (struct
       ~message:"Ffmpeg filter graph cannot be represented as json" ~pos "json"
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end)
 
 module Audio = Value.MkAbstract (struct
@@ -162,6 +163,7 @@ module Audio = Value.MkAbstract (struct
       ~message:"Ffmpeg filter audio input cannot be represented as json" "json"
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end)
 
 module Video = Value.MkAbstract (struct
@@ -178,6 +180,7 @@ module Video = Value.MkAbstract (struct
       ~message:"Ffmpeg filter video input cannot be represented as json" "json"
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end)
 
 let uniq_name =

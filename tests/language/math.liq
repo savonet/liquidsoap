@@ -18,6 +18,9 @@ def test_db_lin() =
   end
   test.equals(f(), -1)
 
+  test.equals(nan == nan, false)
+  test.equals(nan != nan, true)
+
   test.pass()
 end
 

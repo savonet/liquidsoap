@@ -88,6 +88,7 @@ module SqliteRow = struct
 
     let descr _ = "sqlite.row"
     let compare = Stdlib.compare
+    let comparison_op = None
   end)
 
   let t =

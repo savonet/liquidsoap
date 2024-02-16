@@ -770,4 +770,5 @@ module Value = Value.MkAbstract (struct
 
   let descr r = Printf.sprintf "<request(id=%d)>" (get_id r)
   let compare = Stdlib.compare
+  let comparison_op = None
 end)

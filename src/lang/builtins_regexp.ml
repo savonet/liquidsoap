@@ -73,6 +73,8 @@ module RegExp = Value.MkAbstract (struct
     Stdlib.compare
       (r.descr, List.sort Stdlib.compare r.flags)
       (r'.descr, List.sort Stdlib.compare r'.flags)
+
+  let comparison_op = None
 end)
 
 let test_t = Lang_core.fun_t [(false, "", Lang_core.string_t)] Lang_core.bool_t

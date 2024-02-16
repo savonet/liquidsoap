@@ -233,6 +233,7 @@ module JsonSpecs = struct
     `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value ~pos v) :: l) v [])
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end
 
 module JsonValue = Value.MkAbstract (JsonSpecs)

@@ -39,6 +39,7 @@ module type GroundDef = sig
   val descr : content -> string
   val to_json : pos:Pos.t list -> content -> Json.t
   val compare : content -> content -> int
+  val comparison_op : content Ground.comparison_op option
   val typ : (module Type.Ground.Custom)
 end
 
@@ -92,6 +93,7 @@ module type AbstractDef = sig
   val to_json : pos:Pos.t list -> content -> Json.t
   val descr : content -> string
   val compare : content -> content -> int
+  val comparison_op : content Ground.comparison_op option
 end
 
 module MkAbstract : functor (Def : AbstractDef) -> sig

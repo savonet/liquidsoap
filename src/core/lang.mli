@@ -42,6 +42,7 @@ module Ground : sig
     descr : t -> string;
     to_json : pos:Liquidsoap_lang.Pos.t list -> t -> Json.t;
     compare : t -> t -> int;
+    comparison_op : t Liquidsoap_lang.Term.Ground.comparison_op option;
     typ : (module Liquidsoap_lang.Type.Ground.Custom);
   }
 

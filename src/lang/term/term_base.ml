@@ -73,10 +73,20 @@ let ref_t ?pos t =
 module Ground = struct
   type t = ground = ..
 
+  type 'a comparison_op = {
+    eq : 'a -> 'a -> bool;
+    neq : 'a -> 'a -> bool;
+    lte : 'a -> 'a -> bool;
+    lt : 'a -> 'a -> bool;
+    gte : 'a -> 'a -> bool;
+    gt : 'a -> 'a -> bool;
+  }
+
   type content = {
     descr : t -> string;
     to_json : pos:Pos.t list -> t -> Json.t;
     compare : t -> t -> int;
+    comparison_op : t comparison_op option;
     typ : (module Type.Ground.Custom);
   }
 
@@ -128,6 +138,7 @@ module Ground = struct
         descr = to_string;
         to_json;
         compare = compare to_bool;
+        comparison_op = None;
         typ = (module Type.Ground.Bool : Type.Ground.Custom);
       };
 
@@ -148,6 +159,7 @@ module Ground = struct
         descr = to_string;
         to_json;
         compare = compare to_int;
+        comparison_op = None;
         typ = (module Type.Ground.Int : Type.Ground.Custom);
       };
 
@@ -162,6 +174,7 @@ module Ground = struct
         descr = to_string;
         to_json;
         compare = compare (function String s -> s | _ -> assert false);
+        comparison_op = None;
         typ = (module Type.Ground.String : Type.Ground.Custom);
       };
     let to_float = function Float f -> f | _ -> assert false in
@@ -172,6 +185,16 @@ module Ground = struct
         descr = (fun f -> string_of_float (to_float f));
         to_json;
         compare = compare to_float;
+        comparison_op =
+          Some
+            {
+              eq = (fun v v' -> to_float v = to_float v');
+              neq = (fun v v' -> to_float v <> to_float v');
+              lte = (fun v v' -> to_float v <= to_float v');
+              lt = (fun v v' -> to_float v < to_float v');
+              gte = (fun v v' -> to_float v >= to_float v');
+              gt = (fun v v' -> to_float v > to_float v');
+            };
         typ = (module Type.Ground.Float : Type.Ground.Custom);
       }
 end
@@ -182,6 +205,7 @@ module type GroundDef = sig
   val descr : content -> string
   val to_json : pos:Pos.t list -> content -> Json.t
   val compare : content -> content -> int
+  val comparison_op : content Ground.comparison_op option
   val typ : (module Type.Ground.Custom)
 end
 
@@ -192,10 +216,23 @@ module MkGround (D : GroundDef) = struct
     let to_ground = function Ground g -> g | _ -> assert false in
     let to_json ~pos v = D.to_json ~pos (to_ground v) in
     let compare v v' = D.compare (to_ground v) (to_ground v') in
+    let comparison_op =
+      Option.map
+        (fun { Ground.eq; neq; lte; lt; gte; gt } ->
+          {
+            Ground.eq = (fun v v' -> eq (to_ground v) (to_ground v'));
+            neq = (fun v v' -> neq (to_ground v) (to_ground v'));
+            gte = (fun v v' -> gte (to_ground v) (to_ground v'));
+            gt = (fun v v' -> gt (to_ground v) (to_ground v'));
+            lte = (fun v v' -> lte (to_ground v) (to_ground v'));
+            lt = (fun v v' -> lt (to_ground v) (to_ground v'));
+          })
+        D.comparison_op
+    in
     let descr v = D.descr (to_ground v) in
     Ground.register
       (function Ground _ -> true | _ -> false)
-      { Ground.typ = D.typ; to_json; compare; descr }
+      { Ground.typ = D.typ; to_json; compare; comparison_op; descr }
 end
 
 let unit = `Tuple []
@@ -541,6 +578,7 @@ module type AbstractDef = sig
   val to_json : pos:Pos.t list -> content -> Json.t
   val descr : content -> string
   val compare : content -> content -> int
+  val comparison_op : content Ground.comparison_op option
 end
 
 module MkAbstract (Def : AbstractDef) = struct
@@ -553,11 +591,30 @@ module MkAbstract (Def : AbstractDef) = struct
   let () =
     let to_value = function Value v -> v | _ -> assert false in
     let compare v v' = Def.compare (to_value v) (to_value v') in
+    let comparison_op =
+      Option.map
+        (fun { Ground.eq; neq; lte; lt; gte; gt } ->
+          {
+            Ground.eq = (fun v v' -> eq (to_value v) (to_value v'));
+            neq = (fun v v' -> neq (to_value v) (to_value v'));
+            gte = (fun v v' -> gte (to_value v) (to_value v'));
+            gt = (fun v v' -> gt (to_value v) (to_value v'));
+            lte = (fun v v' -> lte (to_value v) (to_value v'));
+            lt = (fun v v' -> lt (to_value v) (to_value v'));
+          })
+        Def.comparison_op
+    in
     let descr v = Def.descr (to_value v) in
     let to_json ~pos v = Def.to_json ~pos (to_value v) in
     Ground.register
       (function Value _ -> true | _ -> false)
-      { Ground.descr; to_json; compare; typ = (module T : Type.Ground.Custom) }
+      {
+        Ground.descr;
+        to_json;
+        compare;
+        comparison_op;
+        typ = (module T : Type.Ground.Custom);
+      }
 
   type content = Def.content
 
