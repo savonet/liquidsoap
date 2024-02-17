@@ -2,7 +2,7 @@
 
 Fixed:
 
-- Handle invalid crossfade duration of `0.` seconds.
+- Fixed `source.drop` and `source.dump` clock initialization.
 
 ---
 
