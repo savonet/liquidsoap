@@ -1,5 +1,9 @@
 # 2.2.5 (unreleased)
 
+New:
+
+- Added various ffmpeg timestamps when exporting ffmpeg metadata from filters.
+
 Fixed:
 
 - Fixed `source.drop` and `source.dump` clock initialization.
