@@ -187,19 +187,33 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
 
     val mutable output = None
 
+    method private metadata_timestamps ~time_base frame =
+      let get_time d =
+        string_of_float
+          (Frame.seconds_of_main
+             (Int64.to_int
+                (Ffmpeg_utils.convert_time_base ~src:time_base
+                   ~dst:(Ffmpeg_utils.liq_main_ticks_time_base ())
+                   d)))
+      in
+      List.fold_left
+        (fun result (label, fn) ->
+          match fn frame with
+            | None -> result
+            | Some v -> ("lavfi.liq." ^ label, get_time v) :: result)
+        []
+        [
+          ("pts", Avutil.Frame.pts);
+          ("pkt_dts", Avutil.Frame.pkt_dts);
+          ("duration", Avutil.Frame.duration);
+          ("best_effort_timestamp", Avutil.Frame.best_effort_timestamp);
+          ("pkt_duration", Avutil.Frame.pkt_duration);
+        ]
+
     method private flush_buffer output =
       let time_base = Avfilter.(time_base output.context) in
       fun () ->
         let frame = output.Avfilter.handler () in
-        if pass_metadata then (
-          let metadata = Avutil.Frame.metadata frame in
-          if metadata <> [] then (
-            let m =
-              List.filter (fun (k, _) -> k <> track_mark_metadata) metadata
-            in
-            Generator.add_metadata self#buffer (Frame.Metadata.from_list m);
-            if List.mem_assoc track_mark_metadata metadata then
-              Generator.add_track_mark self#buffer));
         match
           self#convert_duration ~convert_ts:false ~stream_idx ~time_base frame
         with
@@ -207,6 +221,20 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
               let frames =
                 List.map
                   (fun (pos, frame) ->
+                    if pass_metadata then (
+                      let metadata = Avutil.Frame.metadata frame in
+                      if metadata <> [] then (
+                        let m =
+                          List.filter
+                            (fun (k, _) -> k <> track_mark_metadata)
+                            metadata
+                        in
+                        let pos = Generator.length self#buffer + pos in
+                        Generator.add_metadata ~pos self#buffer
+                          (Frame.Metadata.from_list
+                             (m @ self#metadata_timestamps ~time_base frame));
+                        if List.mem_assoc track_mark_metadata metadata then
+                          Generator.add_track_mark ~pos self#buffer));
                     (pos, { Ffmpeg_raw_content.time_base; stream_idx; frame }))
                   frames
               in
