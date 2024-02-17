@@ -207,10 +207,8 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
         []
         [
           ("pts", Avutil.Frame.pts);
-          ("pkt_dts", Avutil.Frame.pkt_dts);
           ("duration", Avutil.Frame.duration);
           ("best_effort_timestamp", Avutil.Frame.best_effort_timestamp);
-          ("pkt_duration", Avutil.Frame.pkt_duration);
         ]
 
     method private flush_buffer output =
