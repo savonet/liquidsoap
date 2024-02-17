@@ -96,7 +96,7 @@ def request.queue(
     default()
 %endif
 
-  s.set_queue(initial_queue)
+  s.on_wake_up({s.set_queue(initial_queue)})
 
   source.set_name(s, "request.queue")
   fetch := s.fetch
@@ -230,7 +230,10 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
 
   s = source.dynamic(self_sync=false, track_sensitive=true, next)
   s_ref := (s : source)
-  (s : source_methods).{resolve=fun () -> request.resolve(r), request=r}
+  (s : source_methods).{
+    resolve=fun () -> request.resolve(r, timeout=timeout, content_type=s),
+    request=r
+  }
 end
 
 # Loop on a request. It never fails if the request is static, meaning
