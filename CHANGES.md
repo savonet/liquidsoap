@@ -3,6 +3,7 @@
 New:
 
 - Added various ffmpeg timestamps when exporting ffmpeg metadata from filters.
+- Added `enable_autocue_metadata` and `autocue:` protocol to automatically compute cue points and crossfade parameters (#3753, @RM-FM and @Moonbase59)
 
 Fixed:
 
