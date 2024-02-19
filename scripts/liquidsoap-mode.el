@@ -1,5 +1,5 @@
 ;; liquidsoap-mode.el -- Liquidsoap major mode
-;; Copyright (C) 2003-2023 Samuel Mimram
+;; Copyright (C) 2003-2024 Samuel Mimram
 
 (require 'liquidsoap-completion)
 
