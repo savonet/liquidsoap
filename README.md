@@ -9,7 +9,7 @@ offers a rich collection of operators that you can combine to create and
 transform streams. Liquidsoap is very light and easy to use, in the Unix
 tradition of simple strong components working together.
 
-Copyright 2003-2023 Savonet team
+Copyright 2003-2024 Savonet team
 
 [![GPL license](https://img.shields.io/badge/License-GPL-green.svg)](https://github.com/savonet/liquidsoap/blob/master/COPYING)
 ![CI](https://github.com/savonet/liquidsoap/workflows/CI/badge.svg)
