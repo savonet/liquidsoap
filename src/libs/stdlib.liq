@@ -52,5 +52,6 @@
 %include_extra "extra/gstreamer.liq"
 %include_extra "extra/visualization.liq"
 %include_extra "extra/fades.liq"
+%include_extra "extra/autocue.liq"
 
 set_settings_ref(settings)
