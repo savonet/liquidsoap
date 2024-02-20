@@ -57,5 +57,6 @@
 %include_extra "extra/metadata.liq"
 %include_extra "extra/fades.liq"
 %include_extra "extra/video.liq"
+%include_extra "extra/autocue.liq"
 
 set_settings_ref(settings)
