@@ -277,13 +277,9 @@ def replaces file.autocue(
     then
       fade_out := max(cross_duration() / 2., 0.1)
       fade_out_delay := fade_out()
+      fade_out_curve := "log"
     end
-
-    # Force minimum overlap to avoid invalid crossfades
-    cross_duration := max(cross_duration(), 0.1)
-    fade_in := max(fade_in(), 0.1)
-    fade_out := max(fade_out(), 0.1)
-
+  
     {
       amplify=lufs_correction,
       cue_in=(cue_in() > 0. ? cue_in() : null() ),
