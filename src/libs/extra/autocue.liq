@@ -279,7 +279,7 @@ def replaces file.autocue(
       fade_out_delay := fade_out()
       fade_out_curve := "log"
     end
-  
+
     {
       amplify=lufs_correction,
       cue_in=(cue_in() > 0. ? cue_in() : null() ),
