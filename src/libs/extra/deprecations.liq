@@ -736,8 +736,8 @@ def cue_cut(
   ~id=null(""),
   ~cue_in_metadata="",
   ~cue_out_metadata="",
-  ~on_cue_in="",
-  ~on_cue_out="",
+  ~on_cue_in=(fun () -> ()),
+  ~on_cue_out=(fun () -> ()),
   s
 ) =
   ignore(id)
