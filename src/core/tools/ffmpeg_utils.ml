@@ -312,8 +312,10 @@ module Duration = struct
         | Some old_ts, Some ts ->
             let ts = Int64.add ts offset in
             if ts < old_ts then (
-              log#important "Invalid ffmpeg content: non-monotonic %s!"
-                (match mode with `DTS -> "DTS" | `PTS -> "PTS");
+              log#important
+                "Invalid ffmpeg content: non-monotonic %s: %Ld < %Ld"
+                (match mode with `DTS -> "DTS" | `PTS -> "PTS")
+                ts old_ts;
               raise Content.Invalid);
             set_ts packet
               (Some (if convert_ts then convert_time_base ~src ~dst ts else ts));
