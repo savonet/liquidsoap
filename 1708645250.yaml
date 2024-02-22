@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.41214799881
+  unit: "s"
+  time: 1708644881.74
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.781134843826
+  unit: "s"
+  time: 1708644882.52
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.43587899208
+  unit: "s"
+  time: 1708644883.95
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 3.03845691681
+  unit: "s"
+  time: 1708644886.99
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 156.171875
+  unit: "Mio"
+  time: 1708644972.99
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 924.40625
+  unit: "Mio"
+  time: 1708644973.
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7540.40625
+  unit: "Mio"
+  time: 1708644973.
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7540.40625
+  unit: "Mio"
+  time: 1708644973.
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 6028.609375
+  unit: "Mio"
+  time: 1708644973.
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 6028.609375
+  unit: "Mio"
+  time: 1708644973.
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2236.
+  unit: "functions"
+  time: 1708644975.38
+
+- name: "protocols"
+  category: "language"
+  value: 21.
+  unit: "protocols"
+  time: 1708644975.38
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.28681111336
+  unit: "s"
+  time: 1708645128.97
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.46471691132
+  unit: "s"
+  time: 1708645242.3
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.79275798798
+  unit: "s"
+  time: 1708645246.09
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 291.17578125
+  unit: "Mio"
+  time: 1708645250.74
+  min: 0.
+
+- commit: 14f2ba1f2c25f7263ebd490d98c5b2a7d97ab1a6
+  branch: main
+  time: 1708645250
