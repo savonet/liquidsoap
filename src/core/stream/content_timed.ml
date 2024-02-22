@@ -42,7 +42,7 @@ module Specs = struct
   let is_empty { data } = data = []
 
   let sort : 'a. (int * 'a) list -> (int * 'a) list =
-   fun data -> List.sort (fun (p, _) (p', _) -> compare p p') data
+   fun data -> List.stable_sort (fun (p, _) (p', _) -> compare p p') data
 
   let sub c ofs length =
     let len = match length with Infinite -> max_int | Finite len -> len in
@@ -117,7 +117,7 @@ module Metadata = struct
     let length = match length with Infinite -> max_int | Finite len -> len in
     List.filter
       (fun (p, _) -> 0 <= p && p < length)
-      (List.sort (fun (p, _) (p', _) -> compare p p') data)
+      (List.stable_sort (fun (p, _) (p', _) -> compare p p') data)
 end
 
 module Track_marks_specs = struct
@@ -159,5 +159,5 @@ module Track_marks = struct
     let length = match length with Infinite -> max_int | Finite len -> len in
     List.filter
       (fun p -> 0 <= p && p < length)
-      (List.sort compare (List.map fst data))
+      (List.stable_sort compare (List.map fst data))
 end

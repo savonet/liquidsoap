@@ -59,9 +59,10 @@ module Base = struct
             let pos = dst_pos + (pos - src_pos) in
             (pos, copy p) :: data)
           else data)
-        data src.data
+        data (List.rev src.data)
     in
-    dst.data <- List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
+    dst.data <-
+      List.stable_sort (fun (pos, _) (pos', _) -> compare pos pos') data
 
   let fill :
         'a 'b. ('a, 'b) content -> int -> ('a, 'b) content -> int -> int -> unit

@@ -25,7 +25,7 @@ include Liquidsoap_lang.Methods
 type t = (string, string) Liquidsoap_lang.Methods.t
 
 let to_list m =
-  List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (bindings m)
+  List.stable_sort (fun (k, _) (k', _) -> Stdlib.compare k k') (bindings m)
 
 let to_string metadata =
   let b = Buffer.create 20 in
@@ -66,7 +66,7 @@ module Export = struct
 
   let equal m m' =
     let normalize m =
-      List.sort (fun (k, _) (k', _) -> Stdlib.compare k k') (to_list m)
+      List.stable_sort (fun (k, _) (k', _) -> Stdlib.compare k k') (to_list m)
     in
     normalize m = normalize m'
 

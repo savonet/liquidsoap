@@ -72,7 +72,7 @@ module Video = struct
     let buf = get_data content in
     {
       buf with
-      data = List.sort (fun (p, _) (p', _) -> Int.compare p p') buf.data;
+      data = List.stable_sort (fun (p, _) (p', _) -> Int.compare p p') buf.data;
     }
 
   type generator = {
