@@ -102,14 +102,21 @@ end
 # @param ~max_overlap Maximum allowed overlap/crossfade in seconds
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing autocue data.
 def replaces file.autocue(
-  ~lufs_target,
-  ~cue_in_threshold,
-  ~cue_out_threshold,
-  ~cross_threshold,
-  ~max_overlap,
-  ~ratio=50.,
+  ~lufs_target=null(),
+  ~cue_in_threshold=null(),
+  ~cue_out_threshold=null(),
+  ~cross_threshold=null(),
+  ~max_overlap=null(),
+  ~ratio=null(),
   uri
 ) =
+  lufs_target = lufs_target ?? settings.autocue.lufs_target()
+  cue_in_threshold = cue_in_threshold ?? settings.autocue.cue_in_threshold()
+  cue_out_threshold = cue_out_threshold ?? settings.autocue.cue_out_threshold()
+  cross_threshold = cross_threshold ?? settings.autocue.cross_threshold()
+  max_overlap = max_overlap ?? settings.autocue.max_overlap()
+  ratio = ratio ?? settings.autocue.ratio()
+
   frames = file.autocue.ebur128(ratio=ratio, uri)
 
   if
@@ -304,12 +311,12 @@ end
 # @param ~max_overlap Maximum allowed overlap/crossfade in seconds
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing autocue data.
 def file.autocue.metadata(
-  ~lufs_target,
-  ~cue_in_threshold,
-  ~cue_out_threshold,
-  ~cross_threshold,
-  ~max_overlap,
-  ~ratio=50.,
+  ~lufs_target=null(),
+  ~cue_in_threshold=null(),
+  ~cue_out_threshold=null(),
+  ~cross_threshold=null(),
+  ~max_overlap=null(),
+  ~ratio=null(),
   uri
 ) =
   let autocue =
@@ -377,44 +384,6 @@ end
 # values can be computed. For a finer-grained processing, use the `autocue:` protocol.
 # @category Liquidsoap
 def enable_autocue_metadata() =
-  lufs_target = settings.autocue.lufs_target()
-  cue_in_threshold = settings.autocue.cue_in_threshold()
-  cue_out_threshold = settings.autocue.cue_out_threshold()
-  cross_threshold = settings.autocue.cross_threshold()
-  max_overlap = settings.autocue.max_overlap()
-  ratio = settings.autocue.ratio()
-
-  log(
-    level=4,
-    label="autocue.metadata",
-    "lufs_target: #{lufs_target}"
-  )
-  log(
-    level=4,
-    label="autocue.metadata",
-    "cue_in_threshold: #{cue_in_threshold}"
-  )
-  log(
-    level=4,
-    label="autocue.metadata",
-    "cue_out_threshold: #{cue_out_threshold}"
-  )
-  log(
-    level=4,
-    label="autocue.metadata",
-    "cross_threshold: #{cross_threshold}"
-  )
-  log(
-    level=4,
-    label="autocue.metadata",
-    "max_overlap: #{max_overlap}"
-  )
-  log(
-    level=4,
-    label="autocue.ratio",
-    "ratio: #{ratio}"
-  )
-
   def autocue_metadata(~metadata, fname) =
     metadata_overrides =
       [
@@ -440,15 +409,7 @@ def enable_autocue_metadata() =
       )
       []
     else
-      file.autocue.metadata(
-        ratio=ratio,
-        lufs_target=lufs_target,
-        cue_in_threshold=cue_in_threshold,
-        cue_out_threshold=cue_out_threshold,
-        cross_threshold=cross_threshold,
-        max_overlap=max_overlap,
-        fname
-      )
+      file.autocue.metadata(fname)
     end
   end
   decoder.metadata.add("autocue", autocue_metadata)
@@ -456,32 +417,8 @@ end
 
 # Define autocue protocol
 # @flag hidden
-def protocol.autocue(~rlog, ~maxtime=_, arg) =
-  # Get protocol settings
-  lufs_target = settings.autocue.lufs_target()
-  cue_in_threshold = settings.autocue.cue_in_threshold()
-  cue_out_threshold = settings.autocue.cue_out_threshold()
-  cross_threshold = settings.autocue.cross_threshold()
-  max_overlap = settings.autocue.max_overlap()
-  ratio = settings.autocue.ratio()
-
-  rlog(
-    "Autocue settings: lufs_target: #{lufs_target}, cue_in_threshold: #{
-      cue_in_threshold
-    }, cue_out_threshold: #{cue_out_threshold}, cross_threshold: #{
-      cross_threshold
-    }, max_overlap: #{max_overlap}, ratio: #{ratio}"
-  )
-
-  cue_metadata =
-    file.autocue.metadata(
-      lufs_target=lufs_target,
-      cue_in_threshold=cue_in_threshold,
-      cue_out_threshold=cue_out_threshold,
-      cross_threshold=cross_threshold,
-      max_overlap=max_overlap,
-      arg
-    )
+def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
+  cue_metadata = file.autocue.metadata(arg)
 
   if
     cue_metadata != []
