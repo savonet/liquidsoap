@@ -76,7 +76,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
 
           let encoder =
             Avcodec.Audio.create_encoder ~opts
-              ~channel_layout:target_channel_layout ~channels:target_channels
+              ~channel_layout:target_channel_layout
               ~sample_format:target_sample_format ~sample_rate:target_samplerate
               ~time_base:target_time_base codec
           in
