@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-    Liquidsoap, a programmable audio stream generator.
+    Liquidsoap, a programmable stream generator.
     Copyright 2003-2016 Savonet team
 
     This program is free software; you can redistribute it and/or modify
