@@ -588,7 +588,11 @@ let () = Startup.time "FFmpeg filters registration" register_filters
 
 let abuffer_args frame =
   let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
-  let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
+  let channel_layout =
+    try Avutil.Audio.frame_get_channel_layout frame
+    with _ ->
+      Avutil.Channel_layout.get_default (Avutil.Audio.frame_get_channels frame)
+  in
   let sample_format = Avutil.Audio.frame_get_sample_format frame in
   [
     `Pair ("sample_rate", `Int sample_rate);
