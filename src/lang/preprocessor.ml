@@ -161,7 +161,7 @@ let expand_string ?fname tokenizer =
   let add pos x = Queue.add (x, pos) state in
   let pop () = ignore (Queue.take state) in
   let parse s pos =
-    let l = Regexp.split (Regexp.regexp "#{(.*?)}") s in
+    let l = Regexp.split (Regexp.regexp "#\\{([^}]*)\\}") s in
     let l = if l = [] then [""] else l in
     let add = add pos in
     let rec parse = function

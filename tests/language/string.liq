@@ -75,6 +75,11 @@ def f() =
   test.equals(url.encode("foo bla blo"), "foo+bla+blo")
   test.equals(url.decode("foo%20bla%20blo"), "foo bla blo")
 
+  bla = 123
+  test.equals("foo#{
+    bla
+  }bar", "foo123bar")
+
   test.pass()
 end
 
