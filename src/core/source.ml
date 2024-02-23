@@ -307,13 +307,11 @@ let source_log = Log.make ["source"]
     sources) are actually registered to clock variables. *)
 let has_outputs = ref false
 
+module Queue = Liquidsoap_lang.Queues.Queue
+
 let add_new_output, iterate_new_outputs =
-  let lock = Mutex.create () in
-  let l = ref [] in
-  ( Tutils.mutexify lock (fun x -> l := x :: !l),
-    Tutils.mutexify lock (fun f ->
-        List.iter f !l;
-        l := []) )
+  let l = Queue.create () in
+  (Queue.push l, Queue.flush l)
 
 class virtual operator ?pos ?(name = "src") sources =
   let frame_type = Type.var () in

@@ -62,16 +62,9 @@ let running () = Atomic.get started = `Yes
   * new sources. We use a weak table to avoid keeping track forever of
   * clocks that are unused and unusable. *)
 
-module H = struct
-  type t = Source.clock
+module Clocks = Liquidsoap_lang.Queues.WeakQueue
 
-  let equal a b = a = b
-  let hash a = Oo.id a
-end
-
-module Clocks = Weak.Make (H)
-
-let clocks = Clocks.create 10
+let clocks = Clocks.create ()
 
 (** If true, a clock keeps running when an output fails. Other outputs may
   * still be useful. But there may also be some useless inputs left.
@@ -140,7 +133,7 @@ module MkClock (Time : Liq_time.T) = struct
 
   class clock ?(start = true) ?on_error ?(sync = `Auto) id =
     object (self)
-      initializer Clocks.add clocks (self :> Source.clock)
+      initializer Clocks.push clocks (self :> Source.clock)
       method id = id
       method sync_mode : Source.sync = sync
       method start = start
@@ -483,16 +476,7 @@ let clock ?start ?on_error ?sync id =
   * ongoing: all that we're doing is avoiding collection of sources
   * created by the task. That's why #start_outputs first harvests
   * sources then returns a function actually starting those sources:
-  * only the first part is done within critical section.
-  *
-  * The last trick is that we start with a fake task (after_collect_tasks=1)
-  * to make sure that the initial parsing of files does not triggers collect and thus
-  * a too early initialization of outputs (before daemonization). Main is
-  * in charge of finishing that virtual task and trigger the initial
-  * collect. *)
-let after_collect_tasks = ref 1
-
-let lock = Mutex.create ()
+  * only the first part is done within critical section. *)
 
 (** We might not need a default clock, so we use a lazy clock value.
   * We don't use Lazy because we need a thread-safe mechanism. *)
@@ -504,7 +488,7 @@ let create_follow_clock id = (clock ~start:false id :> Source.clock)
 let gc_alarm =
   let last_displayed = ref (-1) in
   fun () ->
-    let nb_clocks = Clocks.count clocks in
+    let nb_clocks = Clocks.length clocks in
     if nb_clocks <> !last_displayed then (
       log#info "Currently %d clock(s) allocated." nb_clocks;
       last_displayed := nb_clocks)
@@ -515,72 +499,56 @@ let () = ignore (Gc.create_alarm gc_alarm)
   * finish assigning clocks to sources (assigning the default clock),
   * start clocks and sources that need starting,
   * and stop those that need stopping. *)
-let collect ~must_lock =
-  if must_lock then Mutex.lock lock;
-
-  (* If at least one task is engaged it will take care of collection later.
-   * Otherwise, prepare a collection while in critical section
-   * (to avoid harvesting sources created by a task) and run it
-   * outside of critical section (to avoid all sorts of shit). *)
-  if !after_collect_tasks > 0 then Mutex.unlock lock
-  else (
-    Source.iterate_new_outputs (fun o ->
-        if not (is_known o#clock) then (
-          let clock =
-            if should_start o#clock then get_default ()
-            else create_follow_clock o#id
-          in
-          ignore (unify ~pos:o#pos o#clock (create_known clock))));
-    gc_alarm ();
-    let filter _ = true in
-    let collects =
-      Clocks.fold (fun s l -> s#start_outputs filter :: l) clocks []
-    in
-    let start =
-      if Atomic.get started <> `No then ignore
-      else (
-        (* Avoid that some other collection takes up the task
-         * to set started := true. Typically they would be
-         * trivial (empty) collections terminating before us,
-         * which defeats the purpose of the flag. *)
-        Atomic.set started `Soon;
-        fun () ->
-          log#info "Main phase starts.";
-          Atomic.set started `Yes)
-    in
-    Mutex.unlock lock;
-    List.iter (fun f -> ignore (f ())) collects;
-    start ())
-
-let collect_after f =
-  Mutex.lock lock;
-  after_collect_tasks := !after_collect_tasks + 1;
-  Mutex.unlock lock;
-  Fun.protect f ~finally:(fun () ->
-      Mutex.lock lock;
-      after_collect_tasks := !after_collect_tasks - 1;
-      collect ~must_lock:false)
+let collect () =
+  Source.iterate_new_outputs (fun o ->
+      if not (is_known o#clock) then (
+        let clock =
+          if should_start o#clock then get_default ()
+          else create_follow_clock o#id
+        in
+        ignore (unify ~pos:o#pos o#clock (create_known clock))));
+  gc_alarm ();
+  let filter _ = true in
+  let collects =
+    Clocks.fold clocks (fun s l -> s#start_outputs filter :: l) []
+  in
+  let start =
+    if Atomic.get started <> `No then ignore
+    else (
+      (* Avoid that some other collection takes up the task
+       * to set started := true. Typically they would be
+       * trivial (empty) collections terminating before us,
+       * which defeats the purpose of the flag. *)
+      Atomic.set started `Soon;
+      fun () ->
+        log#info "Main phase starts.";
+        Atomic.set started `Yes)
+  in
+  List.iter (fun f -> ignore (f ())) collects;
+  start ()
 
 (** Initialize only some sources, recognized by a filter function.
   * The advantage over collect is that it is synchronous and a list
   * of errors (sources that failed to initialize) is returned. *)
 let force_init filter =
   let collects =
-    Tutils.mutexify lock
-      (fun () ->
-        Source.iterate_new_outputs (fun o ->
-            if filter o && not (is_known o#clock) then
-              ignore (unify ~pos:o#pos o#clock (create_known (get_default ()))));
-        gc_alarm ();
-        Clocks.fold (fun s l -> s#start_outputs filter :: l) clocks [])
-      ()
+    Source.iterate_new_outputs (fun o ->
+        if filter o && not (is_known o#clock) then
+          ignore (unify ~pos:o#pos o#clock (create_known (get_default ()))));
+    gc_alarm ();
+    Clocks.fold clocks (fun s l -> s#start_outputs filter :: l) []
   in
   List.concat (List.map (fun f -> f ()) collects)
 
-let start () =
-  Mutex.lock lock;
-  after_collect_tasks := !after_collect_tasks - 1;
-  collect ~must_lock:false
+let after_eval_allowed = Atomic.make false
 
-let stop () = Clocks.iter (fun s -> s#stop) clocks
-let fold f x = Clocks.fold f clocks x
+let collect_after_eval () =
+  if Atomic.get after_eval_allowed then
+    Liquidsoap_lang.Evaluation.on_after_eval collect
+
+let start () =
+  collect ();
+  Atomic.set after_eval_allowed true
+
+let stop () = Clocks.iter clocks (fun s -> s#stop)
+let fold f x = Clocks.fold clocks f x

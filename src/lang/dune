@@ -82,7 +82,7 @@
  (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx ppx_string))
- (libraries liquidsoap-lang.console dune-site re str unix menhirLib)
+ (libraries liquidsoap-lang.console dune-site re saturn_lockfree str unix menhirLib)
  (modules
   active_value
   build_config
@@ -125,6 +125,7 @@
   plug
   preprocessor
   profiler
+  queues
   repr
   ref_type
   runtime

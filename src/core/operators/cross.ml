@@ -271,106 +271,101 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let buffered_after = Generator.length gen_after in
       let buffered = min buffered_after buffered_before in
       let after =
-        Clock.collect_after (fun () ->
-            let metadata = function
-              | None -> Frame.Metadata.empty
-              | Some m -> m
+        let metadata = function None -> Frame.Metadata.empty | Some m -> m in
+        let before_metadata = metadata before_metadata in
+        let after_metadata = metadata after_metadata in
+        let before_head =
+          if buffered < buffered_before then (
+            let head =
+              Generator.slice gen_before (buffered_before - buffered)
             in
-            let before_metadata = metadata before_metadata in
-            let after_metadata = metadata after_metadata in
-            let before_head =
-              if buffered < buffered_before then (
-                let head =
-                  Generator.slice gen_before (buffered_before - buffered)
-                in
-                let head_gen =
-                  Generator.create ~content:head
-                    (Generator.content_type gen_before)
-                in
-                let s = new consumer head_gen in
-                s#set_id (self#id ^ "_before_head");
-                Typing.(s#frame_type <: self#frame_type);
-                Some s)
-              else None
+            let head_gen =
+              Generator.create ~content:head (Generator.content_type gen_before)
             in
-            let before = new consumer gen_before in
-            Typing.(before#frame_type <: self#frame_type);
-            let before = new Insert_metadata.replay before_metadata before in
-            Typing.(before#frame_type <: self#frame_type);
-            before#set_id (self#id ^ "_before");
-            let after_tail =
-              if buffered < buffered_after then (
-                let head = Generator.slice gen_after buffered in
-                let head_gen =
-                  Generator.create ~content:head
-                    (Generator.content_type gen_after)
-                in
-                let tail_gen = gen_after in
-                gen_after <- head_gen;
-                let s = new consumer tail_gen in
-                Typing.(s#frame_type <: self#frame_type);
-                s#set_id (self#id ^ "_after_tail");
-                Some s)
-              else None
+            let s = new consumer head_gen in
+            s#set_id (self#id ^ "_before_head");
+            Typing.(s#frame_type <: self#frame_type);
+            Some s)
+          else None
+        in
+        let before = new consumer gen_before in
+        Typing.(before#frame_type <: self#frame_type);
+        let before = new Insert_metadata.replay before_metadata before in
+        Typing.(before#frame_type <: self#frame_type);
+        before#set_id (self#id ^ "_before");
+        let after_tail =
+          if buffered < buffered_after then (
+            let head = Generator.slice gen_after buffered in
+            let head_gen =
+              Generator.create ~content:head (Generator.content_type gen_after)
             in
-            let after = new consumer gen_after in
-            Typing.(after#frame_type <: self#frame_type);
-            let after = new Insert_metadata.replay after_metadata after in
-            Typing.(after#frame_type <: self#frame_type);
-            before#set_id (self#id ^ "_before");
-            after#set_id (self#id ^ "_after");
-            self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)" db_before
-              db_after
-              (Frame.seconds_of_main buffered_before)
-              (Frame.seconds_of_main buffered_after);
-            self#log#important
-              "Computing crossfade duration over overlapping %.2fs buffered \
-               data at start and end."
-              (Frame.seconds_of_main buffered);
-            let compound =
-              let params =
-                [
-                  ( "",
-                    Lang.meth Lang.unit
-                      [
-                        ("source", Lang.source before);
-                        ("db_level", Lang.float db_before);
-                        ( "expected_duration",
-                          Lang.float (Frame.seconds_of_main cross_length) );
-                        ( "buffered",
-                          Lang.float (Frame.seconds_of_main buffered_before) );
-                        ("metadata", Lang.metadata before_metadata);
-                      ] );
-                  ( "",
-                    Lang.meth Lang.unit
-                      [
-                        ("source", Lang.source after);
-                        ("db_level", Lang.float db_after);
-                        ( "expected_duration",
-                          Lang.float (Frame.seconds_of_main cross_length) );
-                        ( "buffered",
-                          Lang.float (Frame.seconds_of_main buffered_after) );
-                        ("metadata", Lang.metadata after_metadata);
-                      ] );
-                ]
-              in
-              Lang.to_source (Lang.apply transition params)
-            in
-            Typing.(compound#frame_type <: self#frame_type);
-            let compound =
-              match (before_head, after_tail) with
-                | None, None -> compound
-                | Some s, None ->
-                    (new Sequence.sequence ~merge:true [s; compound]
-                      :> Source.source)
-                | None, Some s ->
-                    (new Sequence.sequence ~single_track:false [compound; s]
-                      :> Source.source)
-                | Some _, Some _ -> assert false
-            in
-            Clock.unify ~pos:self#pos compound#clock s#clock;
-            Typing.(compound#frame_type <: self#frame_type);
-            compound)
+            let tail_gen = gen_after in
+            gen_after <- head_gen;
+            let s = new consumer tail_gen in
+            Typing.(s#frame_type <: self#frame_type);
+            s#set_id (self#id ^ "_after_tail");
+            Some s)
+          else None
+        in
+        let after = new consumer gen_after in
+        Typing.(after#frame_type <: self#frame_type);
+        let after = new Insert_metadata.replay after_metadata after in
+        Typing.(after#frame_type <: self#frame_type);
+        before#set_id (self#id ^ "_before");
+        after#set_id (self#id ^ "_after");
+        self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)" db_before
+          db_after
+          (Frame.seconds_of_main buffered_before)
+          (Frame.seconds_of_main buffered_after);
+        self#log#important
+          "Computing crossfade duration over overlapping %.2fs buffered data \
+           at start and end."
+          (Frame.seconds_of_main buffered);
+        let compound =
+          let params =
+            [
+              ( "",
+                Lang.meth Lang.unit
+                  [
+                    ("source", Lang.source before);
+                    ("db_level", Lang.float db_before);
+                    ( "expected_duration",
+                      Lang.float (Frame.seconds_of_main cross_length) );
+                    ( "buffered",
+                      Lang.float (Frame.seconds_of_main buffered_before) );
+                    ("metadata", Lang.metadata before_metadata);
+                  ] );
+              ( "",
+                Lang.meth Lang.unit
+                  [
+                    ("source", Lang.source after);
+                    ("db_level", Lang.float db_after);
+                    ( "expected_duration",
+                      Lang.float (Frame.seconds_of_main cross_length) );
+                    ( "buffered",
+                      Lang.float (Frame.seconds_of_main buffered_after) );
+                    ("metadata", Lang.metadata after_metadata);
+                  ] );
+            ]
+          in
+          Lang.to_source (Lang.apply transition params)
+        in
+        Typing.(compound#frame_type <: self#frame_type);
+        let compound =
+          match (before_head, after_tail) with
+            | None, None -> compound
+            | Some s, None ->
+                (new Sequence.sequence ~merge:true [s; compound]
+                  :> Source.source)
+            | None, Some s ->
+                (new Sequence.sequence ~single_track:false [compound; s]
+                  :> Source.source)
+            | Some _, Some _ -> assert false
+        in
+        Clock.unify ~pos:self#pos compound#clock s#clock;
+        Typing.(compound#frame_type <: self#frame_type);
+        Clock.collect ();
+        compound
       in
       self#prepare_source after;
       self#reset_analysis;

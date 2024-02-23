@@ -45,7 +45,8 @@ cd /tmp/liquidsoap-full/liquidsoap
 ./.github/scripts/checkout-deps.sh
 
 opam update
-opam install -y saturn_lockfree magic-mime mem_usage
+opam remove -y camlimages
+opam install -y --update-invariant ocaml.5.1.1 saturn_lockfree magic-mime mem_usage
 
 cd /tmp/liquidsoap-full
 

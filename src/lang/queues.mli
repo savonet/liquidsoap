@@ -20,14 +20,30 @@
 
  *****************************************************************************)
 
-(** Evaluate a term in a given environment. *)
-val eval : ?env:(string * Value.t) list -> Term.t -> Value.t
+module Queue : sig
+  type 'a t
 
-(** Evaluate a toplevel term. *)
-val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
+  val create : unit -> 'a t
+  val push : 'a t -> 'a -> unit
+  val pop : 'a t -> 'a
+  val pop_opt : 'a t -> 'a option
+  val flush : 'a t -> ('a -> unit) -> unit
+  val elements : 'a t -> 'a list
+  val iter : 'a t -> ('a -> unit) -> unit
+  val fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
+  val length : 'a t -> int
+  val filter : 'a t -> ('a -> bool) -> unit
+end
 
-(** Apply a function to arguments. *)
-val apply : ?pos:Pos.t -> Value.t -> (string * Value.t) list -> Value.t
+module WeakQueue : sig
+  type 'a t
 
-(** Register a function to be executed after the next runtime evaluation completes. *)
-val on_after_eval : (unit -> unit) -> unit
+  val create : unit -> 'a t
+  val push : 'a t -> 'a -> unit
+  val flush : 'a t -> ('a -> unit) -> unit
+  val elements : 'a t -> 'a list
+  val iter : 'a t -> ('a -> unit) -> unit
+  val fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
+  val length : 'a t -> int
+  val filter : 'a t -> ('a -> bool) -> unit
+end

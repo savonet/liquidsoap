@@ -123,6 +123,9 @@ jobs:
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           eval "$(opam config env)"
+          opam update
+          opam remove -y camlimages
+          opam install -y --update-invariant saturn_lockfree ocaml.5.1.1
           dune build --profile release ./src/js/interactive_js.bc.js
 
   tree_sitter_parse:
@@ -333,8 +336,7 @@ jobs:
       fail-fast: false
       matrix:
         ocaml-compiler:
-          - 4.14.x
-          - 5.0.x
+          - 5.1.x
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v3

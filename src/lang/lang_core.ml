@@ -279,7 +279,7 @@ let module_name name = name
 let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =
   ref (fun ?pos:_ _ -> assert false)
 
-let apply f p = !Hooks.collect_after (fun () -> !apply_fun f p)
+let apply f p = !apply_fun f p
 
 (** {1 High-level manipulation of values} *)
 

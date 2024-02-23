@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 open Source
-module Queue = Saturn_lockfree.Queue
+module Queue = Liquidsoap_lang.Queues.Queue
 
 (* Scheduler priority for request resolutions. *)
 let priority = `Maybe_blocking
@@ -220,13 +220,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       else `Empty
 
     val retrieved : queue_item Queue.t = Queue.create ()
-
-    method private queue_size =
-      let rec f n c =
-        match Queue.next c with None -> n | Some (_, c) -> f (n + 1) c
-      in
-      f 0 (Queue.snapshot retrieved)
-
+    method private queue_size = Queue.length retrieved
     method queue = retrieved
 
     method set_queue =
