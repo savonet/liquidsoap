@@ -328,7 +328,7 @@ let mk_options options =
               s
         | `Channel_layout s ->
             mk_opt ~t:Lang.string_t
-              ~to_string:(Avutil.Channel_layout.get_description ?channels:None)
+              ~to_string:Avutil.Channel_layout.get_description
               ~from_value:(fun v ->
                 Avutil.Channel_layout.find (Lang.to_string v))
               s
@@ -563,17 +563,25 @@ let () = Startup.time "FFmpeg filters registration" register_filters
 
 let abuffer_args frame =
   let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
-  let channel_layout =
-    try Avutil.Audio.frame_get_channel_layout frame
-    with _ ->
-      Avutil.Channel_layout.get_default (Avutil.Audio.frame_get_channels frame)
+  let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
+  let channel_layout_params =
+    match Avutil.Channel_layout.get_native_id channel_layout with
+      | Some id -> ("channel_layout", `Int64 id)
+      | None ->
+          let channel_layout =
+            Avutil.Channel_layout.get_default
+              (Avutil.Channel_layout.get_nb_channels channel_layout)
+          in
+          ( "channel_layout",
+            `Int64
+              (Option.get (Avutil.Channel_layout.get_native_id channel_layout))
+          )
   in
   let sample_format = Avutil.Audio.frame_get_sample_format frame in
   [
     `Pair ("sample_rate", `Int sample_rate);
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
-    `Pair
-      ("channel_layout", `Int64 (Avutil.Channel_layout.get_id channel_layout));
+    `Pair channel_layout_params;
     `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id sample_format));
   ]
 
