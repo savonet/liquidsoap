@@ -25,7 +25,7 @@ open Complex
 
 class fir (source : source) freq beta numcoeffs =
   object (self)
-    inherit operator ~name:"fir_filter" [source] as super
+    inherit operator ~name:"fir_filter" [source]
 
     (* Needed to compute RC *)
     val f1 = (1. -. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
@@ -37,9 +37,9 @@ class fir (source : source) freq beta numcoeffs =
     val mutable gain = 0.
     val mutable xv = [||]
 
-    method! wake_up a =
-      super#wake_up a;
-      xv <- Array.make_matrix self#audio_channels numcoeffs 0.
+    initializer
+      self#on_wake_up (fun () ->
+          xv <- Array.make_matrix self#audio_channels numcoeffs 0.)
 
     (* Coefficients *)
     val mutable xcoeffs = Array.make numcoeffs 0.

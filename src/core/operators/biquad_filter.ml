@@ -25,7 +25,7 @@ open Source
 class biquad (source : source) filter_type freq q gain =
   let samplerate = float (Frame.audio_of_seconds 1.) in
   object (self)
-    inherit operator ~name:"biquad_filter" [source] as super
+    inherit operator ~name:"biquad_filter" [source]
     val mutable p0 = 0.
     val mutable p1 = 0.
     val mutable p2 = 0.
@@ -124,10 +124,7 @@ class biquad (source : source) filter_type freq q gain =
     method self_sync = source#self_sync
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-
-    method! wake_up a =
-      super#wake_up a;
-      self#init
+    initializer self#on_wake_up (fun () -> self#init)
 
     method private generate_frame =
       let data = source#get_mutable_content Frame.Fields.audio in

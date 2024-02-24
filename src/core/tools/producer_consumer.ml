@@ -63,7 +63,7 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
   let infallible = List.for_all (fun s -> s#stype = `Infallible) consumers in
   let self_sync_type = Utils.self_sync_type consumers in
   object (self)
-    inherit Source.source ?pos ~name () as super
+    inherit Source.source ?pos ~name ()
 
     inherit!
       Child_support.base
@@ -96,19 +96,9 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
     method private can_generate_frame =
       List.for_all (fun c -> c#is_ready) consumers
 
-    method! wake_up a =
-      super#wake_up a;
-      List.iter
-        (fun c ->
-          c#set_producer_buffer self#buffer;
-          c#get_ready [(self :> Source.source)])
-        consumers
-
-    method! sleep =
-      super#sleep;
-      List.iter
-        (fun c -> c#leave ?failed_to_start:None (self :> Source.source))
-        consumers
+    initializer
+      self#on_wake_up (fun () ->
+          List.iter (fun c -> c#set_producer_buffer self#buffer) consumers)
 
     method private generate_frame =
       List.iter (fun c -> c#set_output_enabled true) consumers;

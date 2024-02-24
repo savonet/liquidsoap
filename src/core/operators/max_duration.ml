@@ -31,12 +31,6 @@ class max_duration ~override_meta ~duration source =
     val mutable s : Source.source = source
     method self_sync = source#self_sync
     method! private set_clock = Clock.unify ~pos:self#pos self#clock s#clock
-
-    method! private wake_up activation =
-      let activation = (self :> Source.operator) :: activation in
-      s#get_ready activation
-
-    method! private sleep = s#leave (self :> Source.operator)
     method stype = `Fallible
     method private can_generate_frame = remaining > 0 && s#is_ready
     method abort_track = s#abort_track
@@ -71,10 +65,7 @@ class max_duration ~override_meta ~duration source =
       let pos = Frame.position buf in
       let len = min remaining pos in
       remaining <- remaining - len;
-      if remaining <= 0 then (
-        s#leave (self :> Source.source);
-        s <- Debug_sources.empty ();
-        s#get_ready [(self :> Source.source)]);
+      if remaining <= 0 then s <- Debug_sources.empty ();
       if len < pos then Frame.slice buf len else buf
   end
 

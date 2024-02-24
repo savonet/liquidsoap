@@ -509,34 +509,34 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     method self_sync = (`Dynamic, self#is_ready)
     method abort_track = ()
 
-    method! wake_up activations =
-      super#wake_up activations;
-      try
-        self#register_task ~priority:`Blocking Tutils.scheduler;
-        ignore (Element.set_state self#get_element.bin Element.State_playing);
-        ignore (Element.get_state self#get_element.bin)
-      with exn ->
-        self#log#info "Error setting state to playing: %s"
-          (Printexc.to_string exn);
-        self#on_error exn
+    initializer
+      self#on_wake_up (fun () ->
+          try
+            self#register_task ~priority:`Blocking Tutils.scheduler;
+            ignore
+              (Element.set_state self#get_element.bin Element.State_playing);
+            ignore (Element.get_state self#get_element.bin)
+          with exn ->
+            self#log#info "Error setting state to playing: %s"
+              (Printexc.to_string exn);
+            self#on_error exn);
 
-    method! sleep =
-      self#stop_task;
-      let todo =
-        Tutils.mutexify element_m
-          (fun () ->
-            match element with
-              | Some el ->
-                  element <- None;
-                  fun () ->
-                    ignore (Element.set_state el.bin Element.State_null);
-                    ignore (Element.get_state el.bin);
-                    GU.flush ~log:self#log el.bin
-              | None -> fun () -> ())
-          ()
-      in
-      todo ();
-      super#sleep
+      self#on_sleep (fun () ->
+          self#stop_task;
+          let todo =
+            Tutils.mutexify element_m
+              (fun () ->
+                match element with
+                  | Some el ->
+                      element <- None;
+                      fun () ->
+                        ignore (Element.set_state el.bin Element.State_null);
+                        ignore (Element.get_state el.bin);
+                        GU.flush ~log:self#log el.bin
+                  | None -> fun () -> ())
+              ()
+          in
+          todo ())
 
     method make_element =
       let pipeline =

@@ -105,7 +105,7 @@ let loudness z = -0.691 +. (10. *. log10 z)
 
 class lufs window source =
   object (self)
-    inherit operator [source] ~name:"lufs" as super
+    inherit operator [source] ~name:"lufs"
     method stype = source#stype
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
@@ -126,12 +126,12 @@ class lufs window source =
     (** Last 100ms blocks. *)
     val mutable ms_blocks = []
 
-    method! wake_up a =
-      super#wake_up a;
-      let channels = self#channels in
-      let samplerate = self#samplerate in
-      stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
-      stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate)
+    initializer
+      self#on_wake_up (fun () ->
+          let channels = self#channels in
+          let samplerate = self#samplerate in
+          stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
+          stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate))
 
     (** Compute LUFS. *)
     method compute =

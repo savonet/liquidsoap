@@ -130,25 +130,17 @@ class virtual source :
            or anything custom. *)
        method private set_clock : unit
 
-       (** The operator says to the source that he will ask it frames. It may be called multiple times. *)
-       method get_ready : source list -> unit
-
        (** Register a callback when wake_up is called. *)
        method on_wake_up : (unit -> unit) -> unit
-
-       (** Called when the source must be ready and had no active operator,
-           means that the source has to initialize. This method is called by
-           [get_ready] and not called externally. It should be called only once
-           over the course of the source use. *)
-       method private wake_up : source list -> unit
-
-       (** Opposite of [get_ready] : the operator no longer needs the source. it may be called multiple times. *)
-       method leave : ?failed_to_start:bool -> source -> unit
 
        (** Register a callback when sleep is called. *)
        method on_sleep : (unit -> unit) -> unit
 
-       method private sleep : unit
+       (** Tell the source that it has to get ready. *)
+       method wake_up : unit
+
+       (* Called when the source needs to de-allocate all its resources. *)
+       method sleep : unit
 
        (** Check if a source is up or not. *)
        method is_up : bool

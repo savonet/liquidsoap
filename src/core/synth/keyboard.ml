@@ -86,39 +86,39 @@ class keyboard =
     val mutable run_id = 0
     val lock = Mutex.create ()
 
-    method! private wake_up _ =
-      let id = run_id in
-      let rec task _ =
-        if run_id <> id then []
-        else (
-          let c =
-            let c = Bytes.create 1 in
-            ignore (Unix.read Unix.stdin c 0 1);
-            Bytes.get c 0
+    initializer
+      self#on_wake_up (fun () ->
+          let id = run_id in
+          let rec task _ =
+            if run_id <> id then []
+            else (
+              let c =
+                let c = Bytes.create 1 in
+                ignore (Unix.read Unix.stdin c 0 1);
+                Bytes.get c 0
+              in
+              begin
+                try
+                  self#log#important "Playing note %d." (note_of_char c);
+                  self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
+                with Not_found -> ()
+              end;
+              [
+                {
+                  Duppy.Task.handler = task;
+                  priority = `Non_blocking;
+                  events = [`Read Unix.stdin];
+                };
+              ])
           in
-          begin
-            try
-              self#log#important "Playing note %d." (note_of_char c);
-              self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
-            with Not_found -> ()
-          end;
-          [
+          Duppy.Task.add Tutils.scheduler
             {
               Duppy.Task.handler = task;
               priority = `Non_blocking;
               events = [`Read Unix.stdin];
-            };
-          ])
-      in
-      Duppy.Task.add Tutils.scheduler
-        {
-          Duppy.Task.handler = task;
-          priority = `Non_blocking;
-          events = [`Read Unix.stdin];
-        }
+            });
 
-    method! private sleep =
-      Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
+      self#on_sleep (Tutils.mutexify lock (fun () -> run_id <- run_id + 1))
 
     method reset = ()
 

@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 type clock_variable = Source.clock_variable
-type source = Source.source
 type active_source = Source.active_source
 
 include Source.Clock_variables
@@ -100,8 +99,8 @@ let conf_log_delay =
 
 (** Leave a source, ignoring errors *)
 
-let leave ?failed_to_start (s : active_source) =
-  try s#leave ?failed_to_start (s :> source)
+let sleep (s : active_source) =
+  try s#sleep
   with e ->
     let bt = Printexc.get_backtrace () in
     Utils.log_exception ~log ~bt
@@ -307,7 +306,7 @@ module MkClock (Time : Liq_time.T) = struct
               (leaving, active))
             ()
         in
-        List.iter (fun (s : active_source) -> leave s) leaving;
+        List.iter (fun (s : active_source) -> sleep s) leaving;
         let todo = on_before_output in
         on_before_output <- [];
         List.iter (fun fn -> fn ()) todo;
@@ -324,7 +323,7 @@ module MkClock (Time : Liq_time.T) = struct
                       log#severe "Source %s failed while streaming: %s!\n%s"
                         s#id (Printexc.to_string exn)
                         (Printexc.raw_backtrace_to_string bt);
-                      leave ~failed_to_start:true s;
+                      sleep s;
                       s :: e
                   | Some on_error ->
                       on_error exn bt;
@@ -387,13 +386,13 @@ module MkClock (Time : Liq_time.T) = struct
             List.map
               (fun (s : active_source) ->
                 try
-                  s#get_ready [(s :> source)];
+                  s#wake_up;
                   `Started s
                 with e ->
                   let bt = Printexc.get_backtrace () in
                   log#severe "Source %s failed while starting: %s!\n%s" s#id
                     (Printexc.to_string e) bt;
-                  leave ~failed_to_start:true s;
+                  sleep s;
                   `Error s)
               to_start
           in
@@ -427,7 +426,7 @@ module MkClock (Time : Liq_time.T) = struct
           if Atomic.get started <> `Yes && errors <> [] then Tutils.shutdown 1;
           if leaving <> [] then (
             log#info "Stopping %d sources..." (List.length leaving);
-            List.iter (fun (s : active_source) -> leave s) leaving);
+            List.iter (fun (s : active_source) -> sleep s) leaving);
           if
             self#start
             && List.exists (function `Active, _ -> true | _ -> false) outputs

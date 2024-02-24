@@ -33,7 +33,7 @@ class resample ~field ~ratio source =
   in
   let () = Typing.(consumer#frame_type <: source#frame_type) in
   object (self)
-    inherit operator ~name:"stretch" [(consumer :> Source.source)] as super
+    inherit operator ~name:"stretch" [(consumer :> Source.source)]
     inherit! Child_support.base ~check_self_sync:true [source_val]
     method self_sync = source#self_sync
     method stype = source#stype
@@ -54,10 +54,11 @@ class resample ~field ~ratio source =
     method private can_generate_frame = source#is_ready
     val mutable converter = None
 
-    method! wake_up a =
-      super#wake_up a;
-      converter <- Some (Audio_converter.Samplerate.create self#audio_channels);
-      write_frame_ref := self#write_frame
+    initializer
+      self#on_wake_up (fun () ->
+          converter <-
+            Some (Audio_converter.Samplerate.create self#audio_channels);
+          write_frame_ref := self#write_frame)
 
     method private write_frame =
       function `Frame frame -> self#process_frame frame | `Flush -> ()

@@ -27,7 +27,7 @@ type mode = RMS | Peak
 class window mode duration source =
   object (self)
     inherit
-      operator [source] ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
+      operator [source] ~name:(match mode with RMS -> "rms" | Peak -> "peak")
 
     method stype = source#stype
     method private can_generate_frame = source#is_ready
@@ -45,11 +45,11 @@ class window mode duration source =
     (** Last computed value (rms or peak). *)
     val mutable value = [||]
 
-    method! wake_up a =
-      super#wake_up a;
-      let channels = self#audio_channels in
-      acc <- Array.make channels 0.;
-      value <- Array.make channels 0.
+    initializer
+      self#on_wake_up (fun () ->
+          let channels = self#audio_channels in
+          acc <- Array.make channels 0.;
+          value <- Array.make channels 0.)
 
     val m = Mutex.create ()
     method value = Tutils.mutexify m (fun () -> value) ()

@@ -61,7 +61,7 @@ let () =
 class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
   let available () = (not (Atomic.get should_fail)) && available () in
   object (self)
-    inherit source ~name:"request.dynamic" () as super
+    inherit source ~name:"request.dynamic" ()
     method stype = `Fallible
     val mutable remaining = 0
     method remaining = remaining
@@ -262,18 +262,19 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     val state_cond = Condition.create ()
     val mutable task = None
 
-    method! private wake_up activation =
-      (* Not for unqueued#wake_up but source#wake_up performs some logging. *)
-      super#wake_up activation;
-      assert (task = None);
-      Tutils.mutexify state_lock
-        (fun () ->
-          assert (state = `Sleeping);
-          let t = Duppy.Async.add Tutils.scheduler ~priority self#feed_queue in
-          Duppy.Async.wake_up t;
-          task <- Some t;
-          state <- `Starting)
-        ()
+    initializer
+      self#on_wake_up (fun () ->
+          assert (task = None);
+          Tutils.mutexify state_lock
+            (fun () ->
+              assert (state = `Sleeping);
+              let t =
+                Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
+              in
+              Duppy.Async.wake_up t;
+              task <- Some t;
+              state <- `Starting)
+            ())
 
     method private clear_retrieved =
       let rec clear () =
@@ -285,28 +286,28 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       in
       clear ()
 
-    method! private sleep =
-      if state = `Running then (
-        (* We need to be sure that the feeding task stopped filling the queue
-           before we destroy all requests from that queue.  Async.stop only
-           promises us that on the next round the task will stop but won't tell us
-           if it's currently resolving a file or not.  So we first put the queue
-           into an harmless state: we put the state to `Tired and wait for it to
-           acknowledge it by setting it to `Sleeping. *)
-        Tutils.mutexify state_lock (fun () -> state <- `Tired) ();
+    initializer
+      self#on_sleep (fun () ->
+          if state = `Running then (
+            (* We need to be sure that the feeding task stopped filling the queue
+               before we destroy all requests from that queue.  Async.stop only
+               promises us that on the next round the task will stop but won't tell us
+               if it's currently resolving a file or not.  So we first put the queue
+               into an harmless state: we put the state to `Tired and wait for it to
+               acknowledge it by setting it to `Sleeping. *)
+            Tutils.mutexify state_lock (fun () -> state <- `Tired) ();
 
-        (* Make sure the task is awake so that it can see our signal. *)
-        Duppy.Async.wake_up (Option.get task);
-        self#log#info "Waiting for feeding task to stop...";
-        Tutils.wait state_cond state_lock (fun () -> state = `Sleeping));
-      Duppy.Async.stop (Option.get task);
-      task <- None;
+            (* Make sure the task is awake so that it can see our signal. *)
+            Duppy.Async.wake_up (Option.get task);
+            self#log#info "Waiting for feeding task to stop...";
+            Tutils.wait state_cond state_lock (fun () -> state = `Sleeping));
+          Duppy.Async.stop (Option.get task);
+          task <- None;
 
-      (* No more feeding task, we can go to sleep. *)
-      super#sleep;
-      self#end_request;
-      self#log#info "Cleaning up request queue...";
-      self#clear_retrieved
+          (* No more feeding task, we can go to sleep. *)
+          self#end_request;
+          self#log#info "Cleaning up request queue...";
+          self#clear_retrieved)
 
     (** This method should be called whenever the feeding task has a new
       opportunity to feed the queue, in case it is sleeping. *)

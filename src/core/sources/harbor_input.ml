@@ -38,7 +38,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   ~on_disconnect ~login ~debug ~timeout () =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
-    inherit Source.active_source ~name:"input.harbor" () as super
+    inherit Source.active_source ~name:"input.harbor" ()
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
     val mutable relay_socket = None
 
@@ -161,17 +161,17 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
     val mutable is_registered = false
 
-    method! private wake_up act =
-      super#wake_up act;
-      Generator.set_max_length self#buffer max_length;
-      Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
-        (self :> Harbor.source);
-      is_registered <- true
+    initializer
+      self#on_wake_up (fun () ->
+          Generator.set_max_length self#buffer max_length;
+          Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
+            (self :> Harbor.source);
+          is_registered <- true);
 
-    method! private sleep =
-      self#disconnect ~lock:true;
-      if is_registered then Harbor.remove_source ~port ~mountpoint ();
-      is_registered <- false
+      self#on_sleep (fun () ->
+          self#disconnect ~lock:true;
+          if is_registered then Harbor.remove_source ~port ~mountpoint ();
+          is_registered <- false)
 
     method register_decoder mime =
       let mime =

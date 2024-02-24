@@ -140,9 +140,9 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
       kill_feeding <- Some kill;
       wait_feeding <- Some wait
 
-    method! wake_up act =
-      super#wake_up act;
-      Generator.set_max_length self#buffer max_length
+    initializer
+      self#on_wake_up (fun () ->
+          Generator.set_max_length self#buffer max_length)
 
     method private stop =
       (Option.get kill_feeding) ();
