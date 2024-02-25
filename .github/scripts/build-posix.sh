@@ -46,7 +46,7 @@ cd /tmp/liquidsoap-full/liquidsoap
 
 opam update
 opam remove -y camlimages
-opam install -y --update-invariant ocaml.5.1.1 saturn_lockfree magic-mime mem_usage
+opam install -y --update-invariant ocaml.5.1.1 magic-mime mem_usage
 
 cd /tmp/liquidsoap-full
 

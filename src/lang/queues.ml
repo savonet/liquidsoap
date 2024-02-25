@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 module Queue = struct
-  include Saturn_lockfree.Queue
+  include Michael_scott_queue
 
   let flush q fn =
     let rec f () =

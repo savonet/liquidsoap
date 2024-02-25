@@ -125,7 +125,7 @@ jobs:
           eval "$(opam config env)"
           opam update
           opam remove -y camlimages
-          opam install -y --update-invariant saturn_lockfree ocaml.5.1.1
+          opam install -y --update-invariant ocaml.5.1.1
           dune build --profile release ./src/js/interactive_js.bc.js
 
   tree_sitter_parse:
