@@ -117,7 +117,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
                     Utils.log_exception ~log:self#log ~bt
                       (Printf.sprintf "Error while reading from client: %s"
                          (Printexc.to_string e));
-                    self#disconnect ~lock:false;
+                    (try self#disconnect ~lock:false with _ -> ());
                     0))
             buf len
         in

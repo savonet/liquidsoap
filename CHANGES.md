@@ -9,6 +9,7 @@ Fixed:
 
 - Fixed `source.drop` and `source.dump` clock initialization.
 - Fixed bogus report of non-monotonous PTS content when using raw ffmpeg content.
+- Fixed streaming errors when disconnecting `input.harbor`.
 
 ---
 
