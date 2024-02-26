@@ -44,10 +44,6 @@ cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
-opam update
-opam remove -y camlimages
-opam install -y --update-invariant ocaml.5.1.1 magic-mime mem_usage
-
 cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
