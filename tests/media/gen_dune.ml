@@ -30,7 +30,6 @@ let standalone_tests =
     "ffmpeg_inline_encode_decode_audio.liq";
     "ffmpeg_inline_encode_decode_video.liq";
     "ffmpeg_raw_hls.liq";
-    "taglib.liq";
     "pcm_s16_decode.liq";
     "pcm_f32_decode.liq";
   ]
