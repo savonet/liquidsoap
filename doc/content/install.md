@@ -60,7 +60,7 @@ dependencies. You can read [here](https://opam.ocaml.org/doc/Usage.html) about
 how to use OPAM. In order to use it:
 
 - [you should have at least OPAM version 2.1](https://opam.ocaml.org/doc/Install.html),
-- not all version of the OCaml compiler are supported. You can run `opam info liquidsoap` to find out.
+- not all version of the OCaml compiler are supported. You can run `opam info liquidsoap-lang` to find out.
 
 You can create a switch for a specific OCaml version as follows:
 
