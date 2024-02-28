@@ -1,0 +1,113 @@
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 156.109375
+  unit: "Mio"
+  time: 1709137592.85
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 923.5
+  unit: "Mio"
+  time: 1709137592.85
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7540.40625
+  unit: "Mio"
+  time: 1709137592.85
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7540.40625
+  unit: "Mio"
+  time: 1709137592.85
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 5946.171875
+  unit: "Mio"
+  time: 1709137592.85
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 5946.171875
+  unit: "Mio"
+  time: 1709137592.85
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2236.
+  unit: "functions"
+  time: 1709137596.25
+
+- name: "protocols"
+  category: "language"
+  value: 21.
+  unit: "protocols"
+  time: 1709137596.25
+
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.429970979691
+  unit: "s"
+  time: 1709137769.11
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.828279972076
+  unit: "s"
+  time: 1709137769.94
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.47648286819
+  unit: "s"
+  time: 1709137771.42
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 3.05027699471
+  unit: "s"
+  time: 1709137774.47
+  min: 0.
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.35603404045
+  unit: "s"
+  time: 1709137785.14
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 3.69302201271
+  unit: "s"
+  time: 1709137793.73
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 3.91133499146
+  unit: "s"
+  time: 1709137797.64
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 291.17578125
+  unit: "Mio"
+  time: 1709137802.51
+  min: 0.
+
+- commit: 501199589d327f6a76bd64cdcd639b6986cc71be
+  branch: dune-dynamic-import
+  time: 1709137802
