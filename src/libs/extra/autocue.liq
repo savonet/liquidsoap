@@ -43,6 +43,13 @@ let settings.autocue.ratio =
     50.
   )
 
+let settings.autocue.on_autocue =
+  settings.make(
+    description=
+      "Callback executed when autocue values have been computed for a file",
+    (fun (_) -> ())
+  )
+
 let file.autocue = ()
 
 # Get frames from ffmpeg.filter.ebur128
@@ -101,6 +108,7 @@ end
 # @param ~cross_threshold Crossfade start threshold
 # @param ~max_overlap Maximum allowed overlap/crossfade in seconds
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing autocue data.
+# @param ~on_autocue Callback executed when autocue values are computed on a file.
 def replaces file.autocue(
   ~lufs_target=null(),
   ~cue_in_threshold=null(),
@@ -108,6 +116,7 @@ def replaces file.autocue(
   ~cross_threshold=null(),
   ~max_overlap=null(),
   ~ratio=null(),
+  ~on_autocue=null(),
   uri
 ) =
   lufs_target = lufs_target ?? settings.autocue.lufs_target()
@@ -116,6 +125,7 @@ def replaces file.autocue(
   cross_threshold = cross_threshold ?? settings.autocue.cross_threshold()
   max_overlap = max_overlap ?? settings.autocue.max_overlap()
   ratio = ratio ?? settings.autocue.ratio()
+  on_autocue = on_autocue ?? settings.autocue.on_autocue()
 
   frames = file.autocue.ebur128(ratio=ratio, uri)
 
@@ -287,17 +297,35 @@ def replaces file.autocue(
       fade_out_curve := "log"
     end
 
-    {
-      amplify=lufs_correction,
-      cue_in=(cue_in() > 0. ? cue_in() : null() ),
-      cue_out=(cue_out() > 0. ? cue_out() : null() ),
-      cross_duration=cross_duration(),
-      fade_in=fade_in(),
-      fade_out=fade_out(),
-      fade_out_delay=(fade_out_delay() > 0. ? fade_out_delay() : null() ),
-      fade_in_curve=fade_in_curve(),
-      fade_out_curve=fade_out_curve()
-    }
+    result =
+      {
+        amplify=lufs_correction,
+        cue_in=(cue_in() > 0. ? cue_in() : null() ),
+        cue_out=(cue_out() > 0. ? cue_out() : null() ),
+        cross_duration=cross_duration(),
+        fade_in=fade_in(),
+        fade_out=fade_out(),
+        fade_out_delay=(fade_out_delay() > 0. ? fade_out_delay() : null() ),
+        fade_in_curve=fade_in_curve(),
+        fade_out_curve=fade_out_curve()
+      }
+
+    on_autocue(
+      {
+        params=
+          {
+            uri=uri,
+            lufs_target=lufs_target,
+            cue_in_threshold=cue_in_threshold,
+            cue_out_threshold=cue_out_threshold,
+            cross_threshold=cross_threshold,
+            max_overlap=max_overlap
+          },
+        result=result
+      }
+    )
+
+    result
   end
 end
 
@@ -309,6 +337,7 @@ end
 # @param ~cue_out_threshold Cue out threshold
 # @param ~cross_threshold Crossfade start threshold
 # @param ~max_overlap Maximum allowed overlap/crossfade in seconds
+# @param ~on_autocue Callback executed when autocue values are computed on a file.
 # @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing autocue data.
 def file.autocue.metadata(
   ~lufs_target=null(),
@@ -317,6 +346,7 @@ def file.autocue.metadata(
   ~cross_threshold=null(),
   ~max_overlap=null(),
   ~ratio=null(),
+  ~on_autocue=null(),
   uri
 ) =
   let autocue =
@@ -327,6 +357,7 @@ def file.autocue.metadata(
       cross_threshold=cross_threshold,
       max_overlap=max_overlap,
       ratio=ratio,
+      on_autocue=on_autocue,
       uri
     )
 
