@@ -22,7 +22,7 @@ jobs:
           python-version: "3.x"
       - uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 4.14.x
+          ocaml-compiler: 5.1.x
           opam-pin: false
           opam-depext: false
       - name: Install ocamlformat
