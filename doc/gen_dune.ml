@@ -1,3 +1,5 @@
+module Pcre = Re.Pcre
+
 let generated_md =
   [
     ("protocols.md", "--list-protocols-md", None);
@@ -11,18 +13,21 @@ let generated_md =
     ("settings.md", "--list-settings", None);
   ]
 
-let mk_html f = Pcre.substitute ~pat:"md(?:\\.in)?$" ~subst:(fun _ -> "html") f
+let mk_html f =
+  Pcre.substitute ~rex:(Pcre.regexp "md(?:\\.in)?$") ~subst:(fun _ -> "html") f
 
 let mk_md ?(content = true) f =
-  if Pcre.pmatch ~pat:"md\\.in$" f then
-    Pcre.substitute ~pat:"\\.in$" ~subst:(fun _ -> "") (Filename.basename f)
-  else if content then "content/" ^ f
+  if Pcre.pmatch ~rex:(Pcre.regexp "md\\.in$") f then
+    Pcre.substitute ~rex:(Pcre.regexp "\\.in$")
+      ~subst:(fun _ -> "")
+      (Filename.basename f)
+  else if content then "../content/" ^ f
   else f
 
 let mk_title = Filename.remove_extension
 
 let mk_subst_rule f =
-  if Pcre.pmatch ~pat:"md\\.in$" f then (
+  if Pcre.pmatch ~rex:(Pcre.regexp "md\\.in$") f then (
     let target = mk_md f in
     Printf.printf
       {|
@@ -30,7 +35,7 @@ let mk_subst_rule f =
   (alias doc)
   (deps
     (:subst_md ./subst_md.exe)
-    (:in_md content/%s))
+    (:in_md ../content/%s))
   (target %s)
   (action
     (with-stdout-to %%{target}
@@ -44,7 +49,7 @@ let mk_html_rule ~liq ~content f =
 (rule
   (alias doc)
   (enabled_if (not %%{bin-available:pandoc}))
-  (deps (:no_pandoc no-pandoc))
+  (deps (:no_pandoc ../no-pandoc))
   (target %s)
   (action (run cp %%{no_pandoc} %%{target}))
 )
@@ -63,7 +68,7 @@ let mk_html_rule ~liq ~content f =
   (action
     (pipe-stdout
       (run pandoc %%{md} -t json)
-      (run pandoc-include --directory content/liq)
+      (run pandoc-include --directory ../content/liq)
       (run pandoc -f json --syntax-definition=liquidsoap.xml --highlight=pygments --metadata pagetitle=%s --template=template.html -o %%{target})
     )
   )
@@ -76,7 +81,7 @@ let mk_generated_rule (file, option, header) =
     match header with
       | None -> ("", "", "")
       | Some fname ->
-          ( [%string {|(:header %{fname})|}],
+          ( [%string {|(:header ../%{fname})|}],
             {|(progn (cat %{header}) (echo "\n")|},
             ")" )
   in
@@ -143,14 +148,14 @@ let () =
     |> Array.to_list
     |> List.filter (fun f -> Filename.extension f = ".liq")
     |> List.sort compare
-    |> List.map (fun f -> "content/liq/" ^ f)
+    |> List.map (fun f -> "../content/liq/" ^ f)
   in
   let stdlib =
     Sys.readdir (Filename.concat location "../src/libs")
     |> Array.to_list
     |> List.filter (fun f -> Filename.extension f = ".liq")
     |> List.sort compare
-    |> List.map (fun f -> "../src/libs/" ^ f)
+    |> List.map (fun f -> "../../src/libs/" ^ f)
   in
   List.iter mk_generated_rule generated_md;
   List.iter mk_subst_rule md;
@@ -161,7 +166,7 @@ let () =
   List.iter (mk_test_rule ~stdlib) liq;
   let files =
     List.map
-      (fun f -> Printf.sprintf {|    (orig/%s as html/%s)|} f f)
+      (fun f -> Printf.sprintf {|    (../orig/%s as html/%s)|} f f)
       (readdir ~location:(Filename.concat location "orig") "")
     @ List.map (fun (f, _, _) -> mk_html_install f) generated_md
     @ List.map mk_html_install md
