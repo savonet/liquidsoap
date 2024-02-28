@@ -145,17 +145,8 @@ val running : unit -> bool
   * This need is not cause by running collect in too many places, but
   * simply because there is no way to control collection on a per-thread
   * basis (collect only the sources created by a given thread of
-  * script execution).
-  *
-  * Functions running using [collect_after] should be kept short.
-  * However, in theory, with multiple threads, we could have plenty
-  * of short functions always overlapping so that collection can
-  * never be done. This shouldn't happen too much, but in any case
-  * we can't get rid of this without a more fine-grained collect,
-  * which would require (heavy) execution contexts to tell from
-  * which thread/code a given source has been added. *)
+  * script execution). *)
 
-val collect_after : (unit -> 'a) -> 'a
 val force_init : (Source.active_source -> bool) -> Source.active_source list
 val start : unit -> unit
 val stop : unit -> unit
@@ -176,3 +167,5 @@ val create_known : Source.clock -> clock_variable
 val unify : pos:Pos.Option.t -> clock_variable -> clock_variable -> unit
 val forget : clock_variable -> clock_variable -> unit
 val get : clock_variable -> Source.clock
+val collect : unit -> unit
+val collect_after_eval : unit -> unit

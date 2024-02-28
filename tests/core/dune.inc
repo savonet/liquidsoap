@@ -280,20 +280,6 @@
 
 
 (executable
- (name taglib_test)
- (modules taglib_test)
- (libraries liquidsoap_core liquidsoap_optionals))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-
-  (:taglib_test taglib_test.exe))
- (action (run %{taglib_test} )))
-
-
-(executable
  (name timezone)
  (modules timezone)
  (libraries liquidsoap_core liquidsoap_optionals))

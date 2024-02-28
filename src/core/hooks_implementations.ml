@@ -109,7 +109,6 @@ let register () =
   in
   Dtools.Log.conf_file#on_change on_change;
   ignore (Option.map on_change Dtools.Log.conf_file#get_d);
-  Hooks.collect_after := Clock.collect_after;
   (Hooks.make_log := fun name -> (Log.make name :> Hooks.log));
   Hooks.type_of_encoder := Lang_encoder.type_of_encoder;
   Hooks.make_encoder := Lang_encoder.make_encoder;

@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ocaml-5-ci:debian_bookworm_amd64
       options: --user opam
     env:
       HOME: /home/opam
@@ -87,10 +87,13 @@ jobs:
           git checkout origin/master -- Makefile.git
           make public
           git reset --hard
+          git submodule foreach 'git reset --hard'
           git pull
           cp PACKAGES.minimal PACKAGES
+          opam update
           opam pin -yn .
-          opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove --force -y ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove -y inotify ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
+          opam install -y mem_usage
           echo "::endgroup::"
           cd liquidsoap
           ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
@@ -104,7 +107,7 @@ jobs:
   build_js:
     runs-on: ubuntu-latest
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ocaml-5-ci:debian_bookworm_amd64
       options: --user opam
     env:
       HOME: /home/opam
@@ -166,7 +169,7 @@ jobs:
     needs: build_details
     if: github.event_name != 'pull_request' && github.repository_owner == 'savonet' && needs.build_details.outputs.branch == 'main'
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_amd64
+      image: savonet/liquidsoap-ocaml-5-ci:debian_bookworm_amd64
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
@@ -220,7 +223,7 @@ jobs:
     runs-on: [self-hosted, citest]
     needs: build_details
     container:
-      image: savonet/liquidsoap-ci:debian_bookworm_arm64
+      image: savonet/liquidsoap-ocaml-5-ci:debian_bookworm_arm64
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
@@ -333,8 +336,7 @@ jobs:
       fail-fast: false
       matrix:
         ocaml-compiler:
-          - 4.14.x
-          - 5.0.x
+          - 5.1.x
     steps:
       - name: Checkout latest code
         uses: actions/checkout@v3
@@ -377,7 +379,7 @@ jobs:
           - os: ubuntu_lunar
             platform: armhf
     container:
-      image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
+      image: savonet/liquidsoap-ocaml-5-ci:${{ matrix.os }}_${{ matrix.platform }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
@@ -505,10 +507,10 @@ jobs:
       matrix:
         system: [x64]
     container:
-      image: savonet/liquidsoap-win32-deps-${{ matrix.system }}
+      image: savonet/liquidsoap-win32-ocaml-5-deps-${{ matrix.system }}
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
-      OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,taglib-windows,winsvc-windows,mem_usage-windows,memtrace-windows
+      OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,pcre-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,winsvc-windows,mem_usage-windows
       IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
     steps:
       - name: Get number of CPU cores

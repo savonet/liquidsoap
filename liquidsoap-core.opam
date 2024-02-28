@@ -9,7 +9,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.6"}
-  "ocaml" {>= "4.14.0"}
+  "ocaml" {>= "5.1"}
   "dtools" {>= "0.4.5"}
   "duppy" {>= "0.9.3"}
   "mm" {>= "0.8.4"}
@@ -21,7 +21,6 @@ depends: [
   "fileutils"
   "menhirLib"
   "mem_usage"
-  "saturn_lockfree" {>= "0.4.1"}
   "metadata" {>= "0.2.0"}
   "magic-mime"
   "dune-build-info"

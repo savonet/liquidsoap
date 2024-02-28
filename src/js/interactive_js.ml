@@ -6,7 +6,7 @@ let execute ~throw expr =
      try
        Typechecking.check ~throw ~ignored:false expr;
        Term.check_unused ~throw ~lib:true expr;
-       let v = !Hooks.collect_after (fun () -> Evaluation.eval expr) in
+       let v = Evaluation.eval expr in
        Format.fprintf Format.str_formatter "- : %a = %s@." Repr.print_type
          expr.t (Value.to_string v)
      with exn -> throw exn

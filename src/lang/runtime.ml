@@ -26,19 +26,17 @@ let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
 let type_and_run ~throw ~lib ast =
-  ignore
-    (!Hooks.collect_after (fun () ->
-         if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
-         (* Type checking *)
-         Startup.time "Typechecking" (fun () ->
-             Typechecking.check ~throw ~ignored:true ast);
+  if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+  (* Type checking *)
+  Startup.time "Typechecking" (fun () ->
+      Typechecking.check ~throw ~ignored:true ast);
 
-         if Lazy.force Term.debug then
-           Printf.eprintf "Checking for unused variables...\n%!";
-         (* Check for unused variables, relies on types *)
-         Term.check_unused ~throw ~lib ast;
-         if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-         Startup.time "Evaluation" (fun () -> Evaluation.eval_toplevel ast)))
+  if Lazy.force Term.debug then
+    Printf.eprintf "Checking for unused variables...\n%!";
+  (* Check for unused variables, relies on types *)
+  Term.check_unused ~throw ~lib ast;
+  if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
+  ignore (Startup.time "Evaluation" (fun () -> Evaluation.eval_toplevel ast))
 
 (** {1 Error reporting} *)
 
@@ -289,9 +287,8 @@ let parse s = fst (parse_with_lexbuf s)
 let eval ~ignored ~ty s =
   let expr, lexbuf = parse_with_lexbuf s in
   let expr = Term.(make (`Cast (expr, ty))) in
-  !Hooks.collect_after (fun () ->
-      report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
-      Evaluation.eval expr)
+  report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
+  Evaluation.eval expr
 
 let from_in_channel ?parse_only ~lib x =
   from_in_channel ?parse_only ~ns:None ~lib x
@@ -342,9 +339,7 @@ let interactive () =
             let expr = mk_expr interactive lexbuf in
             Typechecking.check ~throw ~ignored:false expr;
             Term.check_unused ~throw ~lib:true expr;
-            ignore
-              (!Hooks.collect_after (fun () ->
-                   Evaluation.eval_toplevel ~interactive:true expr)));
+            ignore (Evaluation.eval_toplevel ~interactive:true expr));
         true
       with
         | End_of_file ->

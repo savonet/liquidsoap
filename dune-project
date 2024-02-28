@@ -44,7 +44,7 @@
 (package
   (name liquidsoap-core)
   (depends
-    (ocaml (>= 4.14.0))
+    (ocaml (>= 5.1))
     (dtools (>= 0.4.5))
     (duppy (>= 0.9.3))
     (mm (>= 0.8.4))
@@ -56,7 +56,6 @@
     fileutils
     menhirLib
     mem_usage
-    (saturn_lockfree (>= 0.4.1))
     (metadata (>= 0.2.0))
     magic-mime
     dune-build-info
@@ -150,7 +149,7 @@
 (package
   (name liquidsoap-lang)
   (depends
-    (ocaml (>= 4.14.0))
+    (ocaml (>= 5.1))
     dune-site
     (re (>= 1.11.0))
     (ppx_string :build)
@@ -163,7 +162,7 @@
 (package
   (name liquidsoap-js)
   (depends
-    (ocaml (>= 4.14.0))
+    (ocaml (>= 5.1))
     (liquidsoap-lang (= :version))
     js_of_ocaml-ppx
     (js_of_ocaml (< 5.6.0)))

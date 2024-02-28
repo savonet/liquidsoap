@@ -65,7 +65,8 @@ echo "::endgroup::"
 
 echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 
-eval "opam remove --force -y $MINIMAL_EXCLUDE_DEPS"
+# shellcheck disable=SC2086
+opam remove -y --verbose $MINIMAL_EXCLUDE_DEPS
 
 cd /tmp/liquidsoap-full
 make clean

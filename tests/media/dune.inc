@@ -1808,19 +1808,6 @@
  (package liquidsoap)
  (deps
   all_media_files
-  taglib.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} "taglib.liq" liquidsoap %{test_liq} taglib.liq -- "")))
-(rule
- (alias mediatest)
- (package liquidsoap)
- (deps
-  all_media_files
   pcm_s16_decode.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
