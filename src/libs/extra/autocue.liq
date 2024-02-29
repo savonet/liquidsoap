@@ -346,6 +346,7 @@ def file.autocue.metadata(
     } = null.get(autocue)
 
     [
+      ("liq_autocue", "true"),
       (
         "liq_amplify",
         "#{amplify} dB"
