@@ -7,9 +7,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 USER root
 
-# For libfdk-aac
-RUN echo "deb http://deb.debian.org/debian trixie non-free" >> /etc/apt/sources.list
-
 RUN apt-get update && apt-get install adduser && apt-get clean
 
 RUN addgroup --gid 10001 --system liquidsoap && \
