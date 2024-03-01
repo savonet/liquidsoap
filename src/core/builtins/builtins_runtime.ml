@@ -74,6 +74,7 @@ let _ =
         ("major_words", Lang.float_t);
         ("minor_collections", Lang.int_t);
         ("major_collections", Lang.int_t);
+        ("forced_major_collections", Lang.int_t);
         ("heap_words", Lang.int_t);
         ("heap_chunks", Lang.int_t);
         ("live_words", Lang.int_t);
@@ -94,6 +95,7 @@ let _ =
         major_words;
         minor_collections;
         major_collections;
+        forced_major_collections;
         heap_words;
         heap_chunks;
         live_words;
@@ -113,6 +115,7 @@ let _ =
         ("major_words", Lang.float major_words);
         ("minor_collections", Lang.int minor_collections);
         ("major_collections", Lang.int major_collections);
+        ("forced_major_collections", Lang.int forced_major_collections);
         ("heap_words", Lang.int heap_words);
         ("heap_chunks", Lang.int heap_chunks);
         ("live_words", Lang.int live_words);
