@@ -42,7 +42,7 @@ class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
 
     inherit! [Content.Audio.data] IoRing.input ~nb_blocks as ioring
     val mutable initialized = false
-    method self_sync = (`Static, true)
+    method self_sync = (`Static, [Alsa_settings.sync_source])
     method seek_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
 

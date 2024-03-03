@@ -22,6 +22,14 @@
 
 (** Alsa related settings *)
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "alsa"
+end)
+
+let sync_source = SyncSource.make ()
+
 (** ALSA should be quiet *)
 let () = Alsa.no_stderr_report ()
 

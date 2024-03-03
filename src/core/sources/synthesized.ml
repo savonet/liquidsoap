@@ -44,7 +44,7 @@ class virtual source ?name ~seek duration =
             r
 
     method seek_source = (self :> Source.source)
-    method self_sync = (`Static, false)
+    method self_sync = (`Static, [])
 
     method remaining =
       match remaining with None -> -1 | Some remaining -> remaining

@@ -25,6 +25,13 @@ open Mm
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "portaudio")
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "portaudio"
+end)
+
+let sync_source = SyncSource.make ()
 let initialized = ref false
 
 let () =
@@ -163,7 +170,7 @@ class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~register_telnet
           (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable stream = None
-    method! self_sync = (`Dynamic, stream <> None)
+    method! self_sync = (`Dynamic, if stream <> None then [sync_source] else [])
 
     method private open_device =
       self#handle "open_device" (fun () ->
@@ -209,7 +216,7 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
     method private start = self#open_device
     method private stop = self#close_device
     val mutable stream = None
-    method self_sync = (`Dynamic, stream <> None)
+    method self_sync = (`Dynamic, if stream <> None then [sync_source] else [])
     method abort_track = ()
     method remaining = -1
     method seek_source = (self :> Source.source)

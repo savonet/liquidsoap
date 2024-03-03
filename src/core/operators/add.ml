@@ -30,7 +30,7 @@ type ('a, 'b) track = { mutable fields : 'a field list; data : 'b }
 
 class virtual base ~name tracks =
   let sources = List.map (fun { data } -> data) tracks in
-  let self_sync_type = Utils.self_sync_type sources in
+  let self_sync = Utils.self_sync sources in
   object (self)
     inherit Source.operator ~name sources
 
@@ -38,8 +38,7 @@ class virtual base ~name tracks =
       if List.exists (fun s -> s#stype = `Infallible) sources then `Infallible
       else `Fallible
 
-    method self_sync =
-      (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
+    method self_sync = self_sync ()
 
     method remaining =
       let f cur pos =

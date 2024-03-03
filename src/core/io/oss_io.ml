@@ -26,6 +26,14 @@ external set_format : Unix.file_descr -> int -> int = "caml_oss_dsp_setfmt"
 external set_channels : Unix.file_descr -> int -> int = "caml_oss_dsp_channels"
 external set_rate : Unix.file_descr -> int -> int = "caml_oss_dsp_speed"
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "oss"
+end)
+
+let sync_source = SyncSource.make ()
+
 (** Wrapper for calling set_* functions and checking that the desired
   * value has been accepted. If not, the current behavior is a bit
   * too violent. *)
@@ -53,7 +61,7 @@ class output ~clock_safe ~on_start ~on_stop ~infallible ~register_telnet ~start
           (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable fd = None
-    method! self_sync = (`Dynamic, fd <> None)
+    method! self_sync = (`Dynamic, if fd <> None then [sync_source] else [])
 
     method open_device =
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
@@ -93,7 +101,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         ~on_start ~on_stop ~fallible ~autostart:start () as active_source
 
     val mutable fd = None
-    method self_sync = (`Dynamic, fd <> None)
+    method self_sync = (`Dynamic, if fd <> None then [sync_source] else [])
     method abort_track = ()
     method remaining = -1
     method seek_source = (self :> Source.source)

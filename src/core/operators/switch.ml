@@ -260,7 +260,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
       ( Lazy.force self_sync_type,
         match selected with
           | Some s -> snd s.effective_source#self_sync
-          | None -> List.exists (fun c -> snd c.source#self_sync) cases )
+          | None -> [] )
 
     method remaining =
       match selected with None -> 0 | Some s -> s.effective_source#remaining

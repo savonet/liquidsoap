@@ -27,6 +27,14 @@ module Pcre = Re.Pcre
 exception Done
 exception Not_connected
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "srt"
+end)
+
+let sync_source = SyncSource.make ()
+
 let mode_of_value v =
   match Lang.to_string v with
     | "listener" -> `Listener
@@ -702,7 +710,9 @@ class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
       super#started && (not self#should_stop) && self#is_connected
 
     method self_sync =
-      if self_sync then (`Dynamic, self#is_connected) else (`Static, false)
+      if self_sync then
+        (`Dynamic, if self#is_connected then [sync_source] else [])
+      else (`Static, [])
 
     method private create_decoder socket =
       let create_decoder =

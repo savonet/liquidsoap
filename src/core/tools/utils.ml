@@ -433,14 +433,17 @@ let string_of_size n =
 
 let self_sync_type sources =
   lazy
-    (fst
-       (List.fold_left
-          (fun cur s ->
-            match (cur, s#self_sync) with
-              | (`Static, None), (`Static, v) -> (`Static, Some v)
-              | (`Static, Some v), (`Static, v') when v = v' -> (`Static, Some v)
-              | _ -> (`Dynamic, None))
-          (`Static, None) sources))
+    (if List.exists (fun s -> fst s#self_sync = `Dynamic) sources then `Dynamic
+     else `Static)
+
+let self_sync sources =
+  let self_sync_type = self_sync_type sources in
+  fun () ->
+    ( Lazy.force self_sync_type,
+      List.fold_left
+        (fun sync_sources s ->
+          if s#is_ready then sync_sources @ snd s#self_sync else sync_sources)
+        [] sources )
 
 let var_script = ref "default"
 

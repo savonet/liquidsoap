@@ -133,7 +133,7 @@ let self_sync_type graph =
            (Queue.fold (fun cur s -> s :: cur) [] graph.graph_inputs)))
 
 let self_sync graph =
-  Queue.fold (fun cur s -> cur || snd s#self_sync) false graph.graph_inputs
+  Queue.fold (fun cur s -> cur @ snd s#self_sync) [] graph.graph_inputs
 
 module Graph = Value.MkAbstract (struct
   type content = graph

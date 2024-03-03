@@ -42,7 +42,9 @@ class virtual base dev mode =
     val mutable pcm = None
     val mutable write = Pcm.writen_float
     val mutable read = Pcm.readn_float
-    method self_sync : Source.self_sync = (`Dynamic, pcm <> None)
+
+    method self_sync : Source.self_sync =
+      (`Dynamic, if pcm <> None then [Alsa_settings.sync_source] else [])
 
     method open_device =
       self#log#important "Using ALSA %s." (Alsa.get_version ());

@@ -211,7 +211,7 @@ class url_output p =
         Strings.empty
 
     method write_pipe _ _ _ = ()
-    method! self_sync = (`Static, self_sync)
+    method! self_sync = (`Static, self#source_sync self_sync)
   end
 
 let _ =
@@ -604,7 +604,7 @@ class external_output p =
     inherit piped_output ~name:"output.external" p
     inherit [out_channel] chan_output p
     method encoder_factory = encoder_factory format_val
-    method! self_sync = (`Static, self_sync)
+    method! self_sync = (`Static, self#source_sync self_sync)
 
     method open_chan =
       let process = process () in

@@ -26,6 +26,14 @@ open Pulseaudio
 (** Dedicated clock. *)
 let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "pulseaudio")
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "pulseaudio"
+end)
+
+let sync_source = SyncSource.make ()
+
 (** Error translator *)
 let error_translator e =
   match e with
@@ -42,7 +50,9 @@ class virtual base ~client ~device =
     val client_name = client
     val dev = device
     method virtual log : Log.t
-    method self_sync : Source.self_sync = (`Dynamic, dev <> None)
+
+    method self_sync : Source.self_sync =
+      (`Dynamic, if dev <> None then [sync_source] else [])
   end
 
 class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =

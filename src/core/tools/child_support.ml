@@ -39,7 +39,7 @@ class virtual base ?(create_known_clock = true) ~check_self_sync children_val =
       if check_self_sync then
         List.iter
           (fun c ->
-            if (Lang.to_source c)#self_sync <> (`Static, false) then
+            if (Lang.to_source c)#self_sync <> (`Static, []) then
               raise
                 (Error.Invalid_value
                    ( c,

@@ -103,8 +103,8 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
 
     method self_sync =
       match (source#self_sync, source2#self_sync) with
-        | (`Static, v), (`Static, v') when v = v' -> (`Static, v || v')
-        | (_, v), (_, v') -> (`Dynamic, v || v')
+        | (`Static, v), (`Static, v') when v = v' -> (`Static, v @ v')
+        | (_, v), (_, v') -> (`Dynamic, v @ v')
 
     method abort_track =
       source#abort_track;
@@ -179,7 +179,7 @@ class frei0r_source ~name bgra instance params =
     method seek_source = (self :> Source.source)
     method stype = `Infallible
     method private can_generate_frame = true
-    method self_sync = (`Static, false)
+    method self_sync = (`Static, [])
     val mutable must_fail = false
     method abort_track = must_fail <- true
     method remaining = if must_fail then 0 else -1

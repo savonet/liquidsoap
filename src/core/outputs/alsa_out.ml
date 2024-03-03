@@ -55,7 +55,10 @@ class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start ~start
           (Clock.create_known (Alsa_settings.get_clock () :> Source.clock))
 
     val mutable device = None
-    method! self_sync = (`Dynamic, device <> None)
+
+    method! self_sync =
+      (`Dynamic, if device <> None then [Alsa_settings.sync_source] else [])
+
     val mutable alsa_rate = samples_per_second
     val mutable samplerate_converter = None
 

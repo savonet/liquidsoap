@@ -30,6 +30,14 @@ open Ao
   * per driver... but it might also depend on driver options. *)
 let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "ao")
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "ao"
+end)
+
+let sync_source = SyncSource.make ()
+
 class output ~clock_safe ~nb_blocks ~driver ~register_telnet ~infallible
   ~on_start ~on_stop ~options ?channels_matrix source start =
   let samples_per_frame = AFrame.size () in
@@ -59,7 +67,7 @@ class output ~clock_safe ~nb_blocks ~driver ~register_telnet ~infallible
           (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable device = None
-    method! self_sync = (`Dynamic, device <> None)
+    method! self_sync = (`Dynamic, if device <> None then [sync_source] else [])
 
     method get_device =
       match device with

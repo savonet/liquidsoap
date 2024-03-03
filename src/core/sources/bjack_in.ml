@@ -25,6 +25,14 @@ open Mm
 let log = Log.make ["input"; "jack"]
 let bjack_clock = Tutils.lazy_cell (fun () -> Clock.clock "bjack")
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "jack"
+end)
+
+let sync_source = SyncSource.make ()
+
 class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
   ~server =
   let samples_per_frame = AFrame.size () in
@@ -61,7 +69,7 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
     method remaining = -1
     val mutable sample_freq = samples_per_second
     val mutable device = None
-    method self_sync = (`Dynamic, device <> None)
+    method self_sync = (`Dynamic, if device <> None then [sync_source] else [])
 
     method close =
       match device with

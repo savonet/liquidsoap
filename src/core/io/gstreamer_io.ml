@@ -25,6 +25,13 @@ open Extralib
 open Gstreamer
 module GU = Gstreamer_utils
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "gstreamer"
+end)
+
+let sync_source = SyncSource.make ()
 let log = Log.make ["gstreamer"]
 let gst_clock = Tutils.lazy_cell (fun () -> Clock.clock "gstreamer")
 
@@ -186,7 +193,7 @@ class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
     val mutable started = false
-    method! self_sync = (`Dynamic, started)
+    method! self_sync = (`Dynamic, if started then [sync_source] else [])
 
     method! private set_clock =
       super#set_clock;
@@ -506,7 +513,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string e);
         false
 
-    method self_sync = (`Dynamic, self#is_ready)
+    method self_sync = (`Dynamic, if self#is_ready then [sync_source] else [])
     method abort_track = ()
 
     method! wake_up activations =

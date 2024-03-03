@@ -61,7 +61,7 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
     may have different content-kind when this is used in the muxers. *)
 class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
   let infallible = List.for_all (fun s -> s#stype = `Infallible) consumers in
-  let self_sync_type = Utils.self_sync_type consumers in
+  let self_sync = Utils.self_sync consumers in
   object (self)
     inherit Source.source ?pos ~name () as super
 
@@ -70,10 +70,7 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
         ?create_known_clock ~check_self_sync
         (List.map (fun s -> Lang.source (s :> Source.source)) consumers)
 
-    method self_sync =
-      ( Lazy.force self_sync_type,
-        List.fold_left (fun cur s -> cur || snd s#self_sync) false consumers )
-
+    method self_sync = self_sync ()
     method stype = if infallible then `Infallible else `Fallible
 
     method! seek len =
