@@ -664,7 +664,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
         ()
   end
 
-class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
+class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
   ~payload_size ~dump ~on_start ~on_stop ~autostart format =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
@@ -673,8 +673,7 @@ class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
 
     inherit
       Start_stop.active_source
-        ~name:"input.srt" ~clock_safe ~on_start ~on_stop ~autostart
-          ~fallible:true () as super
+        ~name:"input.srt" ~on_start ~on_stop ~autostart ~fallible:true () as super
 
     val mutable decoder_data = None
     val mutable dump_chan = None
@@ -780,14 +779,14 @@ class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
   end
 
 class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
-  ~bind_address ~max ~payload_size ~self_sync ~clock_safe ~on_connect
-  ~on_disconnect ~read_timeout ~write_timeout ~messageapi ~dump ~on_start
-  ~on_stop ~autostart format =
+  ~bind_address ~max ~payload_size ~self_sync ~on_connect ~on_disconnect
+  ~read_timeout ~write_timeout ~messageapi ~dump ~on_start ~on_stop ~autostart
+  format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~self_sync ~clock_safe ~on_connect ~on_disconnect
-          ~dump ~on_start ~on_stop ~autostart format
+        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump ~on_start
+          ~on_stop ~autostart format
 
     inherit
       listener
@@ -803,14 +802,14 @@ class input_listener ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
   end
 
 class input_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
-  ~polling_delay ~hostname ~port ~max ~payload_size ~self_sync ~clock_safe
-  ~on_connect ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout
-  ~messageapi ~dump ~on_start ~on_stop ~autostart format =
+  ~polling_delay ~hostname ~port ~max ~payload_size ~self_sync ~on_connect
+  ~on_disconnect ~read_timeout ~write_timeout ~connection_timeout ~messageapi
+  ~dump ~on_start ~on_stop ~autostart format =
   object (self)
     inherit
       input_base
-        ~max ~payload_size ~self_sync ~clock_safe ~on_connect ~on_disconnect
-          ~dump ~on_start ~on_stop ~autostart format
+        ~max ~payload_size ~self_sync ~on_connect ~on_disconnect ~dump ~on_start
+          ~on_stop ~autostart format
 
     inherit
       caller
@@ -828,7 +827,7 @@ let _ =
     ~meth:(meth () @ Start_stop.meth ())
     ~descr:"Receive a SRT stream from a distant agent."
     (common_options ~mode:`Listener
-    @ Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:`Nope
+    @ Start_stop.active_source_proto ~fallible_opt:`Nope
     @ [
         ( "max",
           Lang.float_t,
@@ -882,7 +881,6 @@ let _ =
           | s -> Some s
       in
       let max = Lang.to_float (List.assoc "max" p) in
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -899,17 +897,17 @@ let _ =
             (new input_listener
                ~enforced_encryption ~pbkeylen ~passphrase ~listen_callback
                ~bind_address ~read_timeout ~write_timeout ~payload_size
-               ~self_sync ~clock_safe ~on_connect ~on_disconnect ~messageapi
-               ~max ~dump ~on_start ~on_stop ~autostart format
+               ~self_sync ~on_connect ~on_disconnect ~messageapi ~max ~dump
+               ~on_start ~on_stop ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >)
         | `Caller ->
             (new input_caller
                ~enforced_encryption ~pbkeylen ~passphrase ~streamid
                ~polling_delay ~hostname ~port ~payload_size ~self_sync
-               ~clock_safe ~on_connect ~read_timeout ~write_timeout
-               ~connection_timeout ~on_disconnect ~messageapi ~max ~dump
-               ~on_start ~on_stop ~autostart format
+               ~on_connect ~read_timeout ~write_timeout ~connection_timeout
+               ~on_disconnect ~messageapi ~max ~dump ~on_start ~on_stop
+               ~autostart format
               :> < Start_stop.active_source
                  ; get_sockets : (Unix.sockaddr * Srt.socket) list >))
 

@@ -23,7 +23,6 @@
 open Mm
 
 let log = Log.make ["input"; "jack"]
-let bjack_clock = Tutils.lazy_cell (fun () -> Clock.clock "bjack")
 
 module SyncSource = Source.MkSyncSource (struct
   type t = unit
@@ -33,7 +32,7 @@ end)
 
 let sync_source = SyncSource.make ()
 
-class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
+class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
   ~server =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -43,8 +42,7 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
   object (self)
     inherit
       Start_stop.active_source
-        ~name:"input.jack" ~clock_safe ~on_start ~on_stop ~fallible ~autostart
-          () as active_source
+        ~name:"input.jack" ~on_start ~on_stop ~fallible ~autostart () as active_source
 
     inherit! [Bytes.t] IoRing.input ~nb_blocks as ioring
     method seek_source = (self :> Source.source)
@@ -71,7 +69,9 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
     val mutable device = None
 
     method self_sync =
-      (`Dynamic, if device <> None then Some sync_source else None)
+      if self_sync then
+        (`Dynamic, if device <> None then Some sync_source else None)
+      else (`Static, None)
 
     method close =
       match device with
@@ -132,8 +132,12 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Modules.input "jack"
-    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    (Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
+        ( "self_sync",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Mark the source as being synchronized by the jack server." );
         ( "buffer_size",
           Lang.int_t,
           Some (Lang.int 2),
@@ -146,7 +150,7 @@ let _ =
     ~meth:(Start_stop.meth ()) ~return_t ~category:`Input
     ~descr:"Get stream from jack."
     (fun p ->
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let on_start =
@@ -160,5 +164,5 @@ let _ =
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
       (new jack_in
-         ~clock_safe ~nb_blocks ~server ~fallible ~on_start ~on_stop ~autostart
+         ~self_sync ~nb_blocks ~server ~fallible ~on_start ~on_stop ~autostart
         :> Start_stop.active_source))

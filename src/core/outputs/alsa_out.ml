@@ -26,7 +26,7 @@ open Mm
 
 open Alsa
 
-class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start ~start
+class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start ~start
   dev source =
   let buffer_length = AFrame.size () in
   let alsa_buffer = Alsa_settings.alsa_buffer#get in
@@ -48,16 +48,13 @@ class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start ~start
       let blank () = Audio.make self#audio_channels buffer_length 0. in
       ioring#init blank
 
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify ~pos:self#pos self#clock
-          (Clock.create_known (Alsa_settings.get_clock () :> Source.clock))
-
     val mutable device = None
 
     method! self_sync =
-      (`Dynamic, if device <> None then [Alsa_settings.sync_source] else [])
+      if self_sync then
+        ( `Dynamic,
+          if device <> None then Some Alsa_settings.sync_source else None )
+      else (`Static, None)
 
     val mutable alsa_rate = samples_per_second
     val mutable samplerate_converter = None

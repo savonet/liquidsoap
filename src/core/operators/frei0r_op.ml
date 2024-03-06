@@ -85,6 +85,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
 class frei0r_mixer ~name bgra instance params (source : source) source2 =
   let fps = Lazy.force Frame.video_rate in
   let dt = 1. /. float fps in
+  let self_sync = Utils.self_sync [source; source2] in
   object (self)
     inherit operator ~name:("frei0r." ^ name) [source; source2]
     method seek_source = (self :> Source.source)
@@ -100,11 +101,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
         | x, y -> min x y
 
     method private can_generate_frame = source#is_ready && source2#is_ready
-
-    method self_sync =
-      match (source#self_sync, source2#self_sync) with
-        | (`Static, v), (`Static, v') when v = v' -> (`Static, v @ v')
-        | (_, v), (_, v') -> (`Dynamic, v @ v')
+    method self_sync = self_sync ()
 
     method abort_track =
       source#abort_track;

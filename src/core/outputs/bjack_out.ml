@@ -26,7 +26,7 @@ open Mm
 
 let bytes_per_sample = 2
 
-class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start
+class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start
   ~nb_blocks ~server source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
@@ -48,16 +48,12 @@ class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start
       in
       ioring#init blank
 
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify ~pos:self#pos self#clock
-          (Clock.create_known (Bjack_in.bjack_clock () :> Source.clock))
-
     val mutable device = None
 
     method! self_sync =
-      (`Dynamic, if device <> None then Some Bjack_in.sync_source else None)
+      if self_sync then
+        (`Dynamic, if device <> None then Some Bjack_in.sync_source else None)
+      else (`Static, None)
 
     method get_device =
       match device with
@@ -118,7 +114,7 @@ let _ =
   Lang.add_operator ~base:Modules.output "jack"
     (Output.proto
     @ [
-        ( "clock_safe",
+        ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated bjack clock." );
@@ -136,7 +132,7 @@ let _ =
     ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
@@ -150,6 +146,6 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       (new output
-         ~clock_safe ~infallible ~register_telnet ~on_start ~on_stop ~nb_blocks
+         ~self_sync ~infallible ~register_telnet ~on_start ~on_stop ~nb_blocks
          ~server source
         :> Output.output))

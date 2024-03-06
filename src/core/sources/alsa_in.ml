@@ -30,19 +30,21 @@ open Mm
 
 open Alsa
 
-class mic ~clock_safe ~fallible ~on_start ~on_stop ~start device =
+class mic ~self_sync ~fallible ~on_start ~on_stop ~start device =
   let buffer_length = AFrame.size () in
   let alsa_device = device in
   let nb_blocks = Alsa_settings.conf_buffer_length#get in
   object (self)
     inherit
       Start_stop.active_source
-        ~name:"input.alsa" ~fallible ~on_start ~on_stop ~autostart:start
-          ~clock_safe ~get_clock:Alsa_settings.get_clock () as active_source
+        ~name:"input.alsa" ~fallible ~on_start ~on_stop ~autostart:start () as active_source
 
     inherit! [Content.Audio.data] IoRing.input ~nb_blocks as ioring
     val mutable initialized = false
-    method self_sync = (`Static, [Alsa_settings.sync_source])
+
+    method self_sync =
+      (`Static, if self_sync then Some Alsa_settings.sync_source else None)
+
     method seek_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
 
