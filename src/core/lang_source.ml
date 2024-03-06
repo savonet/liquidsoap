@@ -167,7 +167,7 @@ let source_methods =
     ( "self_sync",
       ([], fun_t [] bool_t),
       "Is the source currently controlling its own real-time loop.",
-      fun s -> val_fun [] (fun _ -> bool (snd s#self_sync <> [])) );
+      fun s -> val_fun [] (fun _ -> bool (snd s#self_sync <> None)) );
     ( "log",
       ( [],
         record_t

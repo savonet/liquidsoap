@@ -67,7 +67,9 @@ class output ~clock_safe ~nb_blocks ~driver ~register_telnet ~infallible
           (Clock.create_known (get_clock () :> Source.clock))
 
     val mutable device = None
-    method! self_sync = (`Dynamic, if device <> None then [sync_source] else [])
+
+    method! self_sync =
+      (`Dynamic, if device <> None then Some sync_source else None)
 
     method get_device =
       match device with

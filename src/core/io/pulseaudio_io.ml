@@ -52,7 +52,7 @@ class virtual base ~client ~device =
     method virtual log : Log.t
 
     method self_sync : Source.self_sync =
-      (`Dynamic, if dev <> None then [sync_source] else [])
+      (`Dynamic, if dev <> None then Some sync_source else None)
   end
 
 class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =

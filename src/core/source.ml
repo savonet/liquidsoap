@@ -89,7 +89,7 @@ type streaming_state =
 
 type sync = [ `Auto | `CPU | `None ]
 type sync_source = ..
-type self_sync = [ `Static | `Dynamic ] * sync_source list
+type self_sync = [ `Static | `Dynamic ] * sync_source option
 
 module Queue = Liquidsoap_lang.Queues.Queue
 
@@ -420,7 +420,8 @@ class virtual operator ?pos ?(name = "src") sources =
     method virtual self_sync : self_sync
 
     method source_sync self_sync =
-      if self_sync then [SourceSync.make (self :> < id : string >)] else []
+      if self_sync then Some (SourceSync.make (self :> < id : string >))
+      else None
 
     method private set_clock =
       List.iter (fun s -> unify ~pos self#clock s#clock) sources

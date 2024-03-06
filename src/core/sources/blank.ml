@@ -39,7 +39,7 @@ class blank duration =
 
     method stype = `Infallible
     method private can_generate_frame = true
-    method self_sync = (`Static, [])
+    method self_sync = (`Static, None)
     method! seek x = x
     method seek_source = (self :> Source.source)
     method abort_track = Atomic.set position `New_track

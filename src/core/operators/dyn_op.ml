@@ -116,7 +116,7 @@ class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
             ( `Dynamic,
               match Atomic.get source with
                 | Some s -> snd s#self_sync
-                | None -> [] ))
+                | None -> None ))
   end
 
 let _ =

@@ -69,7 +69,9 @@ class jack_in ~clock_safe ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
     method remaining = -1
     val mutable sample_freq = samples_per_second
     val mutable device = None
-    method self_sync = (`Dynamic, if device <> None then [sync_source] else [])
+
+    method self_sync =
+      (`Dynamic, if device <> None then Some sync_source else None)
 
     method close =
       match device with

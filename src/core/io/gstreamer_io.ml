@@ -193,7 +193,7 @@ class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
     val mutable started = false
-    method! self_sync = (`Dynamic, if started then [sync_source] else [])
+    method! self_sync = (`Dynamic, if started then Some sync_source else None)
 
     method! private set_clock =
       super#set_clock;
@@ -513,7 +513,9 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string e);
         false
 
-    method self_sync = (`Dynamic, if self#is_ready then [sync_source] else [])
+    method self_sync =
+      (`Dynamic, if self#is_ready then Some sync_source else None)
+
     method abort_track = ()
 
     method! wake_up activations =

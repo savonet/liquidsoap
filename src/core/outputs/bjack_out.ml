@@ -57,7 +57,7 @@ class output ~clock_safe ~infallible ~register_telnet ~on_stop ~on_start
     val mutable device = None
 
     method! self_sync =
-      (`Dynamic, if device <> None then [Bjack_in.sync_source] else [])
+      (`Dynamic, if device <> None then Some Bjack_in.sync_source else None)
 
     method get_device =
       match device with

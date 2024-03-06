@@ -711,8 +711,8 @@ class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
 
     method self_sync =
       if self_sync then
-        (`Dynamic, if self#is_connected then [sync_source] else [])
-      else (`Static, [])
+        (`Dynamic, if self#is_connected then Some sync_source else None)
+      else (`Static, None)
 
     method private create_decoder socket =
       let create_decoder =

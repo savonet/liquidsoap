@@ -27,6 +27,8 @@ module Queue : sig
   val push : 'a t -> 'a -> unit
   val pop : 'a t -> 'a
   val pop_opt : 'a t -> 'a option
+  val peek : 'a t -> 'a
+  val peek_opt : 'a t -> 'a option
   val flush : 'a t -> ('a -> unit) -> unit
   val elements : 'a t -> 'a list
   val iter : 'a t -> ('a -> unit) -> unit

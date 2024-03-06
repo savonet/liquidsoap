@@ -54,7 +54,7 @@ end
     takes care of synchronization by itself or not. The first component indicates
     whether this value can change during the source's lifetime (it cannot if this
     is [`Static]. *)
-type self_sync = [ `Static | `Dynamic ] * sync_source list
+type self_sync = [ `Static | `Dynamic ] * sync_source option
 
 (** The liveness type of a source indicates whether or not it can
   * fail to broadcast.
@@ -140,7 +140,7 @@ class virtual source :
            implemented by the various operators. *)
        method virtual self_sync : self_sync
 
-       method source_sync : bool -> sync_source list
+       method source_sync : bool -> sync_source option
 
        (** Choose your clock, by adjusting to your children source,
            or anything custom. *)

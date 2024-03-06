@@ -1,4 +1,4 @@
-(*****************************************************************************
+(**********************************************************************
 
   Liquidsoap, a programmable stream generator.
   Copyright 2003-2024 Savonet team
@@ -441,9 +441,18 @@ let self_sync sources =
   fun () ->
     ( Lazy.force self_sync_type,
       List.fold_left
-        (fun sync_sources s ->
-          if s#is_ready then sync_sources @ snd s#self_sync else sync_sources)
-        [] sources )
+        (fun sync_source s ->
+          match (sync_source, s#is_ready) with
+            | Some _, true when snd s#self_sync <> None ->
+                Runtime_error.raise
+                  ~pos:(match s#pos with Some p -> [p] | None -> [])
+                  ~message:
+                    (Printf.sprintf
+                       "Source %s has multiple synchronization sources!" s#id)
+                  "source"
+            | None, true -> snd s#self_sync
+            | _ -> sync_source)
+        None sources )
 
 let var_script = ref "default"
 

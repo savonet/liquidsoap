@@ -169,8 +169,8 @@ class video_output ~pass_metadata ~name ~frame_t ~field source =
       List.map snd Ffmpeg_raw_content.((Video.get_data content).VideoSpecs.data)
   end
 
-class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
-  ~is_ready ~pull frame_t =
+class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
+  frame_t =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit ['a] duration_converter
@@ -239,8 +239,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
               self#put_data ~length frames
           | None -> ()
 
-    method self_sync : Source.self_sync =
-      (Lazy.force self_sync_type, self_sync ())
+    method self_sync : Source.self_sync = self_sync ()
 
     method pull =
       try
@@ -285,13 +284,12 @@ type audio_config = {
 }
 
 (* Same thing here. *)
-class audio_input ~field ~self_sync_type ~self_sync ~is_ready ~pull
-  ~pass_metadata frame_t =
+class audio_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
   object (self)
     inherit
       [[ `Audio ]] input_base
-        ~name:"ffmpeg.filter.audio.output" ~pass_metadata ~self_sync_type
-          ~self_sync ~is_ready ~pull frame_t
+        ~name:"ffmpeg.filter.audio.output" ~pass_metadata ~self_sync ~is_ready
+          ~pull frame_t
 
     initializer Typing.(self#frame_type <: frame_t)
 
@@ -328,13 +326,12 @@ type video_config = {
   pixel_format : Avutil.Pixel_format.t;
 }
 
-class video_input ~field ~self_sync_type ~self_sync ~is_ready ~pull
-  ~pass_metadata frame_t =
+class video_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
   object (self)
     inherit
       [[ `Video ]] input_base
-        ~name:"ffmpeg.filter.video.output" ~pass_metadata ~self_sync_type
-          ~self_sync ~is_ready ~pull frame_t
+        ~name:"ffmpeg.filter.video.output" ~pass_metadata ~self_sync ~is_ready
+          ~pull frame_t
 
     method set_output v =
       let output_format =
