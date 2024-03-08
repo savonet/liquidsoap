@@ -68,7 +68,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     val mutable first_fill = false
     val mutable current = Atomic.make None
     method current = Atomic.get current
-    method self_sync = (`Static, false)
+    method self_sync = (`Static, None)
 
     (** How to unload a request. *)
     method private end_request =

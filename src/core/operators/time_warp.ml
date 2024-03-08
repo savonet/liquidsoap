@@ -49,7 +49,7 @@ module Buffer = struct
   class producer ~id c =
     object (self)
       inherit Source.source ~name:id ()
-      method self_sync = (`Static, false)
+      method self_sync = (`Static, None)
       method stype = `Fallible
 
       method remaining =
@@ -232,7 +232,7 @@ module AdaptativeBuffer = struct
       inherit Source.source ~name:"buffer.adaptative.producer" () as super
       method seek_source = (self :> Source.source)
       method stype = `Fallible
-      method self_sync = (`Static, false)
+      method self_sync = (`Static, None)
       method remaining = proceed c (fun () -> Generator.remaining c.mg)
       method private can_generate_frame = proceed c (fun () -> not c.buffering)
       method ratio = proceed c (fun () -> c.rb_length /. prebuf)

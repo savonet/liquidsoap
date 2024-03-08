@@ -36,11 +36,25 @@ type clock_variable
   * protocol such as [input.srt]. *)
 type sync = [ `Auto | `CPU | `None ]
 
+type sync_source
+
+val string_of_sync_source : sync_source -> string
+
+module type SyncSource = sig
+  type t
+
+  val to_string : t -> string
+end
+
+module MkSyncSource (S : SyncSource) : sig
+  val make : S.t -> sync_source
+end
+
 (** Type for source's self_sync. The boolean indicates whether the operator
     takes care of synchronization by itself or not. The first component indicates
     whether this value can change during the source's lifetime (it cannot if this
     is [`Static]. *)
-type self_sync = [ `Static | `Dynamic ] * bool
+type self_sync = [ `Static | `Dynamic ] * sync_source option
 
 (** The liveness type of a source indicates whether or not it can
   * fail to broadcast.
@@ -125,6 +139,8 @@ class virtual source :
            source or not. This logic should dictate how the method is
            implemented by the various operators. *)
        method virtual self_sync : self_sync
+
+       method source_sync : bool -> sync_source option
 
        (** Choose your clock, by adjusting to your children source,
            or anything custom. *)

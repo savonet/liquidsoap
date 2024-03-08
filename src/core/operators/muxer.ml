@@ -39,7 +39,7 @@ class muxer tracks =
     if List.for_all (fun s -> s#stype = `Infallible) sources then `Infallible
     else `Fallible
   in
-  let self_sync_type = Utils.self_sync_type sources in
+  let self_sync = Utils.self_sync sources in
   object (self)
     (* Pass duplicated list to operator to make sure caching is properly enabled. *)
     inherit
@@ -48,10 +48,7 @@ class muxer tracks =
         (List.map (fun { source } -> source) tracks)
 
     method stype = stype
-
-    method self_sync =
-      (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
-
+    method self_sync = self_sync ()
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private sources_ready = List.for_all (fun s -> s#is_ready) sources
     method private can_generate_frame = self#sources_ready

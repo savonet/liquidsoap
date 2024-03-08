@@ -67,33 +67,15 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
         | `Idle, `Stopped | `Idle, `Idle -> ()
   end
 
-class virtual active_source ?get_clock ~name ~clock_safe
-  ~(on_start : unit -> unit) ~(on_stop : unit -> unit) ~fallible ~autostart () =
-  let get_clock =
-    Option.value ~default:(fun () -> Clock.clock name) get_clock
-  in
+class virtual active_source ~name ~(on_start : unit -> unit)
+  ~(on_stop : unit -> unit) ~fallible ~autostart () =
   object (self)
-    inherit Source.active_source ~name () as super
+    inherit Source.active_source ~name ()
     inherit base ~on_start ~on_stop as base
     method stype = if fallible then `Fallible else `Infallible
     method! private wake_up _ = if autostart then base#transition_to `Started
     method! private sleep = base#transition_to `Stopped
     method private started = state = `Started
-    val mutable clock = None
-
-    method private get_clock =
-      match clock with
-        | Some c -> c
-        | None ->
-            let c = get_clock () in
-            clock <- Some c;
-            c
-
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify ~pos:self#pos self#clock
-          (Clock.create_known (self#get_clock :> Source.clock))
 
     method private output =
       self#has_ticked;
@@ -118,14 +100,8 @@ let base_proto ~label =
 
 let output_proto = base_proto ~label:"output"
 
-let active_source_proto ~fallible_opt ~clock_safe =
+let active_source_proto ~fallible_opt =
   base_proto ~label:"input"
-  @ [
-      ( "clock_safe",
-        Lang.bool_t,
-        Some (Lang.bool clock_safe),
-        Some "Force the use of a dedicated clock" );
-    ]
   @
   match fallible_opt with
     | `Nope -> []

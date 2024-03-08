@@ -26,11 +26,15 @@ open Mm
 
 open Ao
 
-(** As with ALSA (even more maybe) it would be better to have one clock
-  * per driver... but it might also depend on driver options. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "ao")
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
 
-class output ~clock_safe ~nb_blocks ~driver ~register_telnet ~infallible
+  let to_string _ = "ao"
+end)
+
+let sync_source = SyncSource.make ()
+
+class output ~self_sync ~nb_blocks ~driver ~register_telnet ~infallible
   ~on_start ~on_stop ~options ?channels_matrix source start =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -52,14 +56,12 @@ class output ~clock_safe ~nb_blocks ~driver ~register_telnet ~infallible
       in
       ioring#init blank
 
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify ~pos:self#pos self#clock
-          (Clock.create_known (get_clock () :> Source.clock))
-
     val mutable device = None
-    method! self_sync = (`Dynamic, device <> None)
+
+    method! self_sync =
+      if self_sync then
+        (`Dynamic, if device <> None then Some sync_source else None)
+      else (`Static, None)
 
     method get_device =
       match device with
@@ -111,7 +113,7 @@ let _ =
   Lang.add_operator ~base:Modules.output "ao"
     (Output.proto
     @ [
-        ( "clock_safe",
+        ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Use the dedicated AO clock." );
@@ -136,7 +138,7 @@ let _ =
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to local sound card using libao." ~return_t
     (fun p ->
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let driver = Lang.to_string (List.assoc "driver" p) in
       let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let options =
@@ -163,6 +165,6 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~nb_blocks ~driver ~infallible ~register_telnet ~on_start
+         ~self_sync ~nb_blocks ~driver ~infallible ~register_telnet ~on_start
          ~on_stop ?channels_matrix ~options source start
         :> Output.output))

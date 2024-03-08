@@ -88,7 +88,43 @@ type streaming_state =
  *)
 
 type sync = [ `Auto | `CPU | `None ]
-type self_sync = [ `Static | `Dynamic ] * bool
+type sync_source = ..
+type self_sync = [ `Static | `Dynamic ] * sync_source option
+
+module Queue = Liquidsoap_lang.Queues.Queue
+
+exception Sync_source_name of string
+
+let sync_sources_handlers = Queue.create ()
+
+let string_of_sync_source s =
+  try
+    Queue.iter sync_sources_handlers (fun fn -> fn s);
+    assert false
+  with Sync_source_name s -> s
+
+module type SyncSource = sig
+  type t
+
+  val to_string : t -> string
+end
+
+module MkSyncSource (S : SyncSource) = struct
+  type sync_source += Sync_source of S.t
+
+  let make v = Sync_source v
+
+  let () =
+    Queue.push sync_sources_handlers (function
+      | Sync_source v -> raise (Sync_source_name (S.to_string v))
+      | _ -> ())
+end
+
+module SourceSync = MkSyncSource (struct
+  type t = < id : string >
+
+  let to_string s = Printf.sprintf "source(id=%s)" s#id
+end)
 
 class type ['a, 'b] proto_clock =
   object
@@ -307,8 +343,6 @@ let source_log = Log.make ["source"]
     sources) are actually registered to clock variables. *)
 let has_outputs = ref false
 
-module Queue = Liquidsoap_lang.Queues.Queue
-
 let add_new_output, iterate_new_outputs =
   let l = Queue.create () in
   (Queue.push l, Queue.flush l)
@@ -384,6 +418,10 @@ class virtual operator ?pos ?(name = "src") sources =
 
     method clock = clock
     method virtual self_sync : self_sync
+
+    method source_sync self_sync =
+      if self_sync then Some (SourceSync.make (self :> < id : string >))
+      else None
 
     method private set_clock =
       List.iter (fun s -> unify ~pos self#clock s#clock) sources

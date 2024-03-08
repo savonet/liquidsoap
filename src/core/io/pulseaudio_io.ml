@@ -23,8 +23,13 @@
 open Mm
 open Pulseaudio
 
-(** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "pulseaudio")
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "pulseaudio"
+end)
+
+let sync_source = SyncSource.make ()
 
 (** Error translator *)
 let error_translator e =
@@ -36,13 +41,17 @@ let error_translator e =
 
 let () = Printexc.register_printer error_translator
 
-class virtual base ~client ~device =
+class virtual base ~self_sync ~client ~device =
   let device = if device = "" then None else Some device in
   object
     val client_name = client
     val dev = device
     method virtual log : Log.t
-    method self_sync : Source.self_sync = (`Dynamic, dev <> None)
+
+    method self_sync : Source.self_sync =
+      if self_sync then
+        (`Dynamic, if dev <> None then Some sync_source else None)
+      else (`Static, None)
   end
 
 class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
@@ -51,20 +60,14 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
   let name = Printf.sprintf "pulse_out(%s:%s)" client device in
   let val_source = List.assoc "" p in
   let samples_per_second = Lazy.force Frame.audio_rate in
-  let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+  let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
-    inherit base ~client ~device
+    inherit base ~self_sync ~client ~device
 
     inherit!
       Output.output
         ~infallible ~register_telnet ~on_stop ~on_start ~name
-          ~output_kind:"output.pulseaudio" val_source start as super
-
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify ~pos:self#pos self#clock
-          (Clock.create_known (get_clock () :> Source.clock))
+          ~output_kind:"output.pulseaudio" val_source start
 
     val mutable stream = None
 
@@ -105,7 +108,7 @@ class output ~infallible ~register_telnet ~start ~on_start ~on_stop p =
 class input p =
   let client = Lang.to_string (List.assoc "client" p) in
   let device = Lang.to_string (List.assoc "device" p) in
-  let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+  let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   let start = Lang.to_bool (List.assoc "start" p) in
   let fallible = Lang.to_bool (List.assoc "fallible" p) in
   let on_start =
@@ -120,10 +123,10 @@ class input p =
   object (self)
     inherit
       Start_stop.active_source
-        ~get_clock ~name:"input.pulseaudio" ~clock_safe ~on_start ~on_stop
-          ~autostart:start ~fallible () as active_source
+        ~name:"input.pulseaudio" ~on_start ~on_stop ~autostart:start ~fallible
+          () as active_source
 
-    inherit base ~client ~device
+    inherit base ~self_sync ~client ~device
     method private start = self#open_device
     method private stop = self#close_device
     val mutable stream = None
@@ -165,10 +168,10 @@ let proto =
       Lang.string_t,
       Some (Lang.string ""),
       Some "Device to use. Uses default if set to \"\"." );
-    ( "clock_safe",
+    ( "self_sync",
       Lang.bool_t,
       Some (Lang.bool true),
-      Some "Force the use of the dedicated Pulseaudio clock." );
+      Some "Mark the source as being synchronized by the pulseaudio driver." );
   ]
 
 let _ =
@@ -201,8 +204,7 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Modules.input "pulseaudio"
-    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
-    @ proto)
+    (Start_stop.active_source_proto ~fallible_opt:(`Yep false) @ proto)
     ~return_t ~category:`Input ~meth:(Start_stop.meth ())
     ~descr:"Stream from a pulseaudio input device."
     (fun p -> new input p)

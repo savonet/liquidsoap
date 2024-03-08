@@ -25,8 +25,14 @@ open Extralib
 open Gstreamer
 module GU = Gstreamer_utils
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "gstreamer"
+end)
+
+let sync_source = SyncSource.make ()
 let log = Log.make ["gstreamer"]
-let gst_clock = Tutils.lazy_cell (fun () -> Clock.clock "gstreamer")
 
 let string_of_state_change = function
   | Element.State_change_success -> "success"
@@ -165,7 +171,7 @@ class virtual ['a, 'b] element_factory ~on_error =
 
 (* Audio/video output *)
 
-class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
+class output ~self_sync ~on_error ~infallible ~register_telnet ~on_start
   ~on_stop ?(blocking = true) source start
   (pipeline, audio_pipeline, video_pipeline) =
   let has_audio, audio_pipeline =
@@ -186,13 +192,10 @@ class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
     val mutable started = false
-    method! self_sync = (`Dynamic, started)
 
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify ~pos:self#pos self#clock
-          (Clock.create_known (gst_clock () :> Source.clock))
+    method! self_sync =
+      if self_sync then (`Dynamic, if started then Some sync_source else None)
+      else (`Static, None)
 
     method start =
       let el = self#get_element in
@@ -311,7 +314,7 @@ class output ~clock_safe ~on_error ~infallible ~register_telnet ~on_start
 let output_proto ~return_t ~pipeline =
   Output.proto
   @ [
-      ( "clock_safe",
+      ( "self_sync",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Use the dedicated GStreamer clock." );
@@ -342,7 +345,7 @@ let _ =
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to a GStreamer pipeline." ~return_t (fun p ->
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
@@ -362,7 +365,7 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~on_error ~infallible ~register_telnet ~on_start ~on_stop
+         ~self_sync ~on_error ~infallible ~register_telnet ~on_start ~on_stop
          source start ("", Some pipeline, None)
         :> Output.output))
 
@@ -375,7 +378,7 @@ let _ =
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to a GStreamer pipeline." ~return_t (fun p ->
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
@@ -395,7 +398,7 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~infallible ~register_telnet ~on_error ~on_start ~on_stop
+         ~self_sync ~infallible ~register_telnet ~on_error ~on_start ~on_stop
          source start ("", None, Some pipeline)
         :> Output.output))
 
@@ -424,7 +427,7 @@ let _ =
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to a GStreamer pipeline." ~return_t
     (fun p ->
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
       let video_pipeline = Lang.to_string (List.assoc "video_pipeline" p) in
@@ -447,7 +450,7 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~infallible ~register_telnet ~on_error ~on_start ~on_stop
+         ~self_sync ~infallible ~register_telnet ~on_error ~on_start ~on_stop
          ~blocking source start
          (pipeline, Some audio_pipeline, Some video_pipeline)
         :> Output.output))
@@ -506,7 +509,11 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string e);
         false
 
-    method self_sync = (`Dynamic, self#is_ready)
+    method self_sync =
+      if self_sync then
+        (`Dynamic, if self#is_ready then Some sync_source else None)
+      else (`Static, None)
+
     method abort_track = ()
 
     method! wake_up activations =

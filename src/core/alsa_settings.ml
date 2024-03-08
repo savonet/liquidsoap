@@ -22,6 +22,14 @@
 
 (** Alsa related settings *)
 
+module SyncSource = Source.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "alsa"
+end)
+
+let sync_source = SyncSource.make ()
+
 (** ALSA should be quiet *)
 let () = Alsa.no_stderr_report ()
 
@@ -54,8 +62,3 @@ let alsa_buffer =
         "This setting is only used in buffered alsa I/O, and affects latency.";
         "Set to 0 to disable this setting and use ALSA's default.";
       ]
-
-(** A dedicated clock for all ALSA I/O operators, to make sure other
-  * blocking I/O inteferes with them. In the future, we might even want
-  * to have different clocks for different ALSA devices. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "alsa")

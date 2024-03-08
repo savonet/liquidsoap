@@ -60,7 +60,7 @@ class keyboard =
     method private can_generate_frame = true
     method remaining = -1
     method abort_track = ()
-    method self_sync = (`Static, false)
+    method self_sync = (`Static, None)
 
     method output =
       self#has_ticked;

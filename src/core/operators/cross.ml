@@ -33,7 +33,7 @@ class consumer buffer =
       Generator.slice buffer (Lazy.force Frame.size)
 
     method abort_track = Generator.clear buffer
-    method self_sync = (`Static, false)
+    method self_sync = (`Static, None)
     method seek_source = (self :> Source.source)
     method remaining = Generator.length buffer
   end

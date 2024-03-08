@@ -63,14 +63,13 @@ let () =
       Atomic.set shutdown true)
 
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
-  ~clock_safe ~max_buffer ~on_error ~on_stop ~on_start ~on_connect
-  ~metadata_filter ~on_disconnect ~new_track_on_metadata ?format ~opts ~trim_url
-  url =
+  ~max_buffer ~on_error ~on_stop ~on_start ~on_connect ~metadata_filter
+  ~on_disconnect ~new_track_on_metadata ?format ~opts ~trim_url url =
   let max_length = Some (Frame.main_of_seconds max_buffer) in
   object (self)
     inherit
       Start_stop.active_source
-        ~name ~fallible:true ~clock_safe ~on_start ~on_stop ~autostart () as super
+        ~name ~fallible:true ~on_start ~on_stop ~autostart () as super
 
     val connect_task = Atomic.make None
     val container = Atomic.make None
@@ -83,7 +82,9 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private get_self_sync =
       match self_sync () with Some v -> v | None -> false
 
-    method self_sync = (`Dynamic, self#get_self_sync && self#is_connected)
+    method self_sync =
+      (`Dynamic, self#source_sync (self#get_self_sync && self#is_connected))
+
     method private start = self#connect
     method private stop = self#disconnect
     val mutable url = url
@@ -270,9 +271,9 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
 
 let http_log = Log.make ["input"; "http"]
 
-class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
-  ~max_buffer ~on_connect ~on_disconnect ?format ~opts ~user_agent ~timeout
-  ~metadata_filter ~on_start ~on_stop ~new_track_on_metadata ~trim_url url =
+class http_input ~autostart ~self_sync ~poll_delay ~debug ~on_error ~max_buffer
+  ~on_connect ~on_disconnect ?format ~opts ~user_agent ~timeout ~metadata_filter
+  ~on_start ~on_stop ~new_track_on_metadata ~trim_url url =
   let () =
     Hashtbl.replace opts "icy" (`Int 1);
     Hashtbl.replace opts "user_agent" (`String user_agent);
@@ -319,8 +320,8 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
   object
     inherit
       input
-        ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
-          ~max_buffer ~on_stop ~on_start ~on_disconnect ~on_connect ~on_error
+        ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~max_buffer
+          ~on_stop ~on_start ~on_disconnect ~on_connect ~on_error
           ~metadata_filter ?format ~opts ~new_track_on_metadata ~trim_url url
   end
 
@@ -360,7 +361,7 @@ let register_input is_http =
   in
   ignore
     (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input
-       (Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
+       (Start_stop.active_source_proto ~fallible_opt:`Nope
        @ (if is_http then
             [
               ( "user_agent",
@@ -527,7 +528,6 @@ let register_input is_http =
            else Some (Lang.to_bool (self_sync ()))
          in
          let autostart = Lang.to_bool (List.assoc "start" p) in
-         let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
          let on_error =
            let f = List.assoc "on_error" p in
            fun err -> ignore (Lang.apply f [("", Lang.error err)])
@@ -591,19 +591,19 @@ let register_input is_http =
              ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
            in
            (new http_input
-              ~metadata_filter ~debug ~autostart ~self_sync ~clock_safe
-              ~poll_delay ~on_connect ~on_disconnect ~user_agent
-              ~new_track_on_metadata ~max_buffer ?format ~opts ~timeout
-              ~on_error ~on_start ~on_stop ~trim_url url
+              ~metadata_filter ~debug ~autostart ~self_sync ~poll_delay
+              ~on_connect ~on_disconnect ~user_agent ~new_track_on_metadata
+              ~max_buffer ?format ~opts ~timeout ~on_error ~on_start ~on_stop
+              ~trim_url url
              :> input))
          else (
            let on_connect _ =
              ignore (Lang.apply (List.assoc "on_connect" p) [])
            in
            new input
-             ~metadata_filter ~autostart ~debug ~self_sync ~clock_safe
-             ~poll_delay ~on_error ~on_start ~on_stop ~on_connect ~on_disconnect
-             ~max_buffer ?format ~opts ~new_track_on_metadata ~trim_url url)))
+             ~metadata_filter ~autostart ~debug ~self_sync ~poll_delay ~on_error
+             ~on_start ~on_stop ~on_connect ~on_disconnect ~max_buffer ?format
+             ~opts ~new_track_on_metadata ~trim_url url)))
 
 let () =
   register_input true;

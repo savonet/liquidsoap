@@ -112,8 +112,8 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
 
     inherit!
       Start_stop.active_source
-        ~name:"input.udp" ~clock_safe:false ~fallible:true ~on_start:ignore
-          ~on_stop:ignore ~autostart:true () as super
+        ~name:"input.udp" ~fallible:true ~on_start:ignore ~on_stop:ignore
+          ~autostart:true () as super
 
     val mutable kill_feeding = None
     val mutable wait_feeding = None

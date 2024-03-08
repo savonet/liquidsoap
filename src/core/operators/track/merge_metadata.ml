@@ -22,16 +22,12 @@
 
 class merge_metadata tracks =
   let sources = List.map snd tracks in
-  let self_sync_type = Utils.self_sync_type sources in
+  let self_sync = Utils.self_sync sources in
   object (self)
     inherit Source.operator ~name:"track.metadata.merge" sources
     initializer Typing.(self#frame_type <: Lang.unit_t)
     method stype = `Infallible
-
-    method self_sync =
-      ( Lazy.force self_sync_type,
-        List.exists (fun s -> s#is_ready && snd s#self_sync) sources )
-
+    method self_sync = self_sync ()
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private ready_sources = List.filter (fun s -> s#is_ready) sources
     method private can_generate_frame = self#ready_sources <> []

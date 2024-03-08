@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Builtins_ffmpeg_base
+module Queue = Liquidsoap_lang.Queues.Queue
 
 (** FFmpeg filter graphs initialization is pretty tricky. Things to consider:
   * - FFmpeg filters are using a push paradigm, pushing from the sources down
@@ -81,9 +82,9 @@ type graph = {
 }
 
 let init_graph graph =
-  if Queue.fold (fun b v -> b && v ()) true graph.input_inits then (
+  if Queue.fold graph.input_inits (fun v b -> b && v ()) true then (
     try
-      Queue.iter Lazy.force graph.init;
+      Queue.iter graph.init Lazy.force;
 
       match
         (Queue.peek_opt graph.graph_inputs, Queue.peek_opt graph.graph_outputs)
@@ -108,16 +109,16 @@ let init_graph graph =
       Printexc.raise_with_backtrace exn bt)
 
 let initialized graph =
-  Queue.fold (fun cur q -> cur && Lazy.is_val q) true graph.init
+  Queue.fold graph.init (fun q cur -> cur && Lazy.is_val q) true
 
 let is_ready graph =
   (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
     | false, Some s -> (Source.Clock_variables.get s#clock)#end_tick
     | _ -> ());
   (not graph.failed)
-  && Queue.fold
-       (fun cur (s : Source.source) -> cur && s#is_ready)
-       true graph.graph_inputs
+  && Queue.fold graph.graph_inputs
+       (fun (s : Source.source) cur -> cur && s#is_ready)
+       true
 
 let pull graph =
   match Queue.peek_opt graph.graph_inputs with
@@ -126,14 +127,7 @@ let pull graph =
         (Clock.get s#clock)#end_tick
     | None -> ()
 
-let self_sync_type graph =
-  Lazy.from_fun (fun () ->
-      Lazy.force
-        (Utils.self_sync_type
-           (Queue.fold (fun cur s -> s :: cur) [] graph.graph_inputs)))
-
-let self_sync graph =
-  Queue.fold (fun cur s -> cur || snd s#self_sync) false graph.graph_inputs
+let self_sync graph = (Utils.self_sync (Queue.elements graph.graph_inputs)) ()
 
 module Graph = Value.MkAbstract (struct
   type content = graph
@@ -447,7 +441,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                   List.nth inputs idx)
                 else Lang.assoc "" (idx + ofs + 1) p
               in
-              Queue.push
+              Queue.push graph.init
                 (lazy
                   (List.iteri
                      (fun idx input ->
@@ -471,8 +465,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                            | _ -> assert false
                        in
                        link (Lazy.force output) input)
-                     filter.io.inputs.video))
-                graph.init;
+                     filter.io.inputs.video));
               input_set := true;
               Lang.unit) );
       ]
@@ -673,7 +666,7 @@ let _ =
          in
          s#set_pos pos;
          s#set_id id;
-         Queue.add (s :> Source.source) graph.graph_inputs;
+         Queue.push graph.graph_inputs (s :> Source.source);
 
          let args = ref None in
 
@@ -687,7 +680,7 @@ let _ =
               List.hd Avfilter.(_abuffer.io.outputs.audio))
          in
 
-         Queue.add (fun () -> Lazy.is_val audio) graph.input_inits;
+         Queue.push graph.input_inits (fun () -> Lazy.is_val audio);
 
          s#set_init (fun frame ->
              if !args = None then (
@@ -733,12 +726,12 @@ let _ =
              ~pull:(fun () -> pull graph)
              ~is_ready:(fun () -> is_ready graph)
              ~self_sync:(fun () -> self_sync graph)
-             ~self_sync_type:(self_sync_type graph) ~pass_metadata frame_t
+             ~pass_metadata frame_t
          in
-         Queue.add (s :> Source.source) graph.graph_outputs;
+         Queue.push graph.graph_outputs (s :> Source.source);
 
          let pad = Audio.of_value (Lang.assoc "" 2 p) in
-         Queue.add
+         Queue.push graph.init
            (lazy
              (let pad =
                 match pad with
@@ -751,8 +744,7 @@ let _ =
               in
               Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
               Avfilter.(
-                Hashtbl.add graph.entries.outputs.audio name s#set_output)))
-           graph.init;
+                Hashtbl.add graph.entries.outputs.audio name s#set_output)));
 
          (field, (s :> Source.source))));
 
@@ -807,7 +799,7 @@ let _ =
          in
          s#set_pos pos;
          s#set_id id;
-         Queue.add (s :> Source.source) graph.graph_inputs;
+         Queue.push graph.graph_inputs (s :> Source.source);
 
          let args = ref None in
 
@@ -821,7 +813,7 @@ let _ =
               List.hd Avfilter.(_buffer.io.outputs.video))
          in
 
-         Queue.add (fun () -> Lazy.is_val video) graph.input_inits;
+         Queue.push graph.input_inits (fun () -> Lazy.is_val video);
 
          s#set_init (fun frame ->
              if !args = None then (
@@ -863,11 +855,11 @@ let _ =
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
           ~self_sync:(fun () -> self_sync graph)
-          ~self_sync_type:(self_sync_type graph) ~pass_metadata frame_t
+          ~pass_metadata frame_t
       in
-      Queue.add (s :> Source.source) graph.graph_outputs;
+      Queue.push graph.graph_outputs (s :> Source.source);
 
-      Queue.add
+      Queue.push graph.init
         (lazy
           (let pad =
              match Video.of_value (Lang.assoc "" 2 p) with
@@ -877,13 +869,12 @@ let _ =
            let name = uniq_name "buffersink" in
            let _buffersink = Avfilter.attach ~name Avfilter.buffersink config in
            Avfilter.(link pad (List.hd _buffersink.io.inputs.video));
-           Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output)))
-        graph.init;
+           Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output)));
 
       (field, (s :> Source.source)))
 
 let unify_clocks ~clock sources =
-  Queue.iter (fun s -> Clock.unify ~pos:s#pos clock s#clock) sources
+  Queue.iter sources (fun s -> Clock.unify ~pos:s#pos clock s#clock)
 
 let _ =
   let univ_t = Lang.univ_t () in
@@ -925,7 +916,7 @@ let _ =
       in
       unify_clocks ~clock:output_clock graph.graph_outputs;
 
-      Queue.add
+      Queue.push graph.init
         (lazy
           (log#info "Initializing graph";
            let filter = Avfilter.launch config in
@@ -956,7 +947,6 @@ let _ =
                    Hashtbl.find graph.entries.outputs.video name
                  in
                  set_output output)
-               filter.outputs.video)))
-        graph.init;
+               filter.outputs.video)));
       graph.config <- None;
       ret)
