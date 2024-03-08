@@ -33,22 +33,26 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
            but it has been silent for l samples;
         - `Blank l: the source is considered to be silent,
            but it has been noisy for l samples. *)
-    val mutable state = if start_blank then `Blank 0 else `Noise 0
+    val state = Atomic.make (if start_blank then `Blank 0 else `Noise 0)
 
+    val dB_levels = Atomic.make None
+    method dB_levels = Atomic.get dB_levels
     method virtual private log : Log.t
-    method is_blank = match state with `Blank _ -> true | _ -> false
+
+    method is_blank =
+      match Atomic.get state with `Blank _ -> true | _ -> false
 
     method private string_of_state =
       function `Blank _ -> "blank" | `Noise _ -> "no blank"
 
     method private set_state s =
       begin
-        match (state, s) with
+        match (Atomic.get state, s) with
           | `Blank _, `Noise _ | `Noise _, `Blank _ ->
               self#log#info "Setting state to %s" (self#string_of_state s)
           | _ -> ()
       end;
-      state <- s
+      Atomic.set state s
 
     (** This method should be called after the frame [s] has been
         filled, where [p0] is the position in [s] before filling. *)
@@ -61,11 +65,12 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       else (
         let len = AFrame.position s in
         let rms = AFrame.rms s 0 len in
+        Atomic.set dB_levels (Some rms);
         let threshold = threshold () in
         let noise =
           Array.fold_left (fun noise r -> noise || r > threshold) false rms
         in
-        match state with
+        match Atomic.get state with
           | `Noise blank_len ->
               if noise then (if blank_len <> 0 then self#set_state (`Noise 0))
               else (
@@ -234,20 +239,33 @@ let extract p =
   let ts = Lang.to_bool_getter (f "track_sensitive") in
   (start_blank, max_blank, min_noise, threshold, ts, s)
 
+let meth () =
+  [
+    ( "dB_levels",
+      ([], Lang.fun_t [] (Lang.nullable_t (Lang.list_t Lang.float_t))),
+      "Return the detected dB level for each channel.",
+      fun s ->
+        Lang.val_fun [] (fun _ ->
+            match s#dB_levels with
+              | None -> Lang.null
+              | Some lvl ->
+                  Lang.list
+                    Array.(
+                      to_list
+                        (map (fun v -> Lang.float (Audio.dB_of_lin v)) lvl))) );
+    ( "is_blank",
+      ([], Lang.fun_t [] Lang.bool_t),
+      "Indicate whether blank was detected.",
+      fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
+  ]
+
 let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Blank.blank "detect" ~return_t:frame_t
-    ~category:`Track
-    ~meth:
-      [
-        ( "is_blank",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Indicate whether blank was detected.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
-      ]
+    ~category:`Track ~meth:(meth ())
     ~descr:"Calls a given handler when detecting a blank."
     (( "",
        Lang.fun_t [] Lang.unit_t,
@@ -274,18 +292,10 @@ let _ =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator ~base:Blank.blank "strip" ~return_t:frame_t
-    ~meth:
-      [
-        ( "is_blank",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Indicate whether blank was detected.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
-      ]
+  Lang.add_operator ~base:Blank.blank "strip" ~return_t:frame_t ~meth:(meth ())
     ~category:`Track
     ~descr:"Make the source unavailable when it is streaming blank."
-    (proto frame_t)
-    (fun p ->
+    (proto frame_t) (fun p ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
@@ -299,13 +309,7 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Blank.blank "eat" ~return_t:frame_t ~category:`Track
-    ~meth:
-      [
-        ( "is_blank",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Indicate whether blank was detected.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
-      ]
+    ~meth:(meth ())
     ~descr:
       "Eat blanks, i.e., drop the contents of the stream until it is not blank \
        anymore."
