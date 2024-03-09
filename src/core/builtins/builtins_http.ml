@@ -22,6 +22,13 @@
 
 type request = Get | Post | Put | Head | Delete
 
+let string_of_request = function
+  | Get -> "get"
+  | Post -> "post"
+  | Put -> "put"
+  | Head -> "head"
+  | Delete -> "delete"
+
 let request_with_body = [Get; Post; Put]
 let http = Modules.http
 let http_transport = Modules.http_transport
@@ -36,6 +43,7 @@ let add_http_request ~base ~stream_body ~descr ~request name =
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let has_body = List.mem request request_with_body in
+  let log = Log.make ["http"; string_of_request request] in
   let request_return_t =
     Lang.method_t
       (if (not has_body) || stream_body then Lang.unit_t else Lang.string_t)
@@ -74,6 +82,10 @@ let add_http_request ~base ~stream_body ~descr ~request name =
           Lang.nullable_t Lang.float_t,
           Some (Lang.float 10.),
           Some "Timeout for network operations in seconds." );
+        ( "normalize_url",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Normalize url, replacing spaces with `%20` and more." );
         ( "",
           Lang.string_t,
           None,
@@ -107,7 +119,18 @@ let add_http_request ~base ~stream_body ~descr ~request name =
       let http_version =
         Option.map Lang.to_string (Lang.to_option (List.assoc "http_version" p))
       in
-      let url = Lang.to_string (List.assoc "" p) in
+      let original_url = Lang.to_string (List.assoc "" p) in
+      let normalize_url = Lang.to_bool (List.assoc "normalize_url" p) in
+      let url =
+        if normalize_url then Uri.(to_string (of_string original_url))
+        else original_url
+      in
+      if url <> original_url then
+        log#important
+          "Requested url %s different from normalized url: %s. Either fix it \
+           or use `normalize_url=false` to disable url normalization!"
+          (Lang_string.quote_utf8_string original_url)
+          (Lang_string.quote_utf8_string url);
       let redirect = Lang.to_bool (List.assoc "redirect" p) in
       let on_body_data, get_body =
         if stream_body then (
