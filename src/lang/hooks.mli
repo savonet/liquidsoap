@@ -31,5 +31,6 @@ val has_encoder : (Value.t -> bool) ref
 val mk_source_ty :
   (?pos:Pos.t -> string -> Parsed_term.source_annotation -> Type.t) ref
 
+val mk_clock_ty : (?pos:Pos.t -> unit -> Type.t) ref
 val source_methods_t : (unit -> Type.t) ref
 val getpwnam : (string -> Unix.passwd_entry) ref

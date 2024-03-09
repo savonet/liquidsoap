@@ -69,6 +69,10 @@ let mk_field_t ~pos kind params =
             (Liquidsoap_lang.Term_base.Parse_error
                (pos, "Unknown type constructor: " ^ t ^ ".")))
 
+let () =
+  Hooks.mk_clock_ty :=
+    fun ?pos () -> Type.make ?pos Lang_source.ClockValue.base_t.Type.descr
+
 let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
   let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
 

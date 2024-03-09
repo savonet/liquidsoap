@@ -20,7 +20,12 @@
 
  *****************************************************************************)
 
-let clock = Modules.clock
+let clock =
+  Lang.add_builtin "clock" ~category:`Liquidsoap
+    ~descr:"Decorate a clock with all its methods."
+    [("", Lang_source.ClockValue.base_t, None, None)]
+    Lang_source.ClockValue.t
+    (fun p -> Lang_source.ClockValue.(to_value (of_value (List.assoc "" p))))
 
 let _ =
   Lang.add_builtin ~base:clock "create" ~category:`Liquidsoap
