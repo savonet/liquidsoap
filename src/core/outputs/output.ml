@@ -112,10 +112,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
       registered_telnet <- false
 
     method private can_generate_frame =
-      if infallible then (
-        assert source#is_ready;
-        true)
-      else source#is_ready
+      if infallible then true else source#is_ready
 
     method remaining = source#remaining
     method abort_track = source#abort_track

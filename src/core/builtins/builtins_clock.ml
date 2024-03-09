@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2024 Savonet team
+  Copyright 20032024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 021101301  USA
 
  *****************************************************************************)
 
@@ -35,9 +35,26 @@ let _ =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "Identifier for the new clock." );
+      ( "sync",
+        Lang.string_t,
+        Some (Lang.string "auto"),
+        Some
+          "Clock sync mode. Should be one of: `\"auto\"`, `\"CPU\"`, \
+           `\"unsynced\"` or `\"passive\"`. Defaults to `\"auto\"`. Defaults \
+           to: \"auto\"" );
     ]
     Lang_source.ClockValue.t
     (fun p ->
       let id = Lang.to_valued_option Lang.to_string (List.assoc "id" p) in
+      let sync = List.assoc "sync" p in
+      let sync =
+        try Clock.active_sync_mode_of_string (Lang.to_string sync)
+        with _ ->
+          raise
+            (Error.Invalid_value
+               ( sync,
+                 "Invalid sync mode! Should be one of: `\"auto\"`, `\"CPU\"`, \
+                  `\"unsynced\"` or `\"passive\"`" ))
+      in
       let pos = match Lang.pos p with p :: _ -> Some p | [] -> None in
-      Lang_source.ClockValue.to_value (Clock.create ?pos ?id ()))
+      Lang_source.ClockValue.to_value (Clock.create ?pos ?id ~sync ()))

@@ -55,6 +55,8 @@ class virtual base ~check_self_sync children_val =
             Atomic.set child_clock (Some c);
             c
 
+    method virtual log : Log.t
+
     initializer
       List.iter
         (fun s -> Clock.unify ~pos:self#pos self#child_clock s#clock)

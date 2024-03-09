@@ -26,6 +26,10 @@ open Source
 class consumer buffer =
   object (self)
     inherit Source.source ~name:"buffer" ()
+
+    initializer
+      Clock.unify ~pos:None self#clock (Clock.create ~sync:`Passive ())
+
     method fallible = true
     method private can_generate_frame = 0 < Generator.length buffer
 

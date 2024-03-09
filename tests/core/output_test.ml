@@ -6,7 +6,7 @@ class dummy ~autostart ~on_start source =
         ~on_stop:(fun () -> ())
         (Lang.source (source :> Source.source))
 
-    method test_wake_up = self#wake_up []
+    method test_wake_up = self#wake_up
     val mutable test_can_generate_frame = false
     method test_set_can_generate_frame = test_can_generate_frame <- true
     method! can_generate_frame = test_can_generate_frame
@@ -24,8 +24,7 @@ let () =
   let on_start () = started := true in
   let failed = new failed in
   let o = new dummy ~on_start ~autostart:true failed in
-  let clock = Clock.clock ~start:false "source" in
-  Clock.unify ~pos:o#pos o#clock (Clock.create_known clock);
+  Clock.start ~sync:`Passive o#clock;
   o#content_type_computation_allowed;
   assert (not o#can_generate_frame);
   o#test_wake_up;

@@ -34,10 +34,7 @@ module ClockValue = struct
     type content = Clock.t
 
     let name = "clock"
-
-    let descr clock =
-      Printf.sprintf "clock(id=%s,sync=%s)" (Clock.id clock)
-        Clock.(string_of_sync_mode (sync clock))
+    let descr = Clock.descr
 
     let to_json ~pos _ =
       Lang.raise_error ~message:"Clocks cannot be represented as json" ~pos
@@ -64,27 +61,15 @@ module ClockValue = struct
           Lang.val_fun [] (fun _ ->
               Lang.string Clock.(string_of_sync_mode (sync c))) );
       ( "start",
-        Lang.fun_t [(true, "", Lang.string_t)] Lang.unit_t,
-        "Start the clock. The clock sync mode must be `\"stopped\"`. Argument \
-         is active sync mode after starting. Should be one of: `\"auto\"`, \
-         `\"CPU\"`, `\"unsynced\"` or `\"passive\"`. Defaults to `\"auto\"`.",
+        Lang.fun_t [] Lang.unit_t,
+        "Start the clock.",
         fun c ->
           Lang.val_fun
             [("", "", Some (Lang.string "auto"))]
             (fun p ->
-              let sync_mode = List.assoc "" p in
-              let sync_mode =
-                try Clock.active_sync_mode_of_string (Lang.to_string sync_mode)
-                with _ ->
-                  raise
-                    (Error.Invalid_value
-                       ( sync_mode,
-                         "Invalid sync mode! Should be one of: `\"auto\"`, \
-                          `\"CPU\"`, `\"unsynced\"` or `\"passive\"`" ))
-              in
               let pos = Lang.pos p in
               try
-                Clock.start ~sync:sync_mode c;
+                Clock.start c;
                 Lang.unit
               with Clock.Invalid_state ->
                 Runtime_error.raise

@@ -193,9 +193,9 @@ let _ =
       let fo = Pipe_output.new_file_output p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      let clock = Clock.create ~id:"source_dumper" () in
+      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
       Clock.attach clock (fo :> Clock.source);
-      Clock.start ~sync:`Passive clock;
+      Clock.start clock;
       log#info "Start dumping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && not !stopped do
         let start_time = Time.time () in
@@ -235,9 +235,9 @@ let _ =
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      let clock = Clock.create ~id:"source_dumper" () in
+      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
       Clock.attach clock (o :> Clock.source);
-      Clock.start ~sync:`Passive clock;
+      Clock.start clock;
       log#info "Start dropping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && not !stopped do
         let start_time = Time.time () in

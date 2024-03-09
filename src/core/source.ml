@@ -26,7 +26,7 @@ module Pcre = Re.Pcre
 exception Unavailable
 
 type streaming_state =
-  [ `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
 type active = < reset : unit >
 type output = < reset : unit ; output : unit >
@@ -261,7 +261,7 @@ class virtual operator ?pos ?(name = "src") sources =
 
     method virtual private can_generate_frame : bool
     method virtual private generate_frame : Frame.t
-    val mutable streaming_state : streaming_state = `Unavailable
+    val mutable streaming_state : streaming_state = `Pending
 
     method is_ready =
       match streaming_state with `Ready _ | `Done _ -> true | _ -> false
@@ -271,43 +271,47 @@ class virtual operator ?pos ?(name = "src") sources =
 
     (* This is the implementation of the main streaming logic. *)
     method before_streaming_cycle =
-      consumed <- 0;
-      let cache = Option.value ~default:self#empty_frame _cache in
-      let cache_pos = Frame.position cache in
-      let size = Lazy.force Frame.size in
-      let can_generate_frame = self#can_generate_frame in
-      if cache_pos > 0 || can_generate_frame then
-        streaming_state <-
-          `Ready
-            (fun () ->
-              let buf =
-                if can_generate_frame && cache_pos < size then
-                  Frame.append cache self#instrumented_generate_frame
-                else cache
-              in
-              let buf_pos = Frame.position buf in
-              let buf =
-                if size < buf_pos then (
-                  _cache <- Some (Frame.after buf size);
-                  Frame.slice buf size)
-                else (
-                  _cache <- None;
-                  buf)
-              in
-              streaming_state <- `Done buf)
-      else streaming_state <- `Unavailable
+      match streaming_state with
+        | `Pending ->
+            consumed <- 0;
+            let cache = Option.value ~default:self#empty_frame _cache in
+            let cache_pos = Frame.position cache in
+            let size = Lazy.force Frame.size in
+            List.iter (fun s -> s#before_streaming_cycle) sources;
+            let can_generate_frame = self#can_generate_frame in
+            if cache_pos > 0 || can_generate_frame then
+              streaming_state <-
+                `Ready
+                  (fun () ->
+                    let buf =
+                      if can_generate_frame && cache_pos < size then
+                        Frame.append cache self#instrumented_generate_frame
+                      else cache
+                    in
+                    let buf_pos = Frame.position buf in
+                    let buf =
+                      if size < buf_pos then (
+                        _cache <- Some (Frame.after buf size);
+                        Frame.slice buf size)
+                      else (
+                        _cache <- None;
+                        buf)
+                    in
+                    streaming_state <- `Done buf)
+            else streaming_state <- `Unavailable
+        | _ -> ()
 
     method after_streaming_cycle =
-      self#on_after_output (fun () ->
-          match (streaming_state, consumed) with
-            | `Done buf, n when n < Frame.position buf ->
-                let cache = Option.value ~default:self#empty_frame _cache in
-                _cache <- Some (Frame.append (Frame.after buf n) cache)
-            | _ -> ())
+      (match (streaming_state, consumed) with
+        | `Done buf, n when n < Frame.position buf ->
+            let cache = Option.value ~default:self#empty_frame _cache in
+            _cache <- Some (Frame.append (Frame.after buf n) cache)
+        | _ -> ());
+      streaming_state <- `Pending
 
     method peek_frame =
       match streaming_state with
-        | `Unavailable ->
+        | `Pending | `Unavailable ->
             log#critical "source called while not ready!";
             raise Unavailable
         | `Ready fn ->

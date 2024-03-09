@@ -47,7 +47,7 @@ type source_type = [ `Passive | `Active of active | `Output of output ]
 exception Unavailable
 
 type streaming_state =
-  [ `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
 (** Instrumentation. *)
 

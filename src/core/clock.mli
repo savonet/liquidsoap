@@ -61,13 +61,21 @@ type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
 
 val string_of_sync_mode : sync_mode -> string
 val active_sync_mode_of_string : string -> active_sync_mode
-val create : ?pos:Liquidsoap_lang.Pos.t -> ?id:string -> unit -> t
+
+val create :
+  ?pos:Liquidsoap_lang.Pos.t ->
+  ?id:string ->
+  ?sync:active_sync_mode ->
+  unit ->
+  t
+
 val clocks : unit -> t list
 val id : t -> string
+val descr : t -> string
 val sync : t -> sync_mode
-val start : sync:active_sync_mode -> t -> unit
-val stop : t -> unit
+val start : t -> unit
 val start_pending_after_eval : unit -> unit
+val stop : t -> unit
 val set_pos : t -> Liquidsoap_lang.Pos.Option.t -> unit
 val self_sync : t -> bool
 val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
