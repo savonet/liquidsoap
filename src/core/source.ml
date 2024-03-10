@@ -600,12 +600,13 @@ class virtual operator ?pos ?(name = "src") sources =
           let cache = Option.value ~default:self#empty_frame _cache in
           let cache_pos = Frame.position cache in
           let size = Lazy.force Frame.size in
-          if cache_pos > 0 || self#can_generate_frame then
+          let can_generate_frame = self#can_generate_frame in
+          if cache_pos > 0 || can_generate_frame then
             streaming_state <-
               `Ready
                 (fun () ->
                   let buf =
-                    if cache_pos < size then
+                    if can_generate_frame && cache_pos < size then
                       Frame.append cache self#instrumented_generate_frame
                     else cache
                   in
