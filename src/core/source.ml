@@ -591,17 +591,13 @@ class virtual operator ?pos ?(name = "src") sources =
         match streaming_state with `Ready _ | `Done _ -> true | _ -> false)
 
     val mutable _cache = None
-
-    method private cache =
-      match _cache with None -> self#empty_frame | Some c -> c
-
     val mutable consumed = 0
 
     (* This is the implementation of the main streaming logic. *)
     initializer
       self#on_before_output (fun () ->
           consumed <- 0;
-          let cache = self#cache in
+          let cache = Option.value ~default:self#empty_frame _cache in
           let cache_pos = Frame.position cache in
           let size = Lazy.force Frame.size in
           if cache_pos > 0 || self#can_generate_frame then
@@ -616,21 +612,20 @@ class virtual operator ?pos ?(name = "src") sources =
                   let buf_pos = Frame.position buf in
                   let buf =
                     if size < buf_pos then (
-                      _cache <- Some (Frame.tail buf size);
+                      _cache <- Some (Frame.after buf size);
                       Frame.slice buf size)
-                    else buf
+                    else (
+                      _cache <- None;
+                      buf)
                   in
                   streaming_state <- `Done buf)
           else streaming_state <- `Unavailable);
 
       self#on_after_output (fun () ->
           match (streaming_state, consumed) with
-            | `Done buf, 0 -> _cache <- Some buf
-            | `Done buf, n ->
-                let pos = Frame.position buf in
-                assert (n <= pos);
-                if pos = n then _cache <- None
-                else _cache <- Some (Frame.tail buf n)
+            | `Done buf, n when n < Frame.position buf ->
+                let cache = Option.value ~default:self#empty_frame _cache in
+                _cache <- Some (Frame.append (Frame.after buf n) cache)
             | _ -> ())
 
     method peek_frame =
@@ -671,7 +666,7 @@ class virtual operator ?pos ?(name = "src") sources =
     method private split_frame frame =
       match Frame.track_marks frame with
         | 0 :: _ -> (self#empty_frame, Some frame)
-        | p :: _ -> (Frame.slice frame p, Some (Frame.tail frame p))
+        | p :: _ -> (Frame.slice frame p, Some (Frame.after frame p))
         | [] -> (frame, None)
 
     method frame_has_track_mark = Frame.has_track_marks self#get_frame
@@ -977,7 +972,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                   last_source#get_partial_frame (fun frame ->
                       Frame.slice frame (last_chunk_pos + rem))
                 in
-                let new_track = Frame.tail remainder last_chunk_pos in
+                let new_track = Frame.after remainder last_chunk_pos in
                 f ~last_source ~last_chunk:remainder
                   (Frame.append buf new_track)
             | Some s ->
@@ -987,9 +982,7 @@ class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
                       match self#split_frame frame with
                         | buf, _ when Frame.position buf = 0 ->
                             Frame.slice frame rem
-                        | buf, _ ->
-                            Frame.slice frame
-                              (min (Frame.position buf) size - pos))
+                        | buf, _ -> Frame.slice buf rem)
                 in
                 f ~last_source:s ~last_chunk:new_track
                   (Frame.append buf (self#begin_track new_track))

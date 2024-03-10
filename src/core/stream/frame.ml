@@ -61,7 +61,7 @@ let create ~length content_type =
 
 let content_type = Fields.map Content.format
 
-let tail frame offset =
+let after frame offset =
   let len = position frame - offset in
   Fields.map (fun c -> Content.sub c offset len) frame
 
