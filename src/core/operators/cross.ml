@@ -289,6 +289,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
           else None
         in
         let before = new consumer gen_before in
+        before#set_id (self#id ^ "_before_buffer");
         Typing.(before#frame_type <: self#frame_type);
         let before = new Insert_metadata.replay before_metadata before in
         Typing.(before#frame_type <: self#frame_type);
@@ -308,6 +309,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
           else None
         in
         let after = new consumer gen_after in
+        after#set_id (self#id ^ "_after_buffer");
         Typing.(after#frame_type <: self#frame_type);
         let after = new Insert_metadata.replay after_metadata after in
         Typing.(after#frame_type <: self#frame_type);
