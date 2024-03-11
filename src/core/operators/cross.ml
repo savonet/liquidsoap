@@ -196,6 +196,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       before
 
     method private get_source ~reselect () =
+      let reselect = match reselect with `Force -> `Ok | _ -> reselect in
       match status with
         | `Idle when source#is_ready -> Some self#prepare_before
         | `Idle -> None
@@ -203,12 +204,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             self#buffer_before ~is_first:false ();
             match status with
               | `Idle -> assert false
-              | `Before before_source -> Some before_source
+              | `Before before_source
+                when self#can_reselect ~reselect before_source ->
+                  Some before_source
+              | `Before _ -> None
               | `After after_source -> Some after_source)
-        | `After after_source
-          when self#can_reselect
-                 ~reselect:(match reselect with `Force -> `Ok | _ -> reselect)
-                 after_source ->
+        | `After after_source when self#can_reselect ~reselect after_source ->
             Some after_source
         | `After _ -> Some self#prepare_before
 
