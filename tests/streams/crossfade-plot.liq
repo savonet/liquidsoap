@@ -1,4 +1,4 @@
-log.level := 4
+log.level := 5
 
 a = sine(duration=20., 440.)
 a =

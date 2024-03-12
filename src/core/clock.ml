@@ -189,11 +189,6 @@ let () =
 let _active_sources { outputs; active_sources } =
   Queue.elements outputs @ WeakQueue.elements active_sources
 
-let active_params c =
-  match Atomic.get (Unifier.deref c).state with
-    | `Started s -> s
-    | _ -> raise Invalid_state
-
 let _self_sync ~clock x =
   let self_sync_sources =
     List.(
@@ -242,7 +237,15 @@ let _after_tick ~clock x =
           x.log#severe "We must catchup %.2f seconds!"
             Time.(to_float (end_time |-| target_time)))
 
-let rec _apply ~clock ~sub_clocks ~all_sources fn x =
+let rec active_params c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Stopped `Passive ->
+        start c;
+        active_params c
+    | `Started s -> s
+    | _ -> raise Invalid_state
+
+and _apply ~clock ~sub_clocks ~all_sources fn x =
   if sub_clocks then
     Queue.iter clock.sub_clocks (fun c ->
         let clock = Unifier.deref c in
@@ -254,7 +257,7 @@ let rec _apply ~clock ~sub_clocks ~all_sources fn x =
   in
   List.iter (fun s -> fn s) sources
 
-let rec _tick ~clock x =
+and _tick ~clock x =
   WeakQueue.flush clock.pending_activations (fun s ->
       s#wake_up;
       match s#source_type with
@@ -352,6 +355,8 @@ and start c =
 and start_clocks () =
   WeakQueue.iter clocks (fun c ->
       match Atomic.get (Unifier.deref c).state with
+        (* We can delay passive clocks start to whenever they are needed. *)
+        | `Stopped pending when pending = `Passive -> ()
         | `Stopped _ -> start c
         | `Stopping | `Started _ -> ())
 
@@ -381,8 +386,9 @@ let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
 
 let id c = (Unifier.deref c).id
 
-let _sync x =
+let _sync ?(pending = false) x =
   match Atomic.get x.state with
+    | `Stopped p when pending -> (p :> sync_mode)
     | `Stopped _ -> `Stopped
     | `Stopping -> `Stopping
     | `Started { sync } -> (sync :> sync_mode)
@@ -414,10 +420,11 @@ let unify =
     let _c' = Unifier.deref c' in
     match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
       | true, _, _ -> ()
-      | _, `Stopped s, _ when s = `Automatic || (s :> sync_mode) = _sync _c' ->
+      | _, `Stopped s, _
+        when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
           unify c c'
-      | _, _, `Stopped s' when s' = `Automatic || _sync _c = (s' :> sync_mode)
-        ->
+      | _, _, `Stopped s'
+        when s' = `Automatic || _sync ~pending:true _c = (s' :> sync_mode) ->
           unify c' c
       | _ ->
           raise (Liquidsoap_lang.Error.Clock_conflict (pos, descr c, descr c'))

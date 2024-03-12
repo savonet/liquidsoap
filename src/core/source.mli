@@ -76,6 +76,7 @@ type watcher = {
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
   ?pos:Pos.t
+  -> ?clock:Clock.t
   -> ?name:string
   -> unit
   -> object
@@ -319,6 +320,7 @@ class virtual source :
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source :
   ?pos:Pos.t
+  -> ?clock:Clock.t
   -> ?name:string
   -> unit
   -> object
@@ -331,6 +333,7 @@ and virtual active_source :
 (* This is for defining a source which has children *)
 class virtual operator :
   ?pos:Pos.t
+  -> ?clock:Clock.t
   -> ?name:string
   -> source list
   -> object
@@ -341,6 +344,7 @@ class virtual operator :
  * and outputting it. *)
 class virtual active_operator :
   ?pos:Pos.t
+  -> ?clock:Clock.t
   -> ?name:string
   -> source list
   -> object

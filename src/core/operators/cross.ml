@@ -23,13 +23,9 @@
 open Mm
 open Source
 
-class consumer buffer =
+class consumer ~clock buffer =
   object (self)
-    inherit Source.source ~name:"buffer" ()
-
-    initializer
-      Clock.unify ~pos:None self#clock (Clock.create ~sync:`Passive ())
-
+    inherit Source.source ~clock ~name:"cross.buffer" ()
     method fallible = true
     method private can_generate_frame = 0 < Generator.length buffer
 
@@ -126,7 +122,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     method private prepare_source s =
       let s = (s :> source) in
       s#wake_up;
-      Clock.unify ~pos:self#pos source#clock s#clock;
       self#set_cross_length
 
     initializer
@@ -172,7 +167,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private prepare_before =
       self#log#info "Buffering end of track...";
-      let before = new consumer gen_before in
+      let before = new consumer ~clock:source#clock gen_before in
       Typing.(before#frame_type <: self#frame_type);
       self#prepare_source before;
       status <- `Before (before :> Source.source);
@@ -267,13 +262,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             let head_gen =
               Generator.create ~content:head (Generator.content_type gen_before)
             in
-            let s = new consumer head_gen in
+            let s = new consumer ~clock:source#clock head_gen in
             s#set_id (self#id ^ "_before_head");
             Typing.(s#frame_type <: self#frame_type);
             Some s)
           else None
         in
-        let before = new consumer gen_before in
+        let before = new consumer ~clock:source#clock gen_before in
         Typing.(before#frame_type <: self#frame_type);
         let before = new Insert_metadata.replay before_metadata before in
         Typing.(before#frame_type <: self#frame_type);
@@ -286,13 +281,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             in
             let tail_gen = gen_after in
             gen_after <- head_gen;
-            let s = new consumer tail_gen in
+            let s = new consumer ~clock:source#clock tail_gen in
             Typing.(s#frame_type <: self#frame_type);
             s#set_id (self#id ^ "_after_tail");
             Some s)
           else None
         in
-        let after = new consumer gen_after in
+        let after = new consumer ~clock:source#clock gen_after in
         Typing.(after#frame_type <: self#frame_type);
         let after = new Insert_metadata.replay after_metadata after in
         Typing.(after#frame_type <: self#frame_type);
@@ -347,7 +342,6 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                   :> Source.source)
             | Some _, Some _ -> assert false
         in
-        Clock.unify ~pos:self#pos compound#clock s#clock;
         Typing.(compound#frame_type <: self#frame_type);
         compound
       in
