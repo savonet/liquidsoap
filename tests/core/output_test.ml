@@ -1,8 +1,8 @@
-class dummy ~autostart ~on_start source =
+class dummy ~clock ~autostart ~on_start source =
   object (self)
     inherit
       Output.dummy
-        ~autostart ~infallible:false ~register_telnet:false ~on_start
+        ~clock ~autostart ~infallible:false ~register_telnet:false ~on_start
         ~on_stop:(fun () -> ())
         (Lang.source (source :> Source.source))
 
@@ -23,8 +23,9 @@ let () =
   let started = ref false in
   let on_start () = started := true in
   let failed = new failed in
-  let o = new dummy ~on_start ~autostart:true failed in
-  Clock.start ~sync:`Passive o#clock;
+  let clock = Clock.create ~sync:`Passive () in
+  Clock.start ~force:true clock;
+  let o = new dummy ~clock ~on_start ~autostart:true failed in
   o#content_type_computation_allowed;
   assert (not o#can_generate_frame);
   o#test_wake_up;

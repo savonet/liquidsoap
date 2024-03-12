@@ -47,8 +47,9 @@ let meth = Start_stop.meth ()
     of pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including
     start/stop. *)
-class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
-  ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
+class virtual output ~output_kind ?clock ?(name = "") ~infallible
+  ~register_telnet ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
+  val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
     initializer
@@ -58,7 +59,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
         raise (Error.Invalid_value (val_source, "That source is fallible."))
 
     initializer Typing.(source#frame_type <: self#frame_type)
-    inherit active_operator ~name:output_kind [source]
+    inherit active_operator ?clock ~name:output_kind [source]
     inherit Start_stop.base ~on_start ~on_stop as start_stop
     method virtual private start : unit
     method virtual private stop : unit
@@ -184,12 +185,13 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
           self#abort_track))
   end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart ~register_telnet source =
+class dummy ?clock ~infallible ~on_start ~on_stop ~autostart ~register_telnet
+  source =
   object
     inherit
       output
-        source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
-          ~on_start ~on_stop ~register_telnet
+        source autostart ?clock ~name:"dummy" ~output_kind:"output.dummy"
+          ~infallible ~on_start ~on_stop ~register_telnet
 
     method! private reset = ()
     method private start = ()
@@ -218,13 +220,13 @@ let _ =
 
 (** More concrete abstract-class, which takes care of the #send_frame method for
     outputs based on encoders. *)
-class virtual ['a] encoded ~output_kind ~name ~infallible ~on_start ~on_stop
-  ~register_telnet ~autostart ~export_cover_metadata source =
+class virtual ['a] encoded ~output_kind ?clock ~name ~infallible ~on_start
+  ~on_stop ~register_telnet ~autostart ~export_cover_metadata source =
   object (self)
     inherit
       output
-        ~infallible ~on_start ~on_stop ~output_kind ~name ~register_telnet
-          source autostart
+        ~infallible ~on_start ~on_stop ~output_kind ?clock ~name
+          ~register_telnet source autostart
 
     method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
     method virtual private encode : Frame.t -> int -> int -> 'a

@@ -206,7 +206,7 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
                 ~clock_id:(Clock.id self#clock)))
 
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
-    method is_up = Atomic.get is_up = `False
+    method is_up = Atomic.get is_up = `True
 
     method wake_up =
       if Atomic.compare_and_set is_up `False `True then (
@@ -264,20 +264,20 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
     val mutable streaming_state : streaming_state = `Pending
 
     method is_ready =
+      if self#is_up then self#before_streaming_cycle;
       match streaming_state with `Ready _ | `Done _ -> true | _ -> false
 
     val mutable _cache = None
     val mutable consumed = 0
 
     (* This is the implementation of the main streaming logic. *)
-    method before_streaming_cycle =
+    method private before_streaming_cycle =
       match streaming_state with
         | `Pending ->
             consumed <- 0;
             let cache = Option.value ~default:self#empty_frame _cache in
             let cache_pos = Frame.position cache in
             let size = Lazy.force Frame.size in
-            List.iter (fun s -> s#before_streaming_cycle) sources;
             let can_generate_frame = self#can_generate_frame in
             if cache_pos > 0 || can_generate_frame then
               streaming_state <-
@@ -298,10 +298,11 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
                         buf)
                     in
                     streaming_state <- `Done buf)
-            else streaming_state <- `Unavailable
+            else streaming_state <- `Unavailable;
+            Clock.after_tick self#clock (fun () -> self#after_streaming_cycle)
         | _ -> ()
 
-    method after_streaming_cycle =
+    method private after_streaming_cycle =
       (match (streaming_state, consumed) with
         | `Done buf, n when n < Frame.position buf ->
             let cache = Option.value ~default:self#empty_frame _cache in

@@ -51,10 +51,8 @@ type source =
   ; active : bool
   ; wake_up : unit
   ; sleep : unit
-  ; before_streaming_cycle : unit
   ; is_ready : bool
-  ; get_frame : Frame.t
-  ; after_streaming_cycle : unit >
+  ; get_frame : Frame.t >
 
 type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
 type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
@@ -73,7 +71,7 @@ val clocks : unit -> t list
 val id : t -> string
 val descr : t -> string
 val sync : t -> sync_mode
-val start : t -> unit
+val start : ?force:bool -> t -> unit
 val start_pending_after_eval : unit -> unit
 val stop : t -> unit
 val set_pos : t -> Liquidsoap_lang.Pos.Option.t -> unit
@@ -85,4 +83,5 @@ val detach : t -> source -> unit
 val ticks : t -> int
 val on_tick : t -> (unit -> unit) -> unit
 val tick : t -> unit
+val after_tick : t -> (unit -> unit) -> unit
 val time_implementation : unit -> Liq_time.implementation

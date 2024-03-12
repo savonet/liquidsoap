@@ -29,6 +29,7 @@ val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
   output_kind:string
+  -> ?clock:Clock.t
   -> ?name:string
   -> infallible:bool
   -> register_telnet:bool
@@ -60,6 +61,7 @@ val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
 
 class virtual ['a] encoded :
   output_kind:string
+  -> ?clock:Clock.t
   -> name:string
   -> infallible:bool
   -> on_start:(unit -> unit)
@@ -80,7 +82,8 @@ class virtual ['a] encoded :
      end
 
 class dummy :
-  infallible:bool
+  ?clock:Clock.t
+  -> infallible:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool

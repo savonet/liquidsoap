@@ -230,8 +230,6 @@ class virtual source :
            the source can produce data during the current streaming cycle. *)
        method virtual private can_generate_frame : bool
 
-       method before_streaming_cycle : unit
-       method after_streaming_cycle : unit
        method on_before_generate_frame : (unit -> unit) -> unit
        method on_after_generate_frame : (unit -> unit) -> unit
 
