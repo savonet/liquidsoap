@@ -269,10 +269,9 @@ and _tick ~clock x =
   let sources = _active_sources x in
   List.iter
     (fun s ->
-      if s#is_ready then (
-        match s#source_type with
-          | `Output o -> o#output
-          | _ -> ignore s#get_frame))
+      match s#source_type with
+        | `Output o -> o#output
+        | _ -> if s#is_ready then ignore s#get_frame)
     sources;
   Queue.flush x.on_tick (fun fn -> fn ());
   List.iter
