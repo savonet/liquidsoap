@@ -28,9 +28,8 @@ exception Unavailable
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
-type active = < reset : unit >
-type output = < reset : unit ; output : unit >
-type source_type = [ `Passive | `Active of active | `Output of output ]
+type active = < reset : unit ; output : unit >
+type source_type = [ `Passive | `Active of active | `Output of active ]
 type sync = [ `Auto | `CPU | `None ]
 
 module SourceSync = Clock.MkSyncSource (struct

@@ -23,11 +23,10 @@
 exception Invalid_state
 
 type t
-type active_source = < reset : unit >
-type output_source = < reset : unit ; output : unit >
+type active_source = < reset : unit ; output : unit >
 
 type source_type =
-  [ `Passive | `Active of active_source | `Output of output_source ]
+  [ `Passive | `Active of active_source | `Output of active_source ]
 
 type sync_source
 type self_sync = [ `Static | `Dynamic ] * sync_source option

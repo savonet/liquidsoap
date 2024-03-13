@@ -22,11 +22,10 @@
 
 exception Invalid_state
 
-type active_source = < reset : unit >
-type output_source = < reset : unit ; output : unit >
+type active_source = < reset : unit ; output : unit >
 
 type source_type =
-  [ `Passive | `Active of active_source | `Output of output_source ]
+  [ `Passive | `Active of active_source | `Output of active_source ]
 
 type sync_source = ..
 type self_sync = [ `Static | `Dynamic ] * sync_source option
@@ -270,8 +269,8 @@ and _tick ~clock x =
   List.iter
     (fun s ->
       match s#source_type with
-        | `Output o -> o#output
-        | _ -> if s#is_ready then ignore s#get_frame)
+        | `Output s | `Active s -> s#output
+        | _ -> assert false)
     sources;
   Queue.flush x.on_tick (fun fn -> fn ());
   List.iter

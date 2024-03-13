@@ -66,7 +66,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     method virtual private send_frame : Frame.t -> unit
     method self_sync = source#self_sync
     method fallible = not infallible
-    method! source_type : source_type = `Output (self :> Source.output)
+    method! source_type : source_type = `Output (self :> Source.active)
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)

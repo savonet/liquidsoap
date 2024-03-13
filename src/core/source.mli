@@ -37,12 +37,11 @@ type sync = [ `Auto | `CPU | `None ]
 (** A source can be: passive, active or output. Active sources and outputs are
     animated on each clock cycle. Output are kept around until they are manually
     shutdown. Active and passive sources can be garbage collected if they are not connected to
-    any output. The argument passed with [`Active] and [`Output] sources is a reset
-    function, used when there is too much latency. *)
-type active = < reset : unit >
+    any output. The [output] method is called on each clock cycle on active sources and outputs.
+    The [reset] method is called when there is too much latency. *)
+type active = < reset : unit ; output : unit >
 
-type output = < reset : unit ; output : unit >
-type source_type = [ `Passive | `Active of active | `Output of output ]
+type source_type = [ `Passive | `Active of active | `Output of active ]
 
 exception Unavailable
 
@@ -326,6 +325,8 @@ and virtual active_source :
 
        (** Do whatever needed when the latency gets too big and is reset. *)
        method virtual reset : unit
+
+       method virtual output : unit
      end
 
 (* This is for defining a source which has children *)
