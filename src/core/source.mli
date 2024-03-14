@@ -68,8 +68,8 @@ type watcher = {
     has_track_mark:bool ->
     metadata:metadata ->
     unit;
-  before_generate_frame : unit -> unit;
-  after_generate_frame : unit -> unit;
+  before_streaming_cycle : unit -> unit;
+  after_streaming_cycle : unit -> unit;
 }
 
 (** The [source] use is to send data frames through the [get] method. *)
@@ -229,8 +229,8 @@ class virtual source :
            the source can produce data during the current streaming cycle. *)
        method virtual private can_generate_frame : bool
 
-       method on_before_generate_frame : (unit -> unit) -> unit
-       method on_after_generate_frame : (unit -> unit) -> unit
+       method on_before_streaming_cycle : (unit -> unit) -> unit
+       method on_after_streaming_cycle : (unit -> unit) -> unit
 
        (** Sources must implement this method. It should return the data
            produced during the current streaming cycle. Sources are responsible

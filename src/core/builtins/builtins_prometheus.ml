@@ -176,7 +176,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     let latency = (end_time -. start_time) /. encoded_time in
     add_input_latency latency
   in
-  let after_generate_frame () =
+  let after_streaming_cycle () =
     let current_time = Unix.gettimeofday () in
     add_output_latency ((current_time -. !last_end_time) /. frame_duration);
     add_overall_latency ((current_time -. !last_start_time) /. frame_duration)
@@ -186,8 +186,8 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
       Source.wake_up;
       sleep;
       generate_frame;
-      before_generate_frame = (fun _ -> ());
-      after_generate_frame;
+      before_streaming_cycle = (fun _ -> ());
+      after_streaming_cycle;
     }
   in
   s#add_watcher watcher

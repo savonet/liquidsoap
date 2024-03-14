@@ -60,8 +60,8 @@ type watcher = {
     has_track_mark:bool ->
     metadata:metadata ->
     unit;
-  before_generate_frame : unit -> unit;
-  after_generate_frame : unit -> unit;
+  before_streaming_cycle : unit -> unit;
+  after_streaming_cycle : unit -> unit;
 }
 
 let source_log = Log.make ["source"]
@@ -268,11 +268,29 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
 
     val mutable _cache = None
     val mutable consumed = 0
+    val mutable on_before_streaming_cycle = []
+
+    method on_before_streaming_cycle fn =
+      on_before_streaming_cycle <- fn :: on_before_streaming_cycle
+
+    initializer
+      self#on_before_streaming_cycle (fun () ->
+          self#iter_watchers (fun w -> w.before_streaming_cycle ()))
+
+    val mutable on_after_streaming_cycle = []
+
+    method on_after_streaming_cycle fn =
+      on_after_streaming_cycle <- fn :: on_after_streaming_cycle
+
+    initializer
+      self#on_after_streaming_cycle (fun () ->
+          self#iter_watchers (fun w -> w.after_streaming_cycle ()))
 
     (* This is the implementation of the main streaming logic. *)
     method private before_streaming_cycle =
       match streaming_state with
         | `Pending ->
+            List.iter (fun fn -> fn ()) on_before_streaming_cycle;
             consumed <- 0;
             let cache = Option.value ~default:self#empty_frame _cache in
             let cache_pos = Frame.position cache in
@@ -307,6 +325,7 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
             let cache = Option.value ~default:self#empty_frame _cache in
             _cache <- Some (Frame.append (Frame.after buf n) cache)
         | _ -> ());
+      List.iter (fun fn -> fn ()) on_after_streaming_cycle;
       streaming_state <- `Pending
 
     method peek_frame =
@@ -394,7 +413,7 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
     val mutable on_track_called = false
 
     initializer
-      self#on_before_generate_frame (fun () -> on_track_called <- false)
+      self#on_before_streaming_cycle (fun () -> on_track_called <- false)
 
     val mutable on_track : (Frame.metadata -> unit) List.t = []
     method on_track fn = on_track <- fn :: on_track
@@ -510,31 +529,6 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
           w.generate_frame ~start_time ~end_time ~length ~has_track_mark
             ~metadata);
       buf
-
-    (* Set to [true] when we're inside an output cycle. *)
-    val mutable on_before_generate_frame = []
-
-    method on_before_generate_frame fn =
-      on_before_generate_frame <- fn :: on_before_generate_frame
-
-    initializer
-      self#on_before_generate_frame (fun () ->
-          self#iter_watchers (fun w -> w.before_generate_frame ()))
-
-    method private before_generate_frame =
-      List.iter (fun fn -> fn ()) on_before_generate_frame
-
-    val mutable on_after_generate_frame = []
-
-    method on_after_generate_frame fn =
-      on_after_generate_frame <- fn :: on_after_generate_frame
-
-    initializer
-      self#on_after_generate_frame (fun () ->
-          self#iter_watchers (fun w -> w.after_generate_frame ()))
-
-    method private after_generate_frame =
-      List.iter (fun fn -> fn ()) on_after_generate_frame
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
