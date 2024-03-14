@@ -197,6 +197,39 @@ let autostart = Atomic.make true
 let should_autostart = Atomic.make false
 let global_stop = Atomic.make false
 
+let descr clock =
+  let clock = Unifier.deref clock in
+  Printf.sprintf "clock(id=%s,sync=%s%s)" clock.id
+    (string_of_sync_mode (_sync clock))
+    (match Atomic.get clock.state with
+      | `Stopped pending ->
+          Printf.sprintf ",pending=%s"
+            (string_of_sync_mode (pending :> sync_mode))
+      | _ -> "")
+
+let unify =
+  let unify c c' =
+    let clock = Unifier.deref c in
+    let clock' = Unifier.deref c' in
+    WeakQueue.iter clock.pending_activations
+      (WeakQueue.push clock'.pending_activations);
+    Queue.iter clock.sub_clocks (Queue.push clock'.sub_clocks);
+    Unifier.(c <-- c')
+  in
+  fun ~pos c c' ->
+    let _c = Unifier.deref c in
+    let _c' = Unifier.deref c' in
+    match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
+      | true, _, _ -> ()
+      | _, `Stopped s, _
+        when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
+          unify c c'
+      | _, _, `Stopped s'
+        when s' = `Automatic || _sync ~pending:true _c = (s' :> sync_mode) ->
+          unify c' c
+      | _ ->
+          raise (Liquidsoap_lang.Error.Clock_conflict (pos, descr c, descr c'))
+
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
       Atomic.set global_stop true;
@@ -312,10 +345,23 @@ and _clock_thread ~clock x =
          run ())
        () ("Clock " ^ clock.id))
 
-and start ?(force = false) c =
+and start ?main ?(force = false) c =
   let clock = Unifier.deref c in
-  match (force || Atomic.get started, Atomic.get clock.state) with
-    | true, `Stopped sync ->
+  let sync_sources =
+    List.(
+      sort_uniq Stdlib.compare
+        (map
+           (fun s -> s#self_sync)
+           (WeakQueue.elements clock.pending_activations)))
+  in
+  match
+    (force || Atomic.get started, Atomic.get clock.state, main, sync_sources)
+  with
+    | _, _, _, [] -> ()
+    | _, `Stopped `Automatic, Some main, [(`Static, None)] ->
+        unify ~pos:(Atomic.get clock.pos) c main;
+        start main
+    | true, `Stopped sync, _, _ ->
         clock.id <- Lang_string.generate_id clock.id;
         log#important "Starting clock %s with %d source(s) and sync: %s"
           clock.id
@@ -350,11 +396,35 @@ and start ?(force = false) c =
         if sync <> `Passive then _clock_thread ~clock x
     | _ -> raise Invalid_state
 
-and start_clocks () =
+and start_clocks ?main () =
   WeakQueue.iter clocks (fun c ->
       match Atomic.get (Unifier.deref c).state with
-        | `Stopped _ -> start c
+        | `Stopped _ -> start ?main c
         | `Stopping _ | `Started _ -> ())
+
+let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
+  let c =
+    Unifier.make
+      {
+        id;
+        pos = Atomic.make pos;
+        pending_activations = WeakQueue.create ();
+        sub_clocks = Queue.create ();
+        state = Atomic.make (`Stopped sync);
+      }
+  in
+  WeakQueue.push clocks c;
+  c
+
+let main = create ~id:"main" ~sync:`Automatic ()
+
+let create ?pos ?id ?sync () =
+  let c = create ?pos ?id ?sync () in
+  Evaluation.on_after_eval (fun () -> start c);
+  c
+
+let start = start ~main
+let start_clocks = start_clocks ~main
 
 let () =
   Lifecycle.after_start ~name:"Clocks start" (fun () ->
@@ -370,56 +440,7 @@ let set_autostart b =
     start_clocks ())
 
 let autostart () = Atomic.get autostart
-
-let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
-  let c =
-    Unifier.make
-      {
-        id;
-        pos = Atomic.make pos;
-        pending_activations = WeakQueue.create ();
-        sub_clocks = Queue.create ();
-        state = Atomic.make (`Stopped sync);
-      }
-  in
-  Evaluation.on_after_eval (fun () -> start c);
-  WeakQueue.push clocks c;
-  c
-
 let id c = (Unifier.deref c).id
-
-let descr clock =
-  let clock = Unifier.deref clock in
-  Printf.sprintf "clock(id=%s,sync=%s%s)" clock.id
-    (string_of_sync_mode (_sync clock))
-    (match Atomic.get clock.state with
-      | `Stopped pending ->
-          Printf.sprintf ",pending=%s"
-            (string_of_sync_mode (pending :> sync_mode))
-      | _ -> "")
-
-let unify =
-  let unify c c' =
-    let clock = Unifier.deref c in
-    let clock' = Unifier.deref c' in
-    WeakQueue.iter clock.pending_activations
-      (WeakQueue.push clock'.pending_activations);
-    Queue.iter clock.sub_clocks (Queue.push clock'.sub_clocks);
-    Unifier.(c <-- c')
-  in
-  fun ~pos c c' ->
-    let _c = Unifier.deref c in
-    let _c' = Unifier.deref c' in
-    match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
-      | true, _, _ -> ()
-      | _, `Stopped s, _
-        when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
-          unify c c'
-      | _, _, `Stopped s'
-        when s' = `Automatic || _sync ~pending:true _c = (s' :> sync_mode) ->
-          unify c' c
-      | _ ->
-          raise (Liquidsoap_lang.Error.Clock_conflict (pos, descr c, descr c'))
 
 let attach c s =
   let clock = Unifier.deref c in
