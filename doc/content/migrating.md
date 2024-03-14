@@ -60,6 +60,11 @@ end
 unwanted requests before consuming process time. If you need to see the request's metadata or if the request resolves
 into a valid tile, however, you might need to call `request.resolve` inside your `check_next` script.
 
+### Prometheus
+
+The default port for the Prometheus metrics exporter has changed from `9090` to `9599`.
+As before, you can change it with `settings.prometheus.server.port := <your port value>`.
+
 ## From 2.1.x to 2.2.x
 
 ### References
