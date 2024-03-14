@@ -1,7 +1,5 @@
 #!../../liquidsoap ../test.liq
 
-clock.autostart := false
-
 def f() =
   test.equals(1::2::[3, 4], [1, 2, 3, 4])
   test.equals(list.hd(default=0, []), 0)

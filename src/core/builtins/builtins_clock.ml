@@ -27,21 +27,6 @@ let clock =
     Lang_source.ClockValue.t
     (fun p -> Lang_source.ClockValue.(to_value (of_value (List.assoc "" p))))
 
-let autostart =
-  Lang.add_builtin ~base:clock "autostart" ~category:`Liquidsoap
-    ~descr:
-      "`true` if clocks start automatically when new output and sources are \
-       created." [] Lang.bool_t (fun _ -> Lang.bool (Clock.autostart ()))
-
-let _ =
-  Lang.add_builtin ~base:autostart "set" ~category:`Liquidsoap
-    ~descr:"Set clock autostart."
-    [("", Lang.bool_t, None, None)]
-    Lang.unit_t
-    (fun p ->
-      Clock.set_autostart (Lang.to_bool (List.assoc "" p));
-      Lang.unit)
-
 let _ =
   Lang.add_builtin ~base:clock "create" ~category:`Liquidsoap
     ~descr:"Create a new clock"

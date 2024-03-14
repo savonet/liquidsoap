@@ -1,5 +1,3 @@
-clock.autostart := false
-
 #<------#
 This is
 a multiline comment

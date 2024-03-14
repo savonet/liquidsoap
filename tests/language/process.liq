@@ -48,5 +48,4 @@ thread.run.recurrent(
   }
 )
 
-clock.autostart := false
 output.dummy(blank())

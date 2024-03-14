@@ -2,8 +2,6 @@
 count = ref(1)
 fail = ref(false)
 
-clock.autostart := false
-
 def echo(s) =
   print(s)
   if s != string(count()) then fail := true end

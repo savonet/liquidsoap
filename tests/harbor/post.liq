@@ -1,5 +1,3 @@
-clock.autostart := false
-
 def f() =
   data =
     http.multipart_form_data(

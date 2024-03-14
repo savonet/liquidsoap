@@ -193,8 +193,6 @@ and stop c =
 
 let clocks : t WeakQueue.t = WeakQueue.create ()
 let started = Atomic.make false
-let autostart = Atomic.make true
-let should_autostart = Atomic.make false
 let global_stop = Atomic.make false
 
 let descr clock =
@@ -396,12 +394,6 @@ and start ?main ?(force = false) c =
         if sync <> `Passive then _clock_thread ~clock x
     | _ -> raise Invalid_state
 
-and start_clocks ?main () =
-  WeakQueue.iter clocks (fun c ->
-      match Atomic.get (Unifier.deref c).state with
-        | `Stopped _ -> start ?main c
-        | `Stopping _ | `Started _ -> ())
-
 let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
   let c =
     Unifier.make
@@ -424,22 +416,6 @@ let create ?pos ?id ?sync () =
   c
 
 let start = start ~main
-let start_clocks = start_clocks ~main
-
-let () =
-  Lifecycle.after_start ~name:"Clocks start" (fun () ->
-      Atomic.set should_autostart true;
-      if Atomic.get autostart then (
-        Atomic.set started true;
-        start_clocks ()))
-
-let set_autostart b =
-  Atomic.set autostart b;
-  if b && Atomic.get should_autostart then (
-    Atomic.set started true;
-    start_clocks ())
-
-let autostart () = Atomic.get autostart
 let id c = (Unifier.deref c).id
 
 let attach c s =

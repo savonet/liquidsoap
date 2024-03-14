@@ -1,5 +1,3 @@
-clock.autostart := false
-
 def f() =
   # Test strictness and evaluation order
   l = ref(false)

@@ -1,7 +1,5 @@
 #!../../liquidsoap ../test.liq
 
-clock.autostart := false
-
 # TODO Throughout this file, parsing locations displayed in error messages
 #      are often much too inaccurate.
 def f() =

@@ -1,5 +1,3 @@
-clock.autostart := false
-
 def fn() =
   test.equals(int_of_string("0xff"), 255)
   test.raises(fun () -> int_of_string("ff"))
