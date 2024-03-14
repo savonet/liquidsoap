@@ -1,4 +1,7 @@
 #!../../liquidsoap ../test.liq
+
+clock.autostart := false
+
 def section(name) =
   print(
     "\n*** #{name} ***\n\n"

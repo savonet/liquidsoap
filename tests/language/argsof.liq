@@ -1,4 +1,7 @@
 # Test argsof directive.
+
+clock.autostart := false
+
 def f() =
   # file.extension: (?dir_sep : string, ?leading_dot : bool, string) -> string
 

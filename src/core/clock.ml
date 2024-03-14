@@ -193,6 +193,8 @@ and stop c =
 
 let clocks : t WeakQueue.t = WeakQueue.create ()
 let started = Atomic.make false
+let autostart = Atomic.make true
+let should_autostart = Atomic.make false
 let global_stop = Atomic.make false
 
 let () =
@@ -356,8 +358,18 @@ and start_clocks () =
 
 let () =
   Lifecycle.after_start ~name:"Clocks start" (fun () ->
-      Atomic.set started true;
-      start_clocks ())
+      Atomic.set should_autostart true;
+      if Atomic.get autostart then (
+        Atomic.set started true;
+        start_clocks ()))
+
+let set_autostart b =
+  Atomic.set autostart b;
+  if b && Atomic.get should_autostart then (
+    Atomic.set started true;
+    start_clocks ())
+
+let autostart () = Atomic.get autostart
 
 let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
   let c =

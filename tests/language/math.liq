@@ -1,5 +1,7 @@
 #!../../liquidsoap ../test.liq
 
+clock.autostart := false
+
 def test_db_lin() =
   x = 5.
 

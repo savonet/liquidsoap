@@ -1,3 +1,5 @@
+clock.autostart := false
+
 a = ()
 
 # My function
