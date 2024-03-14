@@ -22,6 +22,8 @@
 
 exception Invalid_state
 
+module Evaluation = Liquidsoap_lang.Evaluation
+
 type active_source = < reset : unit ; output : unit >
 
 type source_type =
@@ -256,31 +258,31 @@ let rec active_params c =
     | _ -> raise Invalid_state
 
 and _tick ~clock x =
-  WeakQueue.flush clock.pending_activations (fun s ->
-      s#wake_up;
-      match s#source_type with
-        | `Active _ -> WeakQueue.push x.active_sources s
-        | `Output _ -> Queue.push x.outputs s
-        | `Passive -> WeakQueue.push x.passive_sources s);
-  let sub_clocks =
-    List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
-  in
-  let sources = _active_sources x in
-  List.iter
-    (fun s ->
-      match s#source_type with
-        | `Output s | `Active s -> s#output
-        | _ -> assert false)
-    sources;
-  Queue.flush x.on_tick (fun fn -> fn ());
-  List.iter
-    (fun (c, old_ticks) ->
-      if ticks c = old_ticks then
-        _tick ~clock:(Unifier.deref c) (active_params c))
-    sub_clocks;
-  Atomic.incr x.ticks;
-  _after_tick ~clock x;
-  start_clocks ()
+  Evaluation.after_eval (fun () ->
+      WeakQueue.flush clock.pending_activations (fun s ->
+          s#wake_up;
+          match s#source_type with
+            | `Active _ -> WeakQueue.push x.active_sources s
+            | `Output _ -> Queue.push x.outputs s
+            | `Passive -> WeakQueue.push x.passive_sources s);
+      let sub_clocks =
+        List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
+      in
+      let sources = _active_sources x in
+      List.iter
+        (fun s ->
+          match s#source_type with
+            | `Output s | `Active s -> s#output
+            | _ -> assert false)
+        sources;
+      Queue.flush x.on_tick (fun fn -> fn ());
+      List.iter
+        (fun (c, old_ticks) ->
+          if ticks c = old_ticks then
+            _tick ~clock:(Unifier.deref c) (active_params c))
+        sub_clocks;
+      Atomic.incr x.ticks;
+      _after_tick ~clock x)
 
 and _clock_thread ~clock x =
   let has_sources_to_process () =
@@ -357,10 +359,6 @@ let () =
       Atomic.set started true;
       start_clocks ())
 
-let start_pending_after_eval () =
-  if Atomic.get started then
-    Liquidsoap_lang.Evaluation.on_after_eval start_clocks
-
 let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
   let c =
     Unifier.make
@@ -372,6 +370,7 @@ let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
         state = Atomic.make (`Stopped sync);
       }
   in
+  Evaluation.on_after_eval (fun () -> start c);
   WeakQueue.push clocks c;
   c
 

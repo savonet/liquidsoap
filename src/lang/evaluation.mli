@@ -31,3 +31,6 @@ val apply : ?pos:Pos.t -> Value.t -> (string * Value.t) list -> Value.t
 
 (** Register a function to be executed after the next runtime evaluation completes. *)
 val on_after_eval : (unit -> unit) -> unit
+
+(** Execute a function then run all the [after_eval] callbacks. *)
+val after_eval : (unit -> 'a) -> 'a

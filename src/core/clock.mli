@@ -71,7 +71,6 @@ val id : t -> string
 val descr : t -> string
 val sync : t -> sync_mode
 val start : ?force:bool -> t -> unit
-val start_pending_after_eval : unit -> unit
 val stop : t -> unit
 val set_pos : t -> Liquidsoap_lang.Pos.Option.t -> unit
 val self_sync : t -> bool

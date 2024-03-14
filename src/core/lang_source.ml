@@ -593,7 +593,6 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: List.stable_sort compare arguments
   in
   let f env =
-    Clock.start_pending_after_eval ();
     let pos =
       match Liquidsoap_lang.Lang_core.pos env with
         | [] -> None
@@ -634,7 +633,6 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: arguments
   in
   let f env =
-    Clock.start_pending_after_eval ();
     let pos =
       match Liquidsoap_lang.Lang_core.pos env with
         | [] -> None
