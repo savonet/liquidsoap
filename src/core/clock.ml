@@ -410,6 +410,11 @@ let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
 
 let main = create ~id:"main" ~sync:`Automatic ()
 
+let () =
+  Lifecycle.after_start ~name:"Clocks start" (fun () ->
+      Atomic.set started true;
+      start main)
+
 let create ?pos ?id ?sync () =
   let c = create ?pos ?id ?sync () in
   Evaluation.on_after_eval (fun () -> start c);
