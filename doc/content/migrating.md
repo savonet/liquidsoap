@@ -54,6 +54,11 @@ end
   However, EBU R128 data is now extracted directly from metadata when available.
   So `replaygain` cannot control the gain type via this parameter anymore.
 
+### Prometheus
+
+The default port for the Prometheus metrics exporter has changed from `9090` to `9599`.
+As before, you can change it with `settings.prometheus.server.port := <your port value>`.
+
 ## From 2.1.x to 2.2.x
 
 ### References
