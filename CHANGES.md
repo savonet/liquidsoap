@@ -6,6 +6,10 @@ New:
 - Added `enable_autocue_metadata` and `autocue:` protocol to automatically compute cue points and crossfade parameters (#3753, @RM-FM and @Moonbase59)
 - Added `db_levels` method to `blank.*` sources (#3790)
 
+Changed:
+
+- Allow to disable `http.*` url normalization. Add warning when url normalization changes the url (#3789)
+
 Fixed:
 
 - Fixed `source.drop` and `source.dump` clock initialization.
