@@ -410,17 +410,18 @@ let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
 
 let main = create ~id:"main" ~sync:`Automatic ()
 
-let () =
-  Lifecycle.after_start ~name:"Clocks start" (fun () ->
-      Atomic.set started true;
-      WeakQueue.iter clocks start)
-
 let create ?pos ?id ?sync () =
   let c = create ?pos ?id ?sync () in
   Evaluation.on_after_eval (fun () -> start c);
   c
 
 let start = start ~main
+
+let () =
+  Lifecycle.after_start ~name:"Clocks start" (fun () ->
+      Atomic.set started true;
+      WeakQueue.iter clocks start)
+
 let id c = (Unifier.deref c).id
 
 let attach c s =
