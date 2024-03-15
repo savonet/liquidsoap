@@ -392,7 +392,7 @@ and start ?main ?(force = false) c =
         in
         Atomic.set clock.state (`Started x);
         if sync <> `Passive then _clock_thread ~clock x
-    | _ -> raise Invalid_state
+    | _ -> ()
 
 let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
   let c =
@@ -413,7 +413,7 @@ let main = create ~id:"main" ~sync:`Automatic ()
 let () =
   Lifecycle.after_start ~name:"Clocks start" (fun () ->
       Atomic.set started true;
-      start main)
+      WeakQueue.iter clocks start)
 
 let create ?pos ?id ?sync () =
   let c = create ?pos ?id ?sync () in
