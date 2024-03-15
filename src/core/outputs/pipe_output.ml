@@ -41,7 +41,7 @@ let base_proto =
     Some "Export cover metadata." )
   :: Output.proto
 
-class virtual base ~source ~name p =
+class virtual base ?clock ~source ~name p =
   let e f v = f (List.assoc v p) in
   (* Output settings *)
   let autostart = e Lang.to_bool "start" in
@@ -61,7 +61,7 @@ class virtual base ~source ~name p =
   object (self)
     inherit
       [Strings.t] Output.encoded
-        ~infallible ~register_telnet ~on_start ~on_stop ~autostart
+        ?clock ~infallible ~register_telnet ~on_start ~on_stop ~autostart
           ~export_cover_metadata ~output_kind:"output.file" ~name source
 
     val mutable encoder = None
@@ -294,7 +294,7 @@ let pipe_meth =
           Lang.unit) )
   :: meth
 
-class virtual piped_output ~name p =
+class virtual piped_output ?clock ~name p =
   let source = Lang.assoc "" 3 p in
   let reopen_on_error = List.assoc "reopen_on_error" p in
   let reopen_on_error error =
@@ -317,7 +317,7 @@ class virtual piped_output ~name p =
   let on_reopen = List.assoc "on_reopen" p in
   let on_reopen () = ignore (Lang.apply on_reopen []) in
   object (self)
-    inherit base ~source ~name p as base
+    inherit base ?clock ~source ~name p as base
     val mutable open_date = 0.
     val need_reopen = Atomic.make false
     method need_reopen = Atomic.set need_reopen true
@@ -498,9 +498,9 @@ class virtual ['a] file_output_base p =
     method private on_close = on_close
   end
 
-class file_output ~format_val p =
+class file_output ?clock ~format_val p =
   object
-    inherit piped_output ~name:"output.file" p
+    inherit piped_output ?clock ~name:"output.file" p
     inherit [out_channel] chan_output p
     inherit [out_channel] file_output_base p
     method encoder_factory = encoder_factory format_val
@@ -515,14 +515,14 @@ class file_output ~format_val p =
     method close_out = close_out
   end
 
-class file_output_using_encoder ~format_val p =
+class file_output_using_encoder ?clock ~format_val p =
   let format = Lang.to_format format_val in
   let append = Lang.to_bool (List.assoc "append" p) in
   let on_close = List.assoc "on_close" p in
   let on_close s = Lang.to_unit (Lang.apply on_close [("", Lang.string s)]) in
   let p = ("append", Lang.bool true) :: List.remove_assoc "append" p in
   object (self)
-    inherit piped_output ~name:"output.file" p as base
+    inherit piped_output ?clock ~name:"output.file" p as base
     inherit [unit] chan_output p
     inherit [unit] file_output_base p
 
@@ -581,12 +581,12 @@ let file_proto frame_t =
   ]
   @ chan_proto frame_t "Filename where to output the stream."
 
-let new_file_output p =
+let new_file_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
   let format = Lang.to_format format_val in
   if Encoder.file_output format then
-    (new file_output_using_encoder ~format_val p :> piped_output)
-  else (new file_output ~format_val p :> piped_output)
+    (new file_output_using_encoder ?clock ~format_val p :> piped_output)
+  else (new file_output ?clock ~format_val p :> piped_output)
 
 let output_file =
   let return_t = Lang.univ_t () in
@@ -596,12 +596,12 @@ let output_file =
 
 (** External output *)
 
-class external_output p =
+class external_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
   let process = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
-    inherit piped_output ~name:"output.external" p
+    inherit piped_output ?clock ~name:"output.external" p
     inherit [out_channel] chan_output p
     method encoder_factory = encoder_factory format_val
     method! self_sync = (`Static, self#source_sync self_sync)

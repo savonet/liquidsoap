@@ -190,11 +190,10 @@ let _ =
       in
       let proto = ("fallible", Lang.bool true) :: proto in
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
-      let fo = Pipe_output.new_file_output p in
+      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
+      let _ = Pipe_output.new_file_output ~clock p in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
-      Clock.attach clock (fo :> Clock.source);
       Clock.start clock;
       log#info "Start dumping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && not !stopped do
@@ -203,7 +202,7 @@ let _ =
         sleep_until (start_time |+| latency)
       done;
       log#info "Source dumped.";
-      Clock.detach clock (fo :> Clock.source);
+      Clock.stop clock;
       Lang.unit)
 
 let _ =
@@ -226,17 +225,16 @@ let _ =
       let open Time in
       let s = List.assoc "" p |> Lang.to_source in
       let stopped = ref false in
-      let o =
+      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
+      let _ =
         new Output.dummy
-          ~infallible:false
+          ~clock ~infallible:false
           ~on_start:(fun () -> ())
           ~on_stop:(fun () -> stopped := true)
           ~register_telnet:false ~autostart:true (Lang.source s)
       in
       let ratio = Lang.to_float (List.assoc "ratio" p) in
       let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
-      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
-      Clock.attach clock (o :> Clock.source);
       Clock.start clock;
       log#info "Start dropping source (ratio: %.02fx)" ratio;
       while (not (Atomic.get should_stop)) && not !stopped do
@@ -245,5 +243,5 @@ let _ =
         sleep_until (start_time |+| latency)
       done;
       log#info "Source dropped.";
-      Clock.detach clock (o :> Clock.source);
+      Clock.stop clock;
       Lang.unit)
