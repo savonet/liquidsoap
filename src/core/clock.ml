@@ -352,9 +352,10 @@ and start ?main ?(force = false) c =
            (fun s -> s#self_sync)
            (WeakQueue.elements clock.pending_activations)))
   in
-  match
-    (force || Atomic.get started, Atomic.get clock.state, main, sync_sources)
-  with
+  let should_start =
+    (not (Atomic.get global_stop)) && (force || Atomic.get started)
+  in
+  match (should_start, Atomic.get clock.state, main, sync_sources) with
     | _, _, _, [] -> ()
     | _, `Stopped `Automatic, Some main, [(`Static, None)] ->
         unify ~pos:(Atomic.get clock.pos) c main;
