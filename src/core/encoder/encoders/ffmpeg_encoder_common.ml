@@ -42,7 +42,7 @@ type handler = {
     sample_position:int ->
     (string * string) list ->
     string option;
-  mutable started : bool;
+  started : bool Atomic.t;
 }
 
 type stream_data = {
@@ -100,9 +100,8 @@ let mk_format ffmpeg =
     | _ -> None
 
 let encode ~encoder frame start len =
-  if not encoder.started then
+  if not (Atomic.exchange encoder.started true) then
     Frame.Fields.iter (fun _ { mk_stream } -> mk_stream frame) encoder.streams;
-  encoder.started <- true;
   Frame.Fields.iter (fun _ { encode } -> encode frame start len) encoder.streams
 
 (* Convert ffmpeg-specific options. *)
@@ -159,12 +158,12 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
       output;
       streams;
       insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
-      started = false;
+      started = Atomic.make false;
     }
   in
-  let encoder = ref (make ()) in
+  let encoder = Atomic.make (make ()) in
   let codec_attrs () =
-    let encoder = !encoder in
+    let encoder = Atomic.get encoder in
     match
       Frame.Fields.fold
         (fun _ c cur ->
@@ -175,7 +174,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
       | l -> Some (String.concat "," l)
   in
   let bitrate () =
-    let encoder = !encoder in
+    let encoder = Atomic.get encoder in
     let ( + ) v v' =
       match (v, v') with
         | None, None -> None
@@ -185,7 +184,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
     Frame.Fields.fold (fun _ c cur -> cur + c.bitrate ()) encoder.streams None
   in
   let video_size () =
-    let encoder = !encoder in
+    let encoder = Atomic.get encoder in
     match
       Frame.Fields.fold
         (fun _ stream cur ->
@@ -197,9 +196,11 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
       | (width, height) :: [] -> Some (width, height)
       | _ -> None
   in
-  let sent = Frame.Fields.map (fun _ -> ref false) !encoder.streams in
+  let sent =
+    Frame.Fields.map (fun _ -> ref false) (Atomic.get encoder).streams
+  in
   let init ?id3_enabled ?id3_version () =
-    let encoder = !encoder in
+    let encoder = Atomic.get encoder in
     match Option.map Av.Format.get_output_name encoder.format with
       | Some "mpegts" ->
           if id3_enabled <> Some false then (
@@ -210,7 +211,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
             in
             encoder.insert_id3 <-
               (fun ~frame_position ~sample_position m ->
-                if encoder.started then (
+                if Atomic.get encoder.started then (
                   let tag = Utils.id3v2_of_metadata ~version:id3_version m in
                   let packet = Avcodec.Packet.create tag in
                   let position =
@@ -241,11 +242,11 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
       | None -> Lang_encoder.raise_error ~pos "Format is required!"
   in
   let insert_id3 ~frame_position ~sample_position m =
-    let encoder = !encoder in
+    let encoder = Atomic.get encoder in
     encoder.insert_id3 ~frame_position ~sample_position m
   in
   let init_encode frame start len =
-    let encoder = !encoder in
+    let encoder = Atomic.get encoder in
     match ffmpeg.Ffmpeg_format.format with
       | Some "mp4" ->
           encode ~encoder frame start len;
@@ -280,7 +281,7 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
           (None, Strings.Mutable.flush buf)
   in
   let split_encode frame start len =
-    let encoder = !encoder in
+    let encoder = Atomic.get encoder in
     let can_split () =
       List.for_all (fun (_, keyframe) -> Atomic.get keyframe) keyframes
     in
@@ -306,27 +307,28 @@ let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =
       | None -> `Nope encoded
   in
   let encode frame start len =
-    encode ~encoder:!encoder frame start len;
+    encode ~encoder:(Atomic.get encoder) frame start len;
     Strings.Mutable.flush buf
   in
   let flush () =
-    Frame.Fields.iter (fun _ { flush } -> flush ()) !encoder.streams
+    Frame.Fields.iter (fun _ { flush } -> flush ()) (Atomic.get encoder).streams
   in
   let insert_metadata m =
     let m = Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m) in
     match (ffmpeg.Ffmpeg_format.output, ffmpeg.Ffmpeg_format.format) with
-      | _ when not !encoder.started -> Av.set_output_metadata !encoder.output m
+      | _ when not (Atomic.get (Atomic.get encoder).started) ->
+          Av.set_output_metadata (Atomic.get encoder).output m
       | `Stream, Some "ogg" ->
           flush ();
-          Av.close !encoder.output;
-          encoder := make ();
-          Av.set_output_metadata !encoder.output m
+          Av.close (Atomic.get encoder).output;
+          Atomic.set encoder (make ());
+          Av.set_output_metadata (Atomic.get encoder).output m
       | _ -> ()
   in
   insert_metadata meta;
   let stop () =
     flush ();
-    (try Av.close !encoder.output with _ -> ());
+    (try Av.close (Atomic.get encoder).output with _ -> ());
     Strings.Mutable.flush buf
   in
   let hls =
