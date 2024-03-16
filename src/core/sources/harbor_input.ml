@@ -252,6 +252,13 @@ let _ =
   Lang.add_operator ~base:Modules.input "harbor" ~return_t:(Lang.univ_t ())
     ~meth:
       [
+        ( "shutdown",
+          ([], Lang.fun_t [] Lang.unit_t),
+          "Shutdown the output or source.",
+          fun s ->
+            Lang.val_fun [] (fun _ ->
+                Clock.detach s#clock (s :> Clock.source);
+                Lang.unit) );
         ( "stop",
           ([], Lang.fun_t [] Lang.unit_t),
           "Disconnect the client currently connected to the harbor. Does \
