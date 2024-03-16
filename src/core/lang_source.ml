@@ -98,12 +98,8 @@ module ClockValue = struct
             (fun p ->
               let pos = match Lang.pos p with p :: _ -> Some p | [] -> None in
               let c' = of_value (List.assoc "" p) in
-              try
-                Clock.unify ~pos c c';
-                Lang.unit
-              with _ ->
-                Runtime_error.raise ~message:"Clock unification failed!"
-                  ~pos:(Lang.pos p) "clock") );
+              Clock.unify ~pos c c';
+              Lang.unit) );
       ( "ticks",
         Lang.fun_t [] Lang.int_t,
         "The total number of times the clock has ticked.",
