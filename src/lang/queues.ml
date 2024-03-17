@@ -41,6 +41,15 @@ module Queue = struct
     in
     f [] (snapshot q)
 
+  let exists q fn =
+    let rec f l cursor =
+      match next cursor with
+        | Some (el, _) when fn el -> true
+        | Some (el, cursor) -> f (el :: l) cursor
+        | None -> false
+    in
+    f [] (snapshot q)
+
   let length q =
     let rec f pos cursor =
       match next cursor with
@@ -99,6 +108,7 @@ module WeakQueue = struct
       Queue.push q entry);
     rem
 
+  let exists q fn = List.exists fn (elements q)
   let length q = List.length (elements q)
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)

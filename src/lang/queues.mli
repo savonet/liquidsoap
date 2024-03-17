@@ -31,6 +31,7 @@ module Queue : sig
   val peek_opt : 'a t -> 'a option
   val flush : 'a t -> ('a -> unit) -> unit
   val elements : 'a t -> 'a list
+  val exists : 'a t -> ('a -> bool) -> bool
   val iter : 'a t -> ('a -> unit) -> unit
   val fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
   val length : 'a t -> int
@@ -44,6 +45,7 @@ module WeakQueue : sig
   val push : 'a t -> 'a -> unit
   val flush : 'a t -> ('a -> unit) -> unit
   val elements : 'a t -> 'a list
+  val exists : 'a t -> ('a -> bool) -> bool
   val iter : 'a t -> ('a -> unit) -> unit
   val fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
   val length : 'a t -> int
