@@ -397,18 +397,19 @@ and start ?main ?(force = false) c =
         (map (fun s -> s#self_sync) (Queue.elements clock.pending_activations)))
   in
   let has_output =
-    Queue.exists clock.pending_activations (fun s ->
-        match s#source_type with `Output _ -> true | _ -> false)
+    force
+    || Queue.exists clock.pending_activations (fun s ->
+           match s#source_type with `Output _ -> true | _ -> false)
   in
   let can_start =
     (not (Atomic.get global_stop)) && (force || Atomic.get started)
   in
   match (can_start, has_output, Atomic.get clock.state, main, sync_sources) with
-    | _, _, _, _, [] -> ()
+    | _, _, `Stopped sync, _, [] when sync <> `Passive -> ()
     | _, _, `Stopped `Automatic, Some main, [(`Static, None)] ->
         unify ~pos:(Atomic.get clock.pos) c main;
-        start main
-    | true, false, `Stopped (`Passive as sync), _, _
+        start ~force main
+    | true, _, `Stopped (`Passive as sync), _, _
     | true, true, `Stopped sync, _, _ ->
         clock.id <- Lang_string.generate_id clock.id;
         log#important "Starting clock %s with %d source(s) and sync: %s"
