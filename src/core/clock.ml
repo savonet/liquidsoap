@@ -157,7 +157,7 @@ type clock = {
   mutable id : string;
   pos : Pos.Option.t Atomic.t;
   state : state Atomic.t;
-  pending_activations : source WeakQueue.t;
+  pending_activations : source Queue.t;
   sub_clocks : t Queue.t;
 }
 
@@ -209,8 +209,7 @@ let unify =
   let unify c c' =
     let clock = Unifier.deref c in
     let clock' = Unifier.deref c' in
-    WeakQueue.iter clock.pending_activations
-      (WeakQueue.push clock'.pending_activations);
+    Queue.iter clock.pending_activations (Queue.push clock'.pending_activations);
     Queue.iter clock.sub_clocks (Queue.push clock'.sub_clocks);
     Unifier.(c <-- c')
   in
@@ -292,7 +291,7 @@ let rec active_params c =
 
 and _tick ~clock x =
   Evaluation.after_eval (fun () ->
-      WeakQueue.flush clock.pending_activations (fun s ->
+      Queue.flush clock.pending_activations (fun s ->
           s#wake_up;
           match s#source_type with
             | `Active _ -> WeakQueue.push x.active_sources s
@@ -319,7 +318,7 @@ and _tick ~clock x =
 
 and _clock_thread ~clock x =
   let has_sources_to_process () =
-    0 < WeakQueue.length clock.pending_activations
+    0 < Queue.length clock.pending_activations
     || 0 < Queue.length x.outputs
     || 0 < WeakQueue.length x.active_sources
   in
@@ -348,12 +347,10 @@ and start ?main ?(force = false) c =
   let sync_sources =
     List.(
       sort_uniq Stdlib.compare
-        (map
-           (fun s -> s#self_sync)
-           (WeakQueue.elements clock.pending_activations)))
+        (map (fun s -> s#self_sync) (Queue.elements clock.pending_activations)))
   in
   let has_output =
-    WeakQueue.exists clock.pending_activations (fun s ->
+    Queue.exists clock.pending_activations (fun s ->
         match s#source_type with `Output _ -> true | _ -> false)
   in
   let can_start =
@@ -369,7 +366,7 @@ and start ?main ?(force = false) c =
         clock.id <- Lang_string.generate_id clock.id;
         log#important "Starting clock %s with %d source(s) and sync: %s"
           clock.id
-          (WeakQueue.length clock.pending_activations)
+          (Queue.length clock.pending_activations)
           (string_of_sync_mode sync);
         let time_implementation = time_implementation () in
         let module Time = (val time_implementation : Liq_time.T) in
@@ -406,7 +403,7 @@ let create ?pos ?(id = "generic") ?(sync = `Automatic) () =
       {
         id;
         pos = Atomic.make pos;
-        pending_activations = WeakQueue.create ();
+        pending_activations = Queue.create ();
         sub_clocks = Queue.create ();
         state = Atomic.make (`Stopped sync);
       }
@@ -432,11 +429,11 @@ let id c = (Unifier.deref c).id
 
 let attach c s =
   let clock = Unifier.deref c in
-  WeakQueue.push clock.pending_activations s
+  Queue.push clock.pending_activations s
 
 let detach c s =
   let x = Unifier.deref c in
-  WeakQueue.filter x.pending_activations (fun s' -> s == s');
+  Queue.filter x.pending_activations (fun s' -> s == s');
   match Atomic.get x.state with
     | `Stopped _ | `Stopping _ -> ()
     | `Started { outputs; active_sources; passive_sources } ->
