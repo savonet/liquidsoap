@@ -352,15 +352,20 @@ and start ?main ?(force = false) c =
            (fun s -> s#self_sync)
            (WeakQueue.elements clock.pending_activations)))
   in
-  let should_start =
+  let has_output =
+    WeakQueue.exists clock.pending_activations (fun s ->
+        match s#source_type with `Output _ -> true | _ -> false)
+  in
+  let can_start =
     (not (Atomic.get global_stop)) && (force || Atomic.get started)
   in
-  match (should_start, Atomic.get clock.state, main, sync_sources) with
-    | _, _, _, [] -> ()
-    | _, `Stopped `Automatic, Some main, [(`Static, None)] ->
+  match (can_start, has_output, Atomic.get clock.state, main, sync_sources) with
+    | _, _, _, _, [] -> ()
+    | _, _, `Stopped `Automatic, Some main, [(`Static, None)] ->
         unify ~pos:(Atomic.get clock.pos) c main;
         start main
-    | true, `Stopped sync, _, _ ->
+    | true, false, `Stopped (`Passive as sync), _, _
+    | true, true, `Stopped sync, _, _ ->
         clock.id <- Lang_string.generate_id clock.id;
         log#important "Starting clock %s with %d source(s) and sync: %s"
           clock.id
