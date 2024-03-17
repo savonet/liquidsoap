@@ -87,7 +87,7 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
     method clock = clock
 
     initializer
-      List.iter (fun s -> Clock.unify ~pos:self#pos s#clock self#clock) sources;
+      List.iter (fun s -> Clock.unify ~pos:self#pos self#clock s#clock) sources;
       Clock.attach self#clock (self :> Clock.source)
 
     val mutable pos : Pos.Option.t = pos
