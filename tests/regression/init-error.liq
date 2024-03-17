@@ -2,7 +2,8 @@
 
 # Make sure that we properly shutdown on init error
 log.level.set(5)
-s = source.fail.init()
-s = fallback([blank(), blank(), s])
-o = output.dummy(fallible=true, s)
+
+o = output.dummy(blank())
 o.on_shutdown(test.pass)
+
+o.on_wake_up({output.dummy(fallible=true, source.fail.init())})
