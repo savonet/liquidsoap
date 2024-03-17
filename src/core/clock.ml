@@ -67,7 +67,7 @@ type source =
   ; source_type : source_type
   ; active : bool
   ; wake_up : unit
-  ; sleep : unit
+  ; force_sleep : unit
   ; is_ready : bool
   ; get_frame : Frame.t >
 
@@ -242,7 +242,7 @@ let _sync ?(pending = false) x =
     | `Started { sync } -> (sync :> sync_mode)
 
 let sync c = _sync (Unifier.deref c)
-let cleanup_source s = s#sleep
+let cleanup_source s = s#force_sleep
 
 let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
   Queue.iter outputs cleanup_source;

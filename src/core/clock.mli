@@ -49,7 +49,7 @@ type source =
   ; source_type : source_type
   ; active : bool
   ; wake_up : unit
-  ; sleep : unit
+  ; force_sleep : unit
   ; is_ready : bool
   ; get_frame : Frame.t >
 

@@ -137,8 +137,11 @@ class virtual source :
        (** Register a callback when sleep is called. *)
        method on_sleep : (unit -> unit) -> unit
 
-       (** Called when the source can release all its resources. Can be called multiple times. *)
+       (** Called when the source can release all its resources. Can be called concurrently and multiple times. *)
        method sleep : unit
+
+       (** Force the source to sleep. Should be called by the clocks only. *)
+       method force_sleep : unit
 
        (** Check if a source is up or not. *)
        method is_up : bool
