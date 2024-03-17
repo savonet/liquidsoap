@@ -1,14 +1,41 @@
 def f() =
-  has_connected = ref(false)
+  has_source = ref(false)
+  last_connect = ref(false)
+  error_seen = ref(false)
+
+  shutdown = ref(fun () -> ())
 
   def on_start() =
-    has_connected := true
+    if
+      last_connect()
+    then
+      test.pass()
+    else
+      print(
+        "Shutting down initial source"
+      )
+      fn = shutdown()
+      fn()
+    end
   end
 
-  error_count = ref(0)
-
   def on_error(_) =
-    error_count := error_count() + 1
+    if
+      not error_seen()
+    then
+      error_seen := true
+    elsif
+      not has_source()
+    then
+      s = input.harbor(port=8005, password="hackme", "test")
+      shutdown := s.shutdown
+      output.dummy(fallible=true, s)
+      has_source := true
+    else
+      last_connect := true
+      error_seen := false
+      has_source := false
+    end
   end
 
   s = sine()
@@ -23,53 +50,6 @@ def f() =
       %audio(codec = "flac")
     ),
     s
-  )
-
-  thread.run(
-    delay=1.,
-    {
-      begin
-        if has_connected() or error_count() == 0 then test.fail() end
-        s = input.harbor(port=8005, password="hackme", "test")
-        o = output.dummy(fallible=true, s)
-        thread.run(
-          delay=1.,
-          {
-            begin
-              if not !has_connected then test.fail() end
-              print(
-                "Shutting down initial source"
-              )
-              s.shutdown()
-              error_count := 0
-              thread.run(
-                delay=3.,
-                {
-                  begin
-                    if error_count() == 0 then test.fail() end
-                    has_connected := false
-                    print(
-                      "Starting new source"
-                    )
-                    s = input.harbor(port=8005, password="hackme", "test")
-                    output.dummy(fallible=true, s)
-                    thread.run(
-                      delay=1.,
-                      {
-                        begin
-                          if not has_connected() then test.fail() end
-                          test.pass()
-                        end
-                      }
-                    )
-                  end
-                }
-              )
-            end
-          }
-        )
-      end
-    }
   )
 end
 
