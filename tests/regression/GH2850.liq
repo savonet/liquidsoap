@@ -31,6 +31,7 @@ def f() =
       begin
         if has_connected() or error_count() == 0 then test.fail() end
         s = input.harbor(port=8005, password="hackme", "test")
+        o = output.dummy(fallible=true, s)
         thread.run(
           delay=1.,
           {
@@ -50,7 +51,8 @@ def f() =
                     print(
                       "Starting new source"
                     )
-                    input.harbor(port=8005, password="hackme", "test")
+                    s = input.harbor(port=8005, password="hackme", "test")
+                    output.dummy(fallible=true, s)
                     thread.run(
                       delay=1.,
                       {

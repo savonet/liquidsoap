@@ -60,7 +60,12 @@ module Queue = struct
 
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
-  let filter q fn = flush q (fun entry -> if fn entry then push q entry)
+
+  let filter q fn =
+    let rec f elements =
+      match pop_opt q with Some el -> f (el :: elements) | None -> elements
+    in
+    List.iter (fun el -> if fn el then push q el) (f [])
 end
 
 module WeakQueue = struct
@@ -117,7 +122,7 @@ module WeakQueue = struct
     let rec f cursor =
       match next cursor with
         | Some (el, cursor) ->
-            for i = 0 to Weak.length el do
+            for i = 0 to Weak.length el - 1 do
               match Weak.get el i with
                 | Some p when fn p -> ()
                 | _ -> Weak.set el i None

@@ -263,8 +263,10 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
     val mutable streaming_state : streaming_state = `Pending
 
     method is_ready =
-      if self#is_up then self#before_streaming_cycle;
-      match streaming_state with `Ready _ | `Done _ -> true | _ -> false
+      if self#is_up then (
+        self#before_streaming_cycle;
+        match streaming_state with `Ready _ | `Done _ -> true | _ -> false)
+      else false
 
     val mutable _cache = None
     val mutable consumed = 0

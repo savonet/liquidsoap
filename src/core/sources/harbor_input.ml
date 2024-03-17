@@ -258,6 +258,7 @@ let _ =
           fun s ->
             Lang.val_fun [] (fun _ ->
                 Clock.detach s#clock (s :> Clock.source);
+                s#sleep;
                 Lang.unit) );
         ( "stop",
           ([], Lang.fun_t [] Lang.unit_t),
