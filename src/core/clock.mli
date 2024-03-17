@@ -61,6 +61,7 @@ val active_sync_mode_of_string : string -> active_sync_mode
 
 val create :
   ?pos:Liquidsoap_lang.Pos.t ->
+  ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
   ?id:string ->
   ?sync:active_sync_mode ->
   unit ->

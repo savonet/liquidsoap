@@ -35,6 +35,13 @@ let _ =
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "Identifier for the new clock." );
+      ( "on_error",
+        Lang.nullable_t (Lang.fun_t [(false, "", Lang.error_t)] Lang.unit_t),
+        Some Lang.null,
+        Some
+          "Error callback executed when a streaming error occurs. When passed, \
+           all streaming errors are silenced. Intended mostly for debugging \
+           purposes." );
       ( "sync",
         Lang.string_t,
         Some (Lang.string "auto"),
@@ -46,6 +53,16 @@ let _ =
     Lang_source.ClockValue.t
     (fun p ->
       let id = Lang.to_valued_option Lang.to_string (List.assoc "id" p) in
+      let on_error = Lang.to_option (List.assoc "on_error" p) in
+      let on_error =
+        Option.map
+          (fun on_error exn bt ->
+            let error =
+              Lang.runtime_error_of_exception ~bt ~kind:"output" exn
+            in
+            ignore (Lang.apply on_error [("", Lang.error error)]))
+          on_error
+      in
       let sync = List.assoc "sync" p in
       let sync =
         try Clock.active_sync_mode_of_string (Lang.to_string sync)
@@ -57,4 +74,4 @@ let _ =
                   `\"unsynced\"` or `\"passive\"`" ))
       in
       let pos = match Lang.pos p with p :: _ -> Some p | [] -> None in
-      Lang_source.ClockValue.to_value (Clock.create ?pos ?id ~sync ()))
+      Lang_source.ClockValue.to_value (Clock.create ?pos ?on_error ?id ~sync ()))
