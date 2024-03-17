@@ -72,7 +72,6 @@ val passive_sources : t -> source list
 val outputs : t -> source list
 val pending_activations : t -> source list
 val sources : t -> source list
-val main : t
 val clocks : unit -> t list
 val id : t -> string
 val descr : t -> string

@@ -174,7 +174,7 @@ type state =
   | `Stopped of active_sync_mode ]
 
 type clock = {
-  mutable id : string;
+  mutable id : string option;
   pos : Pos.Option.t Atomic.t;
   state : state Atomic.t;
   pending_activations : source Queue.t;
@@ -183,6 +183,9 @@ type clock = {
 }
 
 and t = clock Unifier.t
+
+let _id clock = Option.value ~default:"<unknown>" clock.id
+let id c = _id (Unifier.deref c)
 
 let attach c s =
   let clock = Unifier.deref c in
@@ -269,7 +272,7 @@ let[@inline] check_stopped () = if Atomic.get global_stop then raise Has_stopped
 
 let descr clock =
   let clock = Unifier.deref clock in
-  Printf.sprintf "clock(id=%s,sync=%s%s)" clock.id
+  Printf.sprintf "clock(id=%s,sync=%s%s)" (_id clock)
     (string_of_sync_mode (_sync clock))
     (match Atomic.get clock.state with
       | `Stopped pending ->
@@ -291,6 +294,8 @@ let unify =
     let _c' = Unifier.deref c' in
     match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
       | true, _, _ -> ()
+      | _, `Stopped s, `Stopped s' when s = s' ->
+          if _c.id = None then unify c c' else unify c' c
       | _, `Stopped s, _
         when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
           unify c c'
@@ -319,7 +324,7 @@ let _self_sync ~clock x =
       ~pos:(match Atomic.get clock.pos with Some p -> [p] | None -> [])
       ~message:
         (Printf.sprintf "Clock %s has multiple synchronization sources!"
-           clock.id)
+           (_id clock))
       "source";
   List.length self_sync_sources = 1
 
@@ -435,15 +440,11 @@ and _clock_thread ~clock x =
        (fun () ->
          x.log#info "Clock thread is starting";
          run ())
-       () ("Clock " ^ clock.id))
+       ()
+       ("Clock " ^ _id clock))
 
-and start ?main ?(force = false) c =
+and start ?(force = false) c =
   let clock = Unifier.deref c in
-  let sync_sources =
-    List.(
-      sort_uniq Stdlib.compare
-        (map (fun s -> s#self_sync) (Queue.elements clock.pending_activations)))
-  in
   let has_output =
     force
     || Queue.exists clock.pending_activations (fun s ->
@@ -452,16 +453,12 @@ and start ?main ?(force = false) c =
   let can_start =
     (not (Atomic.get global_stop)) && (force || Atomic.get started)
   in
-  match (can_start, has_output, Atomic.get clock.state, main, sync_sources) with
-    | _, _, `Stopped sync, _, [] when sync <> `Passive -> ()
-    | _, _, `Stopped `Automatic, Some main, [(`Static, None)] ->
-        unify ~pos:(Atomic.get clock.pos) c main;
-        start ~force main
-    | true, _, `Stopped (`Passive as sync), _, _
-    | true, true, `Stopped sync, _, _ ->
-        clock.id <- Lang_string.generate_id clock.id;
-        log#important "Starting clock %s with %d source(s) and sync: %s"
-          clock.id
+  match (can_start, has_output, Atomic.get clock.state) with
+    | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
+        let id = Option.value ~default:"generic" clock.id in
+        let id = Lang_string.generate_id id in
+        clock.id <- Some id;
+        log#important "Starting clock %s with %d source(s) and sync: %s" id
           (Queue.length clock.pending_activations)
           (string_of_sync_mode sync);
         let time_implementation = time_implementation () in
@@ -478,7 +475,7 @@ and start ?main ?(force = false) c =
             max_latency;
             time_implementation;
             t0;
-            log = Log.make ["clock"; clock.id];
+            log = Log.make ["clock"; id];
             last_catchup_log;
             sync;
             active_sources = WeakQueue.create ();
@@ -493,7 +490,7 @@ and start ?main ?(force = false) c =
         if sync <> `Passive then _clock_thread ~clock x
     | _ -> ()
 
-let create ?pos ?on_error ?(id = "generic") ?(sync = `Automatic) () =
+let create ?pos ?on_error ?id ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
   let c =
@@ -510,9 +507,6 @@ let create ?pos ?on_error ?(id = "generic") ?(sync = `Automatic) () =
   WeakQueue.push clocks c;
   c
 
-let main = create ~id:"main" ~sync:`Automatic ()
-let start = start ~main
-
 let create ?pos ?on_error ?id ?sync () =
   let c = create ?pos ?on_error ?id ?sync () in
   Evaluation.on_after_eval (fun () -> start c);
@@ -522,8 +516,6 @@ let () =
   Lifecycle.after_start ~name:"Clocks start" (fun () ->
       Atomic.set started true;
       WeakQueue.iter clocks start)
-
-let id c = (Unifier.deref c).id
 
 let on_tick c fn =
   let x = active_params c in
