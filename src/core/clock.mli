@@ -67,6 +67,11 @@ val create :
   unit ->
   t
 
+val active_sources : t -> source list
+val passive_sources : t -> source list
+val outputs : t -> source list
+val pending_activations : t -> source list
+val sources : t -> source list
 val main : t
 val clocks : unit -> t list
 val id : t -> string

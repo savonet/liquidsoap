@@ -200,6 +200,37 @@ let _detach x s =
 
 let detach c s = _detach (Unifier.deref c) s
 
+let active_sources c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Started { active_sources } | `Stopping { active_sources } ->
+        WeakQueue.elements active_sources
+    | _ -> []
+
+let outputs c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Started { outputs } | `Stopping { outputs } -> Queue.elements outputs
+    | _ -> []
+
+let passive_sources c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Started { passive_sources } | `Stopping { passive_sources } ->
+        WeakQueue.elements passive_sources
+    | _ -> []
+
+let pending_activations c = Queue.elements (Unifier.deref c).pending_activations
+
+let sources c =
+  let clock = Unifier.deref c in
+  Queue.elements clock.pending_activations
+  @
+  match Atomic.get clock.state with
+    | `Started { passive_sources; active_sources; outputs }
+    | `Stopping { passive_sources; active_sources; outputs } ->
+        WeakQueue.elements passive_sources
+        @ WeakQueue.elements active_sources
+        @ Queue.elements outputs
+    | _ -> []
+
 let _sync ?(pending = false) x =
   match Atomic.get x.state with
     | `Stopped p when pending -> (p :> sync_mode)
@@ -228,7 +259,15 @@ and stop c =
         x.log#debug "Clock stopping";
         Atomic.set clock.state (`Stopping x)
 
-let clocks : t WeakQueue.t = WeakQueue.create ()
+module Clocks = Weak.Make (struct
+  type clock = t
+  type t = clock
+
+  let equal c c' = Unifier.deref c == Unifier.deref c'
+  let hash c = Hashtbl.hash (Unifier.deref c)
+end)
+
+let clocks = Clocks.create 1
 let started = Atomic.make false
 let global_stop = Atomic.make false
 
@@ -272,16 +311,16 @@ let unify =
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
       Atomic.set global_stop true;
-      WeakQueue.iter clocks (fun c -> if sync c <> `Passive then stop c))
+      Clocks.iter (fun c -> if sync c <> `Passive then stop c) clocks)
 
-let _active_sources { outputs; active_sources } =
+let _animated_sources { outputs; active_sources } =
   Queue.elements outputs @ WeakQueue.elements active_sources
 
 let _self_sync ~clock x =
   let self_sync_sources =
     List.(
       sort_uniq Stdlib.compare
-        (filter (fun s -> snd s#self_sync <> None) (_active_sources x)))
+        (filter (fun s -> snd s#self_sync <> None) (_animated_sources x)))
   in
   if List.length self_sync_sources > 1 then
     Runtime_error.raise
@@ -321,7 +360,7 @@ let _after_tick ~clock x =
                 | `Passive -> assert false
                 | `Active s -> s#reset
                 | `Output s -> s#reset)
-            (_active_sources x))
+            (_animated_sources x))
         else if
           Time.(x.log_delay |<=| (end_time |-| Atomic.get x.last_catchup_log))
         then (
@@ -346,7 +385,7 @@ and _tick ~clock x =
       let sub_clocks =
         List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
       in
-      let sources = _active_sources x in
+      let sources = _animated_sources x in
       List.iter
         (fun s ->
           check_stopped ();
@@ -476,7 +515,7 @@ let create ?pos ?on_error ?(id = "generic") ?(sync = `Automatic) () =
         on_error = on_error_queue;
       }
   in
-  WeakQueue.push clocks c;
+  Clocks.add clocks c;
   c
 
 let main = create ~id:"main" ~sync:`Automatic ()
@@ -491,7 +530,7 @@ let start = start ~main
 let () =
   Lifecycle.after_start ~name:"Clocks start" (fun () ->
       Atomic.set started true;
-      WeakQueue.iter clocks start)
+      Clocks.iter start clocks)
 
 let id c = (Unifier.deref c).id
 
@@ -521,4 +560,4 @@ let create_sub_clock ~id clock =
   Queue.push clock.sub_clocks sub_clock;
   sub_clock
 
-let clocks () = WeakQueue.elements clocks
+let clocks () = Clocks.fold (fun c clocks -> c :: clocks) clocks []
