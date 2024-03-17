@@ -191,7 +191,8 @@ let attach c s =
 let _detach x s =
   Queue.filter x.pending_activations (fun s' -> s == s');
   match Atomic.get x.state with
-    | `Stopped _ | `Stopping _ -> ()
+    | `Stopped _ -> ()
+    | `Stopping { outputs; active_sources; passive_sources }
     | `Started { outputs; active_sources; passive_sources } ->
         Queue.filter outputs (fun s' -> s == s');
         WeakQueue.filter active_sources (fun s' -> s == s');
@@ -230,6 +231,10 @@ and stop c =
 let clocks : t WeakQueue.t = WeakQueue.create ()
 let started = Atomic.make false
 let global_stop = Atomic.make false
+
+exception Has_stopped
+
+let[@inline] check_stopped () = if Atomic.get global_stop then raise Has_stopped
 
 let descr clock =
   let clock = Unifier.deref clock in
@@ -297,10 +302,13 @@ let _target_time { time_implementation; t0; frame_duration; ticks } =
   Time.(t0 |+| (frame_duration |*| of_float (float_of_int (Atomic.get ticks))))
 
 let _after_tick ~clock x =
-  Queue.flush x.after_tick (fun fn -> fn ());
+  Queue.flush x.after_tick (fun fn ->
+      check_stopped ();
+      fn ());
   let module Time = (val x.time_implementation : Liq_time.T) in
   let end_time = Time.time () in
   let target_time = _target_time x in
+  check_stopped ();
   match (x.sync, _self_sync ~clock x, Time.(end_time |<| target_time)) with
     | `Unsynced, _, _ | `Passive, _, _ | `Automatic, true, _ -> ()
     | `Automatic, false, true | `CPU, _, true -> Time.sleep_until target_time
@@ -329,6 +337,7 @@ let rec active_params c =
 and _tick ~clock x =
   Evaluation.after_eval (fun () ->
       Queue.flush clock.pending_activations (fun s ->
+          check_stopped ();
           s#wake_up;
           match s#source_type with
             | `Active _ -> WeakQueue.push x.active_sources s
@@ -340,6 +349,7 @@ and _tick ~clock x =
       let sources = _active_sources x in
       List.iter
         (fun s ->
+          check_stopped ();
           try
             match s#source_type with
               | `Output s | `Active s -> s#output
@@ -354,13 +364,16 @@ and _tick ~clock x =
               else _detach clock s)
             else Queue.iter clock.on_error (fun fn -> fn exn bt))
         sources;
-      Queue.flush x.on_tick (fun fn -> fn ());
+      Queue.flush x.on_tick (fun fn ->
+          check_stopped ();
+          fn ());
       List.iter
         (fun (c, old_ticks) ->
           if ticks c = old_ticks then
             _tick ~clock:(Unifier.deref c) (active_params c))
         sub_clocks;
       Atomic.incr x.ticks;
+      check_stopped ();
       _after_tick ~clock x)
 
 and _clock_thread ~clock x =
@@ -369,18 +382,22 @@ and _clock_thread ~clock x =
     || 0 < Queue.length x.outputs
     || 0 < WeakQueue.length x.active_sources
   in
+  let on_stop () =
+    x.log#info "Clock thread has stopped";
+    _cleanup ~clock x;
+    Atomic.set clock.state (`Stopped x.sync)
+  in
   let rec run () =
-    if
-      (match Atomic.get clock.state with `Started _ -> true | _ -> false)
-      && (not (Atomic.get global_stop))
-      && has_sources_to_process ()
-    then (
-      _tick ~clock x;
-      run ())
-    else (
-      x.log#info "Clock thread has stopped";
-      _cleanup ~clock x;
-      Atomic.set clock.state (`Stopped x.sync))
+    try
+      if
+        (match Atomic.get clock.state with `Started _ -> true | _ -> false)
+        && (not (Atomic.get global_stop))
+        && has_sources_to_process ()
+      then (
+        _tick ~clock x;
+        run ())
+      else on_stop ()
+    with Has_stopped -> on_stop ()
   in
   ignore
     (Tutils.create
