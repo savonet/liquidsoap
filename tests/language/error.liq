@@ -159,6 +159,28 @@ def f() =
         "Asynchronous error"
       )
   )
+
+  # Error raised during after_eval can escape try/catch:
+  def fn()
+      try
+        liquidsoap.after_eval(
+          {
+            error.raise(
+              e,
+              "After eval"
+            )
+          }
+        )
+      catch _ do
+        test.fail()
+      end
+  end
+  try
+    liquidsoap.exec_after_eval(fn);
+    test.fail()
+  catch _ do
+    ()
+  end
 end
 
 test.check(f)

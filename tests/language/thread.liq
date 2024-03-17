@@ -64,6 +64,32 @@ def f() =
   thread.when(changed=false, every=0.5, p, cb)
   thread.pause(5.)
   test.equals(count(), 4)
+
+  # Make sure that after_eval is executed in the thread.
+  err = error.register("after_eval")
+  error_seen = ref(false)
+  def fn() =
+    try
+      liquidsoap.after_eval(
+        {
+          error.raise(
+            err,
+            "After eval"
+          )
+        }
+      )
+    catch _ : [err] do
+      ()
+    end
+  end
+  def on_error(_) =
+    error_seen := true
+  end
+  thread.run(on_error=on_error, fn)
+  while not error_seen() do
+    thread.delay(0.1)
+  end
+
   test.pass()
 end
 

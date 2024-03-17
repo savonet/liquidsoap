@@ -559,15 +559,16 @@ type _ Effect.t +=
 
 let on_after_eval fn = perform (After_run fn)
 
-let[@inline] after_eval (fn [@inlined]) =
+let[@inline] after_eval ?(force = false) (fn [@inlined]) =
   let after_eval_locked =
-    try perform (After_run_lock ()) with Stdlib.Effect.Unhandled _ -> true
+    force
+    || try perform (After_run_lock ()) with Stdlib.Effect.Unhandled _ -> true
   in
   if after_eval_locked then (
     let after_eval_queue = Queue.create () in
     let fn () =
       let v = fn () in
-      Queue.flush after_eval_queue (fun fn -> try fn () with _ -> ());
+      Queue.flush after_eval_queue (fun fn -> fn ());
       v
     in
     match_with fn ()
