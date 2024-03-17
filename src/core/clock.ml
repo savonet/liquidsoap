@@ -509,7 +509,10 @@ let self_sync c =
     | `Started params -> _self_sync ~clock params
     | _ -> false
 
-let tick clock = _tick ~clock:(Unifier.deref clock) (active_params clock)
+let tick clock =
+  try _tick ~clock:(Unifier.deref clock) (active_params clock)
+  with Has_stopped -> ()
+
 let set_pos c pos = Atomic.set (Unifier.deref c).pos pos
 
 let create_sub_clock ~id clock =

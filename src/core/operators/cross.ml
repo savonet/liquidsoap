@@ -136,11 +136,12 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     method private child_get ~is_first source =
       let frame = ref self#empty_frame in
       self#on_child_tick (fun () ->
-          frame :=
-            source#get_partial_frame (fun f ->
-                match self#split_frame f with
-                  | buf, Some _ when Frame.position buf = 0 && is_first -> f
-                  | buf, _ -> buf));
+          if source#is_ready then
+            frame :=
+              source#get_partial_frame (fun f ->
+                  match self#split_frame f with
+                    | buf, Some _ when Frame.position buf = 0 && is_first -> f
+                    | buf, _ -> buf));
       !frame
 
     method private append mode buf_frame =

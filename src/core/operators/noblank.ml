@@ -147,7 +147,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
   let source = Lang.to_source source_val in
   object (self)
     (* Eating blank is trickier than stripping. *)
-    inherit operator ~name:"blank.eat" [source]
+    inherit operator ~name:"blank.eat" []
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     inherit Child_support.base ~check_self_sync:true [source_val]
 
@@ -166,9 +166,10 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     method private generate_frame =
       let first = ref true in
       let frame = ref self#empty_frame in
-      while !first || stripping do
+      while source#is_ready && (!first || stripping) do
         first := false;
-        self#on_child_tick (fun () -> frame := source#get_frame);
+        self#on_child_tick (fun () ->
+            if source#is_ready then frame := source#get_frame);
         let frame = !frame in
         if track_sensitive () && Frame.track_marks frame <> [] then (
           stripping <- false;
