@@ -259,16 +259,7 @@ and stop c =
         x.log#debug "Clock stopping";
         Atomic.set clock.state (`Stopping x)
 
-module Clocks = struct
-  include WeakQueue
-
-  let elements q =
-    List.sort_uniq
-      (fun c c' -> Stdlib.compare (Unifier.deref c) (Unifier.deref c'))
-      (elements q)
-end
-
-let clocks = Clocks.create ()
+let clocks = WeakQueue.create ()
 let started = Atomic.make false
 let global_stop = Atomic.make false
 
@@ -312,7 +303,7 @@ let unify =
 let () =
   Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
       Atomic.set global_stop true;
-      Clocks.iter clocks (fun c -> if sync c <> `Passive then stop c))
+      WeakQueue.iter clocks (fun c -> if sync c <> `Passive then stop c))
 
 let _animated_sources { outputs; active_sources } =
   Queue.elements outputs @ WeakQueue.elements active_sources
@@ -516,7 +507,7 @@ let create ?pos ?on_error ?(id = "generic") ?(sync = `Automatic) () =
         on_error = on_error_queue;
       }
   in
-  Clocks.push clocks c;
+  WeakQueue.push clocks c;
   c
 
 let main = create ~id:"main" ~sync:`Automatic ()
@@ -530,7 +521,7 @@ let create ?pos ?on_error ?id ?sync () =
 let () =
   Lifecycle.after_start ~name:"Clocks start" (fun () ->
       Atomic.set started true;
-      Clocks.iter clocks start)
+      WeakQueue.iter clocks start)
 
 let id c = (Unifier.deref c).id
 
@@ -560,4 +551,7 @@ let create_sub_clock ~id clock =
   Queue.push clock.sub_clocks sub_clock;
   sub_clock
 
-let clocks () = Clocks.elements clocks
+let clocks () =
+  List.sort_uniq
+    (fun c c' -> Stdlib.compare (Unifier.deref c) (Unifier.deref c'))
+    (WeakQueue.elements clocks)
