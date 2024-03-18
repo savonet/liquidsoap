@@ -513,7 +513,7 @@ let create ?pos ?on_error ?id ?sync () =
   c
 
 let () =
-  Lifecycle.after_start ~name:"Clocks start" (fun () ->
+  Lifecycle.before_start ~name:"Clocks start" (fun () ->
       Atomic.set started true;
       WeakQueue.iter clocks start)
 
