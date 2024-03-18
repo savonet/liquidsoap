@@ -33,7 +33,7 @@ def test.fail(reason=null()) =
   print(
     "Test failed#{reason}"
   )
-  exit(1)
+  shutdown(code=1)
 end
 
 # End test with signal 2
