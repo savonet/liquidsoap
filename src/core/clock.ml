@@ -32,7 +32,17 @@ type source_type =
 type sync_source = ..
 type self_sync = [ `Static | `Dynamic ] * sync_source option
 
-module Queue = Liquidsoap_lang.Queues.Queue
+module Queue = struct
+  include Liquidsoap_lang.Queues.Queue
+
+  let push q v = if not (exists q (fun v' -> v == v')) then push q v
+end
+
+module WeakQueue = struct
+  include Liquidsoap_lang.Queues.WeakQueue
+
+  let push q v = if not (exists q (fun v' -> v == v')) then push q v
+end
 
 exception Sync_source_name of string
 
@@ -149,7 +159,6 @@ let () =
 
 module Pos = Liquidsoap_lang.Pos
 module Unifier = Liquidsoap_lang.Unifier
-module WeakQueue = Liquidsoap_lang.Queues.WeakQueue
 
 type active_params = {
   sync : active_sync_mode;
