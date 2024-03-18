@@ -32,16 +32,6 @@ let _ =
       Lang.unit)
 
 let _ =
-  Lang.add_builtin "on_exit" ~category:`System
-    [("", Lang.fun_t [] Lang.unit_t, None, None)]
-    Lang.unit_t ~descr:"Register a function to be called just liquidsoap exits."
-    (fun p ->
-      let f = List.assoc "" p in
-      Lifecycle.after_final_cleanup ~name:"on exit execution" (fun () ->
-          ignore (Lang.apply f []));
-      Lang.unit)
-
-let _ =
   Lang.add_builtin "on_cleanup" ~category:`System
     [("", Lang.fun_t [] Lang.unit_t, None, None)]
     Lang.unit_t ~descr:"Register a function to be called for the final cleanup."
