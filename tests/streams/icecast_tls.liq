@@ -2,7 +2,7 @@ log.level := 4
 
 transport = http.transport.tls(certificate="./ssl.cert", key="./ssl.key")
 
-port = random.int(min=8000, max=10000)
+port = 1441
 
 s = sine()
 

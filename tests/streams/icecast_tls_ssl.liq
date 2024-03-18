@@ -4,7 +4,7 @@ tls = http.transport.tls(certificate="./ssl.cert", key="./ssl.key")
 
 ssl = http.transport.ssl(certificate="./ssl.cert", key="./ssl.key")
 
-port = random.int(min=8000, max=10000)
+port = 1442
 
 s = sine()
 

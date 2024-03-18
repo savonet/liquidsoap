@@ -1,6 +1,6 @@
 transport = http.transport.ssl(certificate="./ssl.cert", key="./ssl.key")
 
-port = random.int(min=8000, max=10000)
+port = 1443
 
 s = sine()
 
