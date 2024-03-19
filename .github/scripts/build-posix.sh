@@ -45,7 +45,7 @@ cd /tmp/liquidsoap-full/liquidsoap
 ./.github/scripts/checkout-deps.sh
 
 opam update
-opam install -y magic-mime
+opam install -y magic-mime saturn_lockfree.0.4.1
 
 cd /tmp/liquidsoap-full
 
