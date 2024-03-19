@@ -52,6 +52,10 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Set to `false` to prevent metadata resolution on this request." );
+      ( "excluded_metadata_resolvers",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some "List of metadata resolves to exclude when resolving metadata." );
       ( "temporary",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -65,6 +69,10 @@ let _ =
       let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
       let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
+      let excluded_metadata_resolvers =
+        List.map Lang.to_string
+          (Lang.to_list (List.assoc "excluded_metadata_resolvers" p))
+      in
       let cue_in_metadata =
         Lang.to_valued_option Lang.to_string (List.assoc "cue_in_metadata" p)
       in
@@ -88,7 +96,8 @@ let _ =
       in
       Request.Value.to_value
         (Request.create ~resolve_metadata ~persistent ~indicators
-           ~cue_in_metadata ~cue_out_metadata initial))
+           ~excluded_metadata_resolvers ~cue_in_metadata ~cue_out_metadata
+           initial))
 
 let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap

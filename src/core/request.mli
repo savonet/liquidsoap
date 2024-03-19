@@ -38,6 +38,7 @@ type t
 (** Create a request. *)
 val create :
   ?resolve_metadata:bool ->
+  ?excluded_metadata_resolvers:string list ->
   ?metadata:(string * string) list ->
   ?persistent:bool ->
   ?indicators:indicator list ->
