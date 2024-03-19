@@ -125,6 +125,7 @@ type t = {
   id : int;
   initial_uri : string;
   resolve_metadata : bool;
+  excluded_metadata_resolvers : string list;
   cue_in_metadata : string option;
   cue_out_metadata : string option;
   mutable ctype : Frame.content_type option;
@@ -349,6 +350,12 @@ let read_metadata t =
       in
       let extension = try Some (Utils.get_ext name) with _ -> None in
       let mime = Magic_mime.lookup name in
+      let decoders = get_decoders conf_metadata_decoders mresolvers in
+      let decoders =
+        List.filter
+          (fun (name, _) -> not (List.mem name t.excluded_metadata_resolvers))
+          decoders
+      in
       List.iter
         (fun (_, resolver) ->
           try
@@ -368,7 +375,7 @@ let read_metadata t =
                   (string_of_float (duration ~metadata:indicator.metadata name))
               with Not_found -> ())
           with _ -> ())
-        (get_decoders conf_metadata_decoders mresolvers)))
+        decoders))
 
 let local_check t =
   let check_decodable ctype =
@@ -491,6 +498,7 @@ module Pool = Pool.Make (struct
       cue_out_metadata = None;
       ctype = None;
       resolve_metadata = false;
+      excluded_metadata_resolvers = [];
       persistent = false;
       status = Destroyed;
       resolving = None;
@@ -552,8 +560,9 @@ let clean () =
   Pool.iter (fun _ r -> if r.status <> Destroyed then destroy ~force:true r);
   Pool.clear ()
 
-let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
-    ?(indicators = []) ~cue_in_metadata ~cue_out_metadata u =
+let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
+    ?(metadata = []) ?(persistent = false) ?(indicators = []) ~cue_in_metadata
+    ~cue_out_metadata u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in
@@ -572,6 +581,7 @@ let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
         cue_out_metadata;
         ctype = None;
         resolve_metadata;
+        excluded_metadata_resolvers;
         (* This is fixed when resolving the request. *)
         persistent;
         on_air = None;
