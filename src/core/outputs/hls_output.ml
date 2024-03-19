@@ -473,40 +473,40 @@ class hls_output p =
           Frame.Metadata.Export.empty
       in
       let bandwidth =
-        lazy
-          (try Lang.to_int (List.assoc "bandwidth" stream_info)
-           with Not_found -> (
-             match Encoder.(encoder.hls.bitrate ()) with
-               | Some b -> b + (b / 10)
-               | None -> (
-                   try Encoder.bitrate format
-                   with Not_found ->
-                     raise
-                       (Error.Invalid_value
-                          ( fmt,
-                            Printf.sprintf
-                              "Bandwidth for stream %S cannot be inferred from \
-                               codec, please specify it with: \
-                               `%%encoder(...).{bandwidth = <number>, ...}`"
-                              name )))))
+        Lazy.from_fun (fun () ->
+            try Lang.to_int (List.assoc "bandwidth" stream_info)
+            with Not_found -> (
+              match Encoder.(encoder.hls.bitrate ()) with
+                | Some b -> b + (b / 10)
+                | None -> (
+                    try Encoder.bitrate format
+                    with Not_found ->
+                      raise
+                        (Error.Invalid_value
+                           ( fmt,
+                             Printf.sprintf
+                               "Bandwidth for stream %S cannot be inferred \
+                                from codec, please specify it with: \
+                                `%%encoder(...).{bandwidth = <number>, ...}`"
+                               name )))))
       in
       let codecs =
-        lazy
-          (try Lang.to_string (List.assoc "codecs" stream_info)
-           with Not_found -> (
-             match Encoder.(encoder.hls.codec_attrs ()) with
-               | Some attrs -> attrs
-               | None -> (
-                   try Encoder.iso_base_file_media_file_format format
-                   with Not_found ->
-                     raise
-                       (Error.Invalid_value
-                          ( fmt,
-                            Printf.sprintf
-                              "Stream info for stream %S cannot be inferred \
-                               from codec, please specify it with: \
-                               `%%encoder(...).{codecs = \"...\", ...}`"
-                              name )))))
+        Lazy.from_fun (fun () ->
+            try Lang.to_string (List.assoc "codecs" stream_info)
+            with Not_found -> (
+              match Encoder.(encoder.hls.codec_attrs ()) with
+                | Some attrs -> attrs
+                | None -> (
+                    try Encoder.iso_base_file_media_file_format format
+                    with Not_found ->
+                      raise
+                        (Error.Invalid_value
+                           ( fmt,
+                             Printf.sprintf
+                               "Stream info for stream %S cannot be inferred \
+                                from codec, please specify it with: \
+                                `%%encoder(...).{codecs = \"...\", ...}`"
+                               name )))))
       in
       let extname =
         try Lang.to_string (List.assoc "extname" stream_info)
@@ -524,14 +524,16 @@ class hls_output p =
       in
       let extname = if extname = "mp4" then "m4s" else extname in
       let video_size =
-        lazy
-          (try
-             let w, h = Lang.to_product (List.assoc "video_size" stream_info) in
-             Some (Lang.to_int w, Lang.to_int h)
-           with Not_found -> (
-             match Encoder.(encoder.hls.video_size ()) with
-               | Some s -> Some s
-               | None -> Encoder.video_size format))
+        Lazy.from_fun (fun () ->
+            try
+              let w, h =
+                Lang.to_product (List.assoc "video_size" stream_info)
+              in
+              Some (Lang.to_int w, Lang.to_int h)
+            with Not_found -> (
+              match Encoder.(encoder.hls.video_size ()) with
+                | Some s -> Some s
+                | None -> Encoder.video_size format))
       in
       let id3_enabled =
         match Lang.to_bool (List.assoc "id3" stream_info) with
@@ -581,17 +583,17 @@ class hls_output p =
     (mk_streams, mk_streams ())
   in
   let x_version =
-    lazy
-      (if
-         List.find_opt
-           (fun s ->
-             match s.current_segment with
-               | Some { init_filename = Some _ } -> true
-               | _ -> false)
-           streams
-         <> None
-       then 7
-       else 3)
+    Lazy.from_fun (fun () ->
+        if
+          List.find_opt
+            (fun s ->
+              match s.current_segment with
+                | Some { init_filename = Some _ } -> true
+                | _ -> false)
+            streams
+          <> None
+        then 7
+        else 3)
   in
   let source = Lang.assoc "" 3 p in
   let main_playlist_filename = Lang.to_string (List.assoc "playlist" p) in

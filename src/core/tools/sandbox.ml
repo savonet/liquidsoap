@@ -84,7 +84,8 @@ let conf_shell_path =
      otherwise."
 
 let has_binary =
-  lazy (Utils.which_opt ~path:(Configure.path ()) conf_binary#get <> None)
+  Lazy.from_fun (fun () ->
+      Utils.which_opt ~path:(Configure.path ()) conf_binary#get <> None)
 
 let () =
   Lifecycle.before_start ~name:"sandbox start" (fun () ->

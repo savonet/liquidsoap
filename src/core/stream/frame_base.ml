@@ -122,7 +122,7 @@ let format_of_channels ~pcm_kind n =
   audio_format ~pcm_kind
     {
       Content_audio.Specs.channel_layout =
-        lazy (Audio_converter.Channel_layout.layout_of_channels n);
+        Lazy.from_val (Audio_converter.Channel_layout.layout_of_channels n);
     }
 
 let add_timed_content ?length content =

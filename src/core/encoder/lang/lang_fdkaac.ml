@@ -45,15 +45,15 @@ let make params =
     ]
   in
   let check_samplerate ~pos i =
-    lazy
-      (let i = Lazy.force i in
-       if not (List.mem i valid_samplerates) then (
-         let err =
-           Printf.sprintf "invalid samplerate value. Possible values: %s"
-             (String.concat ", " (List.map string_of_int valid_samplerates))
-         in
-         Lang_encoder.raise_error ~pos err);
-       i)
+    Lazy.from_fun (fun () ->
+        let i = Lazy.force i in
+        if not (List.mem i valid_samplerates) then (
+          let err =
+            Printf.sprintf "invalid samplerate value. Possible values: %s"
+              (String.concat ", " (List.map string_of_int valid_samplerates))
+          in
+          Lang_encoder.raise_error ~pos err);
+        i)
   in
   let defaults =
     {

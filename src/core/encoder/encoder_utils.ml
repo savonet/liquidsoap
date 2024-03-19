@@ -24,9 +24,9 @@
 let render_mpeg2_timestamp =
   let mpeg2_timestamp_unit = 90000. in
   let frame_len =
-    lazy
-      (Int64.of_float
-         (Frame.seconds_of_main (Lazy.force Frame.size) *. mpeg2_timestamp_unit))
+    Lazy.from_fun (fun () ->
+        Int64.of_float
+          (Frame.seconds_of_main (Lazy.force Frame.size) *. mpeg2_timestamp_unit))
   in
   fun ~frame_position ~sample_position () ->
     let buf = Buffer.create 10 in

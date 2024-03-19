@@ -432,9 +432,9 @@ let string_of_size n =
   else Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
 
 let self_sync_type sources =
-  lazy
-    (if List.exists (fun s -> fst s#self_sync = `Dynamic) sources then `Dynamic
-     else `Static)
+  Lazy.from_fun (fun () ->
+      if List.exists (fun s -> fst s#self_sync = `Dynamic) sources then `Dynamic
+      else `Static)
 
 let self_sync sources =
   let self_sync_type = self_sync_type sources in
@@ -596,6 +596,6 @@ let id3v2_of_metadata ~version m =
   Metadata.ID3v2.make ~version frames
 
 let is_docker =
-  lazy
-    (Sys.unix
-    && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
+  Lazy.from_fun (fun () ->
+      Sys.unix
+      && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)

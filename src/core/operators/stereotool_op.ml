@@ -33,22 +33,22 @@ class stereotool ~field ~handler source =
     inherit Source.operator ~name:"stereotool" [source]
 
     val config =
-      lazy
-        ((* This is computed first to inject some audio data. *)
-         let latency =
-           Frame.seconds_of_audio
-             (Stereotool.latency
-                ~samplerate:(Lazy.force Frame.audio_rate)
-                ~feed_silence:true handler)
-         in
-         {
-           unlincensed_used_features =
-             Stereotool.unlincensed_used_features handler;
-           valid_license = Stereotool.valid_license handler;
-           latency;
-           api_version = Stereotool.api_version handler;
-           software_version = Stereotool.software_version handler;
-         })
+      Lazy.from_fun (fun () ->
+          (* This is computed first to inject some audio data. *)
+          let latency =
+            Frame.seconds_of_audio
+              (Stereotool.latency
+                 ~samplerate:(Lazy.force Frame.audio_rate)
+                 ~feed_silence:true handler)
+          in
+          {
+            unlincensed_used_features =
+              Stereotool.unlincensed_used_features handler;
+            valid_license = Stereotool.valid_license handler;
+            latency;
+            api_version = Stereotool.api_version handler;
+            software_version = Stereotool.software_version handler;
+          })
 
     method config = Lazy.force config
 

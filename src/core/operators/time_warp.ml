@@ -115,7 +115,8 @@ module Buffer = struct
     let control =
       {
         generator =
-          lazy (Generator.create (Lang.to_source source_val)#content_type);
+          Lazy.from_fun (fun () ->
+              Generator.create (Lang.to_source source_val)#content_type);
         lock = Mutex.create ();
         buffering = true;
         abort = false;

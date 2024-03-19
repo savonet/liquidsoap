@@ -89,7 +89,4 @@ val wait_for : ?log:(string -> unit) -> event -> float -> unit
   * This is meant to be used for assertions. *)
 val seems_locked : Mutex.t -> bool
 
-(** Thread-safe equivalent to Lazy.from_fun. *)
-val lazy_cell : (unit -> 'a) -> unit -> 'a
-
 val write_all : ?timeout:float -> Unix.file_descr -> bytes -> unit

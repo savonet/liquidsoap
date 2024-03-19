@@ -58,7 +58,7 @@ type value = Liquidsoap_lang.Value.t = {
 }
 
 and env = (string * value) list
-and lazy_env = (string * value Lazy.t) list
+and lazy_env = (string * value Stdlib.Lazy.t) list
 
 and ffi = Liquidsoap_lang.Value.ffi = {
   ffi_args : (string * string * value option) list;
