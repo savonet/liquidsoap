@@ -898,6 +898,33 @@ def crossfade(
     log(label=id, level=level, x)
   end
 
+  def acceptable_duration(m) =
+    (1. - duration_margin) * m.expected_duration <= m.buffered
+  and
+    m.buffered <= (1. + duration_margin) * m.expected_duration
+  end
+
+  def not_enough_new_data(a, b) =
+    b.buffered < a.buffered
+  end
+
+  def allow_transition(a, b) =
+    if
+      not acceptable_duration(a)
+    or
+      not acceptable_duration(b)
+    or
+      not_enough_new_data(a, b)
+    then
+      log(
+        "Not enough data for crossing: using default transition"
+      )
+      false
+    else
+      true
+    end
+  end
+
   def simple_transition(a, b) =
     list.iter(
       fun (x) ->
@@ -931,23 +958,23 @@ def crossfade(
       }"
     )
 
-    log(
-      "Simple transition: crossed, fade-in, fade-out."
-    )
-    cross.simple(
-      fade_in=fade_in,
-      fade_out=fade_out,
-      initial_fade_in_metadata=b.metadata,
-      initial_fade_out_metadata=a.metadata,
-      a.source,
-      b.source
-    )
-  end
-
-  def acceptable_duration(m) =
-    (1. - duration_margin) * m.expected_duration <= m.buffered
-  and
-    m.buffered <= (1. + duration_margin) * m.expected_duration
+    if
+      allow_transition(a, b)
+    then
+      log(
+        "Simple transition: crossed, fade-in, fade-out."
+      )
+      cross.simple(
+        fade_in=fade_in,
+        fade_out=fade_out,
+        initial_fade_in_metadata=b.metadata,
+        initial_fade_out_metadata=a.metadata,
+        a.source,
+        b.source
+      )
+    else
+      default(a.source, b.source)
+    end
   end
 
   def smart_transition(a, b) =
@@ -984,13 +1011,8 @@ def crossfade(
     )
 
     if
-      not acceptable_duration(a) or not acceptable_duration(b)
+      allow_transition(a, b)
     then
-      log(
-        "Not enough data for crossing: using default transition"
-      )
-      default(a.source, b.source)
-    else
       cross.smart(
         log=log,
         fade_in=fade_in,
@@ -1002,6 +1024,8 @@ def crossfade(
         a,
         b
       )
+    else
+      default(a.source, b.source)
     end
   end
 
