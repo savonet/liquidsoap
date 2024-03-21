@@ -6,5 +6,5 @@ video.frame.rate := 0
 # Now set the audio frame size exactly as required:
 settings.frame.audio.size := 2048
 
-input = input.alsa(bufferize=false)
-output.alsa(bufferize=false,input)
+input = input.alsa()
+output.alsa(input)

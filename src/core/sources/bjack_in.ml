@@ -32,11 +32,9 @@ end)
 
 let sync_source = SyncSource.make ()
 
-class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
-  ~server =
+class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~server =
   let samples_per_frame = AFrame.size () in
   let samples_per_second = Lazy.force Frame.audio_rate in
-  let seconds_per_frame = float samples_per_frame /. float samples_per_second in
   let bytes_per_sample = 2 in
 
   object (self)
@@ -44,22 +42,8 @@ class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
       Start_stop.active_source
         ~name:"input.jack" ~on_start ~on_stop ~fallible ~autostart () as active_source
 
-    inherit! [Bytes.t] IoRing.input ~nb_blocks as ioring
     method seek_source = (self :> Source.source)
     method private can_generate_frame = active_source#started
-
-    initializer
-      self#on_wake_up (fun () ->
-          (* We need to know the number of channels to initialize the ioring. We
-               defer this until the kind is known. *)
-          let blank () =
-            Bytes.make
-              (samples_per_frame * self#audio_channels * bytes_per_sample)
-              '0'
-          in
-          ioring#init blank);
-      self#on_sleep (fun () -> ioring#sleep)
-
     method abort_track = ()
     method remaining = -1
     val mutable sample_freq = samples_per_second
@@ -70,12 +54,15 @@ class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
         (`Dynamic, if device <> None then Some sync_source else None)
       else (`Static, None)
 
-    method close =
+    method stop =
       match device with
         | Some d ->
             Bjack.close d;
             device <- None
         | None -> ()
+
+    initializer self#on_sleep (fun () -> self#stop)
+    method start = ignore self#get_device
 
     method private get_device =
       match device with
@@ -87,8 +74,7 @@ class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
                   ~bits_per_sample:(bytes_per_sample * 8)
                   ~input_channels:self#audio_channels ~output_channels:0
                   ~flags:[] ?server_name
-                  ~ringbuffer_size:
-                    (nb_blocks * samples_per_frame * bytes_per_sample)
+                  ~ringbuffer_size:(samples_per_frame * bytes_per_sample)
                   ~client_name:self#id ()
               with Bjack.Open ->
                 failwith "Could not open JACK device: is the server running?"
@@ -98,26 +84,24 @@ class jack_in ~self_sync ~on_start ~on_stop ~fallible ~autostart ~nb_blocks
             dev
         | Some d -> d
 
-    method private pull_block block =
+    val cache = Strings.Mutable.empty ()
+
+    method private read_data blen =
       let dev = self#get_device in
-      let length = Bytes.length block in
-      let ans = ref (Bjack.read dev length) in
-      while String.length !ans < length do
-        Thread.delay (seconds_per_frame /. 2.);
-        let len = length - String.length !ans in
-        let tmp = Bjack.read dev len in
-        ans := !ans ^ tmp
-      done;
-      String.blit !ans 0 block 0 length
+      while Strings.Mutable.length cache < blen do
+        Strings.Mutable.add cache (Bjack.read dev blen)
+      done
 
     method private generate_frame =
       let length = Lazy.force Frame.size in
+      let alen = Frame.audio_of_main length in
+      let blen = Audio.S16LE.size self#audio_channels alen in
+      self#read_data blen;
+      let pcm = Strings.Mutable.(to_string (sub cache 0 blen)) in
+      Strings.Mutable.drop cache blen;
       let frame = Frame.create ~length self#content_type in
       let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
-      let buffer = ioring#get_block in
-      Audio.S16LE.to_audio
-        (Bytes.unsafe_to_string buffer)
-        0 buf 0 samples_per_frame;
+      Audio.S16LE.to_audio pcm 0 buf 0 alen;
       Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
 
     method! reset = ()
@@ -135,10 +119,6 @@ let _ =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Mark the source as being synchronized by the jack server." );
-        ( "buffer_size",
-          Lang.int_t,
-          Some (Lang.int 2),
-          Some "Set buffer size, in frames. Must be >= 1." );
         ( "server",
           Lang.string_t,
           Some (Lang.string ""),
@@ -158,8 +138,6 @@ let _ =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
-      (new jack_in
-         ~self_sync ~nb_blocks ~server ~fallible ~on_start ~on_stop ~autostart
+      (new jack_in ~self_sync ~server ~fallible ~on_start ~on_stop ~autostart
         :> Start_stop.active_source))

@@ -277,10 +277,6 @@ let _ =
   Lang.add_operator ~base:Modules.output "alsa"
     (Output.proto
     @ [
-        ( "bufferize",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Bufferize output" );
         ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
@@ -295,7 +291,6 @@ let _ =
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
-      let bufferize = e Lang.to_bool "bufferize" in
       let self_sync = e Lang.to_bool "self_sync" in
       let device = e Lang.to_string "device" in
       let source = List.assoc "" p in
@@ -310,16 +305,10 @@ let _ =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      if bufferize then
-        (new Alsa_out.output
-           ~self_sync ~start ~on_start ~on_stop ~infallible ~register_telnet
-           device source
-          :> Output.output)
-      else
-        (new output
-           ~self_sync ~infallible ~register_telnet ~start ~on_start ~on_stop
-           device source
-          :> Output.output))
+      (new output
+         ~self_sync ~infallible ~register_telnet ~start ~on_start ~on_stop
+         device source
+        :> Output.output))
 
 let _ =
   let return_t =
@@ -329,7 +318,6 @@ let _ =
   Lang.add_operator ~base:Modules.input "alsa"
     (Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
-        ("bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input");
         ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
@@ -343,7 +331,6 @@ let _ =
     ~descr:"Stream from an ALSA input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
-      let bufferize = e Lang.to_bool "bufferize" in
       let self_sync = e Lang.to_bool "self_sync" in
       let device = e Lang.to_string "device" in
       let start = Lang.to_bool (List.assoc "start" p) in
@@ -356,9 +343,5 @@ let _ =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      if bufferize then
-        (new Alsa_in.mic ~self_sync ~fallible ~on_start ~on_stop ~start device
-          :> Start_stop.active_source)
-      else
-        (new input ~self_sync ~on_start ~on_stop ~fallible ~start device
-          :> Start_stop.active_source))
+      (new input ~self_sync ~on_start ~on_stop ~fallible ~start device
+        :> Start_stop.active_source))

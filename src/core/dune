@@ -134,7 +134,6 @@
   image_decoder
   image_plug
   insert_metadata
-  ioRing
   json
   keyboard
   lang
@@ -295,7 +294,7 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules alsa_in alsa_out alsa_io alsa_settings))
+ (modules alsa_io alsa_settings))
 
 (library
  (name liquidsoap_ao)

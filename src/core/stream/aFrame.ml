@@ -32,3 +32,11 @@ let duration () = Lazy.force duration
 let size () = sot (Lazy.force size)
 let position t = sot (position t)
 let rms b off len = Audio.Analyze.rms (pcm b) off len
+
+let s16le b =
+  let pcm = Content.Audio.get_data (content b) in
+  let channels = Array.length pcm in
+  let len = position b in
+  let buf = Bytes.create (Audio.S16LE.size channels len) in
+  Audio.S16LE.of_audio pcm 0 buf 0 len;
+  Bytes.unsafe_to_string buf

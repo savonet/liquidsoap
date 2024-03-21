@@ -331,7 +331,7 @@ We provide a default operator named `cross.smart` which may be suitable for most
 
 ```
 
-## Alsa unbuffered output
+## Alsa output delay
 
 You can use [Liquidsoap](index.html) to capture and play through alsa with a minimal delay. This particularly useful when you want to run a live show from your computer. You can then directly capture and play audio through external speakers without delay for the DJ !
 
@@ -340,7 +340,7 @@ This configuration is not trivial since it relies on your hardware. Some hardwar
 First launch liquidsoap as a one line program
 
 ```
-liquidsoap -v --debug 'input.alsa(bufferize=false)'
+liquidsoap -v --debug 'input.alsa()'
 ```
 
 Unless you're lucky, the logs are full of lines like the following:
@@ -361,6 +361,6 @@ The setting will be acknowledged in the log as follows:
 Targeting 'frame.audio.size': 2048 audio samples = 2048 ticks.
 ```
 
-If everything goes right, you may hear on your output the captured sound without any delay! If you want to test the difference, just run the same script with `bufferize=true`.
+If everything goes right, you may hear on your output the captured sound without any delay!
 
 If you experience problems it might be a good idea to double the value of the frame size. This increases stability, but also latency.
