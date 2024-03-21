@@ -56,7 +56,7 @@ let set_field =
       (Frame_base.Fields.add field content (Atomic.get gen.content))
   in
   fun gen field content ->
-    Tutils.mutexify gen.lock (add_field gen field content) ()
+    Mutex.mutexify gen.lock (add_field gen field content) ()
 
 let max_length { max_length } = Atomic.get max_length
 let content_type { content_type } = content_type
@@ -106,7 +106,7 @@ let _truncate gen len =
          Content.truncate content len)
        (Atomic.get gen.content))
 
-let truncate gen = Tutils.mutexify gen.lock (_truncate gen)
+let truncate gen = Mutex.mutexify gen.lock (_truncate gen)
 
 let _slice gen len =
   let content = Atomic.get gen.content in
@@ -119,7 +119,7 @@ let _slice gen len =
   _truncate gen len;
   slice
 
-let slice gen = Tutils.mutexify gen.lock (_slice gen)
+let slice gen = Mutex.mutexify gen.lock (_slice gen)
 let clear gen = Atomic.set gen.content (make_content ~length:0 gen.content_type)
 
 let _set_metadata gen =
@@ -136,7 +136,7 @@ let _add_metadata ?pos gen m =
   let pos = default_pos gen pos in
   _set_metadata gen ((pos, m) :: get_metadata gen)
 
-let add_metadata ?pos gen = Tutils.mutexify gen.lock (_add_metadata ?pos gen)
+let add_metadata ?pos gen = Mutex.mutexify gen.lock (_add_metadata ?pos gen)
 
 let _set_track_marks gen =
   Content.Track_marks.set_data
@@ -153,7 +153,7 @@ let _add_track_mark ?pos gen =
   _set_track_marks gen (pos :: get_track_marks gen)
 
 let add_track_mark ?pos gen =
-  Tutils.mutexify gen.lock (fun () -> _add_track_mark ?pos gen) ()
+  Mutex.mutexify gen.lock (fun () -> _add_track_mark ?pos gen) ()
 
 let _put gen field new_content =
   (match field with
@@ -180,13 +180,13 @@ let _put gen field new_content =
     _truncate gen (buffered_length - max_length))
 
 let put gen field =
-  Tutils.mutexify gen.lock (fun content -> _put gen field content)
+  Mutex.mutexify gen.lock (fun content -> _put gen field content)
 
 let peek gen = Atomic.get gen.content
 let peek_media gen = media_content gen
 
 let append ?(offset = 0) ?length gen =
-  Tutils.mutexify gen.lock (fun frame ->
+  Mutex.mutexify gen.lock (fun frame ->
       let pos = _length gen in
       let length = Option.value ~default:(Frame_base.position frame) length in
       Atomic.set gen.content

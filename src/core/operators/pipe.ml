@@ -79,7 +79,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       if not !header_read then (
         let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
         header_read := true;
-        Tutils.mutexify mutex
+        Mutex.mutexify mutex
           (fun () ->
             if Wav_aiff.channels wav <> self#audio_channels then
               failwith "Invalid channels from pipe process!";
@@ -100,7 +100,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         Generator.put self#buffer Frame.Fields.audio
           (Content.Audio.lift_data ~offset ~length:duration data);
         let to_replay =
-          Tutils.mutexify mutex
+          Mutex.mutexify mutex
             (fun () ->
               let pending = !replay_pending in
               let to_replay, pending =
@@ -193,12 +193,12 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         if ret = len then (
           let action =
             if next <> `Nothing && replay_delay >= 0 then (
-              Tutils.mutexify mutex
+              Mutex.mutexify mutex
                 (fun () -> replay_pending := (0, next) :: !replay_pending)
                 ();
               `Continue)
             else (
-              Tutils.mutexify mutex (fun () -> next_stop := next) ();
+              Mutex.mutexify mutex (fun () -> next_stop := next) ();
               if next <> `Nothing then `Stop else `Continue)
           in
           ignore (Queue.take to_write);
@@ -215,7 +215,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       `Continue
 
     method private on_stop =
-      Tutils.mutexify mutex (fun e ->
+      Mutex.mutexify mutex (fun e ->
           let ret = !next_stop in
           next_stop := `Nothing;
           header_read := false;
@@ -259,7 +259,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
     method! abort_track = source#abort_track
 
     method! sleep =
-      Tutils.mutexify mutex
+      Mutex.mutexify mutex
         (fun () ->
           try
             next_stop := `Sleep;

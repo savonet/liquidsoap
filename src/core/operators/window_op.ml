@@ -52,7 +52,7 @@ class window mode duration source =
           value <- Array.make channels 0.)
 
     val m = Mutex.create ()
-    method value = Tutils.mutexify m (fun () -> value) ()
+    method value = Mutex.mutexify m (fun () -> value) ()
 
     method private generate_frame =
       let frame = source#get_frame in
@@ -84,7 +84,7 @@ class window mode duration source =
                         v)
             in
             acc_dur <- 0;
-            Tutils.mutexify m (fun () -> value <- value') ())
+            Mutex.mutexify m (fun () -> value <- value') ())
         done);
       frame
   end
