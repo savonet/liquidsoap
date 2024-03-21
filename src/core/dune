@@ -207,7 +207,6 @@
   request_dynamic
   resample
   rms_smooth
-  rqueue
   runtime_error
   sandbox
   sequence
