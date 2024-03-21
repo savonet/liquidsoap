@@ -64,7 +64,11 @@ module Video = struct
     lift_data
       {
         length = Frame_settings.main_of_video 1;
-        params = { height = Some (lazy height); width = Some (lazy width) };
+        params =
+          {
+            height = Some (Lazy.from_val height);
+            width = Some (Lazy.from_val width);
+          };
         data = [(0, img)];
       }
 
@@ -98,8 +102,8 @@ module Video = struct
     {
       params =
         {
-          Content_video.Specs.width = Some (lazy width);
-          height = Some (lazy height);
+          Content_video.Specs.width = Some (Lazy.from_val width);
+          height = Some (Lazy.from_val height);
         };
       width;
       height;

@@ -387,18 +387,6 @@ let cleanup () =
   join_all ();
   log#important "Main threads terminated."
 
-(** Thread-safe lazy cell. *)
-let lazy_cell f =
-  let lock = Mutex.create () in
-  let c = ref None in
-  mutexify lock (fun () ->
-      match !c with
-        | Some v -> v
-        | None ->
-            let v = f () in
-            c := Some v;
-            v)
-
 let write_all ?timeout fd b =
   let rec f ofs len =
     (match timeout with

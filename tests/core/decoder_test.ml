@@ -4,14 +4,17 @@ let () =
 
 let () =
   let mono =
-    Content.(Audio.lift_params { Content.Audio.channel_layout = lazy `Mono })
+    Content.(
+      Audio.lift_params { Content.Audio.channel_layout = Lazy.from_val `Mono })
   in
   let stereo =
-    Content.(Audio.lift_params { Content.Audio.channel_layout = lazy `Stereo })
+    Content.(
+      Audio.lift_params { Content.Audio.channel_layout = Lazy.from_val `Stereo })
   in
   let five_point_one =
     Content.(
-      Audio.lift_params { Content.Audio.channel_layout = lazy `Five_point_one })
+      Audio.lift_params
+        { Content.Audio.channel_layout = Lazy.from_val `Five_point_one })
   in
   let canvas = Content.default_format Content_video.kind in
   let midi = Content.(Midi.lift_params { Content.Midi.channels = 1 }) in

@@ -93,7 +93,7 @@ let load_libs =
   Lifecycle.load ();
   (* Register settings module. Needs to be done last to make sure every
      dependent OCaml module has been linked. *)
-  Lazy.force Builtins_settings.settings_module;
+  Stdlib.Lazy.force Builtins_settings.settings_module;
   let loaded = ref false in
   fun () ->
     if !stdlib && not !loaded then (

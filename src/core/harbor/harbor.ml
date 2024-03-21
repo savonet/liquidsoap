@@ -792,7 +792,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let { handler; _ } = find_handler port in
     let f (verb, regex, handler) =
       let rex = regex.Liquidsoap_lang.Builtins_regexp.regexp in
-      let sub = lazy (try Some (Re.Pcre.exec ~rex base_uri) with _ -> None) in
+      let sub =
+        Lazy.from_fun (fun () ->
+            try Some (Re.Pcre.exec ~rex base_uri) with _ -> None)
+      in
       if (verb :> verb) = hmethod && Lazy.force sub <> None then (
         let sub = Option.get (Lazy.force sub) in
         let groups =

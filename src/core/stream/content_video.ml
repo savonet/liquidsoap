@@ -107,9 +107,17 @@ module Specs = struct
   let parse_param label value =
     match label with
       | "width" ->
-          Some { width = Some (lazy (int_of_string value)); height = None }
+          Some
+            {
+              width = Some (Lazy.from_val (int_of_string value));
+              height = None;
+            }
       | "height" ->
-          Some { width = None; height = Some (lazy (int_of_string value)) }
+          Some
+            {
+              width = None;
+              height = Some (Lazy.from_val (int_of_string value));
+            }
       | _ -> None
 
   let merge p p' =
@@ -164,8 +172,8 @@ let lift_canvas ?(offset = 0) ?length data =
       | [] -> { Specs.width = None; height = None }
       | (_, i) :: _ ->
           {
-            Specs.width = Some (lazy (Video.Canvas.Image.width i));
-            height = Some (lazy (Video.Canvas.Image.height i));
+            Specs.width = Some (Lazy.from_val (Video.Canvas.Image.width i));
+            height = Some (Lazy.from_val (Video.Canvas.Image.height i));
           }
   in
   let length =

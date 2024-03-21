@@ -381,12 +381,12 @@ let apply_filter ~args_parser ~filter ~sources_t p =
         ( "output",
           let audio =
             List.map
-              (fun p -> Audio.to_value (`Output (lazy p)))
+              (fun p -> Audio.to_value (`Output (Lazy.from_val p)))
               filter.io.outputs.audio
           in
           let video =
             List.map
-              (fun p -> Video.to_value (`Output (lazy p)))
+              (fun p -> Video.to_value (`Output (Lazy.from_val p)))
               filter.io.outputs.video
           in
           if List.mem `Dynamic_outputs flags then
@@ -420,30 +420,30 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                 else Lang.assoc "" (idx + ofs + 1) p
               in
               Queue.push graph.init
-                (lazy
-                  (List.iteri
-                     (fun idx input ->
-                       let output =
-                         match
-                           Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx)
-                         with
-                           | `Output output -> Lazy.force output
-                           | _ -> assert false
-                       in
-                       link output input)
-                     filter.io.inputs.audio;
-                   List.iteri
-                     (fun idx input ->
-                       let output =
-                         match
-                           Video.of_value
-                             (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
-                         with
-                           | `Output output -> output
-                           | _ -> assert false
-                       in
-                       link (Lazy.force output) input)
-                     filter.io.inputs.video));
+                (Lazy.from_fun (fun () ->
+                     List.iteri
+                       (fun idx input ->
+                         let output =
+                           match
+                             Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx)
+                           with
+                             | `Output output -> Lazy.force output
+                             | _ -> assert false
+                         in
+                         link output input)
+                       filter.io.inputs.audio;
+                     List.iteri
+                       (fun idx input ->
+                         let output =
+                           match
+                             Video.of_value
+                               (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
+                           with
+                             | `Output output -> output
+                             | _ -> assert false
+                         in
+                         link (Lazy.force output) input)
+                       filter.io.inputs.video));
               input_set := true;
               Lang.unit) );
       ]
@@ -649,13 +649,14 @@ let _ =
          let args = ref None in
 
          let audio =
-           lazy
-             (let _abuffer =
-                Avfilter.attach ~args:(Option.get !args) ~name Avfilter.abuffer
-                  config
-              in
-              Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
-              List.hd Avfilter.(_abuffer.io.outputs.audio))
+           Lazy.from_fun (fun () ->
+               let _abuffer =
+                 Avfilter.attach ~args:(Option.get !args) ~name Avfilter.abuffer
+                   config
+               in
+               Avfilter.(
+                 Hashtbl.add graph.entries.inputs.audio name s#set_input);
+               List.hd Avfilter.(_abuffer.io.outputs.audio))
          in
 
          Queue.push graph.input_inits (fun () -> Lazy.is_val audio);
@@ -710,19 +711,19 @@ let _ =
 
          let pad = Audio.of_value (Lang.assoc "" 2 p) in
          Queue.push graph.init
-           (lazy
-             (let pad =
-                match pad with
-                  | `Output pad -> Lazy.force pad
-                  | _ -> assert false
-              in
-              let name = uniq_name "abuffersink" in
-              let _abuffersink =
-                Avfilter.attach ~name Avfilter.abuffersink config
-              in
-              Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
-              Avfilter.(
-                Hashtbl.add graph.entries.outputs.audio name s#set_output)));
+           (Lazy.from_fun (fun () ->
+                let pad =
+                  match pad with
+                    | `Output pad -> Lazy.force pad
+                    | _ -> assert false
+                in
+                let name = uniq_name "abuffersink" in
+                let _abuffersink =
+                  Avfilter.attach ~name Avfilter.abuffersink config
+                in
+                Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
+                Avfilter.(
+                  Hashtbl.add graph.entries.outputs.audio name s#set_output)));
 
          (field, (s :> Source.source))));
 
@@ -782,13 +783,14 @@ let _ =
          let args = ref None in
 
          let video =
-           lazy
-             (let _buffer =
-                Avfilter.attach ~args:(Option.get !args) ~name Avfilter.buffer
-                  config
-              in
-              Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
-              List.hd Avfilter.(_buffer.io.outputs.video))
+           Lazy.from_fun (fun () ->
+               let _buffer =
+                 Avfilter.attach ~args:(Option.get !args) ~name Avfilter.buffer
+                   config
+               in
+               Avfilter.(
+                 Hashtbl.add graph.entries.inputs.video name s#set_input);
+               List.hd Avfilter.(_buffer.io.outputs.video))
          in
 
          Queue.push graph.input_inits (fun () -> Lazy.is_val video);
@@ -838,16 +840,19 @@ let _ =
       Queue.push graph.graph_outputs (s :> Source.source);
 
       Queue.push graph.init
-        (lazy
-          (let pad =
-             match Video.of_value (Lang.assoc "" 2 p) with
-               | `Output p -> Lazy.force p
-               | _ -> assert false
-           in
-           let name = uniq_name "buffersink" in
-           let _buffersink = Avfilter.attach ~name Avfilter.buffersink config in
-           Avfilter.(link pad (List.hd _buffersink.io.inputs.video));
-           Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output)));
+        (Lazy.from_fun (fun () ->
+             let pad =
+               match Video.of_value (Lang.assoc "" 2 p) with
+                 | `Output p -> Lazy.force p
+                 | _ -> assert false
+             in
+             let name = uniq_name "buffersink" in
+             let _buffersink =
+               Avfilter.attach ~name Avfilter.buffersink config
+             in
+             Avfilter.(link pad (List.hd _buffersink.io.inputs.video));
+             Avfilter.(
+               Hashtbl.add graph.entries.outputs.video name s#set_output)));
 
       (field, (s :> Source.source)))
 
@@ -892,36 +897,40 @@ let _ =
       unify_clocks ~clock:output_clock graph.graph_outputs;
 
       Queue.push graph.init
-        (lazy
-          (log#info "Initializing graph";
-           let filter = Avfilter.launch config in
-           Avfilter.(
-             List.iter
-               (fun (name, input) ->
-                 let set_input = Hashtbl.find graph.entries.inputs.audio name in
-                 set_input input)
-               filter.inputs.audio);
-           Avfilter.(
-             List.iter
-               (fun (name, input) ->
-                 let set_input = Hashtbl.find graph.entries.inputs.video name in
-                 set_input input)
-               filter.inputs.video);
-           Avfilter.(
-             List.iter
-               (fun (name, output) ->
-                 let set_output =
-                   Hashtbl.find graph.entries.outputs.audio name
-                 in
-                 set_output output)
-               filter.outputs.audio);
-           Avfilter.(
-             List.iter
-               (fun (name, output) ->
-                 let set_output =
-                   Hashtbl.find graph.entries.outputs.video name
-                 in
-                 set_output output)
-               filter.outputs.video)));
+        (Lazy.from_fun (fun () ->
+             log#info "Initializing graph";
+             let filter = Avfilter.launch config in
+             Avfilter.(
+               List.iter
+                 (fun (name, input) ->
+                   let set_input =
+                     Hashtbl.find graph.entries.inputs.audio name
+                   in
+                   set_input input)
+                 filter.inputs.audio);
+             Avfilter.(
+               List.iter
+                 (fun (name, input) ->
+                   let set_input =
+                     Hashtbl.find graph.entries.inputs.video name
+                   in
+                   set_input input)
+                 filter.inputs.video);
+             Avfilter.(
+               List.iter
+                 (fun (name, output) ->
+                   let set_output =
+                     Hashtbl.find graph.entries.outputs.audio name
+                   in
+                   set_output output)
+                 filter.outputs.audio);
+             Avfilter.(
+               List.iter
+                 (fun (name, output) ->
+                   let set_output =
+                     Hashtbl.find graph.entries.outputs.video name
+                   in
+                   set_output output)
+                 filter.outputs.video)));
       graph.config <- None;
       ret)
