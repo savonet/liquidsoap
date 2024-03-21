@@ -10,7 +10,7 @@ log.file.set(false)
 s = input.http("http://wwoz-sc.streamguys1.com/wwoz-hi.mp3")
 
 # An output to the local soundcard
-output.ao(fallible=true,s)
+output.ao(self_sync=false, fallible=true, s)
 
 # An output to a local file, encoding
 # in ogg/vorbis+ogg/theora
@@ -18,6 +18,7 @@ output.ao(fallible=true,s)
 #            fallible=true,
 #            "z:\tmp\output.ogv",
 #            s)
+
 
 # An icecast output in AAC+ format
 #output.icecast(%aacplus(bitrate=32),
