@@ -657,13 +657,13 @@ let () =
   if not Sys.win32 then (
     let umask_m = Mutex.create () in
     let get_umask =
-      Tutils.mutexify umask_m (fun () ->
+      Mutex.mutexify umask_m (fun () ->
           let umask = Unix.umask 0 in
           ignore (Unix.umask umask);
           umask)
     in
     let set_umask =
-      Tutils.mutexify umask_m (fun umask -> ignore (Unix.umask umask))
+      Mutex.mutexify umask_m (fun umask -> ignore (Unix.umask umask))
     in
     let umask =
       Lang.add_builtin ~base:file "umask" ~category:`File

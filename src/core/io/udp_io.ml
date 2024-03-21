@@ -41,11 +41,11 @@ module Tutils = struct
     let lock = Mutex.create () in
     let should_stop = ref false in
     let has_stopped = ref false in
-    let kill = mutexify lock (fun () -> should_stop := true) in
+    let kill = Mutex.mutexify lock (fun () -> should_stop := true) in
     let wait () = wait cond lock (fun () -> !has_stopped) in
-    let should_stop = mutexify lock (fun () -> !should_stop) in
+    let should_stop = Mutex.mutexify lock (fun () -> !should_stop) in
     let has_stopped =
-      mutexify lock (fun () ->
+      Mutex.mutexify lock (fun () ->
           has_stopped := true;
           Condition.signal cond)
     in

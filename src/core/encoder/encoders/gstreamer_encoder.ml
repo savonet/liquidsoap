@@ -42,8 +42,8 @@ let encoder ext =
   (* Here "samples" are the number of buffers available in the GStreamer
      appsink *)
   let samples = ref 0 in
-  let decr_samples = Tutils.mutexify mutex (fun () -> decr samples) in
-  let incr_samples = Tutils.mutexify mutex (fun () -> incr samples) in
+  let decr_samples = Mutex.mutexify mutex (fun () -> decr samples) in
+  let incr_samples = Mutex.mutexify mutex (fun () -> incr samples) in
   let on_sample () = incr_samples () in
   let gst =
     let pipeline =

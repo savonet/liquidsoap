@@ -69,9 +69,6 @@ val scheduler : priority Duppy.scheduler
   * and after the call. *)
 val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 
-(** Make a function work in critical section, protected by a given lock. *)
-val mutexify : Mutex.t -> ('a -> 'b) -> 'a -> 'b
-
 exception Timeout of float
 
 type event =

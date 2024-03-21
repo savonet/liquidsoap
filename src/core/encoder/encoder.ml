@@ -351,8 +351,8 @@ let get_factory fmt =
       in
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in
-      let insert_metadata = Tutils.mutexify m insert_metadata in
-      let header = Tutils.mutexify m header in
+      let insert_metadata = Mutex.mutexify m insert_metadata in
+      let header = Mutex.mutexify m header in
       let {
         init;
         init_encode;
@@ -365,22 +365,22 @@ let get_factory fmt =
         hls
       in
       let init ?id3_enabled ?id3_version () =
-        Tutils.mutexify m (fun () -> init ?id3_enabled ?id3_version ()) ()
+        Mutex.mutexify m (fun () -> init ?id3_enabled ?id3_version ()) ()
       in
       let init_encode frame ofs len =
-        Tutils.mutexify m (fun () -> init_encode frame ofs len) ()
+        Mutex.mutexify m (fun () -> init_encode frame ofs len) ()
       in
       let split_encode frame ofs len =
-        Tutils.mutexify m (fun () -> split_encode frame ofs len) ()
+        Mutex.mutexify m (fun () -> split_encode frame ofs len) ()
       in
-      let codec_attrs = Tutils.mutexify m codec_attrs in
+      let codec_attrs = Mutex.mutexify m codec_attrs in
       let insert_id3 ~frame_position ~sample_position meta =
-        Tutils.mutexify m
+        Mutex.mutexify m
           (fun () -> insert_id3 ~frame_position ~sample_position meta)
           ()
       in
-      let bitrate = Tutils.mutexify m bitrate in
-      let video_size = Tutils.mutexify m video_size in
+      let bitrate = Mutex.mutexify m bitrate in
+      let video_size = Mutex.mutexify m video_size in
       let hls =
         {
           init;
@@ -393,7 +393,7 @@ let get_factory fmt =
         }
       in
       let encode frame ofs len =
-        Tutils.mutexify m (fun () -> encode frame ofs len) ()
+        Mutex.mutexify m (fun () -> encode frame ofs len) ()
       in
-      let stop = Tutils.mutexify m stop in
+      let stop = Mutex.mutexify m stop in
       { insert_metadata; hls; encode; stop; header }

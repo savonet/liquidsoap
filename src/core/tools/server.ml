@@ -143,7 +143,7 @@ let prefix_ns cmd ns = to_string (ns @ [cmd])
 let add ~ns ?usage ~descr cmd handler =
   let usage = match usage with None -> cmd | Some u -> u in
   let usage = prefix_ns usage ns in
-  Tutils.mutexify lock
+  Mutex.mutexify lock
     (fun () ->
       let name = prefix_ns cmd ns in
       if Hashtbl.mem commands name then
@@ -156,7 +156,7 @@ let add ~ns ?usage ~descr cmd handler =
 
 (* ... and maybe remove them. *)
 let remove ~ns cmd =
-  Tutils.mutexify lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns)) ()
+  Mutex.mutexify lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns)) ()
 
 (* That's if you want to have your command wait. *)
 type condition = {
@@ -217,7 +217,7 @@ let read ~after payload = raise (Read { payload; after })
 (* The usage string sums up all the commands... *)
 let usage () =
   let l =
-    Tutils.mutexify lock
+    Mutex.mutexify lock
       (fun () -> Hashtbl.fold (fun k v l -> (k, v) :: l) commands [])
       ()
   in
@@ -238,7 +238,7 @@ let () =
         let args =
           Pcre.substitute ~rex:(Pcre.regexp "\\s*") ~subst:(fun _ -> "") args
         in
-        let _, us, d = Tutils.mutexify lock (Hashtbl.find commands) args in
+        let _, us, d = Mutex.mutexify lock (Hashtbl.find commands) args in
         Printf.sprintf "Usage: %s\r\n  %s" us d
       with Not_found ->
         (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
@@ -254,7 +254,7 @@ let exec s =
     with Not_found -> (s, "")
   in
   try
-    let command, _, _ = Tutils.mutexify lock (Hashtbl.find commands) s in
+    let command, _, _ = Mutex.mutexify lock (Hashtbl.find commands) s in
     command args
   with
     | Server_wait opts -> raise (Server_wait opts)

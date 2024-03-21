@@ -126,7 +126,7 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
     val mutex = Mutex.create ()
 
     method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
-      Tutils.mutexify mutex
+      Mutex.mutexify mutex
 
     method virtual fallible : bool
     method source_type : source_type = `Passive
