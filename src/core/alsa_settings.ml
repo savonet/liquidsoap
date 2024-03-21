@@ -45,12 +45,6 @@ let error_translator e =
 let () = Printexc.register_printer error_translator
 let conf = Dtools.Conf.void ~p:(Configure.conf#plug "alsa") "ALSA configuration"
 
-let conf_buffer_length =
-  Dtools.Conf.int
-    ~p:(conf#plug "buffer_length")
-    ~d:1 "Buffer size, in frames"
-    ~comments:["This is only used for buffered ALSA I/O, and affects latency."]
-
 let periods =
   Dtools.Conf.int ~p:(conf#plug "periods") ~d:0 "Number of periods"
     ~comments:["Set to 0 to disable this setting and use ALSA's default."]

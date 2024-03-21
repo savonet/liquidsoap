@@ -20,14 +20,12 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** Output using ocaml-jack. *)
 
 let bytes_per_sample = 2
 
-class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start
-  ~nb_blocks ~server source =
+class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start ~server
+  source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
   let samples_per_second = Lazy.force Frame.audio_rate in
@@ -36,17 +34,6 @@ class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start
       Output.output
         ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.jack"
           ~output_kind:"output.jack" source true
-
-    inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
-
-    initializer
-      self#on_wake_up (fun () ->
-          let blank () =
-            Bytes.make
-              (samples_per_frame * self#audio_channels * bytes_per_sample)
-              '0'
-          in
-          ioring#init blank)
 
     val mutable device = None
 
@@ -66,8 +53,7 @@ class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start
                 Bjack.open_t ~rate:samples_per_second
                   ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:0
                   ~output_channels:self#audio_channels ~flags:[] ?server_name
-                  ~ringbuffer_size:
-                    (nb_blocks * samples_per_frame * bytes_per_sample)
+                  ~ringbuffer_size:(samples_per_frame * bytes_per_sample)
                   ~client_name:self#id ()
               with Bjack.Open ->
                 failwith "Could not open JACK device: is the server running?"
@@ -78,10 +64,19 @@ class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start
             dev
         | Some d -> d
 
-    method push_block data =
+    method start = ignore self#get_device
+
+    method stop =
+      match device with
+        | Some d ->
+            Bjack.close d;
+            device <- None
+        | None -> ()
+
+    method send_frame frame =
       let dev = self#get_device in
-      let len = Bytes.length data in
-      let data = Bytes.unsafe_to_string data in
+      let data = AFrame.s16le frame in
+      let len = String.length data in
       let remaining = ref (len - Bjack.write dev data) in
       while !remaining > 0 do
         Thread.delay (seconds_per_frame /. 2.);
@@ -89,19 +84,6 @@ class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start
         let written = Bjack.write dev tmp in
         remaining := !remaining - written
       done
-
-    method close =
-      match device with
-        | Some d ->
-            Bjack.close d;
-            device <- None
-        | None -> ()
-
-    method send_frame wav =
-      let push data =
-        Audio.S16LE.of_audio (AFrame.pcm wav) 0 data 0 (AFrame.size ())
-      in
-      ioring#put_block push
 
     method! reset = ()
   end
@@ -118,10 +100,6 @@ let _ =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated bjack clock." );
-        ( "buffer_size",
-          Lang.int_t,
-          Some (Lang.int 2),
-          Some "Set buffer size, in frames." );
         ( "server",
           Lang.string_t,
           Some (Lang.string ""),
@@ -133,7 +111,6 @@ let _ =
     (fun p ->
       let source = List.assoc "" p in
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
-      let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let server = Lang.to_string (List.assoc "server" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
@@ -146,6 +123,6 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       (new output
-         ~self_sync ~infallible ~register_telnet ~on_start ~on_stop ~nb_blocks
-         ~server source
+         ~self_sync ~infallible ~register_telnet ~on_start ~on_stop ~server
+         source
         :> Output.output))

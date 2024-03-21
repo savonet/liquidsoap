@@ -27,6 +27,10 @@ val position : t -> int
   * if frame content is not pcm. *)
 val pcm : t -> Content.Audio.data
 
+(** Get content in S16LE format. Raises [Content.Invalid]
+  * if frame content is not pcm. *)
+val s16le : t -> string
+
 (** {2 Sound processing} *)
 
 (** RMS (root mean square) of a portion of a frame. *)

@@ -148,8 +148,7 @@ liquidsoap 'output.alsa(input.alsa())'
 ```
 
 ```liquidsoap
-liquidsoap 'output.alsa(bufferize = false,
-                        input.alsa(bufferize = false))'
+liquidsoap 'output.alsa(input.alsa())'
 ```
 
 ### Other examples

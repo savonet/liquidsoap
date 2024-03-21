@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** Output using ao lib. *)
 
 open Ao
@@ -34,9 +32,8 @@ end)
 
 let sync_source = SyncSource.make ()
 
-class output ~self_sync ~nb_blocks ~driver ~register_telnet ~infallible
-  ~on_start ~on_stop ~options ?channels_matrix source start =
-  let samples_per_frame = AFrame.size () in
+class output ~self_sync ~driver ~register_telnet ~infallible ~on_start ~on_stop
+  ~options ?channels_matrix source start =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let bytes_per_sample = 2 in
   object (self)
@@ -44,17 +41,6 @@ class output ~self_sync ~nb_blocks ~driver ~register_telnet ~infallible
       Output.output
         ~register_telnet ~infallible ~on_start ~on_stop ~name:"ao"
           ~output_kind:"output.ao" source start
-
-    inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
-
-    initializer
-      self#on_wake_up (fun () ->
-          let blank () =
-            Bytes.make
-              (samples_per_frame * self#audio_channels * bytes_per_sample)
-              '0'
-          in
-          ioring#init blank)
 
     val mutable device = None
 
@@ -67,8 +53,6 @@ class output ~self_sync ~nb_blocks ~driver ~register_telnet ~infallible
       match device with
         | Some d -> d
         | None ->
-            (* Wait for things to settle... TODO I don't need that! *)
-            Thread.delay (5. *. Lazy.force Frame.duration);
             let driver =
               if driver = "" then get_default_driver () else find_driver driver
             in
@@ -82,7 +66,9 @@ class output ~self_sync ~nb_blocks ~driver ~register_telnet ~infallible
             device <- Some dev;
             dev
 
-    method close =
+    method start = ignore self#get_device
+
+    method stop =
       match device with
         | Some d ->
             Ao.close d;
@@ -93,15 +79,7 @@ class output ~self_sync ~nb_blocks ~driver ~register_telnet ~infallible
       let dev = self#get_device in
       play dev (Bytes.unsafe_to_string data)
 
-    method send_frame wav =
-      if not (Frame.is_partial wav) then (
-        let push data =
-          let pcm = AFrame.pcm wav in
-          assert (Array.length pcm = self#audio_channels);
-          Audio.S16LE.of_audio pcm 0 data 0 (Audio.length pcm)
-        in
-        ioring#put_block push)
-
+    method send_frame frame = play self#get_device (AFrame.s16le frame)
     method! reset = ()
   end
 
@@ -125,10 +103,6 @@ let _ =
           Lang.string_t,
           Some (Lang.string ""),
           Some "Output channels matrix, \"\" for AO's default." );
-        ( "buffer_size",
-          Lang.int_t,
-          Some (Lang.int 2),
-          Some "Set buffer size, in frames." );
         ( "options",
           Lang.metadata_t,
           Some (Lang.list []),
@@ -140,7 +114,6 @@ let _ =
     (fun p ->
       let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let driver = Lang.to_string (List.assoc "driver" p) in
-      let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
       let options =
         List.map
           (fun x ->
@@ -165,6 +138,6 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~self_sync ~nb_blocks ~driver ~infallible ~register_telnet ~on_start
-         ~on_stop ?channels_matrix ~options source start
+         ~self_sync ~driver ~infallible ~register_telnet ~on_start ~on_stop
+         ?channels_matrix ~options source start
         :> Output.output))
