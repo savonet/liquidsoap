@@ -28,7 +28,7 @@ class virtual source ?name ~seek duration =
   let track_size = Option.map Frame.main_of_seconds duration in
   object (self)
     inherit Source.source ?name ()
-    method stype = if track_size = None then `Infallible else `Fallible
+    method fallible = track_size <> None
     val mutable remaining = track_size
     method private can_generate_frame = remaining <> Some 0
 

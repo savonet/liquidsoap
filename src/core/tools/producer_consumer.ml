@@ -32,9 +32,9 @@ type write_frame = write_payload -> unit
  * before we're about to pull from it. *)
 class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   let s = Lang.to_source source in
-  let infallible = s#stype = `Infallible in
+  let infallible = not s#fallible in
   let noop () = () in
-  object (self)
+  object
     inherit
       Output.output
         ~output_kind:name ~register_telnet:false ~infallible ~on_start:noop
@@ -47,11 +47,6 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
     method! reset = ()
     method start = ()
     method stop = write_frame producer_buffer `Flush
-
-    method! can_generate_frame =
-      super#can_generate_frame
-      && (Clock.get self#clock)#is_attached (self :> Source.active_source)
-
     method! output = if always_enabled || output_enabled then super#output
     method private send_frame frame = write_frame producer_buffer (`Frame frame)
   end
@@ -59,19 +54,19 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
 (** The source which produces data by reading the buffer.
     We do NOT want to use [operator] here b/c the [consumers]
     may have different content-kind when this is used in the muxers. *)
-class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
-  let infallible = List.for_all (fun s -> s#stype = `Infallible) consumers in
+class producer ?pos ~check_self_sync ~consumers ~name () =
+  let infallible = List.for_all (fun s -> not s#fallible) consumers in
   let self_sync = Utils.self_sync consumers in
   object (self)
-    inherit Source.source ?pos ~name () as super
+    inherit Source.source ?pos ~name ()
 
-    inherit!
+    inherit
       Child_support.base
-        ?create_known_clock ~check_self_sync
+        ~check_self_sync
         (List.map (fun s -> Lang.source (s :> Source.source)) consumers)
 
     method self_sync = self_sync ()
-    method stype = if infallible then `Infallible else `Fallible
+    method fallible = not infallible
 
     method! seek len =
       let len = min (Generator.length self#buffer) len in
@@ -93,19 +88,9 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
     method private can_generate_frame =
       List.for_all (fun c -> c#is_ready) consumers
 
-    method! wake_up a =
-      super#wake_up a;
-      List.iter
-        (fun c ->
-          c#set_producer_buffer self#buffer;
-          c#get_ready [(self :> Source.source)])
-        consumers
-
-    method! sleep =
-      super#sleep;
-      List.iter
-        (fun c -> c#leave ?failed_to_start:None (self :> Source.source))
-        consumers
+    initializer
+      self#on_wake_up (fun () ->
+          List.iter (fun c -> c#set_producer_buffer self#buffer) consumers)
 
     method private generate_frame =
       List.iter (fun c -> c#set_output_enabled true) consumers;
@@ -115,7 +100,6 @@ class producer ?pos ?create_known_clock ~check_self_sync ~consumers ~name () =
       do
         self#child_tick
       done;
-      needs_tick <- false;
       List.iter (fun c -> c#set_output_enabled false) consumers;
       Generator.slice self#buffer (Lazy.force Frame.size)
 

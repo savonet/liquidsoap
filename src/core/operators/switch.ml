@@ -115,33 +115,12 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                 children))
       with Not_found -> None
 
-    method stype =
-      if
-        List.exists
-          (fun (d, single, s) ->
-            s.source#stype = `Infallible && (not single) && trivially_true d)
-          children
-      then `Infallible
-      else `Fallible
-
-    val mutable activation = []
-
-    method! private wake_up activator =
-      activation <- (self :> source) :: activator;
-      List.iter
-        (fun { transition; source = s; _ } ->
-          s#get_ready activation;
-          Lang.iter_sources (fun s -> s#get_ready activation) transition)
-        cases
-
-    method! private sleep =
-      List.iter
-        (fun { transition; source = s; _ } ->
-          s#leave (self :> source);
-          Lang.iter_sources (fun s -> s#leave (self :> source)) transition)
-        cases;
-      if self#is_selected_generated then
-        (Option.get selected).effective_source#leave (self :> source)
+    method fallible =
+      not
+        (List.exists
+           (fun (d, single, s) ->
+             (not s.source#fallible) && (not single) && trivially_true d)
+           children)
 
     method get_source ~reselect () =
       match selected with
@@ -165,10 +144,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                     () )
               with
                 | None, None -> ()
-                | Some c, None ->
-                    if c.child.source != c.effective_source then
-                      c.effective_source#leave (self :> source);
-                    selected <- None
+                | Some _, None -> selected <- None
                 | None, Some (predicate, c) ->
                     self#log#important "Switch to %s." c.source#id;
                     let new_source =
@@ -185,7 +161,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                         | _ -> c.source
                     in
                     Typing.(new_source#frame_type <: self#frame_type);
-                    new_source#get_ready activation;
+                    new_source#wake_up;
                     selected <-
                       Some
                         { predicate; child = c; effective_source = new_source }
@@ -197,12 +173,6 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                       match old_selection with
                         | None -> (true, Debug_sources.empty ())
                         | Some old_selection ->
-                            if
-                              old_selection.effective_source
-                              != old_selection.child.source
-                            then
-                              old_selection.effective_source#leave
-                                (self :> source);
                             (false, old_selection.child.source)
                     in
                     self#log#important "Switch to %s with%s transition."
@@ -246,8 +216,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
                     in
                     Typing.(s#frame_type <: self#frame_type);
                     Clock.unify ~pos:self#pos s#clock self#clock;
-                    Clock.collect ();
-                    s#get_ready activation;
+                    s#wake_up;
                     selected <-
                       Some { predicate; child = c; effective_source = s }
             end;

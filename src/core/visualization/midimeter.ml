@@ -26,7 +26,7 @@ open Source
 class midimeter source =
   object
     inherit operator ~name:"midi.inspect" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track

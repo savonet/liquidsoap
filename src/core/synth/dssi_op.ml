@@ -53,7 +53,7 @@ class dssi ?chan plugin descr outputs params source =
   object
     inherit operator ~name:"dssi" [source]
     method seek_source = source#seek_source
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync

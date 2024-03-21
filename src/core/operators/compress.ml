@@ -32,10 +32,9 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
   ~pre_gain ~make_up_gain ~lookahead ~window ~wet ~field (source : source) =
   let lookahead () = Frame.audio_of_seconds (lookahead ()) in
   object (self)
-    inherit operator ~name:"compress" [source] as super
+    inherit operator ~name:"compress" [source]
     val mutable effect = None
-    method! private wake_up a = super#wake_up a
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync

@@ -43,7 +43,7 @@ class virtual base ~self_sync dev mode =
     val mutable write = Pcm.writen_float
     val mutable read = Pcm.readn_float
 
-    method self_sync : Source.self_sync =
+    method self_sync : Clock.self_sync =
       if self_sync then
         (`Dynamic, if pcm <> None then Some Alsa_settings.sync_source else None)
       else (`Static, None)

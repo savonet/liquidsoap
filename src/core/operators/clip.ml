@@ -26,7 +26,7 @@ open Source
 class clip ~field (source : source) =
   object
     inherit operator ~name:"clip" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method private can_generate_frame = source#is_ready

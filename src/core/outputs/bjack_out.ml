@@ -35,18 +35,18 @@ class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start
     inherit
       Output.output
         ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.jack"
-          ~output_kind:"output.jack" source true as super
+          ~output_kind:"output.jack" source true
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
-    method! wake_up a =
-      super#wake_up a;
-      let blank () =
-        Bytes.make
-          (samples_per_frame * self#audio_channels * bytes_per_sample)
-          '0'
-      in
-      ioring#init blank
+    initializer
+      self#on_wake_up (fun () ->
+          let blank () =
+            Bytes.make
+              (samples_per_frame * self#audio_channels * bytes_per_sample)
+              '0'
+          in
+          ioring#init blank)
 
     val mutable device = None
 

@@ -23,7 +23,7 @@
 class on_metadata f s =
   object (self)
     inherit Source.operator ~name:"on_metadata" [s]
-    method stype = s#stype
+    method fallible = s#fallible
     method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining

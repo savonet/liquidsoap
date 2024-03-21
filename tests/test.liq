@@ -1,5 +1,6 @@
 log.level := 4
 settings.log.level.lifecycle := 5
+settings.init.force_start := true
 
 test = ()
 let test.done = ref(false)
@@ -32,7 +33,7 @@ def test.fail(reason=null()) =
   print(
     "Test failed#{reason}"
   )
-  exit(1)
+  shutdown(code=1)
 end
 
 # End test with signal 2
@@ -217,7 +218,6 @@ end
 # through this one.
 def test.check(f) =
   thread.run(delay=0.1, f)
-  output.dummy(blank())
 end
 
 # Add a metric

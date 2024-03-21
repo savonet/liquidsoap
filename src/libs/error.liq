@@ -1,4 +1,5 @@
 let error.assertion = error.register("assertion")
+let error.clock = error.register("clock")
 let error.eval = error.register("eval")
 let error.file = error.register("file")
 let error.file.cross_device = error.register("file.cross_device")

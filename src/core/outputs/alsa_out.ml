@@ -38,15 +38,15 @@ class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start ~start
     inherit
       Output.output
         ~infallible ~register_telnet ~on_stop ~on_start ~name
-          ~output_kind:"output.alsa" source start as super
+          ~output_kind:"output.alsa" source start
 
     inherit [Content.Audio.data] IoRing.output ~nb_blocks as ioring
     val mutable initialized = false
 
-    method! wake_up a =
-      super#wake_up a;
-      let blank () = Audio.make self#audio_channels buffer_length 0. in
-      ioring#init blank
+    initializer
+      self#on_wake_up (fun () ->
+          let blank () = Audio.make self#audio_channels buffer_length 0. in
+          ioring#init blank)
 
     val mutable device = None
 

@@ -41,6 +41,15 @@ module Queue = struct
     in
     f [] (snapshot q)
 
+  let exists q fn =
+    let rec f l cursor =
+      match next cursor with
+        | Some (el, _) when fn el -> true
+        | Some (el, cursor) -> f (el :: l) cursor
+        | None -> false
+    in
+    f [] (snapshot q)
+
   let length q =
     let rec f pos cursor =
       match next cursor with
@@ -51,7 +60,12 @@ module Queue = struct
 
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
-  let filter q fn = flush q (fun entry -> if fn entry then push q entry)
+
+  let filter q fn =
+    let rec f elements =
+      match pop_opt q with Some el -> f (el :: elements) | None -> elements
+    in
+    List.iter (fun el -> if fn el then push q el) (f [])
 end
 
 module WeakQueue = struct
@@ -99,6 +113,7 @@ module WeakQueue = struct
       Queue.push q entry);
     rem
 
+  let exists q fn = List.exists fn (elements q)
   let length q = List.length (elements q)
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
@@ -107,7 +122,7 @@ module WeakQueue = struct
     let rec f cursor =
       match next cursor with
         | Some (el, cursor) ->
-            for i = 0 to Weak.length el do
+            for i = 0 to Weak.length el - 1 do
               match Weak.get el i with
                 | Some p when fn p -> ()
                 | _ -> Weak.set el i None

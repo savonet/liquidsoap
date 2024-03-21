@@ -31,13 +31,10 @@ type ('a, 'b) track = { mutable fields : 'a field list; data : 'b }
 class virtual base ~name tracks =
   let sources = List.map (fun { data } -> data) tracks in
   let self_sync = Utils.self_sync sources in
+  let infallible = List.exists (fun s -> not s#fallible) sources in
   object (self)
     inherit Source.operator ~name sources
-
-    method stype =
-      if List.exists (fun s -> s#stype = `Infallible) sources then `Infallible
-      else `Fallible
-
+    method fallible = not infallible
     method self_sync = self_sync ()
 
     method remaining =

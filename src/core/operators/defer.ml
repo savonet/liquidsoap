@@ -46,7 +46,7 @@ class defer ~delay ~overhead ~field source =
   let delay = Frame.main_of_seconds delay in
   object (self)
     inherit Source.operator ~name:"defer" [source]
-    method stype = `Fallible
+    method fallible = true
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
@@ -124,11 +124,9 @@ class defer ~delay ~overhead ~field source =
     val mutable should_queue = false
 
     method private queue_output =
-      let clock = Source.Clock_variables.get self#clock in
-      clock#on_output (fun () ->
+      Clock.on_tick self#clock (fun () ->
           if source#is_ready then self#buffer_data;
-          if should_queue then
-            clock#on_before_output (fun () -> self#queue_output))
+          if should_queue then self#queue_output)
 
     initializer
       self#on_wake_up (fun () ->

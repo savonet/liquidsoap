@@ -28,8 +28,8 @@ class filter (source : source) freq wet mode =
   let rate = float (Lazy.force Frame.audio_rate) in
   let dt = 1. /. rate in
   object (self)
-    inherit operator ~name:"filter.rc" [source] as super
-    method stype = source#stype
+    inherit operator ~name:"filter.rc" [source]
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync
@@ -38,10 +38,10 @@ class filter (source : source) freq wet mode =
     val mutable prev = [||]
     val mutable prev_in = [||]
 
-    method! wake_up a =
-      super#wake_up a;
-      prev <- Array.make self#audio_channels 0.;
-      prev_in <- Array.make self#audio_channels 0.
+    initializer
+      self#on_wake_up (fun () ->
+          prev <- Array.make self#audio_channels 0.;
+          prev_in <- Array.make self#audio_channels 0.)
 
     method private generate_frame =
       let b =

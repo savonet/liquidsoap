@@ -37,7 +37,6 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
     method state = state
     method virtual private start : unit
     method virtual private stop : unit
-    method virtual stype : [ `Fallible | `Infallible ]
 
     (* Default [reset] method. Can be overridden if necessary. *)
     method reset =
@@ -72,14 +71,13 @@ class virtual active_source ~name ~(on_start : unit -> unit)
   object (self)
     inherit Source.active_source ~name ()
     inherit base ~on_start ~on_stop as base
-    method stype = if fallible then `Fallible else `Infallible
-    method! private wake_up _ = if autostart then base#transition_to `Started
-    method! private sleep = base#transition_to `Stopped
-    method private started = state = `Started
 
-    method private output =
-      self#has_ticked;
-      if self#is_ready then ignore self#get_frame
+    initializer
+      self#on_wake_up (fun () -> if autostart then base#transition_to `Started)
+
+    method fallible = fallible
+    method private started = state = `Started
+    method private output = if self#is_ready then ignore self#get_frame
   end
 
 let base_proto ~label =
@@ -138,7 +136,7 @@ let meth :
         "Ask the source or output to stop.",
         fun s ->
           val_fun [] (fun p ->
-              if s#stype = `Infallible then
+              if not s#fallible then
                 Lang.raise_error ~pos:(Lang.pos p)
                   ~message:"Source is infallible and cannot be stopped" "input";
               s#transition_to `Stopped;
@@ -148,8 +146,6 @@ let meth :
         "Shutdown the output or source.",
         fun s ->
           val_fun [] (fun _ ->
-              if Source.Clock_variables.is_known s#clock then
-                (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-                    (s' :> Source.source) = (s :> Source.source));
+              Clock.detach s#clock (s :> Clock.source);
               unit) );
     ]

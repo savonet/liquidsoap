@@ -106,6 +106,10 @@ let mk_source_ty ?pos name args =
   let fn = !Hooks.mk_source_ty in
   fn ?pos name args
 
+let mk_clock_ty ?pos () =
+  let fn = !Hooks.mk_clock_ty in
+  fn ?pos ()
+
 let mk_named_ty ?pos = function
   | "_" -> Type.var ?pos ()
   | "unit" -> Type.make Type.unit
@@ -115,6 +119,7 @@ let mk_named_ty ?pos = function
   | "float" -> Type.make Type.Ground.float
   | "string" -> Type.make Type.Ground.string
   | "ref" -> Type.reference (Type.var ())
+  | "clock" -> mk_clock_ty ?pos ()
   | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
   | "source_methods" -> !Hooks.source_methods_t ()
   | name -> (

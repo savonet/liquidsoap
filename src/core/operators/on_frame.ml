@@ -23,7 +23,7 @@
 class on_frame ~before f s =
   object
     inherit Source.operator ~name:"on_frame" [s]
-    method stype = s#stype
+    method fallible = s#fallible
     method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
@@ -65,7 +65,7 @@ let _ =
 class frame_op ~name f default s =
   object
     inherit Source.operator ~name [s]
-    method stype = s#stype
+    method fallible = s#fallible
     method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining

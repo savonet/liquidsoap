@@ -411,7 +411,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
       self#log#info "Initialization done."
 
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync

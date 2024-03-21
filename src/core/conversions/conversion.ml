@@ -22,7 +22,7 @@
 
 class base ~converter (source : Source.source) =
   object
-    method stype = source#stype
+    method fallible = source#fallible
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining

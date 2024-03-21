@@ -16,7 +16,25 @@ def fn() =
   end
 
   def on_connect(_) =
-    if !first_client_connected then test.pass() end
+    if
+      !first_client_connected
+    then
+      test.pass()
+    else
+      thread.run(
+        delay=1.,
+        {
+          output.icecast(
+            %mp3,
+            password="testtest",
+            user="testtest",
+            mount="harbor_kick_client",
+            port=9878,
+            noise()
+          )
+        }
+      )
+    end
     first_client_connected := true
   end
 
@@ -38,20 +56,6 @@ def fn() =
     mount="harbor_kick_client",
     port=9878,
     noise()
-  )
-
-  thread.run(
-    delay=1.,
-    {
-      output.icecast(
-        %mp3,
-        password="testtest",
-        user="testtest",
-        mount="harbor_kick_client",
-        port=9878,
-        noise()
-      )
-    }
   )
 end
 

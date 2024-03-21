@@ -20,13 +20,100 @@
 
  *****************************************************************************)
 
-open Liquidsoap_lang.Lang
+module Lang = Liquidsoap_lang.Lang
+open Lang
 
 module Alive_values_map = Liquidsoap_lang.Active_value.Make (struct
   type t = Value.t
 
   let id v = v.Value.id
 end)
+
+module ClockValue = struct
+  include Value.MkAbstract (struct
+    type content = Clock.t
+
+    let name = "clock"
+    let descr = Clock.descr
+
+    let to_json ~pos _ =
+      Lang.raise_error ~message:"Clocks cannot be represented as json" ~pos
+        "json"
+
+    let compare = Stdlib.compare
+    let comparison_op = None
+  end)
+
+  let base_t = t
+  let to_base_value = to_value
+
+  let methods =
+    [
+      ( "id",
+        Lang.fun_t [] Lang.string_t,
+        "The clock's id",
+        fun c -> Lang.val_fun [] (fun _ -> Lang.string (Clock.id c)) );
+      ( "sync",
+        Lang.fun_t [] Lang.string_t,
+        "The clock's current sync mode. One of: `\"stopped\"`, `\"stopping\"`, \
+         `\"auto\"`, `\"CPU\"`, `\"unsynced\"` or `\"passive\"`.",
+        fun c ->
+          Lang.val_fun [] (fun _ ->
+              Lang.string Clock.(string_of_sync_mode (sync c))) );
+      ( "start",
+        Lang.fun_t [] Lang.unit_t,
+        "Start the clock.",
+        fun c ->
+          Lang.val_fun
+            [("", "", Some (Lang.string "auto"))]
+            (fun p ->
+              let pos = Lang.pos p in
+              try
+                Clock.start c;
+                Lang.unit
+              with Clock.Invalid_state ->
+                Runtime_error.raise
+                  ~message:
+                    (Printf.sprintf "Invalid clock state: %s"
+                       Clock.(string_of_sync_mode (sync c)))
+                  ~pos "clock") );
+      ( "stop",
+        Lang.fun_t [] Lang.unit_t,
+        "Stop the clock. Does nothing if the clock is stopping or stopped.",
+        fun c ->
+          Lang.val_fun [] (fun _ ->
+              Clock.stop c;
+              Lang.unit) );
+      ( "self_sync",
+        Lang.fun_t [] Lang.bool_t,
+        "`true` if the clock is in control of its latency.",
+        fun c -> Lang.val_fun [] (fun _ -> Lang.bool (Clock.self_sync c)) );
+      ( "unify",
+        Lang.fun_t [(false, "", base_t)] Lang.unit_t,
+        "Unify the clock with another one. One of the two clocks should be in \
+         `\"stopped\"` sync mode.",
+        fun c ->
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              let pos = match Lang.pos p with p :: _ -> Some p | [] -> None in
+              let c' = of_value (List.assoc "" p) in
+              Clock.unify ~pos c c';
+              Lang.unit) );
+      ( "ticks",
+        Lang.fun_t [] Lang.int_t,
+        "The total number of times the clock has ticked.",
+        fun c -> Lang.val_fun [] (fun _ -> Lang.int (Clock.ticks c)) );
+    ]
+
+  let t =
+    Lang.method_t base_t
+      (List.map (fun (lbl, typ, descr, _) -> (lbl, ([], typ), descr)) methods)
+
+  let to_value c =
+    Lang.meth (to_base_value c)
+      (List.map (fun (lbl, _, _, v) -> (lbl, v c)) methods)
+end
 
 let log = Log.make ["lang"]
 let metadata_t = list_t (product_t string_t string_t)
@@ -210,7 +297,9 @@ let source_methods =
       "`true` if the source is active, i.e. it is continuously animated by its \
        own clock whenever it is ready. Typically, `true` for outputs and \
        sources such as `input.http`.",
-      fun s -> val_fun [] (fun _ -> bool s#is_active) );
+      fun s ->
+        val_fun [] (fun _ ->
+            bool (match s#source_type with `Passive -> false | _ -> true)) );
     ( "seek",
       ([], fun_t [(false, "", float_t)] float_t),
       "Seek forward, in seconds (returns the amount of time effectively \
@@ -233,17 +322,17 @@ let source_methods =
     ( "fallible",
       ([], bool_t),
       "Indicate if a source may fail, i.e. may not be ready to stream.",
-      fun s -> bool (s#stype = `Fallible) );
+      fun s -> bool s#fallible );
+    ( "clock",
+      ([], ClockValue.t),
+      "The source's clock",
+      fun s -> ClockValue.to_value s#clock );
     ( "time",
       ([], fun_t [] float_t),
       "Get a source's time, based on its assigned clock.",
       fun s ->
         val_fun [] (fun _ ->
-            let ticks =
-              if Source.Clock_variables.is_known s#clock then
-                (Source.Clock_variables.get s#clock)#get_tick
-              else 0
-            in
+            let ticks = Clock.ticks s#clock in
             let frame_position =
               Lazy.force Frame.duration *. float_of_int ticks
             in
@@ -500,7 +589,6 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: List.stable_sort compare arguments
   in
   let f env =
-    Clock.collect_after_eval ();
     let pos =
       match Liquidsoap_lang.Lang_core.pos env with
         | [] -> None
@@ -541,7 +629,6 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: arguments
   in
   let f env =
-    Clock.collect_after_eval ();
     let pos =
       match Liquidsoap_lang.Lang_core.pos env with
         | [] -> None

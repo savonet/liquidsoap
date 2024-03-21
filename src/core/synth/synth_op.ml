@@ -27,7 +27,7 @@ class synth (synth : Synth.synth) (source : source) chan volume =
   object (self)
     inherit operator ~name:"synth" [source]
     initializer synth#set_volume volume
-    method stype = source#stype
+    method fallible = source#fallible
     method self_sync = source#self_sync
     method remaining = source#remaining
     method private can_generate_frame = source#is_ready

@@ -61,7 +61,7 @@ let port_t d p =
 class virtual base source =
   object
     inherit operator ~name:"ladspa" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method private can_generate_frame = source#is_ready
@@ -73,7 +73,7 @@ class virtual base_nosource =
   object (self)
     inherit source ~name:"ladspa" ()
     method seek_source = (self :> Source.source)
-    method stype = `Infallible
+    method fallible = false
     method private can_generate_frame = true
     method self_sync = (`Static, None)
     val mutable must_fail = false
@@ -95,22 +95,22 @@ let instantiate d samplerate =
 (* A plugin is created for each channel. *)
 class ladspa_mono (source : source) plugin descr input output params =
   object (self)
-    inherit base source as super
+    inherit base source
     val mutable inst = None
 
-    method! wake_up a =
-      super#wake_up a;
-      let p = Plugin.load plugin in
-      let d = Descriptor.descriptor p descr in
-      let i =
-        Array.init
-          (Content.Audio.channels_of_format
-             (Option.get
-                (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
-          (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
-      in
-      Array.iter Descriptor.activate i;
-      inst <- Some i
+    initializer
+      self#on_wake_up (fun () ->
+          let p = Plugin.load plugin in
+          let d = Descriptor.descriptor p descr in
+          let i =
+            Array.init
+              (Content.Audio.channels_of_format
+                 (Option.get
+                    (Frame.Fields.find_opt Frame.Fields.audio self#content_type)))
+              (fun _ -> instantiate d (Lazy.force Frame.audio_rate))
+          in
+          Array.iter Descriptor.activate i;
+          inst <- Some i)
 
     method private generate_frame =
       let b =

@@ -30,7 +30,7 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
     kdown threshold gmin gmax =
   let rmsi = Frame.audio_of_seconds window in
   object (self)
-    inherit operator ~name:"normalize" [source] as super
+    inherit operator ~name:"normalize" [source]
 
     (** Current squares of RMS. *)
     val mutable rms = 0.
@@ -57,11 +57,8 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
       v <- 1.;
       vold <- 1.
 
-    method! wake_up a =
-      super#wake_up a;
-      self#init
-
-    method stype = source#stype
+    initializer self#on_wake_up (fun () -> self#init)
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync

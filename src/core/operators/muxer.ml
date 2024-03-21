@@ -35,10 +35,7 @@ class muxer tracks =
         if List.memq source sources then sources else source :: sources)
       [] tracks
   in
-  let stype =
-    if List.for_all (fun s -> s#stype = `Infallible) sources then `Infallible
-    else `Fallible
-  in
+  let fallible = List.exists (fun s -> s#fallible) sources in
   let self_sync = Utils.self_sync sources in
   object (self)
     (* Pass duplicated list to operator to make sure caching is properly enabled. *)
@@ -47,8 +44,8 @@ class muxer tracks =
         ~name:"source"
         (List.map (fun { source } -> source) tracks)
 
-    method stype = stype
     method self_sync = self_sync ()
+    method fallible = fallible
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private sources_ready = List.for_all (fun s -> s#is_ready) sources
     method private can_generate_frame = self#sources_ready
@@ -84,7 +81,7 @@ class muxer tracks =
       let pos, frame =
         List.fold_left
           (fun (pos, frame) { fields; source } ->
-            let buf = source#peek_frame in
+            let buf = source#get_frame in
             ( min pos (Frame.position buf),
               List.fold_left
                 (fun frame { source_field; target_field; processor } ->
@@ -94,10 +91,7 @@ class muxer tracks =
           (length, Frame.create ~length Frame.Fields.empty)
           tracks
       in
-      let frame = Frame.slice frame pos in
-      let consumed = Frame.position frame in
-      List.iter (fun { source } -> source#consumed consumed) tracks;
-      frame
+      Frame.slice frame pos
   end
 
 let muxer_operator p =

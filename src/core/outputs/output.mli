@@ -29,6 +29,7 @@ val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
   output_kind:string
+  -> ?clock:Clock.t
   -> ?name:string
   -> infallible:bool
   -> register_telnet:bool
@@ -38,16 +39,16 @@ class virtual output :
   -> bool
   -> object
        inherit Source.active_source
-       method stype : [ `Fallible | `Infallible ]
-       method self_sync : Source.self_sync
+       method fallible : bool
+       method self_sync : Clock.self_sync
        method remaining : int
-       method output : unit
        method abort_track : unit
        method private can_generate_frame : bool
        method private generate_frame : Frame.t
        method state : Start_stop.state
        method transition_to : Start_stop.state -> unit
        method seek_source : Source.source
+       method output : unit
        method private video_dimensions : int * int
        method private reset : unit
        method virtual private send_frame : Frame.t -> unit
@@ -60,6 +61,7 @@ val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
 
 class virtual ['a] encoded :
   output_kind:string
+  -> ?clock:Clock.t
   -> name:string
   -> infallible:bool
   -> on_start:(unit -> unit)
@@ -80,7 +82,8 @@ class virtual ['a] encoded :
      end
 
 class dummy :
-  infallible:bool
+  ?clock:Clock.t
+  -> infallible:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool

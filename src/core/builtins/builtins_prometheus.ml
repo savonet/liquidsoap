@@ -165,10 +165,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   let last_start_time = ref 0. in
   let last_end_time = ref 0. in
   let last_data = Gauge.labels (get_last_data ~label_names) labels in
-  let wake_up ~stype:_ ~is_active:_ ~id:_ ~ctype:_ ~clock_id:_
-      ~clock_sync_mode:_ =
-    ()
-  in
+  let wake_up ~fallible:_ ~source_type:_ ~id:_ ~ctype:_ ~clock_id:_ = () in
   let sleep () = () in
   let generate_frame ~start_time ~end_time ~length ~has_track_mark:_ ~metadata:_
       =
@@ -179,7 +176,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     let latency = (end_time -. start_time) /. encoded_time in
     add_input_latency latency
   in
-  let after_output () =
+  let after_streaming_cycle () =
     let current_time = Unix.gettimeofday () in
     add_output_latency ((current_time -. !last_end_time) /. frame_duration);
     add_overall_latency ((current_time -. !last_start_time) /. frame_duration)
@@ -189,8 +186,8 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
       Source.wake_up;
       sleep;
       generate_frame;
-      before_output = (fun _ -> ());
-      after_output;
+      before_streaming_cycle = (fun _ -> ());
+      after_streaming_cycle;
     }
   in
   s#add_watcher watcher

@@ -156,6 +156,20 @@ let _ =
       Lang.unit)
 
 let _ =
+  let univ = Lang.univ_t () in
+  Lang.add_builtin ~base:liquidsoap "exec_after_eval" ~category:`Liquidsoap
+    ~descr:
+      "Execute all computations registered via `after_eval` during the \
+       execution of the given function immediately after the function has \
+       returned."
+    [("", Lang.fun_t [] univ, None, None)]
+    univ
+    (fun p ->
+      let fn = List.assoc "" p in
+      let fn () = Lang.apply fn [] in
+      Evaluation.after_eval ~force:true fn)
+
+let _ =
   Lang.add_builtin_base ~base:liquidsoap "executable" ~category:`Liquidsoap
     ~descr:"Path to the Liquidsoap executable."
     Lang.(Ground (Ground.String Sys.executable_name))

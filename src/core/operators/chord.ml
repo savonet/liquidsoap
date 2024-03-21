@@ -47,7 +47,7 @@ let note_of_string s = note_of_string s - 12
 class chord metadata_name (source : source) =
   object (self)
     inherit operator ~name:"chord" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track

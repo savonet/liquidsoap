@@ -80,7 +80,7 @@ let color_arg p =
 class virtual base ~name (source : source) f =
   object
     inherit operator ~name [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method self_sync = source#self_sync

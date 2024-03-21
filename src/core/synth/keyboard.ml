@@ -56,16 +56,12 @@ class keyboard =
   object (self)
     inherit Source.active_source ~name:"input.keyboard" ()
     method seek_source = (self :> Source.source)
-    method stype = `Infallible
+    method fallible = false
     method private can_generate_frame = true
     method remaining = -1
     method abort_track = ()
     method self_sync = (`Static, None)
-
-    method output =
-      self#has_ticked;
-      if self#is_ready then ignore self#get_frame
-
+    method output = if self#is_ready then ignore self#get_frame
     val mutable ev = MIDI.create (MFrame.size ())
     val ev_m = Mutex.create ()
 
@@ -86,39 +82,39 @@ class keyboard =
     val mutable run_id = 0
     val lock = Mutex.create ()
 
-    method! private wake_up _ =
-      let id = run_id in
-      let rec task _ =
-        if run_id <> id then []
-        else (
-          let c =
-            let c = Bytes.create 1 in
-            ignore (Unix.read Unix.stdin c 0 1);
-            Bytes.get c 0
+    initializer
+      self#on_wake_up (fun () ->
+          let id = run_id in
+          let rec task _ =
+            if run_id <> id then []
+            else (
+              let c =
+                let c = Bytes.create 1 in
+                ignore (Unix.read Unix.stdin c 0 1);
+                Bytes.get c 0
+              in
+              begin
+                try
+                  self#log#important "Playing note %d." (note_of_char c);
+                  self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
+                with Not_found -> ()
+              end;
+              [
+                {
+                  Duppy.Task.handler = task;
+                  priority = `Non_blocking;
+                  events = [`Read Unix.stdin];
+                };
+              ])
           in
-          begin
-            try
-              self#log#important "Playing note %d." (note_of_char c);
-              self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
-            with Not_found -> ()
-          end;
-          [
+          Duppy.Task.add Tutils.scheduler
             {
               Duppy.Task.handler = task;
               priority = `Non_blocking;
               events = [`Read Unix.stdin];
-            };
-          ])
-      in
-      Duppy.Task.add Tutils.scheduler
-        {
-          Duppy.Task.handler = task;
-          priority = `Non_blocking;
-          events = [`Read Unix.stdin];
-        }
+            });
 
-    method! private sleep =
-      Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
+      self#on_sleep (Tutils.mutexify lock (fun () -> run_id <- run_id + 1))
 
     method reset = ()
 

@@ -37,7 +37,7 @@ class blank duration =
         | `Elapsed _, d when d < 0. -> -1
         | `Elapsed e, d -> max 0 (Frame.main_of_seconds d - e)
 
-    method stype = `Infallible
+    method fallible = false
     method private can_generate_frame = true
     method self_sync = (`Static, None)
     method! seek x = x

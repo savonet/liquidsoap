@@ -148,11 +148,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       Format.fprintf formatter
         "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
       raise Error
-  | Error.Clock_loop (pos, a, b) ->
-      error_header ~formatter 11 pos;
-      Format.fprintf formatter "Cannot unify two nested clocks (%s,@ %s).@]@." a
-        b;
-      raise Error
+  (* Error 11 used to be Clock_loop. *)
   | Term.Unsupported_encoder (pos, fmt) ->
       error_header ~formatter 12 pos;
       (if Sys.unix then

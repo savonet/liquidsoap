@@ -155,7 +155,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
   let size = float nbands in
   object (self)
     inherit operator ~name:"dtmf" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method private can_generate_frame = source#is_ready
@@ -293,7 +293,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
   let size = float nbands in
   object (self)
     inherit operator ~name:"dtmf.detect" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
     method seek_source = source#seek_source
     method private can_generate_frame = source#is_ready

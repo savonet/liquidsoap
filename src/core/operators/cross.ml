@@ -23,10 +23,10 @@
 open Mm
 open Source
 
-class consumer buffer =
+class consumer ~clock buffer =
   object (self)
-    inherit Source.source ~name:"buffer" ()
-    method stype = `Fallible
+    inherit Source.source ~clock ~name:"cross.buffer" ()
+    method fallible = true
     method private can_generate_frame = 0 < Generator.length buffer
 
     method private generate_frame =
@@ -38,9 +38,6 @@ class consumer buffer =
     method remaining = Generator.length buffer
   end
 
-let finalise_child_clock child_clock source =
-  Clock.forget source#clock child_clock
-
 (** [rms_width] is in samples.
   * [cross_length] is in ticks (like #remaining estimations) and must be at least one frame. *)
 class cross val_source ~duration_getter ~override_duration ~persist_override
@@ -48,7 +45,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
-    inherit source ~name:"cross" () as super
+    inherit source ~name:"cross" ()
 
     inherit
       generate_from_multiple_sources
@@ -56,16 +53,15 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
         ~track_sensitive:(fun () -> false)
         ()
 
-    inherit! Child_support.base ~check_self_sync:true [val_source]
+    inherit Child_support.base ~check_self_sync:true [val_source]
     initializer Typing.(s#frame_type <: self#frame_type)
-    method stype = `Fallible
+    method fallible = true
 
     (* This is complicated. crossfade should never be used with [self_sync]
      * sources but we do not have a static way of knowing it at the moment.
      * Going with the same choice as above for now. *)
     method self_sync = s#self_sync
     val mutable cross_length = Lazy.force Frame.size
-    val mutable rejected_cross_length = None
     val mutable duration_getter = original_duration_getter
     method cross_duration = duration_getter ()
 
@@ -74,19 +70,16 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let main_new_cross_length = Frame.main_of_seconds new_cross_length in
 
       if main_new_cross_length <> cross_length then
-        if new_cross_length <= 0. then (
-          if rejected_cross_length <> Some new_cross_length then (
-            self#log#critical "Invalid cross duration: %.2f <= 0.!"
-              new_cross_length;
-            rejected_cross_length <- Some new_cross_length);
-          cross_length <- Lazy.force Frame.size)
+        if new_cross_length < 0. then
+          self#log#important
+            "Cannot set crossfade duration to negative value %f!"
+            new_cross_length
         else (
           let main_new_cross_length =
             max (Lazy.force Frame.size) main_new_cross_length
           in
           self#log#info "Setting crossfade duration to %.2fs"
             (Frame.seconds_of_main main_new_cross_length);
-          rejected_cross_length <- None;
           cross_length <- main_new_cross_length)
 
     initializer self#set_cross_length
@@ -128,39 +121,27 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private prepare_source s =
       let s = (s :> source) in
-      s#get_ready [(self :> source)];
-      Clock.unify ~pos:self#pos source#clock s#clock;
+      s#wake_up;
       self#set_cross_length
 
-    method! private wake_up a =
-      self#reset_analysis;
-      super#wake_up a;
-      source#get_ready [(self :> source)];
-      Lang.iter_sources (fun s -> s#get_ready [(self :> source)]) transition
+    initializer
+      self#on_wake_up (fun () ->
+          source#wake_up;
+          self#reset_analysis)
 
     val mutable status
         : [ `Idle | `Before of Source.source | `After of Source.source ] =
       `Idle
 
-    method private leave_status =
-      match status with
-        | `Idle -> ()
-        | `Before s | `After s -> s#leave (self :> source)
-
-    method! private sleep =
-      source#leave (self :> source);
-      s#leave (self :> source);
-      Lang.iter_sources (fun s -> s#leave (self :> source)) transition;
-      self#leave_status
-
     method private child_get ~is_first source =
       let frame = ref self#empty_frame in
-      self#child_on_output (fun () ->
-          frame :=
-            source#get_partial_frame (fun f ->
-                match self#split_frame f with
-                  | buf, Some _ when Frame.position buf = 0 && is_first -> f
-                  | buf, _ -> buf));
+      self#on_child_tick (fun () ->
+          if source#is_ready then
+            frame :=
+              source#get_partial_frame (fun f ->
+                  match self#split_frame f with
+                    | buf, Some _ when Frame.position buf = 0 && is_first -> f
+                    | buf, _ -> buf));
       !frame
 
     method private append mode buf_frame =
@@ -187,10 +168,9 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     method private prepare_before =
       self#log#info "Buffering end of track...";
-      let before = new consumer gen_before in
+      let before = new consumer ~clock:source#clock gen_before in
       Typing.(before#frame_type <: self#frame_type);
       self#prepare_source before;
-      self#leave_status;
       status <- `Before (before :> Source.source);
       self#buffer_before ~is_first:true ();
       before
@@ -270,7 +250,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       in
       let buffered_before = Generator.length gen_before in
       let buffered_after = Generator.length gen_after in
-      let buffered = min buffered_after buffered_before in
+      let buffered = min buffered_before buffered_after in
       let after =
         let metadata = function None -> Frame.Metadata.empty | Some m -> m in
         let before_metadata = metadata before_metadata in
@@ -283,13 +263,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             let head_gen =
               Generator.create ~content:head (Generator.content_type gen_before)
             in
-            let s = new consumer head_gen in
+            let s = new consumer ~clock:source#clock head_gen in
             s#set_id (self#id ^ "_before_head");
             Typing.(s#frame_type <: self#frame_type);
             Some s)
           else None
         in
-        let before = new consumer gen_before in
+        let before = new consumer ~clock:source#clock gen_before in
         Typing.(before#frame_type <: self#frame_type);
         let before = new Insert_metadata.replay before_metadata before in
         Typing.(before#frame_type <: self#frame_type);
@@ -302,13 +282,13 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             in
             let tail_gen = gen_after in
             gen_after <- head_gen;
-            let s = new consumer tail_gen in
+            let s = new consumer ~clock:source#clock tail_gen in
             Typing.(s#frame_type <: self#frame_type);
             s#set_id (self#id ^ "_after_tail");
             Some s)
           else None
         in
-        let after = new consumer gen_after in
+        let after = new consumer ~clock:source#clock gen_after in
         Typing.(after#frame_type <: self#frame_type);
         let after = new Insert_metadata.replay after_metadata after in
         Typing.(after#frame_type <: self#frame_type);
@@ -363,14 +343,11 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                   :> Source.source)
             | Some _, Some _ -> assert false
         in
-        Clock.unify ~pos:self#pos compound#clock s#clock;
         Typing.(compound#frame_type <: self#frame_type);
-        Clock.collect ();
         compound
       in
       self#prepare_source after;
       self#reset_analysis;
-      self#leave_status;
       status <- `After after
 
     method remaining =

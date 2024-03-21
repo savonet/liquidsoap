@@ -26,7 +26,7 @@ open Mm
 
 open Ao
 
-module SyncSource = Source.MkSyncSource (struct
+module SyncSource = Clock.MkSyncSource (struct
   type t = unit
 
   let to_string _ = "ao"
@@ -43,18 +43,18 @@ class output ~self_sync ~nb_blocks ~driver ~register_telnet ~infallible
     inherit
       Output.output
         ~register_telnet ~infallible ~on_start ~on_stop ~name:"ao"
-          ~output_kind:"output.ao" source start as super
+          ~output_kind:"output.ao" source start
 
     inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
 
-    method! wake_up a =
-      super#wake_up a;
-      let blank () =
-        Bytes.make
-          (samples_per_frame * self#audio_channels * bytes_per_sample)
-          '0'
-      in
-      ioring#init blank
+    initializer
+      self#on_wake_up (fun () ->
+          let blank () =
+            Bytes.make
+              (samples_per_frame * self#audio_channels * bytes_per_sample)
+              '0'
+          in
+          ioring#init blank)
 
     val mutable device = None
 

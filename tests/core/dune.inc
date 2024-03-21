@@ -210,20 +210,6 @@
 
 
 (executable
- (name source_test)
- (modules source_test)
- (libraries liquidsoap_core liquidsoap_optionals))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-
-  (:source_test source_test.exe))
- (action (run %{source_test} )))
-
-
-(executable
  (name start_stop_test)
  (modules start_stop_test)
  (libraries liquidsoap_core liquidsoap_optionals))

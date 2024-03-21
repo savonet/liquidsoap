@@ -73,7 +73,6 @@ type outputs =
 type graph = {
   mutable config : Avfilter.config option;
   mutable failed : bool;
-  mutable need_child_tick : bool;
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
   graph_outputs : Source.source Queue.t;
@@ -83,26 +82,7 @@ type graph = {
 
 let init_graph graph =
   if Queue.fold graph.input_inits (fun v b -> b && v ()) true then (
-    try
-      Queue.iter graph.init Lazy.force;
-
-      match
-        (Queue.peek_opt graph.graph_inputs, Queue.peek_opt graph.graph_outputs)
-      with
-        | Some i, Some o ->
-            (* Make sure input clock has at least one tick per output clock
-               tick. *)
-            let input_clock = Source.Clock_variables.get i#clock in
-            let output_clock = Source.Clock_variables.get o#clock in
-            let rec on_before_output () =
-              graph.need_child_tick <- true;
-              output_clock#on_after_output on_after_output
-            and on_after_output () =
-              if graph.need_child_tick then input_clock#end_tick;
-              output_clock#on_before_output on_before_output
-            in
-            output_clock#on_before_output on_before_output
-        | _ -> ()
+    try Queue.iter graph.init Lazy.force
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
       graph.failed <- true;
@@ -113,7 +93,7 @@ let initialized graph =
 
 let is_ready graph =
   (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
-    | false, Some s -> (Source.Clock_variables.get s#clock)#end_tick
+    | false, Some s -> Clock.tick s#clock
     | _ -> ());
   (not graph.failed)
   && Queue.fold graph.graph_inputs
@@ -122,9 +102,7 @@ let is_ready graph =
 
 let pull graph =
   match Queue.peek_opt graph.graph_inputs with
-    | Some s ->
-        graph.need_child_tick <- false;
-        (Clock.get s#clock)#end_tick
+    | Some s -> Clock.tick s#clock
     | None -> ()
 
 let self_sync graph = (Utils.self_sync (Queue.elements graph.graph_inputs)) ()
@@ -891,7 +869,6 @@ let _ =
           {
             config = Some config;
             failed = false;
-            need_child_tick = true;
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
             graph_outputs = Queue.create ();
@@ -906,14 +883,12 @@ let _ =
           }
       in
       let ret = Lang.apply fn [("", Graph.to_value graph)] in
+      let id = Lang_string.generate_id "ffmpeg.filter" in
+      let output_clock = Clock.create ~id () in
       let input_clock =
-        Clock.create_known
-          (Clock.clock ~start:false (Lang_string.generate_id "ffmpeg.filter"))
+        Clock.create_sub_clock ~id:(id ^ ".input") output_clock
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
-      let output_clock =
-        Clock.create_unknown ~sources:[] ~sub_clocks:[input_clock] ()
-      in
       unify_clocks ~clock:output_clock graph.graph_outputs;
 
       Queue.push graph.init

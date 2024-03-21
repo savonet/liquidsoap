@@ -33,7 +33,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
     method virtual private log : Log.t
     method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method virtual buffer : Generator.t
-    method self_sync : Source.self_sync = (`Static, None)
+    method self_sync : Clock.self_sync = (`Static, None)
 
     method seek len =
       if (not seek) || len <= 0 then 0

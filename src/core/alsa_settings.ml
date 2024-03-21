@@ -22,7 +22,7 @@
 
 (** Alsa related settings *)
 
-module SyncSource = Source.MkSyncSource (struct
+module SyncSource = Clock.MkSyncSource (struct
   type t = unit
 
   let to_string _ = "alsa"

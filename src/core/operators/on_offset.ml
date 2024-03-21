@@ -32,7 +32,7 @@ class on_offset ~force ~offset f s =
   object (self)
     inherit Source.operator ~name:"on_offset" [s]
     inherit Latest_metadata.source
-    method stype = s#stype
+    method fallible = s#fallible
     method private can_generate_frame = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track

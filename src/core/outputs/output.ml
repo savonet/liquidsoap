@@ -47,24 +47,26 @@ let meth = Start_stop.meth ()
     of pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including
     start/stop. *)
-class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
-  ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
+class virtual output ~output_kind ?clock ?(name = "") ~infallible
+  ~register_telnet ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
+  val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
     initializer
       (* This should be done before the active_operator initializer attaches us
          to a clock. *)
-      if !fallibility_check && infallible && source#stype <> `Infallible then
+      if !fallibility_check && infallible && source#fallible then
         raise (Error.Invalid_value (val_source, "That source is fallible."))
 
     initializer Typing.(source#frame_type <: self#frame_type)
-    inherit active_operator ~name:output_kind [source]
+    inherit active_operator ?clock ~name:output_kind [source]
     inherit Start_stop.base ~on_start ~on_stop as start_stop
     method virtual private start : unit
     method virtual private stop : unit
     method virtual private send_frame : Frame.t -> unit
     method self_sync = source#self_sync
-    method stype = if infallible then `Infallible else `Fallible
+    method fallible = not infallible
+    method! source_type : source_type = `Output (self :> Source.active)
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)
@@ -111,44 +113,34 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
       registered_telnet <- false
 
     method private can_generate_frame =
-      if infallible then (
-        assert source#is_ready;
-        true)
-      else source#is_ready
+      if infallible then true else source#is_ready
 
     method remaining = source#remaining
     method abort_track = source#abort_track
     method seek_source = source#seek_source
 
     (* Operator startup *)
-    method! private wake_up activation =
-      (* We prefer [name] as an ID over the default, but do not overwrite
-         user-defined ID. Our ID will be used for the server interface. *)
-      if name <> "" then self#set_id ~definitive:false name;
+    initializer
+      self#on_wake_up (fun () ->
+          (* We prefer [name] as an ID over the default, but do not overwrite
+             user-defined ID. Our ID will be used for the server interface. *)
+          if name <> "" then self#set_id ~definitive:false name;
 
-      self#log#debug "Clock is %s."
-        (Source.Clock_variables.to_string self#clock);
-      self#log#important "Content type is %s."
-        (Frame.string_of_content_type self#content_type);
+          self#log#debug "Clock is %s." (Clock.id self#clock);
+          self#log#important "Content type is %s."
+            (Frame.string_of_content_type self#content_type);
 
-      if Frame.Fields.is_empty self#content_type then
-        failwith
-          (Printf.sprintf
-             "Empty content-type detected for output %s. You might want to use \
-              an expliciy type annotation!"
-             self#id);
+          if Frame.Fields.is_empty self#content_type then
+            failwith
+              (Printf.sprintf
+                 "Empty content-type detected for output %s. You might want to \
+                  use an expliciy type annotation!"
+                 self#id);
 
-      (* Get our source ready. This can take a while (preparing playlists,
-         etc). *)
-      source#get_ready ((self :> operator) :: activation);
+          if not autostart then start_stop#transition_to `Stopped;
 
-      if not autostart then start_stop#transition_to `Stopped;
-
-      self#register_telnet
-
-    method! private sleep =
-      start_stop#transition_to `Stopped;
-      source#leave (self :> operator)
+          self#register_telnet);
+      self#on_sleep (fun () -> start_stop#transition_to `Stopped)
 
     (* Metadata stuff: keep track of what was streamed. *)
     val q_length = 10
@@ -165,8 +157,7 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
     method private skip = skip <- true
     method private generate_frame = source#get_frame
 
-    method private output =
-      self#has_ticked;
+    method output =
       if self#can_generate_frame && state <> `Stopped then
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
@@ -182,27 +173,25 @@ class virtual output ~output_kind ?(name = "") ~infallible ~register_telnet
         (* Output that frame if it has some data *)
         if Frame.position data > 0 then self#send_frame data;
         if Frame.is_partial data then (
-          if self#stype = `Infallible then (
+          if not self#fallible then (
             self#log#critical "Infallible source produced a partial frame!";
             assert false);
           self#log#important "Source failed (no more tracks) stopping output...";
-          self#transition_to `Idle))
+          self#transition_to `Idle);
 
-    initializer
-      self#on_after_output (fun () ->
-          (* Perform skip if needed *)
-          if skip then (
-            self#log#important "Performing user-requested skip";
-            skip <- false;
-            self#abort_track))
+        if skip then (
+          self#log#important "Performing user-requested skip";
+          skip <- false;
+          self#abort_track))
   end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart ~register_telnet source =
+class dummy ?clock ~infallible ~on_start ~on_stop ~autostart ~register_telnet
+  source =
   object
     inherit
       output
-        source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
-          ~on_start ~on_stop ~register_telnet
+        source autostart ?clock ~name:"dummy" ~output_kind:"output.dummy"
+          ~infallible ~on_start ~on_stop ~register_telnet
 
     method! private reset = ()
     method private start = ()
@@ -231,13 +220,13 @@ let _ =
 
 (** More concrete abstract-class, which takes care of the #send_frame method for
     outputs based on encoders. *)
-class virtual ['a] encoded ~output_kind ~name ~infallible ~on_start ~on_stop
-  ~register_telnet ~autostart ~export_cover_metadata source =
+class virtual ['a] encoded ~output_kind ?clock ~name ~infallible ~on_start
+  ~on_stop ~register_telnet ~autostart ~export_cover_metadata source =
   object (self)
     inherit
       output
-        ~infallible ~on_start ~on_stop ~output_kind ~name ~register_telnet
-          source autostart
+        ~infallible ~on_start ~on_stop ~output_kind ?clock ~name
+          ~register_telnet source autostart
 
     method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
     method virtual private encode : Frame.t -> int -> int -> 'a
