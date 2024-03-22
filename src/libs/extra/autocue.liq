@@ -42,13 +42,13 @@ let settings.autocue.ratio =
       "Maximum real time ratio to control speed of LUFS data analysis",
     50.
   )
-  
+
 let settings.autocue.timeout =
   settings.make(
     description=
       "Maximum allowed processing time (estimated)",
     10.
-  )  
+  )
 
 let settings.autocue.metadata_overrides =
   settings.make(
@@ -62,7 +62,7 @@ let settings.autocue.metadata_overrides =
       "liq_fade_in",
       "liq_fade_out"
     ]
-  ) 
+  )
 
 let file.autocue = ()
 
@@ -71,7 +71,7 @@ let file.autocue = ()
 def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
   r = request.create(resolve_metadata=false, uri)
   s = request.once(r)
-  
+
   if
     s.resolve()
   then
@@ -79,7 +79,7 @@ def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
 
     duration = null.get(request.duration(uri))
     estimated_processing_time = duration / ratio
-      
+
     if
       estimated_processing_time > timeout
     then
@@ -88,7 +88,7 @@ def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
         label="autocue",
         "Estimated processing duration is too long, autocue disabled! #{duration} / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing duration; max. allowed: #{timeout})"
       )
-      []	  
+      []
     else
       frames = ref([])
 
