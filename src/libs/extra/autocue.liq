@@ -77,11 +77,11 @@ def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
   then
 %ifdef ffmpeg.filter.ebur128
 
-    duration = null.get(default=timeout,request.duration(uri))
+    duration = null.get(default=0.,request.duration(uri))
     estimated_processing_time = duration / ratio
 
     if
-      estimated_processing_time >= timeout
+      estimated_processing_time > timeout or duration <= 0.
     then
       log(
         level=2,
