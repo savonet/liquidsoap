@@ -155,7 +155,7 @@ def replaces file.autocue(
   ratio = ratio ?? settings.autocue.ratio()
   timeout = timeout ?? settings.autocue.timeout()
 
-  frames = file.autocue.ebur128(ratio=ratio, uri)
+  frames = file.autocue.ebur128(ratio=ratio, timeout=timeout, uri)
 
   if
     frames == []
