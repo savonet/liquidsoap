@@ -68,17 +68,18 @@ let file.autocue = ()
 
 # Get frames from ffmpeg.filter.ebur128
 # @flag hidden
-def file.autocue.ebur128(~ratio=50., uri) =
+def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
   r = request.create(resolve_metadata=false, uri)
   s = request.once(r)
-  duration = request.duration(r)
-  estimated_processing_time = duration / ratio
   
   if
     s.resolve()
   then
 %ifdef ffmpeg.filter.ebur128
 
+    duration = null.get(request.duration(uri))
+    estimated_processing_time = duration / ratio
+      
     if
       estimated_processing_time > timeout
     then
@@ -143,6 +144,7 @@ def replaces file.autocue(
   ~cross_threshold=null(),
   ~max_overlap=null(),
   ~ratio=null(),
+  ~timeout=null(),
   uri
 ) =
   lufs_target = lufs_target ?? settings.autocue.lufs_target()
@@ -151,6 +153,7 @@ def replaces file.autocue(
   cross_threshold = cross_threshold ?? settings.autocue.cross_threshold()
   max_overlap = max_overlap ?? settings.autocue.max_overlap()
   ratio = ratio ?? settings.autocue.ratio()
+  timeout = timeout ?? settings.autocue.timeout()
 
   frames = file.autocue.ebur128(ratio=ratio, uri)
 
@@ -420,9 +423,9 @@ end
 # values can be computed. For a finer-grained processing, use the `autocue:` protocol.
 # @category Liquidsoap
 def enable_autocue_metadata() =
-  def autocue_metadata(~metadata, ~metadata_overrides, fname) =
+  def autocue_metadata(~metadata, fname) =
 
-    metadata_overrides = metadata_overrides ?? settings.autocue.metadata_overrides()
+    metadata_overrides = settings.autocue.metadata_overrides()
 
     if
       list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
