@@ -32,6 +32,7 @@
   re
   uri
   metadata
+  moonpool
   mem_usage
   magic-mime
   (select
@@ -50,6 +51,7 @@
   add
   amplify
   annotate
+  atomic
   audio_converter
   audio_gen
   available
@@ -64,6 +66,7 @@
   chord
   clip
   clock
+  condition
   comb
   compand
   compress
@@ -116,6 +119,7 @@
   frame_settings
   frame_type
   format_type
+  future
   gate
   generated
   generator
@@ -154,6 +158,7 @@
   lang_vorbis
   lang_wav
   latest_metadata
+  lazy
   liqcurl
   lifecycle
   liq_time
@@ -238,7 +243,6 @@
   type
   typing
   unifier
-  udp_io
   utils
   value
   vFrame

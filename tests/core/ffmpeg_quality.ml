@@ -1,6 +1,6 @@
 open Ffmpeg_format
 
-let () = Frame_settings.lazy_config_eval := true
+let () = Frame_settings.allow_lazy_config_eval ()
 
 let () =
   let vorbis_enc =

@@ -89,3 +89,5 @@ val on_tick : t -> (unit -> unit) -> unit
 val tick : t -> unit
 val after_tick : t -> (unit -> unit) -> unit
 val time_implementation : unit -> Liq_time.implementation
+val future : clock:t -> (unit -> 'a) -> 'a Future.t
+val await : 'a Future.t -> 'a

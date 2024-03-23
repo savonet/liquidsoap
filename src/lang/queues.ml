@@ -61,6 +61,10 @@ module Queue = struct
   let iter q fn = List.iter fn (elements q)
   let fold q fn v = List.fold_left (fun v e -> fn e v) v (elements q)
 
+  let fold_flush q fn v =
+    let rec f v = match pop_opt q with Some el -> f (fn el v) | None -> v in
+    f v
+
   let filter q fn =
     let rec f elements =
       match pop_opt q with Some el -> f (el :: elements) | None -> elements

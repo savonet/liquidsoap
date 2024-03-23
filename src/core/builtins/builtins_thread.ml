@@ -84,7 +84,7 @@ let _ =
       in
       let f () =
         try
-          Liquidsoap_lang.Evaluation.after_eval ~force:true (fun () ->
+          Liquidsoap_lang.Evaluation.after_eval ~mode:`Force (fun () ->
               Lang.to_float (Lang.apply f []))
         with exn -> (
           let bt = Printexc.get_raw_backtrace () in

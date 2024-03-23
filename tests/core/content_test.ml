@@ -1,6 +1,6 @@
 open Content
 
-let () = Frame_settings.lazy_config_eval := true
+let () = Frame_settings.allow_lazy_config_eval ()
 
 let () =
   let marks ?(offset = 0) len = List.init len (fun x -> x + offset) in

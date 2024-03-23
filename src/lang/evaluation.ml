@@ -559,16 +559,21 @@ type _ Effect.t +=
 
 let on_after_eval fn = perform (After_run fn)
 
-let[@inline] after_eval ?(force = false) (fn [@inlined]) =
+let[@inline] after_eval
+    ?(mode : [ `Guess | `Force | `Collect of (unit -> unit) Queue.t ] = `Guess)
+    (fn [@inlined]) =
   let after_eval_locked =
-    force
+    mode <> `Guess
     || try perform (After_run_lock ()) with Stdlib.Effect.Unhandled _ -> true
   in
+  let should_process = match mode with `Collect _ -> false | _ -> true in
   if after_eval_locked then (
-    let after_eval_queue = Queue.create () in
+    let after_eval_queue =
+      match mode with `Collect q -> q | _ -> Queue.create ()
+    in
     let fn () =
       let v = fn () in
-      Queue.flush after_eval_queue (fun fn -> fn ());
+      if should_process then Queue.flush after_eval_queue (fun fn -> fn ());
       v
     in
     match_with fn ()
@@ -586,7 +591,8 @@ let[@inline] after_eval ?(force = false) (fn [@inlined]) =
         exnc =
           (fun exn ->
             let bt = Printexc.get_raw_backtrace () in
-            Queue.flush after_eval_queue (fun fn -> try fn () with _ -> ());
+            if should_process then
+              Queue.flush after_eval_queue (fun fn -> try fn () with _ -> ());
             Printexc.raise_with_backtrace exn bt);
       })
   else fn ()

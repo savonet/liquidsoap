@@ -42,6 +42,9 @@ echo "::group::Setting up specific dependencies"
 
 cd /tmp/liquidsoap-full/liquidsoap
 
+opam update
+opam install -y moonpool
+
 ./.github/scripts/checkout-deps.sh
 
 cd /tmp/liquidsoap-full

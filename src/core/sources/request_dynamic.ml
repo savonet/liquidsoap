@@ -294,7 +294,13 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
             (* Make sure the task is awake so that it can see our signal. *)
             Duppy.Async.wake_up (Option.get task);
             self#log#info "Waiting for feeding task to stop...";
-            Tutils.wait state_cond state_lock (fun () -> state = `Sleeping));
+
+            let rec f () =
+              Mutex.lock state_lock;
+              Condition.wait state_cond state_lock;
+              if state = `Sleeping then Mutex.unlock state_lock else f ()
+            in
+            f ());
           Duppy.Async.stop (Option.get task);
           task <- None;
 

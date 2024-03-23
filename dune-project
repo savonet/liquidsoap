@@ -58,6 +58,7 @@
     mem_usage
     (metadata (>= 0.2.0))
     magic-mime
+    moonpool
     dune-build-info
     (liquidsoap-lang (= :version))
     (ppx_string :build))

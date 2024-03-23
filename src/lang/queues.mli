@@ -35,6 +35,7 @@ module Queue : sig
   val exists : 'a t -> ('a -> bool) -> bool
   val iter : 'a t -> ('a -> unit) -> unit
   val fold : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
+  val fold_flush : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
   val length : 'a t -> int
   val filter : 'a t -> ('a -> bool) -> unit
 end

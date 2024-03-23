@@ -22,6 +22,8 @@
 
 (** Multithreading utilities *)
 
+type thread = unit Future.t
+
 val error_handler : bt:string -> exn -> bool
 val error_handlers : (bt:string -> exn -> bool) Stack.t
 
@@ -32,7 +34,7 @@ val error_handlers : (bt:string -> exn -> bool) Stack.t
   The main process is expected to run [main] after having launched
   the needed threads: that function will sleep until a thread
   raises an exception. *)
-val create : ('a -> unit) -> 'a -> string -> Thread.t
+val create : ('a -> unit) -> 'a -> string -> thread
 
 val main : unit -> unit
 val start : unit -> unit
@@ -63,11 +65,6 @@ type priority =
 val scheduler : priority Duppy.scheduler
 
 (** {1 Misc} *)
-
-(** Waits for [f()] to become true on condition [c].
-  * The mutex [m] protecting data accessed by [f] is in the same state before
-  * and after the call. *)
-val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 
 exception Timeout of float
 

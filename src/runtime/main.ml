@@ -510,7 +510,7 @@ We hope you enjoy this snapshot build of Liquidsoap!
             Sys.remove default_log));
 
       (* Allow frame settings to be evaluated here: *)
-      Frame_settings.lazy_config_eval := true;
+      Frame_settings.allow_lazy_config_eval ();
 
       do_eval ~lib:!last_item_lib)
 
@@ -523,10 +523,10 @@ let final_cleanup () =
   log#important "Cleaning downloaded files...";
   Request.clean ();
   log#important "Freeing memory...";
-  Dtools.Init.exec Dtools.Log.stop;
-  flush_all ();
   Gc.full_major ();
-  Gc.full_major ()
+  Gc.full_major ();
+  Dtools.Init.exec Dtools.Log.stop;
+  flush_all ()
 
 let sync_cleanup () =
   initial_cleanup ();

@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+module Queue = Queues.Queue
+
 (** Evaluate a term in a given environment. *)
 val eval : ?env:(string * Value.t) list -> Term.t -> Value.t
 
@@ -33,4 +35,7 @@ val apply : ?pos:Pos.t -> Value.t -> (string * Value.t) list -> Value.t
 val on_after_eval : (unit -> unit) -> unit
 
 (** Execute a function then run all the [after_eval] callbacks. *)
-val after_eval : ?force:bool -> (unit -> 'a) -> 'a
+val after_eval :
+  ?mode:[ `Guess | `Force | `Collect of (unit -> unit) Queue.t ] ->
+  (unit -> 'a) ->
+  'a
