@@ -29,8 +29,9 @@ let finalise_child_clock child_clock source =
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross val_source ~duration_getter ~override_duration ~persist_override
-  ~rms_width ~minimum_length ~conservative transition =
+class cross val_source ~duration_getter ~reconcile_duration
+  ~override_fade_in_delay ~override_duration ~persist_override ~rms_width
+  ~minimum_length ~conservative transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
@@ -279,8 +280,11 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
       let buf_frame = self#buf_frame in
-      let before_len = Generator.length gen_before in
       let rec f () =
+        let before_len =
+          if reconcile_duration then Frame.main_of_seconds self#cross_duration
+          else Generator.length gen_before
+        in
         let start = AFrame.position buf_frame in
         let stop =
           self#child_get source buf_frame;
@@ -329,8 +333,29 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             let metadata = function None -> Hashtbl.create 0 | Some m -> m in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
+            if reconcile_duration && buffered_after < buffered_before then (
+              let original_delay =
+                try
+                  float_of_string
+                    (Option.value ~default:"0."
+                       (Hashtbl.find_opt after_metadata override_fade_in_delay))
+                with _ -> 0.
+              in
+              let new_delay =
+                original_delay
+                +. Frame.seconds_of_main (buffered_before - buffered_after)
+              in
+              self#log#info
+                "New track buffered duration %.2fs is shorter than ending one \
+                 %.02fs. Injecting %s delay metadata with value %.2fs \
+                 (original value: %.02fs)"
+                (Frame.seconds_of_main buffered_after)
+                (Frame.seconds_of_main buffered)
+                override_fade_in_delay new_delay original_delay;
+              Hashtbl.replace after_metadata override_fade_in_delay
+                (string_of_float new_delay));
             let before_head =
-              if buffered < buffered_before then (
+              if (not reconcile_duration) && buffered < buffered_before then (
                 let head =
                   Generator.get ~length:(buffered_before - buffered) gen_before
                 in
@@ -351,7 +376,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             in
             Typing.(before#frame_type <: self#frame_type);
             let after_tail =
-              if buffered < buffered_after then (
+              if (not reconcile_duration) && buffered < buffered_after then (
                 let head = Generator.get ~length:buffered gen_after in
                 let head_gen =
                   Generator.create ~content:head
@@ -400,10 +425,17 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 (Frame.seconds_of_main buffered_before)
                 (Frame.seconds_of_main buffered_after);
               if Frame.main_of_audio minimum_length < buffered then (
-                self#log#important
-                  "Computing crossfade duration over overlapping %.2fs \
-                   buffered data at start and end."
-                  (Frame.seconds_of_main buffered);
+                if reconcile_duration then
+                  self#log#important
+                    "Computing reconciled crossfade duration over %.2fs ending \
+                     and %.2fs starting buffered data."
+                    (Frame.seconds_of_main buffered_before)
+                    (Frame.seconds_of_main buffered_after)
+                else
+                  self#log#important
+                    "Computing crossfade duration over overlapping %.2fs \
+                     buffered data at start and end."
+                    (Frame.seconds_of_main buffered);
                 f before after)
               else (
                 self#log#important "Not enough data for crossing.";
@@ -482,6 +514,19 @@ let _ =
         Some
           "Metadata field which, if present and containing a float, overrides \
            the 'duration' parameter for current track." );
+      ( "reconcile_duration",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "When set to `true`, if duration for the new track is shorter than \
+           the ending duration, a `liq_fade_in_delay` metadata is \
+           automatically injected to make crossfades match." );
+      ( "override_fade_in_delay",
+        Lang.string_t,
+        Some (Lang.string "liq_fade_in_delay"),
+        Some
+          "Metadata field which used to inject metadata overriding fade-in \
+           delay when reonciling crossfade duration." );
       ( "persist_override",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -536,6 +581,12 @@ let _ =
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
+      let reconcile_duration =
+        Lang.to_bool (List.assoc "reconcile_duration" p)
+      in
+      let override_fade_in_delay =
+        Lang.to_string (List.assoc "override_fade_in_delay" p)
+      in
       let persist_override = Lang.to_bool (List.assoc "persist_override" p) in
       let minimum = Lang.to_float (List.assoc "minimum" p) in
       let minimum_length = Frame.audio_of_seconds minimum in
@@ -545,5 +596,6 @@ let _ =
       let conservative = Lang.to_bool (List.assoc "conservative" p) in
       let source = Lang.assoc "" 2 p in
       new cross
-        source transition ~conservative ~duration_getter ~rms_width
-        ~minimum_length ~override_duration ~persist_override)
+        source transition ~conservative ~duration_getter ~reconcile_duration
+        ~override_fade_in_delay ~rms_width ~minimum_length ~override_duration
+        ~persist_override)
