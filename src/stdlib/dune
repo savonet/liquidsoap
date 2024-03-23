@@ -9,4 +9,4 @@
 (library
  (name liquidsoap_stdlib)
  (wrapped false)
- (libraries liquidsoap_lang moonpool))
+ (libraries liquidsoap_lang))
