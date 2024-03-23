@@ -25,6 +25,7 @@
   fileutils
   liquidsoap-lang
   liquidsoap-lang.console
+  liquidsoap_stdlib
   menhirLib
   camomile.lib
   curl
@@ -174,7 +175,6 @@
   mp3_format
   mpd
   ms_stereo
-  mutex
   muxer
   native_audio_converter
   native_video_converter
