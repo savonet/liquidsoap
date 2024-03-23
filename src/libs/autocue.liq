@@ -1,74 +1,80 @@
-# Initialize settings for autocue protocol
-let settings.autocue = ()
+# Initialize settings for autocue
+let settings.autocue = {internal=()}
 
-let settings.autocue.lufs_target =
+let settings.autocue.implementations =
+  settings.make(
+    description=
+      "All available autocue implementations",
+    []
+  )
+
+let settings.autocue.preferred =
+  settings.make(
+    description=
+      "Preferred autocue",
+    "internal"
+  )
+
+let settings.autocue.internal.lufs_target =
   settings.make(
     description=
       "Loudness target",
     -16.0
   )
 
-let settings.autocue.cue_in_threshold =
+let settings.autocue.internal.cue_in_threshold =
   settings.make(
     description=
       "Cue in threshold",
     -34.0
   )
 
-let settings.autocue.cue_out_threshold =
+let settings.autocue.internal.cue_out_threshold =
   settings.make(
     description=
       "Cue out threshold",
     -42.0
   )
 
-let settings.autocue.cross_threshold =
-  settings.make(
-    description=
-      "Crossfade start threshold",
-    -7.0
-  )
-
-let settings.autocue.max_overlap =
+let settings.autocue.internal.max_overlap =
   settings.make(
     description=
       "Maximum allowed overlap/crossfade in seconds",
     6.0
   )
 
-let settings.autocue.ratio =
+let settings.autocue.internal.ratio =
   settings.make(
     description=
       "Maximum real time ratio to control speed of LUFS data analysis",
     50.
   )
 
-let settings.autocue.timeout =
+let settings.autocue.internal.timeout =
   settings.make(
     description=
       "Maximum allowed processing time (estimated)",
     10.
   )
 
-let settings.autocue.metadata_overrides =
-  settings.make(
-    description=
-      "Existing metadata causing autocue to skip",
-    [
-      "liq_amplify",
-      "liq_cue_in",
-      "liq_cue_out",
-      "liq_cross_duration",
-      "liq_fade_in",
-      "liq_fade_out"
-    ]
-  )
+let autocue = {internal=()}
 
-let file.autocue = ()
+def autocue.register(~name, fn) =
+  current_implementations = settings.autocue.implementations()
+  if
+    list.assoc.mem(name, current_implementations)
+  then
+    error.raise(
+      error.invalid,
+      "Autocue implementation #{name} already exists!"
+    )
+  end
+  settings.autocue.implementations := [(name, fn), ...current_implementations]
+end
 
 # Get frames from ffmpeg.filter.ebur128
 # @flag hidden
-def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
+def autocue.internal.ebur128(~ratio=50., ~timeout=10., uri) =
   r = request.create(resolve_metadata=false, uri)
   s = request.once(r)
 
@@ -76,8 +82,7 @@ def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
     s.resolve()
   then
 %ifdef ffmpeg.filter.ebur128
-
-    duration = null.get(default=0.,request.duration(uri))
+    duration = null.get(default=0., request.duration(uri))
     estimated_processing_time = duration / ratio
 
     if
@@ -85,8 +90,11 @@ def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
     then
       log(
         level=2,
-        label="autocue",
-        "Estimated processing duration is too long, autocue disabled! #{duration} / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing duration; max. allowed: #{timeout})"
+        label="autocue.internal",
+        "Estimated processing duration is too long, autocue disabled! #{
+          duration
+        } / #{ratio} = #{estimated_processing_time} (Duration / Ratio = \
+         Processing duration; max. allowed: #{timeout})"
       )
       []
     else
@@ -113,7 +121,7 @@ def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
 %else
     log(
       level=2,
-      label="autofocus",
+      label="autocue.internal",
       "ffmpeg.filter.ebur128 is not available, autocue disabled!"
     )
     []
@@ -121,7 +129,7 @@ def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
   else
     log(
       level=2,
-      label="autocue",
+      label="autocue.internal",
       "Couldn't resolve source for uri: #{uri}"
     )
     []
@@ -129,40 +137,23 @@ def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
 end
 
 # Compute autocue data
-# @flag extra
-# @category Source / Audio processing
-# @param ~lufs_target Loudness target in LUFS
-# @param ~cue_in_threshold Cue in threshold
-# @param ~cue_out_threshold Cue out threshold
-# @param ~cross_threshold Crossfade start threshold
-# @param ~max_overlap Maximum allowed overlap/crossfade in seconds
-# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing autocue data.
-def replaces file.autocue(
-  ~lufs_target=null(),
-  ~cue_in_threshold=null(),
-  ~cue_out_threshold=null(),
-  ~cross_threshold=null(),
-  ~max_overlap=null(),
-  ~ratio=null(),
-  ~timeout=null(),
-  uri
-) =
-  lufs_target = lufs_target ?? settings.autocue.lufs_target()
-  cue_in_threshold = cue_in_threshold ?? settings.autocue.cue_in_threshold()
-  cue_out_threshold = cue_out_threshold ?? settings.autocue.cue_out_threshold()
-  cross_threshold = cross_threshold ?? settings.autocue.cross_threshold()
-  max_overlap = max_overlap ?? settings.autocue.max_overlap()
-  ratio = ratio ?? settings.autocue.ratio()
-  timeout = timeout ?? settings.autocue.timeout()
+# @flag hidden
+def autocue.internal.implementation(uri) =
+  lufs_target = settings.autocue.internal.lufs_target()
+  cue_in_threshold = settings.autocue.internal.cue_in_threshold()
+  cue_out_threshold = settings.autocue.internal.cue_out_threshold()
+  max_overlap = settings.autocue.internal.max_overlap()
+  ratio = settings.autocue.internal.ratio()
+  timeout = settings.autocue.internal.timeout()
 
-  frames = file.autocue.ebur128(ratio=ratio, timeout=timeout, uri)
+  frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, uri)
 
   if
-    frames == []
+    list.length(frames) < 2
   then
     log(
       level=2,
-      label="autocue",
+      label="autocue.internal",
       "Autocue computation failed!"
     )
     null()
@@ -182,36 +173,28 @@ def replaces file.autocue(
     # Create dB thresholds relative to LUFS target
     lufs_cue_in_threshold = lufs + cue_in_threshold
     lufs_cue_out_threshold = lufs + cue_out_threshold
-    lufs_cross_threshold = lufs + cross_threshold
 
     log(
       level=4,
-      label="autocue",
+      label="autocue.internal",
       "lufs_correction: #{lufs_correction}"
     )
     log(
       level=4,
-      label="autocue",
+      label="autocue.internal",
       "adj_cue_in_threshold: #{lufs_cue_in_threshold}"
     )
     log(
       level=4,
-      label="autocue",
+      label="autocue.internal",
       "adj_cue_out_threshold: #{lufs_cue_out_threshold}"
-    )
-    log(
-      level=4,
-      label="autocue",
-      "adj_cross_threshold: #{lufs_cross_threshold}"
     )
 
     # Set cue/fade defaults
     cue_in = ref(0.)
     cue_out = ref(0.)
-    cross_cue = ref(0.)
     fade_in = ref(0.)
     fade_out = ref(0.)
-    cross_duration = ref(0.)
 
     # Extract timestamps for cue points
     # Iterate over loudness data frames and set cue points based on db thresholds
@@ -244,12 +227,6 @@ def replaces file.autocue(
           # Cue out: Stick with the latest timestamp where level still exceeds threshold
           cue_out := current_ts()
         end
-        if
-          db_level > lufs_cross_threshold
-        then
-          # Absolute crossfade cue: Stick with the latest timestamp where level still exceeds threshold
-          cross_cue := current_ts()
-        end
       end
 
       # Update last timestamp value with current
@@ -264,19 +241,6 @@ def replaces file.autocue(
         float_of_string(list.assoc(default="0.", "lavfi.liq.duration", frame))
 
     # Finalize cue/cross/fade values now...
-
-    # Calc cross/overlap duration
-    if
-      cross_cue() + 0.1 < duration
-    then
-      if
-        cue_out() > 0.
-      then
-        cross_duration := cue_out() - cross_cue()
-      else
-        cross_duration := duration - cross_cue()
-      end
-    end
 
     # Add some margin to cue in
     cue_in := cue_in() - 0.1
@@ -297,73 +261,76 @@ def replaces file.autocue(
       cue_in := 0.
     end
 
+    # Limit overlap duration to maximum
+    if max_overlap < cue_in() then cue_in := cue_in() - max_overlap end
+
+    if max_overlap < cue_out() then cue_out := cue_out() - max_overlap end
+
     # Catch invalid cue out values
     if cue_out() <= cue_in() then cue_out := 0. end
-
-    # Set fade out equal to crossfade/overlap
-    if cross_duration() > 0. then fade_out := cross_duration() end
-
-    # Limit overlap duration to maximum
-    if
-      cross_duration() > max_overlap
-    then
-      cue_shift = cross_duration() - max_overlap
-      cue_out := cue_out() - cue_shift
-      cross_duration := max_overlap
-      fade_out := max_overlap
-    end
 
     {
       amplify=lufs_correction,
       cue_in=(cue_in() > 0. ? cue_in() : null() ),
       cue_out=(cue_out() > 0. ? cue_out() : null() ),
-      cross_duration=cross_duration(),
       fade_in=fade_in(),
       fade_out=fade_out()
     }
   end
 end
 
+autocue.register(name="internal", autocue.internal.implementation)
+
+let file.autocue = ()
+
 # Return the file's autocue values as metadata suitable for metadata override.
-# @flag extra
 # @category Source / Audio processing
-# @param ~lufs_target Loudness target in LUFS
-# @param ~cue_in_threshold Cue in threshold
-# @param ~cue_out_threshold Cue out threshold
-# @param ~cross_threshold Crossfade start threshold
-# @param ~max_overlap Maximum allowed overlap/crossfade in seconds
-# @param ~ratio Decoding ratio. A value of `50.` means try to decode the file `50x` faster than real time, if possible. Use this setting to lower CPU peaks when computing autocue data.
-def file.autocue.metadata(
-  ~lufs_target=null(),
-  ~cue_in_threshold=null(),
-  ~cue_out_threshold=null(),
-  ~cross_threshold=null(),
-  ~max_overlap=null(),
-  ~ratio=null(),
-  uri
-) =
-  let autocue =
-    file.autocue(
-      lufs_target=lufs_target,
-      cue_in_threshold=cue_in_threshold,
-      cue_out_threshold=cue_out_threshold,
-      cross_threshold=cross_threshold,
-      max_overlap=max_overlap,
-      ratio=ratio,
-      uri
-    )
+def file.autocue.metadata(uri) =
+  preferred_implementation = settings.autocue.preferred()
+  implementations = settings.autocue.implementations()
+  implementation =
+    if
+      list.assoc.mem(preferred_implementation, implementations)
+    then
+      log(
+        level=4,
+        label="autocue",
+        "Using preferred #{preferred_implementation} autocue implementation."
+      )
+      list.assoc(preferred_implementation, implementations)
+    elsif
+      list.length(implementations) > 0
+    then
+      let [(name, implementation)] = implementations
+      log(
+        level=4,
+        label="autocue",
+        "Using first available #{name} autocue implementation."
+      )
+      implementation
+    else
+      error.raise(
+        error.not_found,
+        "No autocue implementation found!"
+      )
+    end
+
+  autocue = implementation(uri)
 
   if
     null.defined(autocue)
   then
-    let {
-      amplify,
-      cue_in,
-      cue_out,
-      cross_duration,
-      fade_in,
-      fade_out
-    } = null.get(autocue)
+    let {amplify, cue_in, cue_out, fade_in, fade_out} = null.get(autocue)
+
+    cross_duration = max(fade_in, fade_out)
+
+    # Make sure cross_duration is never 0.
+    cross_duration = max(cross_duration, 0.1)
+
+    fade_in_delay =
+      if fade_in < cross_duration then cross_duration - fade_in else 0. end
+    fade_out_delay =
+      if fade_out < cross_duration then cross_duration - fade_out else 0. end
 
     [
       ("liq_autocue", "true"),
@@ -381,7 +348,9 @@ def file.autocue.metadata(
 
       ("liq_cross_duration", string(cross_duration)),
       ("liq_fade_in", string(fade_in)),
-      ("liq_fade_out", string(fade_out))
+      ("liq_fade_in_delay", string(fade_in_delay)),
+      ("liq_fade_out", string(fade_out)),
+      ("liq_fade_out_delay", string(fade_out_delay))
     ]
   else
     log(
@@ -396,11 +365,15 @@ end
 # Enable autocue metadata resolver. This resolver will process any file
 # decoded by Liquidsoap and add cue-in/out and crossfade metadata when these
 # values can be computed. For a finer-grained processing, use the `autocue:` protocol.
+# This also sets `settings.crossfade.reconcile_duration` to `true`.
 # @category Liquidsoap
 def enable_autocue_metadata() =
-  def autocue_metadata(~metadata, fname) =
+  settings.crossfade.reconcile_duration := true
 
-    metadata_overrides = settings.autocue.metadata_overrides()
+  def autocue_metadata(~metadata, fname) =
+    metadata_overrides =
+      ["liq_amplify", "liq_cue_in", "liq_cue_out", "liq_fade_in", "liq_fade_out"
+      ]
 
     if
       list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
@@ -434,7 +407,7 @@ def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
     log(
       level=2,
       label="autocue.protocol",
-      "No autofocus data found for URI #{arg}!"
+      "No autocue data found for URI #{arg}!"
     )
     [arg]
   end

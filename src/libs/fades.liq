@@ -1,3 +1,6 @@
+let settings.crossfade.reconcile_duration = settings.make(
+  description="Default value for `reconcile_duration`", false)
+
 fade = ()
 
 # Make a fade function based on a source's clock.
@@ -103,7 +106,8 @@ end
 # Fade the end of tracks.
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override. \
+#                  Defaults to `settings.crossfade.fade_out_duration` if `null`.
 # @param ~delay Initial delay before starting fade.
 # @param ~curve Fade curve. Default if `null`.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
@@ -117,7 +121,7 @@ end
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.out(
   ~id="fade.out",
-  ~duration=3.,
+  ~duration=null(),
   ~delay=0.,
   ~curve=null(),
   ~override_duration="liq_fade_out",
@@ -139,6 +143,7 @@ def fade.out(
   type = ref(type)
   original_curve = curve
   curve = ref(curve)
+  duration = duration ?? settings.crossfade.fade_out_duration()
   original_duration = duration
   duration = ref(duration)
   original_delay = delay
@@ -460,7 +465,8 @@ end
 # Fade the beginning of tracks.
 # @category Source / Fade
 # @param ~id Force the value of the source ID.
-# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.
+# @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override.\
+#                  Defaults to `settings.crossfade.fade_in_duration` if `null`.
 # @param ~delay Initial delay before starting fade.
 # @param ~curve Fade curve. Default if `null`.
 # @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
@@ -474,7 +480,7 @@ end
 # @param ~type Fader shape (lin|sin|log|exp): linear, sinusoidal, logarithmic or exponential.
 def fade.in(
   ~id="fade.in",
-  ~duration=3.,
+  ~duration=null(),
   ~delay=0.,
   ~curve=null(),
   ~override_duration="liq_fade_in",
@@ -492,6 +498,7 @@ def fade.in(
   end
 
   fn = ref(fun () -> 0.)
+  duration = duration ?? settings.crossfade.fade_in_duration()
   original_duration = duration
   duration = ref(duration)
   original_delay = delay
@@ -809,6 +816,8 @@ def cross.smart(
   end
 end
 
+
+
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Fade
@@ -832,6 +841,13 @@ end
 #                      With a negative default, transitions always occur.
 # @param ~default      Smart crossfade: transition used when no rule applies \
 #                      (default: sequence).
+# @param ~reconcile_duration \
+#                      When set to `true`, if duration for the new track is shorter than the ending \
+#                      duration, a `liq_fade_in_delay` metadata is automatically injected to make \
+#                      crossfades match. Defaults to `settings.crossfade.reconcile_duration` if `null`.
+# @param ~override_fade_in_delay \
+#                      Metadata field used to inject metadata overriding fade-in delay \
+#                      when reonciling crossfade duration.
 # @param ~smart        Enable smart crossfading
 # @param ~high         Smart crossfade: value, in dB, for loud sound level.
 # @param ~medium       Smart crossfade: value, in dB, for medium sound level.
@@ -844,6 +860,8 @@ def crossfade(
   ~id=null(),
   ~duration=5.,
   ~override_duration="liq_cross_duration",
+  ~reconcile_duration=null(),
+  ~override_fade_in_delay="liq_fade_in_delay",
   ~persist_override=false,
   ~fade_in=3.,
   ~fade_out=3.,
@@ -859,6 +877,8 @@ def crossfade(
   s
 ) =
   id = string.id.default(default="crossfade", id)
+  reconcile_duration = reconcile_duration ?? settings.crossfade.reconcile_duration()
+
   def log(~level=3, x) =
     log(label=id, level=level, x)
   end
@@ -936,6 +956,8 @@ def crossfade(
       width=width,
       duration=duration,
       persist_override=persist_override,
+      reconcile_duration=reconcile_duration,
+      override_fade_in_delay=override_fade_in_delay,
       override_duration=override_duration,
       conservative=conservative,
       minimum=minimum,
