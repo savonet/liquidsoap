@@ -44,44 +44,38 @@ module type S = sig
   val clear : unit -> unit
 end
 
+module WeakQueue = Liquidsoap_lang.Queues.WeakQueue
+
 module Make (P : T) : S with type t = P.t = struct
   type t = P.t
 
-  module WeakHash = Weak.Make (struct
-    type t = P.t
+  let q = WeakQueue.create ()
 
-    let equal t t' = P.id t = P.id t'
-    let hash = P.id
-  end)
-
-  let h = WeakHash.create 10
+  exception Found of t
 
   let find id =
-    match WeakHash.find_opt h (P.destroyed id) with
-      | Some v when not (P.is_destroyed v) -> Some v
-      | _ -> None
+    try
+      WeakQueue.iter q (fun r ->
+          if P.id r = id && not (P.is_destroyed r) then raise (Found r));
+      None
+    with Found r -> Some r
 
   let fold f =
-    WeakHash.fold
-      (fun v cur -> if P.is_destroyed v then cur else f (P.id v) v cur)
-      h
+    WeakQueue.fold q (fun v cur ->
+        if P.is_destroyed v then cur else f (P.id v) v cur)
 
   let iter f =
-    WeakHash.iter
-      (fun entry -> if not (P.is_destroyed entry) then f (P.id entry) entry)
-      h
+    WeakQueue.iter q (fun entry ->
+        if not (P.is_destroyed entry) then f (P.id entry) entry)
 
-  let remove id = WeakHash.remove h (P.destroyed id)
+  let remove id = WeakQueue.filter q (fun r -> P.id r = id)
   let current_id = Atomic.make 0
 
   let add fn =
-    let rec f () =
-      let id = Atomic.fetch_and_add current_id 1 in
-      let v = fn id in
-      match WeakHash.merge h v with v' when v == v' -> v | _ -> f ()
-    in
-    f ()
+    let v = fn (Atomic.fetch_and_add current_id 1) in
+    WeakQueue.push q v;
+    v
 
-  let size () = WeakHash.count h
-  let clear () = WeakHash.clear h
+  let size () = WeakQueue.length q
+  let clear () = WeakQueue.flush q (fun _ -> ())
 end
