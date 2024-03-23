@@ -427,13 +427,13 @@ class cross val_source ~duration_getter ~reconcile_duration
               if Frame.main_of_audio minimum_length < buffered then (
                 if reconcile_duration then
                   self#log#important
-                    "Computing reconciled crossfade duration over %.2fs ending \
-                     and %.2fs starting buffered data."
+                    "Computing crossfade transition over reconciled duration \
+                     with %.2fs ending and %.2fs starting buffered data."
                     (Frame.seconds_of_main buffered_before)
                     (Frame.seconds_of_main buffered_after)
                 else
                   self#log#important
-                    "Computing crossfade duration over overlapping %.2fs \
+                    "Computing crossfade transition over overlapping %.2fs \
                      buffered data at start and end."
                     (Frame.seconds_of_main buffered);
                 f before after)
