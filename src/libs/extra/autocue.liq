@@ -43,11 +43,32 @@ let settings.autocue.ratio =
     50.
   )
 
+let settings.autocue.timeout =
+  settings.make(
+    description=
+      "Maximum allowed processing time (estimated)",
+    10.
+  )
+
+let settings.autocue.metadata_overrides =
+  settings.make(
+    description=
+      "Existing metadata causing autocue to skip",
+    [
+      "liq_amplify",
+      "liq_cue_in",
+      "liq_cue_out",
+      "liq_cross_duration",
+      "liq_fade_in",
+      "liq_fade_out"
+    ]
+  )
+
 let file.autocue = ()
 
 # Get frames from ffmpeg.filter.ebur128
 # @flag hidden
-def file.autocue.ebur128(~ratio=50., uri) =
+def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
   r = request.create(resolve_metadata=false, uri)
   s = request.once(r)
 
@@ -55,25 +76,40 @@ def file.autocue.ebur128(~ratio=50., uri) =
     s.resolve()
   then
 %ifdef ffmpeg.filter.ebur128
-    frames = ref([])
 
-    def ebur128(s) =
-      def mk_filter(graph) =
-        let {audio = a} = source.tracks(s)
-        a = ffmpeg.filter.audio.input(graph, a)
-        let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
-        a = ffmpeg.filter.audio.output(graph, a)
-        source({audio=a, metadata=track.metadata(a)})
+    duration = null.get(default=0.,request.duration(uri))
+    estimated_processing_time = duration / ratio
+
+    if
+      estimated_processing_time > timeout or duration <= 0.
+    then
+      log(
+        level=2,
+        label="autocue",
+        "Estimated processing duration is too long, autocue disabled! #{duration} / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing duration; max. allowed: #{timeout})"
+      )
+      []
+    else
+      frames = ref([])
+
+      def ebur128(s) =
+        def mk_filter(graph) =
+          let {audio = a} = source.tracks(s)
+          a = ffmpeg.filter.audio.input(graph, a)
+          let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
+          a = ffmpeg.filter.audio.output(graph, a)
+          source({audio=a, metadata=track.metadata(a)})
+        end
+
+        ffmpeg.filter.create(mk_filter)
       end
 
-      ffmpeg.filter.create(mk_filter)
+      s = ebur128(s)
+      s = source.on_metadata(s, fun (m) -> frames := [...frames(), m])
+      source.drop(ratio=ratio, s)
+
+      frames()
     end
-
-    s = ebur128(s)
-    s = source.on_metadata(s, fun (m) -> frames := [...frames(), m])
-    source.drop(ratio=ratio, s)
-
-    frames()
 %else
     log(
       level=2,
@@ -108,6 +144,7 @@ def replaces file.autocue(
   ~cross_threshold=null(),
   ~max_overlap=null(),
   ~ratio=null(),
+  ~timeout=null(),
   uri
 ) =
   lufs_target = lufs_target ?? settings.autocue.lufs_target()
@@ -116,8 +153,9 @@ def replaces file.autocue(
   cross_threshold = cross_threshold ?? settings.autocue.cross_threshold()
   max_overlap = max_overlap ?? settings.autocue.max_overlap()
   ratio = ratio ?? settings.autocue.ratio()
+  timeout = timeout ?? settings.autocue.timeout()
 
-  frames = file.autocue.ebur128(ratio=ratio, uri)
+  frames = file.autocue.ebur128(ratio=ratio, timeout=timeout, uri)
 
   if
     frames == []
@@ -386,19 +424,8 @@ end
 # @category Liquidsoap
 def enable_autocue_metadata() =
   def autocue_metadata(~metadata, fname) =
-    metadata_overrides =
-      [
-        "liq_amplify",
-        "liq_cue_in",
-        "liq_cue_out",
-        "liq_cross_duration",
-        "liq_fade_in",
-        "liq_fade_out",
-        "liq_fade_out_delay",
-        "liq_fade_in_delay",
-        "liq_fade_in_curve",
-        "liq_fade_out_curve"
-      ]
+
+    metadata_overrides = settings.autocue.metadata_overrides()
 
     if
       list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
