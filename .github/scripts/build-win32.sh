@@ -48,6 +48,9 @@ opam update windows
 # shellcheck disable=SC2046
 opam upgrade -y $(echo "$OPAM_DEPS" | sed -e 's#,# #g') ffmpeg-windows ffmpeg-avutil-windows
 
+# Debug
+opam reinstall -y cry-windows
+
 echo "::endgroup::"
 
 echo "::group::Install liquidsoap-windows"
