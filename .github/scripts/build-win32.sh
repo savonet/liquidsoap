@@ -49,7 +49,7 @@ opam update windows
 opam upgrade -y $(echo "$OPAM_DEPS" | sed -e 's#,# #g') ffmpeg-windows ffmpeg-avutil-windows
 
 # Debug
-opam reinstall -y cry
+opam reinstall -y cry-windows
 
 echo "::endgroup::"
 
