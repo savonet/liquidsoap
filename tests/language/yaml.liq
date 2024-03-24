@@ -7,7 +7,7 @@ def f () =
   j.add("record", { a = 1, b = "ert"})
   j.remove("foo")
   j = yaml.stringify(j)
-  test.equals(j, 'record:
+  test.equal(j, 'record:
   a: 1
   b: ert
 key_with_methods: value
@@ -22,7 +22,7 @@ baz: 3.14
     record: { a: float, b: string},
   }) = j
 
-  test.equals(x, {
+  test.equal(x, {
     record = {
       b = "ert",
       a = 1.0

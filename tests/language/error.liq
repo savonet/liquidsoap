@@ -6,7 +6,7 @@ def f() =
     5
   end
 
-  test.equals(ret, 4)
+  test.equal(ret, 4)
 
   e = error.register("foo")
 
@@ -17,7 +17,7 @@ def f() =
     5
   end
 
-  test.equals(ret, 4)
+  test.equal(ret, 4)
 
   # Can report kind
   ret = try
@@ -26,7 +26,7 @@ def f() =
   catch err do
     err.kind
   end
-  test.equals(ret, "foo")
+  test.equal(ret, "foo")
 
   # Can report empty message
   ret = try
@@ -35,7 +35,7 @@ def f() =
   catch err do
     err.message
   end
-  test.equals(ret, "")
+  test.equal(ret, "")
 
   # Can report set message
   ret = try
@@ -44,7 +44,7 @@ def f() =
   catch err do
     err.message ?? "blo"
   end
-  test.equals(ret, "msg")
+  test.equal(ret, "msg")
 
   # Can report stack trace
   trace = try
@@ -54,10 +54,10 @@ def f() =
     err.trace
   end
   pos = string.concat(separator=", ", list.map(fun (pos) -> pos.to_string(), trace))
-  test.equals(pos, "At error.liq, line 50 char 10 - line 55 char 5")
+  test.equal(pos, "At error.liq, line 50 char 10 - line 55 char 5")
 
   e' = error.register("bla")
-  test.equals(false, (e == e'))
+  test.equal(false, (e == e'))
 
   # Ignores errors when not in list
   ret =
@@ -71,7 +71,7 @@ def f() =
     catch _ : [e] do
       "gni"
     end
-  test.equals(ret, "gni")
+  test.equal(ret, "gni")
 
   # Ignore errors when list is empty
   ret =
@@ -85,7 +85,7 @@ def f() =
     catch _ : [e] do
       "gni"
     end
-  test.equals(ret, "gni")
+  test.equal(ret, "gni")
 
   # Catches error when in list
   ret =
@@ -99,7 +99,7 @@ def f() =
     catch _ : [e] do
       "gni"
     end
-  test.equals(ret, "blo")
+  test.equal(ret, "blo")
 
   on_error = ref(error.register("dummy"))
   error.on_error(fun (e) -> on_error := e)

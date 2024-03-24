@@ -24,12 +24,12 @@ def tests() =
   g(x=r)
   r.set(r()+2)
 
-  test.equals(getter.get(getter(3)), 3)
-  test.equals(getter.get(getter({3})), 3)
-  test.equals(getter.get(getter.map(fun (x) -> 2*x, getter(3))), 6)
-  test.equals(getter.get(getter.map(fun (x) -> 2*x, getter({3}))), 6)
-  test.equals(getter.is_constant(getter(3)), true)
-  test.equals(getter.is_constant(getter({3})), false)
+  test.equal(getter.get(getter(3)), 3)
+  test.equal(getter.get(getter({3})), 3)
+  test.equal(getter.get(getter.map(fun (x) -> 2*x, getter(3))), 6)
+  test.equal(getter.get(getter.map(fun (x) -> 2*x, getter({3}))), 6)
+  test.equal(getter.is_constant(getter(3)), true)
+  test.equal(getter.is_constant(getter({3})), false)
 
   def gen =
     pos = ref(0)
@@ -41,8 +41,8 @@ def tests() =
     end
   end
 
-  test.equals(string.getter.flush(separator=",", getter(gen)), "foobar,foobar,foobar")
-  test.equals(string.getter.flush(getter("foobar")), "foobar")
+  test.equal(string.getter.flush(separator=",", getter(gen)), "foobar,foobar,foobar")
+  test.equal(string.getter.flush(getter("foobar")), "foobar")
 
   def gen =
     pos = ref(0)
@@ -54,7 +54,7 @@ def tests() =
     end
   end
 
-  test.equals(string.getter.flush(separator="|", string.getter.concat([getter(""), getter(gen), getter("gno")])), "foobar|foobar|foobar|gno")
+  test.equal(string.getter.flush(separator="|", string.getter.concat([getter(""), getter(gen), getter("gno")])), "foobar|foobar|foobar|gno")
 
   test.pass()
 end

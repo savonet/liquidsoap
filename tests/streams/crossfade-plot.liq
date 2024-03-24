@@ -42,11 +42,11 @@ clock.assign_new(sync='none', [s])
 base_dir = path.dirname(argv(0))
 
 def on_stop() =
-  test.equals(
+  test.equal(
     file.contents(path.concat(dir, "old.txt")),
     file.contents(path.concat(base_dir, "crossfade-plot.old.txt"))
   )
-  test.equals(
+  test.equal(
     file.contents(path.concat(dir, "new.txt")),
     file.contents(path.concat(base_dir, "crossfade-plot.new.txt"))
   )

@@ -1,5 +1,5 @@
 def f() =
-  test.equals(r/\\/.replace(fun (_) -> "?", "foo\\bar"), "foo?bar")
+  test.equal(r/\\/.replace(fun (_) -> "?", "foo\\bar"), "foo?bar")
   test.pass()
 end
 

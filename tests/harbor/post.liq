@@ -11,7 +11,7 @@ def f() =
     attributes = []
   }])
 
-  test.equals(
+  test.equal(
     string.getter.flush(data.contents),
     "--foobar\r\n\
      Content-Disposition: form-data; name=\"the name\"; filename=\"the filename\"\r\n\
@@ -24,7 +24,7 @@ def f() =
      gnigno\r\n\
      --foobar--\r\n"
   )
-  test.equals(data.boundary, "foobar")
+  test.equal(data.boundary, "foobar")
 
   data = http.multipart_form_data(boundary="foobar", [{
     name = "the name",
@@ -38,7 +38,7 @@ def f() =
     attributes = []
   }])
 
-  test.equals(
+  test.equal(
     string.getter.flush(data.contents),
     "--#{data.boundary}\r\n\
      Content-Disposition: form-data; name=\"the name\"; filename=\"the filename\"\r\n\
@@ -61,10 +61,10 @@ def f() =
   boundary = string.concat(l)
 
   def handler(req, _) =
-   test.equals(req.http_version, "1.1")
-   test.equals(req.method, "POST")
-   test.equals(req.query, [])
-   test.equals(req.headers, [
+   test.equal(req.http_version, "1.1")
+   test.equal(req.method, "POST")
+   test.equal(req.query, [])
+   test.equal(req.headers, [
       ("host", "localhost:6543"),
       ("user-agent", http.user_agent),
       ("accept", "*/*"),
@@ -72,8 +72,8 @@ def f() =
       ("content-type", "multipart/form-data; boundary=#{boundary}"),
       ("expect", "100-continue")
     ])
-   test.equals(req.path, "/file_upload")
-   test.equals(
+   test.equal(req.path, "/file_upload")
+   test.equal(
       req.body(timeout=5.0),
       "--#{boundary}\r\n\
        Content-Disposition: form-data; name=\"file\"; filename=\"#{fname}\"\r\n\
@@ -86,11 +86,11 @@ def f() =
   harbor.http.register("/file_upload", method="POST", port=6543, handler)
 
   resp = http.post.file(file=fname, content_type="text/plain", boundary=boundary, "http://localhost:6543/file_upload")
-  test.equals(resp.status_message, "OK")
-  test.equals(resp.status_code, 200)
-  test.equals(resp.http_version, "1.1")
-  test.equals(resp.headers, [])
-  test.equals("#{resp}", "")
+  test.equal(resp.status_message, "OK")
+  test.equal(resp.status_code, 200)
+  test.equal(resp.http_version, "1.1")
+  test.equal(resp.headers, [])
+  test.equal("#{resp}", "")
 
   # Test in-memory file upload
 
@@ -99,18 +99,18 @@ def f() =
   boundary = string.concat(l)
 
   def handler(req, _) =
-   test.equals(req.http_version, "1.1")
-   test.equals(req.method, "POST")
-   test.equals(req.query, [])
-   test.equals(req.headers, [
+   test.equal(req.http_version, "1.1")
+   test.equal(req.method, "POST")
+   test.equal(req.query, [])
+   test.equal(req.headers, [
       ("host", "localhost:6543"),
       ("user-agent", http.user_agent),
       ("accept", "*/*"),
       ("content-type", "multipart/form-data; boundary=#{boundary}"),
       ("content-length", "138")
     ])
-   test.equals(req.path, "/in_memory_file_upload")
-   test.equals(
+   test.equal(req.path, "/in_memory_file_upload")
+   test.equal(
       req.body(timeout=5.0),
       "--#{boundary}\r\n\
        Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"\r\n\
@@ -123,11 +123,11 @@ def f() =
   harbor.http.register("/in_memory_file_upload", method="POST", port=6543, handler)
 
   resp = http.post.file(filename="foo.txt", contents="foobarlol", content_type="text/plain", boundary=boundary, "http://localhost:6543/in_memory_file_upload")
-  test.equals(resp.status_message, "OK")
-  test.equals(resp.status_code, 200)
-  test.equals(resp.http_version, "1.1")
-  test.equals(resp.headers, [])
-  test.equals("#{resp}", "")
+  test.equal(resp.status_message, "OK")
+  test.equal(resp.status_code, 200)
+  test.equal(resp.http_version, "1.1")
+  test.equal(resp.headers, [])
+  test.equal("#{resp}", "")
 
   # Test JSON post
   j = json()
@@ -136,18 +136,18 @@ def f() =
   data = json.stringify(j)
 
   def handler(req, _) =
-   test.equals(req.http_version, "1.1")
-   test.equals(req.method, "POST")
-   test.equals(req.query, [])
-   test.equals(req.headers, [
+   test.equal(req.http_version, "1.1")
+   test.equal(req.method, "POST")
+   test.equal(req.query, [])
+   test.equal(req.headers, [
       ("host", "localhost:6543"),
       ("user-agent", http.user_agent),
       ("content-type", "application/json"),
       ("accept", "application/json"),
       ("content-length", "#{string.length(data)}")
     ])
-   test.equals(req.path, "/json_post")
-   test.equals(
+   test.equal(req.path, "/json_post")
+   test.equal(
       req.body(timeout=5.0),
       data)
   end
@@ -155,11 +155,11 @@ def f() =
   harbor.http.register("/json_post", method="POST", port=6543, handler)
 
   resp = http.post(headers=[("Content-Type","application/json"),("Accept","application/json")], data=data, "http://localhost:6543/json_post")
-  test.equals(resp.status_message, "OK")
-  test.equals(resp.status_code, 200)
-  test.equals(resp.http_version, "1.1")
-  test.equals(resp.headers, [])
-  test.equals("#{resp}", "")
+  test.equal(resp.status_message, "OK")
+  test.equal(resp.status_code, 200)
+  test.equal(resp.http_version, "1.1")
+  test.equal(resp.headers, [])
+  test.equal("#{resp}", "")
 
   test.pass()
 end

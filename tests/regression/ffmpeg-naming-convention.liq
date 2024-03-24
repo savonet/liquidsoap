@@ -25,12 +25,12 @@ def f() =
       streams: [{codec_type: string, channels?: int}]
     }) = j
 
-    test.equals(s1?.channels, 2)
-    test.equals(s2?.channels, 1)
-    test.equals(s3?.channels, 2)
-    test.equals(s4?.channels, 1)
-    test.equals(s5.codec_type, "video")
-    test.equals(s6.codec_type, "video")
+    test.equal(s1?.channels, 2)
+    test.equal(s2?.channels, 1)
+    test.equal(s3?.channels, 2)
+    test.equal(s4?.channels, 1)
+    test.equal(s5.codec_type, "video")
+    test.equal(s6.codec_type, "video")
 
     test.pass()
   end

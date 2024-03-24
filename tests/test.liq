@@ -68,9 +68,18 @@ def test.check_non_repeating(~nb_files,~nb_rounds,s)
   s
 end
 
-def test.equals(v, v') =
+def test.equal(v, v') =
   if v != v' then
     error.raise(error.failure, "expected:\r\n#{string.quote(string(v'))}\r\ngot:\r\n#{string.quote(string(v))}")
+    test.fail()
+  end
+end
+
+let test.not = ()
+
+def test.not.equal(v, v') =
+  if v == v' then
+    error.raise(error.failure, "expected:\r\n#{string.quote(string(v'))}\r\nto differ from:\r\n#{string.quote(string(v))}")
     test.fail()
   end
 end

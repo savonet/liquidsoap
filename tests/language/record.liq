@@ -4,10 +4,10 @@ def f() =
   # Basic checks
   n = 2
   r = n.{ a = 8 , b = 12 , f = fun(x) -> 2 * x }
-  test.equals(1+r, 3)
-  test.equals(r.b, 12)
-  test.equals(r.a, 8)
-  test.equals(r.f(5), 10)
+  test.equal(1+r, 3)
+  test.equal(r.b, 12)
+  test.equal(r.a, 8)
+  test.equal(r.f(5), 10)
   r = 2.{a = 5}
   ignore(r)
 
@@ -39,9 +39,9 @@ def f() =
 
   ignore(counter())
   ignore(counter())
-  test.equals(counter(), 3)
+  test.equal(counter(), 3)
   counter.reset()
-  test.equals(counter(), 1)
+  test.equal(counter(), 1)
 
   # Float / field disambiguation
   r = 3.{s = "a"}
@@ -51,7 +51,7 @@ def f() =
   r = ()
   def r.f(n) = 2*n end
   open r
-  test.equals(f(3), 6)
+  test.equal(f(3), 6)
 
   # Test subtyping in lists
   a = "a"
@@ -74,33 +74,33 @@ def f() =
   _ = [{a = 4, b = 5, c = 6}, {a = "a", b = 2, d = "d"}]
 
   # Equality
-  test.equals({a = 5} == {a = 5}, true)
-  test.equals({a = 5} == {a = 6}, false)
-  test.equals({a = 5} == {a = 6, b = 4}, false)
-  test.equals([{a = 5}] == [{a = 5}], true)
-  test.equals(({a = 5}) == ({a = 5}), true)
+  test.equal({a = 5} == {a = 5}, true)
+  test.equal({a = 5} == {a = 6}, false)
+  test.equal({a = 5} == {a = 6, b = 4}, false)
+  test.equal([{a = 5}] == [{a = 5}], true)
+  test.equal(({a = 5}) == ({a = 5}), true)
   # The following is weird but expected
-  test.equals({a = 5} == {a = 5, b = 6}, true)
-  test.equals("bla".{x = 2} == "bla", true)
-  test.equals("bla" == "bla".{x = 2}, true)
+  test.equal({a = 5} == {a = 5, b = 6}, true)
+  test.equal("bla".{x = 2} == "bla", true)
+  test.equal("bla" == "bla".{x = 2}, true)
 
   # Test optional fields
   def f(x) =
     (x?.foo ?? 2) + 1
   end
-  test.equals(f(()), 3)
-  test.equals(f({}), 3)
-  test.equals(f({foo=1}), 2)
-  test.equals(f({foo=null()}), 3)
+  test.equal(f(()), 3)
+  test.equal(f({}), 3)
+  test.equal(f({foo=1}), 2)
+  test.equal(f({foo=null()}), 3)
 
   def f(x) =
    ret = x?.foo(123)
    ret ?? 1
   end
-  test.equals(f(()), 1)
-  test.equals(f({}), 1)
-  test.equals(f({foo=(fun (x) -> x)}), 123)
-  test.equals(f({foo=null()}), 1)
+  test.equal(f(()), 1)
+  test.equal(f({}), 1)
+  test.equal(f({foo=(fun (x) -> x)}), 123)
+  test.equal(f({foo=null()}), 1)
 
   def f(x) =
     [x, {foo = 123}]
@@ -126,28 +126,28 @@ def f() =
     x.foo.gni.bla(1,2,3).blo
   end
 
-  test.equals(f({ foo = { gni = { bla = (fun (_,_,_,~foo="gni") -> { blo = 123 })}}}), 123)
+  test.equal(f({ foo = { gni = { bla = (fun (_,_,_,~foo="gni") -> { blo = 123 })}}}), 123)
 
   def f(x) =
     x.foo?.gni.bla(1,2,3)
   end
-  test.equals(f({ foo = null() }), null())
+  test.equal(f({ foo = null() }), null())
 
   # We want to make sure that:
   def f(x) =
     x?.foo
   end
   # is properly typed as: ('B.{foo? : 'A}) -> 'A?
-  test.equals(f({}), null())
+  test.equal(f({}), null())
 
   x = ({foo = null()}:{foo: int?})
-  test.equals(f(x), null())
+  test.equal(f(x), null())
 
   x = ({foo = null()}:{foo?:int?})
-  test.equals(f(x), null())
+  test.equal(f(x), null())
 
-  test.equals(f(true), null())
-  test.equals(f({foo = 1}), null(1))
+  test.equal(f(true), null())
+  test.equal(f({foo = 1}), null(1))
 
   # We want to make sure that:
   def f(x) =
@@ -155,10 +155,10 @@ def f() =
   end
   # is properly typed as: ('A.{foo? : (int) -> 'B.{gni? : 'C}}) -> 'C?
   # i.e. that { foo = (fun (_) -> { } ) } is a valid argument
-  test.equals(f({ foo = (fun (_) -> { } ) }), null())
-  test.equals(f(112.{ foo = (fun (_) -> false ) }), null())
-  test.equals(f({ foo = (fun (_) -> { gni = 2 } ) }), null(2))
-  test.equals(f(345.{ foo = (fun (_) -> "aabb".{ gni = 2 } ) }), null(2))
+  test.equal(f({ foo = (fun (_) -> { } ) }), null())
+  test.equal(f(112.{ foo = (fun (_) -> false ) }), null())
+  test.equal(f({ foo = (fun (_) -> { gni = 2 } ) }), null(2))
+  test.equal(f(345.{ foo = (fun (_) -> "aabb".{ gni = 2 } ) }), null(2))
 
   # We want to make sure that:
   def f(x) =
@@ -166,49 +166,49 @@ def f() =
   end
   # is properly typed as: ('A.{foo? : (int) -> 'B.{gni? : int}}) -> int
   # i.e. that { foo = (fun (_) -> { } ) } is a valid argument
-  test.equals(f({}), 1)
-  test.equals(f(2), 1)
-  test.equals(f({ foo = (fun (_) -> { } ) }), 1)
-  test.equals(f("aabb".{ foo = (fun (_) -> 123 ) }), 1)
-  test.equals(f({ foo = (fun (_) -> { gni = 2 } ) }), 2)
-  test.equals(f(456.{ foo = (fun (_) -> true.{ gni = 2 } ) }), 2)
+  test.equal(f({}), 1)
+  test.equal(f(2), 1)
+  test.equal(f({ foo = (fun (_) -> { } ) }), 1)
+  test.equal(f("aabb".{ foo = (fun (_) -> 123 ) }), 1)
+  test.equal(f({ foo = (fun (_) -> { gni = 2 } ) }), 2)
+  test.equal(f(456.{ foo = (fun (_) -> true.{ gni = 2 } ) }), 2)
 
   # Spread patterns:
   x = { foo = 123, gni = "aabb" }
   let { foo, ...y } = x
-  test.equals(foo, 123)
-  test.equals(y.gni, "aabb")
-  test.equals(y, ())
-  test.equals(y?.foo, null())
+  test.equal(foo, 123)
+  test.equal(y.gni, "aabb")
+  test.equal(y, ())
+  test.equal(y?.foo, null())
 
   x = 1.{ foo = 123, gni = "aabb" }
   let { foo, ...y } = x
-  test.equals(foo, 123)
-  test.equals(y.gni, "aabb")
-  test.equals(y, 1)
-  test.equals(y?.foo, null())
+  test.equal(foo, 123)
+  test.equal(y.gni, "aabb")
+  test.equal(y, 1)
+  test.equal(y?.foo, null())
 
   x = 1.{ foo = 123, gni = "aabb" }
   let y.{ foo } = x
-  test.equals(foo, 123)
-  test.equals(y.gni, "aabb")
-  test.equals(y, 1)
-  test.equals(y?.foo, null())
+  test.equal(foo, 123)
+  test.equal(y.gni, "aabb")
+  test.equal(y, 1)
+  test.equal(y?.foo, null())
 
   x = {foo = 3.14}.{ foo = 123, gni = "aabb" }
   let { foo, ...y } = x
-  test.equals(foo, 123)
-  test.equals(y.gni, "aabb")
-  test.equals(y, ())
-  test.equals(y?.foo, null())
+  test.equal(foo, 123)
+  test.equal(y.gni, "aabb")
+  test.equal(y, ())
+  test.equal(y?.foo, null())
 
   x = { foo = 123, gni = "aabb" }
   y = { bla = 3.14, ...x }
-  test.equals(y, { foo = 123, gni = "aabb", bla = 3.14 })
+  test.equal(y, { foo = 123, gni = "aabb", bla = 3.14 })
 
   x = 1.{ foo = 123, gni = "aabb" }
   y = { bla = 3.14, ...x }
-  test.equals(y, 1.{ foo = 123, gni = "aabb", bla = 3.14 })
+  test.equal(y, 1.{ foo = 123, gni = "aabb", bla = 3.14 })
 
   # Make sure that a function that takes a record of the
   # type { foo?: int} can take a record of the type: {foo?: never}
@@ -217,7 +217,7 @@ def f() =
   end
   x = {foo = 123}
   let {foo = _, ...y} = x
-  test.equals(f(y), 3)
+  test.equal(f(y), 3)
 
   # Make sure that we infer optional methods correctly
   def f(x) =
@@ -231,7 +231,7 @@ def f() =
 
   x = 1
   y = x.{foo=123} - 3
-  test.equals("#{y}", "#{-2}")
+  test.equal("#{y}", "#{-2}")
 
 
   test.pass()

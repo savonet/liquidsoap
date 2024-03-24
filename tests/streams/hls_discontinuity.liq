@@ -33,7 +33,7 @@ def on_file_change(~state=_, fname) =
     if
       not has_restarted() and segments_count() == 4
     then
-      test.equals(file.contents(fname), first_playlist)
+      test.equal(file.contents(fname), first_playlist)
       is_on := false
       print(
         "in_on: false"
@@ -52,11 +52,11 @@ def on_file_change(~state=_, fname) =
     elsif
       has_restarted() and segments_count() == 1
     then
-      test.equals(file.contents(fname), second_playlist)
+      test.equal(file.contents(fname), second_playlist)
     elsif
       has_restarted() and segments_count() == 4
     then
-      test.equals(file.contents(fname), third_playlist)
+      test.equal(file.contents(fname), third_playlist)
       test.pass()
     end
   end
