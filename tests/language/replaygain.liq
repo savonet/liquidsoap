@@ -3,9 +3,7 @@
 def test_metadata_replaygain() =
   test.equal(metadata.replaygain([("r128_track_gain", "0")]), 0.)
   test.equal(metadata.replaygain([("r128_track_gain", "256")]), 1.)
-  test.equal(
-    metadata.replaygain([("r128_track_gain", "32767")]), 32767. / 256.
-  )
+  test.equal(metadata.replaygain([("r128_track_gain", "32767")]), 32767. / 256.)
   test.equal(
     metadata.replaygain([("r128_track_gain", "-32768")]), -32768. / 256.
   )
