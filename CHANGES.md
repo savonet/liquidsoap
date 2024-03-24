@@ -16,6 +16,7 @@ Fixed:
 - Fixed `source.drop` and `source.dump` clock initialization.
 - Fixed bogus report of non-monotonous PTS content when using raw ffmpeg content.
 - Fixed streaming errors when disconnecting `input.harbor`.
+- Fixed issues with rendered id3v2 frame that contain binary data (#3817)
 
 ---
 

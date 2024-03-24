@@ -524,82 +524,7 @@ let frame_id_of_string = function
   | "tracknumber" -> Some `TRCK
   | "year" -> Some `TYER
   | "url" -> Some `WXXX
-  | "AENC" -> Some `AENC
-  | "APIC" -> Some `APIC
-  | "COMM" -> Some `COMM
-  | "COMR" -> Some `COMR
-  | "ENCR" -> Some `ENCR
-  | "EQUA" -> Some `EQUA
-  | "ETCO" -> Some `ETCO
-  | "GEOB" -> Some `GEOB
-  | "GRID" -> Some `GRID
-  | "IPLS" -> Some `IPLS
-  | "LINK" -> Some `LINK
-  | "MCDI" -> Some `MCDI
-  | "MLLT" -> Some `MLLT
-  | "OWNE" -> Some `OWNE
-  | "PRIV" -> Some `PRIV
-  | "PCNT" -> Some `PCNT
-  | "POPM" -> Some `POPM
-  | "POSS" -> Some `POSS
-  | "RBUF" -> Some `RBUF
-  | "RVAD" -> Some `RVAD
-  | "RVRB" -> Some `RVRB
-  | "SYLT" -> Some `SYLT
-  | "SYTC" -> Some `SYTC
-  | "TALB" -> Some `TALB
-  | "TBPM" -> Some `TBPM
-  | "TCOM" -> Some `TCOM
-  | "TCON" -> Some `TCON
-  | "TCOP" -> Some `TCOP
-  | "TDAT" -> Some `TDAT
-  | "TDLY" -> Some `TDLY
-  | "TENC" -> Some `TENC
-  | "TEXT" -> Some `TEXT
-  | "TFLT" -> Some `TFLT
-  | "TIME" -> Some `TIME
-  | "TIT1" -> Some `TIT1
-  | "TIT2" -> Some `TIT2
-  | "TIT3" -> Some `TIT3
-  | "TKEY" -> Some `TKEY
-  | "TLAN" -> Some `TLAN
-  | "TLEN" -> Some `TLEN
-  | "TMED" -> Some `TMED
-  | "TOAL" -> Some `TOAL
-  | "TOFN" -> Some `TOFN
-  | "TOLY" -> Some `TOLY
-  | "TOPE" -> Some `TOPE
-  | "TORY" -> Some `TORY
-  | "TOWN" -> Some `TOWN
-  | "TPE1" -> Some `TPE1
-  | "TPE2" -> Some `TPE2
-  | "TPE3" -> Some `TPE3
-  | "TPE4" -> Some `TPE4
-  | "TPOS" -> Some `TPOS
-  | "TPUB" -> Some `TPUB
-  | "TRCK" -> Some `TRCK
-  | "TRDA" -> Some `TRDA
-  | "TRSN" -> Some `TRSN
-  | "TRSO" -> Some `TRSO
-  | "TSIZ" -> Some `TSIZ
-  | "TSRC" -> Some `TSRC
-  | "TSSE" -> Some `TSSE
-  | "TYER" -> Some `TYER
-  | "TXXX" -> Some `TXXX
-  | "UFID" -> Some `UFID
-  | "USER" -> Some `USER
-  | "USLT" -> Some `USLT
-  | "WCOM" -> Some `WCOM
-  | "WCOP" -> Some `WCOP
-  | "WOAF" -> Some `WOAF
-  | "WOAR" -> Some `WOAR
-  | "WOAS" -> Some `WOAS
-  (* codespell 💩 *)
-  | x when x = "W" ^ "ORS" -> Some `WORS
-  | "WPAY" -> Some `WPAY
-  | "WPUB" -> Some `WPUB
-  | "WXXX" -> Some `WXXX
-  | _ -> None
+  | v -> Metadata.ID3v2.frame_id_of_string v
 
 let id3v2_of_metadata ~version m =
   let frames =
@@ -609,7 +534,9 @@ let id3v2_of_metadata ~version m =
           | Some id ->
               {
                 Metadata.ID3v2.id;
-                data = `Text (`UTF_8, v);
+                data =
+                  (if Metadata.ID3v2.binary_frame id then `Binary v
+                   else `Text (`UTF_8, v));
                 flags = Metadata.ID3v2.default_flags id;
               }
               :: frames
