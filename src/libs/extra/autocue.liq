@@ -68,7 +68,7 @@ let file.autocue = ()
 
 # Get frames from ffmpeg.filter.ebur128
 # @flag hidden
-def file.autocue.ebur128(~ratio=50., ~timeout=10., uri) =
+def file.autocue.ebur128(~ratio=50.,~timeout=10.,uri) =
   r = request.create(resolve_metadata=false, uri)
   s = request.once(r)
 
@@ -76,7 +76,8 @@ def file.autocue.ebur128(~ratio=50., ~timeout=10., uri) =
     s.resolve()
   then
 %ifdef ffmpeg.filter.ebur128
-    duration = null.get(default=0., request.duration(uri))
+
+    duration = null.get(default=0.,request.duration(uri))
     estimated_processing_time = duration / ratio
 
     if
@@ -85,10 +86,7 @@ def file.autocue.ebur128(~ratio=50., ~timeout=10., uri) =
       log(
         level=2,
         label="autocue",
-        "Estimated processing duration is too long, autocue disabled! #{
-          duration
-        } / #{ratio} = #{estimated_processing_time} (Duration / Ratio = \
-         Processing duration; max. allowed: #{timeout})"
+        "Estimated processing duration is too long, autocue disabled! #{duration} / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing duration; max. allowed: #{timeout})"
       )
       []
     else
@@ -426,6 +424,7 @@ end
 # @category Liquidsoap
 def enable_autocue_metadata() =
   def autocue_metadata(~metadata, fname) =
+
     metadata_overrides = settings.autocue.metadata_overrides()
 
     if
