@@ -29,7 +29,7 @@ depends: [
   "magic-mime-windows"
   "menhir"
   "menhirLib-windows"
-  "metadata-windows"
+  "metadata-windows" {>= "0.3.0"}
   "dune-site-windows"
   "dune-build-info-windows"
   "ppx_string" {build}
