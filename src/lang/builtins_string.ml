@@ -469,12 +469,8 @@ let _ =
       let x = List.assoc "" p |> Lang.to_float in
       let s =
         match dp with
-          | Some 0 -> Printf.sprintf "%.00f" x
-          | Some 1 -> Printf.sprintf "%.01f" x
-          | Some 2 -> Printf.sprintf "%.02f" x
-          | Some 3 -> Printf.sprintf "%.03f" x
-          | Some 4 -> Printf.sprintf "%.04f" x
-          | _ -> string_of_float x
+          | Some d -> Printf.sprintf "%.*f" d x
+          | None -> string_of_float x
       in
       Lang.string s)
 
