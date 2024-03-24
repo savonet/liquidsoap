@@ -56,7 +56,7 @@
     fileutils
     menhirLib
     mem_usage
-    (metadata (>= 0.2.0))
+    (metadata (>= 0.3.0))
     magic-mime
     dune-build-info
     (liquidsoap-lang (= :version))
