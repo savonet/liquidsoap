@@ -154,7 +154,6 @@ val short_string_of_metadata : metadata -> string
 val set_metadata : t -> string -> string -> unit
 val get_metadata : t -> string -> string option
 val set_root_metadata : t -> string -> string -> unit
-val get_root_metadata : t -> string -> string option
 val get_all_metadata : t -> metadata
 
 (** {1 Logging}
