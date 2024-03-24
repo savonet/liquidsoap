@@ -8,7 +8,7 @@ def f() =
     x
   end
 
-  test.equals(f(2, 3), 3)
+  test.equal(f(2, 3), 3)
 
   # Free variables with same name
   x = 4
@@ -18,7 +18,7 @@ def f() =
     x
   end
 
-  test.equals(f(), 5)
+  test.equal(f(), 5)
 
   def recf() =
     ()

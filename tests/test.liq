@@ -97,7 +97,7 @@ def test.check_non_repeating(~nb_files, ~nb_rounds, s) =
   s
 end
 
-def test.equals(v, v') =
+def test.equal(v, v') =
   if
     v != v'
   then
@@ -111,17 +111,18 @@ def test.equals(v, v') =
   end
 end
 
-def test.not_equals(first, second) =
+let test.not = ()
+
+def test.not.equal(first, second) =
   if
     first == second
   then
     error.raise(
       error.failure,
       "expected\r\n
-      #{string.quote(string(first))} == #{
+      #{string.quote(string(first))}\r\nto differ from:\r\n#{
         string.quote(string(second))
-      }\r\n
-      to be false.\r\n"
+      }"
     )
 
     test.fail()

@@ -10,7 +10,7 @@ thread.run.recurrent(
       end
     else
       begin
-        test.equals(
+        test.equal(
           process.read(
             "printf toto"
           ),
@@ -21,16 +21,16 @@ thread.run.recurrent(
           process.run(
             "exit 2"
           )
-        test.equals(p.status, "exit")
-        test.equals(p.status.code, 2)
+        test.equal(p.status, "exit")
+        test.equal(p.status.code, 2)
 
         p =
           process.run(
             timeout=0.5,
             "sleep 1"
           )
-        test.equals(p.status, "timeout")
-        test.equals(
+        test.equal(p.status, "timeout")
+        test.equal(
           process.quote.command(
             stdin="bla",
             stdout="blo",

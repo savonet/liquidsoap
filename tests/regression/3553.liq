@@ -48,7 +48,7 @@ on_cleanup({file.remove(playlist_file)})
 playlist_content = playlist.parse(playlist_file)
 
 def f() =
-  test.equals(playlist_content, expected_content)
+  test.equal(playlist_content, expected_content)
   test.pass()
 end
 

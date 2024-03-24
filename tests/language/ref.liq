@@ -11,10 +11,10 @@ end
 def f() =
   n = ref(0)
   n := 5
-  test.equals(n(), 5)
+  test.equal(n(), 5)
   s = ref("a")
   s := "b"
-  test.equals(s(), "b")
+  test.equal(s(), "b")
   f = ref(id)
   f := incr
   r = ref.make({0}, fun (x) -> ignore(x + 1))

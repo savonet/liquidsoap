@@ -90,8 +90,8 @@ FILE "bla.mp3" MP3
     INDEX 01 00:03:00\n'
 
 def check() =
-  test.equals(file.contents(append_cuefile), append_expected)
-  test.equals(file.contents(create_cuefile), create_expected)
+  test.equal(file.contents(append_cuefile), append_expected)
+  test.equal(file.contents(create_cuefile), create_expected)
   test.pass()
 end
 
