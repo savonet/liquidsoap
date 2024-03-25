@@ -9,7 +9,7 @@ def f() =
         "steam_b".{bandwidth=456, codecs="codecs_b", video_size=(12, 34)}
       ]
     )
-  test.equals(
+  test.equal(
     playlist,
     '#EXTM3U\r
 #EXT-X-VERSION:54\r
@@ -32,7 +32,7 @@ prefix/steam_b.m3u8\r
         "steam_b".{bandwidth=456, codecs="codecs_b", video_size=(12, 34)}
       ]
     )
-  test.equals(
+  test.equal(
     playlist,
     '#EXTM3U\r
 #EXT-X-VERSION:54\r
@@ -53,7 +53,7 @@ prefix/steam_b.m3u8\r
         "steam_b".{bandwidth=456, codecs="codecs_b", video_size=(12, 34)}
       ]
     )
-  test.equals(
+  test.equal(
     playlist,
     '#EXTM3U\r
 #EXT-X-VERSION:54\r

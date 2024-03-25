@@ -68,10 +68,10 @@ enc =
   )
 
 def on_close(filename) =
-  test.equals(meta_seen(), true)
-  test.equals(track_seen(), true)
-  test.equals(file_no_meta_seen(), true)
-  test.equals(file_track_seen(), 0)
+  test.equal(meta_seen(), true)
+  test.equal(track_seen(), true)
+  test.equal(file_no_meta_seen(), true)
+  test.equal(file_track_seen(), 0)
 
   process.run("sync")
 
@@ -96,7 +96,7 @@ def on_close(filename) =
     }
   ) = ojson
 
-  test.equals(list.length(parsed.streams), 3)
+  test.equal(list.length(parsed.streams), 3)
 
   video_stream =
     list.find((fun (stream) -> null.defined(stream.pix_fmt)), parsed.streams)
@@ -107,10 +107,10 @@ def on_close(filename) =
   mp3_stream =
     list.find((fun (stream) -> stream.codec_name == "mp3"), parsed.streams)
 
-  test.equals(video_stream.codec_name, "h264")
-  test.equals(video_stream.pix_fmt, "yuv420p")
-  test.equals(aac_stream.channel_layout, "stereo")
-  test.equals(mp3_stream.channel_layout, "mono")
+  test.equal(video_stream.codec_name, "h264")
+  test.equal(video_stream.pix_fmt, "yuv420p")
+  test.equal(aac_stream.channel_layout, "stereo")
+  test.equal(mp3_stream.channel_layout, "mono")
 
   test.pass()
 end

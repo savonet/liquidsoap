@@ -4,9 +4,9 @@ def f() =
       http.headers.content_disposition([('Content-Disposition', 'inline')])
     )
 
-  test.equals(content_disposition.type, "inline")
-  test.equals(content_disposition?.filename, null())
-  test.equals(content_disposition.args, [])
+  test.equal(content_disposition.type, "inline")
+  test.equal(content_disposition?.filename, null())
+  test.equal(content_disposition.args, [])
   content_disposition =
     null.get(
       http.headers.content_disposition(
@@ -19,9 +19,9 @@ def f() =
       )
     )
 
-  test.equals(content_disposition.type, "attachment")
-  test.equals(content_disposition?.filename, "filename.jpg")
-  test.equals(content_disposition.args, [])
+  test.equal(content_disposition.type, "attachment")
+  test.equal(content_disposition?.filename, "filename.jpg")
+  test.equal(content_disposition.args, [])
   content_disposition =
     null.get(
       http.headers.content_disposition(
@@ -34,12 +34,12 @@ def f() =
       )
     )
 
-  test.equals(content_disposition.type, "attachment")
-  test.equals(
+  test.equal(content_disposition.type, "attachment")
+  test.equal(
     content_disposition?.filename,
     "Naïve file.txt"
   )
-  test.equals(content_disposition.args, [])
+  test.equal(content_disposition.args, [])
   content_disposition =
     null.get(
       http.headers.content_disposition(
@@ -52,12 +52,12 @@ def f() =
       )
     )
 
-  test.equals(content_disposition.type, "attachment")
-  test.equals(
+  test.equal(content_disposition.type, "attachment")
+  test.equal(
     content_disposition?.filename,
     "Naïve file.txt"
   )
-  test.equals(content_disposition.args, [])
+  test.equal(content_disposition.args, [])
   content_disposition =
     null.get(
       http.headers.content_disposition(
@@ -70,12 +70,12 @@ def f() =
       )
     )
 
-  test.equals(content_disposition.type, "attachment")
-  test.equals(
+  test.equal(content_disposition.type, "attachment")
+  test.equal(
     content_disposition?.filename,
     "Naïve file.txt"
   )
-  test.equals(content_disposition.args, [])
+  test.equal(content_disposition.args, [])
   content_disposition =
     null.get(
       http.headers.content_disposition(
@@ -89,16 +89,16 @@ def f() =
       )
     )
 
-  test.equals(content_disposition.type, "attachment")
-  test.equals(
+  test.equal(content_disposition.type, "attachment")
+  test.equal(
     content_disposition?.filename,
     "Naïve file.txt"
   )
-  test.equals(
+  test.equal(
     content_disposition?.name,
     "gni gno"
   )
-  test.equals(content_disposition.args, [("foo", "bla")])
+  test.equal(content_disposition.args, [("foo", "bla")])
   test.pass()
 end
 

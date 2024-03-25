@@ -41,25 +41,25 @@ def test_parse_error(name, f, msg) =
 end
 
 def f() =
-  test.equals(json.stringify(()), '[]')
-  test.equals(json.stringify("aa'bb"), "\"aa'bb\"")
-  test.equals(json.stringify("a"), '"a"')
-  test.equals(json.stringify("©"), '"©"')
-  test.equals(json.stringify('"'), '"\\""')
-  test.equals(json.stringify('\\'), '"\\\\"')
-  test.equals(json.stringify(json5=true, infinity), 'Infinity')
-  test.equals(json.stringify(json5=true, (0. - infinity)), '-Infinity')
-  test.equals(json.stringify(json5=true, nan), 'NaN')
+  test.equal(json.stringify(()), '[]')
+  test.equal(json.stringify("aa'bb"), "\"aa'bb\"")
+  test.equal(json.stringify("a"), '"a"')
+  test.equal(json.stringify("©"), '"©"')
+  test.equal(json.stringify('"'), '"\\""')
+  test.equal(json.stringify('\\'), '"\\\\"')
+  test.equal(json.stringify(json5=true, infinity), 'Infinity')
+  test.equal(json.stringify(json5=true, (0. - infinity)), '-Infinity')
+  test.equal(json.stringify(json5=true, nan), 'NaN')
   let b = json()
   b.add("b", 1)
   s = json.stringify({a=null({a=1}), b=null(b)})
-  test.equals(
+  test.equal(
     s,
     "{ \"a\": { \"a\": 1 }, \"b\": { \"b\": 1 } }"
   )
   data = "123"
   let json.parse (x : int) = data
-  test.equals(x, 123)
+  test.equal(x, 123)
   data =
     '{
     "foo": 34.24,
@@ -93,7 +93,7 @@ def f() =
     }
   ) = data
 
-  test.equals(
+  test.equal(
     x,
     {
       foo=34.24,
@@ -116,12 +116,12 @@ def f() =
     nested = {tuple = (t1, t2, t3), nullable_list = [l1, ...tl]}
   } = data
 
-  test.equals(foo, 34.24)
-  test.equals(t1, 123)
-  test.equals(t2, 3.14)
-  test.equals(t3, false)
-  test.equals(l1, null())
-  test.equals(tl, [23, null()])
+  test.equal(foo, 34.24)
+  test.equal(t1, 123)
+  test.equal(t2, 3.14)
+  test.equal(t3, false)
+  test.equal(l1, null())
+  test.equal(tl, [23, null()])
   let json.parse x = data
   ignore(x.foo + 1.0)
   let (x, y, _) = x.nested.tuple
@@ -229,22 +229,22 @@ def f() =
   data =
     '{"aabbcc": 34, "ddeerr": 54 }'
   let json.parse (x : [(string*int)] as json.object) = data
-  test.equals(list.assoc("aabbcc", x), 34)
-  test.equals(list.assoc("ddeerr", x), 54)
+  test.equal(list.assoc("aabbcc", x), 34)
+  test.equal(list.assoc("ddeerr", x), 54)
   data =
     '{ "foo": 123 }'
   let json.parse (x : {foo: string}?) = data
-  test.equals(x, null())
+  test.equal(x, null())
   data =
     '[ "gni", 123 ]'
   let json.parse (x : [int]?) = data
-  test.equals(x, null())
+  test.equal(x, null())
   let json.parse (x : (string*int*bool)?) = data
-  test.equals(x, null())
+  test.equal(x, null())
   data =
     '[ "gni", 123, "gno" ]'
   let json.parse (x : (string*int)) = data
-  test.equals(x, ("gni", 123))
+  test.equal(x, ("gni", 123))
   data = '{
     "foo": {
       "gni": {
@@ -253,22 +253,22 @@ def f() =
     }
   }'
   let json.parse x = data
-  test.equals(x?.foo.gni?.bla, null(123))
+  test.equal(x?.foo.gni?.bla, null(123))
   data = '{
     "foo": {}
   }'
   let json.parse x = data
-  test.equals(x?.foo.gni?.bla, null())
+  test.equal(x?.foo.gni?.bla, null())
   data = '{}'
   let json.parse x = data
-  test.equals(x?.foo?.gni?.bla, null())
+  test.equal(x?.foo?.gni?.bla, null())
 
   # Test escaping of invalid utf8 strings.
   s =
     "S\x00e\x00k\x00e\x00r\x00n\x00u\x00p\x00 \
      \x00K\x00i\x00n\x00g\x00e\x00r\x00p\x00\xE2\x00"
 
-  test.equals(
+  test.equal(
     json.stringify(s),
     "\"S\\u0000e\\u0000k\\u0000e\\u0000r\\u0000n\\u0000u\\u0000p\\u0000 \
      \\u0000K\\u0000i\\u0000n\\u0000g\\u0000e\\u0000r\\u0000p\\u0000\\uFFFD\""
@@ -282,7 +282,7 @@ def f() =
   j.add("record", {a=1, b="ert"})
   j.remove("foo")
   j = json.stringify(j)
-  test.equals(
+  test.equal(
     j,
     '{
   "record": { "a": 1, "b": "ert" },

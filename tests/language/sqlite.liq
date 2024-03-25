@@ -6,8 +6,8 @@ def f() =
   )
 %else
   # Escaping
-  test.equals(sqlite.escape("bla"), "'bla'")
-  test.equals(sqlite.escape("a'b"), "'a''b'")
+  test.equal(sqlite.escape("bla"), "'bla'")
+  test.equal(sqlite.escape("a'b"), "'a''b'")
 
   # Table creation
   tmp = file.temp("test", ".sql")
@@ -42,11 +42,11 @@ def f() =
   db.insert(table="test2", replace=true, {id=0, value="b"})
 
   # Count
-  test.equals(db.count(table="test", where="n=5"), 3)
+  test.equal(db.count(table="test", where="n=5"), 3)
 
   # Select
   l = db.select(table="test", where="n=5")
-  test.equals(list.length(l), 3)
+  test.equal(list.length(l), 3)
   print(
     "result: #{l}"
   )
@@ -62,8 +62,8 @@ def f() =
   db.delete(table="test2", where="id=55")
 
   # # Table existence
-  # test.equals(db.table.exists("test"), true)
-  # test.equals(db.table.exists("ghost"), false)
+  # test.equal(db.table.exists("test"), true)
+  # test.equal(db.table.exists("ghost"), false)
 
   # Insertion of lists
   db.table.create(
@@ -76,7 +76,7 @@ def f() =
     db.query(
       "SELECT a FROM abc LIMIT 1"
     )
-  test.equals(a, 456)
+  test.equal(a, 456)
 
   # Manual row manipulation
   let [row] =
@@ -84,10 +84,10 @@ def f() =
       "SELECT a FROM abc LIMIT 1"
     )
   let [(label, v)] = row.to_list()
-  test.equals(label, "a")
-  test.equals(v, "456")
+  test.equal(label, "a")
+  test.equal(v, "456")
   let sqlite.row (r : {a: string, b: string}) = row
-  test.equals(r.a, "456")
+  test.equal(r.a, "456")
 %endif
 
   test.pass()

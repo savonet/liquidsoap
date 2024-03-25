@@ -7,7 +7,7 @@ def f() =
 
   thread.when({true}, cb)
   thread.pause(1.)
-  test.equals(count(), 1)
+  test.equal(count(), 1)
 
   # Testing a step with initial true:
   # True for the first 2s then false for 2s, then true
@@ -26,7 +26,7 @@ def f() =
 
   thread.when(init=false, p, cb)
   thread.pause(5.)
-  test.equals(count(), 1)
+  test.equal(count(), 1)
 
   # Testing a step with initial false:
   # false for the first 2s then true
@@ -44,7 +44,7 @@ def f() =
 
   thread.when(p, cb)
   thread.pause(3.)
-  test.equals(count(), 1)
+  test.equal(count(), 1)
 
   # Testing when triggering on each change
   # True for the first 2s then false
@@ -63,7 +63,7 @@ def f() =
 
   thread.when(changed=false, every=0.5, p, cb)
   thread.pause(5.)
-  test.equals(count(), 4)
+  test.equal(count(), 4)
 
   # Make sure that after_eval is executed in the thread.
   err = error.register("after_eval")

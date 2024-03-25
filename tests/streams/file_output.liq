@@ -5,7 +5,7 @@ on_cleanup({file.rmdir(tmp_dir)})
 output_file = {"#{tmp_dir}/bla-#{close_count()}.mp3"}
 
 def on_close(fname) =
-  test.equals(fname, output_file())
+  test.equal(fname, output_file())
   close_count := close_count() + 1
   if close_count() > 3 then test.pass() end
 end

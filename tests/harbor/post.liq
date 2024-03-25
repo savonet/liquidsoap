@@ -20,7 +20,7 @@ def f() =
       ]
     )
 
-  test.equals(
+  test.equal(
     string.getter.flush(data.contents),
     "--foobar\r\nContent-Disposition: form-data; name=\"the name\"; \
      filename=\"the filename\"\r\nsome: \
@@ -28,7 +28,7 @@ def f() =
      name=\"namez\"\r\n\r\ngnigno\r\n--foobar--\r\n"
   )
 
-  test.equals(data.boundary, "foobar")
+  test.equal(data.boundary, "foobar")
   data =
     http.multipart_form_data(
       boundary="foobar",
@@ -50,7 +50,7 @@ def f() =
       ]
     )
 
-  test.equals(
+  test.equal(
     string.getter.flush(data.contents),
     "--#{data.boundary}\r\nContent-Disposition: form-data; name=\"the name\"; \
      filename=\"the filename\"\r\nsome: headers\r\n\r\nfoobarlol\r\n--#{
@@ -67,10 +67,10 @@ def f() =
   boundary = string.concat(l)
 
   def handler(req, _) =
-    test.equals(req.http_version, "1.1")
-    test.equals(req.method, "POST")
-    test.equals(req.query, [])
-    test.equals(
+    test.equal(req.http_version, "1.1")
+    test.equal(req.method, "POST")
+    test.equal(req.query, [])
+    test.equal(
       req.headers,
       [
         ("host", "localhost:6543"),
@@ -85,8 +85,8 @@ def f() =
       ]
     )
 
-    test.equals(req.path, "/file_upload")
-    test.equals(
+    test.equal(req.path, "/file_upload")
+    test.equal(
       req.body(timeout=5.0),
       "--#{boundary}\r\nContent-Disposition: form-data; name=\"file\"; \
        filename=\"#{fname}\"\r\nContent-Type: text/plain\r\n\r\n#{
@@ -104,11 +104,11 @@ def f() =
       "http://localhost:6543/file_upload"
     )
 
-  test.equals(resp.status_message, "OK")
-  test.equals(resp.status_code, 200)
-  test.equals(resp.http_version, "1.1")
-  test.equals(resp.headers, [])
-  test.equals("#{resp}", "")
+  test.equal(resp.status_message, "OK")
+  test.equal(resp.status_code, 200)
+  test.equal(resp.http_version, "1.1")
+  test.equal(resp.headers, [])
+  test.equal("#{resp}", "")
 
   # Test in-memory file upload
   range = [...string.char.ascii.alphabet, ...string.char.ascii.number]
@@ -116,10 +116,10 @@ def f() =
   boundary = string.concat(l)
 
   def handler(req, _) =
-    test.equals(req.http_version, "1.1")
-    test.equals(req.method, "POST")
-    test.equals(req.query, [])
-    test.equals(
+    test.equal(req.http_version, "1.1")
+    test.equal(req.method, "POST")
+    test.equal(req.query, [])
+    test.equal(
       req.headers,
       [
         ("host", "localhost:6543"),
@@ -133,8 +133,8 @@ def f() =
       ]
     )
 
-    test.equals(req.path, "/in_memory_file_upload")
-    test.equals(
+    test.equal(req.path, "/in_memory_file_upload")
+    test.equal(
       req.body(timeout=5.0),
       "--#{boundary}\r\nContent-Disposition: form-data; name=\"file\"; \
        filename=\"foo.txt\"\r\nContent-Type: text/plain\r\n\r\nfoobarlol\r\n--#{
@@ -156,11 +156,11 @@ def f() =
       "http://localhost:6543/in_memory_file_upload"
     )
 
-  test.equals(resp.status_message, "OK")
-  test.equals(resp.status_code, 200)
-  test.equals(resp.http_version, "1.1")
-  test.equals(resp.headers, [])
-  test.equals("#{resp}", "")
+  test.equal(resp.status_message, "OK")
+  test.equal(resp.status_code, 200)
+  test.equal(resp.http_version, "1.1")
+  test.equal(resp.headers, [])
+  test.equal("#{resp}", "")
 
   # Test JSON post
   j = json()
@@ -169,10 +169,10 @@ def f() =
   data = json.stringify(j)
 
   def handler(req, _) =
-    test.equals(req.http_version, "1.1")
-    test.equals(req.method, "POST")
-    test.equals(req.query, [])
-    test.equals(
+    test.equal(req.http_version, "1.1")
+    test.equal(req.method, "POST")
+    test.equal(req.query, [])
+    test.equal(
       req.headers,
       [
         ("host", "localhost:6543"),
@@ -183,8 +183,8 @@ def f() =
       ]
     )
 
-    test.equals(req.path, "/json_post")
-    test.equals(req.body(timeout=5.0), data)
+    test.equal(req.path, "/json_post")
+    test.equal(req.body(timeout=5.0), data)
   end
 
   harbor.http.register("/json_post", method="POST", port=6543, handler)
@@ -196,11 +196,11 @@ def f() =
       "http://localhost:6543/json_post"
     )
 
-  test.equals(resp.status_message, "OK")
-  test.equals(resp.status_code, 200)
-  test.equals(resp.http_version, "1.1")
-  test.equals(resp.headers, [])
-  test.equals("#{resp}", "")
+  test.equal(resp.status_message, "OK")
+  test.equal(resp.status_code, 200)
+  test.equal(resp.http_version, "1.1")
+  test.equal(resp.headers, [])
+  test.equal("#{resp}", "")
   test.pass()
 end
 
