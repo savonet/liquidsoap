@@ -1,6 +1,6 @@
 log.level := 4
 
-port = random.int(min=8000, max=10000)
+port = 8004
 
 s =
   input.srt(
