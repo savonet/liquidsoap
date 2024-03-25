@@ -35,12 +35,17 @@ module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
 
 type source_idx = { source : Source.source; idx : int64 }
 
-module SourceIdx = Weak.Make (struct
-  type t = source_idx
+module SourceIdx = struct
+  include Weak.Make (struct
+    type t = source_idx
 
-  let equal x y = x.source == y.source
-  let hash x = Obj.magic x.source
-end)
+    let equal x y = x.source == y.source
+    let hash x = Oo.id x.source
+  end)
+
+  let create n = (create n, Mutex.create ())
+  let merge (c, m) v = Mutex.mutexify m (fun () -> merge c v) ()
+end
 
 let source_idx_map = SourceIdx.create 0
 

@@ -84,7 +84,6 @@
   (pps sedlex.ppx ppx_string))
  (libraries liquidsoap-lang.console dune-site re str unix menhirLib)
  (modules
-  active_value
   backoff
   build_config
   builtins_bool

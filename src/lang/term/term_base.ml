@@ -22,6 +22,7 @@
 
 (** Terms and values in the Liquidsoap language. *)
 
+module WeakQueue = Queues.WeakQueue
 include Runtime_term
 
 (** An internal error. Those should not happen in theory... *)
@@ -326,13 +327,9 @@ let rec to_string (v : t) =
     ^ "}")
 
 (** Create a new value. *)
-let id =
-  let counter = Atomic.make 0 in
-  fun () -> Atomic.fetch_and_add counter 1
-
 let make ?pos ?t ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  { t; term = e; methods; id = id () }
+  { t; term = e; methods }
 
 let rec free_vars_pat = function
   | `PVar [] -> assert false
@@ -625,27 +622,15 @@ module MkAbstract (Def : AbstractDef) = struct
   let of_term t = match t.term with `Ground (Value c) -> c | _ -> assert false
 
   let to_term c =
-    {
-      t = Type.make T.descr;
-      term = `Ground (Value c);
-      methods = Methods.empty;
-      id = id ();
-    }
+    { t = Type.make T.descr; term = `Ground (Value c); methods = Methods.empty }
 
   let is_term t = match t.term with `Ground (Value _) -> true | _ -> false
 end
 
-module ActiveTerm = Active_value.Make (struct
-  type typ = t
-  type t = typ
-
-  let id { id } = id
-end)
-
-let active_terms = ActiveTerm.create 1024
+let active_terms = WeakQueue.create ()
 
 let trim_runtime_types () =
-  ActiveTerm.iter (fun term -> term.t <- Type.deep_demeth term.t) active_terms
+  WeakQueue.iter active_terms (fun term -> term.t <- Type.deep_demeth term.t)
 
 (** Create a new value. *)
 let make ?pos ?t ?methods e =
@@ -656,7 +641,7 @@ let make ?pos ?t ?methods e =
       (Pos.Option.to_string t.Type.pos)
       (try to_string term with _ -> "<?>")
       (Repr.string_of_type t);
-  ActiveTerm.add active_terms term;
+  WeakQueue.push active_terms term;
   term
 
 let rec fresh ~handler { t; term; methods } =
@@ -725,8 +710,7 @@ let rec fresh ~handler { t; term; methods } =
       t = Type.Fresh.make handler t;
       term;
       methods = Methods.map (fresh ~handler) methods;
-      id = id ();
     }
   in
-  ActiveTerm.add active_terms term;
+  WeakQueue.push active_terms term;
   term

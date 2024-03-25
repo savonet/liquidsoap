@@ -53,12 +53,18 @@ type stream_data = {
   mutable ready : bool;
 }
 
-module Stream = Weak.Make (struct
-  type t = stream_data
+module Stream = struct
+  include Weak.Make (struct
+    type t = stream_data
 
-  let equal x y = x.idx = y.idx
-  let hash x = Int64.to_int x.idx
-end)
+    let equal x y = x.idx = y.idx
+    let hash x = Int64.to_int x.idx
+  end)
+
+  let create n = (create n, Mutex.create ())
+  let merge (c, m) v = Mutex.mutexify m (fun () -> merge c v) ()
+  let remove (c, m) v = Mutex.mutexify m (fun () -> remove c v) ()
+end
 
 (* We lazily store last_start when concatenating
    streams. The idea is to always have the greatest

@@ -945,14 +945,9 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
                   { p with doc = Doc.parse_doc ~pos (String.concat "\n" doc) }
             | ast, _ -> ast
         in
-        {
-          t = Type.var ~pos:tm.pos ();
-          term;
-          methods = Methods.empty;
-          id = Term_base.id ();
-        }
+        { t = Type.var ~pos:tm.pos (); term; methods = Methods.empty }
 
 and to_term parsed_term =
   let term = to_term_base parsed_term in
-  Term_base.ActiveTerm.add Term_base.active_terms term;
+  Queues.WeakQueue.push Term_base.active_terms term;
   term

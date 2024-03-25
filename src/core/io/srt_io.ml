@@ -23,6 +23,7 @@
 (** SRT input *)
 
 module Pcre = Re.Pcre
+module WeakQueue = Liquidsoap_lang.Queues.WeakQueue
 
 exception Done
 exception Not_connected
@@ -449,17 +450,11 @@ class virtual output_networking_agent =
         : Srt.socket -> exn -> Printexc.raw_backtrace -> unit
   end
 
-module ToDisconnect = Liquidsoap_lang.Active_value.Make (struct
-  type t = < disconnect : unit ; srt_id : int >
-
-  let id t = t#srt_id
-end)
-
-let to_disconnect = ToDisconnect.create 10
+let to_disconnect = WeakQueue.create ()
 
 let () =
   Lifecycle.on_core_shutdown ~name:"Srt disconnect" (fun () ->
-      ToDisconnect.iter (fun s -> s#disconnect) to_disconnect)
+      WeakQueue.iter to_disconnect (fun s -> s#disconnect))
 
 class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
   ~polling_delay ~payload_size ~messageapi ~hostname ~port ~connection_timeout
@@ -470,7 +465,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
     val mutable connect_task = None
     val task_should_stop = Atomic.make false
     val socket = Atomic.make None
-    initializer ToDisconnect.add to_disconnect (self :> ToDisconnect.data)
+    initializer WeakQueue.push to_disconnect (self :> < disconnect : unit >)
 
     method private get_socket =
       match Atomic.get socket with Some s -> s | None -> raise Not_connected
@@ -557,7 +552,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
     method virtual should_stop : bool
     method virtual mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     val listening_socket = Atomic.make None
-    initializer ToDisconnect.add to_disconnect (self :> ToDisconnect.data)
+    initializer WeakQueue.push to_disconnect (self :> < disconnect : unit >)
 
     method private is_connected =
       self#mutexify (fun () -> client_sockets <> []) ()

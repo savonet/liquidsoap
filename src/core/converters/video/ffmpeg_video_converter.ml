@@ -76,16 +76,21 @@ module WH = struct
   (* Number of converters to always keep in memory. *)
   let n = 2
   let keep = Array.make n None
+  let create n = (create n, Mutex.create ())
 
-  let add h fmt conv =
-    let conv = (fmt, Some conv) in
-    for i = 1 to n - 1 do
-      keep.(i - 1) <- keep.(i)
-    done;
-    keep.(n - 1) <- Some conv;
-    add h conv
+  let add (h, m) fmt conv =
+    Mutex.mutexify m
+      (fun () ->
+        let conv = (fmt, Some conv) in
+        for i = 1 to n - 1 do
+          keep.(i - 1) <- keep.(i)
+        done;
+        keep.(n - 1) <- Some conv;
+        add h conv)
+      ()
 
-  let assoc h fmt = Option.get (snd (find h (fmt, None)))
+  let assoc (h, m) fmt =
+    Mutex.mutexify m (fun () -> Option.get (snd (find h (fmt, None)))) ()
 end
 
 (* Weak hashtable containing converters already created. *)
