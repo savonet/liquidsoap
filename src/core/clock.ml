@@ -468,6 +468,7 @@ and start ?(force = false) c =
   in
   match (can_start, has_output, Atomic.get clock.state) with
     | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
+        Unifier.set clock.id (Lang_string.generate_id (Unifier.deref clock.id));
         let id = _id clock in
         log#important "Starting clock %s with %d source(s) and sync: %s" id
           (Queue.length clock.pending_activations)
@@ -506,7 +507,6 @@ let create ?pos ?on_error ?(id = "generic") ?(sub_ids = []) ?(sync = `Automatic)
     () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
-  let id = Lang_string.generate_id id in
   let c =
     Unifier.make
       {
