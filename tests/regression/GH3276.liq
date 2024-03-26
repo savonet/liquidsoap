@@ -1,5 +1,6 @@
-log.level := 4
+log.level := 5
 port = 8005
+
 thread.run(
   delay=7.,
   fun () ->
