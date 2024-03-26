@@ -105,6 +105,20 @@ def f() =
   incorrect('fallback(transitions=[],transitions=[])')
   section("FUNCTIONS")
 
+  incorrect(
+    'def f((x:univ(a)), (y:univ(a))) = 1 end f(123, "aabb")'
+  )
+  correct(
+    'def f((x:univ(a)), (y:univ(b))) = 1 end f(123, "aabb")'
+  )
+
+  incorrect(
+    'def x = (1:univ?) end x + 1'
+  )
+  correct(
+    'def x = (1:univ) end x + 1'
+  )
+
   # Partial application is not supported anymore
   incorrect(
     'def f(x,y) = y end ignore(f(2))'

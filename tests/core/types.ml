@@ -395,3 +395,9 @@ let () =
   in
 
   Typing.(a <: b)
+
+let () =
+  for _ = 0 to 20 do
+    let idx = Random.int 10_000 in
+    assert (Liquidsoap_lang.Type_base.(var_index (var_name idx) = idx))
+  done

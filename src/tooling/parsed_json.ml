@@ -122,6 +122,9 @@ let json_of_annotated_string = function
 
 let rec json_of_type_annotation = function
   | `Named n -> type_node ~typ:"named" (`String n)
+  | `Univ None -> type_node ~typ:"named" (`String "univ")
+  | `Univ (Some name) ->
+      type_node ~typ:"named" (`String (Printf.sprintf "univ(%s)" name))
   | `Nullable t -> type_node ~typ:"nullable" (json_of_type_annotation t)
   | `List t -> type_node ~typ:"list" (json_of_type_annotation t)
   | `Json_object t -> type_node ~typ:"json_object" (json_of_type_annotation t)

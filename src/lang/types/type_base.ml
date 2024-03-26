@@ -82,6 +82,32 @@ type var = {
   mutable constraints : Constraints.t;
 }
 
+(** Given a strictly positive integer, generate a name in [a-z]+:
+    a, b, ... z, aa, ab, ... az, ba, ... *)
+let var_name =
+  let base = 26 in
+  let c i = char_of_int (int_of_char 'a' + i - 1) in
+  let rec name cur left =
+    let n = left mod base in
+    let cur = Printf.sprintf "%c%s" (c n) cur in
+    let rest = left / base in
+    if rest = 0 then cur else name cur rest
+  in
+  name ""
+
+(** Inverse of the above function *)
+let var_index s =
+  let base = 26 in
+  let s = String.lowercase_ascii s in
+  let chars = List.rev (List.of_seq (String.to_seq s)) in
+  let char_idx c = 1 + int_of_char c - int_of_char 'a' in
+  let _, idx =
+    List.fold_left
+      (fun (lvl, idx) c -> (lvl * base, idx + (lvl * char_idx c)))
+      (1, 0) chars
+  in
+  idx
+
 type invar =
   | Free of var  (** the variable is free *)
   | Link of variance * t  (** the variable has bee substituted *)
