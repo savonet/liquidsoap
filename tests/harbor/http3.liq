@@ -9,7 +9,7 @@ def f() =
       ]
     )
 
-  test.equals(content_type, {mime="text/html", args=[("charset", "utf-8")]})
+  test.equal(content_type, {mime="text/html", args=[("charset", "utf-8")]})
   content_type =
     http.headers.content_type(
       [
@@ -20,7 +20,7 @@ def f() =
       ]
     )
 
-  test.equals(
+  test.equal(
     content_type, {mime="multipart/form-data", args=[("boundary", "something")]}
   )
 
@@ -34,7 +34,7 @@ def f() =
       ]
     )
 
-  test.equals(extname, ".jpg")
+  test.equal(extname, ".jpg")
   extname =
     http.headers.extname(
       [
@@ -46,10 +46,10 @@ def f() =
       ]
     )
 
-  test.equals(extname, ".jpg")
+  test.equal(extname, ".jpg")
   settings.http.mime.extnames := [("foo", ".bla")]
   extname = http.headers.extname([("conTent-tyPe", "foo")])
-  test.equals(extname, ".bla")
+  test.equal(extname, ".bla")
   test.pass()
 end
 

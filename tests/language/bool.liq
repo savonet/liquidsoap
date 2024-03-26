@@ -20,7 +20,7 @@ def f() =
     ()
   end
 
-  test.equals(l() and (not r()), true)
+  test.equal(l() and (not r()), true)
   ignore(true == false ? 5 : 6 )
   test.pass()
 end

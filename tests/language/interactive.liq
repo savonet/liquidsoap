@@ -6,9 +6,9 @@ def f() =
   x = interactive.float("x", 2.)
   interactive.save(file)
   x.set(15.)
-  test.equals(x(), 15.)
+  test.equal(x(), 15.)
   interactive.load(file)
-  test.equals(x(), 2.)
+  test.equal(x(), 2.)
   try
     _ = interactive.float("bla", 0.)
     _ = interactive.float("bla", 0.)
