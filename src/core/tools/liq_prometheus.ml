@@ -37,7 +37,7 @@ let conf_server =
     ~d:false "Enable the prometheus server."
 
 let conf_port =
-  Dtools.Conf.int ~p:(conf_server#plug "port") ~d:9090
+  Dtools.Conf.int ~p:(conf_server#plug "port") ~d:9599
     "Port to run the server on."
 
 let server () =
