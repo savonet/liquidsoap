@@ -22,6 +22,7 @@
 
 module Pcre = Re.Pcre
 module Runtime = Liquidsoap_lang.Runtime
+module Queue = Liquidsoap_lang.Queues.Queue
 module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
@@ -122,7 +123,7 @@ let last_item_lib = ref false
     this can be disabled (which is useful when --checking a lib).
 *)
 let do_eval, eval =
-  let delayed = ref None in
+  let delayed = Queue.create () in
   let eval src ~lib =
     try
       load_libs ();
@@ -143,17 +144,11 @@ let do_eval, eval =
       flush_all ();
       exit 1
   in
-  let force ~lib =
-    match !delayed with
-      | Some f ->
-          f ~lib;
-          delayed := None
-      | None -> ()
-  in
+  let force ~lib = Queue.flush delayed (fun f -> f ~lib) in
   ( force,
     fun src ->
       force ~lib:true;
-      delayed := Some (eval src) )
+      Queue.push delayed (eval src) )
 
 let load_libs () =
   do_eval ~lib:true;
