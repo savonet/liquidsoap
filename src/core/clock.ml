@@ -497,6 +497,7 @@ and start ?(force = false) c =
             ticks = Atomic.make 0;
           }
         in
+        Queue.iter clock.sub_clocks (fun c -> start c);
         Atomic.set clock.state (`Started x);
         if sync <> `Passive then _clock_thread ~clock x
     | _ -> ()
