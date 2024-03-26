@@ -524,7 +524,7 @@ let create ?pos ?on_error ?(id = "generic") ?(sub_ids = []) ?(sync = `Automatic)
   c
 
 let () =
-  Lifecycle.on_start ~name:"Clocks start" (fun () ->
+  Lifecycle.before_start ~name:"Clocks start" (fun () ->
       Atomic.set started true;
       WeakQueue.iter clocks start)
 
