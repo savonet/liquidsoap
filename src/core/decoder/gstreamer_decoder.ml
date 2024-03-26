@@ -307,11 +307,11 @@ let () =
 
 (* See
    http://gstreamer.freedesktop.org/data/doc/gstreamer/head/manual/html/chapter-metadata.html *)
-let get_tags ~metadata:_ file =
+let get_tags ~metadata:_ ~extension ~mime file =
   if
     not
-      (Decoder.test_file ~log ~mimes:mime_types#get
-         ~extensions:file_extensions#get file)
+      (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+         ~extensions:(Some file_extensions#get) file)
   then raise Not_found;
   let pipeline =
     Printf.sprintf "filesrc location=\"%s\" ! decodebin ! fakesink" file
