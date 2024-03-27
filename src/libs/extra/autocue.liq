@@ -210,10 +210,7 @@ def replaces file.autocue(
     cue_out = ref(0.)
     cross_cue = ref(0.)
     fade_in = ref(0.)
-    fade_in_curve = ref("log")
     fade_out = ref(0.)
-    fade_out_delay = ref(0.)
-    fade_out_curve = ref("exp")
     cross_duration = ref(0.)
 
     # Extract timestamps for cue points
@@ -316,25 +313,13 @@ def replaces file.autocue(
       fade_out := max_overlap
     end
 
-    # Delay fade out slightly on short overlaps
-    if
-      cue_out() > 0. and cross_duration() < 2.0
-    then
-      fade_out := max(cross_duration() / 2., 0.1)
-      fade_out_delay := fade_out()
-      fade_out_curve := "log"
-    end
-
     {
       amplify=lufs_correction,
       cue_in=(cue_in() > 0. ? cue_in() : null() ),
       cue_out=(cue_out() > 0. ? cue_out() : null() ),
       cross_duration=cross_duration(),
       fade_in=fade_in(),
-      fade_out=fade_out(),
-      fade_out_delay=(fade_out_delay() > 0. ? fade_out_delay() : null() ),
-      fade_in_curve=fade_in_curve(),
-      fade_out_curve=fade_out_curve()
+      fade_out=fade_out()
     }
   end
 end
@@ -377,10 +362,7 @@ def file.autocue.metadata(
       cue_out,
       cross_duration,
       fade_in,
-      fade_out,
-      fade_out_delay,
-      fade_in_curve,
-      fade_out_curve
+      fade_out
     } = null.get(autocue)
 
     [
@@ -399,14 +381,7 @@ def file.autocue.metadata(
 
       ("liq_cross_duration", string(cross_duration)),
       ("liq_fade_in", string(fade_in)),
-      ("liq_fade_out", string(fade_out)),
-      ...(
-        null.defined(fade_out_delay)
-        ? [("liq_fade_out_delay", string(null.get(fade_out_delay)))] : []
-      ),
-
-      ("liq_fade_in_curve", fade_in_curve),
-      ("liq_fade_out_curve", fade_out_curve)
+      ("liq_fade_out", string(fade_out))
     ]
   else
     log(
