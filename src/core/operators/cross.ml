@@ -80,6 +80,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
 
     (* Same for the new track. No need for a sliding window here. *)
     val mutable gen_after = Generator.create Frame.Fields.empty
+    val mutable crossfade_disabled = false
     val mutable rms_after = 0.
     val mutable rmsi_after = 0
     val mutable after_metadata = None
@@ -304,6 +305,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             "End of track reached while buffering next track data, crossfade \
              duration is longer than the track's duration. Make sure to adjust \
              the crossfade duration to avoid issues.";
+          crossfade_disabled <- true;
           Generator.add_track_mark gen_after)
         else (
           Frame.clear buf_frame;
@@ -399,7 +401,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 db_before db_after
                 (Frame.seconds_of_main buffered_before)
                 (Frame.seconds_of_main buffered_after);
-              if Frame.main_of_audio minimum_length < buffered then (
+              if
+                (not crossfade_disabled)
+                && Frame.main_of_audio minimum_length < buffered
+              then (
                 self#log#important
                   "Computing crossfade duration over overlapping %.2fs \
                    buffered data at start and end."
@@ -407,6 +412,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
                 f before after)
               else (
                 self#log#important "Not enough data for crossing.";
+                crossfade_disabled <- false;
                 (new Sequence.sequence [before; after] :> source))
             in
             Typing.(compound#frame_type <: self#frame_type);
