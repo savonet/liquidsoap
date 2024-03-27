@@ -213,7 +213,6 @@ def replaces file.autocue(
     cross_cue = ref(0.)
     fade_in = ref(0.)
     fade_out = ref(0.)
-    fade_out_delay = ref(0.)
     cross_duration = ref(0.)
 
     # Extract timestamps for cue points
