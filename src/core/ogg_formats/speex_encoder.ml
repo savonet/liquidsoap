@@ -180,4 +180,4 @@ let create_speex = function
       { Ogg_encoder.reset; encode; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "speex" create_speex
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "speex" create_speex

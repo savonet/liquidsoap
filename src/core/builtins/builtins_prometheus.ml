@@ -108,7 +108,7 @@ let get_latencies ~prefix ~label_names mode =
             ~help:(Printf.sprintf "Max %s latency since start" mode)
             (Printf.sprintf "%s%s_max_latency_seconds" prefix mode)
         in
-        Hashtbl.add latencies key (latency, peak_latency, max_latency);
+        Hashtbl.replace latencies key (latency, peak_latency, max_latency);
         (latency, peak_latency, max_latency)
 
 let last_data = ref None
@@ -144,7 +144,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     let max = ref (-1.) in
     let add_latency l =
       let t = Unix.gettimeofday () in
-      Hashtbl.add latencies t l;
+      Hashtbl.replace latencies t l;
       Hashtbl.filter_map_inplace
         (fun old_t v -> if t -. window <= old_t then Some v else None)
         latencies;
