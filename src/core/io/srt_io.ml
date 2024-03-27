@@ -341,7 +341,7 @@ module Poll = struct
   let add_socket ~mode socket fn =
     Srt.setsockflag socket Srt.sndsyn false;
     Srt.setsockflag socket Srt.rcvsyn false;
-    Hashtbl.add t.handlers socket (mode, fn);
+    Hashtbl.replace t.handlers socket (mode, fn);
     Srt.Poll.add_usock t.p socket ~flags:[(mode :> Srt.Poll.flag)];
     Duppy.Async.wake_up task
 
@@ -631,14 +631,12 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
         (fun () ->
           List.iter (fun (_, s) -> close_socket s) client_sockets;
           client_sockets <- [];
-          if should_stop then (
-            ignore
-              (Option.map
-                 (fun s ->
-                   Poll.remove_socket s;
-                   close_socket s)
-                 (Atomic.get listening_socket));
-            Atomic.set listening_socket None);
+          (match (should_stop, Atomic.get listening_socket) with
+            | true, Some s ->
+                Poll.remove_socket s;
+                close_socket s;
+                Atomic.set listening_socket None
+            | _ -> ());
           !on_disconnect ())
         ()
   end
