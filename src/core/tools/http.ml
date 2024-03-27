@@ -1,5 +1,3 @@
-module Pcre = Re.Pcre
-
 type uri = {
   protocol : string;
   host : string;

@@ -23,7 +23,6 @@
 open Mm
 open Source
 open Extralib
-module Pcre = Re.Pcre
 
 let video_frei0r = Lang.add_module ~base:Modules.video "frei0r"
 

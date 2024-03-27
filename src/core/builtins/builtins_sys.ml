@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Extralib
-module Pcre = Re.Pcre
 
 let configure = Modules.configure
 

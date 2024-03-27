@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
 include Liquidsoap_lang.Utils
 
 let select = if Sys.win32 then Unix.select else Duppy.poll

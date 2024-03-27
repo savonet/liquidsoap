@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 let ( let* ) = Duppy.Monad.bind
 
 exception Bind_error of string

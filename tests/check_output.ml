@@ -26,7 +26,7 @@ let () =
   let stdout = Unix.open_process_in process in
   let output = read_all stdout in
   ignore (Unix.close_process_in stdout);
-  if not (Pcre.pmatch ~pat:expected output) then (
+  if not (Pcre.pmatch ~rex:(Pcre.regexp expected) output) then (
     Printf.eprintf
       {|Error running command: %s %s
 - Expected output:
