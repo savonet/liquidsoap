@@ -163,7 +163,7 @@ let uniq_name =
           Hashtbl.replace names name (x + 1);
           x
       | None ->
-          Hashtbl.add names name 1;
+          Hashtbl.replace names name 1;
           0
   in
   fun name -> Printf.sprintf "%s_%d" name (name_idx name)
@@ -655,7 +655,7 @@ let _ =
                    config
                in
                Avfilter.(
-                 Hashtbl.add graph.entries.inputs.audio name s#set_input);
+                 Hashtbl.replace graph.entries.inputs.audio name s#set_input);
                List.hd Avfilter.(_abuffer.io.outputs.audio))
          in
 
@@ -723,7 +723,7 @@ let _ =
                 in
                 Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
                 Avfilter.(
-                  Hashtbl.add graph.entries.outputs.audio name s#set_output)));
+                  Hashtbl.replace graph.entries.outputs.audio name s#set_output)));
 
          (field, (s :> Source.source))));
 
@@ -789,7 +789,7 @@ let _ =
                    config
                in
                Avfilter.(
-                 Hashtbl.add graph.entries.inputs.video name s#set_input);
+                 Hashtbl.replace graph.entries.inputs.video name s#set_input);
                List.hd Avfilter.(_buffer.io.outputs.video))
          in
 
@@ -852,7 +852,7 @@ let _ =
              in
              Avfilter.(link pad (List.hd _buffersink.io.inputs.video));
              Avfilter.(
-               Hashtbl.add graph.entries.outputs.video name s#set_output)));
+               Hashtbl.replace graph.entries.outputs.video name s#set_output)));
 
       (field, (s :> Source.source)))
 

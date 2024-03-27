@@ -180,9 +180,9 @@ module Icecast_v (M : Icecast_t) = struct
   let encoder_overrides = function
     | Encoder.Ffmpeg { Ffmpeg_format.format = Some "mp3"; opts } as e ->
         if not (Hashtbl.mem opts "id3v2_version") then
-          Hashtbl.add opts "id3v2_version" (`Int 0);
+          Hashtbl.replace opts "id3v2_version" (`Int 0);
         if not (Hashtbl.mem opts "write_xing") then
-          Hashtbl.add opts "write_xing" (`Int 0);
+          Hashtbl.replace opts "write_xing" (`Int 0);
         e
     | e -> e
 
