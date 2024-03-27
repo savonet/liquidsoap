@@ -832,6 +832,13 @@ end
 #                      With a negative default, transitions always occur.
 # @param ~default      Smart crossfade: transition used when no rule applies \
 #                      (default: sequence).
+# @param ~reconcile_duration \
+#                      When set to `true`, if duration for the new track is shorter than the ending \
+#                      duration, a `liq_fade_in_delay` metadata is automatically injected to make \
+#                      crossfades match.
+# @param ~override_fade_in_delay \
+#                      Metadata field used to inject metadata overriding fade-in delay \
+#                      when reonciling crossfade duration.
 # @param ~smart        Enable smart crossfading
 # @param ~high         Smart crossfade: value, in dB, for loud sound level.
 # @param ~medium       Smart crossfade: value, in dB, for medium sound level.
@@ -844,6 +851,8 @@ def crossfade(
   ~id=null(),
   ~duration=5.,
   ~override_duration="liq_cross_duration",
+  ~reconcile_duration=false,
+  ~override_fade_in_delay="liq_fade_in_delay",
   ~persist_override=false,
   ~fade_in=3.,
   ~fade_out=3.,
@@ -936,6 +945,8 @@ def crossfade(
       width=width,
       duration=duration,
       persist_override=persist_override,
+      reconcile_duration=reconcile_duration,
+      override_fade_in_delay=override_fade_in_delay,
       override_duration=override_duration,
       conservative=conservative,
       minimum=minimum,
