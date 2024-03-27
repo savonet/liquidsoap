@@ -549,7 +549,7 @@ let parse_file_decoder_args metadata =
 let duration ~metadata file =
   let args, format = parse_file_decoder_args metadata in
   let opts = Hashtbl.create 10 in
-  List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+  List.iter (fun (k, v) -> Hashtbl.replace opts k v) args;
   let container = Av.open_input ?format ~opts file in
   Fun.protect
     ~finally:(fun () -> Av.close container)
@@ -574,7 +574,7 @@ let get_tags ~metadata ~extension ~mime file =
     then raise Invalid_file;
     let args, format = parse_file_decoder_args metadata in
     let opts = Hashtbl.create 10 in
-    List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+    List.iter (fun (k, v) -> Hashtbl.replace opts k v) args;
     let container = Av.open_input ?format ~opts file in
     Fun.protect
       ~finally:(fun () -> Av.close container)
@@ -1099,11 +1099,11 @@ let create_decoder ~ctype ~metadata fname =
       | Some r -> Frame.main_of_seconds r
   in
   let opts = Hashtbl.create 10 in
-  List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+  List.iter (fun (k, v) -> Hashtbl.replace opts k v) args;
   let ext = Filename.extension fname in
   if List.exists (fun s -> ext = "." ^ s) image_file_extensions#get then (
-    Hashtbl.add opts "loop" (`Int 1);
-    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
+    Hashtbl.replace opts "loop" (`Int 1);
+    Hashtbl.replace opts "framerate" (`Int (Lazy.force Frame.video_rate)));
   let container = Av.open_input ?format ~opts fname in
   let streams = mk_streams ~ctype ~decode_first_metadata:false container in
   let streams =
@@ -1185,10 +1185,10 @@ let create_stream_decoder ~ctype mime input =
       | _ -> (mime, ([], None))
   in
   let opts = Hashtbl.create 10 in
-  List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+  List.iter (fun (k, v) -> Hashtbl.replace opts k v) args;
   if List.exists (fun s -> mime = s) image_mime_types#get then (
-    Hashtbl.add opts "loop" (`Int 1);
-    Hashtbl.add opts "framerate" (`Int (Lazy.force Frame.video_rate)));
+    Hashtbl.replace opts "loop" (`Int 1);
+    Hashtbl.replace opts "framerate" (`Int (Lazy.force Frame.video_rate)));
   let container =
     Av.open_input_stream ?seek:seek_input ~opts ?format input.Decoder.read
   in
@@ -1219,7 +1219,7 @@ let get_file_type ~metadata ~ctype filename =
     | _ ->
         let args, format = parse_file_decoder_args metadata in
         let opts = Hashtbl.create 10 in
-        List.iter (fun (k, v) -> Hashtbl.add opts k v) args;
+        List.iter (fun (k, v) -> Hashtbl.replace opts k v) args;
         let container = Av.open_input ?format ~opts filename in
         Fun.protect
           ~finally:(fun () -> Av.close container)

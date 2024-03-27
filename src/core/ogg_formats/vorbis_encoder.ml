@@ -97,7 +97,7 @@ let create_vorbis = function
       let reset ogg_enc m =
         let m = Frame.Metadata.Export.to_metadata m in
         let metas = Hashtbl.create 0 in
-        Frame.Metadata.iter (fun k v -> Hashtbl.add metas k v) m;
+        Frame.Metadata.iter (fun k v -> Hashtbl.replace metas k v) m;
         let metadata = Vorbis.tags metas () in
         let enc =
           (* For ABR, a value of -1 means unset.. *)
@@ -122,4 +122,4 @@ let create_vorbis = function
       { Ogg_encoder.reset; encode; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "vorbis" create_vorbis
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "vorbis" create_vorbis

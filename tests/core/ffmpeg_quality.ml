@@ -71,7 +71,7 @@ let () =
                     };
                 opts =
                   (let m = Hashtbl.create 0 in
-                   Hashtbl.add m "b" (`String "128k");
+                   Hashtbl.replace m "b" (`String "128k");
                    m);
               } );
         ];

@@ -466,7 +466,7 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
                 (Frame.Fields.find field self#content_type)
             in
             let g = Content.Video.make_generator params in
-            Hashtbl.add video_generators (priv, field) g;
+            Hashtbl.replace video_generators (priv, field) g;
             g
 
     method private internal_generate_video ?create ~priv ~field length =

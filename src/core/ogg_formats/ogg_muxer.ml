@@ -214,7 +214,7 @@ let register_track ?fill encoder track_encoder =
               stream_end = track_encoder.end_of_stream;
             }
   in
-  Hashtbl.add encoder.tracks serial track;
+  Hashtbl.replace encoder.tracks serial track;
   serial
 
 (** Start streams, set state to Streaming. *)

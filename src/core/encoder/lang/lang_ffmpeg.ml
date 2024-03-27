@@ -330,9 +330,9 @@ let ffmpeg_gen params =
     | "", { value = Ground (String "video_content"); _ }
     | "codec", _ ->
         ()
-    | k, { value = Ground (String s); _ } -> Hashtbl.add opts k (`String s)
-    | k, { value = Ground (Int i); _ } -> Hashtbl.add opts k (`Int i)
-    | k, { value = Ground (Float fl); _ } -> Hashtbl.add opts k (`Float fl)
+    | k, { value = Ground (String s); _ } -> Hashtbl.replace opts k (`String s)
+    | k, { value = Ground (Int i); _ } -> Hashtbl.replace opts k (`Int i)
+    | k, { value = Ground (Float fl); _ } -> Hashtbl.replace opts k (`Float fl)
     | _, t -> Lang_encoder.raise_error ~pos:t.pos "unexpected option"
   in
 
@@ -510,13 +510,13 @@ let ffmpeg_gen params =
       | `Option ("interleaved", { value = Ground (String "default"); _ }) ->
           { f with Ffmpeg_format.interleaved = `Default }
       | `Option (k, { value = Ground (String s); _ }) ->
-          Hashtbl.add f.Ffmpeg_format.opts k (`String s);
+          Hashtbl.replace f.Ffmpeg_format.opts k (`String s);
           f
       | `Option (k, { value = Ground (Int i); _ }) ->
-          Hashtbl.add f.Ffmpeg_format.opts k (`Int i);
+          Hashtbl.replace f.Ffmpeg_format.opts k (`Int i);
           f
       | `Option (k, { value = Ground (Float i); _ }) ->
-          Hashtbl.add f.Ffmpeg_format.opts k (`Float i);
+          Hashtbl.replace f.Ffmpeg_format.opts k (`Float i);
           f
       | `Option (l, v) ->
           Lang_encoder.raise_generic_error

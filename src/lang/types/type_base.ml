@@ -325,7 +325,7 @@ module Fresh = struct
       with Not_found ->
         let level = Option.value ~default:var.level level in
         let new_var = { var with name = var_name (); level } in
-        Hashtbl.add var_maps var new_var;
+        Hashtbl.replace var_maps var new_var;
         new_var)
 
   let make ({ selector; link_maps } as h) t =
@@ -361,7 +361,7 @@ module Fresh = struct
             (try Hashtbl.find link_maps link
              with Not_found ->
                let new_link = { contents = Link (v, map t) } in
-               Hashtbl.add link_maps link new_link;
+               Hashtbl.replace link_maps link new_link;
                new_link)
       | Var ({ contents = Free var } as link) as descr ->
           if not (selector var) then descr
@@ -370,7 +370,7 @@ module Fresh = struct
               (try Hashtbl.find link_maps link
                with Not_found ->
                  let new_link = { contents = Free (map_var var) } in
-                 Hashtbl.add link_maps link new_link;
+                 Hashtbl.replace link_maps link new_link;
                  new_link)
       | _ -> assert false
     in

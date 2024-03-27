@@ -43,7 +43,7 @@ let args_of_args args =
   let rec f = function
     | [] -> ()
     | `Pair (lbl, v) :: args ->
-        Hashtbl.add opts lbl v;
+        Hashtbl.replace opts lbl v;
         f args
   in
   f args;

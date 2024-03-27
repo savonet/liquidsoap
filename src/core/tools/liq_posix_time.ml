@@ -67,4 +67,4 @@ module Sys_time = struct
 end
 
 let posix_time : (module Liq_time.T) = (module Sys_time)
-let () = Hashtbl.add Liq_time.implementations "posix" posix_time
+let () = Hashtbl.replace Liq_time.implementations "posix" posix_time

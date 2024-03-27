@@ -94,7 +94,7 @@ module Ground = struct
 
   let register matcher c =
     let module C = (val c.typ : Type.Ground.Custom) in
-    Hashtbl.add handlers C.Type (c, matcher)
+    Hashtbl.replace handlers C.Type (c, matcher)
 
   exception Found of content
 

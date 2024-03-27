@@ -711,7 +711,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
        if
          assoc_uppercase "CONTENT-TYPE" headers
          = "application/x-www-form-urlencoded"
-       then Hashtbl.iter (Hashtbl.add args) (Http.args_split data)
+       then Hashtbl.iter (Hashtbl.replace args) (Http.args_split data)
      with Not_found -> ());
     match mode with
       | "updinfo" ->
@@ -1150,7 +1150,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         if icy then open_port ~transport ~icy (port + 1) :: fds else fds
       in
       let handler = { sources = Hashtbl.create 1; http = Atomic.make [] } in
-      Hashtbl.add opened_ports port { handler; fds; transport };
+      Hashtbl.replace opened_ports port { handler; fds; transport };
       handler
 
   (* Add sources... This is tied up to sources lifecycle so
@@ -1164,7 +1164,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       handler.sources
     in
     log#important "Adding mountpoint '%s' on port %i" mountpoint port;
-    Hashtbl.add sources mountpoint source
+    Hashtbl.replace sources mountpoint source
 
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =

@@ -38,4 +38,4 @@ type implementation = (module T)
 
 let unix : implementation = (module Unix)
 let implementations : (string, implementation) Hashtbl.t = Hashtbl.create 2
-let () = Hashtbl.add implementations "ocaml" unix
+let () = Hashtbl.replace implementations "ocaml" unix

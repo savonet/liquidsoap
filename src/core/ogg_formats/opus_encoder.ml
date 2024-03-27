@@ -140,4 +140,4 @@ let create_opus = function
       { Ogg_encoder.encode; reset; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "opus" create_opus
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "opus" create_opus

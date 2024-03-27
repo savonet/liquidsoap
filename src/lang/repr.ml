@@ -103,7 +103,7 @@ let evar_global_name =
     with Not_found ->
       incr n;
       let name = String.uppercase_ascii (name !n) in
-      Hashtbl.add evars i name;
+      Hashtbl.replace evars i name;
       name
 
 (** Compute the structure that a term represents, given the list of universally
@@ -157,7 +157,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         try Hashtbl.find evars var.name
         with Not_found ->
           let name = String.uppercase_ascii (name (counter ())) in
-          Hashtbl.add evars var.name name;
+          Hashtbl.replace evars var.name name;
           name
       in
       `EVar (Printf.sprintf "'%s%s" constr_symbols s, Constraints.of_list c))

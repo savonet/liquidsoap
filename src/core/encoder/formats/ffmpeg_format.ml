@@ -117,23 +117,24 @@ let to_string m =
               let stream_opts =
                 Hashtbl.fold
                   (fun lbl v h ->
-                    Hashtbl.add h lbl (v :> [ `Var of string | opt_val ]);
+                    Hashtbl.replace h lbl (v :> [ `Var of string | opt_val ]);
                     h)
                   stream_opts (Hashtbl.create 10)
               in
               ignore
                 (Option.map
                    (fun codec ->
-                     Hashtbl.add stream_opts "codec" (`String codec))
+                     Hashtbl.replace stream_opts "codec" (`String codec))
                    codec);
-              Hashtbl.add stream_opts "framerate"
+              Hashtbl.replace stream_opts "framerate"
                 (`Int (Lazy.force options.framerate));
-              Hashtbl.add stream_opts "width" (`Int (Lazy.force options.width));
-              Hashtbl.add stream_opts "height"
+              Hashtbl.replace stream_opts "width"
+                (`Int (Lazy.force options.width));
+              Hashtbl.replace stream_opts "height"
                 (`Int (Lazy.force options.height));
-              Hashtbl.add stream_opts "hwaccel"
+              Hashtbl.replace stream_opts "hwaccel"
                 (`Var (string_of_hwaccel options.hwaccel));
-              Hashtbl.add stream_opts "hwaccel_device"
+              Hashtbl.replace stream_opts "hwaccel_device"
                 (match options.hwaccel_device with
                   | None -> `Var "none"
                   | Some d -> `String d);
@@ -147,10 +148,10 @@ let to_string m =
               ignore
                 (Option.map
                    (fun codec ->
-                     Hashtbl.add stream_opts "codec" (`String codec))
+                     Hashtbl.replace stream_opts "codec" (`String codec))
                    codec);
-              Hashtbl.add stream_opts "channels" (`Int options.channels);
-              Hashtbl.add stream_opts "samplerate"
+              Hashtbl.replace stream_opts "channels" (`Int options.channels);
+              Hashtbl.replace stream_opts "samplerate"
                 (`Int (Lazy.force options.samplerate));
               Printf.sprintf "%s(%s%s)" name
                 (if Pcre.pmatch ~rex:(Pcre.regexp "audio") name then ""

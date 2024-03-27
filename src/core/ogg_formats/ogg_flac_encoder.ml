@@ -124,4 +124,4 @@ let create_flac = function
       { Ogg_encoder.encode; reset; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "flac" create_flac
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "flac" create_flac

@@ -428,7 +428,7 @@ let mk_buffer ~ctype generator =
             Generator.put generator field data)
         else fun ~samplerate:_ _ -> ()
       in
-      Hashtbl.add audio_handlers field handler;
+      Hashtbl.replace audio_handlers field handler;
       handler
   in
 
@@ -476,7 +476,7 @@ let mk_buffer ~ctype generator =
                   Generator.put generator field buf)
         else fun ~fps:_ _ -> ()
       in
-      Hashtbl.add video_handlers field handler;
+      Hashtbl.replace video_handlers field handler;
       handler
   in
 

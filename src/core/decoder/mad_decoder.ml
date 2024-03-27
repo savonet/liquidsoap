@@ -41,7 +41,7 @@ let init input =
       | None -> ()
       | Some f ->
           let time = !time_offset + Mad.get_current_time !dec Mad.Seconds in
-          if not (Hashtbl.mem index time) then Hashtbl.add index time (f ())
+          if not (Hashtbl.mem index time) then Hashtbl.replace index time (f ())
   in
   (* Add an initial index. *)
   update_index ();

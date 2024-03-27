@@ -207,7 +207,7 @@ let init host =
         try
           let v = Hashtbl.find submit (c, t) in
           Hashtbl.replace submit (c, t) (m :: v)
-        with Not_found -> Hashtbl.add submit (c, t) [m]
+        with Not_found -> Hashtbl.replace submit (c, t) [m]
       in
       List.iter filter songs;
       let f (login, (stype : submission)) songs =
