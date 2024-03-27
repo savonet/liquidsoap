@@ -22,8 +22,6 @@
 
 (** SRT input *)
 
-module Pcre = Re.Pcre
-
 exception Done
 exception Not_connected
 

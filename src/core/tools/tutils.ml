@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 let conf_scheduler =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "scheduler")

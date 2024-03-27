@@ -1,5 +1,3 @@
-module Pcre = Re.Pcre
-
 module Filename = struct
   include Filename
 

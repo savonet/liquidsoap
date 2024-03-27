@@ -23,8 +23,6 @@
 (** Plug for resolving, that is obtaining a file from an URI. [src/protocols]
     plugins provide ways to resolve URIs: fetch, generate, ... *)
 
-module Pcre = Re.Pcre
-
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 

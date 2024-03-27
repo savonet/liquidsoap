@@ -1,5 +1,3 @@
-module Pcre = Re.Pcre
-
 let generated_md =
   [
     ("protocols.md", "--list-protocols-md", None);

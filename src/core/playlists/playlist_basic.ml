@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 let log = Log.make ["playlist"; "basic"]
 let split_lines buf = Pcre.split ~rex:(Pcre.regexp "[\r\n]+") buf
 

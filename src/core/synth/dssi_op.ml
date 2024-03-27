@@ -23,7 +23,6 @@
 open Mm
 open Source
 open Dssi
-module Pcre = Re.Pcre
 
 let log = Log.make ["DSSI synthesizer"]
 

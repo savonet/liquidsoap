@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
 module Runtime = Liquidsoap_lang.Runtime
 module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
