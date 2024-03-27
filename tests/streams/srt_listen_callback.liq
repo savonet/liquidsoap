@@ -1,5 +1,5 @@
 log.level.set(4)
-port = random.int(min=8000, max=10000)
+port = 8001
 
 def fn() =
   def listen_callback(~hs_version=_, ~peeraddr=_, ~streamid, _) =

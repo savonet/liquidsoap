@@ -1,4 +1,4 @@
-port = random.int(min=8000, max=10000)
+port = 8002
 
 def fn() =
   connected = ref(0)

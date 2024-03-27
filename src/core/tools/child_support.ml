@@ -41,19 +41,17 @@ class virtual base ~check_self_sync children_val =
     method virtual id : string
     method virtual clock : Clock.t
     method virtual pos : Pos.Option.t
-    val child_clock = Atomic.make None
+    val mutable child_clock = None
+
+    initializer
+      child_clock <-
+        Some
+          (Clock.create_sub_clock
+             ~id:(Clock.id self#clock ^ ".child")
+             self#clock)
 
     method child_clock =
-      match Atomic.get child_clock with
-        | Some c -> c
-        | None ->
-            let c =
-              Clock.create_sub_clock
-                ~id:(Clock.id self#clock ^ ".child")
-                self#clock
-            in
-            Atomic.set child_clock (Some c);
-            c
+      match child_clock with Some c -> c | None -> assert false
 
     method virtual log : Log.t
 
