@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Mm
-module Pcre = Re.Pcre
 
 exception Unavailable
 

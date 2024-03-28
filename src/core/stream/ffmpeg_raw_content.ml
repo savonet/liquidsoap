@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Avutil
-module Pcre = Re.Pcre
 
 type 'a frame = {
   stream_idx : Int64.t;

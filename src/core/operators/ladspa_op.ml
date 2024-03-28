@@ -23,7 +23,6 @@
 open Mm
 open Source
 open Ladspa
-module Pcre = Re.Pcre
 
 module String = struct
   include String

@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 let log = Log.make ["sandbox"]
 
 let conf_sandbox =
