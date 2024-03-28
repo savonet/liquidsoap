@@ -977,11 +977,6 @@ def reconciled_crossfade(
   id = string.id.default(default="reconciled_crossfade", id)
 
   def reco_cross(old, new) =
-    buffer_duration =
-      float_of_string(
-        default=0.,
-        old.metadata["liq_cross_duration"]
-    )
     fade_out =
       float_of_string(
         default=0.,
