@@ -965,3 +965,62 @@ def crossfade(
 
   s.{cross_duration={crossed.cross_duration()}}
 end
+
+# Reconciled crossfade, using fixed buffer duration and fade delay
+# @category Source / Fade
+# @param ~id           Force the value of the source ID.
+# @param s             The input source.
+def reconciled_crossfade(
+  ~id=null(),
+  s
+) =
+  id = string.id.default(default="reconciled_crossfade", id)
+
+  def reco_cross(old, new) =
+    buffer_duration =
+      float_of_string(
+        default=0.,
+        old.metadata["liq_cross_duration"]
+    )
+    fade_out =
+      float_of_string(
+        default=0.,
+        old.metadata["liq_fade_out"]
+    )
+    fade_in =
+      float_of_string(
+        default=0.,
+        new.metadata["liq_fade_in"]
+    )
+    delay =
+      float_of_string(
+        default=0.,
+        old.metadata["liq_fade_out_delay"]
+    )
+    let fade.out =
+      fun (s) -> fade.out(
+        duration=fade_out,
+        delay=delay,
+        initial_metadata=old.metadata,
+        s
+      )
+    let fade.in =
+      fun (s) -> fade.in(
+        duration=fade_in,
+        delay=delay,
+        initial_metadata=new.metadata,
+        s
+      )
+    add(
+      normalize=false,
+      [fade.in(new.source), fade.out(old.source)]
+    ) 
+  end
+
+  cross(
+    id=id,
+    reconcile_duration=true,
+    reco_cross,
+    s
+  )
+end
