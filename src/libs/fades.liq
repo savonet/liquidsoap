@@ -1014,7 +1014,7 @@ def reconciled_crossfade(
     add(
       normalize=false,
       [fade.in(new.source), fade.out(old.source)]
-    ) 
+    )
   end
 
   cross(
