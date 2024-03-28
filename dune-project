@@ -140,6 +140,7 @@
     (srt (< 0.3.0))
     (ssl (< 0.7.0))
     (taglib (< 0.3.10))
+    (tls (<= 0.17.4))
     (sdl-liquidsoap (< 2))
     (theora (< 0.4.0))
     (vorbis (< 0.8.0))
