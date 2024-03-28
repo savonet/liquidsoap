@@ -64,6 +64,13 @@ let settings.autocue.metadata_overrides =
     ]
   )
 
+let settings.autocue.reconciled_crossfade_mode =
+  settings.make(
+    description=
+      "Change crossfades to work with fixed buffer duration and fade delay. Should be enabled if cross(reconciled_duration=true) is being used.",
+    false
+  )
+
 let file.autocue = ()
 
 # Get frames from ffmpeg.filter.ebur128
@@ -115,7 +122,7 @@ def file.autocue.ebur128(~ratio=50., ~timeout=10., uri) =
 %else
     log(
       level=2,
-      label="autofocus",
+      label="autocue",
       "ffmpeg.filter.ebur128 is not available, autocue disabled!"
     )
     []
@@ -147,6 +154,7 @@ def replaces file.autocue(
   ~max_overlap=null(),
   ~ratio=null(),
   ~timeout=null(),
+  ~reconciled_crossfade_mode=null(),
   uri
 ) =
   lufs_target = lufs_target ?? settings.autocue.lufs_target()
@@ -156,6 +164,7 @@ def replaces file.autocue(
   max_overlap = max_overlap ?? settings.autocue.max_overlap()
   ratio = ratio ?? settings.autocue.ratio()
   timeout = timeout ?? settings.autocue.timeout()
+  reconciled_crossfade_mode = reconciled_crossfade_mode ?? settings.autocue.reconciled_crossfade_mode()
 
   frames = file.autocue.ebur128(ratio=ratio, timeout=timeout, uri)
 
@@ -212,10 +221,7 @@ def replaces file.autocue(
     cue_out = ref(0.)
     cross_cue = ref(0.)
     fade_in = ref(0.)
-    fade_in_curve = ref("log")
     fade_out = ref(0.)
-    fade_out_delay = ref(0.)
-    fade_out_curve = ref("exp")
     cross_duration = ref(0.)
 
     # Extract timestamps for cue points
@@ -318,26 +324,32 @@ def replaces file.autocue(
       fade_out := max_overlap
     end
 
-    # Delay fade out slightly on short overlaps
-    if
-      cue_out() > 0. and cross_duration() < 2.0
-    then
-      fade_out := max(cross_duration() / 2., 0.1)
-      fade_out_delay := fade_out()
-      fade_out_curve := "log"
+    buffer_duration = ref(0.)
+    fade_out_delay = ref(0.)
+    if reconciled_crossfade_mode then
+      real_duration = ref(0.)
+      if cue_out() > 0. then
+        real_duration := cue_out() - cue_in()
+      else
+        duration = null.get(default=0., request.duration(uri))
+        real_duration := duration - cue_in()
+      end
+      buffer_duration := min((real_duration() / 2.), max_overlap * 2.)
+      fade_out_delay := buffer_duration() - cross_duration()
+    else
+      buffer_duration := cross_duration()
     end
 
     {
       amplify=lufs_correction,
       cue_in=(cue_in() > 0. ? cue_in() : null() ),
       cue_out=(cue_out() > 0. ? cue_out() : null() ),
-      cross_duration=cross_duration(),
+      buffer_duration=buffer_duration(),
       fade_in=fade_in(),
       fade_out=fade_out(),
-      fade_out_delay=(fade_out_delay() > 0. ? fade_out_delay() : null() ),
-      fade_in_curve=fade_in_curve(),
-      fade_out_curve=fade_out_curve()
+      fade_out_delay=fade_out_delay()
     }
+
   end
 end
 
@@ -377,12 +389,10 @@ def file.autocue.metadata(
       amplify,
       cue_in,
       cue_out,
-      cross_duration,
+      buffer_duration,
       fade_in,
       fade_out,
-      fade_out_delay,
-      fade_in_curve,
-      fade_out_curve
+      fade_out_delay
     } = null.get(autocue)
 
     [
@@ -399,16 +409,10 @@ def file.autocue.metadata(
         ? [("liq_cue_out", string(null.get(cue_out)))] : []
       ),
 
-      ("liq_cross_duration", string(cross_duration)),
+      ("liq_cross_duration", string(buffer_duration)),
       ("liq_fade_in", string(fade_in)),
       ("liq_fade_out", string(fade_out)),
-      ...(
-        null.defined(fade_out_delay)
-        ? [("liq_fade_out_delay", string(null.get(fade_out_delay)))] : []
-      ),
-
-      ("liq_fade_in_curve", fade_in_curve),
-      ("liq_fade_out_curve", fade_out_curve)
+      ("liq_fade_out_delay", string(fade_out_delay))
     ]
   else
     log(
@@ -427,7 +431,6 @@ end
 def enable_autocue_metadata() =
   def autocue_metadata(~metadata, fname) =
     metadata_overrides = settings.autocue.metadata_overrides()
-
     if
       list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
     then
