@@ -1,9 +1,9 @@
 let settings.crossfade = settings.make.void("Crossfqde settings")
 
-let settings.crossfade.reconcile_duration =
+let settings.crossfade.autocue =
   settings.make(
     description=
-      "Default value for `reconcile_duration`",
+      "Default value for `autocue`",
     false
   )
 
@@ -834,13 +834,10 @@ end
 # @param ~fade_out     Fade-out duration, if any.
 # @param ~width        Width of the volume analysis window.
 # @param ~conservative Always prepare for a premature end-of-track.
-# @param ~reconcile_duration \
+# @param ~autocue \
 #                      When set to `true`, if duration for the new track is shorter than the ending \
 #                      duration, a `liq_fade_in_delay` metadata is automatically injected to make \
-#                      crossfades match. Defaults to `settings.crossfade.reconcile_duration` if `null`.
-# @param ~override_fade_in_delay \
-#                      Metadata field used to inject metadata overriding fade-in delay \
-#                      when reonciling crossfade duration.
+#                      crossfades match. Defaults to `settings.crossfade.autocue` if `null`.
 # @param ~minimum      Minimum duration (in sec.) for a cross: \
 #                      If the track ends without any warning (e.g. in case of skip) \
 #                      there may not be enough data for a decent composition. \
@@ -861,8 +858,7 @@ def crossfade(
   ~id=null(),
   ~duration=5.,
   ~override_duration="liq_cross_duration",
-  ~reconcile_duration=null(),
-  ~override_fade_in_delay="liq_fade_in_delay",
+  ~autocue=null(),
   ~persist_override=false,
   ~fade_in=3.,
   ~fade_out=3.,
@@ -878,8 +874,8 @@ def crossfade(
   s
 ) =
   id = string.id.default(default="crossfade", id)
-  reconcile_duration =
-    reconcile_duration ?? settings.crossfade.reconcile_duration()
+  autocue =
+    autocue ?? settings.crossfade.autocue()
 
   def log(~level=3, x) =
     log(label=id, level=level, x)
@@ -958,8 +954,7 @@ def crossfade(
       width=width,
       duration=duration,
       persist_override=persist_override,
-      reconcile_duration=reconcile_duration,
-      override_fade_in_delay=override_fade_in_delay,
+      autocue=autocue,
       override_duration=override_duration,
       conservative=conservative,
       minimum=minimum,

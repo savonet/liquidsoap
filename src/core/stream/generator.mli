@@ -70,6 +70,9 @@ val remaining : t -> int
 (* Drop given length of content at the beginning of the generator. *)
 val truncate : t -> int -> unit
 
+(* Keep only the given length of data from the beginning of the generator. *)
+val keep : t -> int -> unit
+
 (* Empty the generator. *)
 val clear : t -> unit
 

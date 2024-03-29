@@ -29,10 +29,8 @@ let finalise_child_clock child_clock source =
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
-  ~override_cue_out ~override_track_duration ~override_fade_in_delay
-  ~override_duration ~persist_override ~rms_width ~minimum_length ~conservative
-  transition =
+class cross val_source ~duration_getter ~autocue ~override_duration
+  ~persist_override ~rms_width ~minimum_length ~conservative transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
@@ -87,22 +85,20 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
     val mutable after_metadata = None
 
     (* This is in main ticks. *)
-    method private safe_cross_len expected =
-      try
-        let after_metadata = Option.get after_metadata in
-        let start =
-          try float_of_string (Hashtbl.find after_metadata override_cue_in)
-          with _ -> 0.
-        in
-        let stop =
-          try float_of_string (Hashtbl.find after_metadata override_cue_out)
-          with _ ->
-            float_of_string
-              (Hashtbl.find after_metadata override_track_duration)
-        in
-        let safe_max = stop -. start -. self#cross_duration in
-        min expected (Frame.main_of_seconds safe_max)
-      with _ -> Frame.main_of_seconds self#cross_duration
+    method private autocue_cross_len expected =
+      let safe_max =
+        try
+          let after_metadata = Option.get after_metadata in
+          let start =
+            float_of_string (Hashtbl.find after_metadata "liq_cue_in")
+          in
+          let stop =
+            float_of_string (Hashtbl.find after_metadata "liq_cue_out")
+          in
+          stop -. start -. self#cross_duration
+        with _ -> self#cross_duration
+      in
+      min expected (Frame.main_of_seconds safe_max)
 
     (* An audio frame for intermediate computations. It is used to buffer the
        end and beginnings of tracks. Its past metadata should mimic that of the
@@ -302,8 +298,7 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
       let before_len = Generator.length gen_before in
       let rec f () =
         let buffer_len =
-          if reconcile_duration then self#safe_cross_len before_len
-          else before_len
+          if autocue then self#autocue_cross_len before_len else before_len
         in
         let start = AFrame.position buf_frame in
         let stop =
@@ -353,19 +348,32 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
             let metadata = function None -> Hashtbl.create 0 | Some m -> m in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
-            if reconcile_duration then (
-              let missing_cross_duration =
-                Frame.seconds_of_main (buffered_before - buffered_after)
-              in
-              if 0. < missing_cross_duration then (
+            if autocue then (
+              let extra_cross_duration = buffered_before - buffered_after in
+              let new_cross_duration = buffered_before - extra_cross_duration in
+              if 0 < extra_cross_duration then (
+                Generator.keep gen_before new_cross_duration;
+                let new_cross_duration =
+                  Frame.seconds_of_main new_cross_duration
+                in
+                let extra_cross_duration =
+                  Frame.seconds_of_main extra_cross_duration
+                in
                 self#log#info
-                  "Adding %.2f fade-in delay to match the ending track's \
-                   buffer."
-                  missing_cross_duration;
-                Hashtbl.replace after_metadata override_fade_in_delay
-                  (string_of_float missing_cross_duration)));
+                  "Shortening ending track by %.2f to match the starting \
+                   track's buffer."
+                  extra_cross_duration;
+                let fade_out =
+                  float_of_string (Hashtbl.find before_metadata "liq_fade_out")
+                in
+                let fade_out = min new_cross_duration fade_out in
+                let fade_out_delay = min (new_cross_duration -. fade_out) 0. in
+                Hashtbl.replace before_metadata "liq_fade_out"
+                  (string_of_float fade_out);
+                Hashtbl.replace after_metadata "liq_fade_out_delay"
+                  (string_of_float fade_out_delay)));
             let before_head =
-              if (not reconcile_duration) && buffered < buffered_before then (
+              if (not autocue) && buffered < buffered_before then (
                 let head =
                   Generator.get ~length:(buffered_before - buffered) gen_before
                 in
@@ -386,7 +394,7 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
             in
             Typing.(before#frame_type <: self#frame_type);
             let after_tail =
-              if (not reconcile_duration) && buffered < buffered_after then (
+              if (not autocue) && buffered < buffered_after then (
                 let head = Generator.get ~length:buffered gen_after in
                 let head_gen =
                   Generator.create ~content:head
@@ -435,7 +443,7 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
                 (Frame.seconds_of_main buffered_before)
                 (Frame.seconds_of_main buffered_after);
               if Frame.main_of_audio minimum_length < buffered then (
-                if reconcile_duration then
+                if autocue then
                   self#log#important
                     "Computing crossfade transition over reconciled duration \
                      with %.2fs ending and %.2fs starting buffered data."
@@ -524,37 +532,13 @@ let _ =
         Some
           "Metadata field which, if present and containing a float, overrides \
            the 'duration' parameter for current track." );
-      ( "reconcile_duration",
+      ( "autocue",
         Lang.bool_t,
         Some (Lang.bool false),
         Some
           "When set to `true`, if duration for the new track is shorter than \
            the ending duration, a `liq_fade_in_delay` metadata is \
            automatically injected to make crossfades match." );
-      ( "override_fade_in_delay",
-        Lang.string_t,
-        Some (Lang.string "liq_fade_in_delay"),
-        Some
-          "Metadata field which used to inject metadata overriding fade-in \
-           delay when reconciling crossfade duration." );
-      ( "override_cue_in",
-        Lang.string_t,
-        Some (Lang.string "liq_cue_in"),
-        Some
-          "Metadata field which used to inject metadata overriding cue-in time."
-      );
-      ( "override_cue_out",
-        Lang.string_t,
-        Some (Lang.string "liq_cue_out"),
-        Some
-          "Metadata field which used to inject metadata overriding cue-out \
-           time." );
-      ( "override_track_duration",
-        Lang.string_t,
-        Some (Lang.string "liq_track_duration"),
-        Some
-          "Metadata field which used to inject metadata overriding duration \
-           time." );
       ( "persist_override",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -609,17 +593,7 @@ let _ =
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
-      let reconcile_duration =
-        Lang.to_bool (List.assoc "reconcile_duration" p)
-      in
-      let override_fade_in_delay =
-        Lang.to_string (List.assoc "override_fade_in_delay" p)
-      in
-      let override_cue_in = Lang.to_string (List.assoc "override_cue_in" p) in
-      let override_cue_out = Lang.to_string (List.assoc "override_cue_out" p) in
-      let override_track_duration =
-        Lang.to_string (List.assoc "override_track_duration" p)
-      in
+      let autocue = Lang.to_bool (List.assoc "autocue" p) in
       let persist_override = Lang.to_bool (List.assoc "persist_override" p) in
       let minimum = Lang.to_float (List.assoc "minimum" p) in
       let minimum_length = Frame.audio_of_seconds minimum in
@@ -629,7 +603,5 @@ let _ =
       let conservative = Lang.to_bool (List.assoc "conservative" p) in
       let source = Lang.assoc "" 2 p in
       new cross
-        source transition ~conservative ~duration_getter ~reconcile_duration
-        ~override_track_duration ~override_fade_in_delay ~override_cue_in
-        ~override_cue_out ~rms_width ~minimum_length ~override_duration
-        ~persist_override)
+        source transition ~conservative ~duration_getter ~autocue ~rms_width
+        ~minimum_length ~override_duration ~persist_override)
