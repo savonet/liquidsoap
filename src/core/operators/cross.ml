@@ -299,9 +299,12 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
     (* Analyze the beginning of a new track. *)
     method private analyze_after =
       let buf_frame = self#buf_frame in
-      let len_before = Generator.length gen_before in
+      let before_len = Generator.length gen_before in
       let rec f () =
-        let buffer_len = self#safe_cross_len len_before in
+        let buffer_len =
+          if reconcile_duration then self#safe_cross_len before_len
+          else before_len
+        in
         let start = AFrame.position buf_frame in
         let stop =
           self#child_get source buf_frame;
