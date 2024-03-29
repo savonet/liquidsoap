@@ -389,11 +389,8 @@ end
 # Enable autocue metadata resolver. This resolver will process any file
 # decoded by Liquidsoap and add cue-in/out and crossfade metadata when these
 # values can be computed. For a finer-grained processing, use the `autocue:` protocol.
-# This also sets `settings.crossfade.autocue` to `true`.
 # @category Liquidsoap
 def enable_autocue_metadata() =
-  settings.crossfade.autocue := true
-
   def autocue_metadata(~metadata, fname) =
     metadata_overrides =
       ["liq_amplify", "liq_cue_in", "liq_cue_out", "liq_fade_in", "liq_fade_out"
