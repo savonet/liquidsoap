@@ -367,10 +367,12 @@ class cross val_source ~duration_getter ~autocue ~override_duration
                   float_of_string (Hashtbl.find before_metadata "liq_fade_out")
                 in
                 let fade_out = min new_cross_duration fade_out in
-                let fade_out_delay = min (new_cross_duration -. fade_out) 0. in
+                let fade_out_delay = max (new_cross_duration -. fade_out) 0. in
                 Hashtbl.replace before_metadata "liq_fade_out"
                   (string_of_float fade_out);
-                Hashtbl.replace after_metadata "liq_fade_out_delay"
+                Hashtbl.replace before_metadata "liq_fade_out_delay"
+                  (string_of_float fade_out_delay);
+                Hashtbl.replace after_metadata "liq_fade_in_delay"
                   (string_of_float fade_out_delay)));
             let before_head =
               if (not autocue) && buffered < buffered_before then (
