@@ -23,19 +23,6 @@
 open Mm
 open Source
 
-let conf_crossfade =
-  Dtools.Conf.void ~p:(Configure.conf#plug "crossfade") "Crossfade settings"
-
-let conf_fade_in_duration =
-  Dtools.Conf.float ~d:3.
-    ~p:(conf_crossfade#plug "fade_in_duration")
-    "Default `fade.in` duration"
-
-let conf_fade_out_duration =
-  Dtools.Conf.float ~d:3.
-    ~p:(conf_crossfade#plug "fade_out_duration")
-    "Default `fade.out` duration"
-
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
