@@ -1,5 +1,9 @@
-let settings.crossfade.reconcile_duration = settings.make(
-  description="Default value for `reconcile_duration`", false)
+let settings.crossfade.reconcile_duration =
+  settings.make(
+    description=
+      "Default value for `reconcile_duration`",
+    false
+  )
 
 fade = ()
 
@@ -278,8 +282,9 @@ def fade.out(
       not persist_overrides
     then
       log(
-        "Setting fade out to default duration: #{original_duration}s, delay: \
-        #{original_delay}s, type: #{original_type}, curve: #{original_curve}"
+        "Setting fade out to default duration: #{original_duration}s, delay: #{
+          original_delay
+        }s, type: #{original_type}, curve: #{original_curve}"
       )
       duration := original_duration
       delay := original_delay
@@ -444,8 +449,9 @@ def fade.skip(
       not persist_overrides
     then
       log(
-        "Setting fade skip to default duration: #{original_duration}s, \
-        type: #{original_type}, curve: #{original_curve}"
+        "Setting fade skip to default duration: #{original_duration}s, type: #{
+          original_type
+        }, curve: #{original_curve}"
       )
       duration := original_duration
       type := original_type
@@ -456,10 +462,7 @@ def fade.skip(
   s = source.on_track(s, reset_overrides)
   s = source.on_metadata(s, update_fade)
   s = source.on_track(s, stop_fade)
-  fade.scale(id=id, apply, s).{
-    fade_duration={duration()},
-    fade_type={type()}
-  }
+  fade.scale(id=id, apply, s).{fade_duration={duration()}, fade_type={type()}}
 end
 
 # Fade the beginning of tracks.
@@ -518,12 +521,14 @@ def fade.in(
     curve_log =
       if null.defined(curve()) then string(null.get(curve())) else "default" end
 
-     duration =
-       if source.remaining(s) < duration() then
-         source.remaining(s)
-       else
-         duration()
-        end
+    duration =
+      if
+        source.remaining(s) < duration()
+      then
+        source.remaining(s)
+      else
+        duration()
+      end
 
     log(
       "Fading in with type: #{type()}, curve: #{curve_log}, delay: #{delay()}s \
@@ -621,8 +626,9 @@ def fade.in(
       not persist_overrides
     then
       log(
-        "Setting fade in to default duration: #{original_duration}s, \
-        delay: #{original_delay}s, type: #{original_type}, curve: #{original_curve}"
+        "Setting fade in to default duration: #{original_duration}s, delay: #{
+          original_delay
+        }s, type: #{original_type}, curve: #{original_curve}"
       )
       duration := original_duration
       delay := original_delay
@@ -816,8 +822,6 @@ def cross.smart(
   end
 end
 
-
-
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Fade
@@ -877,7 +881,8 @@ def crossfade(
   s
 ) =
   id = string.id.default(default="crossfade", id)
-  reconcile_duration = reconcile_duration ?? settings.crossfade.reconcile_duration()
+  reconcile_duration =
+    reconcile_duration ?? settings.crossfade.reconcile_duration()
 
   def log(~level=3, x) =
     log(label=id, level=level, x)

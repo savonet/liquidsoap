@@ -44,8 +44,8 @@ let finalise_child_clock child_clock source =
   * We are assuming a fixed audio kind -- at least for now. *)
 class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
   ~override_cue_out ~override_track_duration ~override_fade_in_delay
-  ~override_fade_out_duration ~override_duration ~persist_override ~rms_width
-  ~minimum_length ~conservative transition =
+  ~override_duration ~persist_override ~rms_width ~minimum_length ~conservative
+  transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
@@ -364,25 +364,23 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
             if reconcile_duration then (
-              let ending_fade_out =
+              let fade_in_delay =
                 try
                   float_of_string
-                    (Option.get
-                       (Hashtbl.find_opt after_metadata
-                          override_fade_out_duration))
-                with _ -> conf_fade_out_duration#get
+                    (Hashtbl.find after_metadata override_fade_in_delay)
+                with _ -> 0.
               in
-              let missing_buffer_delay =
-                if buffered_after < buffered_before then
-                  Frame.seconds_of_main (buffered_before - buffered_after)
-                else 0.
+              let missing_cross_duration =
+                self#cross_duration -. Frame.seconds_of_main buffered_after
               in
-              let new_delay = ending_fade_out +. missing_buffer_delay in
-              self#log#info
-                "Adding %.2f fade-in delay to match the ending track's buffer."
-                new_delay;
-              Hashtbl.replace after_metadata override_fade_in_delay
-                (string_of_float new_delay));
+              if 0. < fade_in_delay && 0. < missing_cross_duration then (
+                let new_delay = fade_in_delay -. missing_cross_duration in
+                self#log#info
+                  "Adding %.2f fade-in delay to match the ending track's \
+                   buffer."
+                  new_delay;
+                Hashtbl.replace after_metadata override_fade_in_delay
+                  (string_of_float new_delay)));
             let before_head =
               if (not reconcile_duration) && buffered < buffered_before then (
                 let head =
@@ -556,12 +554,6 @@ let _ =
         Some
           "Metadata field which used to inject metadata overriding fade-in \
            delay when reconciling crossfade duration." );
-      ( "override_fade_out_duration",
-        Lang.string_t,
-        Some (Lang.string "liq_fade_out"),
-        Some
-          "Metadata field which used to inject metadata overriding fade-out \
-           duration when reconciling crossfade duration." );
       ( "override_cue_in",
         Lang.string_t,
         Some (Lang.string "liq_cue_in"),
@@ -640,9 +632,6 @@ let _ =
       let override_fade_in_delay =
         Lang.to_string (List.assoc "override_fade_in_delay" p)
       in
-      let override_fade_out_duration =
-        Lang.to_string (List.assoc "override_fade_out_duration" p)
-      in
       let override_cue_in = Lang.to_string (List.assoc "override_cue_in" p) in
       let override_cue_out = Lang.to_string (List.assoc "override_cue_out" p) in
       let override_track_duration =
@@ -659,5 +648,5 @@ let _ =
       new cross
         source transition ~conservative ~duration_getter ~reconcile_duration
         ~override_track_duration ~override_fade_in_delay ~override_cue_in
-        ~override_cue_out ~override_fade_out_duration ~rms_width ~minimum_length
-        ~override_duration ~persist_override)
+        ~override_cue_out ~rms_width ~minimum_length ~override_duration
+        ~persist_override)
