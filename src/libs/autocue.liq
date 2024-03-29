@@ -204,7 +204,6 @@ def autocue.internal.implementation(uri) =
       "adj_cross_threshold: #{lufs_cross_threshold}"
     )
 
-
     # Set cue/fade defaults
     cue_in = ref(0.)
     cue_out = ref(0.)
@@ -263,17 +262,13 @@ def autocue.internal.implementation(uri) =
         float_of_string(list.assoc(default="0.", "lavfi.liq.duration", frame))
 
     # Finalize cue/cross/fade values now...
+    if cue_out() == 0. then cue_out := duration end
+
     # Calc cross/overlap duration
     if
-      cross_cue() + 0.1 < duration
+      cross_cue() + 0.1 < cue_out()
     then
-      if
-        cue_out() > 0.
-      then
-        fade_out := cue_out() - cross_cue()
-      else
-        fade_out := duration - cross_cue()
-      end
+      fade_out := cue_out() - cross_cue()
     end
 
     # Add some margin to cue in
@@ -297,20 +292,12 @@ def autocue.internal.implementation(uri) =
 
     # Limit overlap duration to maximum
     if max_overlap < fade_in() then fade_in := max_overlap end
-
-    if max_overlap < fade_out() then
-      cue_shift = fade_out() - max_overlap
-      cue_out := cue_out() - cue_shift
-      fade_out := max_overlap
-    end
-
-    # Catch invalid cue out values
-    if cue_out() <= cue_in() then cue_out := 0. end
+    if max_overlap < fade_out() then fade_out := max_overlap end
 
     {
       amplify=lufs_correction,
-      cue_in=(cue_in() > 0. ? cue_in() : null() ),
-      cue_out=(cue_out() > 0. ? cue_out() : null() ),
+      cue_in=cue_in(),
+      cue_out=cue_out(),
       fade_in=fade_in(),
       fade_out=fade_out()
     }
@@ -376,14 +363,8 @@ def file.autocue.metadata(uri) =
         "liq_amplify",
         "#{amplify} dB"
       ),
-      ...(
-        null.defined(cue_in) ? [("liq_cue_in", string(null.get(cue_in)))] : []
-      ),
-      ...(
-        null.defined(cue_out)
-        ? [("liq_cue_out", string(null.get(cue_out)))] : []
-      ),
-
+      ("liq_cue_in", string(cue_in)),
+      ("liq_cue_out", string(cue_out)),
       ("liq_cross_duration", string(cross_duration)),
       ("liq_fade_in", string(fade_in)),
       ("liq_fade_in_delay", string(fade_in_delay)),
