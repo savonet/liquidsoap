@@ -360,8 +360,6 @@ def file.autocue.metadata(uri) =
     # Make sure cross_duration is never 0.
     cross_duration = max(cross_duration, 0.1)
 
-    fade_in_delay =
-      if fade_in < cross_duration then cross_duration - fade_in else 0. end
     fade_out_delay =
       if fade_out < cross_duration then cross_duration - fade_out else 0. end
 
@@ -375,7 +373,6 @@ def file.autocue.metadata(uri) =
       ("liq_cue_out", string(cue_out)),
       ("liq_cross_duration", string(cross_duration)),
       ("liq_fade_in", string(fade_in)),
-      ("liq_fade_in_delay", string(fade_in_delay)),
       ("liq_fade_out", string(fade_out)),
       ("liq_fade_out_delay", string(fade_out_delay))
     ]
