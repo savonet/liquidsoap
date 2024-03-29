@@ -298,7 +298,11 @@ def autocue.internal.implementation(uri) =
     # Limit overlap duration to maximum
     if max_overlap < fade_in() then fade_in := max_overlap end
 
-    if max_overlap < fade_out() then fade_out := max_overlap end
+    if max_overlap < fade_out() then
+      cue_shift = fade_out() - max_overlap
+      cue_out := cue_out() - cue_shift
+      fade_out := max_overlap
+    end
 
     # Catch invalid cue out values
     if cue_out() <= cue_in() then cue_out := 0. end
