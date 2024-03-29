@@ -36,6 +36,13 @@ let settings.autocue.internal.cue_out_threshold =
     -42.0
   )
 
+let settings.autocue.cross_threshold =
+  settings.make(
+    description=
+      "Crossfade start threshold",
+    -7.0
+  )
+
 let settings.autocue.internal.max_overlap =
   settings.make(
     description=
@@ -142,6 +149,7 @@ def autocue.internal.implementation(uri) =
   lufs_target = settings.autocue.internal.lufs_target()
   cue_in_threshold = settings.autocue.internal.cue_in_threshold()
   cue_out_threshold = settings.autocue.internal.cue_out_threshold()
+  cross_threshold = settings.autocue.cross_threshold()
   max_overlap = settings.autocue.internal.max_overlap()
   ratio = settings.autocue.internal.ratio()
   timeout = settings.autocue.internal.timeout()
@@ -173,6 +181,7 @@ def autocue.internal.implementation(uri) =
     # Create dB thresholds relative to LUFS target
     lufs_cue_in_threshold = lufs + cue_in_threshold
     lufs_cue_out_threshold = lufs + cue_out_threshold
+    lufs_cross_threshold = lufs + cross_threshold
 
     log(
       level=4,
@@ -189,10 +198,17 @@ def autocue.internal.implementation(uri) =
       label="autocue.internal",
       "adj_cue_out_threshold: #{lufs_cue_out_threshold}"
     )
+    log(
+      level=4,
+      label="autocue",
+      "adj_cross_threshold: #{lufs_cross_threshold}"
+    )
+
 
     # Set cue/fade defaults
     cue_in = ref(0.)
     cue_out = ref(0.)
+    cross_cue = ref(0.)
     fade_in = ref(0.)
     fade_out = ref(0.)
 
@@ -227,6 +243,12 @@ def autocue.internal.implementation(uri) =
           # Cue out: Stick with the latest timestamp where level still exceeds threshold
           cue_out := current_ts()
         end
+        if
+          db_level > lufs_cross_threshold
+        then
+          # Absolute crossfade cue: Stick with the latest timestamp where level still exceeds threshold
+          cross_cue := current_ts()
+        end
       end
 
       # Update last timestamp value with current
@@ -241,6 +263,18 @@ def autocue.internal.implementation(uri) =
         float_of_string(list.assoc(default="0.", "lavfi.liq.duration", frame))
 
     # Finalize cue/cross/fade values now...
+    # Calc cross/overlap duration
+    if
+      cross_cue() + 0.1 < duration
+    then
+      if
+        cue_out() > 0.
+      then
+        fade_out := cue_out() - cross_cue()
+      else
+        fade_out := duration - cross_cue()
+      end
+    end
 
     # Add some margin to cue in
     cue_in := cue_in() - 0.1
