@@ -364,23 +364,16 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
             if reconcile_duration then (
-              let fade_in_delay =
-                try
-                  float_of_string
-                    (Hashtbl.find after_metadata override_fade_in_delay)
-                with _ -> 0.
-              in
               let missing_cross_duration =
-                self#cross_duration -. Frame.seconds_of_main buffered_after
+                Frame.seconds_of_main (buffered_before - buffered_after)
               in
-              if 0. < fade_in_delay && 0. < missing_cross_duration then (
-                let new_delay = fade_in_delay -. missing_cross_duration in
+              if 0. < missing_cross_duration then (
                 self#log#info
                   "Adding %.2f fade-in delay to match the ending track's \
                    buffer."
-                  new_delay;
+                  missing_cross_duration;
                 Hashtbl.replace after_metadata override_fade_in_delay
-                  (string_of_float new_delay)));
+                  (string_of_float missing_cross_duration)));
             let before_head =
               if (not reconcile_duration) && buffered < buffered_before then (
                 let head =
