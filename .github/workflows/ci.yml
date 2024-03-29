@@ -261,7 +261,8 @@ jobs:
           ./.github/scripts/add-local-opam-packages.sh
       - name: Install liquidsoap
         run: |
-          opam install --cli=2.1 --confirm-level=unsafe-yes .
+          opam pin -n .
+          opam install --cli=2.1 --confirm-level=unsafe-yes liquidsoap
 
   build_posix:
     runs-on: ${{ matrix.runs-on }}
