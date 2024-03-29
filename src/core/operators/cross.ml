@@ -100,7 +100,7 @@ class cross val_source ~duration_getter ~reconcile_duration ~override_cue_in
             float_of_string
               (Hashtbl.find after_metadata override_track_duration)
         in
-        let safe_max = (stop -. start) /. 2. in
+        let safe_max = stop -. start -. self#cross_duration in
         min expected (Frame.main_of_seconds safe_max)
       with _ -> Frame.main_of_seconds self#cross_duration
 
