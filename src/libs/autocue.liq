@@ -8,6 +8,15 @@ let settings.autocue.implementations =
     []
   )
 
+let settings.autocue.target_cross_duration =
+  settings.make(
+    description=
+      "How much data should be buffer from each track when computing crossfade \
+       transitions. This will be shorter if one of the track is shorter than \
+       that.",
+    3.
+  )
+
 let settings.autocue.preferred =
   settings.make(
     description=
@@ -355,7 +364,14 @@ def file.autocue.metadata(uri) =
   then
     let {amplify, cue_in, cue_out, fade_in, fade_out} = null.get(autocue)
 
-    cross_duration = max(fade_in, fade_out)
+    cross_duration =
+      if
+        cue_out - cue_in < settings.autocue.target_cross_duration() * 2.
+      then
+        max(fade_in, fade_out)
+      else
+        settings.autocue.target_cross_duration()
+      end
 
     # Make sure cross_duration is never 0.
     cross_duration = max(cross_duration, 0.1)

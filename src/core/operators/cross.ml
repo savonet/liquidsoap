@@ -347,50 +347,43 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
             if autocue then (
-              match
-                ( buffered_before - buffered_after,
-                  Hashtbl.mem before_metadata "liq_autocue" )
-              with
-                | extra_cross_duration, _ when extra_cross_duration <= 0 -> ()
-                | extra_cross_duration, true ->
-                    let new_cross_duration =
-                      buffered_before - extra_cross_duration
-                    in
-                    Generator.keep gen_before new_cross_duration;
-                    let new_cross_duration =
-                      Frame.seconds_of_main new_cross_duration
-                    in
-                    let extra_cross_duration =
-                      Frame.seconds_of_main extra_cross_duration
-                    in
-                    self#log#info
-                      "Shortening ending track by %.2f to match the starting \
-                       track's buffer."
-                      extra_cross_duration;
-                    let fade_out =
-                      float_of_string
-                        (Hashtbl.find before_metadata "liq_fade_out")
-                    in
-                    let fade_out = min new_cross_duration fade_out in
-                    let fade_out_delay =
-                      max (new_cross_duration -. fade_out) 0.
-                    in
-                    Hashtbl.replace before_metadata "liq_fade_out"
-                      (string_of_float fade_out);
-                    Hashtbl.replace before_metadata "liq_fade_out_delay"
-                      (string_of_float fade_out_delay);
-                    Hashtbl.replace after_metadata "liq_fade_in_delay"
-                      (string_of_float fade_out_delay)
-                | extra_cross_duration, false ->
-                    let extra_cross_duration =
-                      Frame.seconds_of_main extra_cross_duration
-                    in
-                    self#log#info
-                      "Adding %.2f fade-in delay to match the ending track's \
-                       buffer"
-                      extra_cross_duration;
-                    Hashtbl.replace after_metadata "liq_fade_in_delay"
-                      (string_of_float extra_cross_duration));
+              let extra_cross_duration = buffered_before - buffered_after in
+              if 0 < extra_cross_duration then (
+                let new_cross_duration =
+                  buffered_before - extra_cross_duration
+                in
+                Generator.keep gen_before new_cross_duration;
+                let new_cross_duration =
+                  Frame.seconds_of_main new_cross_duration
+                in
+                let extra_cross_duration =
+                  Frame.seconds_of_main extra_cross_duration
+                in
+                self#log#info
+                  "Shortening ending track by %.2f to match the starting \
+                   track's buffer."
+                  extra_cross_duration;
+                let fade_out =
+                  float_of_string (Hashtbl.find before_metadata "liq_fade_out")
+                in
+                let fade_out = min new_cross_duration fade_out in
+                let fade_out_delay = max (new_cross_duration -. fade_out) 0. in
+                Hashtbl.replace before_metadata "liq_fade_out"
+                  (string_of_float fade_out);
+                Hashtbl.replace before_metadata "liq_fade_out_delay"
+                  (string_of_float fade_out_delay));
+              let fade_out_delay =
+                try
+                  float_of_string
+                    (Hashtbl.find before_metadata "liq_fade_out_delay")
+                with _ -> 0.
+              in
+              if 0. < fade_out_delay then (
+                self#log#info
+                  "Adding %.2f fade-in delay to match the ending track's buffer"
+                  fade_out_delay;
+                Hashtbl.replace after_metadata "liq_fade_in_delay"
+                  (string_of_float fade_out_delay)));
             let before_head =
               if (not autocue) && buffered < buffered_before then (
                 let head =
