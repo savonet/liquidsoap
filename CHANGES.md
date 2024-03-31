@@ -19,6 +19,7 @@ Fixed:
 - Fixed streaming errors when disconnecting `input.harbor`.
 - Fixed issues with rendered id3v2 frame that contain binary data (#3817)
 - Fixed memory leaks with SRT listen socket polling callbacks.
+- Fixed `%ffmpeg` copy muxer logic with some audio/video streams (#3840)
 
 ---
 
