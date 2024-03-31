@@ -88,10 +88,13 @@ let mk_stream_copy ~get_stream ~remove_stream ~keyframe_opt ~field output =
         keyframe_opt = `Wait_for_keyframe && not !intra_only;
       remove_stream !current_stream;
       (* Mark the stream as ready if it is not waiting for keyframes. *)
-      current_stream :=
+      let stream =
         get_stream ~last_start:Int64.min_int
           ~ready:(not !waiting_for_keyframe)
-          stream_idx;
+          stream_idx
+      in
+      stream.ready <- not !waiting_for_keyframe;
+      current_stream := stream;
       stream_started := false);
     let is_keyframe = List.mem `Keyframe Avcodec.Packet.(get_flags packet) in
     if !waiting_for_keyframe then is_keyframe
