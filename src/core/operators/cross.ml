@@ -95,7 +95,7 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
       let start = float_of_string (Hashtbl.find after_metadata "liq_cue_in") in
       let stop = float_of_string (Hashtbl.find after_metadata "liq_cue_out") in
       min expected
-        (Frame.main_of_seconds (stop -. start -. self#cross_duration))
+        (Frame.main_of_seconds (stop -. start -. self#cross_duration -. 0.5))
 
     (* An audio frame for intermediate computations. It is used to buffer the
        end and beginnings of tracks. Its past metadata should mimic that of the
