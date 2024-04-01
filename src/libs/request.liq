@@ -30,7 +30,7 @@ end
 # @method add This method is internal and should not be used. Consider using `push` instead.
 # @method push Push a request on the request queue.
 # @method length Length of the queue.
-def request.queue(~id=null(), ~interactive=true, ~prefetch=1, ~native=false, ~queue=[], ~timeout=20.)
+def request.queue(~id=null(), ~interactive=true, ~prefetch=null(), ~native=false, ~queue=[], ~timeout=20.)
   id = string.id.default(default="request.queue", id)
   ignore(native)
   queue = ref(queue)

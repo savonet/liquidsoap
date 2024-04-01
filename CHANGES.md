@@ -6,6 +6,7 @@ New:
 - Added `enable_autocue_metadata` and `autocue:` protocol to automatically compute cue points and crossfade parameters (#3753, @RM-FM and @Moonbase59)
 - Added `db_levels` method to `blank.*` sources (#3790)
 - Added `excluded_metadata_resolvers` to `request.create` to make it possible to selectively disable specific metadata resolvers when resolving requests.
+- Normalized expected API from `autocue`, allow multiple implementation and adapt `cross`/`crossfade` to work with it out of the box with workaround for short tracks.
 
 Changed:
 

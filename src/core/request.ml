@@ -649,8 +649,10 @@ let get_decoder r =
                     if cue_out <= new_pos then (
                       r.logger#info "Cueing out at position: %.02f"
                         (Frame.seconds_of_main cue_out);
-                      Frame.set_breaks frame
-                        ((start + (cue_out - old_pos)) :: breaks);
+                      (* Don't add a break if there is already one. *)
+                      let break = start + (cue_out - old_pos) in
+                      if not (List.mem break breaks) then
+                        Frame.set_breaks frame (break :: breaks);
                       0)
                     else (
                       if Frame.is_partial frame then

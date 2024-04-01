@@ -84,7 +84,7 @@ end
 # `reload_mode` argument to `"never"` and `loop` to `false`.
 # @flag deprecated
 def playlist.once(~id=null(),~random=false,~reload_mode="",
-                  ~prefetch=1,~filter=fun(_)->true,uri)
+                  ~prefetch=null(),~filter=fun(_)->true,uri)
   deprecated("playlist.once", "playlist")
   mode = if random then "randomize" else "normal" end
   reload_mode = if reload_mode == "" then "never" else reload_mode end
