@@ -403,7 +403,7 @@ and _tick ~clock x =
             match s#source_type with
               | `Output s | `Active s -> s#output
               | _ -> assert false
-          with exn ->
+          with exn when exn <> Has_stopped ->
             let bt = Printexc.get_raw_backtrace () in
             if Queue.is_empty clock.on_error then (
               log#severe "Source %s failed while streaming: %s!\n%s" s#id
@@ -542,10 +542,7 @@ let self_sync c =
     | `Started params -> _self_sync ~clock params
     | _ -> false
 
-let tick clock =
-  try _tick ~clock:(Unifier.deref clock) (active_params clock)
-  with Has_stopped -> ()
-
+let tick clock = _tick ~clock:(Unifier.deref clock) (active_params clock)
 let set_pos c pos = Atomic.set (Unifier.deref c).pos pos
 
 let create_sub_clock ~id clock =

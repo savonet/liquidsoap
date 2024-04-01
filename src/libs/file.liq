@@ -1,3 +1,19 @@
+# @docof file.temp
+# @param ~cleanup Delete the file on shutdown
+def file.temp(~cleanup=false, %argsof(file.temp), prefix, suffix) =
+  f = file.temp(%argsof(file.temp), prefix, suffix)
+  if cleanup then on_cleanup({file.remove(f)}) end
+  f
+end
+
+# @docof file.temp_dir
+# @param ~cleanup Delete the file on shutdown
+def file.temp_dir(~cleanup=false, prefix, suffix="") =
+  dir = file.temp_dir(prefix, suffix)
+  if cleanup then on_cleanup({file.rmdir(dir)}) end
+  dir
+end
+
 # Read the content of a file. Returns a function of type `()->string`. File is
 # done reading when function returns the empty string `""`.
 # @category File

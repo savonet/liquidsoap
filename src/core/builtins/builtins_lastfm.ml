@@ -98,7 +98,7 @@ let () =
              try Hashtbl.find tasks host
              with Not_found ->
                let t = Liqfm.init host in
-               Hashtbl.add tasks host t;
+               Hashtbl.replace tasks host t;
                t
            in
            Liqfm.submit (user, password) task length mode stype [metas];

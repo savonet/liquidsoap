@@ -524,7 +524,7 @@ class output p =
         if not (Hashtbl.mem icy_meta "song") then (
           match icy_song (Lang.metadata m) with
             | None -> ()
-            | Some v -> Hashtbl.add icy_meta "song" (f v));
+            | Some v -> Hashtbl.replace icy_meta "song" (f v));
         (* Do nothing if shout connection isn't available *)
         match Cry.get_status connection with
           | Cry.Connected _ -> (
@@ -595,7 +595,7 @@ class output p =
         host;
       let audio_info = Hashtbl.create 10 in
       let f x y z =
-        match x with Some q -> Hashtbl.add audio_info y (z q) | None -> ()
+        match x with Some q -> Hashtbl.replace audio_info y (z q) | None -> ()
       in
       let info = data.info enc in
       f info.bitrate "bitrate" string_of_int;

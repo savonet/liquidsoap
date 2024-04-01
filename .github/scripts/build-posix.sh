@@ -43,6 +43,8 @@ echo "::group::Setting up specific dependencies"
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
+opam update
+opam install -y tls.0.17.4
 
 cd /tmp/liquidsoap-full
 

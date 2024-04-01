@@ -31,6 +31,16 @@ module Liq_tls = struct
   let () = Mirage_crypto_rng_unix.initialize (module Mirage_crypto_rng.Fortuna)
   let buf_len = 4096
 
+  let string_of_alert_level = function
+    | Tls.Packet.WARNING -> "Warning"
+    | Tls.Packet.FATAL -> "Fatal"
+
+  let string_of_failure error =
+    let level, typ = Tls.Engine.alert_of_failure error in
+    Printf.sprintf "%s error: %s"
+      (string_of_alert_level level)
+      (Tls.Packet.alert_type_to_string typ)
+
   let write_all ~timeout fd data =
     Tutils.write_all ~timeout fd (Cstruct.to_bytes data)
 
@@ -51,30 +61,21 @@ module Liq_tls = struct
     let rec f () =
       if Tls.Engine.handshake_in_progress h.state then (
         match Tls.Engine.handle_tls h.state (read ~timeout h buf_len) with
-          | Ok (`Eof, _, _) ->
+          | Ok (_, Some `Eof, _, _) ->
               Runtime_error.raise ~pos:[]
                 ~message:"Connection closed while negotiating TLS handshake!"
                 "tls"
-          | Ok ((`Ok _ as step), `Response response, `Data data)
-          | Ok ((`Alert _ as step), `Response response, `Data data) ->
+          | Ok (state, None, `Response response, `Data data) ->
+              h.state <- state;
               read_pending h data;
               write_response ~timeout h response;
-              (match step with
-                | `Ok state -> h.state <- state
-                | `Alert alert ->
-                    Runtime_error.raise ~pos:[]
-                      ~message:
-                        (Printf.sprintf "TLS handshake error: %s"
-                           (Tls.Packet.alert_type_to_string alert))
-                      "tls");
               f ()
           | Error (error, `Response response) ->
               write_all ~timeout h.fd response;
               Runtime_error.raise ~pos:[]
                 ~message:
                   (Printf.sprintf "TLS handshake error: %s"
-                     (Tls.Packet.alert_type_to_string
-                        (Tls.Engine.alert_of_failure error)))
+                     (string_of_failure error))
                 "tls")
     in
     f ()
@@ -124,24 +125,15 @@ module Liq_tls = struct
         match
           Tls.Engine.handle_tls h.state (read ~timeout:read_timeout h len)
         with
-          | Ok (`Eof, _, _) -> 0
-          | Ok (`Alert alert, `Response response, _) ->
-              (match response with
-                | None -> ()
-                | Some r -> write_all ~timeout:write_timeout h.fd r);
-              Runtime_error.raise ~pos:[]
-                ~message:
-                  (Printf.sprintf "TLS read error: %s"
-                     (Tls.Packet.alert_type_to_string alert))
-                "tls"
-          | Ok (`Ok state, `Response response, `Data data) -> (
+          | Ok (state, eof, `Response response, `Data data) -> (
               (match response with
                 | None -> ()
                 | Some r -> write_all ~timeout:write_timeout h.fd r);
               h.state <- state;
-              match data with
-                | None -> f ()
-                | Some data ->
+              match (eof, data) with
+                | Some `Eof, None -> 0
+                | _, None -> f ()
+                | _, Some data ->
                     let data_len = Cstruct.length data in
                     let n = min data_len len in
                     Cstruct.blit_to_bytes data 0 b off n;
@@ -153,9 +145,7 @@ module Liq_tls = struct
               write_all ~timeout:write_timeout h.fd response;
               Runtime_error.raise ~pos:[]
                 ~message:
-                  (Printf.sprintf "TLS read error: %s"
-                     (Tls.Packet.alert_type_to_string
-                        (Tls.Engine.alert_of_failure error)))
+                  (Printf.sprintf "TLS read error: %s" (string_of_failure error))
                 "tls"
       in
       f ())

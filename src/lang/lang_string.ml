@@ -429,7 +429,7 @@ let home_unrelate =
 let generate_id =
   let t = Hashtbl.create 10 in
   fun name ->
-    if not (Hashtbl.mem t name) then Hashtbl.add t name (ref 0);
+    if not (Hashtbl.mem t name) then Hashtbl.replace t name (ref 0);
     let n = Hashtbl.find t name in
     incr n;
     if !n = 1 then name else name ^ "." ^ string_of_int !n

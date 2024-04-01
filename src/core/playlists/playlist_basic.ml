@@ -215,7 +215,7 @@ let parse_tracks index lines =
                   else track)
             in
             begin
-              try parse_index x (Hashtbl.add track.indexes)
+              try parse_index x (Hashtbl.replace track.indexes)
               with Not_found -> ()
             end;
             parse tracks track rem)
