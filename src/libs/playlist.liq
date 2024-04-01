@@ -164,7 +164,7 @@ let stdlib_native = native
 # @param playlist Playlist.
 # @method reload Reload the playlist with given list of songs.
 # @method remaining_files Songs remaining to be played.
-def playlist.list(~id=null(), ~check_next=null(), ~prefetch=1, ~loop=true,
+def playlist.list(~id=null(), ~check_next=null(), ~prefetch=null(), ~loop=true,
                   ~mode="normal", ~native=false, ~on_loop={()}, ~on_done={()}, ~max_fail=10,
                   ~cue_in_metadata=null("liq_cue_in"), ~cue_out_metadata=null("liq_cue_out"),
                   ~on_fail=null(), ~timeout=20., playlist)
@@ -353,7 +353,7 @@ end
 def replaces playlist(
   ~id=null(),
   ~check_next=null(),
-  ~prefetch=1,
+  ~prefetch=null(),
   ~loop=true,
   ~mime_type=null(),
   ~mode="randomize",

@@ -30,6 +30,9 @@ type metadata = (string, string) Hashtbl.t
     deleting a local file). *)
 type indicator
 
+(** Root configuration node. *)
+val conf : Dtools.Conf.ut
+
 (** Create an indicator. *)
 val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
 

@@ -22,6 +22,9 @@
 
 open Source
 
+let conf_prefetch =
+  Dtools.Conf.int ~p:(Request.conf#plug "prefetch") ~d:1 "Default prefetch"
+
 type handler = {
   req : Request.t;
   fill : Frame.t -> unit;
@@ -527,9 +530,11 @@ class virtual queued ~name ?(prefetch = 1) ?(timeout = 20.) () =
 let queued_proto =
   [
     ( "prefetch",
-      Lang.int_t,
-      Some (Lang.int 1),
-      Some "How many requests should be queued in advance." );
+      Lang.nullable_t Lang.int_t,
+      Some Lang.null,
+      Some
+        "How many requests should be queued in advance. Defaults to \
+         `settings.request.prefetch` when `null`." );
     ( "timeout",
       Lang.float_t,
       Some (Lang.float 20.),
@@ -537,6 +542,7 @@ let queued_proto =
   ]
 
 let extract_queued_params p =
-  let l = Lang.to_int (List.assoc "prefetch" p) in
+  let l = Lang.to_valued_option Lang.to_int (List.assoc "prefetch" p) in
+  let l = Option.value ~default:conf_prefetch#get l in
   let t = Lang.to_float (List.assoc "timeout" p) in
   (l, t)
