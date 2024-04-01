@@ -45,7 +45,7 @@ let settings.autocue.internal.cue_out_threshold =
     -42.0
   )
 
-let settings.autocue.cross_threshold =
+let settings.autocue.internal.cross_threshold =
   settings.make(
     description=
       "Crossfade start threshold",
@@ -158,7 +158,7 @@ def autocue.internal.implementation(uri) =
   lufs_target = settings.autocue.internal.lufs_target()
   cue_in_threshold = settings.autocue.internal.cue_in_threshold()
   cue_out_threshold = settings.autocue.internal.cue_out_threshold()
-  cross_threshold = settings.autocue.cross_threshold()
+  cross_threshold = settings.autocue.internal.cross_threshold()
   max_overlap = settings.autocue.internal.max_overlap()
   ratio = settings.autocue.internal.ratio()
   timeout = settings.autocue.internal.timeout()
