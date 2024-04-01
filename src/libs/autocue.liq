@@ -329,7 +329,7 @@ def autocue.internal.implementation(uri) =
 
     (
       {
-        amplify=lufs_correction,
+        amplify=lin_of_dB(lufs_correction),
         cue_in=cue_in(),
         cue_out=cue_out(),
         fade_in=fade_in(),
@@ -411,17 +411,7 @@ def file.autocue.metadata(uri) =
       if fade_out < cross_duration then cross_duration - fade_out else 0. end
 
     [
-      ...(
-        null.defined(amplify)
-        ?
-          [
-            (
-              "liq_amplify",
-              "#{null.get(amplify)} dB"
-            )
-          ]
-        : []
-      ),
+      ...(null.defined(amplify) ? [("liq_amplify", string(amplify))] : [] ),
       ("liq_cue_in", string(cue_in)),
       ("liq_cue_out", string(cue_out)),
       ("liq_cross_duration", string(cross_duration)),
