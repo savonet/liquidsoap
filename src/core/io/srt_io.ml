@@ -644,6 +644,7 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
 class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
   ~payload_size ~dump ~on_start ~on_stop ~autostart format =
   let max_length = Some (Frame.main_of_seconds max) in
+  let tmp = Bytes.create payload_size in
   object (self)
     inherit input_networking_agent
     inherit base
@@ -696,7 +697,6 @@ class virtual input_base ~max ~self_sync ~clock_safe ~on_connect ~on_disconnect
           | None -> raise Harbor.Unknown_codec
       in
       let buf = Buffer.create payload_size in
-      let tmp = Bytes.create payload_size in
       let eof_seen = ref false in
       Srt.setsockflag socket Srt.sndsyn true;
       Srt.setsockflag socket Srt.rcvsyn true;
