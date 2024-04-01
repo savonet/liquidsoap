@@ -473,7 +473,10 @@ def enable_autocue_metadata() =
             label="autocue.metadata",
             "Keeping user-provided `\"liq_amplify\"` value."
           )
-          [...autocue_metadata, ("liq_amplify", metadata["amplify"])]
+          [
+            ...list.assoc.remove("liq_amplify", autocue_metadata),
+            ("liq_amplify", metadata["liq_amplify"])
+          ]
         elsif
           settings.autocue.amplify_behavior() == "override"
         then
