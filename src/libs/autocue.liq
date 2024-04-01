@@ -434,10 +434,12 @@ end
 # decoded by Liquidsoap and add cue-in/out and crossfade metadata when these
 # values can be computed. This function sets `settings.request.prefetch` to `2`
 # to account for the latency introduced by the `autocue` computation when resolving
-# reausts. For a finer-grained processing, use the `autocue:` protocol.
+# reausts and sets `settings.crossfade.assume_autocue` to `true` as well. For a
+# finer-grained processing, use the `autocue:` protocol.
 # @category Liquidsoap
 def enable_autocue_metadata() =
   if settings.request.prefetch() == 1 then settings.request.prefetch := 2 end
+  settings.crossfade.assume_autocue := true
 
   def autocue_metadata(~metadata, fname) =
     metadata_overrides = settings.autocue.metadata_override()

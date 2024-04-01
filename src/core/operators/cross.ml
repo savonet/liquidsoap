@@ -26,11 +26,21 @@ open Source
 let finalise_child_clock child_clock source =
   Clock.forget source#clock child_clock
 
+let conf =
+  Dtools.Conf.void ~p:(Configure.conf#plug "crossfade") "Crossfade settings"
+
+let conf_assume_autocue =
+  Dtools.Conf.bool
+    ~p:(conf#plug "assume_autocue")
+    ~d:false
+    "Assume autocue when all 4 cue in/out and fade in/out metadata override \
+     are present."
+
 (** [rms_width] and [minimum_length] are all in samples.
   * [cross_length] is in ticks (like #remaining estimations).
   * We are assuming a fixed audio kind -- at least for now. *)
-class cross val_source ~duration_getter ~override_duration ~persist_override
-  ~rms_width ~minimum_length ~conservative transition =
+class cross val_source ~duration_getter ~assume_autocue ~override_duration
+  ~persist_override ~rms_width ~minimum_length ~conservative transition =
   let s = Lang.to_source val_source in
   let original_duration_getter = duration_getter in
   object (self)
@@ -87,8 +97,10 @@ class cross val_source ~duration_getter ~override_duration ~persist_override
     method private autocue_enabled metadata =
       match metadata with
         | Some h ->
-            List.for_all (Hashtbl.mem h)
-              ["liq_cue_in"; "liq_cue_out"; "liq_fade_in"; "liq_fade_out"]
+            Hashtbl.mem h "liq_autocue"
+            || assume_autocue
+               && List.for_all (Hashtbl.mem h)
+                    ["liq_cue_in"; "liq_cue_out"; "liq_fade_in"; "liq_fade_out"]
         | None -> false
 
     (* This is in main ticks. *)
@@ -545,6 +557,13 @@ let _ =
         Some
           "Duration (in seconds) of buffered data from each track that is used \
            to compute the transition between tracks." );
+      ( "assume_autocue",
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
+        Some
+          "Assume that a track has autocue enabled when all four cue in/out \
+           and fade in/out override metadata are present. Defaults to \
+           `settings.crossfade.assume_autocue` when `null`." );
       ( "override_duration",
         Lang.string_t,
         Some (Lang.string "liq_cross_duration"),
@@ -602,6 +621,12 @@ let _ =
        of track."
     (fun p ->
       let duration_getter = Lang.to_float_getter (List.assoc "duration" p) in
+      let assume_autocue =
+        Lang.to_valued_option Lang.to_bool (List.assoc "assume_autocue" p)
+      in
+      let assume_autocue =
+        Option.value ~default:conf_assume_autocue#get assume_autocue
+      in
       let override_duration =
         Lang.to_string (List.assoc "override_duration" p)
       in
@@ -615,4 +640,4 @@ let _ =
       let source = Lang.assoc "" 2 p in
       new cross
         source transition ~conservative ~duration_getter ~rms_width
-        ~minimum_length ~override_duration ~persist_override)
+        ~minimum_length ~assume_autocue ~override_duration ~persist_override)

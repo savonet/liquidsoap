@@ -832,6 +832,10 @@ end
 #                      With a negative default, transitions always occur.
 # @param ~default      Smart crossfade: transition used when no rule applies \
 #                      (default: sequence).
+# @param ~assume_autocue \
+#                      Assume that a track has autocue enabled when all four cue in/out \
+#                      and fade in/out override metadata are present. Defaults to \
+#                      `settings.crossfade.assume_autocue` when `null`.
 # @param ~smart        Enable smart crossfading
 # @param ~high         Smart crossfade: value, in dB, for loud sound level.
 # @param ~medium       Smart crossfade: value, in dB, for medium sound level.
@@ -849,6 +853,7 @@ def crossfade(
   ~fade_out=3.,
   ~smart=false,
   ~default=(fun (a, b) -> (sequence([a, b]) : source)),
+  ~assume_autocue=null(),
   ~high=-15.,
   ~medium=-32.,
   ~margin=4.,
@@ -938,6 +943,7 @@ def crossfade(
       persist_override=persist_override,
       override_duration=override_duration,
       conservative=conservative,
+      assume_autocue=assume_autocue,
       minimum=minimum,
       transition,
       s
