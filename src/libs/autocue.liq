@@ -24,19 +24,19 @@ let settings.autocue.preferred =
     "internal"
   )
 
-let settings.autocue.internal.metadata_override =
+let settings.autocue.metadata_override =
   settings.make(
     description=
       "Disable processing when one of these metadata is found",
     ["liq_cue_in", "liq_cue_out", "liq_fade_in", "liq_fade_out"]
   )
 
-let settings.autocue.internal.amplify_behavior =
+let settings.autocue.amplify_behavior =
   settings.make(
     description=
       "How to proceed with amplify data when `\"liq_amplify\"` is set. One of: \
        `\"keep\"` (keep user-provided value), `\"override\"` (override with \
-       computed value) or `\"disable\`\" (disable `autocue` altogether).",
+       computed value) or `\"disable\"` (disable `autocue` altogether).",
     "keep"
   )
 
@@ -327,13 +327,25 @@ def autocue.internal.implementation(uri) =
       fade_out := max_overlap
     end
 
-    {
-      amplify=lufs_correction,
-      cue_in=cue_in(),
-      cue_out=cue_out(),
-      fade_in=fade_in(),
-      fade_out=fade_out()
-    }
+    (
+      {
+        amplify=lufs_correction,
+        cue_in=cue_in(),
+        cue_out=cue_out(),
+        fade_in=fade_in(),
+        fade_out=fade_out(),
+        extra_metadata=[("liq_autocue", "internal")]
+      }
+    :
+      {
+        amplify?: float,
+        cue_in: float,
+        cue_out: float,
+        fade_in: float,
+        fade_out: float,
+        extra_metadata?: [(string*string)]
+      }
+    )
   end
 end
 
@@ -378,7 +390,10 @@ def file.autocue.metadata(uri) =
   if
     null.defined(autocue)
   then
-    let {amplify, cue_in, cue_out, fade_in, fade_out} = null.get(autocue)
+    autocue = null.get(autocue)
+    let {cue_in, cue_out, fade_in, fade_out} = autocue
+    extra_metadata = autocue.extra_metadata ?? []
+    amplify = autocue?.amplify
 
     cross_duration =
       if
@@ -396,17 +411,24 @@ def file.autocue.metadata(uri) =
       if fade_out < cross_duration then cross_duration - fade_out else 0. end
 
     [
-      ("liq_autocue", "true"),
-      (
-        "liq_amplify",
-        "#{amplify} dB"
+      ...(
+        null.defined(amplify)
+        ?
+          [
+            (
+              "liq_amplify",
+              "#{null.get(amplify)} dB"
+            )
+          ]
+        : []
       ),
       ("liq_cue_in", string(cue_in)),
       ("liq_cue_out", string(cue_out)),
       ("liq_cross_duration", string(cross_duration)),
       ("liq_fade_in", string(fade_in)),
       ("liq_fade_out", string(fade_out)),
-      ("liq_fade_out_delay", string(fade_out_delay))
+      ("liq_fade_out_delay", string(fade_out_delay)),
+      ...extra_metadata
     ]
   else
     log(
@@ -428,10 +450,10 @@ def enable_autocue_metadata() =
   if settings.request.prefetch() == 1 then settings.request.prefetch := 2 end
 
   def autocue_metadata(~metadata, fname) =
-    metadata_overrides = settings.autocue.internal.metadata_override()
+    metadata_overrides = settings.autocue.metadata_override()
     metadata_overrides =
       if
-        settings.autocue.internal.amplify_behavior() == "cancel"
+        settings.autocue.amplify_behavior() == "cancel"
       then
         [...metadata_overrides, "liq_amplify"]
       else
@@ -454,7 +476,7 @@ def enable_autocue_metadata() =
         list.assoc.mem("liq_amplify", metadata)
       then
         if
-          settings.autocue.internal.amplify_behavior() == "keep"
+          settings.autocue.amplify_behavior() == "keep"
         then
           log(
             level=3,
@@ -463,7 +485,7 @@ def enable_autocue_metadata() =
           )
           [...autocue_metadata, ("liq_amplify", metadata["amplify"])]
         elsif
-          settings.autocue.internal.amplify_behavior() == "override"
+          settings.autocue.amplify_behavior() == "override"
         then
           log(
             level=3,
@@ -473,13 +495,13 @@ def enable_autocue_metadata() =
           autocue_metadata
         else
           if
-            settings.autocue.internal.amplify_behavior() != "cancel"
+            settings.autocue.amplify_behavior() != "cancel"
           then
             log(
               level=2,
               label="autocue.metadata",
-              "Invalid value for `settings.autocue.internal.amplify_behavior`: #{
-                settings.autocue.internal.amplify_behavior()
+              "Invalid value for `settings.autocue.amplify_behavior`: #{
+                settings.autocue.amplify_behavior()
               }"
             )
           end
