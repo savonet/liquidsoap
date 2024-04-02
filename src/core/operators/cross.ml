@@ -96,11 +96,24 @@ class cross val_source ~duration_getter ~assume_autocue ~override_duration
 
     method private autocue_enabled metadata =
       match metadata with
-        | Some h ->
-            Hashtbl.mem h "liq_autocue"
-            || assume_autocue
-               && List.for_all (Hashtbl.mem h)
-                    ["liq_cue_in"; "liq_cue_out"; "liq_fade_in"; "liq_fade_out"]
+        | Some h -> (
+            let has_metadata =
+              List.for_all (Hashtbl.mem h)
+                ["liq_cue_in"; "liq_cue_out"; "liq_fade_in"; "liq_fade_out"]
+            in
+            let has_marker = Hashtbl.mem h "liq_autocue" in
+            match (has_marker, has_metadata, assume_autocue) with
+              | true, true, _ -> true
+              | true, false, _ ->
+                  self#log#critical
+                    "`\"liq_autocue\"` metadata is present but some of the cue \
+                     in/out and fade in/out metadata are missing!";
+                  false
+              | false, true, true ->
+                  self#log#info "Assuming autocue";
+                  Hashtbl.replace h "liq_autocue" "assumed";
+                  true
+              | _ -> false)
         | None -> false
 
     (* This is in main ticks. *)
@@ -364,8 +377,6 @@ class cross val_source ~duration_getter ~assume_autocue ~override_duration
             let before_metadata = metadata before_metadata in
             let after_metadata = metadata after_metadata in
             if after_autocue then (
-              if not (Hashtbl.mem after_metadata "liq_autocue") then
-                Hashtbl.add after_metadata "liq_autocue" "inferred";
               let extra_cross_duration = buffered_before - buffered_after in
               if before_autocue && 0 < extra_cross_duration then (
                 let new_cross_duration =
