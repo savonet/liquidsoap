@@ -225,7 +225,7 @@ def autocue.internal.implementation(uri) =
     )
     log(
       level=4,
-      label="autocue",
+      label="autocue.internal",
       "adj_cross_threshold: #{lufs_cross_threshold}"
     )
 
