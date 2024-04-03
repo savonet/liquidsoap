@@ -62,3 +62,5 @@ if [ "${PLATFORM}" = "amd64" ]; then
 fi
 
 echo "::endgroup::"
+
+mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
