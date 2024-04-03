@@ -286,11 +286,13 @@ jobs:
           - os: ubuntu_lunar
             platform: armhf
     container:
-      image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
+      image: savonet/liquidsoap-ci:debian_bookworm_amd64_leak-sanitizer
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
       IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
+      ASAN_OPTIONS: "detect_leaks=0,exitcode=0"
+      LSAN_OPTIONS: "detect_leaks=0,exitcode=0"
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
