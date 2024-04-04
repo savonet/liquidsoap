@@ -35,8 +35,8 @@ let settings.autocue.amplify_behavior =
   settings.make(
     description=
       "How to proceed with amplify data when `\"liq_amplify\"` is set. One of: \
-       `\"keep\"` (prefer user-provided value), `\"override\"` (always override with \
-       computed value), `\"ignore\"` (ignore/suppress loudness adjustment).",
+       `\"keep\"` (keep user-provided value), `\"override\"` (override with \
+       computed value) or `\"disable\"` (disable `autocue` altogether).",
     "keep"
   )
 
@@ -179,6 +179,12 @@ def autocue.internal.implementation(uri) =
   ratio = settings.autocue.internal.ratio()
   timeout = settings.autocue.internal.timeout()
 
+  log(
+    level=4,
+    label="autocue.internal",
+    "Starting to process #{path.basename(uri)}"
+  )
+
   frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, uri)
 
   if
@@ -207,6 +213,12 @@ def autocue.internal.implementation(uri) =
     lufs_cue_in_threshold = lufs + cue_in_threshold
     lufs_cue_out_threshold = lufs + cue_out_threshold
     lufs_cross_threshold = lufs + cross_threshold
+
+    log(
+      level=4,
+      label="autocue.internal",
+      "Processing results for #{path.basename(uri)}"
+    )
 
     log(
       level=4,
@@ -502,7 +514,7 @@ def enable_autocue_metadata() =
         level=4,
         label="autocue.metadata",
         "#{autocue_metadata_response()}"
-      )   
+      )
       autocue_metadata_response()
     end
   end
