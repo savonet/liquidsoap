@@ -28,7 +28,14 @@ let settings.autocue.metadata_override =
   settings.make(
     description=
       "Disable processing when one of these metadata is found",
-    ["liq_cue_in", "liq_cue_out", "liq_fade_in", "liq_fade_out"]
+    [
+      "liq_cue_in",
+      "liq_cue_out",
+      "liq_fade_in",
+      "liq_fade_in_delay",
+      "liq_fade_out",
+      "liq_fade_out_delay"
+    ]
   )
 
 let settings.autocue.amplify_behavior =
@@ -429,6 +436,7 @@ def file.autocue.metadata(uri) =
       ("liq_cue_out", string(cue_out)),
       ("liq_cross_duration", string(cross_duration)),
       ("liq_fade_in", string(fade_in)),
+      ("liq_fade_in_delay", "0."),
       ("liq_fade_out", string(fade_out)),
       ("liq_fade_out_delay", string(fade_out_delay)),
       ...extra_metadata
@@ -455,7 +463,9 @@ def enable_autocue_metadata() =
   settings.crossfade.assume_autocue := true
 
   def autocue_metadata(~metadata, fname) =
-  print("fname: #{fname}, metadata: #{metadata}")
+    print(
+      "fname: #{fname}, metadata: #{metadata}"
+    )
     metadata_overrides = settings.autocue.metadata_override()
 
     if
