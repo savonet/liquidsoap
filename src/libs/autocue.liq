@@ -28,15 +28,23 @@ let settings.autocue.metadata_override =
   settings.make(
     description=
       "Disable processing when one of these metadata is found",
-    ["liq_cue_in", "liq_cue_out", "liq_fade_in", "liq_fade_out"]
+    [
+      "liq_cue_in",
+      "liq_cue_out",
+      "liq_fade_in",
+      "liq_fade_in_delay",
+      "liq_fade_out",
+      "liq_fade_out_delay"
+    ]
   )
 
 let settings.autocue.amplify_behavior =
   settings.make(
     description=
       "How to proceed with amplify data when `\"liq_amplify\"` is set. One of: \
-       `\"keep\"` (keep user-provided value), `\"override\"` (override with \
-       computed value) or `\"disable\"` (disable `autocue` altogether).",
+       `\"keep\"` (prefer user-provided value), `\"override\"` (always override \
+       with computed value), `\"ignore\"` (ignore/suppress loudness \
+       adjustment).",
     "keep"
   )
 
@@ -179,6 +187,12 @@ def autocue.internal.implementation(uri) =
   ratio = settings.autocue.internal.ratio()
   timeout = settings.autocue.internal.timeout()
 
+  log(
+    level=4,
+    label="autocue.internal",
+    "Starting to process #{path.basename(uri)}"
+  )
+
   frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, uri)
 
   if
@@ -207,6 +221,12 @@ def autocue.internal.implementation(uri) =
     lufs_cue_in_threshold = lufs + cue_in_threshold
     lufs_cue_out_threshold = lufs + cue_out_threshold
     lufs_cross_threshold = lufs + cross_threshold
+
+    log(
+      level=4,
+      label="autocue.internal",
+      "Processing results for #{path.basename(uri)}"
+    )
 
     log(
       level=4,
@@ -416,6 +436,7 @@ def file.autocue.metadata(uri) =
       ("liq_cue_out", string(cue_out)),
       ("liq_cross_duration", string(cross_duration)),
       ("liq_fade_in", string(fade_in)),
+      ("liq_fade_in_delay", "0."),
       ("liq_fade_out", string(fade_out)),
       ("liq_fade_out_delay", string(fade_out_delay)),
       ...extra_metadata
@@ -442,15 +463,10 @@ def enable_autocue_metadata() =
   settings.crossfade.assume_autocue := true
 
   def autocue_metadata(~metadata, fname) =
+    print(
+      "fname: #{fname}, metadata: #{metadata}"
+    )
     metadata_overrides = settings.autocue.metadata_override()
-    metadata_overrides =
-      if
-        settings.autocue.amplify_behavior() == "cancel"
-      then
-        [...metadata_overrides, "liq_amplify"]
-      else
-        metadata_overrides
-      end
 
     if
       list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
@@ -464,47 +480,52 @@ def enable_autocue_metadata() =
     else
       autocue_metadata = file.autocue.metadata(fname)
 
-      if
-        list.assoc.mem("liq_amplify", metadata)
-      then
+      autocue_metadata =
         if
-          settings.autocue.amplify_behavior() == "keep"
+          settings.autocue.amplify_behavior() == "ignore"
         then
-          log(
-            level=3,
-            label="autocue.metadata",
-            "Keeping user-provided `\"liq_amplify\"` value."
-          )
-          [
-            ...list.assoc.remove("liq_amplify", autocue_metadata),
-            ("liq_amplify", metadata["liq_amplify"])
-          ]
-        elsif
-          settings.autocue.amplify_behavior() == "override"
-        then
-          log(
-            level=3,
-            label="autocue.metadata",
-            "Overriding user-provided `\"liq_amplify\"` value."
-          )
-          autocue_metadata
+          [...list.assoc.remove("liq_amplify", autocue_metadata)]
         else
           if
-            settings.autocue.amplify_behavior() != "cancel"
+            list.assoc.mem("liq_amplify", metadata)
           then
-            log(
-              level=2,
-              label="autocue.metadata",
-              "Invalid value for `settings.autocue.amplify_behavior`: #{
-                settings.autocue.amplify_behavior()
-              }"
-            )
+            if
+              settings.autocue.amplify_behavior() == "keep"
+            then
+              log(
+                level=3,
+                label="autocue.metadata",
+                "Keeping user-provided `\"liq_amplify\"` value."
+              )
+              [
+                ...list.assoc.remove("liq_amplify", autocue_metadata),
+                ("liq_amplify", metadata["liq_amplify"])
+              ]
+            elsif
+              settings.autocue.amplify_behavior() == "override"
+            then
+              log(
+                level=3,
+                label="autocue.metadata",
+                "Overriding user-provided `\"liq_amplify\"` value."
+              )
+              autocue_metadata
+            else
+              log(
+                level=2,
+                label="autocue.metadata",
+                "Invalid value for `settings.autocue.amplify_behavior`: #{
+                  settings.autocue.amplify_behavior()
+                }"
+              )
+              autocue_metadata
+            end
+          else
+            autocue_metadata
           end
-          autocue_metadata
         end
-      else
-        autocue_metadata
-      end
+      log(level=4, label="autocue.metadata", "#{autocue_metadata}")
+      autocue_metadata
     end
   end
   decoder.metadata.add("autocue", autocue_metadata)
