@@ -35,8 +35,8 @@ let settings.autocue.amplify_behavior =
   settings.make(
     description=
       "How to proceed with amplify data when `\"liq_amplify\"` is set. One of: \
-       `\"keep\"` (keep user-provided value), `\"override\"` (override with \
-       computed value) or `\"disable\"` (disable `autocue` altogether).",
+       `\"keep\"` (prefer user-provided value), `\"override\"` (always override with \
+       computed value), `\"ignore\"` (ignore/suppress loudness adjustment).",
     "keep"
   )
 
