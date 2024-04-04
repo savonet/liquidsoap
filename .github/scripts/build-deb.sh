@@ -54,3 +54,7 @@ fakeroot debian/rules binary
 echo "::endgroup::"
 
 mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+
+{
+  echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
+} >> "${GITHUB_OUTPUT}"
