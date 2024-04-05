@@ -334,3 +334,22 @@ def stereotool(
   s
 end
 %endif
+
+# Defer the source's audio track by a given amount of time. Source will be
+# available when the given `delay` has been fully buffered. Use this operator
+# instead of `buffer` when buffering large amount of data as initial delay.
+# @argsof track.audio.defer[!id]
+# @param ~id Force the source's ID
+def defer(
+  ~id=null("defer"),
+  %argsof(track.audio.defer[!id]),
+  (s:source(audio=pcm_s16))
+) =
+  let {audio = a} = source.tracks(s)
+  a = track.audio.defer(%argsof(track.audio.defer[!id]), a)
+
+  source(
+    id=id,
+    {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
+  )
+end
