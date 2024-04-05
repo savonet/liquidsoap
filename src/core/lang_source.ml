@@ -324,9 +324,9 @@ let source_methods =
       "Indicate if a source may fail, i.e. may not be ready to stream.",
       fun s -> bool s#fallible );
     ( "clock",
-      ([], ClockValue.t),
+      ([], ClockValue.base_t),
       "The source's clock",
-      fun s -> ClockValue.to_value s#clock );
+      fun s -> ClockValue.to_base_value s#clock );
     ( "time",
       ([], fun_t [] float_t),
       "Get a source's time, based on its assigned clock.",

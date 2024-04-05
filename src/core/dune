@@ -287,7 +287,8 @@
   builtins_string_extra
   builtins_sys
   builtins_thread
-  builtins_time))
+  builtins_time
+  builtins_track))
 
 (library
  (name liquidsoap_alsa)
