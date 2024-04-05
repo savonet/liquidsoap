@@ -354,7 +354,7 @@ let read_metadata t =
         (fun (_, resolver) ->
           try
             let ans =
-              resolver ~metadata:indicator.metadata ~extension ~mime name
+              resolver ~metadata:(get_all_metadata t) ~extension ~mime name
             in
             List.iter
               (fun (k, v) ->
