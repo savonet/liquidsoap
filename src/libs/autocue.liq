@@ -83,6 +83,13 @@ let settings.autocue.internal.max_overlap =
     6.0
   )
 
+let settings.autocue.internal.sustained_endings =
+  settings.make(
+    description=
+      "Try to optimize crossfade point on sustained endings",
+    true
+  )
+
 let settings.autocue.internal.ratio =
   settings.make(
     description=
@@ -184,6 +191,7 @@ def autocue.internal.implementation(uri) =
   cue_out_threshold = settings.autocue.internal.cue_out_threshold()
   cross_threshold = settings.autocue.internal.cross_threshold()
   max_overlap = settings.autocue.internal.max_overlap()
+  sustained_endings = settings.autocue.internal.sustained_endings()
   ratio = settings.autocue.internal.ratio()
   timeout = settings.autocue.internal.timeout()
 
@@ -439,109 +447,119 @@ def autocue.internal.implementation(uri) =
       )
     end
 
-    # Check for sustained ending
-    reset_iter_values := true
-    def sustained_ending_check_iter(frame) =
-      find_cues(frame,sustained_ending_check=true)
-    end
-    try
-      list.iter(sustained_ending_check_iter, frames_rev)
-    catch _ do
+    if
+      sustained_endings
+    then
       log(
         level=4,
-        label="autocue.internal",
-        "sustained_ending_check_iter completed."
+        label="autocue.internal.sustained_ending",
+        "Checking for sustained ending."
       )
-    end
 
-    log(
-      level=4,
-      label="autocue.internal.sustained_end",
-      "Analysis frame length: #{cross_frame_length()}"
-    )
-    log(
-      level=4,
-      label="autocue.internal.sustained_end",
-      "Avg. ending dB level: 1st half => #{ending_fst_db()} / 2nd half => #{ending_snd_db()}"
-    )
-
-    # Check whether data indicate a sustained ending
-    if
-      ending_fst_db() < 0.
-    then
-      ending_db_slope = ref(0.)
-
-      if
-        ending_snd_db() < 0.
-      then
-        ending_db_slope := ending_fst_db() / ending_snd_db()
+      # Check for sustained ending
+      reset_iter_values := true
+      def sustained_ending_check_iter(frame) =
+        find_cues(frame,sustained_ending_check=true)
+      end
+      try
+        list.iter(sustained_ending_check_iter, frames_rev)
+      catch _ do
+        log(
+          level=4,
+          label="autocue.internal.sustained_ending",
+          "sustained_ending_check_iter completed."
+        )
       end
 
       log(
         level=4,
-        label="autocue.internal.sustained_end",
-        "Slope: #{ending_db_slope()}"
+        label="autocue.internal.sustained_ending",
+        "Analysis frame length: #{cross_frame_length()}"
+      )
+      log(
+        level=4,
+        label="autocue.internal.sustained_ending",
+        "Avg. ending dB level: 1st half => #{ending_fst_db()} / 2nd half => #{ending_snd_db()}"
       )
 
+      # Check whether data indicate a sustained ending
       if
-        ending_db_slope() > 0.7 or
-        ending_fst_db() > lufs_cross_threshold * 1.2
+        ending_fst_db() < 0.
       then
+        ending_db_slope = ref(0.)
+
+        if
+          ending_snd_db() < 0.
+        then
+          ending_db_slope := ending_fst_db() / ending_snd_db()
+        end
+
         log(
-          level=3,
-          label="autocue.internal.sustained_end",
-          "Sustained ending detected."
+          level=4,
+          label="autocue.internal.sustained_ending",
+          "Slope: #{ending_db_slope()}"
         )
 
         if
-          ending_db_slope() > 0.7
+          ending_db_slope() > 0.8 or
+          ending_fst_db() > (lufs_cross_threshold * 1.1)
         then
-          lufs_cross_threshold_sustained := ending_snd_db() - 1.
-        else
-          lufs_cross_threshold_sustained := ending_fst_db() - 1.
-        end
-        lufs_cue_out_threshold_sustained = ref(
-          lufs_cue_out_threshold + (lufs_cross_threshold_sustained() - lufs_cross_threshold)
-        )
+          log(
+            level=3,
+            label="autocue.internal.sustained_ending",
+            "Sustained ending detected."
+          )
 
-        log(
-          level=4,
-          label="autocue.internal.sustained_end",
-          "Changed crossfade threshold: #{lufs_cross_threshold} => #{lufs_cross_threshold_sustained()}"
-        )
-        log(
-          level=4,
-          label="autocue.internal.sustained_end",
-          "Changed cue out threshold: #{lufs_cue_out_threshold} => #{lufs_cue_out_threshold_sustained()}"
-        )
+          if
+            ending_db_slope() > 0.8
+          then
+            lufs_cross_threshold_sustained := ending_snd_db() - 0.5
+          else
+            lufs_cross_threshold_sustained := ending_fst_db() - 0.5
+          end
+          lufs_cue_out_threshold_sustained = ref(
+            lufs_cue_out_threshold + (lufs_cross_threshold_sustained() - lufs_cross_threshold)
+          )
 
-        cross_cue_init = cross_cue()
-        cue_out_init = cue_out()
-
-        reset_iter_values := true
-        def sustained_ending_recalc_iter(frame) =
-          find_cues(frame,sustained_ending_recalc=true)
-        end
-        try
-          list.iter(sustained_ending_recalc_iter, frames_rev)
-        catch _ do
           log(
             level=4,
-            label="autocue.internal",
-            "sustained_ending_recalc_iter completed."
+            label="autocue.internal.sustained_ending",
+            "Changed crossfade threshold: #{lufs_cross_threshold} => #{lufs_cross_threshold_sustained()}"
+          )
+          log(
+            level=4,
+            label="autocue.internal.sustained_ending",
+            "Changed cue out threshold: #{lufs_cue_out_threshold} => #{lufs_cue_out_threshold_sustained()}"
+          )
+
+          cross_cue_init = cross_cue()
+          cue_out_init = cue_out()
+
+          reset_iter_values := true
+          def sustained_ending_recalc_iter(frame) =
+            find_cues(frame,sustained_ending_recalc=true)
+          end
+          try
+            list.iter(sustained_ending_recalc_iter, frames_rev)
+          catch _ do
+            log(
+              level=4,
+              label="autocue.internal",
+              "sustained_ending_recalc_iter completed."
+            )
+          end
+
+          log(
+            level=4,
+            label="autocue.internal.sustained_ending",
+            "Changed crossfade point: #{cross_cue_init} => #{cross_cue()}"
+          )
+          log(
+            level=4,
+            label="autocue.internal.sustained_ending",
+            "Changed cue out point:  #{cue_out_init} => #{cue_out()}"
           )
         end
-
-        log(
-          level=4,
-          label="autocue.internal.sustained_end",
-          "Changed crossfade point: #{cross_cue_init} => #{cross_cue()}"
-        )
-        log(
-          level=4,
-          label="autocue.internal.sustained_end",
-          "Changed cue out point:  #{cue_out_init} => #{cue_out()}"
-        )
       end
     end
 
