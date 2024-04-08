@@ -414,14 +414,19 @@ def file.autocue.metadata(uri) =
     let {cue_in, cue_out, fade_in, fade_out} = autocue
     extra_metadata = autocue.extra_metadata ?? []
     amplify = autocue?.amplify
+    target_cross_duration = settings.autocue.target_cross_duration()
 
     cross_duration =
       if
-        cue_out - cue_in < settings.autocue.target_cross_duration() * 2.
+        cue_out - cue_in < target_cross_duration * 2.
+      or
+        target_cross_duration < fade_in
+      or
+        target_cross_duration < fade_out
       then
         max(fade_in, fade_out)
       else
-        settings.autocue.target_cross_duration()
+        target_cross_duration
       end
 
     # Make sure cross_duration is never 0.
