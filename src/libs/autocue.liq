@@ -83,11 +83,27 @@ let settings.autocue.internal.max_overlap =
     6.0
   )
 
-let settings.autocue.internal.sustained_endings =
+let settings.autocue.internal.sustained_endings_enabled =
   settings.make(
     description=
       "Try to optimize crossfade point on sustained endings",
     true
+  )
+
+let settings.autocue.internal.sustained_endings_dropoff =
+  settings.make(
+    description=
+      "Max. loudness drop off immediately after crossfade point to consider it \
+      as relevant ending [percentage]",
+    10.0
+  )
+
+let settings.autocue.internal.sustained_endings_slope =
+  settings.make(
+    description=
+      "Max. loudness difference between crossfade point and cue out to consider \
+      it as relevant ending [percentage]",
+    20.0
   )
 
 let settings.autocue.internal.ratio =
@@ -191,7 +207,9 @@ def autocue.internal.implementation(uri) =
   cue_out_threshold = settings.autocue.internal.cue_out_threshold()
   cross_threshold = settings.autocue.internal.cross_threshold()
   max_overlap = settings.autocue.internal.max_overlap()
-  sustained_endings = settings.autocue.internal.sustained_endings()
+  sustained_endings_enabled = settings.autocue.internal.sustained_endings_enabled()
+  sustained_endings_dropoff = settings.autocue.internal.sustained_endings_dropoff()
+  sustained_endings_slope = settings.autocue.internal.sustained_endings_slope()
   ratio = settings.autocue.internal.ratio()
   timeout = settings.autocue.internal.timeout()
 
@@ -448,7 +466,7 @@ def autocue.internal.implementation(uri) =
     end
 
     if
-      sustained_endings
+      sustained_endings_enabled
     then
       log(
         level=4,
@@ -486,32 +504,36 @@ def autocue.internal.implementation(uri) =
       if
         ending_fst_db() < 0.
       then
-        ending_db_slope = ref(0.)
+        slope = ref(0.)
 
         if
           ending_snd_db() < 0.
         then
-          ending_db_slope := ending_fst_db() / ending_snd_db()
+          slope := ending_fst_db() / ending_snd_db()
         end
 
         log(
           level=4,
           label="autocue.internal.sustained_ending",
-          "Slope: #{ending_db_slope()}"
+          "Slope: #{slope()} (#{
+            (1. - slope()) * 100.
+          }%)"
         )
 
+        detect_slope = slope() > 1. - sustained_endings_slope / 100.
+        detect_dropoff = ending_fst_db() > lufs_cross_threshold * sustained_endings_dropoff / 100. + 1.
         if
-          ending_db_slope() > 0.8 or
-          ending_fst_db() > (lufs_cross_threshold * 1.1)
+          detect_slope or
+          detect_dropoff
         then
           log(
             level=3,
             label="autocue.internal.sustained_ending",
-            "Sustained ending detected."
+            "Sustained ending detected (drop off: #{detect_dropoff} / slope: #{detect_slope})"
           )
 
           if
-            ending_db_slope() > 0.8
+            detect_slope
           then
             lufs_cross_threshold_sustained := ending_snd_db() - 0.5
           else
