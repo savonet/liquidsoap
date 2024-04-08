@@ -268,7 +268,7 @@ def autocue.internal.implementation(uri) =
     ending_fst_db = ref(0.)
     ending_snd_db = ref(0.)
     reset_iter_values = ref(true)
-  
+ 
     frames_rev = list.rev(frames)
     total_frames_length = float_of_int(list.length(frames))
     frame_idx = ref(total_frames_length - 1.)
@@ -287,9 +287,9 @@ def autocue.internal.implementation(uri) =
       then
         last_ts := 0.
         current_ts := 0.
-        cue_found := false            
+        cue_found := false           
       end
-          
+         
       # Get current frame loudness level and timestamp
       db_level = list.assoc(default="nan", string("lavfi.r128.M"), frame)
       current_ts :=
@@ -335,7 +335,7 @@ def autocue.internal.implementation(uri) =
               # Absolute crossfade cue
               cross_cue := last_ts()
               cross_start_idx := frame_idx()
-              # Break            
+              # Break           
               error.raise(err,"break list.iter")
             end
             frame_idx := frame_idx() - 1.
@@ -346,15 +346,15 @@ def autocue.internal.implementation(uri) =
           # Check regular crossfade data for sustained ending
           if
             reset_iter_values()
-          then      
+          then     
             frame_idx := total_frames_length - 1.
             cross_frame_length := cross_stop_idx() - cross_start_idx()
             cross_start_idx := cross_start_idx() + 5.
-            cross_stop_idx := cross_stop_idx() - 5.  
+            cross_stop_idx := cross_stop_idx() - 5. 
             cross_mid_idx := total_frames_length - (cross_frame_length() / 2.)
           end
           reset_iter_values := false
-        
+       
           if
             frame_idx() < cross_start_idx()
           then
@@ -382,9 +382,9 @@ def autocue.internal.implementation(uri) =
           # Recalculate crossfade on sustained ending
           if
             reset_iter_values()
-          then       
+          then      
             cue_out := 0.
-            cross_cue := 0.             
+            cross_cue := 0.            
           end
           reset_iter_values := false
           if
@@ -401,11 +401,11 @@ def autocue.internal.implementation(uri) =
             # Absolute crossfade cue
             cross_cue := last_ts()
             error.raise(err,"break list.iter")
-          end          
+          end         
         end
-      
+     
         # Update last timestamp value with current
-        last_ts := current_ts()         
+        last_ts := current_ts()        
       end
     end
 
@@ -452,29 +452,47 @@ def autocue.internal.implementation(uri) =
         label="autocue.internal",
         "sustained_ending_check_iter completed."
       )
-    end  
+    end 
 
-    log(level=4, label="autocue.internal.sustained_end", "Ending analysis start frame: #{cross_start_idx()}")
-    log(level=4, label="autocue.internal.sustained_end", "Ending analysis stop frame: #{cross_stop_idx()}")
-    log(level=4, label="autocue.internal.sustained_end", "Analysis frame length: #{cross_frame_length()}")
-    log(level=4, label="autocue.internal.sustained_end", "Avg. ending dB level (1st half): #{ending_fst_db()}")
-    log(level=4, label="autocue.internal.sustained_end", "Avg. ending dB level (2nd half): #{ending_snd_db()}")
-
+    log(
+      level=4,
+       label="autocue.internal.sustained_end",
+       "Analysis frame length: #{cross_frame_length()}"
+    )
+    log(
+      level=4,
+      label="autocue.internal.sustained_end",
+      "Avg. ending dB level: 1st half => #{ending_fst_db()} / 2nd half => #{ending_snd_db()}"
+    )
+   
+    # Check whether data indicate a sustained ending
     if
       ending_fst_db() < 0.
     then
       ending_db_slope = ref(0.)
+
       if
         ending_snd_db() < 0.
       then
         ending_db_slope := ending_fst_db() / ending_snd_db()
       end
-      log(level=4, label="autocue.internal.sustained_end", "Slope: #{ending_db_slope()}")
+     
+      log(
+        level=4,
+        label="autocue.internal.sustained_end",
+        "Slope: #{ending_db_slope()}"
+      )
+     
       if
-        ending_db_slope() > 0.7 or ending_fst_db() > lufs_cross_threshold * 1.2
+        ending_db_slope() > 0.7 or
+        ending_fst_db() > lufs_cross_threshold * 1.2
       then
-        log(level=3, label="autocue.internal.sustained_end", "Sustained ending detected. Adjusting crossfade! Use Log Level 4 for more detailed information.")  
-      
+        log(
+          level=3,
+          label="autocue.internal.sustained_end",
+          "Sustained ending detected."
+        ) 
+
         if
           ending_db_slope() > 0.7
         then
@@ -482,17 +500,24 @@ def autocue.internal.implementation(uri) =
         else
           lufs_cross_threshold_sustained := ending_fst_db() - 1.
         end
-      
         lufs_cue_out_threshold_sustained = ref(
           lufs_cue_out_threshold + (lufs_cross_threshold_sustained() - lufs_cross_threshold)
         )
 
-        log(level=4, label="autocue.internal.sustained_end", "Changed crossfade threshold: #{lufs_cross_threshold} => #{lufs_cross_threshold_sustained()}")
-        log(level=4, label="autocue.internal.sustained_end", "Changed cue out threshold: #{lufs_cue_out_threshold} => #{lufs_cue_out_threshold_sustained()}") 
+        log(
+          level=4,
+          label="autocue.internal.sustained_end",
+          "Changed crossfade threshold: #{lufs_cross_threshold} => #{lufs_cross_threshold_sustained()}"
+        )
+        log(
+          level=4,
+          label="autocue.internal.sustained_end",
+          "Changed cue out threshold: #{lufs_cue_out_threshold} => #{lufs_cue_out_threshold_sustained()}"
+        )
 
         cross_cue_init = cross_cue()
         cue_out_init = cue_out()
-      
+       
         reset_iter_values := true
         def sustained_ending_recalc_iter(frame) =
           find_cues(frame,sustained_ending_recalc=true)
@@ -506,15 +531,20 @@ def autocue.internal.implementation(uri) =
             "sustained_ending_recalc_iter completed."
           )
         end
-        log(level=4, label="autocue.internal.sustained_end", "Changed crossfade point: #{cross_cue_init} => #{cross_cue()}")
-        log(level=4, label="autocue.internal.sustained_end", "Changed cue out point:  #{cue_out_init} => #{cue_out()}")   
+       
+        log(
+          level=4,
+          label="autocue.internal.sustained_end",
+          "Changed crossfade point: #{cross_cue_init} => #{cross_cue()}"
+        )
+        log(
+          level=4,
+          label="autocue.internal.sustained_end",
+          "Changed cue out point:  #{cue_out_init} => #{cue_out()}"
+        )
       end
     end
-  
-    ##########################
-    # END: Sustained endings #
-    ##########################
-  
+
     # Get very last frame for precise track duration
     frame = list.last(frames)
     duration =
