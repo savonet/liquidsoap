@@ -276,8 +276,12 @@ def autocue.internal.implementation(uri) =
     lufs_cue_out_threshold_sustained = ref(lufs_cue_out_threshold)
 
     err = error.register("assoc")
-    def find_cues(frame, ~reverse_order=false,~sustained_ending_check=false,~sustained_ending_recalc=false) =
-
+    def find_cues(
+      frame,
+      ~reverse_order=false,
+      ~sustained_ending_check=false,
+      ~sustained_ending_recalc=false
+    ) =
       if
         reset_iter_values()
       then
