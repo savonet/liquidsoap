@@ -95,7 +95,7 @@ let settings.autocue.internal.sustained_endings_dropoff =
     description=
       "Max. loudness drop off immediately after crossfade point to consider it \
       as relevant ending [percentage]",
-    10.0
+    15.0
   )
 
 let settings.autocue.internal.sustained_endings_slope =
@@ -262,17 +262,17 @@ def autocue.internal.implementation(uri) =
     log(
       level=4,
       label="autocue.internal",
-      "adj_cue_in_threshold: #{lufs_cue_in_threshold}"
+      "lufs_cue_in_threshold: #{lufs_cue_in_threshold}"
     )
     log(
       level=4,
       label="autocue.internal",
-      "adj_cue_out_threshold: #{lufs_cue_out_threshold}"
+      "lufs_cue_out_threshold: #{lufs_cue_out_threshold}"
     )
     log(
       level=4,
       label="autocue.internal",
-      "adj_cross_threshold: #{lufs_cross_threshold}"
+      "lufs_cross_threshold: #{lufs_cross_threshold}"
     )
 
     # Set cue/fade defaults
@@ -374,17 +374,17 @@ def autocue.internal.implementation(uri) =
             reset_iter_values()
           then
             frame_idx := total_frames_length - 1.
-            cross_frame_length := cross_stop_idx() - cross_start_idx()
             cross_start_idx := cross_start_idx() + 5.
             cross_stop_idx := cross_stop_idx() - 5.
-            cross_mid_idx := total_frames_length - (cross_frame_length() / 2.)
+            cross_frame_length := cross_stop_idx() - cross_start_idx()
+            cross_mid_idx := cross_stop_idx() - (cross_frame_length() / 2.)
           end
           reset_iter_values := false
 
           if
-            frame_idx() < cross_start_idx()
+            frame_idx() < cross_start_idx() or
+            cross_frame_length() < 5.
           then
-            # Break iteration if relevant frames were analysed
             error.raise(err,"break list.iter")
           end
 
@@ -392,14 +392,26 @@ def autocue.internal.implementation(uri) =
             frame_idx() < cross_stop_idx() and
             frame_idx() > cross_mid_idx()
           then
-            ending_snd_db := (ending_snd_db() + db_level) / 2.
+            if
+              ending_snd_db() < 0.
+            then
+              ending_snd_db := (ending_snd_db() + db_level) / 2.
+            else
+              ending_snd_db := db_level
+            end
           end
 
           if
             frame_idx() > cross_start_idx() and
             frame_idx() < cross_mid_idx()
           then
-            ending_fst_db := (ending_fst_db() + db_level) / 2.
+            if
+              ending_fst_db() < 0.
+            then
+              ending_fst_db := (ending_fst_db() + db_level) / 2.
+            else
+              ending_fst_db := db_level
+            end
           end
           frame_idx := frame_idx() - 1.
         elsif
@@ -468,12 +480,6 @@ def autocue.internal.implementation(uri) =
     if
       sustained_endings_enabled
     then
-      log(
-        level=4,
-        label="autocue.internal.sustained_ending",
-        "Checking for sustained ending."
-      )
-
       # Check for sustained ending
       reset_iter_values := true
       def sustained_ending_check_iter(frame) =
@@ -581,7 +587,19 @@ def autocue.internal.implementation(uri) =
             label="autocue.internal.sustained_ending",
             "Changed cue out point:  #{cue_out_init} => #{cue_out()}"
           )
+        else
+          log(
+            level=3,
+            label="autocue.internal.sustained_ending",
+            "No sustained ending detected."
+          )
         end
+      else
+        log(
+          level=3,
+          label="autocue.internal.sustained_ending",
+          "No sustained ending detected."
+        )
       end
     end
 
