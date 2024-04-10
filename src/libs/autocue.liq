@@ -128,9 +128,8 @@ def autocue.internal.ebur128(~ratio=50., ~timeout=10., r) =
     log(
       level=2,
       label="autocue.internal",
-      "Estimated processing duration is too long, autocue disabled! #{
-        duration
-      } / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing \
+      "Estimated processing duration is too long, autocue disabled! #{duration} \
+      / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing \
        duration; max. allowed: #{timeout})"
     )
     []
@@ -522,9 +521,7 @@ def enable_autocue_metadata() =
               log(
                 level=2,
                 label="autocue.metadata",
-                "Invalid value for `settings.autocue.amplify_behavior`: #{
-                  settings.autocue.amplify_behavior()
-                }"
+                "Invalid value for `settings.autocue.amplify_behavior`: #{settings.autocue.amplify_behavior()}"
               )
               autocue_metadata
             end
