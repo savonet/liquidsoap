@@ -106,6 +106,20 @@ let settings.autocue.internal.sustained_endings_slope =
     20.0
   )
 
+let settings.autocue.internal.sustained_endings_min_duration =
+  settings.make(
+    description=
+      "Minimum duration to consider it the ending as sustained [seconds]",
+    1.0
+  )
+
+let settings.autocue.internal.sustained_endings_threshold_limit =
+  settings.make(
+    description=
+      "Max reduction of dB thresholds compared to initial value [multiplying factor]",
+    2.0
+  )
+
 let settings.autocue.internal.ratio =
   settings.make(
     description=
@@ -210,6 +224,8 @@ def autocue.internal.implementation(uri) =
   sustained_endings_enabled = settings.autocue.internal.sustained_endings_enabled()
   sustained_endings_dropoff = settings.autocue.internal.sustained_endings_dropoff()
   sustained_endings_slope = settings.autocue.internal.sustained_endings_slope()
+  sustained_endings_min_duration = settings.autocue.internal.sustained_endings_min_duration()
+  sustained_endings_threshold_limit = settings.autocue.internal.sustained_endings_threshold_limit()
   ratio = settings.autocue.internal.ratio()
   timeout = settings.autocue.internal.timeout()
 
@@ -383,7 +399,7 @@ def autocue.internal.implementation(uri) =
 
           if
             frame_idx() < cross_start_idx() or
-            cross_frame_length() < 5.
+            cross_frame_length() < sustained_endings_min_duration * 10.
           then
             error.raise(err,"break list.iter")
           end
@@ -549,12 +565,23 @@ def autocue.internal.implementation(uri) =
           if
             detect_slope
           then
-            lufs_cross_threshold_sustained := ending_snd_db() - 0.5
+            lufs_cross_threshold_sustained :=
+              max(
+                lufs_cross_threshold * sustained_endings_threshold_limit,
+                ending_snd_db() - 0.5
+              )
           else
-            lufs_cross_threshold_sustained := ending_fst_db() - 0.5
+            lufs_cross_threshold_sustained :=
+              max(
+                lufs_cross_threshold * sustained_endings_threshold_limit,
+                ending_fst_db() - 0.5
+              )
           end
           lufs_cue_out_threshold_sustained = ref(
-            lufs_cue_out_threshold + (lufs_cross_threshold_sustained() - lufs_cross_threshold)
+            max(
+              lufs_cue_out_threshold * sustained_endings_threshold_limit,
+              lufs_cue_out_threshold + (lufs_cross_threshold_sustained() - lufs_cross_threshold)
+             )
           )
 
           log(
