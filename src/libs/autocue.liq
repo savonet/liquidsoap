@@ -446,7 +446,7 @@ def autocue.internal.implementation(uri) =
             not cue_found()
           then
             # Cue out
-            cue_out := current_ts()
+            cue_out := last_ts()
             cue_found := true
           end
           if
