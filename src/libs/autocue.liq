@@ -99,6 +99,9 @@ let settings.autocue.internal.timeout =
 
 let autocue = {internal=()}
 
+# Register an `autocue` implementation.
+# @category Source / Audio processing
+# @param ~name Name of the implementation
 def autocue.register(~name, fn) =
   current_implementations = settings.autocue.implementations()
   if
@@ -114,71 +117,58 @@ end
 
 # Get frames from ffmpeg.filter.ebur128
 # @flag hidden
-def autocue.internal.ebur128(~ratio=50., ~timeout=10., uri) =
-  r = request.create(resolve_metadata=false, uri)
-  s = request.once(r)
+def autocue.internal.ebur128(~ratio=50., ~timeout=10., r) =
+%ifdef ffmpeg.filter.ebur128
+  duration = null.get(default=0., request.duration(request.filename(r)))
+  estimated_processing_time = duration / ratio
 
   if
-    s.resolve()
+    estimated_processing_time > timeout or duration <= 0.
   then
-%ifdef ffmpeg.filter.ebur128
-    duration = null.get(default=0., request.duration(uri))
-    estimated_processing_time = duration / ratio
+    log(
+      level=2,
+      label="autocue.internal",
+      "Estimated processing duration is too long, autocue disabled! #{
+        duration
+      } / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing \
+       duration; max. allowed: #{timeout})"
+    )
+    []
+  else
+    s = request.once(r)
+    frames = ref([])
 
-    if
-      estimated_processing_time > timeout or duration <= 0.
-    then
-      log(
-        level=2,
-        label="autocue.internal",
-        "Estimated processing duration is too long, autocue disabled! #{
-          duration
-        } / #{ratio} = #{estimated_processing_time} (Duration / Ratio = \
-         Processing duration; max. allowed: #{timeout})"
-      )
-      []
-    else
-      frames = ref([])
-
-      def ebur128(s) =
-        def mk_filter(graph) =
-          let {audio = a} = source.tracks(s)
-          a = ffmpeg.filter.audio.input(graph, a)
-          let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
-          a = ffmpeg.filter.audio.output(graph, a)
-          source({audio=a, metadata=track.metadata(a)})
-        end
-
-        ffmpeg.filter.create(mk_filter)
+    def ebur128(s) =
+      def mk_filter(graph) =
+        let {audio = a} = source.tracks(s)
+        a = ffmpeg.filter.audio.input(graph, a)
+        let ([a], _) = ffmpeg.filter.ebur128(metadata=true, graph, a)
+        a = ffmpeg.filter.audio.output(graph, a)
+        source({audio=a, metadata=track.metadata(a)})
       end
 
-      s = ebur128(s)
-      s = source.on_metadata(s, fun (m) -> frames := [...frames(), m])
-      source.drop(ratio=ratio, s)
-
-      frames()
+      ffmpeg.filter.create(mk_filter)
     end
-%else
-    log(
-      level=2,
-      label="autocue.internal",
-      "ffmpeg.filter.ebur128 is not available, autocue disabled!"
-    )
-    []
-%endif
-  else
-    log(
-      level=2,
-      label="autocue.internal",
-      "Couldn't resolve source for uri: #{uri}"
-    )
-    []
+
+    s = ebur128(s)
+    s = source.on_metadata(s, fun (m) -> frames := [...frames(), m])
+    source.drop(ratio=ratio, s)
+
+    frames()
   end
+%else
+  log(
+    level=2,
+    label="autocue.internal",
+    "ffmpeg.filter.ebur128 is not available, autocue disabled!"
+  )
+  []
+%endif
 end
 
 # Compute autocue data
 # @flag hidden
-def autocue.internal.implementation(uri) =
+def autocue.internal.implementation(r) =
   lufs_target = settings.autocue.internal.lufs_target()
   cue_in_threshold = settings.autocue.internal.cue_in_threshold()
   cue_out_threshold = settings.autocue.internal.cue_out_threshold()
@@ -190,10 +180,10 @@ def autocue.internal.implementation(uri) =
   log(
     level=4,
     label="autocue.internal",
-    "Starting to process #{path.basename(uri)}"
+    "Starting to process #{r}"
   )
 
-  frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, uri)
+  frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, r)
 
   if
     list.length(frames) < 2
@@ -225,7 +215,7 @@ def autocue.internal.implementation(uri) =
     log(
       level=4,
       label="autocue.internal",
-      "Processing results for #{path.basename(uri)}"
+      "Processing results for #{r}"
     )
 
     log(
@@ -405,54 +395,67 @@ def file.autocue.metadata(uri) =
       )
     end
 
-  autocue = implementation(uri)
+  r = request.create(uri)
 
   if
-    null.defined(autocue)
+    not request.resolve(r)
   then
-    autocue = null.get(autocue)
-    let {cue_in, cue_out, fade_in, fade_out} = autocue
-    extra_metadata = autocue.extra_metadata ?? []
-    amplify = autocue?.amplify
-    target_cross_duration = settings.autocue.target_cross_duration()
-
-    cross_duration =
-      if
-        cue_out - cue_in < target_cross_duration * 2.
-      or
-        target_cross_duration < fade_in
-      or
-        target_cross_duration < fade_out
-      then
-        max(fade_in, fade_out)
-      else
-        target_cross_duration
-      end
-
-    # Make sure cross_duration is never 0.
-    cross_duration = max(cross_duration, 0.1)
-
-    fade_out_delay =
-      if fade_out < cross_duration then cross_duration - fade_out else 0. end
-
-    [
-      ...(null.defined(amplify) ? [("liq_amplify", string(amplify))] : [] ),
-      ("liq_cue_in", string(cue_in)),
-      ("liq_cue_out", string(cue_out)),
-      ("liq_cross_duration", string(cross_duration)),
-      ("liq_fade_in", string(fade_in)),
-      ("liq_fade_in_delay", "0."),
-      ("liq_fade_out", string(fade_out)),
-      ("liq_fade_out_delay", string(fade_out_delay)),
-      ...extra_metadata
-    ]
-  else
     log(
       level=2,
-      label="autocue.metadata",
-      "No autocue data found for file #{uri}"
+      label="autocue",
+      "Couldn't resolve uri: #{uri}"
     )
     []
+  else
+    autocue = implementation(r)
+
+    if
+      null.defined(autocue)
+    then
+      autocue = null.get(autocue)
+      let {cue_in, cue_out, fade_in, fade_out} = autocue
+      extra_metadata = autocue.extra_metadata ?? []
+      amplify = autocue?.amplify
+      target_cross_duration = settings.autocue.target_cross_duration()
+
+      cross_duration =
+        if
+          cue_out - cue_in < target_cross_duration * 2.
+        or
+          target_cross_duration < fade_in
+        or
+          target_cross_duration < fade_out
+        then
+          max(fade_in, fade_out)
+        else
+          target_cross_duration
+        end
+
+      # Make sure cross_duration is never 0.
+      cross_duration = max(cross_duration, 0.1)
+
+      fade_out_delay =
+        if fade_out < cross_duration then cross_duration - fade_out else 0. end
+
+      [
+        ...(null.defined(amplify) ? [("liq_amplify", string(amplify))] : [] ),
+        ("liq_cue_in", string(cue_in)),
+        ("liq_cue_out", string(cue_out)),
+        ("liq_cross_duration", string(cross_duration)),
+        ("liq_fade_in", string(fade_in)),
+        ("liq_fade_in_delay", "0."),
+        ("liq_fade_out", string(fade_out)),
+        ("liq_fade_out_delay", string(fade_out_delay)),
+        ...extra_metadata
+      ]
+    else
+      log(
+        level=2,
+        label="autocue.metadata",
+        "No autocue data found for file #{uri}"
+      )
+      []
+    end
   end
 end
 
