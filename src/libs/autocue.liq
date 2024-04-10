@@ -503,7 +503,7 @@ def autocue.internal.implementation(uri) =
       log(
         level=4,
         label="autocue.internal.sustained_ending",
-        "Avg. ending dB level: 1st half => #{ending_fst_db()} / 2nd half => #{ending_snd_db()}"
+        "Avg. ending loudness: #{ending_fst_db()} => #{ending_snd_db()}"
       )
 
       # Check whether data indicate a sustained ending
@@ -511,6 +511,7 @@ def autocue.internal.implementation(uri) =
         ending_fst_db() < 0.
       then
         slope = ref(0.)
+        dropoff = lufs_cross_threshold / ending_fst_db()
 
         if
           ending_snd_db() < 0.
@@ -521,13 +522,20 @@ def autocue.internal.implementation(uri) =
         log(
           level=4,
           label="autocue.internal.sustained_ending",
-          "Slope: #{slope()} (#{
+          "Drop off: #{
+            (1. - dropoff) * 100.
+          }%"
+        )
+        log(
+          level=4,
+          label="autocue.internal.sustained_ending",
+          "Slope: #{
             (1. - slope()) * 100.
-          }%)"
+          }%"
         )
 
         detect_slope = slope() > 1. - sustained_endings_slope / 100.
-        detect_dropoff = ending_fst_db() > lufs_cross_threshold * sustained_endings_dropoff / 100. + 1.
+        detect_dropoff = ending_fst_db() > lufs_cross_threshold * (sustained_endings_dropoff / 100. + 1.)
         if
           detect_slope or
           detect_dropoff
