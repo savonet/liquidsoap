@@ -446,14 +446,14 @@ def autocue.internal.implementation(uri) =
             not cue_found()
           then
             # Cue out
-            cue_out := last_ts()
+            cue_out := current_ts()
             cue_found := true
           end
           if
             db_level > lufs_cross_threshold_sustained()
           then
             # Absolute crossfade cue
-            cross_cue := last_ts()
+            cross_cue := current_ts()
             error.raise(err,"break list.iter")
           end
         end
