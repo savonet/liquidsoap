@@ -394,7 +394,7 @@ def file.autocue.metadata(uri) =
       )
     end
 
-  r = request.create(uri)
+  r = request.create(resolve_metadata=false, uri)
 
   if
     not request.resolve(r)
