@@ -31,6 +31,7 @@ let settings.autocue.metadata_override =
     [
       "liq_cue_in",
       "liq_cue_out",
+      "liq_cross_start_next",
       "liq_fade_in",
       "liq_fade_in_delay",
       "liq_fade_out",
@@ -693,22 +694,22 @@ def autocue.internal.implementation(r) =
 
     (
       {
-        amplify=lin_of_dB(lufs_correction),
+        amplify=
+          "#{lufs_correction} dB",
         cue_in=cue_in(),
         cue_out=cue_out(),
         fade_in=fade_in(),
-        fade_out=fade_out(),
-        extra_metadata=[("liq_autocue", "internal")]
+        fade_out=fade_out()
       }
     :
       {
-        amplify?: float,
+        amplify?: string,
         cue_in: float,
         cue_out: float,
-        fade_in: float,
+        fade_in?: float,
         fade_in_type?: string,
         fade_in_curve?: float,
-        fade_out: float,
+        fade_out?: float,
         fade_out_type?: string,
         fade_out_curve?: float,
         start_next?: float,
@@ -727,7 +728,7 @@ let file.autocue = ()
 def file.autocue.metadata(uri) =
   preferred_implementation = settings.autocue.preferred()
   implementations = settings.autocue.implementations()
-  implementation =
+  let (implementation_name, implementation) =
     if
       list.assoc.mem(preferred_implementation, implementations)
     then
@@ -736,7 +737,10 @@ def file.autocue.metadata(uri) =
         label="autocue",
         "Using preferred #{preferred_implementation} autocue implementation."
       )
-      list.assoc(preferred_implementation, implementations)
+      (
+        preferred_implementation,
+        list.assoc(preferred_implementation, implementations)
+      )
     elsif
       list.length(implementations) > 0
     then
@@ -746,7 +750,7 @@ def file.autocue.metadata(uri) =
         label="autocue",
         "Using first available #{name} autocue implementation."
       )
-      implementation
+      (name, implementation)
     else
       error.raise(
         error.not_found,
@@ -772,12 +776,17 @@ def file.autocue.metadata(uri) =
       null.defined(autocue)
     then
       autocue = null.get(autocue)
-      let {cue_in, cue_out, fade_in, fade_out} = autocue
+      let {cue_in, cue_out} = autocue
+
       extra_metadata = autocue.extra_metadata ?? []
+      target_cross_duration = settings.autocue.target_cross_duration()
+
       amplify = autocue?.amplify
 
+      fade_in = autocue?.fade_in ?? target_cross_duration
       fade_in_type = autocue?.fade_in_type
       fade_in_curve = autocue?.fade_in_curve
+      fade_out = autocue?.fade_out ?? target_cross_duration
       fade_out_type = autocue?.fade_out_type
       fade_out_curve = autocue?.fade_out_curve
 
@@ -809,8 +818,6 @@ def file.autocue.metadata(uri) =
 
       total_fade_out = fade_out + fade_out_delay
 
-      target_cross_duration = settings.autocue.target_cross_duration()
-
       cross_duration =
         if
           cue_out - cue_in < target_cross_duration * 2.
@@ -840,6 +847,7 @@ def file.autocue.metadata(uri) =
       opt_arg = fun (lbl, v) -> null.defined(v) ? [(lbl, string(v))] : []
 
       [
+        ("liq_autocue", implementation_name),
         ...opt_arg("liq_amplify", amplify),
         ("liq_cue_in", string(cue_in)),
         ("liq_cue_out", string(cue_out)),
