@@ -227,7 +227,7 @@ def autocue.internal.implementation(r) =
   log(
     level=4,
     label="autocue.internal",
-    "Starting to process #{r}"
+    "Starting to process #{request.uri(r)}"
   )
 
   frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, r)
@@ -262,7 +262,7 @@ def autocue.internal.implementation(r) =
     log(
       level=4,
       label="autocue.internal",
-      "Processing results for #{r}"
+      "Processing results for #{request.uri(r)}"
     )
 
     log(
