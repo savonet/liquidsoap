@@ -819,6 +819,20 @@ def file.autocue.metadata(uri) =
 
       start_next = autocue.start_next ?? fade_out_start
 
+      start_next =
+        if
+          start_next < cue_in or cue_out < start_next
+        then
+          log(
+            level=2,
+            label="autocue",
+            "Invalid start_next: #{start_next}"
+          )
+          fade_out_start
+        else
+          start_next
+        end
+
       let fade_out_delay =
         if
           start_next < fade_out_start
