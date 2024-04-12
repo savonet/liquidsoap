@@ -402,6 +402,20 @@ class cross val_source ~duration_getter ~assume_autocue ~override_duration
                   (string_of_float fade_out);
                 Hashtbl.replace before_metadata "liq_fade_out_delay"
                   (string_of_float fade_out_delay));
+              (try
+                 let cross_duration = Frame.seconds_of_main buffered in
+                 let cue_out =
+                   float_of_string (Hashtbl.find before_metadata "liq_cue_out")
+                 in
+                 let start_next =
+                   float_of_string
+                     (Hashtbl.find before_metadata "liq_cross_start_next")
+                 in
+                 if cue_out -. start_next < cross_duration then (
+                   self#log#info "Adding fade-in delay to match start next";
+                   Hashtbl.replace after_metadata "liq_fade_in_delay"
+                     (string_of_float (cross_duration -. cue_out +. start_next)))
+               with _ -> ());
               let fade_out_delay =
                 try
                   float_of_string
