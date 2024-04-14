@@ -34,6 +34,14 @@ let settings.autocue.amplify_behavior =
     "keep"
   )
 
+let settings.autocue.amplify_aliases =
+  settings.make(
+    description=
+      "List of metadata to treat as amplify aliases when applying the \
+       `amplify_behavior` policy.",
+    ["replaygain_track_gain"]
+  )
+
 let settings.autocue.internal.metadata_override =
   settings.make(
     description=
@@ -917,6 +925,20 @@ def enable_autocue_metadata() =
 
     autocue_metadata = file.autocue.metadata(fname)
 
+    all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplidfy"]
+    user_supplied_amplify =
+      list.filter_map(
+        fun (el) ->
+          if list.mem(fst(el), all_amplify) then snd(el) else null() end,
+        metadata
+      )
+    user_supplied_amplify_labels =
+      string.concat(
+        separator=
+          ", ",
+        user_supplied_amplify
+      )
+
     autocue_metadata =
       if
         settings.autocue.amplify_behavior() == "ignore"
@@ -924,7 +946,7 @@ def enable_autocue_metadata() =
         [...list.assoc.remove("liq_amplify", autocue_metadata)]
       else
         if
-          list.assoc.mem("liq_amplify", metadata)
+          user_supplied_amplify != []
         then
           if
             settings.autocue.amplify_behavior() == "keep"
@@ -932,21 +954,26 @@ def enable_autocue_metadata() =
             log(
               level=3,
               label="autocue.metadata",
-              "Keeping user-provided `\"liq_amplify\"` value."
+              "User-supplied amplify metadata detected: #{user_supplied_amplify_labels}, \
+              keeping user-provided data."
             )
-            [
-              ...list.assoc.remove("liq_amplify", autocue_metadata),
-              ("liq_amplify", metadata["liq_amplify"])
-            ]
+            list.assoc.remove("liq_amplify", autocue_metadata)
           elsif
             settings.autocue.amplify_behavior() == "override"
           then
             log(
               level=3,
               label="autocue.metadata",
-              "Overriding user-provided `\"liq_amplify\"` value."
+              "User-supplied amplify metadata detected: #{user_supplied_amplify_labels}, \
+              overriding with data."
             )
-            autocue_metadata
+            [
+              ...list.assoc.remove("liq_amplify", autocue_metadata),
+              ...list.map(
+                fun (lbl) -> (lbl, autocue_metadata["liq_amplify"]),
+                user_supplied_amplify
+              )
+            ]
           else
             log(
               level=2,
