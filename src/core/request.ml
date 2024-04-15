@@ -397,14 +397,7 @@ let push_indicators t l =
     add_log t
       (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string hd.string));
     t.indicators <- l :: t.indicators;
-    t.decoder <- None;
-
-    (* Performing a local check is quite fast and allows the request to be
-       instantly available if it is only made of valid local files, without any
-       need for a resolution process. *)
-    (* TODO: sometimes it's not that fast actually, and it'd be nice to be able
-       to disable this check in some cases, like playlist.safe. *)
-    local_check t)
+    t.decoder <- None)
 
 let resolved t =
   t.indicators <> []
