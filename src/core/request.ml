@@ -364,6 +364,7 @@ let read_metadata t =
         decoders))
 
 let local_check t =
+  read_metadata t;
   let check_decodable ctype =
     try
       while t.decoder = None && file_exists (peek_indicator t).string do
@@ -383,7 +384,6 @@ let local_check t =
             | Some (decoder_name, f) ->
                 t.decoder <- Some f;
                 set_root_metadata t "decoder" decoder_name;
-                read_metadata t;
                 t.status <- Ready
             | None -> pop_indicator t)
       done
