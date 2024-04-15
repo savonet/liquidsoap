@@ -11,6 +11,7 @@ New:
 Changed:
 
 - Allow to disable `http.*` url normalization. Add warning when url normalization changes the url (#3789)
+- Add `namespace` and optional source IDs to `mix`.
 
 Fixed:
 

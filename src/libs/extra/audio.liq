@@ -236,9 +236,11 @@ end
 # @flag extra
 # @category Source / Audio processing
 # @param ~id Force the value of the source ID.
+# @param ~namespace Namespace for the source commands. Uses source ID when `null`.
 # @param ~register_server_commands Register corresponding server commands
-def mix(~id=null(), ~register_server_commands=true, sources) =
+def mix(~id=null(), ~namespace=null(), ~register_server_commands=true, sources) =
   id = string.id.default(default="mixer", id)
+  namespace = namespace ?? id
 
   inputs = list.map(fun (s) ->
     begin
@@ -250,7 +252,8 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
         volume = volume,
         selected = is_selected,
         single = is_single,
-        source = s
+        source = s,
+        id = s.id ?? source.id(s)
       }
     end, sources)
 
@@ -286,7 +289,7 @@ def mix(~id=null(), ~register_server_commands=true, sources) =
        "ready=#{source.is_ready(input.source)} selected=#{input.selected()} single=#{input.single()} volume=#{int_of_float(input.volume() * 100.)}% remaining=#{source.remaining(input.source)}"
      end
 
-     server.register(namespace=source.id(s), description="Skip current track on all enabled sources.",
+     server.register(namespace=namespace, description="Skip current track on all enabled sources.",
                       "skip", fun (_) -> begin
                          list.iter(fun (input) -> if input.selected() then source.skip(input.source) end, inputs)
                          "OK"
