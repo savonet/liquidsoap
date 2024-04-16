@@ -206,6 +206,7 @@ let get_log t = t.log
 (* Indicator tree management *)
 
 exception No_indicator
+exception Request_resolved
 
 let () =
   Printexc.register_printer (function
@@ -366,30 +367,28 @@ let read_metadata t =
 let local_check t =
   read_metadata t;
   let check_decodable ctype =
-    try
-      while t.decoder = None && file_exists (peek_indicator t).string do
-        let indicator = peek_indicator t in
-        let name = indicator.string in
-        let metadata =
-          if t.resolve_metadata then get_all_metadata t
-          else Frame.Metadata.empty
-        in
-        if not (file_is_readable name) then (
-          log#important "Read permission denied for %s!"
-            (Lang_string.quote_string name);
-          add_log t "Read permission denied!";
-          pop_indicator t)
-        else (
-          match Decoder.get_file_decoder ~metadata ~ctype name with
-            | Some (decoder_name, f) ->
-                t.decoder <- Some f;
-                set_root_metadata t "decoder" decoder_name;
-                t.status <- Ready
-            | None -> pop_indicator t)
-      done
-    with No_indicator -> ()
+    while t.decoder = None && file_exists (peek_indicator t).string do
+      let indicator = peek_indicator t in
+      let name = indicator.string in
+      let metadata =
+        if t.resolve_metadata then get_all_metadata t else Frame.Metadata.empty
+      in
+      if not (file_is_readable name) then (
+        log#important "Read permission denied for %s!"
+          (Lang_string.quote_string name);
+        add_log t "Read permission denied!";
+        pop_indicator t)
+      else (
+        match Decoder.get_file_decoder ~metadata ~ctype name with
+          | Some (decoder_name, f) ->
+              t.decoder <- Some f;
+              set_root_metadata t "decoder" decoder_name;
+              t.status <- Ready
+          | None -> pop_indicator t)
+    done
   in
-  match t.ctype with None -> () | Some t -> check_decodable t
+  (match t.ctype with None -> () | Some t -> check_decodable t);
+  raise Request_resolved
 
 let push_indicators t l =
   if l <> [] then (
@@ -399,10 +398,7 @@ let push_indicators t l =
     t.indicators <- l :: t.indicators;
     t.decoder <- None)
 
-let resolved t =
-  t.indicators <> []
-  && Sys.file_exists (peek_indicator t).string
-  && (t.decoder <> None || t.ctype = None)
+let resolved t = match t.status with Ready | Playing -> true | _ -> false
 
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
@@ -736,7 +732,7 @@ let resolve ~ctype t timeout =
   in
   let result =
     try
-      while not (resolved t) do
+      while true do
         if Atomic.get should_fail then raise No_indicator;
         let timeleft = maxtime -. Unix.time () in
         if timeleft > 0. then resolve_step ()
@@ -744,8 +740,9 @@ let resolve ~ctype t timeout =
           add_log t "Global timeout.";
           raise ExnTimeout)
       done;
-      Resolved
+      assert false
     with
+      | Request_resolved -> Resolved
       | ExnTimeout -> Timeout
       | No_indicator ->
           add_log t "Every possibility failed!";
