@@ -29,7 +29,6 @@
 %include "protocols.liq"
 %include "resolvers.liq"
 %include "icecast.liq"
-%include "server.liq"
 %include "hls.liq"
 %include "video.liq"
 %include "ffmpeg.liq"
@@ -37,6 +36,7 @@
 %include "io.liq"
 %include "medialib.liq"
 %include "runtime.liq"
+%include "server.liq"
 %include "testing.liq"
 %include "liquidsoap.liq"
 

@@ -14,7 +14,9 @@ def runtime.memory() =
     total_used_virtual_memory = info.total_used_virtual_memory,
     total_used_physical_memory = info.total_used_physical_memory,
     process_virtual_memory = info.process_virtual_memory,
-    process_physical_memory = info.process_physical_memory
+    process_physical_memory = info.process_physical_memory,
+    process_private_memory = info.process_private_memory,
+    process_swapped_memory = info.process_swapped_memory
   }
 
   let x.pretty = {
@@ -24,7 +26,9 @@ def runtime.memory() =
     total_used_virtual_memory = runtime.mem_usage.prettify_bytes(info.total_used_virtual_memory),
     total_used_physical_memory = runtime.mem_usage.prettify_bytes(info.total_used_physical_memory),
     process_virtual_memory = runtime.mem_usage.prettify_bytes(info.process_virtual_memory),
-    process_physical_memory = runtime.mem_usage.prettify_bytes(info.process_physical_memory)
+    process_physical_memory = runtime.mem_usage.prettify_bytes(info.process_physical_memory),
+    process_private_memory = runtime.mem_usage.prettify_bytes(x.process_private_memory),
+    process_swapped_memory = runtime.mem_usage.prettify_bytes(x.process_swapped_memory)
   }
 %endif
 
