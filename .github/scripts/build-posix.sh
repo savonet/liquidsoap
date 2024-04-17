@@ -44,6 +44,11 @@ cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
+git clone https://github.com/savonet/ocaml-mem_usage.git
+cd ocaml-mem_usage
+opam install -y .
+cd ..
+
 opam update
 opam install -y magic-mime saturn_lockfree.0.4.1 dune.3.14.2
 

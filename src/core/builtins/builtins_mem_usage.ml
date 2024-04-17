@@ -30,6 +30,8 @@ let _ =
         ("total_used_physical_memory", Lang.int_t);
         ("process_virtual_memory", Lang.int_t);
         ("process_physical_memory", Lang.int_t);
+        ("process_private_memory", Lang.int_t);
+        ("process_swapped_memory", Lang.int_t);
       ]
   in
   let mem_usage
@@ -40,6 +42,8 @@ let _ =
         total_used_physical_memory;
         process_virtual_memory;
         process_physical_memory;
+        process_private_memory;
+        process_swapped_memory;
       } =
     Lang.record
       [
@@ -49,6 +53,8 @@ let _ =
         ("total_used_physical_memory", Lang.int total_used_physical_memory);
         ("process_virtual_memory", Lang.int process_virtual_memory);
         ("process_physical_memory", Lang.int process_physical_memory);
+        ("process_private_memory", Lang.int process_private_memory);
+        ("process_swapped_memory", Lang.int process_swapped_memory);
       ]
   in
   let runtime_mem_usage =
