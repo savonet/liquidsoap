@@ -43,6 +43,12 @@ echo "::group::Setting up specific dependencies"
 cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
+
+git clone https://github.com/savonet/ocaml-mem_usage.git
+cd ocaml-mem_usage
+opam install -y .
+cd ..
+
 opam update
 opam install -y tls.0.17.4
 
