@@ -559,7 +559,7 @@ type _ Effect.t +=
 
 let on_after_eval fn = perform (After_run fn)
 
-let[@inline] after_eval ?(force = false) (fn [@inlined]) =
+let[@inline] after_eval ?(force = false) fn =
   let after_eval_locked =
     force
     || try perform (After_run_lock ()) with Stdlib.Effect.Unhandled _ -> true
