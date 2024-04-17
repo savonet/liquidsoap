@@ -8,6 +8,24 @@ def f() =
   test.metric(
     category="memory",
     name=
+      "Memory usage: process private memory",
+    value=float(mu.process_private_memory) / (1024. * 1024.),
+    unit="Mio",
+    min=0.
+  )
+
+  test.metric(
+    category="memory",
+    name=
+      "Memory usage: process swapped memory",
+    value=float(mu.process_swapped_memory) / (1024. * 1024.),
+    unit="Mio",
+    min=0.
+  )
+
+  test.metric(
+    category="memory",
+    name=
       "Memory usage: process physical memory",
     value=float(mu.process_physical_memory) / (1024. * 1024.),
     unit="Mio",
