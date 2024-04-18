@@ -925,7 +925,7 @@ def enable_autocue_metadata() =
 
     autocue_metadata = file.autocue.metadata(fname)
 
-    all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplidfy"]
+    all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
     user_supplied_amplify =
       list.filter_map(
         fun (el) ->
