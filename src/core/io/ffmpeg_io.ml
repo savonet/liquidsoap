@@ -72,11 +72,24 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         ~name ~fallible:true ~on_start ~on_stop ~autostart () as super
 
     val connect_task = Atomic.make None
-    val container = Atomic.make None
     method seek_source = (self :> Source.source)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
-    method private is_connected = Atomic.get container <> None
+
+    val source_status
+        : [ `Stopped
+          | `Starting
+          | `Polling
+          | `Connected of string * container
+          | `Stopping ]
+          Atomic.t =
+      Atomic.make `Stopped
+
+    method source_status = Atomic.get source_status
+
+    method private is_connected =
+      match Atomic.get source_status with `Connected _ -> true | _ -> false
+
     method can_generate_frame = super#started && self#is_connected
 
     method private get_self_sync =
@@ -96,18 +109,10 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method set_url u = url <- u
     method buffer_length = Frame.seconds_of_audio (Generator.length self#buffer)
 
-    val source_status
-        : [ `Stopped | `Starting | `Polling | `Connected of string | `Stopping ]
-          Atomic.t =
-      Atomic.make `Stopped
-
-    method source_status = Atomic.get source_status
-
     method private connect_task () =
       Generator.set_max_length self#buffer max_length;
       try
         if self#source_status = `Stopping then raise Stopped;
-        assert (Atomic.get container = None);
         assert (self#source_status = `Starting);
         Atomic.set source_status `Polling;
         let opts = Hashtbl.copy opts in
@@ -169,9 +174,8 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         in
         on_connect input;
         Generator.add_track_mark self#buffer;
-        Atomic.set container
-          (Some { input; decoder; buffer; get_metadata; closed });
-        Atomic.set source_status (`Connected url);
+        let container = { input; decoder; buffer; get_metadata; closed } in
+        Atomic.set source_status (`Connected (url, container));
         -1.
       with
         | Stopped ->
@@ -188,24 +192,32 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             poll_delay
 
     method private connect =
-      if Atomic.get container = None then (
-        assert (
-          match self#source_status with `Connected _ -> false | _ -> true);
-        Atomic.set source_status `Starting;
-        match Atomic.get connect_task with
-          | Some t -> Duppy.Async.wake_up t
-          | None ->
-              let t =
-                Duppy.Async.add ~priority:`Blocking Tutils.scheduler
-                  self#connect_task
-              in
-              Atomic.set connect_task (Some t);
-              Duppy.Async.wake_up t)
+      match self#source_status with
+        | `Starting | `Polling | `Connected _ -> ()
+        | `Stopping | `Stopped -> (
+            Atomic.set source_status `Starting;
+            match Atomic.get connect_task with
+              | Some t -> Duppy.Async.wake_up t
+              | None ->
+                  let t =
+                    Duppy.Async.add ~priority:`Blocking Tutils.scheduler
+                      self#connect_task
+                  in
+                  Atomic.set connect_task (Some t);
+                  Duppy.Async.wake_up t)
 
     method private disconnect =
-      (match Atomic.exchange container None with
-        | None -> ()
-        | Some { input; closed } ->
+      let stop_task () =
+        match Atomic.get connect_task with
+          | None -> ()
+          | Some t ->
+              Atomic.set source_status `Stopping;
+              Duppy.Async.wake_up t
+      in
+      match self#source_status with
+        | `Stopping | `Stopped -> ()
+        | `Polling | `Starting -> stop_task ()
+        | `Connected (_, { input; closed }) ->
             Atomic.set closed true;
             self#mutexify
               (fun () ->
@@ -216,23 +228,17 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                     (Printf.sprintf "Error while disconnecting: %s"
                        (Printexc.to_string exn)))
               ();
-            on_disconnect ());
-      (* Make sure the polling task stops as well. *)
-      ignore
-        (Option.map
-           (fun t ->
-             Atomic.set source_status `Stopping;
-             Duppy.Async.wake_up t)
-           (Atomic.get connect_task))
+            on_disconnect ();
+            stop_task ()
 
     method private reconnect =
       self#disconnect;
       self#connect
 
     method private get_connected_container =
-      match Atomic.get container with
-        | None -> raise Not_connected
-        | Some c -> c
+      match self#source_status with
+        | `Connected (_, c) -> c
+        | _ -> raise Not_connected
 
     method private generate_frame =
       let size = Lazy.force Frame.size in
@@ -493,8 +499,8 @@ let register_input is_http =
                            | `Starting -> "starting"
                            | `Stopping -> "stopping"
                            | `Polling -> "polling"
-                           | `Connected url -> Printf.sprintf "connected %s" url))
-               );
+                           | `Connected (url, _) ->
+                               Printf.sprintf "connected %s" url)) );
                ( "buffer_length",
                  ([], fun_t [] float_t),
                  "Get the buffer's length in seconds.",
