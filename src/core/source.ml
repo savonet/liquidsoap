@@ -75,9 +75,9 @@ let sleep s =
       (Printf.sprintf "Error when leaving output %s: %s!" s#id
          (Printexc.to_string e))
 
-class virtual operator ?pos ?clock ?(name = "src") sources =
+class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
   let frame_type = Type.var () in
-  let clock = match clock with Some c -> c | None -> Clock.create ?pos () in
+  let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
@@ -90,12 +90,15 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
       List.iter (fun s -> Clock.unify ~pos:self#pos self#clock s#clock) sources;
       Clock.attach self#clock (self :> Clock.source)
 
-    val mutable pos : Pos.Option.t = pos
-    method pos = pos
+    val stack = Unifier.make stack
+    method stack = Unifier.deref stack
 
-    method set_pos p =
-      pos <- p;
-      Clock.set_pos clock pos
+    method set_stack p =
+      Unifier.set stack p;
+      Clock.set_stack clock p
+
+    method stack_unifier = stack
+    method pos = match Unifier.deref stack with [] -> None | p :: _ -> Some p
 
     (** Logging and identification *)
 
@@ -542,9 +545,9 @@ class virtual operator ?pos ?clock ?(name = "src") sources =
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
-and virtual active_operator ?pos ?clock ?name sources =
+and virtual active_operator ?stack ?clock ?name sources =
   object (self)
-    inherit operator ?pos ?clock ?name sources
+    inherit operator ?stack ?clock ?name sources
     method! source_type : source_type = `Active (self :> active)
 
     (** Do whatever needed when the latency gets too big and is reset. *)
@@ -553,14 +556,14 @@ and virtual active_operator ?pos ?clock ?name sources =
 
 (** Shortcuts for defining sources with no children *)
 
-and virtual source ?pos ?clock ?name () =
+and virtual source ?stack ?clock ?name () =
   object
-    inherit operator ?pos ?clock ?name []
+    inherit operator ?stack ?clock ?name []
   end
 
-class virtual active_source ?pos ?clock ?name () =
+class virtual active_source ?stack ?clock ?name () =
   object
-    inherit active_operator ?pos ?clock ?name []
+    inherit active_operator ?stack ?clock ?name []
   end
 
 (* Reselect type. This drives the choice of next source.

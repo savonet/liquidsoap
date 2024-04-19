@@ -65,6 +65,7 @@
   chord
   clip
   clock
+  clock_base
   comb
   compand
   compress

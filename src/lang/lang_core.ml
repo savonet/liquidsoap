@@ -276,7 +276,7 @@ let add_module ?base name =
 let module_name name = name
 
 (* Delay this function in order not to have Lang depend on Evaluation. *)
-let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =
+let apply_fun : (?pos:Pos.t list -> value -> env -> value) ref =
   ref (fun ?pos:_ _ -> assert false)
 
 let apply f p = !apply_fun f p

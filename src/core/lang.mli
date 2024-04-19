@@ -88,7 +88,7 @@ val iter_sources :
 
 (** {2 Computation} *)
 
-val apply_fun : (?pos:Liquidsoap_lang.Pos.t -> value -> env -> value) ref
+val apply_fun : (?pos:Liquidsoap_lang.Pos.t list -> value -> env -> value) ref
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)

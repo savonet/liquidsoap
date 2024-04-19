@@ -80,7 +80,7 @@ val split_meths : value -> (string * value) list * value
 
 (** {2 Computation} *)
 
-val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
+val apply_fun : (?pos:Pos.t list -> value -> env -> value) ref
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
