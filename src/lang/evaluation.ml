@@ -173,7 +173,8 @@ let rec prepare_fun fv ~eval_check p env =
   let env = Env.restrict env fv in
   (p, env)
 
-and apply ?pos ~eval_check f l =
+and apply ?(pos = []) ~eval_check f l =
+  let apply_pos = match pos with [] -> None | p :: _ -> Some p in
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match f.Value.value with
@@ -191,12 +192,12 @@ and apply ?pos ~eval_check f l =
       | Runtime_error.Runtime_error err ->
           let bt = Printexc.get_raw_backtrace () in
           Runtime_error.raise ~bt
-            ~pos:(Option.to_list pos @ err.pos)
+            ~pos:(Option.to_list apply_pos @ err.pos)
             ~message:err.Runtime_error.msg err.Runtime_error.kind
       | Internal_error (poss, e) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
-            (Internal_error (Option.to_list pos @ poss, e))
+            (Internal_error (Option.to_list apply_pos @ poss, e))
             bt
   in
   (* Provide given arguments. *)
@@ -219,25 +220,18 @@ and apply ?pos ~eval_check f l =
              with the mount/name params of output.icecast.*, the printing of
              the error should succeed at getting a position information. *)
           let v = Option.get v in
-          { v with Value.pos } )
+          { v with Value.pos = apply_pos } )
         :: pe)
       pe p
   in
   (* Add position *)
-  let pe =
-    pe
-    @ [
-        ( Lang_core.pos_var,
-          Lang_core.Stacktrace.to_value
-            (match pos with None -> [] | Some p -> [p]) );
-      ]
-  in
+  let pe = pe @ [(Lang_core.pos_var, Lang_core.Stacktrace.to_value pos)] in
   let v = f pe in
   (* Similarly here, the result of an FFI call should have some position
      information. For example, if we build a fallible source and pass it to an
      operator that expects an infallible one, an error is issued about that
      FFI-made value and a position is needed. *)
-  { v with Value.pos }
+  { v with Value.pos = apply_pos }
 
 and eval_base_term ~eval_check (env : Env.t) tm =
   let mk v =
@@ -354,7 +348,19 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let ans () =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
-          apply ?pos:tm.t.Type.pos ~eval_check f l
+          let pos =
+            match tm.t.Type.pos with
+              | None -> []
+              | Some p ->
+                  p
+                  ::
+                  (try
+                     List.map Lang_core.Position.of_value
+                       (Lang_core.to_list
+                          (Lazy.force (List.assoc Lang_core.pos_var env)))
+                   with _ -> [])
+          in
+          apply ~pos ~eval_check f l
         in
         if !profile then (
           match f.term with

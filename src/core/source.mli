@@ -74,7 +74,7 @@ type watcher = {
 
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
-  ?pos:Pos.t
+  ?stack:Pos.t list
   -> ?clock:Clock.t
   -> ?name:string
   -> unit
@@ -92,7 +92,9 @@ class virtual source :
        (** Position in script *)
        method pos : Pos.Option.t
 
-       method set_pos : Pos.Option.t -> unit
+       method stack : Pos.t list
+       method set_stack : Pos.t list -> unit
+       method stack_unifier : Pos.t list Unifier.t
 
        (** {1 Source characteristics} *)
 
@@ -319,7 +321,7 @@ class virtual source :
 
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source :
-  ?pos:Pos.t
+  ?stack:Pos.t list
   -> ?clock:Clock.t
   -> ?name:string
   -> unit
@@ -334,7 +336,7 @@ and virtual active_source :
 
 (* This is for defining a source which has children *)
 class virtual operator :
-  ?pos:Pos.t
+  ?stack:Pos.t list
   -> ?clock:Clock.t
   -> ?name:string
   -> source list
@@ -345,7 +347,7 @@ class virtual operator :
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
 class virtual active_operator :
-  ?pos:Pos.t
+  ?stack:Pos.t list
   -> ?clock:Clock.t
   -> ?name:string
   -> source list

@@ -54,18 +54,18 @@ class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
 (** The source which produces data by reading the buffer.
     We do NOT want to use [operator] here b/c the [consumers]
     may have different content-kind when this is used in the muxers. *)
-class producer ?pos ~check_self_sync ~consumers ~name () =
+class producer ?stack ~check_self_sync ~consumers ~name () =
   let infallible = List.for_all (fun s -> not s#fallible) consumers in
-  let self_sync = Utils.self_sync consumers in
+  let self_sync = Clock_base.self_sync consumers in
   object (self)
-    inherit Source.source ?pos ~name ()
+    inherit Source.source ?stack ~name ()
 
     inherit
       Child_support.base
         ~check_self_sync
         (List.map (fun s -> Lang.source (s :> Source.source)) consumers)
 
-    method self_sync = self_sync ()
+    method self_sync = self_sync ~source:self ()
     method fallible = not infallible
 
     method! seek len =

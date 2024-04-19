@@ -431,29 +431,6 @@ let string_of_size n =
     Printf.sprintf "%.02f MiB" (float_of_int n /. float_of_int (1 lsl 20))
   else Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
 
-let self_sync_type sources =
-  Lazy.from_fun (fun () ->
-      if List.exists (fun s -> fst s#self_sync = `Dynamic) sources then `Dynamic
-      else `Static)
-
-let self_sync sources =
-  let self_sync_type = self_sync_type sources in
-  fun () ->
-    ( Lazy.force self_sync_type,
-      List.fold_left
-        (fun sync_source s ->
-          match (sync_source, s#is_ready) with
-            | Some _, true when snd s#self_sync <> None ->
-                Runtime_error.raise
-                  ~pos:(match s#pos with Some p -> [p] | None -> [])
-                  ~message:
-                    (Printf.sprintf
-                       "Source %s has multiple synchronization sources!" s#id)
-                  "source"
-            | None, true -> snd s#self_sync
-            | _ -> sync_source)
-        None sources )
-
 let var_script = ref "default"
 
 let substs =
