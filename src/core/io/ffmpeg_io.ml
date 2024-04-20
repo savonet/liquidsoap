@@ -190,10 +190,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private connect =
       match self#source_status with
         | `Starting | `Polling | `Connected _ -> ()
-        | `Stopping ->
-            Runtime_error.raise ~pos:(Option.to_list self#pos)
-              ~message:"Cannot connect while source is stopping!" "failure"
-        | `Stopped -> (
+        | `Stopping | `Stopped -> (
             Atomic.set source_status `Starting;
             match Atomic.get connect_task with
               | Some t -> Duppy.Async.wake_up t
