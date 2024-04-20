@@ -1,0 +1,113 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.511786937714
+  unit: "s"
+  time: 1713641733.14
+  min: 0.
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.785607099533
+  unit: "s"
+  time: 1713641733.93
+  min: 0.
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.42909693718
+  unit: "s"
+  time: 1713641735.36
+  min: 0.
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 2.98989319801
+  unit: "s"
+  time: 1713641738.35
+  min: 0.
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 382.0625
+  unit: "Mio"
+  time: 1713641996.43
+  min: 0.
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 966.734375
+  unit: "Mio"
+  time: 1713641996.43
+  min: 0.
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 7540.40625
+  unit: "Mio"
+  time: 1713641996.43
+  min: 0.
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 7540.40625
+  unit: "Mio"
+  time: 1713641996.43
+  min: 0.
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 5132.3125
+  unit: "Mio"
+  time: 1713641996.43
+  min: 0.
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 5132.3125
+  unit: "Mio"
+  time: 1713641996.43
+  min: 0.
+
+- name: "functions"
+  category: "language"
+  value: 2237.
+  unit: "functions"
+  time: 1713641999.4
+
+- name: "protocols"
+  category: "language"
+  value: 21.
+  unit: "protocols"
+  time: 1713641999.4
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.66083502769
+  unit: "s"
+  time: 1713642038.29
+  min: 0.
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 4.70408701897
+  unit: "s"
+  time: 1713642164.66
+  min: 0.
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 4.94201087952
+  unit: "s"
+  time: 1713642169.6
+  min: 0.
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 267.277999878
+  unit: "Mio"
+  time: 1713642174.68
+  min: 0.
+
+- commit: 8506715f4070a5312517ab16c8afcfcded281de6
+  branch: cleanup-ffmpeg-io-logic
+  time: 1713642174
