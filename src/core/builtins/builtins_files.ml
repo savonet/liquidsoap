@@ -487,25 +487,12 @@ let file_metadata =
     Lang.metadata_t ~descr:"Read metadata from a file."
     (fun p ->
       let uri = Lang.to_string (List.assoc "" p) in
-      let exclude =
+      let excluded =
         List.map Lang.to_string (Lang.to_list (List.assoc "exclude" p))
       in
-      let metadata = ref Frame.Metadata.empty in
-      let extension = try Some (Utils.get_ext uri) with _ -> None in
-      let mime = Magic_mime.lookup uri in
-      Plug.iter Request.mresolvers (fun name decoder ->
-          try
-            if List.mem name exclude then failwith "excluded!";
-            let m =
-              decoder ~metadata:Frame.Metadata.empty ~extension ~mime uri
-            in
-            metadata :=
-              List.fold_left
-                (fun m (k, v) ->
-                  Frame.Metadata.add (String.lowercase_ascii k) v m)
-                !metadata m
-          with _ -> ());
-      Lang.metadata !metadata)
+      Lang.metadata
+        (Request.resolve_metadata ~initial_metadata:Frame.Metadata.empty
+           ~excluded uri))
 
 let () =
   Lifecycle.on_load ~name:"metadata resolvers registration" (fun () ->
@@ -530,7 +517,8 @@ let () =
                  let mime = Magic_mime.lookup uri in
                  let m =
                    try
-                     decoder ~metadata:Frame.Metadata.empty ~extension ~mime uri
+                     decoder.Request.resolver ~metadata:Frame.Metadata.empty
+                       ~extension ~mime uri
                    with _ -> []
                  in
                  let m =

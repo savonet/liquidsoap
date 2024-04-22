@@ -40,6 +40,11 @@ let file_extensions =
     "File extensions used for decoding metadata using native parser."
     ~d:["avi"; "mp4"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "video_metadata")
+    "Priority for the native video metadata decoder" ~d:1
+
 let get_tags ~metadata:_ ~extension ~mime fname =
   try
     if
@@ -59,4 +64,5 @@ let get_tags ~metadata:_ ~extension ~mime fname =
 
 let () =
   Plug.register Request.mresolvers "video-metadata"
-    ~doc:"Native metadata decoder for videos." get_tags
+    ~doc:"Native metadata decoder for videos."
+    { Request.priority = (fun () -> priority#get); resolver = get_tags }
