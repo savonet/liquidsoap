@@ -56,6 +56,21 @@ let file_extensions =
      parser"
     ~d:["mp3"; "wav"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "id3")
+    "Priority for the native ID3 metadata decoder" ~d:1
+
+let priority_v1 =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "id3v1")
+    "Priority for the native ID3v1 metadata decoder" ~d:1
+
+let priority_v2 =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "id3v2")
+    "Priority for the native ID3v2 metadata decoder" ~d:1
+
 let get_tags ~metadata:_ ~extension ~mime parse fname =
   try
     if
@@ -75,12 +90,21 @@ let get_tags ~metadata:_ ~extension ~mime parse fname =
 
 let () =
   Plug.register Request.mresolvers "ID3" ~doc:"Native decoder for ID3 tags."
-    (get_tags Metadata.ID3.parse_file)
+    {
+      Request.priority = (fun () -> priority#get);
+      resolver = get_tags Metadata.ID3.parse_file;
+    }
 
 let () =
   Plug.register Request.mresolvers "ID3v1" ~doc:"Native decoder for ID3v1 tags."
-    (get_tags Metadata.ID3v1.parse_file)
+    {
+      Request.priority = (fun () -> priority_v1#get);
+      resolver = get_tags Metadata.ID3v1.parse_file;
+    }
 
 let () =
   Plug.register Request.mresolvers "ID3v2" ~doc:"Native decode for ID3v2 tags."
-    (get_tags Metadata.ID3v2.parse_file)
+    {
+      Request.priority = (fun () -> priority_v2#get);
+      resolver = get_tags Metadata.ID3v2.parse_file;
+    }

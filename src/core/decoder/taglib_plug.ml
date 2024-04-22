@@ -44,6 +44,11 @@ let mime_types =
 let conf_taglib =
   Dtools.Conf.void ~p:(Decoder.conf_decoder#plug "taglib") "Taglib settings"
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "taglib")
+    "Priority for the taglib metadata decoder" ~d:1
+
 let file_extensions =
   Dtools.Conf.list
     ~p:(Decoder.conf_file_extensions#plug "taglib")
@@ -99,4 +104,6 @@ let get_tags ~metadata:_ ~extension ~mime fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Plug.register Request.mresolvers "taglib" ~doc:"" get_tags
+let () =
+  Plug.register Request.mresolvers "taglib" ~doc:""
+    { Request.priority = (fun () -> priority#get); resolver = get_tags }

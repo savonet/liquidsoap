@@ -163,7 +163,17 @@ let get_tags ~metadata:_ ~extension ~mime file =
       let h = Flac.Decoder.File.create_from_fd write fd in
       match h.Flac.Decoder.File.comments with Some (_, m) -> m | None -> [])
 
-let () = Plug.register Request.mresolvers "flac" ~doc:"" get_tags
+let metadata_decoder_priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "flac")
+    "Priority for the flac metadata decoder" ~d:1
+
+let () =
+  Plug.register Request.mresolvers "flac" ~doc:""
+    {
+      Request.priority = (fun () -> metadata_decoder_priority#get);
+      resolver = get_tags;
+    }
 
 let check filename =
   List.mem (Magic_mime.lookup filename) mime_types#get

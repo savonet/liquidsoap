@@ -288,4 +288,14 @@ let get_tags ~metadata:_ ~extension ~mime file =
       let mp4 = Faad.Mp4.openfile_fd fd in
       Array.to_list (Faad.Mp4.metadata mp4))
 
-let () = Plug.register Request.mresolvers "mp4" ~doc:"MP4 tag decoder." get_tags
+let mp4_metadata_decoder_priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "mp4")
+    "Priority for the mp4 metadata decoder" ~d:1
+
+let () =
+  Plug.register Request.mresolvers "mp4" ~doc:"MP4 tag decoder."
+    {
+      Request.priority = (fun () -> mp4_metadata_decoder_priority#get);
+      resolver = get_tags;
+    }
