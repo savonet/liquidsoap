@@ -8,6 +8,7 @@ New:
 - Added `excluded_metadata_resolvers` to `request.create` to make it possible to selectively disable specific metadata resolvers when resolving requests.
 - Normalized expected API from `autocue`, allow multiple implementation and adapt `cross`/`crossfade` to work with it out of the box with workaround for short tracks.
 - Added private and swapped memory reporting when compiled with `mem_usage`.
+- Added priorities to metadata deocoders, allows finer-control of metadata overriding. (#3887)
 
 Changed:
 

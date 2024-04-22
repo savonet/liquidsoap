@@ -468,22 +468,12 @@ let file_metadata =
     Lang.metadata_t ~descr:"Read metadata from a file."
     (fun p ->
       let uri = Lang.to_string (List.assoc "" p) in
-      let exclude =
+      let excluded =
         List.map Lang.to_string (Lang.to_list (List.assoc "exclude" p))
       in
-      let extension = try Some (Utils.get_ext uri) with _ -> None in
-      let mime = Magic_mime.lookup uri in
-      let metadata = Hashtbl.create 0 in
-      Plug.iter Request.mresolvers (fun name decoder ->
-          try
-            if List.mem name exclude then failwith "excluded!";
-            let m = decoder ~metadata:(Hashtbl.create 0) ~extension ~mime uri in
-            List.iter
-              (fun (k, v) ->
-                Hashtbl.replace metadata (String.lowercase_ascii k) v)
-              m
-          with _ -> ());
-      Lang.metadata metadata)
+      Lang.metadata
+        (Request.resolve_metadata ~initial_metadata:(Hashtbl.create 0) ~excluded
+           uri))
 
 let () =
   Lifecycle.on_load ~name:"metadata resolvers registration" (fun () ->
@@ -507,7 +497,9 @@ let () =
                  in
                  let mime = Magic_mime.lookup uri in
                  let m =
-                   try decoder ~metadata:(Hashtbl.create 0) ~extension ~mime uri
+                   try
+                     decoder.Request.resolver ~metadata:(Hashtbl.create 0)
+                       ~extension ~mime uri
                    with _ -> []
                  in
                  let m =

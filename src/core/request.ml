@@ -74,6 +74,16 @@ let short_string_of_metadata m =
     if String.length t < 12 then t else String.sub t 0 9 ^ "..."
   with Not_found -> "(undef)"
 
+type metadata_resolver = {
+  priority : unit -> int;
+  resolver :
+    metadata:Frame.metadata ->
+    extension:string option ->
+    mime:string ->
+    string ->
+    (string * string) list;
+}
+
 (** Log *)
 
 type log = (Unix.tm * string) Queue.t
@@ -118,7 +128,12 @@ let string_of_log log =
     ]
   *)
 
-type indicator = { string : string; temporary : bool; metadata : metadata }
+type indicator = {
+  string : string;
+  temporary : bool;
+  mutable metadata : metadata;
+}
+
 type status = Idle | Resolving | Ready | Playing | Destroyed
 
 type t = {
@@ -184,10 +199,10 @@ let toplevel_metadata t =
     | (h :: _) :: _ -> h.metadata
 
 let iter_metadata t f =
-  f t.root_metadata;
   List.iter
     (function [] -> assert false | h :: _ -> f h.metadata)
-    t.indicators
+    t.indicators;
+  f t.root_metadata
 
 let set_metadata t k v = Hashtbl.replace (toplevel_metadata t) k v
 let set_root_metadata t k v = Hashtbl.replace t.root_metadata k v
@@ -257,6 +272,18 @@ let conf_metadata_decoders =
     ~p:(conf#plug "metadata_decoders")
     ~d:[] "Decoders and order used to decode files' metadata."
 
+let conf_metadata_decoder_priorities =
+  Dtools.Conf.void
+    ~p:(conf_metadata_decoders#plug "priorities")
+    "Priorities used for applying metadata decoders. Decoder with the highest \
+     priority take precedence."
+
+let conf_request_metadata_priority =
+  Dtools.Conf.int ~d:5
+    ~p:(conf_metadata_decoder_priorities#plug "request_metadata")
+    "Priority for the request metadata. This include metadata set via \
+     `annotate`."
+
 let f c v =
   match c#get_d with
     | None -> c#set_d (Some [v])
@@ -270,7 +297,9 @@ let get_decoders conf decoders =
           log#severe "Cannot find decoder %s" name;
           cur
   in
-  List.fold_left f [] (List.rev conf#get)
+  List.sort
+    (fun (_, d) (_, d') -> Stdlib.compare (d'.priority ()) (d.priority ()))
+    (List.fold_left f [] (List.rev conf#get))
 
 let mresolvers_doc = "Methods to extract metadata from a file."
 
@@ -278,13 +307,6 @@ let mresolvers =
   Plug.create
     ~register_hook:(fun name _ -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc "metadata formats"
-
-let conf_override_metadata =
-  Dtools.Conf.bool
-    ~p:(conf_metadata_decoders#plug "override")
-    ~d:false
-    "Allow metadata resolvers to override metadata already set through \
-     annotate: or playlist resolution for instance."
 
 let conf_duration =
   Dtools.Conf.bool
@@ -305,6 +327,51 @@ let conf_recode_excluded =
     ~d:["apic"; "metadata_block_picture"; "coverart"]
     ~p:(conf_recode#plug "exclude")
     "Exclude these metadata from automatic recording."
+
+let resolve_metadata ~initial_metadata ~excluded name =
+  let decoders = get_decoders conf_metadata_decoders mresolvers in
+  let decoders =
+    List.filter (fun (name, _) -> not (List.mem name excluded)) decoders
+  in
+  let high_priority_decoders, low_priority_decoders =
+    List.partition
+      (fun (_, { priority }) ->
+        conf_request_metadata_priority#get < priority ())
+      decoders
+  in
+  let convert =
+    if conf_recode#get then (
+      let excluded = conf_recode_excluded#get in
+      fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
+    else fun _ x -> x
+  in
+  let extension = try Some (Utils.get_ext name) with _ -> None in
+  let mime = Magic_mime.lookup name in
+  let read_metadata ~metadata decoders =
+    List.iter
+      (fun (_, { resolver }) ->
+        try
+          let ans = resolver ~metadata:initial_metadata ~extension ~mime name in
+          List.iter
+            (fun (k, v) ->
+              let k = String.lowercase_ascii (convert k k) in
+              let v = convert k v in
+              if not (Hashtbl.mem metadata k) then Hashtbl.replace metadata k v)
+            ans
+        with _ -> ())
+      decoders
+  in
+  let metadata = Hashtbl.copy initial_metadata in
+  read_metadata ~metadata low_priority_decoders;
+  let high_priority_metadata = Hashtbl.create 0 in
+  read_metadata ~metadata:high_priority_metadata high_priority_decoders;
+  Hashtbl.iter (fun k v -> Hashtbl.replace metadata k v) high_priority_metadata;
+  if conf_duration#get && not (Hashtbl.mem metadata "duration") then (
+    try
+      Hashtbl.replace metadata "duration"
+        (string_of_float (duration ~metadata name))
+    with Not_found -> ());
+  metadata
 
 (** Sys.file_exists doesn't make a difference between existing files and files
     without enough permissions to list their attributes, for example when they
@@ -336,42 +403,14 @@ let read_metadata t =
       log#important "Read permission denied for %s!"
         (Lang_string.quote_string name)
     else (
-      let convert =
-        if conf_recode#get then (
-          let excluded = conf_recode_excluded#get in
-          fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
-        else fun _ x -> x
+      let metadata =
+        resolve_metadata ~initial_metadata:(get_all_metadata t)
+          ~excluded:t.excluded_metadata_resolvers name
       in
-      let extension = try Some (Utils.get_ext name) with _ -> None in
-      let mime = Magic_mime.lookup name in
-      let decoders = get_decoders conf_metadata_decoders mresolvers in
-      let decoders =
-        List.filter
-          (fun (name, _) -> not (List.mem name t.excluded_metadata_resolvers))
-          decoders
-      in
-      List.iter
-        (fun (_, resolver) ->
-          try
-            let ans =
-              resolver ~metadata:(get_all_metadata t) ~extension ~mime name
-            in
-            List.iter
-              (fun (k, v) ->
-                let k = String.lowercase_ascii (convert k k) in
-                let v = convert k v in
-                if conf_override_metadata#get || get_metadata t k = None then
-                  Hashtbl.replace indicator.metadata k v)
-              ans;
-            if conf_duration#get && get_metadata t "duration" = None then (
-              try
-                Hashtbl.replace indicator.metadata "duration"
-                  (string_of_float (duration ~metadata:indicator.metadata name))
-              with Not_found -> ())
-          with _ -> ())
-        decoders))
+      indicator.metadata <- metadata))
 
 let local_check t =
+  read_metadata t;
   let check_decodable ctype =
     try
       while t.decoder = None && file_exists (peek_indicator t).string do
@@ -390,7 +429,6 @@ let local_check t =
             | Some (decoder_name, f) ->
                 t.decoder <- Some f;
                 set_root_metadata t "decoder" decoder_name;
-                read_metadata t;
                 t.status <- Ready
             | None -> pop_indicator t)
       done

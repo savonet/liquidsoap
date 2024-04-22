@@ -37,6 +37,8 @@
    "sine=frequency=220:duration=5"
    -ac
    2
+   -metadata
+   "title=Test Title"
    %{target})))
 
 (rule
