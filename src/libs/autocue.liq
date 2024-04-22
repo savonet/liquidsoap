@@ -919,10 +919,6 @@ def enable_autocue_metadata() =
   settings.crossfade.assume_autocue := true
 
   def autocue_metadata(~metadata, fname) =
-    print(
-      "fname: #{fname}, metadata: #{metadata}"
-    )
-
     autocue_metadata = file.autocue.metadata(fname)
 
     all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
