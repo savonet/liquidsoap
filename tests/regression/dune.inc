@@ -768,6 +768,21 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  metadata-resolvers-metadata.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} metadata-resolvers-metadata.liq liquidsoap %{test_liq} metadata-resolvers-metadata.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   metadata_cache.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
