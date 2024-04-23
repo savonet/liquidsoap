@@ -168,10 +168,10 @@ let duration ~metadata file =
 (** Manage requests' metadata *)
 
 let iter_metadata t f =
+  f t.root_metadata;
   List.iter
     (function [] -> assert false | h :: _ -> f h.metadata)
-    t.indicators;
-  f t.root_metadata
+    t.indicators
 
 let set_metadata t k v =
   match t.indicators with
@@ -188,15 +188,8 @@ let get_metadata t k =
   try
     iter_metadata t (fun h ->
         try raise (Found (Frame.Metadata.find k h)) with Not_found -> ());
-    (try raise (Found (Frame.Metadata.find k t.root_metadata))
-     with Not_found -> ());
     None
   with Found s -> Some s
-
-let get_root_metadata t k =
-  try raise (Found (Frame.Metadata.find k t.root_metadata)) with
-    | Not_found -> None
-    | Found x -> Some x
 
 let get_all_metadata t =
   let h = ref Frame.Metadata.empty in
@@ -490,10 +483,6 @@ let get_metadata t k =
 let get_all_metadata t =
   update_metadata t;
   get_all_metadata t
-
-let get_root_metadata t =
-  update_metadata t;
-  get_root_metadata t
 
 (** Global management *)
 
