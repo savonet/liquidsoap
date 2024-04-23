@@ -17,6 +17,16 @@ let settings.autocue.target_cross_duration =
     3.
   )
 
+let settings.autocue.metadata = ()
+
+let settings.autocue.metadata.priority =
+  settings.make(
+    description=
+      "Priority for the autocue metadata resolver. Default value allows it \
+       to override both file and request metadata.",
+    10
+  )
+
 let settings.autocue.preferred =
   settings.make(
     description=
@@ -986,7 +996,11 @@ def enable_autocue_metadata() =
     log(level=4, label="autocue.metadata", "#{autocue_metadata}")
     autocue_metadata
   end
-  decoder.metadata.add("autocue", autocue_metadata)
+  decoder.metadata.add(
+    priority=settings.autocue.metadata.priority,
+    "autocue",
+    autocue_metadata
+  )
 end
 
 # Define autocue protocol
