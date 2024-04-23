@@ -598,7 +598,17 @@ let get_tags ~metadata ~extension ~mime file =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Plug.register Request.mresolvers "ffmpeg" ~doc:"" get_tags
+let metadata_decoder_priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "ffmpeg")
+    "Priority for the ffmpeg metadata decoder" ~d:1
+
+let () =
+  Plug.register Request.mresolvers "ffmpeg" ~doc:""
+    {
+      Request.priority = (fun () -> metadata_decoder_priority#get);
+      resolver = get_tags;
+    }
 
 (* Get the type of an input container. *)
 let get_type ~ctype ~format ~url container =

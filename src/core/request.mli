@@ -119,6 +119,9 @@ val is_static : string -> bool
   * audio file, or simply because there was no enough time left. *)
 type resolve_flag = Resolved | Failed | Timeout
 
+(** Metadata resolvers priorities. *)
+val conf_metadata_decoder_priorities : Dtools.Conf.ut
+
 (** Read the metadata for the toplevel indicator of the request. This is usually
     performed automatically by [resolve] so that you do not have to use this,
     excepting when the [ctype] is [None]. *)
@@ -194,15 +197,29 @@ val get_decoder : t -> Decoder.file_decoder_ops option
 (** Functions for computing duration. *)
 val dresolvers : (metadata:Frame.metadata -> string -> float) Plug.t
 
+(** Type for a metadata resolver. Resolvers are executed in priority
+    order and the first returned metadata take precedence over any other
+    one later returned. *)
+type metadata_resolver = {
+  priority : unit -> int;
+  resolver :
+    metadata:Frame.metadata ->
+    extension:string option ->
+    mime:string ->
+    string ->
+    (string * string) list;
+}
+
 (** Functions for resolving metadata. Metadata filling isn't included in Decoder
     because we want it to occur immediately after request resolution. *)
-val mresolvers :
-  (metadata:Frame.metadata ->
-  extension:string option ->
-  mime:string ->
+val mresolvers : metadata_resolver Plug.t
+
+(** Resolve metadata for a local file: *)
+val resolve_metadata :
+  initial_metadata:Frame.metadata ->
+  excluded:string list ->
   string ->
-  (string * string) list)
-  Plug.t
+  Frame.metadata
 
 (** Functions for resolving URIs. *)
 val protocols : protocol Plug.t
