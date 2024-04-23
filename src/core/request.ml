@@ -199,10 +199,10 @@ let toplevel_metadata t =
     | (h :: _) :: _ -> h.metadata
 
 let iter_metadata t f =
+  f t.root_metadata;
   List.iter
     (function [] -> assert false | h :: _ -> f h.metadata)
-    t.indicators;
-  f t.root_metadata
+    t.indicators
 
 let set_metadata t k v = Hashtbl.replace (toplevel_metadata t) k v
 let set_root_metadata t k v = Hashtbl.replace t.root_metadata k v
