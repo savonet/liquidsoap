@@ -105,7 +105,8 @@ let pull graph =
     | Some s -> Clock.tick s#clock
     | None -> ()
 
-let self_sync graph = (Utils.self_sync (Queue.elements graph.graph_inputs)) ()
+let self_sync graph source =
+  (Clock_base.self_sync ~source (Queue.elements graph.graph_inputs)) ()
 
 module Graph = Value.MkAbstract (struct
   type content = graph
@@ -633,16 +634,11 @@ let _ =
                 ())
          in
          let name = uniq_name "abuffer" in
-         let pos =
-           match Liquidsoap_lang.Lang_core.pos p with
-             | [] -> None
-             | p :: _ -> Some p
-         in
          let s =
            Ffmpeg_filter_io.(
              new audio_output ~pass_metadata ~name ~frame_t ~field source)
          in
-         s#set_pos pos;
+         s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
 
@@ -704,8 +700,7 @@ let _ =
              ~field
              ~pull:(fun () -> pull graph)
              ~is_ready:(fun () -> is_ready graph)
-             ~self_sync:(fun () -> self_sync graph)
-             ~pass_metadata frame_t
+             ~self_sync:(self_sync graph) ~pass_metadata frame_t
          in
          Queue.push graph.graph_outputs (s :> Source.source);
 
@@ -767,16 +762,11 @@ let _ =
                 ())
          in
          let name = uniq_name "buffer" in
-         let pos =
-           match Liquidsoap_lang.Lang_core.pos p with
-             | [] -> None
-             | p :: _ -> Some p
-         in
          let s =
            Ffmpeg_filter_io.(
              new video_output ~pass_metadata ~name ~frame_t ~field source)
          in
-         s#set_pos pos;
+         s#set_stack (Liquidsoap_lang.Lang_core.pos p);
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
 
@@ -834,8 +824,7 @@ let _ =
           ~field
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
-          ~self_sync:(fun () -> self_sync graph)
-          ~pass_metadata frame_t
+          ~self_sync:(self_sync graph) ~pass_metadata frame_t
       in
       Queue.push graph.graph_outputs (s :> Source.source);
 

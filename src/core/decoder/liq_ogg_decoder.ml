@@ -320,4 +320,14 @@ let get_tags ~metadata:_ ~extension ~mime file =
       get Ogg_decoder.audio_info tracks.Ogg_decoder.audio_track
       @ get Ogg_decoder.video_info tracks.Ogg_decoder.video_track)
 
-let () = Plug.register Request.mresolvers "ogg" ~doc:"" get_tags
+let metadata_decoder_priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "ogg")
+    "Priority for the ogg metadata decoder" ~d:1
+
+let () =
+  Plug.register Request.mresolvers "ogg" ~doc:""
+    {
+      Request.priority = (fun () -> metadata_decoder_priority#get);
+      resolver = get_tags;
+    }

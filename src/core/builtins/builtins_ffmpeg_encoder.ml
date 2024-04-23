@@ -427,11 +427,6 @@ let mk_encoder mode =
            Lang.to_default_option ~default:name Lang.to_string
              (List.assoc "id" p)
          in
-         let pos =
-           match Liquidsoap_lang.Lang_core.pos p with
-             | [] -> None
-             | p :: _ -> Some p
-         in
          let format_val = Lang.assoc "" 1 p in
          let format =
            match Lang.to_format format_val with
@@ -557,7 +552,8 @@ let mk_encoder mode =
              ~write_frame:encode_frame ~name:(id ^ ".consumer")
              ~source:(Lang.source source) ()
          in
-         consumer#set_pos pos;
+         let stack = Liquidsoap_lang.Lang_core.pos p in
+         consumer#set_stack stack;
 
          let input_frame_t = Type.fresh input_frame_t in
          Typing.(
@@ -568,7 +564,7 @@ let mk_encoder mode =
          ( field,
            new Producer_consumer.producer
            (* We are expecting real-rate with a couple of hickups.. *)
-             ?pos ~check_self_sync:false ~consumers:[consumer]
+             ~stack ~check_self_sync:false ~consumers:[consumer]
              ~name:(id ^ ".producer") () )))
 
 let () =

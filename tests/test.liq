@@ -33,7 +33,7 @@ def test.fail(reason=null()) =
   print(
     "Test failed#{reason}"
   )
-  shutdown(code=1)
+  exit(1)
 end
 
 # End test with signal 2
@@ -101,11 +101,13 @@ def test.equal(v, v') =
   if
     v != v'
   then
-    print(
+    msg =
       "expected:\r\n#{string.quote(string(v'))}\r\ngot:\r\n#{
         string.quote(string(v))
       }"
-    )
+    print(msg)
+
+    error.raise(error.failure, msg)
 
     test.fail()
   end
@@ -117,13 +119,15 @@ def test.not.equal(first, second) =
   if
     first == second
   then
-    error.raise(
-      error.failure,
+    msg =
       "expected\r\n
       #{string.quote(string(first))}\r\nto differ from:\r\n#{
         string.quote(string(second))
       }"
-    )
+
+    print(msg)
+
+    error.raise(error.failure, msg)
 
     test.fail()
   end

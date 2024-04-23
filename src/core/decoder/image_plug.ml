@@ -40,6 +40,11 @@ let file_extensions =
     "File extensions used for decoding metadata using native parser."
     ~d:["png"; "jpg"; "jpeg"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "image_metadata")
+    "Priority for the image metadata decoder" ~d:1
+
 let get_tags ~metadata:_ ~extension ~mime fname =
   try
     if
@@ -59,4 +64,5 @@ let get_tags ~metadata:_ ~extension ~mime fname =
 
 let () =
   Plug.register Request.mresolvers "image"
-    ~doc:"Native decoder for image metadata." get_tags
+    ~doc:"Native decoder for image metadata."
+    { Request.priority = (fun () -> priority#get); resolver = get_tags }

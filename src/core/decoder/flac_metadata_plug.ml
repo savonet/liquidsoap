@@ -39,6 +39,11 @@ let file_extensions =
     "File extensions used for decoding metadata using native FLAC parser."
     ~d:["flac"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "flac_native")
+    "Priority for the flac native decoder" ~d:1
+
 let get_tags ~metadata:_ ~extension ~mime parse fname =
   try
     if
@@ -59,4 +64,7 @@ let get_tags ~metadata:_ ~extension ~mime parse fname =
 let () =
   Plug.register Request.mresolvers "flac_native"
     ~doc:"Native FLAC metadata resolver."
-    (get_tags Metadata.FLAC.parse_file)
+    {
+      Request.priority = (fun () -> priority#get);
+      resolver = get_tags Metadata.FLAC.parse_file;
+    }

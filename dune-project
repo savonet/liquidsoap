@@ -55,7 +55,7 @@
     uri
     fileutils
     menhirLib
-    mem_usage
+    (mem_usage (>= 0.1.1))
     (metadata (>= 0.3.0))
     magic-mime
     dune-build-info

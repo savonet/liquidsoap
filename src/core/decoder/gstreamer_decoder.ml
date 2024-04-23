@@ -346,6 +346,14 @@ let get_tags ~metadata:_ file =
     GU.flush ~log bin;
     List.rev !ans
 
+let metadata_decoder_priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "gstreamer")
+    "Priority for the gstreamer metadata decoder" ~d:1
+
 let () =
   Plug.register Request.mresolvers "gstreamer" ~doc:"Read tags using GStreamer."
-    get_tags
+    {
+      Request.priority = (fun () -> metadata_decoder_priority#get);
+      resolver = get_tags;
+    }

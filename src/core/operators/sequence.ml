@@ -28,7 +28,7 @@ open Source
   * while looping on the last source -- this behavior would not be suited
   * to the current use of [sequence] in transitions. *)
 class sequence ?(merge = false) ?(single_track = true) sources =
-  let self_sync_type = Utils.self_sync_type sources in
+  let self_sync_type = Clock_base.self_sync_type sources in
   let seq_sources = Atomic.make sources in
   object (self)
     inherit operator ~name:"sequence" sources

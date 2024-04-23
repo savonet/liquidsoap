@@ -142,9 +142,7 @@ def f() =
     x.foo.gni.bla(1, 2, 3).blo
   end
 
-  test.equal(
-    f({foo={gni={bla=(fun (_, _, _, ~foo="gni") -> {blo=123})}}}), 123
-  )
+  test.equal(f({foo={gni={bla=(fun (_, _, _, ~foo="gni") -> {blo=123})}}}), 123)
 
   def f(x) =
     x.foo?.gni.bla(1, 2, 3)
@@ -307,6 +305,12 @@ def f() =
   y = {foo={bar=1}}
   test.equal({...x, ...y}, {foo={bar=1}})
   test.equal({...y, ...x}, {foo=1})
+
+  # A required method that is a function returning `int?`
+  def f(x) =
+    x.foo() ?? 123
+  end
+  test.equal(f({foo=fun () -> null()}), 123)
 
   test.pass()
 end
