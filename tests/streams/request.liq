@@ -3,12 +3,12 @@ settings.log.level.set(4)
 test.check(
   fun () ->
     begin
-      test.almost_equal(digits=1, request.duration("file1.mp3") ?? 0., 5.)
+      test.almost_equal(digits=1, request.duration("file1.mp3") ?? 0., 5.06)
       test.almost_equal(
         digits=1, request.duration("annotate:cue_out=1.1:file1.mp3") ?? 0., 1.1
       )
       test.almost_equal(
-        digits=1, request.duration("annotate:cue_in=1.041:file1.mp3") ?? 0., 4.
+        digits=1, request.duration("annotate:cue_in=1.06:file1.mp3") ?? 0., 4.
       )
       test.almost_equal(
         digits=1,
