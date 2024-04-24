@@ -24,6 +24,7 @@ Fixed:
 - Fixed issues with rendered id3v2 frame that contain binary data (#3817)
 - Fixed memory leaks with SRT listen socket polling callbacks.
 - Fixed `%ffmpeg` copy muxer logic with some audio/video streams (#3840)
+- Fixed `duration` metadata calculation in the presence of `cue_in`/`cue_out` metadata.
 
 ---
 

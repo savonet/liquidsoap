@@ -135,10 +135,14 @@ let init host =
                 match request with
                   | Some s -> (
                       match Request.get_filename s with
-                        | Some file ->
-                            Request.duration
-                              ~metadata:(Request.get_all_metadata s)
-                              file
+                        | Some file -> (
+                            match
+                              Request.duration
+                                ~metadata:(Request.get_all_metadata s)
+                                file
+                            with
+                              | Some f -> f
+                              | None -> raise Not_found)
                         | None -> raise Not_found)
                   | None -> raise Not_found
               with

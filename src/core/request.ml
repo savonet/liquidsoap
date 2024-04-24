@@ -178,7 +178,7 @@ let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
 
 exception Duration of float
 
-let duration ~metadata file =
+let compute_duration ~metadata file =
   try
     Plug.iter dresolvers (fun _ resolver ->
         try
@@ -189,6 +189,27 @@ let duration ~metadata file =
           | _ -> ());
     raise Not_found
   with Duration d -> d
+
+let duration ~metadata file =
+  try
+    match
+      ( Hashtbl.find_opt metadata "duration",
+        Hashtbl.find_opt metadata "cue_in",
+        Hashtbl.find_opt metadata "cue_out" )
+    with
+      | _, Some cue_in, Some cue_out ->
+          Some (float_of_string cue_out -. float_of_string cue_in)
+      | _, None, Some cue_out -> Some (float_of_string cue_out)
+      | Some v, _, _ -> Some (float_of_string v)
+      | None, cue_in, None ->
+          let duration = compute_duration ~metadata file in
+          let duration =
+            match cue_in with
+              | Some cue_in -> duration -. float_of_string cue_in
+              | None -> duration
+          in
+          Some duration
+  with _ -> None
 
 (** Manage requests' metadata *)
 
@@ -366,11 +387,10 @@ let resolve_metadata ~initial_metadata ~excluded name =
   let high_priority_metadata = Hashtbl.create 0 in
   read_metadata ~metadata:high_priority_metadata high_priority_decoders;
   Hashtbl.iter (fun k v -> Hashtbl.replace metadata k v) high_priority_metadata;
-  if conf_duration#get && not (Hashtbl.mem metadata "duration") then (
-    try
-      Hashtbl.replace metadata "duration"
-        (string_of_float (duration ~metadata name))
-    with Not_found -> ());
+  if conf_duration#get then (
+    match duration ~metadata name with
+      | None -> ()
+      | Some d -> Hashtbl.replace metadata "duration" (string_of_float d));
   metadata
 
 (** Sys.file_exists doesn't make a difference between existing files and files
