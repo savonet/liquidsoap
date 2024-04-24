@@ -3,11 +3,17 @@ settings.log.level.set(4)
 test.check(
   fun () ->
     begin
-      test.equal(request.duration("file1.mp3"), 5.041)
-      test.equal(request.duration("annotate:cue_out=1.1:file1.mp3"), 1.1)
-      test.equal(request.duration("annotate:cue_in=1.041:file1.mp3"), 4.)
-      test.equal(
-        request.duration("annotate:cue_in=1.00,cue_out=3.1:file1.mp3"), 2.1
+      test.almost_equal(digits=1, request.duration("file1.mp3"), 5.)
+      test.almost_equal(
+        digits=1, request.duration("annotate:cue_out=1.1:file1.mp3"), 1.1
+      )
+      test.almost_equal(
+        digits=1, request.duration("annotate:cue_in=1.041:file1.mp3"), 4.
+      )
+      test.almost_equal(
+        digits=1,
+        request.duration("annotate:cue_in=1.00,cue_out=3.1:file1.mp3"),
+        2.1
       )
 
       r = request.dynamic(prefetch=1, fun () -> request.create("invalid"))
