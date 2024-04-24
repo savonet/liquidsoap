@@ -39,6 +39,11 @@ let file_extensions =
     "File extensions used for decoding metadata using native ogg parser."
     ~d:["ogg"]
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "ogg_metadata")
+    "Priority for the native ogg metadata decoder" ~d:1
+
 let get_tags ~metadata:_ ~extension ~mime parse fname =
   try
     if
@@ -59,4 +64,7 @@ let get_tags ~metadata:_ ~extension ~mime parse fname =
 let () =
   Plug.register Request.mresolvers "ogg_native"
     ~doc:"Native ogg metadata resolver."
-    (get_tags Metadata.OGG.parse_file)
+    {
+      Request.priority = (fun () -> priority#get);
+      resolver = get_tags Metadata.OGG.parse_file;
+    }

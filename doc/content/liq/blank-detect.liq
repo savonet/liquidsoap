@@ -1,4 +1,5 @@
 s = playlist("my-playlist")
+
 # BEGIN
 def handler() =
   process.run(
@@ -6,5 +7,6 @@ def handler() =
   )
 end
 s = blank.detect(handler, s)
+
 # END
 output.dummy(fallible=true, s)

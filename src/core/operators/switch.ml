@@ -80,7 +80,8 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
       (List.map (fun c -> c.transition) cases)
   in
   let self_sync_type =
-    if !failed then Lazy.from_val `Dynamic else Utils.self_sync_type !sources
+    if !failed then Lazy.from_val `Dynamic
+    else Clock_base.self_sync_type !sources
   in
   object (self)
     inherit operator ~name:"switch" (List.map (fun x -> x.source) cases)

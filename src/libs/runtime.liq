@@ -22,7 +22,11 @@ def replaces runtime.memory() =
       process_virtual_memory=
         runtime.memory.prettify_bytes(x.process_virtual_memory),
       process_physical_memory=
-        runtime.memory.prettify_bytes(x.process_physical_memory)
+        runtime.memory.prettify_bytes(x.process_physical_memory),
+      process_private_memory=
+        runtime.memory.prettify_bytes(x.process_private_memory),
+      process_swapped_memory=
+        runtime.memory.prettify_bytes(x.process_swapped_memory)
     }
 
   x
@@ -62,3 +66,5 @@ end
 def time.zone.set(tz) =
   environment.set("TZ", tz)
 end
+
+runtime.gc.set(runtime.gc.get().{space_overhead=20, allocation_policy=2})

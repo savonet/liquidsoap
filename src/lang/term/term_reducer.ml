@@ -361,7 +361,8 @@ let mk_invoke ?(default : Parsed_term.t option) ~pos ~to_term expr v =
 let mk_coalesce ~pos ~(default : Parsed_term.t) ~to_term
     (computed : Parsed_term.t) =
   match computed.term with
-    | `Invoke { invoked; meth } -> mk_invoke ~pos ~default ~to_term invoked meth
+    | `Invoke { invoked; meth = `String m } ->
+        mk_invoke ~pos ~default ~to_term invoked (`String m)
     | _ ->
         let null = mk ~pos (`Var "null") in
         let op =

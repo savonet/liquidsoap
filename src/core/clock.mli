@@ -28,10 +28,24 @@ type active_source = < reset : unit ; output : unit >
 type source_type =
   [ `Passive | `Active of active_source | `Output of active_source ]
 
-type sync_source
+type sync_source = Clock_base.sync_source
 type self_sync = [ `Static | `Dynamic ] * sync_source option
 
 val string_of_sync_source : sync_source -> string
+
+type sync_source_entry = {
+  name : string;
+  sync_source : sync_source;
+  stack : Pos.t list;
+}
+
+type clock_sync_error = {
+  name : string;
+  stack : Pos.t list;
+  sync_sources : sync_source_entry list;
+}
+
+exception Sync_error of clock_sync_error
 
 module type SyncSource = sig
   type t
@@ -45,6 +59,7 @@ end
 
 type source =
   < id : string
+  ; stack : Pos.t list
   ; self_sync : self_sync
   ; source_type : source_type
   ; active : bool
@@ -60,7 +75,7 @@ val string_of_sync_mode : sync_mode -> string
 val active_sync_mode_of_string : string -> active_sync_mode
 
 val create :
-  ?pos:Liquidsoap_lang.Pos.t ->
+  ?stack:Liquidsoap_lang.Pos.t list ->
   ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
   ?id:string ->
   ?sync:active_sync_mode ->
@@ -78,7 +93,7 @@ val descr : t -> string
 val sync : t -> sync_mode
 val start : ?force:bool -> t -> unit
 val stop : t -> unit
-val set_pos : t -> Liquidsoap_lang.Pos.Option.t -> unit
+val set_stack : t -> Liquidsoap_lang.Pos.t list -> unit
 val self_sync : t -> bool
 val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
 val create_sub_clock : id:string -> t -> t

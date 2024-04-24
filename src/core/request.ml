@@ -47,6 +47,16 @@ let parse_uri uri =
       (String.sub uri 0 i, String.sub uri (i + 1) (String.length uri - (i + 1)))
   with _ -> None
 
+type metadata_resolver = {
+  priority : unit -> int;
+  resolver :
+    metadata:Frame.metadata ->
+    extension:string option ->
+    mime:string ->
+    string ->
+    (string * string) list;
+}
+
 (** Log *)
 
 type log = (Unix.tm * string) Queue.t
@@ -156,10 +166,10 @@ let duration ~metadata file =
 (** Manage requests' metadata *)
 
 let iter_metadata t f =
+  f t.root_metadata;
   List.iter
     (function [] -> assert false | h :: _ -> f h.metadata)
-    t.indicators;
-  f t.root_metadata
+    t.indicators
 
 let set_metadata t k v =
   match t.indicators with
@@ -176,15 +186,8 @@ let get_metadata t k =
   try
     iter_metadata t (fun h ->
         try raise (Found (Frame.Metadata.find k h)) with Not_found -> ());
-    (try raise (Found (Frame.Metadata.find k t.root_metadata))
-     with Not_found -> ());
     None
   with Found s -> Some s
-
-let get_root_metadata t k =
-  try raise (Found (Frame.Metadata.find k t.root_metadata)) with
-    | Not_found -> None
-    | Found x -> Some x
 
 let get_all_metadata t =
   let h = ref Frame.Metadata.empty in
@@ -204,6 +207,7 @@ let get_log t = t.log
 (* Indicator tree management *)
 
 exception No_indicator
+exception Request_resolved
 
 let () =
   Printexc.register_printer (function
@@ -243,6 +247,18 @@ let conf_metadata_decoders =
     ~p:(conf#plug "metadata_decoders")
     ~d:[] "Decoders and order used to decode files' metadata."
 
+let conf_metadata_decoder_priorities =
+  Dtools.Conf.void
+    ~p:(conf_metadata_decoders#plug "priorities")
+    "Priorities used for applying metadata decoders. Decoder with the highest \
+     priority take precedence."
+
+let conf_request_metadata_priority =
+  Dtools.Conf.int ~d:5
+    ~p:(conf_metadata_decoder_priorities#plug "request_metadata")
+    "Priority for the request metadata. This include metadata set via \
+     `annotate`."
+
 let f c v =
   match c#get_d with
     | None -> c#set_d (Some [v])
@@ -256,7 +272,9 @@ let get_decoders conf decoders =
           log#severe "Cannot find decoder %s" name;
           cur
   in
-  List.fold_left f [] (List.rev conf#get)
+  List.sort
+    (fun (_, d) (_, d') -> Stdlib.compare (d'.priority ()) (d.priority ()))
+    (List.fold_left f [] (List.rev conf#get))
 
 let mresolvers_doc = "Methods to extract metadata from a file."
 
@@ -264,13 +282,6 @@ let mresolvers =
   Plug.create
     ~register_hook:(fun name _ -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc "metadata formats"
-
-let conf_override_metadata =
-  Dtools.Conf.bool
-    ~p:(conf_metadata_decoders#plug "override")
-    ~d:false
-    "Allow metadata resolvers to override metadata already set through \
-     annotate: or playlist resolution for instance."
 
 let conf_duration =
   Dtools.Conf.bool
@@ -291,6 +302,57 @@ let conf_recode_excluded =
     ~d:["apic"; "metadata_block_picture"; "coverart"]
     ~p:(conf_recode#plug "exclude")
     "Exclude these metadata from automatic recording."
+
+let resolve_metadata ~initial_metadata ~excluded name =
+  let decoders = get_decoders conf_metadata_decoders mresolvers in
+  let decoders =
+    List.filter (fun (name, _) -> not (List.mem name excluded)) decoders
+  in
+  let high_priority_decoders, low_priority_decoders =
+    List.partition
+      (fun (_, { priority }) ->
+        conf_request_metadata_priority#get < priority ())
+      decoders
+  in
+  let convert =
+    if conf_recode#get then (
+      let excluded = conf_recode_excluded#get in
+      fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
+    else fun _ x -> x
+  in
+  let extension = try Some (Utils.get_ext name) with _ -> None in
+  let mime = Magic_mime.lookup name in
+  let get_metadata ~metadata decoders =
+    List.fold_left
+      (fun metadata (_, { resolver }) ->
+        try
+          let ans = resolver ~metadata:initial_metadata ~extension ~mime name in
+          List.fold_left
+            (fun metadata (k, v) ->
+              let k = String.lowercase_ascii (convert k k) in
+              let v = convert k v in
+              if not (Frame.Metadata.mem k metadata) then
+                Frame.Metadata.add k v metadata
+              else metadata)
+            metadata ans
+        with _ -> metadata)
+      metadata decoders
+  in
+  let metadata =
+    get_metadata ~metadata:Frame.Metadata.empty high_priority_decoders
+  in
+  let metadata =
+    get_metadata
+      ~metadata:(Frame.Metadata.append initial_metadata metadata)
+      low_priority_decoders
+  in
+  if conf_duration#get && not (Frame.Metadata.mem "duration" metadata) then (
+    try
+      Frame.Metadata.add "duration"
+        (string_of_float (duration ~metadata name))
+        metadata
+    with Not_found -> metadata)
+  else metadata
 
 (** Sys.file_exists doesn't make a difference between existing files and files
     without enough permissions to list their attributes, for example when they
@@ -322,72 +384,37 @@ let read_metadata t =
       log#important "Read permission denied for %s!"
         (Lang_string.quote_string name)
     else (
-      let convert =
-        if conf_recode#get then (
-          let excluded = conf_recode_excluded#get in
-          fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
-        else fun _ x -> x
+      let metadata =
+        resolve_metadata ~initial_metadata:(get_all_metadata t)
+          ~excluded:t.excluded_metadata_resolvers name
       in
-      let extension = try Some (Utils.get_ext name) with _ -> None in
-      let mime = Magic_mime.lookup name in
-      let decoders = get_decoders conf_metadata_decoders mresolvers in
-      let decoders =
-        List.filter
-          (fun (name, _) -> not (List.mem name t.excluded_metadata_resolvers))
-          decoders
-      in
-      List.iter
-        (fun (_, resolver) ->
-          try
-            let ans =
-              resolver ~metadata:indicator.metadata ~extension ~mime name
-            in
-            List.iter
-              (fun (k, v) ->
-                let k = String.lowercase_ascii (convert k k) in
-                let v = convert k v in
-                if conf_override_metadata#get || get_metadata t k = None then
-                  indicator.metadata <-
-                    Frame.Metadata.add k v indicator.metadata)
-              ans;
-            if conf_duration#get && get_metadata t "duration" = None then (
-              try
-                indicator.metadata <-
-                  Frame.Metadata.add "duration"
-                    (string_of_float
-                       (duration ~metadata:indicator.metadata name))
-                    indicator.metadata
-              with Not_found -> ())
-          with _ -> ())
-        decoders))
+      indicator.metadata <- Frame.Metadata.append indicator.metadata metadata))
 
 let local_check t =
+  read_metadata t;
   let check_decodable ctype =
-    try
-      while t.decoder = None && file_exists (peek_indicator t).string do
-        let indicator = peek_indicator t in
-        let name = indicator.string in
-        let metadata =
-          if t.resolve_metadata then get_all_metadata t
-          else Frame.Metadata.empty
-        in
-        if not (file_is_readable name) then (
-          log#important "Read permission denied for %s!"
-            (Lang_string.quote_string name);
-          add_log t "Read permission denied!";
-          pop_indicator t)
-        else (
-          match Decoder.get_file_decoder ~metadata ~ctype name with
-            | Some (decoder_name, f) ->
-                t.decoder <- Some f;
-                set_root_metadata t "decoder" decoder_name;
-                read_metadata t;
-                t.status <- Ready
-            | None -> pop_indicator t)
-      done
-    with No_indicator -> ()
+    while t.decoder = None && file_exists (peek_indicator t).string do
+      let indicator = peek_indicator t in
+      let name = indicator.string in
+      let metadata =
+        if t.resolve_metadata then get_all_metadata t else Frame.Metadata.empty
+      in
+      if not (file_is_readable name) then (
+        log#important "Read permission denied for %s!"
+          (Lang_string.quote_string name);
+        add_log t "Read permission denied!";
+        pop_indicator t)
+      else (
+        match Decoder.get_file_decoder ~metadata ~ctype name with
+          | Some (decoder_name, f) ->
+              t.decoder <- Some f;
+              set_root_metadata t "decoder" decoder_name;
+              t.status <- Ready
+          | None -> pop_indicator t)
+    done
   in
-  match t.ctype with None -> () | Some t -> check_decodable t
+  (match t.ctype with None -> () | Some t -> check_decodable t);
+  raise Request_resolved
 
 let push_indicators t l =
   if l <> [] then (
@@ -396,18 +423,10 @@ let push_indicators t l =
       (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string hd.string));
     t.indicators <- l :: t.indicators;
     t.decoder <- None;
+    let indicator = peek_indicator t in
+    if file_exists indicator.string then read_metadata t)
 
-    (* Performing a local check is quite fast and allows the request to be
-       instantly available if it is only made of valid local files, without any
-       need for a resolution process. *)
-    (* TODO: sometimes it's not that fast actually, and it'd be nice to be able
-       to disable this check in some cases, like playlist.safe. *)
-    local_check t)
-
-let resolved t =
-  t.indicators <> []
-  && Sys.file_exists (peek_indicator t).string
-  && (t.decoder <> None || t.ctype = None)
+let resolved t = match t.status with Ready | Playing -> true | _ -> false
 
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
@@ -462,10 +481,6 @@ let get_metadata t k =
 let get_all_metadata t =
   update_metadata t;
   get_all_metadata t
-
-let get_root_metadata t =
-  update_metadata t;
-  get_root_metadata t
 
 (** Global management *)
 
@@ -741,7 +756,7 @@ let resolve ~ctype t timeout =
   in
   let result =
     try
-      while not (resolved t) do
+      while true do
         if Atomic.get should_fail then raise No_indicator;
         let timeleft = maxtime -. Unix.time () in
         if timeleft > 0. then resolve_step ()
@@ -749,8 +764,9 @@ let resolve ~ctype t timeout =
           add_log t "Global timeout.";
           raise ExnTimeout)
       done;
-      Resolved
+      assert false
     with
+      | Request_resolved -> Resolved
       | ExnTimeout -> Timeout
       | No_indicator ->
           add_log t "Every possibility failed!";

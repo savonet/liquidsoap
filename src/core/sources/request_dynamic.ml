@@ -69,9 +69,11 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     val mutable current = Atomic.make None
     method current = Atomic.get current
     method self_sync = (`Static, None)
+    val should_skip = Atomic.make false
 
     (** How to unload a request. *)
     method private end_request =
+      Atomic.set should_skip false;
       remaining <- 0;
       match Atomic.exchange current None with
         | None -> ()
@@ -162,7 +164,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           let buf =
             Frame.append buf (self#generate_from_current_request (size - pos))
           in
-          if Frame.is_partial buf then (
+          if Atomic.get should_skip || Frame.is_partial buf then (
             self#end_request;
             let buf = Frame.add_track_mark buf (Frame.position buf) in
             if self#fetch_request then fill buf else buf)
@@ -181,7 +183,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       match self#current with None -> 0 | Some cur -> cur.seek x
 
     method seek_source = (self :> Source.source)
-    method abort_track = self#end_request
+    method abort_track = Atomic.set should_skip true
     val mutable retry_status = None
 
     method can_generate_frame =

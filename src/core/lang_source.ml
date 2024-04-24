@@ -324,9 +324,9 @@ let source_methods =
       "Indicate if a source may fail, i.e. may not be ready to stream.",
       fun s -> bool s#fallible );
     ( "clock",
-      ([], ClockValue.t),
+      ([], ClockValue.base_t),
       "The source's clock",
-      fun s -> ClockValue.to_value s#clock );
+      fun s -> ClockValue.to_base_value s#clock );
     ( "time",
       ([], fun_t [] float_t),
       "Get a source's time, based on its assigned clock.",
@@ -589,14 +589,9 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: List.stable_sort compare arguments
   in
   let f env =
-    let pos =
-      match Liquidsoap_lang.Lang_core.pos env with
-        | [] -> None
-        | p :: _ -> Some p
-    in
     let return_t, env = check_arguments ~return_t ~env arguments in
     let src : < Source.source ; .. > = f env in
-    src#set_pos pos;
+    src#set_stack (Liquidsoap_lang.Lang_core.pos env);
     Typing.(src#frame_type <: return_t);
     ignore
       (Option.map
@@ -629,14 +624,9 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: arguments
   in
   let f env =
-    let pos =
-      match Liquidsoap_lang.Lang_core.pos env with
-        | [] -> None
-        | p :: _ -> Some p
-    in
     let return_t, env = check_arguments ~return_t ~env arguments in
     let field, (src : < Source.source ; .. >) = f env in
-    src#set_pos pos;
+    src#set_stack (Liquidsoap_lang.Lang_core.pos env);
     (if field <> Frame.Fields.track_marks && field <> Frame.Fields.metadata then
        Typing.(
          src#frame_type

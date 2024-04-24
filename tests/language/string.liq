@@ -108,7 +108,7 @@ def f() =
     string.annotate.parse(
       "foo=bla,\"foo\"=\"✨✅\",\"gni:gno\"=\"bla\\\"blu:\":😈uri"
     ),
-    ([("foo", "bla"), ("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri")
+    ([("foo", "✨✅"), ("gni:gno", "bla\"blu:")], "😈uri")
   )
 
   test.equal(

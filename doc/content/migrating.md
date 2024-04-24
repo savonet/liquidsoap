@@ -54,6 +54,12 @@ end
   However, EBU R128 data is now extracted directly from metadata when available.
   So `replaygain` cannot control the gain type via this parameter anymore.
 
+### `check_next`
+
+`check_next` in playlist operators is now called _before_ the request is resolved, to make it possible to cut out
+unwanted requests before consuming process time. If you need to see the request's metadata or if the request resolves
+into a valid tile, however, you might need to call `request.resolve` inside your `check_next` script.
+
 ## From 2.1.x to 2.2.x
 
 ### References
