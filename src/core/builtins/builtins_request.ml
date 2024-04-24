@@ -217,6 +217,10 @@ let _ =
         Some (Lang.list []),
         Some "Optional metadata used to decode the file, e.g. `ffmpeg_options`."
       );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 30.),
+        Some "Limit in seconds to the duration of the resolving." );
       ("", Lang.string_t, None, None);
     ]
     (Lang.nullable_t Lang.float_t)
@@ -226,8 +230,24 @@ let _ =
        typically if the file was not recognized as valid audio."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      let metadata = Lang.to_metadata (List.assoc "metadata" p) in
-      try Lang.float (Request.duration ~metadata f) with _ -> Lang.null)
+      let metadata = Lang.to_metadata_list (List.assoc "metadata" p) in
+      let timeout = Lang.to_float (List.assoc "timeout" p) in
+      let r =
+        Request.create ~resolve_metadata:true ~metadata ~cue_in_metadata:None
+          ~cue_out_metadata:None f
+      in
+      if Request.resolve ~ctype:None r timeout = Request.Resolved then (
+        match
+          Request.duration
+            ~metadata:(Request.get_all_metadata r)
+            (Option.get (Request.get_filename r))
+        with
+          | Some f -> Lang.float f
+          | None -> Lang.null
+          | exception exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              Lang.raise_as_runtime ~bt ~kind:"failure" exn)
+      else Lang.null)
 
 let _ =
   Lang.add_builtin ~base:request "id" ~category:`Liquidsoap

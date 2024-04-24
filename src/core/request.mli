@@ -179,7 +179,7 @@ val is_on_air : t -> bool
 (** [duration ~metadata filename] computes the duration of audio data contained in
     [filename]. The computation may be expensive.
     @raise Not_found if no duration computation method is found. *)
-val duration : metadata:Frame.metadata -> string -> float
+val duration : metadata:Frame.metadata -> string -> float option
 
 (** Return a decoder if the file has been resolved, guaranteed to have
     available data to deliver. *)

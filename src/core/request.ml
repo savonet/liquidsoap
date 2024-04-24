@@ -153,7 +153,7 @@ let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
 
 exception Duration of float
 
-let duration ~metadata file =
+let compute_duration ~metadata file =
   try
     Plug.iter dresolvers (fun _ resolver ->
         try
@@ -164,6 +164,27 @@ let duration ~metadata file =
           | _ -> ());
     raise Not_found
   with Duration d -> d
+
+let duration ~metadata file =
+  try
+    match
+      ( Frame.Metadata.find_opt "duration" metadata,
+        Frame.Metadata.find_opt "cue_in" metadata,
+        Frame.Metadata.find_opt "cue_out" metadata )
+    with
+      | _, Some cue_in, Some cue_out ->
+          Some (float_of_string cue_out -. float_of_string cue_in)
+      | _, None, Some cue_out -> Some (float_of_string cue_out)
+      | Some v, _, _ -> Some (float_of_string v)
+      | None, cue_in, None ->
+          let duration = compute_duration ~metadata file in
+          let duration =
+            match cue_in with
+              | Some cue_in -> duration -. float_of_string cue_in
+              | None -> duration
+          in
+          Some duration
+  with _ -> None
 
 (** Manage requests' metadata *)
 
@@ -348,12 +369,10 @@ let resolve_metadata ~initial_metadata ~excluded name =
       ~metadata:(Frame.Metadata.append initial_metadata metadata)
       low_priority_decoders
   in
-  if conf_duration#get && not (Frame.Metadata.mem "duration" metadata) then (
-    try
-      Frame.Metadata.add "duration"
-        (string_of_float (duration ~metadata name))
-        metadata
-    with Not_found -> metadata)
+  if conf_duration#get then (
+    match duration ~metadata name with
+      | None -> metadata
+      | Some d -> Frame.Metadata.add "duration" (string_of_float d) metadata)
   else metadata
 
 (** Sys.file_exists doesn't make a difference between existing files and files

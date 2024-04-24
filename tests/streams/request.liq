@@ -3,14 +3,12 @@ settings.log.level.set(4)
 test.check(
   fun () ->
     begin
-      if
-        request.duration("file1.mp3") != 5.06
-      then
-        print(
-          "Invalid duration!"
-        )
-        test.fail()
-      end
+      test.equal(request.duration("file1.mp3"), 5.041)
+      test.equal(request.duration("annotate:cue_out=1.1:file1.mp3"), 1.1)
+      test.equal(request.duration("annotate:cue_in=1.041:file1.mp3"), 4.)
+      test.equal(
+        request.duration("annotate:cue_in=1.00,cue_out=3.1:file1.mp3"), 2.1
+      )
 
       r = request.dynamic(prefetch=1, fun () -> request.create("invalid"))
       if
