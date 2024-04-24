@@ -12,13 +12,13 @@ let () =
   Generator.put buffer Frame.Fields.video (Content.make ~length:250 video);
   assert (Generator.length buffer = 250);
   assert (Generator.buffered_length buffer = 500);
-  let m = Frame.metadata_of_list [("foo", "bla")] in
+  let m = Frame.Metadata.from_list [("foo", "bla")] in
 
   Generator.add_metadata buffer m;
   Generator.add_track_mark buffer;
 
   Generator.put buffer Frame.Fields.video (Content.make ~length:1 video);
-  let c = Generator.get buffer in
+  let c = Generator.slice buffer (Generator.length buffer) in
 
   assert (
     Content.Metadata.get_data (Frame.Fields.find Frame.Fields.metadata c)
@@ -34,7 +34,7 @@ let () =
   Generator.add_metadata ~pos:23 buffer m;
   Generator.add_track_mark ~pos:23 buffer;
 
-  let c = Generator.get ~length:23 buffer in
+  let c = Generator.slice buffer 23 in
 
   assert (
     Content.Metadata.get_data (Frame.Fields.find Frame.Fields.metadata c) = []);
@@ -43,7 +43,7 @@ let () =
     = []);
 
   assert (Generator.length buffer = 27);
-  let c = Generator.get ~length:1 buffer in
+  let c = Generator.slice buffer 1 in
 
   assert (
     Content.Metadata.get_data (Frame.Fields.find Frame.Fields.metadata c)
@@ -90,7 +90,7 @@ let () =
   let m = Frame.Fields.find Frame.Fields.track_marks c in
   assert (Content.length m = max_int);
 
-  let c = Generator.get ~length:100 buffer in
+  let c = Generator.slice buffer 100 in
 
   Frame.Fields.iter (fun _ c -> assert (Content.length c = 100)) c;
   assert (Generator.length buffer = 350);

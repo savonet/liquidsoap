@@ -13,7 +13,7 @@ let () =
       (fun f ->
         (not (List.mem (Filename.basename f) static_tests))
         && Filename.extension f = ".liq")
-      (Array.to_list (Sys.readdir location))
+      (Build_tools.read_files ~location "")
   in
   List.iter
     (fun test ->
@@ -35,6 +35,15 @@ let () =
   ./jingles
   ./playlist
   ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:test_liq ../test.liq)

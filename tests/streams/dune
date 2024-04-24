@@ -19,6 +19,7 @@
 
 (executable
  (name gen_dune)
+ (libraries liquidsoap_build_tools)
  (modules gen_dune))
 
 (rule
@@ -36,6 +37,8 @@
    "sine=frequency=220:duration=5"
    -ac
    2
+   -metadata
+   "title=Test Title"
    %{target})))
 
 (rule
@@ -172,6 +175,7 @@
 (rule
  (alias citest)
  (target playlist)
+ (deps ./file1.mp3 ./file2.mp3 ./file3.mp3)
  (action
   (with-stdout-to
    %{target}
@@ -180,6 +184,7 @@
 (rule
  (alias citest)
  (target huge_playlist)
+ (deps ./file1.mp3)
  (action
   (with-stdout-to
    %{target}
@@ -293,3 +298,124 @@
    %{stdlib}
    %{test_liq}
    ./icecast_tls_ssl.liq)))
+
+(rule
+ (alias citest)
+ (target replaygain_track_gain.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "REPLAYGAIN_TRACK_GAIN=-32.0 dB"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target r128_track_gain.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "R128_TRACK_GAIN=-4096"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target replaygain_r128_track_gain.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "REPLAYGAIN_TRACK_GAIN=-32.0 dB"
+   -metadata
+   "R128_TRACK_GAIN=-4096"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target replaygain_track_gain.opus)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "REPLAYGAIN_TRACK_GAIN=-32.0 dB"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target r128_track_gain.opus)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "R128_TRACK_GAIN=-4096"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target replaygain_r128_track_gain.opus)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "REPLAYGAIN_TRACK_GAIN=-32.0 dB"
+   -metadata
+   "R128_TRACK_GAIN=-4096"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target without_replaygain_track_gain.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   %{target})))

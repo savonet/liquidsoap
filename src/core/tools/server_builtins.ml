@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ let () =
       match Request.from_id id with
         | Some r ->
             let m = Request.get_all_metadata r in
-            Request.string_of_metadata m
+            Frame.Metadata.to_string m
         | None -> "No such request.");
   add "uptime" ~descr:"Print the uptime for this instance." (fun _ ->
       let date = int_of_float (Utils.uptime ()) in

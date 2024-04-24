@@ -4,7 +4,7 @@ class start_stop_test _state start stop =
     method! state = _state
     method start = start ()
     method stop = stop ()
-    method stype = `Fallible
+    method fallible = true
   end
 
 exception Success

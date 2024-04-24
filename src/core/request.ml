@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
 (** Plug for resolving, that is obtaining a file from an URI. [src/protocols]
     plugins provide ways to resolve URIs: fetch, generate, ... *)
 
+module Pcre = Re.Pcre
+
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 
@@ -32,9 +34,11 @@ let log = Log.make ["request"]
 
 let remove_file_proto s =
   (* First remove file:// 🤮 *)
-  let s = Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s in
+  let s =
+    Pcre.substitute ~rex:(Pcre.regexp "^file://") ~subst:(fun _ -> "") s
+  in
   (* Then remove file: 😇 *)
-  Pcre.substitute ~pat:"^file:" ~subst:(fun _ -> "") s
+  Pcre.substitute ~rex:(Pcre.regexp "^file:") ~subst:(fun _ -> "") s
 
 let home_unrelate s = Lang_string.home_unrelate (remove_file_proto s)
 
@@ -45,34 +49,15 @@ let parse_uri uri =
       (String.sub uri 0 i, String.sub uri (i + 1) (String.length uri - (i + 1)))
   with _ -> None
 
-(** Metadata *)
-
-type metadata = (string, string) Hashtbl.t
-
-let string_of_metadata metadata =
-  let b = Buffer.create 20 in
-  let f = Format.formatter_of_buffer b in
-  let first = ref true in
-  Hashtbl.iter
-    (fun k v ->
-      if !first then (
-        first := false;
-        try Format.fprintf f "%s=%s" k (Lang_string.quote_utf8_string v)
-        with _ -> ())
-      else (
-        try Format.fprintf f "\n%s=%s" k (Lang_string.quote_utf8_string v)
-        with _ -> ()))
-    metadata;
-  Format.pp_print_flush f ();
-  Buffer.contents b
-
-let short_string_of_metadata m =
-  "Title: "
-  ^
-  try
-    let t = Hashtbl.find m "title" in
-    if String.length t < 12 then t else String.sub t 0 9 ^ "..."
-  with Not_found -> "(undef)"
+type metadata_resolver = {
+  priority : unit -> int;
+  resolver :
+    metadata:Frame.metadata ->
+    extension:string option ->
+    mime:string ->
+    string ->
+    (string * string) list;
+}
 
 (** Log *)
 
@@ -118,13 +103,21 @@ let string_of_log log =
     ]
   *)
 
-type indicator = { string : string; temporary : bool; metadata : metadata }
+type indicator = {
+  string : string;
+  temporary : bool;
+  mutable metadata : Frame.metadata;
+}
+
 type status = Idle | Resolving | Ready | Playing | Destroyed
 
 type t = {
   id : int;
   initial_uri : string;
   resolve_metadata : bool;
+  excluded_metadata_resolvers : string list;
+  cue_in_metadata : string option;
+  cue_out_metadata : string option;
   mutable ctype : Frame.content_type option;
   (* No kind for raw requests *)
   persistent : bool;
@@ -139,8 +132,9 @@ type t = {
   mutable status : status;
   mutable resolving : float option;
   mutable on_air : float option;
+  logger : Log.t;
   log : log;
-  mutable root_metadata : metadata;
+  mutable root_metadata : Frame.metadata;
   mutable indicators : indicator list list;
   mutable decoder : (unit -> Decoder.file_decoder_ops) option;
 }
@@ -149,7 +143,7 @@ let ctype r = r.ctype
 let initial_uri r = r.initial_uri
 let status r = r.status
 
-let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
+let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
   { string = home_unrelate s; temporary = temporary = Some true; metadata }
 
 (** Length *)
@@ -173,50 +167,49 @@ let duration ~metadata file =
 
 (** Manage requests' metadata *)
 
-let toplevel_metadata t =
-  match t.indicators with
-    | [] -> t.root_metadata
-    | [] :: _ -> assert false
-    | (h :: _) :: _ -> h.metadata
-
 let iter_metadata t f =
+  f t.root_metadata;
   List.iter
     (function [] -> assert false | h :: _ -> f h.metadata)
-    t.indicators;
-  f t.root_metadata
+    t.indicators
 
-let set_metadata t k v = Hashtbl.replace (toplevel_metadata t) k v
-let set_root_metadata t k v = Hashtbl.replace t.root_metadata k v
+let set_metadata t k v =
+  match t.indicators with
+    | [] -> t.root_metadata <- Frame.Metadata.add k v t.root_metadata
+    | [] :: _ -> assert false
+    | (h :: _) :: _ -> h.metadata <- Frame.Metadata.add k v h.metadata
+
+let set_root_metadata t k v =
+  t.root_metadata <- Frame.Metadata.add k v t.root_metadata
 
 exception Found of string
 
 let get_metadata t k =
   try
     iter_metadata t (fun h ->
-        try raise (Found (Hashtbl.find h k)) with Not_found -> ());
-    (try raise (Found (Hashtbl.find t.root_metadata k)) with Not_found -> ());
+        try raise (Found (Frame.Metadata.find k h)) with Not_found -> ());
     None
   with Found s -> Some s
 
-let get_root_metadata t k =
-  try raise (Found (Hashtbl.find t.root_metadata k)) with
-    | Not_found -> None
-    | Found x -> Some x
-
 let get_all_metadata t =
-  let h = Hashtbl.create 20 in
+  let h = ref Frame.Metadata.empty in
   iter_metadata t
-    (Hashtbl.iter (fun k v -> if not (Hashtbl.mem h k) then Hashtbl.add h k v));
-  h
+    (Frame.Metadata.iter (fun k v ->
+         if not (Frame.Metadata.mem k !h) then h := Frame.Metadata.add k v !h));
+  !h
 
 (** Logging *)
 
-let add_log t i = Queue.add (Unix.localtime (Unix.time ()), i) t.log
+let add_log t i =
+  t.logger#info "%s" i;
+  Queue.add (Unix.localtime (Unix.time ()), i) t.log
+
 let get_log t = t.log
 
 (* Indicator tree management *)
 
 exception No_indicator
+exception Request_resolved
 
 let () =
   Printexc.register_printer (function
@@ -256,6 +249,18 @@ let conf_metadata_decoders =
     ~p:(conf#plug "metadata_decoders")
     ~d:[] "Decoders and order used to decode files' metadata."
 
+let conf_metadata_decoder_priorities =
+  Dtools.Conf.void
+    ~p:(conf_metadata_decoders#plug "priorities")
+    "Priorities used for applying metadata decoders. Decoder with the highest \
+     priority take precedence."
+
+let conf_request_metadata_priority =
+  Dtools.Conf.int ~d:5
+    ~p:(conf_metadata_decoder_priorities#plug "request_metadata")
+    "Priority for the request metadata. This include metadata set via \
+     `annotate`."
+
 let f c v =
   match c#get_d with
     | None -> c#set_d (Some [v])
@@ -269,7 +274,9 @@ let get_decoders conf decoders =
           log#severe "Cannot find decoder %s" name;
           cur
   in
-  List.fold_left f [] (List.rev conf#get)
+  List.sort
+    (fun (_, d) (_, d') -> Stdlib.compare (d'.priority ()) (d.priority ()))
+    (List.fold_left f [] (List.rev conf#get))
 
 let mresolvers_doc = "Methods to extract metadata from a file."
 
@@ -277,13 +284,6 @@ let mresolvers =
   Plug.create
     ~register_hook:(fun name _ -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc "metadata formats"
-
-let conf_override_metadata =
-  Dtools.Conf.bool
-    ~p:(conf_metadata_decoders#plug "override")
-    ~d:false
-    "Allow metadata resolvers to override metadata already set through \
-     annotate: or playlist resolution for instance."
 
 let conf_duration =
   Dtools.Conf.bool
@@ -293,6 +293,68 @@ let conf_duration =
      already present. This can take a long time and the use of this option is \
      not recommended: the proper way is to have a script precompute the \
      \"duration\" metadata."
+
+let conf_recode =
+  Dtools.Conf.bool
+    ~p:(conf_metadata_decoders#plug "recode")
+    ~d:true "Re-encode metadata strings in UTF-8"
+
+let conf_recode_excluded =
+  Dtools.Conf.list
+    ~d:["apic"; "metadata_block_picture"; "coverart"]
+    ~p:(conf_recode#plug "exclude")
+    "Exclude these metadata from automatic recording."
+
+let resolve_metadata ~initial_metadata ~excluded name =
+  let decoders = get_decoders conf_metadata_decoders mresolvers in
+  let decoders =
+    List.filter (fun (name, _) -> not (List.mem name excluded)) decoders
+  in
+  let high_priority_decoders, low_priority_decoders =
+    List.partition
+      (fun (_, { priority }) ->
+        conf_request_metadata_priority#get < priority ())
+      decoders
+  in
+  let convert =
+    if conf_recode#get then (
+      let excluded = conf_recode_excluded#get in
+      fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
+    else fun _ x -> x
+  in
+  let extension = try Some (Utils.get_ext name) with _ -> None in
+  let mime = Magic_mime.lookup name in
+  let get_metadata ~metadata decoders =
+    List.fold_left
+      (fun metadata (_, { resolver }) ->
+        try
+          let ans = resolver ~metadata:initial_metadata ~extension ~mime name in
+          List.fold_left
+            (fun metadata (k, v) ->
+              let k = String.lowercase_ascii (convert k k) in
+              let v = convert k v in
+              if not (Frame.Metadata.mem k metadata) then
+                Frame.Metadata.add k v metadata
+              else metadata)
+            metadata ans
+        with _ -> metadata)
+      metadata decoders
+  in
+  let metadata =
+    get_metadata ~metadata:Frame.Metadata.empty high_priority_decoders
+  in
+  let metadata =
+    get_metadata
+      ~metadata:(Frame.Metadata.append initial_metadata metadata)
+      low_priority_decoders
+  in
+  if conf_duration#get && not (Frame.Metadata.mem "duration" metadata) then (
+    try
+      Frame.Metadata.add "duration"
+        (string_of_float (duration ~metadata name))
+        metadata
+    with Not_found -> metadata)
+  else metadata
 
 (** Sys.file_exists doesn't make a difference between existing files and files
     without enough permissions to list their attributes, for example when they
@@ -323,51 +385,38 @@ let read_metadata t =
     else if not (file_is_readable name) then
       log#important "Read permission denied for %s!"
         (Lang_string.quote_string name)
-    else
-      List.iter
-        (fun (_, resolver) ->
-          try
-            let ans = resolver ~metadata:indicator.metadata name in
-            List.iter
-              (fun (k, v) ->
-                let k = String.lowercase_ascii k in
-                if conf_override_metadata#get || get_metadata t k = None then
-                  Hashtbl.replace indicator.metadata k v)
-              ans;
-            if conf_duration#get && get_metadata t "duration" = None then (
-              try
-                Hashtbl.replace indicator.metadata "duration"
-                  (string_of_float (duration ~metadata:indicator.metadata name))
-              with Not_found -> ())
-          with _ -> ())
-        (get_decoders conf_metadata_decoders mresolvers))
+    else (
+      let metadata =
+        resolve_metadata ~initial_metadata:(get_all_metadata t)
+          ~excluded:t.excluded_metadata_resolvers name
+      in
+      indicator.metadata <- Frame.Metadata.append indicator.metadata metadata))
 
 let local_check t =
+  read_metadata t;
   let check_decodable ctype =
-    try
-      while t.decoder = None && file_exists (peek_indicator t).string do
-        let indicator = peek_indicator t in
-        let name = indicator.string in
-        let metadata =
-          if t.resolve_metadata then get_all_metadata t else Hashtbl.create 0
-        in
-        if not (file_is_readable name) then (
-          log#important "Read permission denied for %s!"
-            (Lang_string.quote_string name);
-          add_log t "Read permission denied!";
-          pop_indicator t)
-        else (
-          match Decoder.get_file_decoder ~metadata ~ctype name with
-            | Some (decoder_name, f) ->
-                t.decoder <- Some f;
-                set_root_metadata t "decoder" decoder_name;
-                read_metadata t;
-                t.status <- Ready
-            | None -> pop_indicator t)
-      done
-    with No_indicator -> ()
+    while t.decoder = None && file_exists (peek_indicator t).string do
+      let indicator = peek_indicator t in
+      let name = indicator.string in
+      let metadata =
+        if t.resolve_metadata then get_all_metadata t else Frame.Metadata.empty
+      in
+      if not (file_is_readable name) then (
+        log#important "Read permission denied for %s!"
+          (Lang_string.quote_string name);
+        add_log t "Read permission denied!";
+        pop_indicator t)
+      else (
+        match Decoder.get_file_decoder ~metadata ~ctype name with
+          | Some (decoder_name, f) ->
+              t.decoder <- Some f;
+              set_root_metadata t "decoder" decoder_name;
+              t.status <- Ready
+          | None -> pop_indicator t)
+    done
   in
-  match t.ctype with None -> () | Some t -> check_decodable t
+  (match t.ctype with None -> () | Some t -> check_decodable t);
+  raise Request_resolved
 
 let push_indicators t l =
   if l <> [] then (
@@ -376,18 +425,10 @@ let push_indicators t l =
       (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string hd.string));
     t.indicators <- l :: t.indicators;
     t.decoder <- None;
+    let indicator = peek_indicator t in
+    if file_exists indicator.string then read_metadata t)
 
-    (* Performing a local check is quite fast and allows the request to be
-       instantly available if it is only made of valid local files, without any
-       need for a resolution process. *)
-    (* TODO: sometimes it's not that fast actually, and it'd be nice to be able
-       to disable this check in some cases, like playlist.safe. *)
-    local_check t)
-
-let resolved t =
-  t.indicators <> []
-  && Sys.file_exists (peek_indicator t).string
-  && (t.decoder <> None || t.ctype = None)
+let resolved t = match t.status with Ready | Playing -> true | _ -> false
 
 (** [get_filename request] returns
   * [Some f] if the request successfully lead to a local file [f],
@@ -396,7 +437,7 @@ let get_filename t =
   if resolved t then Some (List.hd (List.hd t.indicators)).string else None
 
 let update_metadata t =
-  let replace = Hashtbl.replace t.root_metadata in
+  let replace k v = t.root_metadata <- Frame.Metadata.add k v t.root_metadata in
   replace "rid" (string_of_int t.id);
   replace "initial_uri" t.initial_uri;
 
@@ -443,10 +484,6 @@ let get_all_metadata t =
   update_metadata t;
   get_all_metadata t
 
-let get_root_metadata t =
-  update_metadata t;
-  get_root_metadata t
-
 (** Global management *)
 
 module Pool = Pool.Make (struct
@@ -459,14 +496,18 @@ module Pool = Pool.Make (struct
     {
       id = 0;
       initial_uri = "";
+      cue_in_metadata = None;
+      cue_out_metadata = None;
       ctype = None;
       resolve_metadata = false;
+      excluded_metadata_resolvers = [];
       persistent = false;
       status = Destroyed;
       resolving = None;
       on_air = None;
+      logger = Log.make [];
       log = Queue.create ();
-      root_metadata = Hashtbl.create 0;
+      root_metadata = Frame.Metadata.empty;
       indicators = [];
       decoder = None;
     }
@@ -521,8 +562,9 @@ let clean () =
   Pool.iter (fun _ r -> if r.status <> Destroyed then destroy ~force:true r);
   Pool.clear ()
 
-let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
-    ?(indicators = []) u =
+let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
+    ?(metadata = []) ?(persistent = false) ?(indicators = []) ~cue_in_metadata
+    ~cue_out_metadata u =
   (* Find instantaneous request loops *)
   let () =
     let n = Pool.size () in
@@ -537,22 +579,29 @@ let create ?(resolve_metadata = true) ?(metadata = []) ?(persistent = false)
       {
         id = 0;
         initial_uri = u;
+        cue_in_metadata;
+        cue_out_metadata;
         ctype = None;
         resolve_metadata;
+        excluded_metadata_resolvers;
         (* This is fixed when resolving the request. *)
         persistent;
         on_air = None;
         resolving = None;
         status = Idle;
         decoder = None;
+        logger = Log.make [];
         log = Queue.create ();
-        root_metadata = Hashtbl.create 10;
+        root_metadata = Frame.Metadata.empty;
         indicators = [];
       }
     in
-    Pool.add (fun id -> { req with id })
+    Pool.add (fun id ->
+        { req with id; logger = Log.make ["request"; string_of_int id] })
   in
-  List.iter (fun (k, v) -> Hashtbl.replace t.root_metadata k v) metadata;
+  List.iter
+    (fun (k, v) -> t.root_metadata <- Frame.Metadata.add k v t.root_metadata)
+    metadata;
   push_indicators t (if indicators = [] then [indicator u] else indicators);
   Gc.finalise finalise t;
   t
@@ -562,7 +611,67 @@ let on_air t =
   t.status <- Playing;
   add_log t "Currently on air."
 
-let get_decoder r = match r.decoder with None -> None | Some d -> Some (d ())
+let get_cue ~r = function
+  | None -> None
+  | Some m -> (
+      match get_metadata r m with
+        | None -> None
+        | Some v -> (
+            match float_of_string_opt v with
+              | None ->
+                  r.logger#important "Invalid cue metadata %s: %s" m v;
+                  None
+              | Some v -> Some v))
+
+let get_decoder r =
+  match r.decoder with
+    | None -> None
+    | Some d -> (
+        let decoder = d () in
+        let open Decoder in
+        let initial_pos =
+          match get_cue ~r r.cue_in_metadata with
+            | Some cue_in ->
+                r.logger#info "Cueing in to position: %.02f" cue_in;
+                let cue_in = Frame.main_of_seconds cue_in in
+                let seeked = decoder.fseek cue_in in
+                if seeked <> cue_in then
+                  r.logger#important
+                    "Initial seek mismatch! Expected: %d, effective: %d" cue_in
+                    seeked;
+                seeked
+            | None -> 0
+        in
+        match get_cue ~r r.cue_out_metadata with
+          | None -> Some decoder
+          | Some cue_out ->
+              let cue_out = Frame.main_of_seconds cue_out in
+              let pos = Atomic.make initial_pos in
+              let fread len =
+                if cue_out <= Atomic.get pos then decoder.fread 0
+                else (
+                  let old_pos = Atomic.get pos in
+                  let len = min len (cue_out - old_pos) in
+                  let buf = decoder.fread len in
+                  let filled = Frame.position buf in
+                  let new_pos = old_pos + filled in
+                  Atomic.set pos new_pos;
+                  if cue_out <= new_pos then (
+                    r.logger#info "Cueing out at position: %.02f"
+                      (Frame.seconds_of_main cue_out);
+                    Frame.slice buf (cue_out - old_pos))
+                  else (
+                    if Frame.is_partial buf then
+                      r.logger#important
+                        "End of track reached before cue-out point!";
+                    buf))
+              in
+              let remaining () =
+                match (decoder.remaining (), cue_out - Atomic.get pos) with
+                  | -1, r -> r
+                  | r, r' -> min r r'
+              in
+              Some { decoder with fread; remaining })
 
 (** Plugins registration. *)
 
@@ -593,6 +702,12 @@ let is_static s =
 type resolve_flag = Resolved | Failed | Timeout
 
 exception ExnTimeout
+
+let should_fail = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"Requests shutdown" (fun () ->
+      Atomic.set should_fail true)
 
 let resolve ~ctype t timeout =
   assert (
@@ -643,15 +758,17 @@ let resolve ~ctype t timeout =
   in
   let result =
     try
-      while not (resolved t) do
+      while true do
+        if Atomic.get should_fail then raise No_indicator;
         let timeleft = maxtime -. Unix.time () in
         if timeleft > 0. then resolve_step ()
         else (
           add_log t "Global timeout.";
           raise ExnTimeout)
       done;
-      Resolved
+      assert false
     with
+      | Request_resolved -> Resolved
       | ExnTimeout -> Timeout
       | No_indicator ->
           add_log t "Every possibility failed!";
@@ -679,4 +796,5 @@ module Value = Value.MkAbstract (struct
 
   let descr r = Printf.sprintf "<request(id=%d)>" (get_id r)
   let compare = Stdlib.compare
+  let comparison_op = None
 end)

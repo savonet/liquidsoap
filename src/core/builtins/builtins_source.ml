@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,11 @@
  *****************************************************************************)
 
 let source = Muxer.source
+let should_stop = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"builtin source shutdown" (fun () ->
+      Atomic.set should_stop true)
 
 let _ =
   Lang.add_builtin ~base:source "set_name" ~category:(`Source `Liquidsoap)
@@ -73,7 +78,7 @@ let _ =
     ~descr:"Indicate if a source may fail, i.e. may not be ready to stream."
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.bool_t
-    (fun p -> Lang.bool ((Lang.to_source (List.assoc "" p))#stype == `Fallible))
+    (fun p -> Lang.bool (Lang.to_source (List.assoc "" p))#fallible)
 
 let _ =
   Lang.add_builtin ~base:source "is_ready" ~category:(`Source `Liquidsoap)
@@ -127,14 +132,9 @@ let _ =
     Lang.float_t
     (fun p ->
       let s = Lang.to_source (List.assoc "" p) in
-      let ticks =
-        if Source.Clock_variables.is_known s#clock then
-          (Source.Clock_variables.get s#clock)#get_tick
-        else 0
-      in
+      let ticks = Clock.ticks s#clock in
       let frame_position = Lazy.force Frame.duration *. float ticks in
-      let in_frame_position = Frame.seconds_of_main (Frame.position s#memo) in
-      Lang.float (frame_position +. in_frame_position))
+      Lang.float frame_position)
 
 let _ =
   Lang.add_builtin ~base:source "on_shutdown" ~category:(`Source `Liquidsoap)
@@ -154,27 +154,6 @@ let _ =
       Lang.unit)
 
 let _ =
-  let s_t = Lang.source_t (Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty) in
-  Lang.add_builtin ~base:source "init" ~category:(`Source `Liquidsoap)
-    ~descr:
-      "Simultaneously initialize sources, return the sublist of sources that \
-       failed to initialize."
-    ~flags:[`Experimental]
-    [("", Lang.list_t s_t, None, None)]
-    (Lang.list_t s_t)
-    (fun p ->
-      let l = Lang.to_list (List.assoc "" p) in
-      let l = List.map Lang.to_source l in
-      let l =
-        (* TODO this whole function should be about active sources,
-         *   just like source.shutdown() but the language has no runtime
-         *   difference between sources and active sources, so we use
-         *   this trick to compare active sources and passive ones... *)
-        Clock.force_init (fun x -> List.exists (fun y -> Oo.id x = Oo.id y) l)
-      in
-      Lang.list (List.map (fun x -> Lang.source (x :> Source.source)) l))
-
-let _ =
   let log = Log.make ["source"; "dump"] in
   let kind = Lang.univ_t () in
   Lang.add_builtin ~base:source "dump" ~category:(`Source `Liquidsoap)
@@ -184,25 +163,46 @@ let _ =
       ("", Lang.format_t kind, None, Some "Encoding format.");
       ("", Lang.string_t, None, Some "Name of the file.");
       ("", Lang.source_t kind, None, Some "Source to encode.");
+      ( "ratio",
+        Lang.float_t,
+        Some (Lang.float 50.),
+        Some
+          "Time ratio. A value of `50` means process data at `50x` real rate, \
+           when possible." );
     ]
     Lang.unit_t
     (fun p ->
+      let module Time = (val Clock.time_implementation () : Liq_time.T) in
+      let open Time in
+      let stopped = ref false in
       let proto =
         let p = Pipe_output.file_proto (Lang.univ_t ()) in
-        List.filter_map (fun (l, _, v, _) -> Option.map (fun v -> (l, v)) v) p
+        List.filter_map
+          (fun (l, _, v, _) ->
+            if l <> "on_stop" then Option.map (fun v -> (l, v)) v
+            else
+              Some
+                ( "on_stop",
+                  Lang.val_fun [] (fun _ ->
+                      stopped := true;
+                      Lang.unit) ))
+          p
       in
       let proto = ("fallible", Lang.bool true) :: proto in
-      let s = Lang.to_source (Lang.assoc "" 3 p) in
       let p = (("id", Lang.string "source_dumper") :: p) @ proto in
-      let fo = Pipe_output.new_file_output p in
-      fo#get_ready [s];
-      log#info "Start dumping source.";
-      while s#is_ready do
-        fo#output;
-        fo#after_output
+      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
+      let _ = Pipe_output.new_file_output ~clock p in
+      let ratio = Lang.to_float (List.assoc "ratio" p) in
+      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
+      Clock.start clock;
+      log#info "Start dumping source (ratio: %.02fx)" ratio;
+      while (not (Atomic.get should_stop)) && not !stopped do
+        let start_time = Time.time () in
+        Clock.tick clock;
+        sleep_until (start_time |+| latency)
       done;
       log#info "Source dumped.";
-      fo#leave s;
+      Clock.stop clock;
       Lang.unit)
 
 let _ =
@@ -210,24 +210,38 @@ let _ =
   Lang.add_builtin ~base:source "drop" ~category:(`Source `Liquidsoap)
     ~descr:"Animate the source as fast as possible, dropping its output."
     ~flags:[`Experimental]
-    [("", Lang.source_t (Lang.univ_t ()), None, Some "Source to animate.")]
+    [
+      ("", Lang.source_t (Lang.univ_t ()), None, Some "Source to animate.");
+      ( "ratio",
+        Lang.float_t,
+        Some (Lang.float 50.),
+        Some
+          "Time ratio. A value of `50` means process data at `50x` real rate, \
+           when possible." );
+    ]
     Lang.unit_t
     (fun p ->
+      let module Time = (val Clock.time_implementation () : Liq_time.T) in
+      let open Time in
       let s = List.assoc "" p |> Lang.to_source in
-      let o =
+      let stopped = ref false in
+      let clock = Clock.create ~id:"source_dumper" ~sync:`Passive () in
+      let _ =
         new Output.dummy
-          ~infallible:false
+          ~clock ~infallible:false
           ~on_start:(fun () -> ())
-          ~on_stop:(fun () -> ())
-          ~autostart:true (Lang.source s)
+          ~on_stop:(fun () -> stopped := true)
+          ~register_telnet:false ~autostart:true (Lang.source s)
       in
-      o#get_ready [s];
-      log#info "Start dropping source.";
-      while s#is_ready do
-        o#before_output;
-        o#output;
-        o#after_output
+      let ratio = Lang.to_float (List.assoc "ratio" p) in
+      let latency = Time.of_float (Lazy.force Frame.duration /. ratio) in
+      Clock.start clock;
+      log#info "Start dropping source (ratio: %.02fx)" ratio;
+      while (not (Atomic.get should_stop)) && not !stopped do
+        let start_time = Time.time () in
+        Clock.tick clock;
+        sleep_until (start_time |+| latency)
       done;
       log#info "Source dropped.";
-      o#leave s;
+      Clock.stop clock;
       Lang.unit)

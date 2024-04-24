@@ -1,45 +1,6 @@
 module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
 
-let cflags_of_flags (flags : Liquidsoap_lang.Regexp.flag list) =
-  List.fold_left
-    (fun l f ->
-      match f with
-        | `i -> `CASELESS :: l
-        (* `g is handled at the call level. *)
-        | `g -> l
-        | `s -> `DOTALL :: l
-        | `m -> `MULTILINE :: l)
-    [] flags
-
-let regexp ?(flags = []) s =
-  let iflags = Pcre.cflags (cflags_of_flags flags) in
-  let rex = Pcre.regexp ~iflags s in
-  object
-    method split s = Pcre.split ~rex s
-
-    method exec s =
-      let sub = Pcre.exec ~rex s in
-      let matches = Array.to_list (Pcre.get_opt_substrings sub) in
-      let groups =
-        List.fold_left
-          (fun groups name ->
-            try (name, Pcre.get_named_substring rex name sub) :: groups
-            with _ -> groups)
-          []
-          (Array.to_list (Pcre.names rex))
-      in
-      { Lang.Regexp.matches; groups }
-
-    method test s = Pcre.pmatch ~rex s
-
-    method substitute ~subst s =
-      let substitute =
-        if List.mem `g flags then Pcre.substitute else Pcre.substitute_first
-      in
-      substitute ~rex ~subst s
-  end
-
 (* For source eval check there are cases of:
      source('a) <: (source('a).{ source methods })?
    b/c of source.dynamic so we want to dig deeper
@@ -52,66 +13,96 @@ let rec deep_demeth t =
 let eval_check ~env:_ ~tm v =
   if Lang_source.Source_val.is_value v then (
     let s = Lang_source.Source_val.of_value v in
-    let scheme = Typing.generalize ~level:(-1) (deep_demeth tm.Term.t) in
-    let ty = Typing.instantiate ~level:(-1) scheme in
-    Typing.(Lang_source.source_t ~methods:false s#frame_type <: ty);
-    s#content_type_computation_allowed)
+    if not s#has_content_type then (
+      let ty = Type.fresh (deep_demeth tm.Term.t) in
+      Typing.(Lang_source.source_t ~methods:false s#frame_type <: ty);
+      s#content_type_computation_allowed))
   else if Track.is_value v then (
     let field, source = Lang_source.to_track v in
-    match field with
-      | _ when field = Frame.Fields.metadata -> ()
-      | _ when field = Frame.Fields.track_marks -> ()
-      | _ ->
-          let scheme = Typing.generalize ~level:(-1) (deep_demeth tm.Term.t) in
-          let ty = Typing.instantiate ~level:(-1) scheme in
-          let frame_t =
-            Frame_type.make (Lang.univ_t ())
-              (Frame.Fields.add field ty Frame.Fields.empty)
+    if not source#has_content_type then (
+      match field with
+        | _ when field = Frame.Fields.metadata -> ()
+        | _ when field = Frame.Fields.track_marks -> ()
+        | _ ->
+            let ty = Type.fresh (deep_demeth tm.Term.t) in
+            let frame_t =
+              Frame_type.make (Lang.univ_t ())
+                (Frame.Fields.add field ty Frame.Fields.empty)
+            in
+            Typing.(source#frame_type <: frame_t)))
+
+let render_string = function
+  | `Verbatim s -> s
+  | `String (pos, (sep, s)) -> Liquidsoap_lang.Lexer.render_string ~pos ~sep s
+
+let mk_field_t ~pos kind params =
+  match kind with
+    | "any" -> Type.var ~pos ()
+    | "none" | "never" -> Type.make Type.Ground.never
+    | _ -> (
+        try
+          let k = Content.kind_of_string kind in
+          match params with
+            | [] -> Type.make (Format_type.descr (`Kind k))
+            | [("", `Verbatim "any")] -> Type.var ()
+            | [("", `Verbatim "internal")] ->
+                Type.var ~constraints:[Format_type.internal_tracks] ()
+            | param :: params ->
+                let mk_format (label, value) =
+                  let value = render_string value in
+                  Content.parse_param k label value
+                in
+                let f = mk_format param in
+                List.iter
+                  (fun param -> Content.merge f (mk_format param))
+                  params;
+                assert (k = Content.kind f);
+                Type.make (Format_type.descr (`Format f))
+        with _ ->
+          let params =
+            params
+            |> List.map (fun (l, v) -> l ^ "=" ^ render_string v)
+            |> String.concat ","
           in
-          Typing.(source#frame_type <: frame_t))
+          let t = kind ^ "(" ^ params ^ ")" in
+          raise
+            (Liquidsoap_lang.Term_base.Parse_error
+               (pos, "Unknown type constructor: " ^ t ^ ".")))
 
-let mk_field_t ~pos (kind, params) =
-  if kind = "any" then Type.var ~pos ()
-  else (
-    try
-      let k = Content.kind_of_string kind in
-      match params with
-        | [] -> Type.make (Format_type.descr (`Kind k))
-        | [("", "any")] -> Type.var ()
-        | [("", "internal")] ->
-            Type.var ~constraints:[Format_type.internal_tracks] ()
-        | param :: params ->
-            let mk_format (label, value) = Content.parse_param k label value in
-            let f = mk_format param in
-            List.iter (fun param -> Content.merge f (mk_format param)) params;
-            assert (k = Content.kind f);
-            Type.make (Format_type.descr (`Format f))
-    with _ ->
-      let params =
-        params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
-      in
-      let t = kind ^ "(" ^ params ^ ")" in
-      raise (Term.Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")))
+let () =
+  Hooks.mk_clock_ty :=
+    fun ?pos () -> Type.make ?pos Lang_source.ClockValue.base_t.Type.descr
 
-let mk_source_ty ~pos name args =
+let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
+  let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
+
   if name <> "source" then
-    raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
+    raise
+      (Liquidsoap_lang.Term_base.Parse_error
+         (pos, "Unknown type constructor: " ^ name ^ "."));
 
-  match args with
+  match tracks with
     | [] ->
         Lang_source.source_t
           (Frame_type.make (Lang.univ_t ()) Frame.Fields.empty)
-    | args ->
+    | tracks ->
         let fields =
           List.fold_left
-            (fun fields (lbl, k) ->
+            (fun fields
+                 {
+                   Liquidsoap_lang.Parsed_term.track_name;
+                   track_type;
+                   track_params;
+                 } ->
               Frame.Fields.add
-                (Frame.Fields.field_of_string lbl)
-                (mk_field_t ~pos k) fields)
-            Frame.Fields.empty args
+                (Frame.Fields.field_of_string track_name)
+                (mk_field_t ~pos track_type track_params)
+                fields)
+            Frame.Fields.empty tracks
         in
+        let base = if extensible then Lang.univ_t () else Lang.unit_t in
 
-        Lang_source.source_t (Frame_type.make Lang.unit_t fields)
+        Lang_source.source_t (Frame_type.make base fields)
 
 let register () =
   Hooks.liq_libs_dir := Configure.liq_libs_dir;
@@ -122,8 +113,6 @@ let register () =
   in
   Dtools.Log.conf_file#on_change on_change;
   ignore (Option.map on_change Dtools.Log.conf_file#get_d);
-  Hooks.collect_after := Clock.collect_after;
-  Hooks.regexp := regexp;
   (Hooks.make_log := fun name -> (Log.make name :> Hooks.log));
   Hooks.type_of_encoder := Lang_encoder.type_of_encoder;
   Hooks.make_encoder := Lang_encoder.make_encoder;

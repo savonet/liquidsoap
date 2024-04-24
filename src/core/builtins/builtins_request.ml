@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,10 +23,25 @@
 let request = Modules.request
 
 let _ =
+  Lang.add_builtin ~base:request "is_static" ~category:`Liquidsoap
+    ~descr:"`true` if the given URI is assumed to be static, e.g. a file."
+    [("", Lang.string_t, None, None)]
+    Lang.bool_t
+    (fun p -> Lang.bool (Request.is_static (Lang.to_string (List.assoc "" p))))
+
+let _ =
   Lang.add_builtin ~base:request "create" ~category:`Liquidsoap
     ~descr:"Create a request from an URI."
     [
       ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
+      ( "cue_in_metadata",
+        Lang.nullable_t Lang.string_t,
+        Some (Lang.string "liq_cue_in"),
+        Some "Metadata for cue in points. Disabled if `null`." );
+      ( "cue_out_metadata",
+        Lang.nullable_t Lang.string_t,
+        Some (Lang.string "liq_cue_out"),
+        Some "Metadata for cue out points. Disabled if `null`." );
       ( "persistent",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -37,6 +52,10 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Set to `false` to prevent metadata resolution on this request." );
+      ( "excluded_metadata_resolvers",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some "List of metadata resolves to exclude when resolving metadata." );
       ( "temporary",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -50,6 +69,16 @@ let _ =
       let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
       let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
+      let excluded_metadata_resolvers =
+        List.map Lang.to_string
+          (Lang.to_list (List.assoc "excluded_metadata_resolvers" p))
+      in
+      let cue_in_metadata =
+        Lang.to_valued_option Lang.to_string (List.assoc "cue_in_metadata" p)
+      in
+      let cue_out_metadata =
+        Lang.to_valued_option Lang.to_string (List.assoc "cue_out_metadata" p)
+      in
       let initial = Lang.to_string (List.assoc "" p) in
       let l = String.length initial in
       let initial =
@@ -66,7 +95,9 @@ let _ =
         else indicators
       in
       Request.Value.to_value
-        (Request.create ~resolve_metadata ~persistent ~indicators initial))
+        (Request.create ~resolve_metadata ~persistent ~indicators
+           ~excluded_metadata_resolvers ~cue_in_metadata ~cue_out_metadata
+           initial))
 
 let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap

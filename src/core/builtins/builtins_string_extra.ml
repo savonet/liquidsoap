@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ let _ =
       try
         let metadata, uri = Annotate.parse (Lang.to_string v) in
         Lang.product
-          (Lang.metadata (Utils.hashtbl_of_list metadata))
+          (Lang.metadata (Frame.Metadata.from_list metadata))
           (Lang.string uri)
       with Annotate.Error err ->
         Lang.raise_error ~message:err ~pos:(Lang.pos p) "string")

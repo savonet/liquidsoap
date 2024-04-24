@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -119,11 +119,11 @@ let create_decoder ?(merge_tracks = false) source input =
       (* Initial metadata in files is handled separately. *)
       if source = `Stream || (merge_tracks && not !first_meta) then (
         let _, (v, m) = f decoder t in
-        let metas = Hashtbl.create 10 in
-        List.iter
-          (fun (x, y) -> Hashtbl.add metas (String.lowercase_ascii x) y)
-          m;
-        Hashtbl.add metas "vendor" v;
+        let metas =
+          Frame.Metadata.from_list
+            (("vendor", v)
+            :: List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m)
+        in
         Generator.add_metadata buffer.Decoder.generator metas);
       first_meta := false
     in
@@ -170,14 +170,14 @@ let create_decoder ?(merge_tracks = false) source input =
       in
       let video_feed track buf =
         let info, _ = Ogg_decoder.video_info decoder track in
-        let rgb = video_convert video_scale buf in
+        let img = video_convert video_scale buf in
         let fps =
           {
             Decoder.num = info.Ogg_decoder.fps_numerator;
             den = info.Ogg_decoder.fps_denominator;
           }
         in
-        buffer.Decoder.put_yuva420p ~fps (Video.Canvas.single_image rgb)
+        buffer.Decoder.put_yuva420p ~fps (Video.Canvas.Image.make img)
       in
       let decode_audio, decode_video =
         if decode_audio && decode_video then
@@ -225,7 +225,7 @@ let create_decoder ?(merge_tracks = false) source input =
       log#info "End of track reached while seeking!";
       0
   in
-  { Decoder.decode; seek }
+  { Decoder.decode; seek; eof = (fun _ -> ()) }
 
 (** File decoder *)
 
@@ -279,7 +279,7 @@ let file_extensions =
 let priority =
   Dtools.Conf.int
     ~p:(Decoder.conf_priorities#plug "ogg")
-    "Priority for the OGG decoder" ~d:1
+    "Priority for the OGG decoder" ~d:15
 
 let create_file_decoder ~metadata:_ ~ctype filename =
   Decoder.opaque_file_decoder ~filename ~ctype
@@ -289,8 +289,7 @@ let () =
   Plug.register Decoder.decoders "ogg"
     ~doc:"Decode a file as OGG provided that libogg accepts it."
     {
-      Decoder.media_type = `Audio_video;
-      priority = (fun () -> priority#get);
+      Decoder.priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
       file_type;
@@ -300,11 +299,11 @@ let () =
 
 (** Metadata *)
 
-let get_tags ~metadata:_ file =
+let get_tags ~metadata:_ ~extension ~mime file =
   if
     not
-      (Decoder.test_file ~log ~mimes:mime_types#get
-         ~extensions:file_extensions#get file)
+      (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+         ~extensions:(Some file_extensions#get) file)
   then raise Not_found;
   let decoder, fd = Ogg_decoder.init_from_file ~log:demuxer_log file in
   let tracks = Ogg_decoder.get_standard_tracks decoder in
@@ -321,4 +320,14 @@ let get_tags ~metadata:_ file =
       get Ogg_decoder.audio_info tracks.Ogg_decoder.audio_track
       @ get Ogg_decoder.video_info tracks.Ogg_decoder.video_track)
 
-let () = Plug.register Request.mresolvers "ogg" ~doc:"" get_tags
+let metadata_decoder_priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "ogg")
+    "Priority for the ogg metadata decoder" ~d:1
+
+let () =
+  Plug.register Request.mresolvers "ogg" ~doc:""
+    {
+      Request.priority = (fun () -> metadata_decoder_priority#get);
+      resolver = get_tags;
+    }

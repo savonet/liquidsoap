@@ -136,17 +136,51 @@ let _ =
 
 let liquidsoap = Modules.liquidsoap
 
-let _ =
+let liquidsoap_version =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"Liquidsoap version string." ~base:liquidsoap "version"
     Lang.(Ground (Ground.String Build_config.version))
     Lang.string_t
 
 let _ =
+  Lang.add_builtin ~base:liquidsoap "after_eval" ~category:`Liquidsoap
+    ~descr:
+      "Register a function to be executed when the current evaluation \
+       terminates. Exceptions raised by the function are ignored."
+    [("", Lang.fun_t [] Lang.unit_t, None, None)]
+    Lang.unit_t
+    (fun p ->
+      let fn = List.assoc "" p in
+      let fn () = ignore (Lang.apply fn []) in
+      Evaluation.on_after_eval fn;
+      Lang.unit)
+
+let _ =
+  let univ = Lang.univ_t () in
+  Lang.add_builtin ~base:liquidsoap "exec_after_eval" ~category:`Liquidsoap
+    ~descr:
+      "Execute all computations registered via `after_eval` during the \
+       execution of the given function immediately after the function has \
+       returned."
+    [("", Lang.fun_t [] univ, None, None)]
+    univ
+    (fun p ->
+      let fn = List.assoc "" p in
+      let fn () = Lang.apply fn [] in
+      Evaluation.after_eval ~force:true fn)
+
+let _ =
   Lang.add_builtin_base ~base:liquidsoap "executable" ~category:`Liquidsoap
     ~descr:"Path to the Liquidsoap executable."
     Lang.(Ground (Ground.String Sys.executable_name))
     Lang.string_t
+
+let liquidsoap_functions = Lang.add_module ~base:liquidsoap "functions"
+
+let _ =
+  Lang.add_builtin ~base:liquidsoap_functions "count" ~category:`Liquidsoap
+    ~descr:"Number of functions registered in the standard library." []
+    Lang.int_t (fun _ -> Doc.Value.count () |> Lang.int)
 
 let _ =
   Lang.add_builtin_base ~category:`System
@@ -159,8 +193,6 @@ let _ =
     "exe_ext"
     Lang.(Ground (Ground.String Build_config.ext_exe))
     Lang.string_t
-
-let liquidsoap_version = Lang.add_module ~base:liquidsoap "version"
 
 let _ =
   Lang.add_builtin ~category:`Liquidsoap
@@ -196,9 +228,16 @@ let _ =
 
 let _ =
   Lang.add_builtin_base ~category:`Configuration
+    ~descr:"Is this build a development snapshot?" ~base:liquidsoap_build_config
+    "is_snapshot"
+    Lang.(Ground (Ground.Bool Build_config.is_snapshot))
+    Lang.bool_t
+
+let _ =
+  Lang.add_builtin_base ~category:`Configuration
     ~descr:"Is this build a release build?" ~base:liquidsoap_build_config
     "is_release"
-    Lang.(Ground (Ground.Bool Build_config.is_release))
+    Lang.(Ground (Ground.Bool (not Build_config.is_snapshot)))
     Lang.bool_t
 
 let () =

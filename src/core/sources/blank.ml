@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,56 +24,82 @@ open Mm
 open Source
 
 class blank duration =
-  let ticks = if duration < 0. then -1 else Frame.main_of_seconds duration in
   object (self)
     inherit source ~name:"blank" ()
 
+    val position : [ `New_track | `Elapsed of int ] Atomic.t =
+      Atomic.make `New_track
+
     (** Remaining time, -1 for infinity. *)
-    val mutable remaining = ticks
+    method remaining =
+      match (Atomic.get position, duration ()) with
+        | `New_track, _ -> 0
+        | `Elapsed _, d when d < 0. -> -1
+        | `Elapsed e, d -> max 0 (Frame.main_of_seconds d - e)
 
-    method remaining = remaining
-    method stype = `Infallible
-    method is_ready = true
-    method self_sync = (`Static, false)
-    method seek x = x
-    method abort_track = remaining <- 0
+    method fallible = false
+    method private can_generate_frame = true
+    method self_sync = (`Static, None)
+    method! seek x = x
+    method seek_source = (self :> Source.source)
+    method abort_track = Atomic.set position `New_track
 
-    method get_frame ab =
-      let position = Frame.position ab in
-      let length =
-        if remaining < 0 then Lazy.force Frame.size - position
-        else min remaining (Lazy.force Frame.size - position)
-      in
-      let audio_pos = Frame.audio_of_main position in
+    method generate_frame =
+      let length = Lazy.force Frame.size in
       let audio_len = Frame.audio_of_main length in
-      let video_pos = Frame.video_of_main position in
-      let video_len = Frame.video_of_main length in
-
-      Frame.Fields.iter
-        (fun field typ ->
-          match typ with
-            | _ when Content.Audio.is_format typ ->
-                Audio.clear
-                  (Content.Audio.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content_pcm_s16.is_format typ ->
-                Content_pcm_s16.clear
-                  (Content_pcm_s16.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content_pcm_f32.is_format typ ->
-                Content_pcm_f32.clear
-                  (Content_pcm_f32.get_data (Frame.get ab field))
-                  audio_pos audio_len
-            | _ when Content.Video.is_format typ ->
-                Video.Canvas.blank
-                  (Content.Video.get_data (Frame.get ab field))
-                  video_pos video_len
-            | _ -> failwith "Invalid content type!")
-        self#content_type;
-
-      Frame.add_break ab (position + length);
-      if Frame.is_partial ab then remaining <- ticks
-      else if remaining > 0 then remaining <- remaining - length
+      let frame =
+        Frame.Fields.fold
+          (fun field format frame ->
+            match format with
+              | _ when Content.Audio.is_format format ->
+                  let data =
+                    Content.Audio.get_data (Content.make ~length format)
+                  in
+                  Audio.clear data 0 audio_len;
+                  Frame.set_data frame field Content.Audio.lift_data data
+              | _ when Content_pcm_s16.is_format format ->
+                  let data =
+                    Content_pcm_s16.get_data (Content.make ~length format)
+                  in
+                  Content_pcm_s16.clear data 0 audio_len;
+                  Frame.set_data frame field Content_pcm_s16.lift_data data
+              | _ when Content_pcm_f32.is_format format ->
+                  let data =
+                    Content_pcm_f32.get_data (Content.make ~length format)
+                  in
+                  Content_pcm_f32.clear data 0 audio_len;
+                  Frame.set_data frame field Content_pcm_f32.lift_data data
+              | _ when Content.Video.is_format format ->
+                  let data =
+                    self#generate_video ~field
+                      ~create:(fun ~pos:_ ~width ~height () ->
+                        let img = Video.Canvas.Image.create width height in
+                        Video.Canvas.Image.iter Video.Image.blank img)
+                      length
+                  in
+                  Frame.set_data frame field Content.Video.lift_data data
+              | _
+                when Content.Metadata.is_format format
+                     || Content.Track_marks.is_format format ->
+                  frame
+              | _ -> failwith "Invalid content type!")
+          self#content_type
+          (Frame.create ~length Frame.Fields.empty)
+      in
+      match (Atomic.get position, self#remaining) with
+        | `New_track, _ ->
+            Atomic.set position (`Elapsed length);
+            Frame.add_track_mark frame 0
+        | `Elapsed d, -1 ->
+            Atomic.set position (`Elapsed (d + length));
+            frame
+        | `Elapsed d, r ->
+            if r < length then (
+              Atomic.set position (`Elapsed (length - r));
+              Frame.add_track_mark frame r)
+            else (
+              Atomic.set position (`Elapsed (d + length));
+              frame)
   end
 
 let blank =
@@ -82,12 +108,12 @@ let blank =
     ~descr:"Produce silence and blank images." ~return_t
     [
       ( "duration",
-        Lang.float_t,
+        Lang.getter_t Lang.float_t,
         Some (Lang.float (-1.)),
         Some
           "Duration of blank tracks in seconds, Negative value means forever."
       );
     ]
     (fun p ->
-      let d = Lang.to_float (List.assoc "duration" p) in
+      let d = Lang.to_float_getter (List.assoc "duration" p) in
       (new blank d :> source))

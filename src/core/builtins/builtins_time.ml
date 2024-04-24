@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -143,6 +143,10 @@ let _ =
       Lang.float (Utils.mktime tm))
 
 let _ =
+  let processor =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Liquidsoap_lang.Parser.time_predicate
+  in
   Lang.add_builtin ~category:`Time ~base:time "predicate"
     ~descr:"Parse a string as a time predicate"
     [("", Lang.string_t, None, None)]
@@ -152,14 +156,10 @@ let _ =
       let predicate = Lang.to_string v in
       let lexbuf = Sedlexing.Utf8.from_string predicate in
       try
-        let processor =
-          MenhirLib.Convert.Simplified.traditional2revised
-            Liquidsoap_lang.Parser.time_predicate
+        let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
+        let predicate =
+          Liquidsoap_lang.Term_reducer.to_term (processor tokenizer)
         in
-        let tokenizer =
-          Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf
-        in
-        let predicate = processor tokenizer in
         Lang.val_fun [] (fun _ -> Liquidsoap_lang.Evaluation.eval predicate)
       with _ ->
         Lang.raise_error

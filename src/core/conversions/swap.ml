@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2023 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,29 +25,14 @@ open Source
 class swap ~field (source : source) =
   object
     inherit operator [source] ~name:"swap"
-    method stype = source#stype
-    method is_ready = source#is_ready
-    method remaining = source#remaining
-    method abort_track = source#abort_track
-    method seek = source#seek
-    method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      let buffer =
-        source#get buf;
-        Content.Audio.get_data (Frame.get buf field)
-      in
-      if offset = 0 then (
-        let tmp = buffer.(1) in
-        buffer.(1) <- buffer.(2);
-        buffer.(2) <- tmp)
-      else
-        for i = offset to AFrame.position buf - 1 do
-          let tmp = buffer.(0).(i) in
-          buffer.(0).(i) <- buffer.(1).(i);
-          buffer.(1).(i) <- tmp
-        done
+    inherit
+      Conversion.base
+        ~converter:(fun frame ->
+          let buffer = Content.Audio.get_data (Frame.get frame field) in
+          Frame.set_data frame field Content.Audio.lift_data
+            [| buffer.(1); buffer.(0) |])
+        source
   end
 
 let _ =

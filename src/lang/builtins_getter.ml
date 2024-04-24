@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,8 @@ let _ =
       let f = Lang.assoc "" 2 p in
       let g = Lang.assoc "" 3 p in
       match x.Lang.value with
-        | Lang.Fun ([], _, _) | Lang.FFI ([], _) -> Lang.apply g [("", x)]
+        | Lang.Fun ([], _, _) | Lang.FFI { ffi_args = []; _ } ->
+            Lang.apply g [("", x)]
         | _ -> Lang.apply f [("", x)])
 
 let _ =
@@ -75,7 +76,7 @@ let getter_map =
       let f = Lang.assoc "" 1 p in
       let x = Lang.assoc "" 2 p in
       match x.Lang.value with
-        | Lang.Fun ([], _, _) | Lang.FFI ([], _) ->
+        | Lang.Fun ([], _, _) | Lang.FFI { ffi_args = []; _ } ->
             Lang.val_fun [] (fun _ -> Lang.apply f [("", Lang.apply x [])])
         | _ -> Lang.apply f [("", x)])
 
@@ -96,7 +97,7 @@ let _ =
       let f = Lang.assoc "" 1 p in
       let x = Lang.assoc "" 2 p in
       match x.Lang.value with
-        | Lang.Fun ([], _, _) | Lang.FFI ([], _) ->
+        | Lang.Fun ([], _, _) | Lang.FFI { ffi_args = []; _ } ->
             let last_x = ref (Lang.apply x []) in
             let last_y = ref (Lang.apply f [("", !last_x)]) in
             Lang.val_fun [] (fun _ ->

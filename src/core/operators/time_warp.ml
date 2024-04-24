@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,78 +21,6 @@
  *****************************************************************************)
 
 open Mm
-
-module MG = struct
-  type t = {
-    mutable metadata : (int * Frame.metadata) list;
-    mutable breaks : int list;
-    mutable length : int;
-  }
-
-  let create () = { metadata = []; breaks = []; length = 0 }
-
-  let clear g =
-    g.metadata <- [];
-    g.breaks <- [];
-    g.length <- 0
-
-  let advance g len =
-    g.metadata <- List.map (fun (t, m) -> (t - len, m)) g.metadata;
-    g.metadata <- List.filter (fun (t, _) -> t >= 0) g.metadata;
-    g.breaks <- List.map (fun t -> t - len) g.breaks;
-    g.breaks <- List.filter (fun t -> t >= 0) g.breaks;
-    g.length <- g.length - len;
-    assert (g.length >= 0)
-
-  let length g = g.length
-  let remaining g = match g.breaks with a :: _ -> a | _ -> -1
-  let metadata g len = List.filter (fun (t, _) -> t < len) g.metadata
-
-  let feed_from_frame g frame =
-    let size = Lazy.force Frame.size in
-    let length = length g in
-    g.metadata <-
-      g.metadata
-      @ List.map (fun (t, m) -> (length + t, m)) (Frame.get_all_metadata frame);
-    g.breaks <-
-      g.breaks
-      @ List.map
-          (fun t -> length + t)
-          (* Filter out the last break, which only marks the end of frame, not a
-           * track limit (doesn't mean is_partial). *)
-          (List.filter (fun x -> x < size) (Frame.breaks frame));
-    let frame_length =
-      let rec aux = function [t] -> t | _ :: tl -> aux tl | [] -> size in
-      aux (Frame.breaks frame)
-    in
-    g.length <- g.length + frame_length
-
-  let drop_initial_break g =
-    match g.breaks with
-      | 0 :: tl -> g.breaks <- tl
-      | [] -> () (* end of stream / underrun... *)
-      | _ -> assert false
-
-  let fill g frame =
-    let offset = Frame.position frame in
-    let needed =
-      let size = Lazy.force Frame.size in
-      let remaining = remaining g in
-      let remaining = if remaining = -1 then length g else remaining in
-      min (size - offset) remaining
-    in
-    List.iter
-      (fun (p, m) -> if p < needed then Frame.set_metadata frame (offset + p) m)
-      g.metadata;
-    advance g needed;
-
-    (* Mark the end of this filling. If the frame is partial it must be because
-     * of a break in the generator, or because the generator is emptying.
-     * Conversely, each break in the generator must cause a partial frame, so
-     * don't remove any if it isn't partial. *)
-    Frame.add_break frame (offset + needed);
-    if Frame.is_partial frame then drop_initial_break g
-end
 
 (** Create a buffer between two clocks.
   *
@@ -115,37 +43,41 @@ module Buffer = struct
     mutable abort : bool;
   }
 
-  let proceed control f = Tutils.mutexify control.lock f ()
+  let proceed control f = Mutex.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
   class producer ~id c =
     object (self)
       inherit Source.source ~name:id ()
-      method self_sync = (`Static, false)
-      method stype = `Fallible
+      method self_sync = (`Static, None)
+      method fallible = true
 
       method remaining =
         proceed c (fun () -> Generator.remaining (Lazy.force c.generator))
 
-      method is_ready = proceed c (fun () -> not c.buffering)
+      method private can_generate_frame = proceed c (fun () -> not c.buffering)
 
-      method seek len =
+      method! seek len =
         let len = min (Generator.length (Lazy.force c.generator)) len in
         Generator.truncate (Lazy.force c.generator) len;
         len
 
+      method seek_source = (self :> Source.source)
       method buffer_length = Generator.length (Lazy.force c.generator)
 
-      method private get_frame frame =
+      method private generate_frame =
         proceed c (fun () ->
             assert (not c.buffering);
-            Generator.fill (Lazy.force c.generator) frame;
+            let frame =
+              Generator.slice (Lazy.force c.generator) (Lazy.force Frame.size)
+            in
             if
               Frame.is_partial frame
               && Generator.length (Lazy.force c.generator) = 0
             then (
               self#log#important "Buffer emptied, start buffering...";
-              c.buffering <- true))
+              c.buffering <- true);
+            frame)
 
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
@@ -157,7 +89,8 @@ module Buffer = struct
     object
       inherit
         Output.output
-          ~output_kind:id ~infallible ~on_start ~on_stop source_val autostart
+          ~output_kind:id ~infallible ~register_telnet:false ~on_start ~on_stop
+            source_val autostart
 
       method! reset = ()
       method start = ()
@@ -169,7 +102,7 @@ module Buffer = struct
             if c.abort then (
               c.abort <- false;
               source#abort_track);
-            Generator.feed (Lazy.force c.generator) frame;
+            Generator.append (Lazy.force c.generator) frame;
             if Generator.length (Lazy.force c.generator) > prebuf then (
               c.buffering <- false;
               if Generator.length (Lazy.force c.generator) > maxbuf then
@@ -182,7 +115,8 @@ module Buffer = struct
     let control =
       {
         generator =
-          lazy (Generator.create (Lang.to_source source_val)#content_type);
+          Lazy.from_fun (fun () ->
+              Generator.create (Lang.to_source source_val)#content_type);
         lock = Mutex.create ();
         buffering = true;
         abort = false;
@@ -271,7 +205,7 @@ module AdaptativeBuffer = struct
             write r buf
   end
 
-  (* TODO: also have breaks and metadata as in generators. *)
+  (* TODO: also have track_marks and metadata as in generators. *)
 
   (** The kind of value shared by a producer and a consumer. *)
   type control = {
@@ -280,13 +214,13 @@ module AdaptativeBuffer = struct
     rb : RB.t; (* the ringbuffer *)
     mutable rb_length : float;
         (* average length of the ringbuffer, in samples *)
-    mg : MG.t; (* metadata generator *)
+    mutable mg : Generator.t;
     mutable buffering : bool;
         (* when true we are buffering: filling the buffer, but not reading from it *)
     mutable abort : bool; (* whether we asked to abort the current track *)
   }
 
-  let proceed control f = Tutils.mutexify control.lock f ()
+  let proceed control f = Mutex.mutexify control.lock f ()
 
   (** The source which produces data by reading the buffer. *)
   class producer ~pre_buffer ~averaging ~limit ~resample c =
@@ -296,12 +230,12 @@ module AdaptativeBuffer = struct
        https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant *)
     let alpha = AFrame.duration () /. averaging in
     object (self)
-      inherit Source.source ~name:"buffer.adaptative.producer" () as super
-      inherit Source.no_seek
-      method stype = `Fallible
-      method self_sync = (`Static, false)
-      method remaining = proceed c (fun () -> MG.remaining c.mg)
-      method is_ready = proceed c (fun () -> not c.buffering)
+      inherit Source.source ~name:"buffer.adaptative.producer" ()
+      method seek_source = (self :> Source.source)
+      method self_sync = (`Static, None)
+      method fallible = true
+      method remaining = proceed c (fun () -> Generator.remaining c.mg)
+      method private can_generate_frame = proceed c (fun () -> not c.buffering)
       method ratio = proceed c (fun () -> c.rb_length /. prebuf)
 
       method buffer_duration =
@@ -312,13 +246,13 @@ module AdaptativeBuffer = struct
 
       val mutable converter = None
 
-      method! wake_up a =
-        super#wake_up a;
-        if resample then
-          converter <-
-            Some (Audio_converter.Samplerate.create self#audio_channels)
+      initializer
+        self#on_wake_up (fun () ->
+            if resample then
+              converter <-
+                Some (Audio_converter.Samplerate.create self#audio_channels))
 
-      method private get_frame frame =
+      method private generate_frame =
         proceed c (fun () ->
             assert (not c.buffering);
 
@@ -350,7 +284,7 @@ module AdaptativeBuffer = struct
                           0 slen
                       in
                       if len <> dlen then
-                        self#log#important
+                        self#log#debug
                           "Unexpected length after resampling: %d instead of %d"
                           len dlen;
                       let len = min len dlen in
@@ -384,29 +318,43 @@ module AdaptativeBuffer = struct
             let scaling = c.rb_length /. prebuf in
             let scale n = int_of_float (float n *. scaling) in
             let unscale n = int_of_float (float n /. scaling) in
-            let ofs = Frame.position frame in
-            let len = Lazy.force Frame.size - ofs in
-            let aofs = Frame.audio_of_main ofs in
-            let alen = Frame.audio_of_main len in
-            let buf = AFrame.pcm frame in
+            let length = Lazy.force Frame.size in
+            let frame = Frame.create ~length self#content_type in
+            let alen = Frame.audio_of_main length in
+            let buf =
+              Content.Audio.get_data (Frame.get frame Frame.Fields.audio)
+            in
             let salen = scale alen in
-            fill buf aofs alen salen;
-            Frame.add_break frame (ofs + len);
+            fill buf 0 alen salen;
+            let frame =
+              Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data
+                buf
+            in
 
             (* self#log#debug "filled %d from %d (x %f)" len ofs scaling; *)
 
-            (* Fill in metadata *)
-            let md = MG.metadata c.mg (scale len) in
-            List.iter (fun (t, m) -> Frame.set_metadata frame (unscale t) m) md;
-            MG.advance c.mg (min (Frame.main_of_audio salen) (MG.length c.mg));
-            if Frame.is_partial frame then MG.drop_initial_break c.mg;
+            (* Fill in metadata and track mark *)
+            let content = Generator.slice c.mg (scale length) in
+            let frame =
+              List.fold_left
+                (fun frame (pos, m) -> Frame.add_metadata frame (unscale pos) m)
+                frame
+                (Frame.get_all_metadata content)
+            in
+            let frame =
+              match Frame.track_marks content with
+                | p :: _ -> Frame.add_track_mark frame (unscale p)
+                | _ -> frame
+            in
 
             (* If there is no data left, we should buffer again. *)
             if RB.read_space c.rb = 0 then (
               self#log#important "Buffer emptied, start buffering...";
               self#log#debug "Current scaling factor is x%f." scaling;
-              MG.advance c.mg (MG.length c.mg);
-              c.buffering <- true))
+              Generator.clear c.mg;
+              c.buffering <- true);
+
+            frame)
 
       method abort_track = proceed c (fun () -> c.abort <- true)
     end
@@ -417,8 +365,9 @@ module AdaptativeBuffer = struct
     object (self)
       inherit
         Output.output
-          ~output_kind:"buffer" ~name:"buffer.adaptative.consumer" ~infallible
-            ~on_start ~on_stop source_val autostart
+          ~output_kind:"buffer" ~register_telnet:false
+            ~name:"buffer.adaptative.consumer" ~infallible ~on_start ~on_stop
+            source_val autostart
 
       method! reset = ()
       method start = ()
@@ -436,9 +385,9 @@ module AdaptativeBuffer = struct
               (* Not enough write space, let's drop a frame. *)
               self#log#important "Buffer full, dropping a frame.";
               RB.read_advance c.rb len;
-              MG.advance c.mg (Frame.main_of_audio len));
+              Generator.truncate c.mg (Frame.main_of_audio len));
             RB.write c.rb (Audio.sub buf 0 len);
-            MG.feed_from_frame c.mg frame;
+            Generator.append c.mg frame;
             if RB.read_space c.rb > prebuf then (
               if c.buffering && reset then
                 c.rb_length <- float (Frame.audio_of_seconds pre_buffer);
@@ -452,7 +401,7 @@ module AdaptativeBuffer = struct
         lock = Mutex.create ();
         rb = RB.create (Frame.audio_of_seconds max_buffer);
         rb_length = float (Frame.audio_of_seconds pre_buffer);
-        mg = MG.create ();
+        mg = Generator.create Frame.Fields.empty;
         buffering = true;
         abort = false;
       }

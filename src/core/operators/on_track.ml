@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
+  Liquidsoap, a programmable stream generator.
   Copyright 2003-2019 Savonet team
 
   This program is free software; you can redistribute it and/or modify
@@ -23,27 +23,24 @@
 class on_track f s =
   object
     inherit Source.operator ~name:"on_track" [s]
-    method stype = s#stype
-    method is_ready = s#is_ready
+    method fallible = s#fallible
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
-    method seek n = s#seek n
+    method seek_source = s#seek_source
     method self_sync = s#self_sync
-    val mutable called = false
 
-    method private get_frame ab =
-      let p = Frame.position ab in
-      s#get ab;
-      if not called then begin
+    method private generate_frame =
+      let buf = s#get_frame in
+      if Frame.track_marks buf <> [] then begin
         let m =
-          match Frame.get_metadata ab p with
+          match s#last_metadata with
             | None -> Lang.list []
             | Some m -> Lang.metadata m
         in
-        ignore (Lang.apply f [("", m)]);
-        called <- true
+        ignore (Lang.apply f [("", m)])
       end;
-      if Frame.is_partial ab then called <- false
+      buf
   end
 
 let _ =

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,4 +20,6 @@
 
  *****************************************************************************)
 
-let () = Lifecycle.before_init (fun () -> Memtrace.trace_if_requested ())
+let () =
+  Lifecycle.on_load ~name:"memtrace init" (fun () ->
+      Memtrace.trace_if_requested ())

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-   Liquidsoap, a programmable audio stream generator.
-   Copyright 2003-2023 Savonet team
+   Liquidsoap, a programmable stream generator.
+   Copyright 2003-2024 Savonet team
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -91,30 +91,34 @@ let mk_audio_decoder ~channels ~stream ~field ~pcm_kind codec =
       !in_sample_rate target_channel_layout target_sample_rate
   in
   let converter = ref (mk_converter ()) in
-  fun ~buffer frame ->
-    let frame_in_sample_rate = Avutil.Audio.frame_get_sample_rate frame in
-    let frame_in_channel_layout =
-      Avutil.Channel_layout.get_default (Avutil.Audio.frame_get_channels frame)
-    in
-    let frame_in_sample_format = Avutil.Audio.frame_get_sample_format frame in
-    if
-      !in_sample_rate <> frame_in_sample_rate
-      || !in_channel_layout <> frame_in_channel_layout
-      || !in_sample_format <> frame_in_sample_format
-    then (
-      log#important "Frame format change detected!";
-      in_sample_rate := frame_in_sample_rate;
-      in_channel_layout := frame_in_channel_layout;
-      in_sample_format := frame_in_sample_format;
-      converter := mk_converter ());
-    let content = Converter.convert !converter frame in
-    Generator.put buffer.Decoder.generator field
-      (Converter.Content.lift_data content);
-    let metadata = Avutil.Frame.metadata frame in
-    if metadata <> [] then (
-      let m = Hashtbl.create (List.length metadata) in
-      List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
-      Generator.add_metadata buffer.Decoder.generator m)
+  fun ~buffer -> function
+    | `Flush -> ()
+    | `Frame frame ->
+        let frame_in_sample_rate = Avutil.Audio.frame_get_sample_rate frame in
+        let frame_in_channel_layout =
+          Avutil.Channel_layout.get_default
+            (Avutil.Audio.frame_get_channels frame)
+        in
+        let frame_in_sample_format =
+          Avutil.Audio.frame_get_sample_format frame
+        in
+        if
+          !in_sample_rate <> frame_in_sample_rate
+          || !in_channel_layout <> frame_in_channel_layout
+          || !in_sample_format <> frame_in_sample_format
+        then (
+          log#important "Frame format change detected!";
+          in_sample_rate := frame_in_sample_rate;
+          in_channel_layout := frame_in_channel_layout;
+          in_sample_format := frame_in_sample_format;
+          converter := mk_converter ());
+        let content = Converter.convert !converter frame in
+        Generator.put buffer.Decoder.generator field
+          (Converter.Content.lift_data content);
+        let metadata = Avutil.Frame.metadata frame in
+        if metadata <> [] then
+          Generator.add_metadata buffer.Decoder.generator
+            (Frame.Metadata.from_list metadata)
 
 let mk_video_decoder ~width ~height ~stream ~field codec =
   Ffmpeg_decoder_common.set_video_stream_decoder stream;
@@ -155,19 +159,19 @@ let mk_video_decoder ~width ~height ~stream ~field codec =
   let pixel_aspect = Av.get_pixel_aspect stream in
   let cb ~buffer frame =
     let img = scale frame in
-    let content = Video.Canvas.single img in
     buffer.Decoder.put_yuva420p ~field
       ~fps:{ Decoder.num = target_fps; den = 1 }
-      content;
+      img;
     let metadata = Avutil.Frame.metadata frame in
-    if metadata <> [] then (
-      let m = Hashtbl.create (List.length metadata) in
-      List.iter (fun (k, v) -> Hashtbl.add m k v) metadata;
-      Generator.add_metadata buffer.Decoder.generator m)
+    if metadata <> [] then
+      Generator.add_metadata buffer.Decoder.generator
+        (Frame.Metadata.from_list metadata)
   in
   let converter =
     Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base
       ?pixel_aspect ~target_fps ()
   in
-  fun ~buffer frame ->
-    Ffmpeg_avfilter_utils.Fps.convert converter frame (cb ~buffer)
+  fun ~buffer -> function
+    | `Frame frame ->
+        Ffmpeg_avfilter_utils.Fps.convert converter frame (cb ~buffer)
+    | `Flush -> Ffmpeg_avfilter_utils.Fps.eof converter (cb ~buffer)

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,9 +31,8 @@ let f_group_size = float group_size
 class vumeter ~kind source =
   object (self)
     inherit operator ~name:"visu.volume" kind [source] as super
-    inherit no_seek
-    method stype = source#stype
-    method is_ready = source#is_ready
+    method fallible = source#fallible
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
     method self_sync = source#self_sync

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2023 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,40 +28,51 @@ class noise duration =
   object (self)
     inherit Synthesized.source ~seek:true ~name:"noise" duration
 
-    method private synthesize frame position length =
-      let audio_pos = Frame.audio_of_main position in
+    method private synthesize length =
       let audio_len = Frame.audio_of_main length in
-      let video_pos = Frame.video_of_main position in
-      let video_len = Frame.video_of_main length in
 
-      Frame.Fields.iter
-        (fun field typ ->
-          match typ with
-            | _ when Content.Audio.is_format typ ->
-                Audio.Generator.white_noise
-                  (Content.Audio.get_data (Frame.get frame field))
-                  audio_pos audio_len
+      Frame.Fields.fold
+        (fun field format frame ->
+          match format with
+            | _ when Content.Audio.is_format format ->
+                let data =
+                  Content.Audio.get_data (Content.make ~length format)
+                in
+                Audio.Generator.white_noise data 0 audio_len;
+                Frame.set_data frame field Content.Audio.lift_data data
             (* This is not optimal. *)
-            | _ when Content_pcm_s16.is_format typ ->
-                let pcm = Content_pcm_s16.get_data (Frame.get frame field) in
+            | _ when Content_pcm_s16.is_format format ->
+                let pcm =
+                  Content_pcm_s16.get_data (Content.make ~length format)
+                in
                 let audio = Content_pcm_s16.to_audio pcm in
-                Audio.Generator.white_noise audio audio_pos audio_len;
-                Content_pcm_s16.blit_audio audio audio_pos pcm audio_pos
-                  audio_len;
-                Frame.set frame field (Content_pcm_s16.lift_data pcm)
-            | _ when Content_pcm_f32.is_format typ ->
-                let pcm = Content_pcm_f32.get_data (Frame.get frame field) in
+                Audio.Generator.white_noise audio 0 audio_len;
+                Content_pcm_s16.blit_audio audio 0 pcm 0 audio_len;
+                Frame.set_data frame field Content_pcm_s16.lift_data pcm
+            | _ when Content_pcm_f32.is_format format ->
+                let pcm =
+                  Content_pcm_f32.get_data (Content.make ~length format)
+                in
                 let audio = Content_pcm_f32.to_audio pcm in
-                Audio.Generator.white_noise audio audio_pos audio_len;
-                Content_pcm_f32.blit_audio audio audio_pos pcm audio_pos
-                  audio_len;
-                Frame.set frame field (Content_pcm_f32.lift_data pcm)
-            | _ when Content.Video.is_format typ ->
-                Video.Canvas.iter Image.YUV420.randomize
-                  (Content.Video.get_data (Frame.get frame field))
-                  video_pos video_len
+                Audio.Generator.white_noise audio 0 audio_len;
+                Content_pcm_f32.blit_audio audio 0 pcm 0 audio_len;
+                Frame.set frame field (Content_pcm_f32.lift_data ~length pcm)
+            | _ when Content.Video.is_format format ->
+                let data =
+                  self#generate_video ~field
+                    ~create:(fun ~pos:_ ~width ~height () ->
+                      let img = Video.Canvas.Image.create width height in
+                      Video.Canvas.Image.iter Image.YUV420.randomize img)
+                    length
+                in
+                Frame.set_data frame field Content.Video.lift_data data
+            | _
+              when Content.Metadata.is_format format
+                   || Content.Track_marks.is_format format ->
+                frame
             | _ -> failwith "Invalid content type!")
         self#content_type
+        (Frame.create ~length Frame.Fields.empty)
   end
 
 let _ =

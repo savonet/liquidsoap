@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -103,7 +103,7 @@ let evar_global_name =
     with Not_found ->
       incr n;
       let name = String.uppercase_ascii (name !n) in
-      Hashtbl.add evars i name;
+      Hashtbl.replace evars i name;
       name
 
 (** Compute the structure that a term represents, given the list of universally
@@ -157,7 +157,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         try Hashtbl.find evars var.name
         with Not_found ->
           let name = String.uppercase_ascii (name (counter ())) in
-          Hashtbl.add evars var.name name;
+          Hashtbl.replace evars var.name name;
           name
       in
       `EVar (Printf.sprintf "'%s%s" constr_symbols s, Constraints.of_list c))
@@ -233,7 +233,7 @@ let print f t =
             | `Tuple [], _ -> fields
             | v, _ -> fields @ [(None, (false, v))]
         in
-        let _ =
+        let _, vars =
           List.fold_left
             (fun (first, vars) (lbl, (optional, t)) ->
               if not first then Format.fprintf f ",@ ";
@@ -250,13 +250,6 @@ let print f t =
         vars
     | `Constr (name, []) ->
         Format.fprintf f "%s" name;
-        vars
-    | `Constr (name, [(_, `Constr ("alias", [(_, a)]))]) ->
-        Format.open_box (1 + String.length name);
-        Format.fprintf f "%s (alias of: " name;
-        let vars = print ~par:true vars a in
-        Format.fprintf f ")";
-        Format.close_box ();
         vars
     | `Constr ("none", _) ->
         Format.fprintf f "none";
@@ -383,6 +376,12 @@ let print f t =
         Format.fprintf f "{";
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
+        vars
+    | (`EVar (_, c) | `UVar (_, c))
+      when Constraints.cardinal c = 1
+           && (Constraints.choose c).univ_descr <> None ->
+        let constr = Constraints.choose c in
+        Format.fprintf f "%s" (Option.get constr.univ_descr);
         vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;

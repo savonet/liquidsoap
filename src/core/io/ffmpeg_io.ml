@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,20 @@
  *****************************************************************************)
 
 exception Not_connected
+
+module Pcre = Re.Pcre
+
+module Metadata = struct
+  include Map.Make (struct
+    type t = string
+
+    let compare = String.compare
+  end)
+
+  let of_metadata m = List.fold_left (fun m (k, v) -> add k v m) empty m
+  let equal = equal String.equal
+  let to_metadata = bindings
+end
 
 let normalize_metadata =
   List.map (fun (lbl, v) ->
@@ -42,48 +56,63 @@ type container = {
   closed : bool Atomic.t;
 }
 
+let shutdown = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"input.ffmpeg shutdown" (fun () ->
+      Atomic.set shutdown true)
+
 class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
-  ~clock_safe ~max_buffer ~on_error ~on_stop ~on_start ~on_connect
-  ~on_disconnect ~new_track_on_metadata ?format ~opts url =
+  ~max_buffer ~on_error ~on_stop ~on_start ~on_connect ~metadata_filter
+  ~on_disconnect ~new_track_on_metadata ?format ~opts ~trim_url url =
   let max_length = Some (Frame.main_of_seconds max_buffer) in
   object (self)
     inherit
       Start_stop.active_source
-        ~name ~fallible:true ~clock_safe ~on_start ~on_stop ~autostart () as super
+        ~name ~fallible:true ~on_start ~on_stop ~autostart () as super
 
-    inherit Source.no_seek
     val connect_task = Atomic.make None
-    val container = Atomic.make None
-    val shutdown = Atomic.make false
-    initializer Lifecycle.on_core_shutdown (fun () -> Atomic.set shutdown true)
+    method seek_source = (self :> Source.source)
     method remaining = -1
     method abort_track = Generator.add_track_mark self#buffer
-    method private is_connected = Atomic.get container <> None
-    method! is_ready = super#is_ready && self#is_connected
-
-    method private get_self_sync =
-      match self_sync () with Some v -> v | None -> false
-
-    method self_sync = (`Dynamic, self#get_self_sync && self#is_connected)
-    method private start = self#connect
-    method private stop = self#disconnect
-    val mutable url = url
-    method url = url ()
-    method set_url u = url <- u
-    method buffer_length = Frame.seconds_of_audio (Generator.length self#buffer)
 
     val source_status
-        : [ `Stopped | `Starting | `Polling | `Connected of string | `Stopping ]
+        : [ `Stopped
+          | `Starting
+          | `Polling
+          | `Connected of string * container
+          | `Stopping ]
           Atomic.t =
       Atomic.make `Stopped
 
     method source_status = Atomic.get source_status
 
+    method private is_connected =
+      match Atomic.get source_status with `Connected _ -> true | _ -> false
+
+    method can_generate_frame = super#started && self#is_connected
+
+    method private get_self_sync =
+      match self_sync () with Some v -> v | None -> false
+
+    method self_sync =
+      (`Dynamic, self#source_sync (self#get_self_sync && self#is_connected))
+
+    method private start = self#connect
+    method private stop = self#disconnect
+    val mutable url = url
+
+    method url =
+      let u = url () in
+      if trim_url then String.trim u else u
+
+    method set_url u = url <- u
+    method buffer_length = Frame.seconds_of_audio (Generator.length self#buffer)
+
     method private connect_task () =
       Generator.set_max_length self#buffer max_length;
       try
         if self#source_status = `Stopping then raise Stopped;
-        assert (Atomic.get container = None);
         assert (self#source_status = `Starting);
         Atomic.set source_status `Polling;
         let opts = Hashtbl.copy opts in
@@ -99,7 +128,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             (Printf.sprintf "Unrecognized options: %s"
                (Ffmpeg_format.string_of_options opts));
         let content_type =
-          Ffmpeg_decoder.get_type ~ctype:self#content_type ~url input
+          Ffmpeg_decoder.get_type ~format ~ctype:self#content_type ~url input
         in
         if not (Decoder.can_decode_type content_type self#content_type) then
           failwith
@@ -130,14 +159,23 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                    | `Audio_frame (stream, _) -> get_metadata stream
                    | `Audio_packet (stream, _) -> get_metadata stream
                    | `Video_frame (stream, _) -> get_metadata stream
-                   | `Video_packet (stream, _) -> get_metadata stream)
+                   | `Video_packet (stream, _) -> get_metadata stream
+                   | `Data_packet _ -> [])
                streams
                (Av.get_input_metadata input))
         in
+        let last_meta = ref [] in
+        let get_metadata () =
+          let m = get_metadata () in
+          if m <> !last_meta then (
+            last_meta := m;
+            m)
+          else []
+        in
         on_connect input;
-        Atomic.set container
-          (Some { input; decoder; buffer; get_metadata; closed });
-        Atomic.set source_status (`Connected url);
+        Generator.add_track_mark self#buffer;
+        let container = { input; decoder; buffer; get_metadata; closed } in
+        Atomic.set source_status (`Connected (url, container));
         -1.
       with
         | Stopped ->
@@ -145,31 +183,41 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
             -1.
         | e ->
             let bt = Printexc.get_raw_backtrace () in
-            self#log#info "Connection failed: %s" (Printexc.to_string e);
+            Utils.log_exception ~log:self#log
+              ~bt:(Printexc.raw_backtrace_to_string bt)
+              (Printf.sprintf "Decoding failed: %s" (Printexc.to_string e));
             on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" e);
             if debug then Printexc.raise_with_backtrace e bt;
             Atomic.set source_status `Starting;
             poll_delay
 
     method private connect =
-      if Atomic.get container = None then (
-        assert (
-          match self#source_status with `Connected _ -> false | _ -> true);
-        Atomic.set source_status `Starting;
-        match Atomic.get connect_task with
-          | Some t -> Duppy.Async.wake_up t
-          | None ->
-              let t =
-                Duppy.Async.add ~priority:`Blocking Tutils.scheduler
-                  self#connect_task
-              in
-              Atomic.set connect_task (Some t);
-              Duppy.Async.wake_up t)
+      match self#source_status with
+        | `Starting | `Polling | `Connected _ -> ()
+        | `Stopping | `Stopped -> (
+            Atomic.set source_status `Starting;
+            match Atomic.get connect_task with
+              | Some t -> Duppy.Async.wake_up t
+              | None ->
+                  let t =
+                    Duppy.Async.add ~priority:`Blocking Tutils.scheduler
+                      self#connect_task
+                  in
+                  Atomic.set connect_task (Some t);
+                  Duppy.Async.wake_up t)
 
     method private disconnect =
-      (match Atomic.exchange container None with
-        | None -> ()
-        | Some { input; closed } ->
+      let stop_task () =
+        match Atomic.get connect_task with
+          | None -> ()
+          | Some t ->
+              Atomic.set source_status `Stopping;
+              Duppy.Async.wake_up t
+      in
+      match self#source_status with
+        | `Stopping | `Stopped -> ()
+        | `Polling | `Starting -> stop_task ()
+        | `Connected (_, { input; closed }) ->
             Atomic.set closed true;
             self#mutexify
               (fun () ->
@@ -180,60 +228,58 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                     (Printf.sprintf "Error while disconnecting: %s"
                        (Printexc.to_string exn)))
               ();
-            on_disconnect ());
-      (* Make sure the polling task stops as well. *)
-      ignore
-        (Option.map
-           (fun t ->
-             Atomic.set source_status `Stopping;
-             Duppy.Async.wake_up t)
-           (Atomic.get connect_task))
+            on_disconnect ();
+            stop_task ()
 
     method private reconnect =
       self#disconnect;
       self#connect
 
-    val mutable last_metadata = []
-
     method private get_connected_container =
-      match Atomic.get container with
-        | None -> raise Not_connected
-        | Some c -> c
+      match self#source_status with
+        | `Connected (_, c) -> c
+        | _ -> raise Not_connected
 
-    method private get_frame frame =
-      let pos = Frame.position frame in
-      let breaks = Frame.breaks frame in
+    method private generate_frame =
+      let size = Lazy.force Frame.size in
       try
         let { decoder; buffer; closed } = self#get_connected_container in
         while Generator.length self#buffer < Lazy.force Frame.size do
           if Atomic.get shutdown || Atomic.get closed then raise Not_connected;
           self#mutexify (fun () -> decoder buffer) ()
         done;
-        Generator.fill self#buffer frame;
         let { get_metadata } = self#get_connected_container in
-        let m = get_metadata () in
-        if last_metadata <> m then (
-          let meta = Hashtbl.create (List.length m) in
-          List.iter (fun (lbl, v) -> Hashtbl.replace meta lbl v) m;
-          Generator.add_metadata self#buffer meta;
-          if new_track_on_metadata then Generator.add_track_mark self#buffer;
-          last_metadata <- m)
+        let meta = get_metadata () in
+        if meta <> [] then (
+          Generator.add_metadata self#buffer (Frame.Metadata.from_list meta);
+          if new_track_on_metadata then Generator.add_track_mark self#buffer);
+        let frame = Generator.slice self#buffer size in
+        (* Metadata can be added by the decoder and the demuxer so we filter at the frame level. *)
+        let metadata =
+          List.fold_left
+            (fun metadata (p, m) ->
+              let m = metadata_filter m in
+              if 0 < Frame.Metadata.cardinal m then (p, m) :: metadata
+              else metadata)
+            []
+            (Frame.get_all_metadata frame)
+        in
+        Frame.add_all_metadata frame metadata
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         Utils.log_exception ~log:self#log
           ~bt:(Printexc.raw_backtrace_to_string bt)
           (Printf.sprintf "Feeding failed: %s" (Printexc.to_string exn));
         on_error (Lang.runtime_error_of_exception ~bt ~kind:"ffmpeg" exn);
-        if List.length breaks = List.length (Frame.breaks frame) then
-          Frame.add_break frame pos;
-        self#reconnect
+        self#reconnect;
+        Frame.append (Generator.slice self#buffer size) self#end_of_track
   end
 
 let http_log = Log.make ["input"; "http"]
 
-class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
-  ~max_buffer ~on_connect ~on_disconnect ?format ~opts ~user_agent ~timeout
-  ~on_start ~on_stop ~new_track_on_metadata url =
+class http_input ~autostart ~self_sync ~poll_delay ~debug ~on_error ~max_buffer
+  ~on_connect ~on_disconnect ?format ~opts ~user_agent ~timeout ~metadata_filter
+  ~on_start ~on_stop ~new_track_on_metadata ~trim_url url =
   let () =
     Hashtbl.replace opts "icy" (`Int 1);
     Hashtbl.replace opts "user_agent" (`String user_agent);
@@ -253,7 +299,9 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
           (fun ret header ->
             if header <> "" then (
               try
-                let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
+                let res =
+                  Pcre.exec ~rex:(Pcre.regexp "([^:]*):\\s*(.*)") header
+                in
                 (Pcre.get_substring res 1, Pcre.get_substring res 2) :: ret
               with Not_found -> ret)
             else ret)
@@ -278,9 +326,9 @@ class http_input ~autostart ~self_sync ~poll_delay ~debug ~clock_safe ~on_error
   object
     inherit
       input
-        ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~clock_safe
-          ~max_buffer ~on_stop ~on_start ~on_disconnect ~on_connect ~on_error
-          ?format ~opts ~new_track_on_metadata url
+        ~name:"input.http" ~autostart ~self_sync ~poll_delay ~debug ~max_buffer
+          ~on_stop ~on_start ~on_disconnect ~on_connect ~on_error
+          ~metadata_filter ?format ~opts ~new_track_on_metadata ~trim_url url
   end
 
 let parse_args ~t name p opts =
@@ -319,7 +367,7 @@ let register_input is_http =
   in
   ignore
     (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input
-       (Start_stop.active_source_proto ~clock_safe:false ~fallible_opt:`Nope
+       (Start_stop.active_source_proto ~fallible_opt:`Nope
        @ (if is_http then
             [
               ( "user_agent",
@@ -352,6 +400,17 @@ let register_input is_http =
            args ~t:Lang.int_t "int";
            args ~t:Lang.float_t "float";
            args ~t:Lang.string_t "string";
+           ( "metadata_filter",
+             Lang.nullable_t
+               (Lang.fun_t [(false, "", Lang.metadata_t)] Lang.metadata_t),
+             Some Lang.null,
+             Some
+               "Metadata filter function. Returned metadata are set a \
+                metadata. Default: filter `id3v2_priv` metadata." );
+           ( "deduplicate_metadata",
+             Lang.bool_t,
+             Some (Lang.bool true),
+             Some "Prevent duplicated metadata." );
            ( "new_track_on_metadata",
              Lang.bool_t,
              Some (Lang.bool true),
@@ -400,6 +459,10 @@ let register_input is_http =
              Some
                "Force a specific input format. Autodetected when passed a null \
                 argument" );
+           ( "trim_url",
+             Lang.bool_t,
+             Some (Lang.bool true),
+             Some "Trim input URL." );
            ("", Lang.getter_t Lang.string_t, None, Some "URL to decode.");
          ])
        ~return_t
@@ -436,8 +499,8 @@ let register_input is_http =
                            | `Starting -> "starting"
                            | `Stopping -> "stopping"
                            | `Polling -> "polling"
-                           | `Connected url -> Printf.sprintf "connected %s" url))
-               );
+                           | `Connected (url, _) ->
+                               Printf.sprintf "connected %s" url)) );
                ( "buffer_length",
                  ([], fun_t [] float_t),
                  "Get the buffer's length in seconds.",
@@ -471,7 +534,6 @@ let register_input is_http =
            else Some (Lang.to_bool (self_sync ()))
          in
          let autostart = Lang.to_bool (List.assoc "start" p) in
-         let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
          let on_error =
            let f = List.assoc "on_error" p in
            fun err -> ignore (Lang.apply f [("", Lang.error err)])
@@ -487,11 +549,41 @@ let register_input is_http =
          let on_disconnect () =
            ignore (Lang.apply (List.assoc "on_disconnect" p) [])
          in
+         let metadata_filter =
+           match Lang.to_option (List.assoc "metadata_filter" p) with
+             | Some fn ->
+                 fun m ->
+                   Lang.to_metadata_list
+                     (Lang.apply fn [("", Lang.metadata_list m)])
+             | None ->
+                 List.filter (fun (k, _) ->
+                     not (Pcre.pmatch ~rex:(Pcre.regexp "^id3v2_priv") k))
+         in
+         let deduplicate_metadata =
+           Lang.to_bool (List.assoc "deduplicate_metadata" p)
+         in
+         let metadata_filter =
+           if not deduplicate_metadata then metadata_filter
+           else (
+             let last_meta = ref Metadata.empty in
+             fun m ->
+               let m = metadata_filter m in
+               let m' = Metadata.of_metadata m in
+               if m = [] || Metadata.equal !last_meta m' then []
+               else (
+                 last_meta := m';
+                 m))
+         in
+         let metadata_filter m =
+           let m = metadata_filter (Frame.Metadata.to_list m) in
+           Frame.Metadata.from_list m
+         in
          let new_track_on_metadata =
            Lang.to_bool (List.assoc "new_track_on_metadata" p)
          in
          let poll_delay = Lang.to_float (List.assoc "poll_delay" p) in
          let url = Lang.to_string_getter (Lang.assoc "" 1 p) in
+         let trim_url = Lang.to_bool (List.assoc "trim_url" p) in
          if is_http then (
            let timeout = Lang.to_float (List.assoc "timeout" p) in
            let user_agent = Lang.to_string (List.assoc "user_agent" p) in
@@ -505,18 +597,19 @@ let register_input is_http =
              ignore (Lang.apply (List.assoc "on_connect" p) [("", arg)])
            in
            (new http_input
-              ~debug ~autostart ~self_sync ~clock_safe ~poll_delay ~on_connect
-              ~on_disconnect ~user_agent ~new_track_on_metadata ~max_buffer
-              ?format ~opts ~timeout ~on_error ~on_start ~on_stop url
+              ~metadata_filter ~debug ~autostart ~self_sync ~poll_delay
+              ~on_connect ~on_disconnect ~user_agent ~new_track_on_metadata
+              ~max_buffer ?format ~opts ~timeout ~on_error ~on_start ~on_stop
+              ~trim_url url
              :> input))
          else (
            let on_connect _ =
              ignore (Lang.apply (List.assoc "on_connect" p) [])
            in
            new input
-             ~autostart ~debug ~self_sync ~clock_safe ~poll_delay ~on_error
+             ~metadata_filter ~autostart ~debug ~self_sync ~poll_delay ~on_error
              ~on_start ~on_stop ~on_connect ~on_disconnect ~max_buffer ?format
-             ~opts ~new_track_on_metadata url)))
+             ~opts ~new_track_on_metadata ~trim_url url)))
 
 let () =
   register_input true;

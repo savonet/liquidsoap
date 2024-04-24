@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -55,16 +55,13 @@ let note_of_char c = array_index c + 72
 class keyboard =
   object (self)
     inherit Source.active_source ~name:"input.keyboard" ()
-    inherit Source.no_seek
-    method stype = `Infallible
-    method is_ready = true
+    method seek_source = (self :> Source.source)
+    method fallible = false
+    method private can_generate_frame = true
     method remaining = -1
     method abort_track = ()
-    method self_sync = (`Static, false)
-
-    method output =
-      if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
-
+    method self_sync = (`Static, None)
+    method output = if self#is_ready then ignore self#get_frame
     val mutable ev = MIDI.create (MFrame.size ())
     val ev_m = Mutex.create ()
 
@@ -85,50 +82,47 @@ class keyboard =
     val mutable run_id = 0
     val lock = Mutex.create ()
 
-    method! private wake_up _ =
-      let id = run_id in
-      let rec task _ =
-        if run_id <> id then []
-        else (
-          let c =
-            let c = Bytes.create 1 in
-            ignore (Unix.read Unix.stdin c 0 1);
-            Bytes.get c 0
+    initializer
+      self#on_wake_up (fun () ->
+          let id = run_id in
+          let rec task _ =
+            if run_id <> id then []
+            else (
+              let c =
+                let c = Bytes.create 1 in
+                ignore (Unix.read Unix.stdin c 0 1);
+                Bytes.get c 0
+              in
+              begin
+                try
+                  self#log#important "Playing note %d." (note_of_char c);
+                  self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
+                with Not_found -> ()
+              end;
+              [
+                {
+                  Duppy.Task.handler = task;
+                  priority = `Non_blocking;
+                  events = [`Read Unix.stdin];
+                };
+              ])
           in
-          begin
-            try
-              self#log#important "Playing note %d." (note_of_char c);
-              self#add_event 0 (MIDI.Note_on (note_of_char c, 0.8))
-            with Not_found -> ()
-          end;
-          [
+          Duppy.Task.add Tutils.scheduler
             {
               Duppy.Task.handler = task;
               priority = `Non_blocking;
               events = [`Read Unix.stdin];
-            };
-          ])
-      in
-      Duppy.Task.add Tutils.scheduler
-        {
-          Duppy.Task.handler = task;
-          priority = `Non_blocking;
-          events = [`Read Unix.stdin];
-        }
+            });
 
-    method! private sleep =
-      Tutils.mutexify lock (fun () -> run_id <- run_id + 1) ()
+      self#on_sleep (Mutex.mutexify lock (fun () -> run_id <- run_id + 1))
 
     method reset = ()
 
-    method private get_frame frame =
-      assert (0 = MFrame.position frame);
-      let m = MFrame.midi frame in
+    method private generate_frame =
       let t = self#get_events in
-      for c = 0 to Array.length m - 1 do
-        MIDI.blit_all m.(c) t
-      done;
-      MFrame.add_break frame (MFrame.size ())
+      Frame.set_data
+        (Frame.create ~length:(Lazy.force Frame.size) Frame.Fields.empty)
+        Frame.Fields.midi Content.Midi.lift_data [| t |]
   end
 
 let input_keyboard =

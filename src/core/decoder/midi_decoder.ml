@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ exception Invalid_data
 
 let log = Log.make ["decoder"; "midi"]
 
-let decoder file =
+let decoder ~ctype file =
   log#info "Decoding %s..." (Lang_string.quote_string file);
   let fd = new MIDI.IO.Reader.of_file file in
   let closed = ref false in
@@ -46,33 +46,32 @@ let decoder file =
       close ();
       raise e
   in
-  let fill buf =
-    let m = MFrame.midi buf in
-    let buflen = MFrame.size () in
+  let fread length =
+    let frame = Frame.create ~length ctype in
+    let m = Content.Midi.get_data (Frame.get frame Frame.Fields.midi) in
     let r =
       close_on_err
-        (fun () -> fd#read (Lazy.force Frame.midi_rate) m 0 buflen)
+        (fun () -> fd#read (Lazy.force Frame.midi_rate) m 0 length)
         ()
     in
-    MFrame.add_break buf r;
-    0
+    Frame.set_data (Frame.slice frame r) Frame.Fields.midi
+      Content.Midi.lift_data m
   in
-  { Decoder.fill; fseek = (fun _ -> 0); close }
+  { Decoder.fread; remaining = (fun _ -> 0); fseek = (fun _ -> 0); close }
 
 let () =
   Plug.register Decoder.decoders "midi" ~doc:"Decode midi files."
     {
-      Decoder.media_type = `Midi;
-      priority = (fun () -> 1);
+      Decoder.priority = (fun () -> 1);
       file_extensions = (fun () -> Some ["mid"]);
       mime_types = (fun () -> Some ["audio/midi"]);
       file_type =
         (fun ~metadata:_ ~ctype:_ _ ->
           Some
             (Frame.Fields.make
-               ~midi:Content.(Midi.lift_params { Content.channels = 16 })
+               ~midi:Content.(Midi.lift_params { Content.Midi.channels = 16 })
                ()));
       file_decoder =
-        Some (fun ~metadata:_ ~ctype:_ filename -> decoder filename);
+        Some (fun ~metadata:_ ~ctype filename -> decoder ~ctype filename);
       stream_decoder = None;
     }

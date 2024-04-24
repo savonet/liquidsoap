@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,22 +23,91 @@
 open Mm
 open Source
 
+let log = Log.make ["video"]
+
+let cached_effect effect =
+  let cache = ref None in
+  fun args ->
+    match !cache with
+      | Some (old_args, result) when old_args = args -> result
+      | _ ->
+          let result = effect args in
+          cache := Some (args, result);
+          result
+
+let rgb_of_int c =
+  let c =
+    if c < 0 || c > 0xffffff then (
+      log#important
+        "color 0x%x is greater than maximum assignable value 0xffffff" c;
+      c land 0xffffff)
+    else c
+  in
+  Image.RGB8.Color.of_int c
+
+let yuv_of_int c = Image.Pixel.yuv_of_rgb (rgb_of_int c)
+
+let proto_color =
+  [
+    ( "color",
+      Lang.getter_t Lang.int_t,
+      Some (Lang.int 0),
+      Some "Color to fill the image with (0xRRGGBB)." );
+    ( "alpha",
+      Lang.getter_t Lang.float_t,
+      Some (Lang.float 1.),
+      Some
+        "Transparency of the color between 0 and 1 (0 is fully transparent and \
+         1 is fully opaque)." );
+  ]
+
+module Getter = struct
+  type 'a t = unit -> 'a
+
+  let map f x () = f (x ())
+end
+
+let color_arg p =
+  let color =
+    List.assoc "color" p |> Lang.to_int_getter |> Getter.map yuv_of_int
+  in
+  let alpha =
+    List.assoc "alpha" p |> Lang.to_float_getter
+    |> Getter.map (fun x -> int_of_float (x *. 255.))
+  in
+  (color, alpha)
+
 class virtual base ~name (source : source) f =
   object
     inherit operator ~name [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
+    method virtual content_type : Frame.content_type
 
-    method private get_frame buf =
-      match VFrame.get_content buf source with
-        | Some (rgb, offset, length) -> (
-            try f (Content.Video.get_data rgb) offset length
-            with Content.Invalid -> ())
-        | _ -> ()
+    method private generate_frame =
+      let c = source#get_mutable_content Frame.Fields.video in
+      let buf = Content.Video.get_data c in
+      let data = buf.Content.Video.data in
+      let data =
+        if data = [] then data
+        else (
+          let positions, images =
+            List.fold_left
+              (fun (positions, images) (pos, img) ->
+                (pos :: positions, img :: images))
+              ([], []) buf.Content.Video.data
+          in
+          let positions = List.rev positions in
+          let video = Array.of_list (List.rev images) in
+          f video 0 (List.length images);
+          List.mapi (fun i pos -> (pos, Video.Canvas.get video i)) positions)
+      in
+      source#set_frame_data Frame.Fields.video Content.Video.lift_data
+        { buf with Content.Video.data }
   end
 
 class effect ~name (source : source) effect =
@@ -108,7 +177,9 @@ let video_opacity =
       ( "",
         Lang.getter_t Lang.float_t,
         None,
-        Some "Coefficient to scale opacity with." );
+        Some
+          "Coefficient to scale opacity with: from 0 (fully transparent) to 1 \
+           (fully opaque)." );
       ("", Lang.source_t return_t, None, None);
     ]
     ~return_t ~category:`Video ~descr:"Scale opacity of video."
@@ -131,24 +202,15 @@ let _ =
 let _ =
   let return_t = return_t () in
   Lang.add_operator ~base:Modules.video "fill"
-    [
-      ( "color",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int 0),
-        Some "Color to fill the image with (0xRRGGBB)." );
-      ("", Lang.source_t return_t, None, None);
-    ]
+    ([("", Lang.source_t return_t, None, None)] @ proto_color)
     ~return_t ~category:`Video ~descr:"Fill frame with a color."
     (fun p ->
       let f v = List.assoc v p in
-      let color = Lang.to_int_getter (f "color") in
+      let c, a = color_arg p in
       let src = Lang.to_source (f "") in
-      let color () =
-        Image.Pixel.yuv_of_rgb (Image.RGB8.Color.of_int (color ()))
-      in
       new effect ~name:"video.fill" src (fun buf ->
-          Image.YUV420.fill buf (color ());
-          Image.YUV420.fill_alpha buf 0xff))
+          Image.YUV420.fill buf (c ());
+          Image.YUV420.fill_alpha buf (a ())))
 
 let _ =
   let return_t = return_t () in
@@ -177,39 +239,44 @@ let _ =
 
 let _ =
   let return_t = return_t () in
-  Lang.add_operator ~base:Modules.video "rectangle"
-    [
-      ( "x",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int 0),
-        Some "Horizontal offset." );
-      ("y", Lang.getter_t Lang.int_t, Some (Lang.int 0), Some "Vertical offset.");
-      ("width", Lang.getter_t Lang.int_t, None, Some "Width.");
-      ("height", Lang.getter_t Lang.int_t, None, Some "Height.");
-      ( "color",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int 0),
-        Some "Color to fill the image with (0xAARRGGBB)." );
-      ("", Lang.source_t return_t, None, None);
-    ]
+  Lang.add_operator ~base:Modules.video "add_rectangle"
+    ([
+       ( "x",
+         Lang.getter_t Lang.int_t,
+         Some (Lang.int 0),
+         Some "Horizontal offset." );
+       ( "y",
+         Lang.getter_t Lang.int_t,
+         Some (Lang.int 0),
+         Some "Vertical offset." );
+       ("width", Lang.getter_t Lang.int_t, None, Some "Width.");
+       ("height", Lang.getter_t Lang.int_t, None, Some "Height.");
+       ("", Lang.source_t return_t, None, None);
+     ]
+    @ proto_color)
     ~return_t ~category:`Video ~descr:"Draw a rectangle."
     (fun p ->
       let x = List.assoc "x" p |> Lang.to_int_getter in
       let y = List.assoc "y" p |> Lang.to_int_getter in
       let width = List.assoc "width" p |> Lang.to_int_getter in
       let height = List.assoc "height" p |> Lang.to_int_getter in
-      let color = List.assoc "color" p |> Lang.to_int_getter in
+      let c, a = color_arg p in
       let src = List.assoc "" p |> Lang.to_source in
-      new effect_map ~name:"video.rectangle" src (fun buf ->
+      let effect =
+        cached_effect (fun (width, height, color, alpha) ->
+            let r = Image.YUV420.create width height in
+            Image.YUV420.fill r color;
+            Image.YUV420.fill_alpha r alpha;
+            r)
+      in
+      new effect_map ~name:"video.add_rectangle" src (fun buf ->
           let x = x () in
           let y = y () in
           let width = width () in
           let height = height () in
-          let c =
-            color () |> Image.RGB8.Color.of_int |> Image.Pixel.yuv_of_rgb
-          in
-          let r = Image.YUV420.create width height in
-          Image.YUV420.fill r c;
+          let color = c () in
+          let alpha = a () in
+          let r = effect (width, height, color, alpha) in
           let r = Video.Canvas.Image.make ~x ~y ~width:(-1) ~height:(-1) r in
           Video.Canvas.Image.add r buf))
 
@@ -238,7 +305,7 @@ let _ =
           Lang.to_source (f "") )
       in
       let prec = int_of_float (prec *. 255.) in
-      let color = Image.RGB8.Color.of_int color |> Image.Pixel.yuv_of_rgb in
+      let color = yuv_of_int color in
       new effect ~name:"video.alpha.of_color" src (fun buf ->
           Image.YUV420.alpha_of_color buf color prec))
 
@@ -446,22 +513,19 @@ let _ =
 
 let _ =
   let return_t = return_t () in
-  Lang.add_operator ~base:Modules.video "line"
-    [
-      ( "color",
-        Lang.getter_t Lang.int_t,
-        Some (Lang.int 0xffffff),
-        Some "Color to fill the image with (0xRRGGBB)." );
-      ( "",
-        Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
-        None,
-        Some "Start point." );
-      ( "",
-        Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
-        None,
-        Some "End point." );
-      ("", Lang.source_t return_t, None, None);
-    ]
+  Lang.add_operator ~base:Modules.video "add_line"
+    ([
+       ( "",
+         Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
+         None,
+         Some "Start point." );
+       ( "",
+         Lang.getter_t (Lang.product_t Lang.int_t Lang.int_t),
+         None,
+         Some "End point." );
+       ("", Lang.source_t return_t, None, None);
+     ]
+    @ proto_color)
     ~return_t ~category:`Video ~descr:"Draw a line on the video."
     (fun param ->
       let to_point_getter v =
@@ -473,13 +537,15 @@ let _ =
       let p = Lang.assoc "" 1 param |> to_point_getter in
       let q = Lang.assoc "" 2 param |> to_point_getter in
       let s = Lang.assoc "" 3 param |> Lang.to_source in
-      let color = List.assoc "color" param |> Lang.to_int_getter in
-      new effect_map ~name:"video.line" s (fun buf ->
-          let r, g, b = color () |> Image.RGB8.Color.of_int in
-          (* TODO: we could keep the image if the values did not change *)
-          let line =
-            Video.Canvas.Image.Draw.line (r, g, b, 0xff) (p ()) (q ())
-          in
+      let c, a = color_arg param in
+      let effect =
+        cached_effect (fun (r, g, b, a) ->
+            Video.Canvas.Image.Draw.line (r, g, b, a) (p ()) (q ()))
+      in
+      new effect_map ~name:"video.add_line" s (fun buf ->
+          let r, g, b = c () in
+          let a = a () in
+          let line = effect (r, g, b, a) in
           Video.Canvas.Image.add line buf))
 
 let _ =
@@ -604,7 +670,7 @@ let _ =
         ( "height",
           ([], Lang.fun_t [] Lang.int_t),
           "Height of video.",
-          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.width) );
+          fun _ -> Lang.val_fun [] (fun _ -> int Video.Canvas.Image.height) );
         ( "planes",
           ([], Lang.fun_t [] Lang.int_t),
           "Number of planes in a video frame.",

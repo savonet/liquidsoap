@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,53 +26,33 @@ exception Error
 
 (* This is an internal operator. *)
 class insert_metadata source =
-  object (self)
+  object
     inherit operator ~name:"insert_metadata" [source]
-    method stype = source#stype
-    method is_ready = source#is_ready
+    method fallible = source#fallible
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
-    val mutable metadata = None
-    val mutable new_track = false
-    val lock_m = Mutex.create ()
-    val mutable ns = []
+    val metadata = Atomic.make None
 
-    method insert_metadata nt m : unit =
-      Mutex.lock lock_m;
-      metadata <- Some m;
-      new_track <- nt;
-      Mutex.unlock lock_m
+    method insert_metadata ~new_track m =
+      Atomic.set metadata (Some (new_track, m))
 
-    method private add_metadata frame pos =
-      Tutils.mutexify lock_m
-        (fun () ->
-          (match (metadata, Frame.get_metadata frame pos) with
-            | Some m, None ->
-                metadata <- None;
-                Frame.set_metadata frame pos m
-            | _ -> ());
-          metadata <- None)
-        ()
-
-    method private insert_track =
-      Tutils.mutexify lock_m
-        (fun () ->
-          let ret = new_track in
-          new_track <- false;
-          ret)
-        ()
-
-    method private get_frame buf =
-      let p = Frame.position buf in
-      if self#insert_track then Frame.add_break buf p
-      else (
-        (* Insert new metadata _after_ the call to #get
-            otherwise, it will be visible to sources under
-           this one! See: #1115 *)
-        source#get buf;
-        self#add_metadata buf p)
+    method private generate_frame =
+      let buf = source#get_frame in
+      match Atomic.exchange metadata None with
+        | Some (new_track, m) ->
+            let m =
+              Frame.Metadata.append
+                (Option.value ~default:Frame.Metadata.empty
+                   (Frame.get_metadata buf 0))
+                m
+            in
+            let buf = Frame.add_metadata buf 0 m in
+            if new_track then Frame.(add_track_mark (drop_track_marks buf)) 0
+            else buf
+        | None -> buf
   end
 
 let _ =
@@ -98,7 +78,7 @@ let _ =
               (fun p ->
                 let m = Lang.to_metadata (List.assoc "" p) in
                 let new_track = Lang.to_bool (List.assoc "new_track" p) in
-                s#insert_metadata new_track m;
+                s#insert_metadata ~new_track m;
                 Lang.unit) );
       ]
     ~return_t
@@ -120,23 +100,18 @@ class replay meta src =
   object
     inherit operator ~name:"replay_metadata" [src]
     val mutable first = true
-    method stype = src#stype
-    method is_ready = src#is_ready
+    method fallible = src#fallible
+    method private can_generate_frame = src#is_ready
     method abort_track = src#abort_track
     method remaining = src#remaining
     method self_sync = src#self_sync
-    method seek = src#seek
+    method seek_source = src#seek_source
 
-    method private get_frame ab =
-      let start = Frame.position ab in
-      src#get ab;
-      let stop = Frame.position ab in
+    method private generate_frame =
+      let buf = src#get_frame in
       if first then (
-        if
-          List.filter
-            (fun (pos, _) -> start <= pos && pos <= stop)
-            (Frame.get_all_metadata ab)
-          = []
-        then Frame.set_metadata ab start meta;
-        first <- false)
+        first <- false;
+        if Frame.get_all_metadata buf = [] then Frame.add_metadata buf 0 meta
+        else buf)
+      else buf
   end

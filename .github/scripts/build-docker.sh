@@ -12,6 +12,12 @@ DOCKER_PLATFORM="$7"
 
 cp "$DEB_FILE" "$DEB_DEBUG_FILE" .
 
+if [ "${ARCHITECTURE}" = "armhf" ]; then
+  DOCKERFILE=.github/docker/Dockerfile-armhf.production
+else
+  DOCKERFILE=.github/docker/Dockerfile.production
+fi
+
 docker login -u "$USER" -p "$PASSWORD"
 
 docker buildx build \
@@ -20,7 +26,7 @@ docker buildx build \
   --no-cache \
   --build-arg "DEB_FILE=$DEB_FILE" \
   --build-arg "DEB_DEBUG_FILE=$DEB_DEBUG_FILE" \
-  --file .github/docker/Dockerfile.production \
+  --file "${DOCKERFILE}" \
   --tag "savonet/liquidsoap-ci-build:${TAG}_${ARCHITECTURE}" \
   --push \
   .

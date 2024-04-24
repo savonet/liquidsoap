@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,38 +16,40 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Abstract classes for easy creation of output nodes. *)
+
+val fallibility_check : bool ref
 
 (** Parameters needed to instantiate an output. *)
 val proto : (string * Lang.t * Lang.value option * string option) list
 
 class virtual output :
   output_kind:string
+  -> ?clock:Clock.t
   -> ?name:string
   -> infallible:bool
+  -> register_telnet:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> Lang.value
   -> bool
   -> object
        inherit Source.active_source
-       method stype : [ `Fallible | `Infallible ]
-       method self_sync : Source.self_sync
+       method fallible : bool
+       method self_sync : Clock.self_sync
        method remaining : int
-       method output : unit
-       method private get_frame : Frame.t -> unit
        method abort_track : unit
-       method is_ready : bool
+       method private can_generate_frame : bool
+       method private generate_frame : Frame.t
        method state : Start_stop.state
        method transition_to : Start_stop.state -> unit
-       method seek : int -> int
+       method seek_source : Source.source
+       method output : unit
        method private video_dimensions : int * int
-       method private add_metadata : Request.metadata -> unit
-       method private metadata_queue : Request.metadata Queue.t
        method private reset : unit
        method virtual private send_frame : Frame.t -> unit
        method virtual private start : unit
@@ -57,22 +59,22 @@ class virtual output :
 (** Default methods on output values. *)
 val meth : (string * Lang.scheme * string * (output -> Lang.value)) list
 
-class virtual encoded :
+class virtual ['a] encoded :
   output_kind:string
+  -> ?clock:Clock.t
   -> name:string
   -> infallible:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
+  -> register_telnet:bool
   -> autostart:bool
+  -> export_cover_metadata:bool
   -> Lang.value
   -> object
        inherit output
        method private send_frame : Frame.t -> unit
        method virtual private encode : Frame.t -> int -> int -> 'a
-
-       method virtual private insert_metadata :
-         Meta_format.export_metadata -> unit
-
+       method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
        method virtual private send : 'a -> unit
        method private reset : unit
        method virtual private start : unit
@@ -80,10 +82,12 @@ class virtual encoded :
      end
 
 class dummy :
-  infallible:bool
+  ?clock:Clock.t
+  -> infallible:bool
   -> on_start:(unit -> unit)
   -> on_stop:(unit -> unit)
   -> autostart:bool
+  -> register_telnet:bool
   -> Lang.value
   -> object
        inherit output

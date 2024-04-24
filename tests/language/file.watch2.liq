@@ -1,13 +1,11 @@
 success = ref(false)
-
-fname = file.temp("liq","test")
+fname = file.temp("liq", "test")
 
 def cleanup() =
   file.remove(fname)
 end
 
-on_shutdown(cleanup)
-
+on_cleanup(cleanup)
 file.write(data="abc", fname)
 file.watch(fname, {success := true})
 
@@ -22,5 +20,4 @@ def check() =
 end
 
 thread.run(delay=3., check)
-
 output.dummy(blank())

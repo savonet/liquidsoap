@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,21 +22,15 @@
 
 let thread = Modules.thread
 let thread_run = Lang.add_module ~base:thread "run"
-let error_handlers = Stack.create ()
 
-exception Error_processed
-
-let rec error_handler ~bt exn =
-  try
-    Stack.iter
-      (fun handler -> if handler ~bt exn then raise Error_processed)
-      error_handlers;
-    false
-  with
-    | Error_processed -> true
-    | exn ->
-        let bt = Printexc.get_backtrace () in
-        error_handler ~bt exn
+let _ =
+  Lang.add_builtin ~base:thread "delay" ~category:`Programming
+    ~descr:"Delay the current thread by the given duration in seconds."
+    [("", Lang.float_t, None, None)]
+    Lang.unit_t
+    (fun p ->
+      Unix.sleepf (Lang.to_float (List.assoc "" p));
+      Lang.unit)
 
 let _ =
   Lang.add_builtin ~base:thread_run "recurrent" ~category:`Programming
@@ -55,6 +49,13 @@ let _ =
         Lang.float_t,
         Some (Lang.float 0.),
         Some "Delay (in sec.) after which the thread should be launched." );
+      ( "on_error",
+        Lang.nullable_t (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t),
+        Some Lang.null,
+        Some
+          "Error callback executed when an error occurred while running the \
+           given function. When passed, all raised errors are silenced unless \
+           re-raised by the callback." );
       ( "",
         Lang.fun_t [] Lang.float_t,
         None,
@@ -71,13 +72,25 @@ let _ =
         if Lang.to_bool (List.assoc "fast" p) then `Maybe_blocking
         else `Blocking
       in
+      let on_error = Lang.to_option (List.assoc "on_error" p) in
+      let on_error =
+        Option.map
+          (fun on_error exn bt ->
+            let error =
+              Lang.runtime_error_of_exception ~bt ~kind:"output" exn
+            in
+            Lang.apply on_error [("", Lang.error error)])
+          on_error
+      in
       let f () =
-        try Lang.to_float (Lang.apply f [])
-        with e ->
-          let raw_bt = Printexc.get_raw_backtrace () in
-          let bt = Printexc.get_backtrace () in
-          if error_handler ~bt e then -1.
-          else Printexc.raise_with_backtrace e raw_bt
+        try
+          Liquidsoap_lang.Evaluation.after_eval ~force:true (fun () ->
+              Lang.to_float (Lang.apply f []))
+        with exn -> (
+          let bt = Printexc.get_raw_backtrace () in
+          match on_error with
+            | Some fn -> Lang.to_float (fn exn bt)
+            | None -> Lang.raise_as_runtime ~bt ~kind:"eval" exn)
       in
       let rec task delay =
         {
@@ -89,7 +102,8 @@ let _ =
               if delay >= 0. then [task delay] else []);
         }
       in
-      Duppy.Task.add Tutils.scheduler (task delay);
+      Lifecycle.after_start ~name:"thread start" (fun () ->
+          Duppy.Task.add Tutils.scheduler (task delay));
       Lang.unit)
 
 let _ =
@@ -122,7 +136,7 @@ let _ =
               true
           | _ -> false
       in
-      Stack.push handler error_handlers;
+      Stack.push handler Tutils.error_handlers;
       Lang.unit)
 
 let _ =

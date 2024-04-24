@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -49,15 +49,21 @@ module Specs = struct
   let compatible p p' = !!(p.channel_layout) = !!(p'.channel_layout)
 
   let blit src src_pos dst dst_pos len =
-    let ( ! ) = audio_of_main in
-    Audio.blit src !src_pos dst !dst_pos !len
+    (* For some reason we're not getting a proper stack trace from
+       this unless we re-raise. *)
+    try
+      let ( ! ) = audio_of_main in
+      Audio.blit src !src_pos dst !dst_pos !len
+    with exn ->
+      let bt = Printexc.get_raw_backtrace () in
+      Printexc.raise_with_backtrace exn bt
 
   let copy d = Audio.copy d 0 (Audio.length d)
 
   let param_of_channels = function
-    | 1 -> { channel_layout = lazy `Mono }
-    | 2 -> { channel_layout = lazy `Stereo }
-    | 6 -> { channel_layout = lazy `Five_point_one }
+    | 1 -> { channel_layout = Lazy.from_val `Mono }
+    | 2 -> { channel_layout = Lazy.from_val `Stereo }
+    | 6 -> { channel_layout = Lazy.from_val `Five_point_one }
     | _ -> raise Invalid
 
   let channels_of_param = function
@@ -67,9 +73,9 @@ module Specs = struct
 
   let parse_param label value =
     match (label, value) with
-      | "", "mono" -> Some { channel_layout = lazy `Mono }
-      | "", "stereo" -> Some { channel_layout = lazy `Stereo }
-      | "", "5.1" -> Some { channel_layout = lazy `Five_point_one }
+      | "", "mono" -> Some { channel_layout = Lazy.from_val `Mono }
+      | "", "stereo" -> Some { channel_layout = Lazy.from_val `Stereo }
+      | "", "5.1" -> Some { channel_layout = Lazy.from_val `Five_point_one }
       | _ -> None
 
   let params d = param_of_channels (Array.length d)
@@ -77,8 +83,6 @@ module Specs = struct
 
   let default_params _ =
     param_of_channels (Lazy.force Frame_settings.audio_channels)
-
-  let clear _ = ()
 
   let make ?(length = 0) { channel_layout } =
     let channels =
@@ -98,9 +102,9 @@ include MkContentBase (Specs)
 let kind = lift_kind `Pcm
 
 let format_of_channels = function
-  | 1 -> lift_params { channel_layout = lazy `Mono }
-  | 2 -> lift_params { channel_layout = lazy `Stereo }
-  | 6 -> lift_params { channel_layout = lazy `Five_point_one }
+  | 1 -> lift_params { channel_layout = Lazy.from_val `Mono }
+  | 2 -> lift_params { channel_layout = Lazy.from_val `Stereo }
+  | 6 -> lift_params { channel_layout = Lazy.from_val `Five_point_one }
   | _ -> raise Invalid
 
 let channels_of_format p =

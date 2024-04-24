@@ -69,6 +69,12 @@ let utf8_char_code s pos len =
 
 (* End of Extlib code *)
 
+let is_valid_utf8_code_point s pos len =
+  try
+    ignore (utf8_char_code s pos len);
+    true
+  with _ -> false
+
 let ascii_special_char s pos len =
   match (s.[pos], len) with
     | '\'', 1
@@ -82,7 +88,10 @@ let ascii_special_char s pos len =
     | c, 1 when Char.code c > 0x7E -> true
     | _ -> false
 
-let utf8_special_char s ofs len = len = 1 && ascii_special_char s ofs len
+let utf8_special_char s ofs len =
+  (not (is_valid_utf8_code_point s ofs len))
+  || (len = 1 && ascii_special_char s ofs len)
+
 let ascii_next _ i = i + 1
 
 let escape_char ~escape_fun s pos len =
@@ -225,9 +234,10 @@ let unescape_char = function
   | s when String.length s = 4 -> unescape_octal_char s
   | _ -> assert false
 
-let unescape_string s =
-  let rex = Regexp.regexp ~flags:[`g] (String.concat "|" unescape_patterns) in
-  Regexp.substitute rex ~subst:unescape_char s
+let unescape_string =
+  Re.replace ~all:true
+    ~f:(fun g -> unescape_char (Re.Group.get g 0))
+    (Re.Pcre.regexp (String.concat "|" unescape_patterns))
 
 (** String representation of a matrix of strings. *)
 let string_of_matrix a =
@@ -291,7 +301,14 @@ let find_cmd cmds =
   cmd cmds
 
 let print_string ?(pager = false) s =
-  let pager = if Sys.getenv_opt "PAGER" = Some "none" then false else pager in
+  let pager =
+    if
+      Sys.win32
+      || Sys.getenv_opt "TERM" = None
+      || Sys.getenv_opt "PAGER" = Some "none"
+    then false
+    else pager
+  in
   let default = output_string stdout in
   let cmd =
     let cmds = [("less", "-F -X -r -f"); ("more", "")] in
@@ -329,10 +346,10 @@ module Version = struct
 
   (* We assume something like, 2.0.0+git@7e211ffd *)
   let of_string s : t =
-    let rex = Regexp.regexp "([\\.\\d]+)([^\\.]+)?" in
-    let sub = Regexp.exec rex s in
-    let num = Option.get (List.nth sub.Regexp.matches 1) in
-    let str = Option.value ~default:"" (List.nth sub.Regexp.matches 2) in
+    let rex = Re.Pcre.regexp "([\\.\\d]+)([^\\.]+)?" in
+    let sub = Re.Pcre.exec ~rex s in
+    let num = Re.Pcre.get_substring sub 1 in
+    let str = try Re.Pcre.get_substring sub 2 with _ -> "" in
     let num = String.split_on_char '.' num |> List.map int_of_string in
     (num, str)
 
@@ -341,6 +358,11 @@ module Version = struct
 
   (** String part. *)
   let str (v : t) = snd v
+
+  let to_string v =
+    Printf.sprintf "%s%s"
+      (String.concat "." (List.map string_of_int (num v)))
+      (str v)
 
   (** Compare two versions. 2.0.0~foo is less than 2.0.0 *)
   let compare v w =
@@ -407,7 +429,7 @@ let home_unrelate =
 let generate_id =
   let t = Hashtbl.create 10 in
   fun name ->
-    if not (Hashtbl.mem t name) then Hashtbl.add t name (ref 0);
+    if not (Hashtbl.mem t name) then Hashtbl.replace t name (ref 0);
     let n = Hashtbl.find t name in
     incr n;
     if !n = 1 then name else name ^ "." ^ string_of_int !n
@@ -511,13 +533,14 @@ let to_hex2 =
     Bytes.unsafe_to_string s
 
 let url_encode ?(plus = true) s =
-  Regexp.substitute
-    (Regexp.regexp ~flags:[`g] "[^A-Za-z0-9_.!*-]")
-    ~subst:(fun x ->
+  Re.replace ~all:true
+    ~f:(fun g ->
+      let x = Re.Group.get g 0 in
       if plus && x = " " then "+"
       else (
         let k = Char.code x.[0] in
         "%" ^ to_hex2 k))
+    (Re.Pcre.regexp "[^A-Za-z0-9_.!*-]")
     s
 
 let of_hex1 c =
@@ -528,10 +551,10 @@ let of_hex1 c =
     | _ -> failwith "invalid url"
 
 let url_decode ?(plus = true) s =
-  Regexp.substitute
-    (Regexp.regexp ~flags:[`g] "\\+|%..|%.|%")
-    (* TODO why do we match %. and % and seem to exclude them below ? *)
-    ~subst:(fun s ->
+  let rex = Re.Pcre.regexp "\\+|%..|%.|%" in
+  Re.replace ~all:true
+    ~f:(fun g ->
+      let s = Re.Group.get g 0 in
       if s = "+" then if plus then " " else "+"
       else (
         (* Assertion: s.[0] = '%' *)
@@ -539,4 +562,4 @@ let url_decode ?(plus = true) s =
         let k1 = of_hex1 s.[1] in
         let k2 = of_hex1 s.[2] in
         String.make 1 (Char.chr ((k1 lsl 4) lor k2))))
-    s
+    rex s

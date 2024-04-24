@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2023 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,62 +16,50 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 class merge_metadata tracks =
   let sources = List.map snd tracks in
-  let stype =
-    if List.for_all (fun s -> s#stype = `Infallible) sources then `Infallible
-    else `Fallible
-  in
-  let self_sync_type = Utils.self_sync_type sources in
+  let self_sync = Clock_base.self_sync sources in
   object (self)
     inherit Source.operator ~name:"track.metadata.merge" sources
     initializer Typing.(self#frame_type <: Lang.unit_t)
-    method stype = stype
-
-    method self_sync =
-      (Lazy.force self_sync_type, List.exists (fun s -> snd s#self_sync) sources)
-
+    method self_sync = self_sync ~source:self ()
+    method fallible = false
     method abort_track = List.iter (fun s -> s#abort_track) sources
-    method private sources_ready = List.for_all (fun s -> s#is_ready) sources
-    method is_ready = List.for_all (fun s -> s#is_ready) sources
-    method seek len = len
-    method remaining = -1
-    val mutable track_frames = []
+    method private ready_sources = List.filter (fun s -> s#is_ready) sources
+    method private can_generate_frame = self#ready_sources <> []
 
-    method private track_frame source =
-      try List.assq source track_frames
-      with Not_found ->
-        let f = Frame.create source#content_type in
-        track_frames <- (source, f) :: track_frames;
-        f
+    method seek_source =
+      match self#ready_sources with
+        | s :: [] -> s
+        | _ -> (self :> Source.source)
 
-    method get_frame buf =
-      let pos = Frame.position buf in
-      let max_pos =
-        List.fold_left
-          (fun max_pos source ->
-            let tmp_frame = self#track_frame source in
-            if source#is_ready && Frame.is_partial tmp_frame then (
-              source#get tmp_frame;
-              List.iter
-                (fun (p, m) ->
-                  if pos <= p then (
-                    match Frame.get_metadata buf p with
-                      | None -> Frame.set_metadata buf p m
-                      | Some m' -> Hashtbl.iter (Hashtbl.add m') m))
-                (Frame.get_all_metadata tmp_frame));
-            max max_pos (Frame.position tmp_frame))
-          (Frame.position buf) sources
-      in
-      Frame.add_break buf max_pos
+    method remaining =
+      match self#ready_sources with s :: [] -> s#remaining | _ -> -1
 
-    initializer
-      self#on_after_output (fun () ->
-          List.iter (fun (_, frame) -> Frame.clear frame) track_frames)
+    method private generate_frame =
+      match self#ready_sources with
+        | [] -> assert false
+        | s :: rest ->
+            List.fold_left
+              (fun frame source ->
+                let l = Frame.get_all_metadata source#get_frame in
+                let l =
+                  List.fold_left
+                    (fun l (pos, m) ->
+                      ( pos,
+                        Frame.Metadata.append
+                          (Option.value ~default:Frame.Metadata.empty
+                             (Frame.get_metadata frame pos))
+                          m )
+                      :: l)
+                    [] l
+                in
+                Frame.add_all_metadata frame l)
+              s#get_frame rest
   end
 
 let _ =

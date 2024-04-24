@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,9 +22,13 @@
 
 open Mm
 
-(** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "portaudio")
+module SyncSource = Clock.MkSyncSource (struct
+  type t = unit
 
+  let to_string _ = "portaudio"
+end)
+
+let sync_source = SyncSource.make ()
 let initialized = ref false
 
 let () =
@@ -76,8 +80,6 @@ Device ID %d:
 
 class virtual base =
   object (self)
-    inherit Source.no_seek
-
     initializer
       if not !initialized then (
         Portaudio.init ();
@@ -148,24 +150,22 @@ let open_device ~mode ~latency ~channels ~buflen device_id =
         Portaudio.open_stream inparams outparams (float samples_per_second)
           buflen []
 
-class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~device_id
-  ~latency buflen val_source =
+class output ~self_sync ~start ~on_start ~on_stop ~infallible ~register_telnet
+  ~device_id ~latency buflen val_source =
   object (self)
     inherit base
 
-    inherit!
+    inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~name:"output.portaudio"
-          ~output_kind:"output.portaudio" val_source start as super
-
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Source.clock))
+        ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.portaudio"
+          ~output_kind:"output.portaudio" val_source start
 
     val mutable stream = None
-    method! self_sync = (`Dynamic, stream <> None)
+
+    method! self_sync =
+      if self_sync then
+        (`Dynamic, if stream <> None then Some sync_source else None)
+      else (`Static, None)
 
     method private open_device =
       self#handle "open_device" (fun () ->
@@ -198,22 +198,28 @@ class output ~clock_safe ~start ~on_start ~on_stop ~infallible ~device_id
           Portaudio.write_stream stream buf 0 len)
   end
 
-class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
+class input ~self_sync ~start ~on_start ~on_stop ~fallible ~device_id ~latency
   buflen =
   object (self)
     inherit base
 
     inherit
       Start_stop.active_source
-        ~get_clock ~clock_safe ~name:"input.portaudio" ~on_start ~on_stop
-          ~fallible ~autostart:start ()
+        ~name:"input.portaudio" ~on_start ~on_stop ~fallible ~autostart:start () as active_source
 
     method private start = self#open_device
     method private stop = self#close_device
     val mutable stream = None
-    method self_sync = (`Dynamic, stream <> None)
+
+    method self_sync =
+      if self_sync then
+        (`Dynamic, if stream <> None then Some sync_source else None)
+      else (`Static, None)
+
     method abort_track = ()
     method remaining = -1
+    method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     method private open_device =
       self#handle "open_device" (fun () ->
@@ -228,13 +234,14 @@ class input ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
       Portaudio.close_stream (Option.get stream);
       stream <- None
 
-    method get_frame frame =
-      assert (0 = AFrame.position frame);
+    method generate_frame =
+      let size = Lazy.force Frame.size in
+      let frame = Frame.create ~length:size self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let stream = Option.get stream in
-      let buf = AFrame.pcm frame in
       self#handle "read_stream" (fun () ->
           Portaudio.read_stream stream buf 0 (Array.length buf.(0)));
-      AFrame.add_break frame (AFrame.size ())
+      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =
@@ -245,10 +252,11 @@ let _ =
   Lang.add_operator ~base:Modules.output "portaudio"
     (Output.proto
     @ [
-        ( "clock_safe",
+        ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
-          Some "Force the use of the dedicated Portaudio clock." );
+          Some "Mark the source as being synchronized by the portaudio driver."
+        );
         ( "buflen",
           Lang.int_t,
           Some (Lang.int 256),
@@ -275,6 +283,7 @@ let _ =
         Lang.to_valued_option Lang.to_float (List.assoc "latency" p)
       in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -285,10 +294,10 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       (new output
-         ~start ~on_start ~on_stop ~infallible ~clock_safe ~device_id ~latency
-         buflen source
+         ~start ~on_start ~on_stop ~infallible ~register_telnet ~self_sync
+         ~device_id ~latency buflen source
         :> Output.output))
 
 let _ =
@@ -297,12 +306,17 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Modules.input "portaudio"
-    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    (Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
         ( "buflen",
           Lang.int_t,
           Some (Lang.int 256),
           Some "Length of a buffer in samples." );
+        ( "self_sync",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Mark the source as being synchronized by the portaudio driver."
+        );
         ( "device_id",
           Lang.nullable_t Lang.int_t,
           Some Lang.null,
@@ -323,7 +337,7 @@ let _ =
       let latency =
         Lang.to_valued_option Lang.to_float (List.assoc "latency" p)
       in
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
       let on_start =
@@ -335,5 +349,5 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       new input
-        ~clock_safe ~start ~on_start ~on_stop ~fallible ~device_id ~latency
+        ~self_sync ~start ~on_start ~on_stop ~fallible ~device_id ~latency
         buflen)

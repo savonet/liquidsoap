@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 open Mm
 open Source
 open Dssi
+module Pcre = Re.Pcre
 
 let log = Log.make ["DSSI synthesizer"]
 
@@ -35,13 +36,13 @@ let dssi_enable =
 let dssi_load =
   try
     let venv = Unix.getenv "LIQ_DSSI_LOAD" in
-    Pcre.split ~pat:":" venv
+    Pcre.split ~rex:(Pcre.regexp ":") venv
   with Not_found -> []
 
 let plugin_dirs =
   try
     let path = Unix.getenv "LIQ_DSSI_PATH" in
-    Pcre.split ~pat:":" path
+    Pcre.split ~rex:(Pcre.regexp ":") path
   with Not_found -> ["/usr/lib/dssi"; "/usr/local/lib/dssi"]
 
 (* Number of channels to synthesize when in all mode *)
@@ -51,10 +52,10 @@ let all_chans = 16
 class dssi ?chan plugin descr outputs params source =
   object
     inherit operator ~name:"dssi" [source]
-    inherit Source.no_seek
-    method stype = source#stype
+    method seek_source = source#seek_source
+    method fallible = source#fallible
     method remaining = source#remaining
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method self_sync = source#self_sync
     method abort_track = source#abort_track
 
@@ -71,19 +72,16 @@ class dssi ?chan plugin descr outputs params source =
     initializer
       Array.iter (fun inst -> Ladspa.Descriptor.activate inst) (snd di)
 
-    method private get_frame buf =
-      let descr, inst = di in
-      let offset = Frame.position buf in
-      let position =
-        source#get buf;
-        Frame.position buf
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
       in
-      let b = AFrame.pcm buf in
-      let evs = MFrame.midi buf in
+      let alen = source#frame_audio_position in
+      let descr, inst = di in
+      let evs =
+        Content.Midi.get_data (Frame.get source#get_frame Frame.Fields.midi)
+      in
       (* Now convert everything to audio samples. *)
-      let offset = Frame.audio_of_main offset in
-      let position = Frame.audio_of_main position in
-      let len = position - offset in
       let evs =
         let dssi_of_midi (t, e) =
           let t = Frame.audio_of_main (Frame.main_of_midi t) in
@@ -104,7 +102,7 @@ class dssi ?chan plugin descr outputs params source =
                     (List.filter_map dssi_of_midi (MIDI.data evs.(chan))))
       in
       assert (Array.length outputs = Array.length b);
-      let ba = Audio.to_ba b offset len in
+      let ba = Audio.to_ba b 0 alen in
       Array.iter
         (fun inst ->
           List.iter
@@ -114,12 +112,13 @@ class dssi ?chan plugin descr outputs params source =
             Ladspa.Descriptor.connect_port inst outputs.(c) ba.(c)
           done)
         inst;
-      try Descriptor.run_multiple_synths descr ~adding:true inst len evs
-      with Descriptor.Not_implemented ->
-        for i = 0 to (if chan = None then all_chans else 1) - 1 do
-          Descriptor.run_synth ~adding:true descr inst.(i) len evs.(i)
-        done;
-        Audio.copy_from_ba ba b offset len
+      (try Descriptor.run_multiple_synths descr ~adding:true inst alen evs
+       with Descriptor.Not_implemented ->
+         for i = 0 to (if chan = None then all_chans else 1) - 1 do
+           Descriptor.run_synth ~adding:true descr inst.(i) alen evs.(i)
+         done;
+         Audio.copy_from_ba ba b 0 alen);
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let dssi = Lang.add_module "dssi"

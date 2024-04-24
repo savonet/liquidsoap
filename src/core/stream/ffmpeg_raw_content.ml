@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Rawright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Rawright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Avutil
+module Pcre = Re.Pcre
 
 type 'a frame = {
   stream_idx : Int64.t;
@@ -29,7 +30,7 @@ type 'a frame = {
 }
 
 module BaseSpecs = struct
-  include Ffmpeg_content_base
+  include Content_video.Base
 
   type kind = [ `Raw ]
 

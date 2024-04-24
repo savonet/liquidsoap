@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -114,6 +114,7 @@ let create_decoder input =
   in
   {
     Decoder.seek;
+    eof = (fun _ -> ());
     decode =
       (fun buffer ->
         let len = input.Decoder.read aacbuf 0 aacbuflen in
@@ -172,8 +173,7 @@ let () =
     ~doc:
       "Use libfaad to decode AAC if MIME type or file extension is appropriate."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> aac_priority#get);
+      Decoder.priority = (fun () -> aac_priority#get);
       file_extensions = (fun () -> Some aac_file_extensions#get);
       mime_types = (fun () -> Some aac_mime_types#get);
       file_type;
@@ -220,7 +220,7 @@ let create_decoder input =
       ended := true;
       0
   in
-  { Decoder.decode; seek }
+  { Decoder.decode; seek; eof = (fun _ -> ()) }
 
 (* Get the number of channels of audio in an MP4 file. *)
 let file_type ~metadata:_ ~ctype:_ filename =
@@ -265,8 +265,7 @@ let () =
     ~doc:
       "Use libfaad to decode MP4 if MIME type or file extension is appropriate."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> mp4_priority#get);
+      Decoder.priority = (fun () -> mp4_priority#get);
       file_extensions = (fun () -> Some mp4_file_extensions#get);
       mime_types = (fun () -> Some mp4_mime_types#get);
       file_type;
@@ -276,11 +275,11 @@ let () =
 
 let log = Log.make ["metadata"; "mp4"]
 
-let get_tags ~metadata:_ file =
+let get_tags ~metadata:_ ~extension ~mime file =
   if
     not
-      (Decoder.test_file ~log ~mimes:mp4_mime_types#get
-         ~extensions:mp4_file_extensions#get file)
+      (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mp4_mime_types#get)
+         ~extensions:(Some mp4_file_extensions#get) file)
   then raise Not_found;
   let fd = Unix.openfile file [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o644 in
   Fun.protect
@@ -289,4 +288,14 @@ let get_tags ~metadata:_ file =
       let mp4 = Faad.Mp4.openfile_fd fd in
       Array.to_list (Faad.Mp4.metadata mp4))
 
-let () = Plug.register Request.mresolvers "mp4" ~doc:"MP4 tag decoder." get_tags
+let mp4_metadata_decoder_priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "mp4")
+    "Priority for the mp4 metadata decoder" ~d:1
+
+let () =
+  Plug.register Request.mresolvers "mp4" ~doc:"MP4 tag decoder."
+    {
+      Request.priority = (fun () -> mp4_metadata_decoder_priority#get);
+      resolver = get_tags;
+    }

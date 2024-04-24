@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,12 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 open Json_parser
+open Json_base
 open Lang_string
 
 (* Json specs *)
@@ -52,7 +53,7 @@ let skipped = [%sedlex.regexp? Plus (' ' | '\r' | '\n' | '\t')]
 
 let rec json_token lexbuf =
   match%sedlex lexbuf with
-    | Plus skipped -> json_token lexbuf
+    | skipped -> json_token lexbuf
     | "true" -> BOOL true
     | "false" -> BOOL false
     | "null" -> NULL
@@ -69,13 +70,16 @@ let rec json_token lexbuf =
     | '"' ->
         STRING
           (read_string
-             (fst (Sedlexing.lexing_positions lexbuf))
+             (fst (Sedlexing.lexing_bytes_positions lexbuf))
              (Buffer.create 17) lexbuf)
     | eof -> EOF
     | _ ->
-        Runtime_error.raise ~message:"Parse error"
-          ~pos:[Sedlexing.lexing_positions lexbuf]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message = "Parse error";
+             })
 
 and read_string pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
@@ -108,14 +112,21 @@ and read_string pos buf lexbuf =
         read_string pos buf lexbuf
     | '"' -> Buffer.contents buf
     | eof ->
-        Runtime_error.raise ~message:"String is not terminated"
-          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message = "String is not terminated";
+             })
     | _ ->
-        Runtime_error.raise
-          ~message:("Illegal string character: " ^ Sedlexing.Utf8.lexeme lexbuf)
-          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message =
+                 Printf.sprintf "Illegal string character: %S"
+                   (Sedlexing.Utf8.lexeme lexbuf);
+             })
 
 (* Json 5 extension *)
 
@@ -188,49 +199,63 @@ let rec json5_token lexbuf =
         IDENTIFIER (Lang_string.unescape_string (Sedlexing.Utf8.lexeme lexbuf))
     | "//" ->
         read_single_line_comment
-          (fst (Sedlexing.lexing_positions lexbuf))
+          (fst (Sedlexing.lexing_bytes_positions lexbuf))
           lexbuf;
         json5_token lexbuf
     | "/*" ->
-        read_multiline_comment (fst (Sedlexing.lexing_positions lexbuf)) lexbuf;
+        read_multiline_comment
+          (fst (Sedlexing.lexing_bytes_positions lexbuf))
+          lexbuf;
         json5_token lexbuf
     | '"' ->
         STRING
           (read_json5_string '"'
-             (fst (Sedlexing.lexing_positions lexbuf))
+             (fst (Sedlexing.lexing_bytes_positions lexbuf))
              (Buffer.create 17) lexbuf)
     | '\'' ->
         STRING
           (read_json5_string '\''
-             (fst (Sedlexing.lexing_positions lexbuf))
+             (fst (Sedlexing.lexing_bytes_positions lexbuf))
              (Buffer.create 17) lexbuf)
     | eof -> EOF
     | _ ->
-        Runtime_error.raise ~message:"Parse error"
-          ~pos:[Sedlexing.lexing_positions lexbuf]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message = "Parse error";
+             })
 
 and read_single_line_comment pos lexbuf =
   match%sedlex lexbuf with
     | eof | line_terminator_sequence -> ()
     | Plus (Compl line_terminator) -> read_single_line_comment pos lexbuf
     | _ ->
-        Runtime_error.raise ~message:"Parse error"
-          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message = "Parse error";
+             })
 
 and read_multiline_comment pos lexbuf =
   match%sedlex lexbuf with
     | Plus '*', '/' -> ()
     | '*', Compl '/' | Plus (Compl '*') -> read_multiline_comment pos lexbuf
     | eof ->
-        Runtime_error.raise ~message:"Comment is not terminated"
-          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message = "Comment is not terminated";
+             })
     | _ ->
-        Runtime_error.raise ~message:"Parse error"
-          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message = "Parse error";
+             })
 
 and read_json5_string sep pos buf lexbuf =
   (* See: https://en.wikipedia.org/wiki/Escape_sequences_in_C *)
@@ -282,10 +307,16 @@ and read_json5_string sep pos buf lexbuf =
           Buffer.add_string buf m;
           read_json5_string sep pos buf lexbuf)
     | eof ->
-        Runtime_error.raise ~message:"String is not terminated"
-          ~pos:[(pos, snd (Sedlexing.lexing_positions lexbuf))]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message = "String is not terminated";
+             })
     | _ ->
-        Runtime_error.raise ~message:"Parse error"
-          ~pos:[Sedlexing.lexing_positions lexbuf]
-          "json"
+        raise
+          (Parse_error
+             {
+               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               message = "Parse error";
+             })

@@ -1,9 +1,46 @@
 #!../../liquidsoap ../test.liq
 
-g = file.replaygain("file1.mp3")
-print("Replay gain: #{g} dB")
-if null.defined(g) and abs(null.get(g) - 7.37) < 0.05 then
+def test_file_replaygain() =
+  g = file.replaygain("replaygain_track_gain.mp3")
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), -32.)
+
+  g = file.replaygain("r128_track_gain.mp3")
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), -16.)
+
+  g = file.replaygain("replaygain_r128_track_gain.mp3")
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), -16.)
+
+  g = file.replaygain("replaygain_track_gain.opus")
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), -32.)
+
+  g = file.replaygain("r128_track_gain.opus")
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), -16.)
+
+  g = file.replaygain("replaygain_r128_track_gain.opus")
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), -16.)
+
+  g = file.replaygain("replaygain_track_gain.mp3", compute=true)
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), -32.)
+
+  g = file.replaygain("replaygain_track_gain.mp3", compute=false)
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), -32.)
+
+  g = file.replaygain("without_replaygain_track_gain.mp3", compute=true)
+  test.not.equal(g, null())
+  test.almost_equals(null.get(g), 7.39)
+
+  g = file.replaygain("without_replaygain_track_gain.mp3", compute=false)
+  test.equal(g, null())
+
   test.pass()
-else
-  test.fail()
 end
+
+test.check(test_file_replaygain)

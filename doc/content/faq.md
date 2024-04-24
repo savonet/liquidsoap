@@ -21,7 +21,7 @@ but it should be a subtype of
 
 Sometimes, the type error actually indicates a mistake in the order or labels of arguments. For example, given `output.icecast(mount="foo.ogg",source)` liquidsoap will complain that the second argument is a source (`source(?A)`) but should be a format (`format(?A)`): indeed, the first unlabelled argument is expected to be the encoding format, e.g., `%vorbis`, and the source comes only second.
 
-Finally, a type error can indicate that you have forgotten to pass a mandatory parameter to some function. For example, on the code `fallback([mux_audio(x),...])`, liquidsoap will complain as follows:
+Finally, a type error can indicate that you have forgotten to pass a mandatory parameter to some function. For example, on the code `fallback([source.mux.audio(x),...])`, liquidsoap will complain as follows:
 
 ```
 At line ...:
@@ -31,7 +31,7 @@ but it should be a subtype of the type of the value at ../libs/switches.liq, lin
   [source(_)] (inferred at ../libs/list.liq, line 102, char 29)
 ```
 
-Indeed, `fallback` expects a source, but `mux_audio(x)` is still a function expecting the `audio` parameter.
+Indeed, `fallback` expects a source, but `source.mux.audio(x)` is still a function expecting the `audio` parameter.
 
 ### That source is fallible!
 

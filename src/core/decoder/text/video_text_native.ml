@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ open Mm
 let log = Log.make ["video"; "text"; "native"]
 
 let render_text ~font ~size text =
-  if font <> Configure.default_font then
+  if font <> Configure.conf_default_font#get then
     log#important "video.text.native does not support custom fonts yet!";
   let () = ignore font in
   let font = Image.Bitmap.Font.native in

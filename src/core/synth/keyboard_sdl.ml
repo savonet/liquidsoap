@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -86,34 +86,33 @@ class keyboard velocity =
   let () = Sdl_utils.init [Sdl.Init.events; Sdl.Init.video] in
   object (self)
     inherit Source.active_source ~name:"input.keyboard.sdl" ()
-    inherit Source.no_seek
-    method stype = `Infallible
-    method is_ready = true
+    method seek_source = (self :> Source.source)
+    method fallible = false
+    method private can_generate_frame = true
     method remaining = -1
     method abort_track = ()
-    method self_sync = (`Static, false)
-
-    method output =
-      if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
-
+    method self_sync = (`Static, None)
+    method output = if self#is_ready then ignore self#get_frame
     val mutable window = None
 
-    method! wake_up _ =
-      window <-
-        Some
-          (Sdl_utils.check
-             (fun () ->
-               Sdl.create_window "Liquidsoap" ~w:640 ~h:480 Sdl.Window.windowed)
-             ())
+    initializer
+      self#on_wake_up (fun () ->
+          window <-
+            Some
+              (Sdl_utils.check
+                 (fun () ->
+                   Sdl.create_window "Liquidsoap" ~w:640 ~h:480
+                     Sdl.Window.windowed)
+                 ()));
 
-    method! private sleep = Sdl.quit ()
+      (* TODO: could this be too radical? *)
+      self#on_sleep Sdl.quit
+
     val mutable reader = None
     val mutable velocity = velocity
     method reset = ()
 
-    method get_frame frame =
-      assert (0 = MFrame.position frame);
-      let m = MFrame.midi frame in
+    method generate_frame =
       let t =
         let ans = MIDI.create (MFrame.size ()) in
         Sdl.pump_events ();
@@ -146,11 +145,8 @@ class keyboard velocity =
         done;
         ans
       in
-      for c = 0 to Array.length m - 1 do
-        MIDI.clear_all m.(c);
-        MIDI.merge m.(c) t
-      done;
-      MFrame.add_break frame (MFrame.size ())
+      Frame.set_data self#empty_frame Frame.Fields.midi Content.Midi.lift_data
+        [| t |]
   end
 
 let _ =

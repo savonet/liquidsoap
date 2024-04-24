@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ class external_input ~name ~restart ~bufferize ~restart_on_error ~max ~converter
       External_input.base
         ~name ?read_header ~restart ~restart_on_error ~on_data command
 
-    inherit Generated.source ~empty_on_abort:false ~bufferize ()
+    inherit! Generated.source ~empty_on_abort:false ~bufferize ()
   end
 
 let proto =

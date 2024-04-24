@@ -9,23 +9,23 @@ offers a rich collection of operators that you can combine to create and
 transform streams. Liquidsoap is very light and easy to use, in the Unix
 tradition of simple strong components working together.
 
-Copyright 2003-2023 Savonet team
+Copyright 2003-2024 Savonet team
 
-[![GPL license](https://img.shields.io/badge/License-GPL-green.svg)](https://github.com/savonet/liquidsoap/blob/master/COPYING)
+[![GPL license](https://img.shields.io/github/license/savonet/liquidsoap)](https://github.com/savonet/liquidsoap/blob/master/COPYING)
 ![CI](https://github.com/savonet/liquidsoap/workflows/CI/badge.svg)
 [![GitHub release](https://img.shields.io/github/release/savonet/liquidsoap.svg)](https://GitHub.com/savonet/liquidsoap/releases/)
-[![Install with Opam !](https://img.shields.io/badge/Install%20with-Opam-1abc9c.svg)](http://opam.ocaml.org/packages/liquidsoap/)
-[![Chat on slack !](https://img.shields.io/badge/Chat%20on-Slack-1a1f9c.svg)](http://slack.liquidsoap.info/)
+[![Install with Opam!](https://img.shields.io/badge/Install%20with-Opam-1abc9c.svg)](http://opam.ocaml.org/packages/liquidsoap/)
+[![Chat on Discord!](https://img.shields.io/badge/Chat%20on-Discord-5865f2.svg)](http://chat.liquidsoap.info/)
 
-|                           |                                                                    |
-| ------------------------- | ------------------------------------------------------------------ |
-| Homepage                  | http://liquidsoap.info                                             |
-| Slack Chat                | http://slack.liquidsoap.info                                       |
-| Blog                      | https://www.liquidsoap.info/blog/                                  |
-| Bug reports               | https://github.com/savonet/liquidsoap/issues                       |
-| User questions            | https://github.com/savonet/liquidsoap/discussions                  |
-| IRC (deprecated)          | #savonet on [irc.libera.chat](https://libera.chat/) (slack bridge) |
-| Mailing list (deprecated) | savonet-users@lists.sourceforge.net                                |
+|                           |                                                                         |
+| ------------------------- | ----------------------------------------------------------------------- |
+| Homepage                  | http://liquidsoap.info                                                  |
+| Discord Chat              | http://chat.liquidsoap.info                                             |
+| Blog                      | https://www.liquidsoap.info/blog/                                       |
+| Bug reports               | https://github.com/savonet/liquidsoap/issues                            |
+| User questions            | https://github.com/savonet/liquidsoap/discussions                       |
+| IRC (deprecated)          | #savonet on [irc.libera.chat](https://libera.chat/) (w/ discord bridge) |
+| Mailing list (deprecated) | savonet-users@lists.sourceforge.net                                     |
 
 ## Installation
 
@@ -36,15 +36,10 @@ See the instructions [here](https://www.liquidsoap.info/doc.html?path=install.ht
 Current release status by version:
 | Branch | Latest release | Supported | Rolling Release |
 | --------|----------------|-----------|-----------------|
-| `2.2.x` | In development | ✅ | [2.2.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.2.x) |
-| `2.1.x` | [2.1.4](https://github.com/savonet/liquidsoap/releases/tag/v2.1.4) | 🌅 | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) |
+| `2.2.x` | [2.2.4](https://github.com/savonet/liquidsoap/releases/tag/v2.2.4) (docker: [savonet/liquidsoap:v2.2.4](https://hub.docker.com/r/savonet/liquidsoap))| ✅ | [2.2.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.2.x) (docker: [savonet/liquidsoap:rolling-release-v2.2.x](https://hub.docker.com/r/savonet/liquidsoap)) |
+| `2.1.x` | [2.1.4](https://github.com/savonet/liquidsoap/releases/tag/v2.1.4) (docker: [savonet/liquidsoap:v2.1.4](https://hub.docker.com/r/savonet/liquidsoap))| ❌ | [2.1.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.1.x) (docker: [savonet/liquidsoap:rolling-release-v2.1.x](https://hub.docker.com/r/savonet/liquidsoap)) |
 | `2.0.x` | [2.0.7](https://github.com/savonet/liquidsoap/releases/tag/v2.0.7) | ❌ | [2.0.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.0.x) |
 | `1.4.x` | [1.4.4](https://github.com/savonet/liquidsoap/releases/tag/v1.4.4) | ❌ | ❌ |
-
-### Notes
-
-- Development branch `2.2.x` is being prepared for its first stable release. We do encourage new projects to start with it and users to report issues. We will prioritize these issues over other ones.
-- Development branch `2.1.x` is nearing the end of its development cycle and will only be updated on a best effort basis or in case of a major issue.
 
 ### Versions
 
@@ -72,6 +67,16 @@ We also provide **rolling releases**. A rolling release is a snapshot of a curre
 
 For both types of releases, we reserve the right to update, delete and add assets to the release at any time. If you are looking for permanent links to release assets, you should grab them from https://github.com/savonet/liquidsoap-release-assets/releases, which reflects all our releases but whose artifacts are never modified/deleted.
 
+## Tooling
+
+|             |                                                                                                                                                    |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Formatting  | [liquidsoap-prettier](https://github.com/savonet/liquidsoap-prettier)                                                                              |
+| VSCode      | [vscode-liquidsoap](https://marketplace.visualstudio.com/items?itemName=savonet.vscode-liquidsoap)                                                 |
+| Tree Sitter | [tree-sitter-liquidsoap](https://github.com/savonet/tree-sitter-liquidsoap), [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) |
+| CodeMirror  | [codemirror-lang-liquidsoap](https://github.com/savonet/codemirror-lang-liquidsoap)                                                                |
+| Playground  | [https://www.liquidsoap.info/try/](https://www.liquidsoap.info/try/)                                                                               |
+
 ## Documentation
 
 HTML documentation is available on our [website](http://liquidsoap.info)
@@ -92,36 +97,7 @@ code with
 git checkout git@github.com:savonet/liquidsoap.git
 ```
 
-To build the code, you will need all the required `opam` packages installed. You can do it this way:
-
-```sh
-cd liquidsoap/
-opam pin git+https://github.com/savonet/ocaml-dtools
-opam pin git+https://github.com/savonet/ocaml-cry
-opam pin git+https://github.com/savonet/ocaml-metadata
-opam pin git+https://github.com/savonet/ocaml-ffmpeg # optional
-opam pin -ny .
-opam install --deps-only liquidsoap
-```
-
-You might also need to pin a local version of the OCaml modules that we maintain in relation to `liquidsoap`. This can be
-done by pinning that module locally using `opam`.
-
-Assuming that all dendencies are installed, you can now build with
-
-```sh
-dune build
-```
-
-In order to ensure the quality of your commits, you are recommended to install
-the pre-commit hooks with
-
-```
-pre-commit install
-```
-
-Those will automatically check before each commit that those meet some of our
-quality requirements.
+Please see [our documentation page](https://www.liquidsoap.info/doc-dev/build.html) about how to build the code.
 
 ## License
 

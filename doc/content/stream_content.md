@@ -1,27 +1,14 @@
 # Stream contents
 
 In liquidsoap, a stream may contain any number of audio, video and
-MIDI channels. As part of the type checking of your script,
+event MIDI channels (though this has not been tested in a while!).
+As part of the type checking of your script,
 liquidsoap checks that you make a consistent use of stream contents,
 and also guesses what kind of stream your script is intended to
 work on. As with other inferred parameters, you do not necessarily
 need to read about stream contents typing if you're still learning
 the ropes of liquidsoap, but you might eventually need to know a
 little about it.
-
-The content of a stream is described by the audio, video and MIDI
-arities. An arity might be fixed or variable. Fixed arities are usual
-natural numbers, described a number of channels that does change over
-time. For example, the stream type `(2,0,0)` describes
-streams that always have 2 audio channels and no channel of another
-type. Variable arities describes numbers of channels that vary over
-time. For example, the stream type `(*,0,0)` describes
-a stream which contains only audio, but whose number of channels
-might change at anytime -- think of playing files, some of which
-being stereo, some mono, and some videos without any audio content.
-The stream type `(*+1,0,0)` also describes a variable
-number of audio channels, but with the guarantee that there will
-always be at least one.
 
 In liquidsoap script language, there are three sorts of objects
 that rely on stream types: sources, requests and encoding formats.
@@ -39,9 +26,45 @@ to make sense.
 In this page, we explain how liquidsoap uses stream types
 to guess and check what you're doing.
 
+## Content types
+
+Liquidsoap supports various type of content to be produced as the
+script runs.
+
+### Internal content
+
+_internal_ content generally refers to content that the liquidsoap application
+can produce and manipulate.
+
+For audio, the default internal content is `pcm` floats
+using OCaml native 64-bits float array representations. This is the format that allows the
+fastest manipulation.
+
+For video, the default is a C in-memory arrays of plannar YUV420 data.
+
+For users concerned with memory consumption, we also support two additional audio formats,
+`pcm_s16` and `pcm_f32` using, resp., signed 16-bit integers and 32-bit floating point numbers.
+These formats may increase CPU usage, however, as we do need to convert back and forth when
+using them in audio manipulation operators such as `amplify`, `crossfade` and etc. See [this
+link](memory.html#audio-data-format) for more details.
+
+### Opaque content
+
+Liquidsoap also supports content type that are opaque to the application, provided by the `ffmpeg` decoder. There
+are two:
+
+- FFmpeg raw frames, which are decoded plain FFmpeg frames
+- FFmpeg packets, also referred to as FFmpeg copy content. These are packets of encoded content
+
+These type of content are consumed by FFmpeg specific operators and it is possible to convert back and
+forth if you want to use them with our internal operators. However, their best use-case is to keep them as-is end-to-end
+to optimize for memory and/or CPU usage.
+
+See the [FFmpeg support](ffmpeg.html) doc for more information.
+
 ## Global parameters
 
-You might have noticed that our description of stream contents is
+You might have noticed that our description of internal stream contents is
 missing some information, such as sample rate, video size, etc.
 Indeed, that information is not part of the stream types, which is
 local to each source/request/format, but global in liquidsoap.
@@ -67,54 +90,67 @@ For example, if you try to send an ALSA input to a SDL input using
 ```
 At line 1, char 22-23:
   this value has type
-    source(audio=?A+1,video=0,midi=0)
-    where ?A is a fixed arity type
+    source(audio=pcm('a))
   but it should be a subtype of
-    source(audio=0,video=1,midi=0)
+    source(video=canvas)
 ```
 
-It means that a source with exactly onevideo channel was expected
+It means that a source with a video channel was expected
 by the SDL output, but the ALSA output can only offer sources
 producing audio.
-By the way,
-`?A+1 where ?A is fixed` means that the ALSA input will
-accept to produce any number of channels, fixed once for
-all: it will attempt to initialize the soundcard with that number of
-channels and report a runtime error if that fails.
 
 ## Conversions
 
-The above example did not make much sense, but in some cases you'll
 get a type error on seemingly meaningful code, and you'll wonder how
 to fix it. Often, it suffices to perform a few explicit conversions.
 
 Consider another example involving the SDL output, where we also try
 to use AO to output the audio content of a video:
-`liquidsoap output.ao(output.sdl(single("file.ogv")))`.
-This won't work, because the SDL output expects a pure video stream,
-but AO wants some audio. The solution is to split the stream in
-two, dropping the irrelevant content:
 
 ```liquidsoap
-s = single("file.ogv")
-output.sdl(drop_audio(s))
-output.ao(drop_video(s))
+s = single("file.mp4")
+
+# Output video here
+output.file(
+  %ffmpeg(%video(codec="libx264"),
+  "/path/to/video.flv",
+  s
+)
+
+# Output audio here
+output.file(
+  %ffmpeg(%audio(codec="aac"))
+  "/path/to/video.aac",
+  s
+)
 ```
 
-Currently, the video dropping is useless because AO tolerates
-(and ignores) non-audio channels.
+This won't work because the first output expects a video-only
+stream while the second one expected an audio-only stream
 
-If you want to support both mono and stereo (and more) files within
-the same playlist, you'll need your `playlist`
-or `single` instance to have type
-`source(*+1,0,0)`.
-But this content type won't be supported by most operators, which
-require fixed arities. What you need to do is use `audio_to_stereo`
-which will normalize your variable arity audio into a fixed stereo audio.
+The solution is to split the stream in two, dropping the irrelevant content:
 
-The last conversion is muxing.
+```liquidsoap
+s = single("file.mp4")
+
+# Output video here
+output.file(
+  %ffmpeg(%video(codec="libx264"),
+  "/path/to/video.flv",
+  source.drop.audio(s)
+)
+
+# Output audio here
+output.file(
+  %ffmpeg(%audio(codec="aac"))
+  "/path/to/video.aac",
+  source.drop.video(s)
+)
+```
+
+Another conversion is muxing.
 It is useful to add audio/video channels to a pure video/audio stream.
-See `mux_video`, `mux_audio` and `mux_midi`.
+For this, see `source.mux.video` and `source.mux.audio`.
 
 ## Type annotations
 
@@ -137,7 +173,7 @@ If you want to use a different number of channels,
 for example mono, you can explicitly specify it using:
 
 ```liquidsoap
-output.alsa((input.alsa():source(1,0,0)))
+output.alsa((input.alsa():source(audio=pcm(mono))))
 ```
 
 ## Guessing stream contents
@@ -157,8 +193,8 @@ A critical ingredient here is often the
 output.icecast(%vorbis,mount="some.ogg",s)
 ```
 
-`%vorbis` has type `format(2,0,0)`, hence `s`
-should have type `source(2,0,0)`. This works in more complex
+`%vorbis` has type `format(audio=pcm(stereo))`, hence `s`
+should have type `source(audio=pcm(stereo))`. This works in more complex
 examples, when the types are guessed successively for several intermediate
 operators.
 

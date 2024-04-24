@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
+
+module Pcre = Re.Pcre
 
 let log = Log.make ["sandbox"]
 
@@ -41,7 +43,7 @@ let conf_setenv =
 let get_setenv () =
   List.fold_left
     (fun cur s ->
-      match Pcre.split ~pat:"=" s with
+      match Pcre.split ~rex:(Pcre.regexp "=") s with
         | [] -> cur
         | lbl :: l -> (lbl, String.concat "=" l) :: cur)
     [] conf_setenv#get
@@ -81,17 +83,13 @@ let conf_shell_path =
     "Patch to shell binary. Defaults to `$SHELL` if set and \"/bin/sh\" \
      otherwise."
 
-let is_docker =
-  lazy
-    (Sys.unix
-    && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
-
 let has_binary =
-  lazy (Utils.which_opt ~path:(Configure.path ()) conf_binary#get <> None)
+  Lazy.from_fun (fun () ->
+      Utils.which_opt ~path:(Configure.path ()) conf_binary#get <> None)
 
 let () =
-  Lifecycle.before_start (fun () ->
-      if Lazy.force is_docker then (
+  Lifecycle.before_start ~name:"sandbox start" (fun () ->
+      if Lazy.force Utils.is_docker then (
         log#important "Running inside a docker container, disabling sandboxing.";
         conf_sandbox#set false)
       else if not (Lazy.force has_binary) then (

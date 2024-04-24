@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,103 +20,89 @@
 
  *****************************************************************************)
 
-class dyn ~init ~track_sensitive ~infallible ~resurection_time f =
+class dyn ~init ~track_sensitive ~infallible ~resurection_time ~self_sync f =
   object (self)
     inherit Source.source ~name:"source.dynamic" ()
-    method stype = if infallible then `Infallible else `Fallible
+
+    inherit
+      Source.generate_from_multiple_sources
+        ~merge:(fun () -> false)
+        ~track_sensitive ()
+
+    method fallible = not infallible
     val mutable activation = []
+    val source : Source.source option Atomic.t = Atomic.make init
+    val mutable last_select = Unix.gettimeofday ()
+    val proposed = Atomic.make None
+    method propose s = Atomic.set proposed (Some s)
 
-    (* The dynamic stuff: #select calls the selection function and changes
-     * the source when needed, and #unregister_source does what its name says.
-     * Any sequence of calls to #select and #unregister_source is okay
-     * but they should not overlap.
-     * All that matters for cleanliness is that #unregister_source comes
-     * last, which #sleep ensures. *)
-    val source_lock = Mutex.create ()
-    val mutable source : Source.source option = init
+    method private prepare s =
+      Typing.(s#frame_type <: self#frame_type);
+      Clock.unify ~pos:self#pos s#clock self#clock;
+      s#wake_up;
+      Atomic.set source (Some s);
+      if s#is_ready then Some s else None
 
-    method private unregister_source ~already_locked =
-      let unregister () =
-        match source with
-          | Some s ->
-              s#leave (self :> Source.source);
-              source <- None
-          | None -> ()
-      in
-      if already_locked then unregister ()
-      else Tutils.mutexify source_lock unregister ()
+    method private get_next reselect =
+      self#mutexify
+        (fun () ->
+          match Atomic.exchange proposed None with
+            | Some s -> self#prepare s
+            | None -> (
+                last_select <- Unix.gettimeofday ();
+                let s =
+                  Lang.apply f [] |> Lang.to_option |> Option.map Lang.to_source
+                in
+                match s with
+                  | None -> (
+                      match Atomic.get source with
+                        | Some s
+                          when self#can_reselect
+                                 ~reselect:
+                                   (match reselect with
+                                     | `Force -> `Ok
+                                     | v -> v)
+                                 s ->
+                            Some s
+                        | _ -> None)
+                  | Some s -> self#prepare s))
+        ()
 
-    val mutable last_select = 0.
+    method private get_source ~reselect () =
+      match (Atomic.get source, reselect) with
+        | None, _ | _, `Force -> self#get_next reselect
+        | Some s, _ when self#can_reselect ~reselect s -> Some s
+        | Some _, _ when Unix.gettimeofday () -. last_select < resurection_time
+          ->
+            None
+        | _ -> self#get_next reselect
 
-    (* Proposed source for next round. *)
-    val mutable proposal = None
-    method propose s = proposal <- Some s
+    initializer
+      self#on_wake_up (fun () ->
+          Lang.iter_sources
+            (fun s -> Typing.(s#frame_type <: self#frame_type))
+            f;
+          ignore (self#get_source ~reselect:`Force ()))
 
-    method private select =
-      (* Avoid that a new source gets assigned to the default clock. *)
-      Clock.collect_after
-        (Tutils.mutexify source_lock (fun () ->
-             let s =
-               match proposal with
-                 | Some s ->
-                     proposal <- None;
-                     Some s
-                 | None ->
-                     Lang.apply f [] |> Lang.to_option
-                     |> Option.map Lang.to_source
-             in
-             if track_sensitive then last_select <- Unix.gettimeofday ();
-             match s with
-               | None -> ()
-               | Some s ->
-                   Typing.(s#frame_type <: self#frame_type);
-                   Clock.unify s#clock self#clock;
-                   s#get_ready activation;
-                   self#unregister_source ~already_locked:true;
-                   source <- Some s))
-
-    (* Source methods: attempt to #select as soon as it could be useful for the
-       selection function to change the source. *)
-    method! private wake_up ancestors =
-      activation <- (self :> Source.source) :: ancestors;
-      Lang.iter_sources (fun s -> s#get_ready ~dynamic:true activation) f;
-      self#select
-
-    method! private sleep =
-      Lang.iter_sources
-        (fun s -> s#leave ~dynamic:true (self :> Source.source))
-        f;
-      self#unregister_source ~already_locked:false
-
-    method is_ready =
-      if (not track_sensitive) || source = None then self#select;
-      match source with
-        | Some s when s#is_ready -> true
-        | _ ->
-            if
-              track_sensitive && resurection_time <> None
-              && Unix.gettimeofday () -. last_select
-                 >= Option.get resurection_time
-            then self#select;
-            false
-
-    method private get_frame frame =
-      begin
-        match source with
-          | Some s -> s#get frame
-          | None -> Frame.add_break frame (Frame.position frame)
-      end;
-      if (not track_sensitive) || Frame.is_partial frame then self#select
-
-    method remaining = match source with Some s -> s#remaining | None -> -1
+    method remaining =
+      match Atomic.get source with Some s -> s#remaining | None -> -1
 
     method abort_track =
-      match source with Some s -> s#abort_track | None -> ()
+      match Atomic.get source with Some s -> s#abort_track | None -> ()
 
-    method seek n = match source with Some s -> s#seek n | None -> 0
+    method seek_source =
+      match Atomic.get source with
+        | Some s -> s#seek_source
+        | None -> (self :> Source.source)
 
     method self_sync =
-      (`Dynamic, match source with Some s -> snd s#self_sync | None -> false)
+      match self_sync with
+        | Some v -> (`Static, self#source_sync v)
+        | None -> (
+            ( `Dynamic,
+              match Atomic.get source with
+                | Some s -> snd s#self_sync
+                | None -> None ))
   end
 
 let _ =
@@ -128,7 +114,7 @@ let _ =
         Some Lang.null,
         Some "Initial value for the source" );
       ( "track_sensitive",
-        Lang.bool_t,
+        Lang.getter_t Lang.bool_t,
         Some (Lang.bool false),
         Some "Whether the source should only be updated on track change." );
       ( "infallible",
@@ -137,6 +123,10 @@ let _ =
         Some
           "Whether the source is infallible or not (be careful when setting \
            this, it will not be checked by the typing system)." );
+      ( "self_sync",
+        Lang.nullable_t Lang.bool_t,
+        Some Lang.null,
+        Some "For the source's `self_sync` property." );
       ( "resurection_time",
         Lang.nullable_t Lang.float_t,
         Some (Lang.float 1.),
@@ -173,10 +163,16 @@ let _ =
       let init =
         List.assoc "init" p |> Lang.to_option |> Option.map Lang.to_source
       in
-      let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
+      let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_getter in
+      let track_sensitive () = Lang.to_bool (track_sensitive ()) in
       let infallible = List.assoc "infallible" p |> Lang.to_bool in
       let resurection_time =
         List.assoc "resurection_time" p |> Lang.to_valued_option Lang.to_float
       in
+      let resurection_time = Option.value ~default:(-1.) resurection_time in
+      let self_sync =
+        Lang.to_valued_option Lang.to_bool (List.assoc "self_sync" p)
+      in
+      let next = List.assoc "" p in
       new dyn
-        ~init ~track_sensitive ~infallible ~resurection_time (List.assoc "" p))
+        ~init ~track_sensitive ~infallible ~resurection_time ~self_sync next)

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,11 +27,22 @@ module Ground = Term.Ground
 
 module Methods = Term.Methods
 
-type t = { pos : Pos.Option.t; value : in_value; methods : t Methods.t }
+type t = {
+  pos : Pos.Option.t;
+  value : in_value;
+  methods : t Methods.t;
+  id : int;
+}
+
 and env = (string * t) list
 
 (* Some values have to be lazy in the environment because of recursive functions. *)
 and lazy_env = (string * t Lazy.t) list
+
+and ffi = {
+  ffi_args : (string * string * t option) list;
+  mutable ffi_fn : env -> t;
+}
 
 and in_value =
   | Ground of Ground.t
@@ -43,7 +54,11 @@ and in_value =
   | Fun of (string * string * t option) list * lazy_env * Term.t
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
-  | FFI of (string * string * t option) list * (env -> t)
+  | FFI of ffi
+
+let id =
+  let counter = Atomic.make 0 in
+  fun () -> Atomic.fetch_and_add counter 1
 
 let unit : in_value = Tuple []
 
@@ -150,10 +165,12 @@ let compare a b =
                          pos = None;
                          value = Ground (Ground.String lbl);
                          methods = Methods.empty;
+                         id = id ();
                        };
                        v;
                      ];
                  methods = Methods.empty;
+                 id = id ();
                })
              a)
       in
@@ -170,10 +187,12 @@ let compare a b =
                          pos = None;
                          value = Ground (Ground.String lbl);
                          methods = Methods.empty;
+                         id = id ();
                        };
                        v;
                      ];
                  methods = Methods.empty;
+                 id = id ();
                })
              b)
       in
@@ -187,7 +206,7 @@ let compare a b =
 module type Abstract = sig
   include Term.Abstract
 
-  val to_value : content -> t
+  val to_value : ?pos:Pos.t -> content -> t
   val of_value : t -> content
   val is_value : t -> bool
 end
@@ -197,8 +216,8 @@ module type AbstractDef = Term.AbstractDef
 module MkAbstractFromTerm (Term : Term.Abstract) = struct
   include Term
 
-  let to_value c =
-    { pos = None; value = Ground (to_ground c); methods = Methods.empty }
+  let to_value ?pos c =
+    { pos; value = Ground (to_ground c); methods = Methods.empty; id = id () }
 
   let of_value t =
     match t.value with
@@ -224,4 +243,5 @@ module RuntimeType = MkAbstract (struct
       "json"
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end)

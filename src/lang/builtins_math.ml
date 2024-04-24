@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
+
+let log = lazy (!Hooks.make_log ["math"])
 
 let () =
   let add op name descr =
@@ -96,7 +98,7 @@ let () =
     ( ** );
   register_op "Remainder of division" "mod" ( mod ) mod_float
 
-let _ =
+let float =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "float" ~category:`Math ~descr:"Convert a number to a float."
     [("", t, None, None)]
@@ -107,14 +109,61 @@ let _ =
       Lang.float x)
 
 let _ =
+  Lang.add_builtin ~base:float "is_nan" ~category:`Math
+    ~descr:"Return `true` if the floating point number is `NaN`."
+    [("", Lang.float_t, None, None)]
+    Lang.bool_t
+    (fun p -> Lang.bool (Float.is_nan (Lang.to_float (List.assoc "" p))))
+
+let _ =
+  Lang.add_builtin ~base:float "is_infinite" ~category:`Math
+    ~descr:"Return `true` if the floating point number is infinite."
+    [("", Lang.float_t, None, None)]
+    Lang.bool_t
+    (fun p -> Lang.bool (Float.is_infinite (Lang.to_float (List.assoc "" p))))
+
+let _ =
   let t = Lang.univ_t ~constraints:[Type.num_constr] () in
   Lang.add_builtin "int" ~category:`Math
     ~descr:"Convert a number to an integer."
-    [("", t, None, None)]
+    [
+      ("", t, None, None);
+      ( "raise",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Raise `error.invalid` if number is `NaN` or `+/-infinity`." );
+    ]
     Lang.int_t
     (fun p ->
       let x = List.assoc "" p |> Lang.to_num in
-      let x = match x with `Int x -> x | `Float x -> int_of_float x in
+      let raise = List.assoc "raise" p |> Lang.to_bool in
+      let pos = Lang.pos p in
+      let log = Lazy.force log in
+      let x =
+        match x with
+          | `Int x -> x
+          | `Float x when Float.is_infinite x ->
+              if raise then
+                Runtime_error.raise ~pos
+                  ~message:
+                    "Infinite floating point number cannot be converted to \
+                     integers!"
+                  "invalid";
+              log#important "At %s: floating point number is infinite!"
+                (Pos.Option.to_string
+                   (try Some (List.hd pos) with Not_found -> None));
+              if x < 0. then min_int else max_int
+          | `Float x when Float.is_nan x ->
+              if raise then
+                Runtime_error.raise ~pos
+                  ~message:
+                    "NaN floating point number cannot be converted to integers!"
+                  "invalid";
+              log#important "At %s: floating point number is `NaN`!"
+                (Pos.Option.to_string (try Some (List.hd pos) with _ -> None));
+              0
+          | `Float x -> int_of_float x
+      in
       Lang.int x)
 
 let _ =
@@ -204,3 +253,49 @@ let _ =
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let b = Lang.to_int (Lang.assoc "" 2 p) in
       Lang.int (n lsr b))
+
+let _ =
+  Lang.add_builtin "ceil" ~category:`Math
+    ~descr:
+      "Round above to an integer value. `ceil(x)` returns the least integer \
+       whose value is greater than or equal to `x`. The result is returned as \
+       a float."
+    [("", Lang.float_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let f = Lang.to_float (List.assoc "" p) in
+      Lang.float (Float.ceil f))
+
+let _ =
+  Lang.add_builtin "floor" ~category:`Math
+    ~descr:
+      "Round below to an integer value. `floor(x)` returns the greatest \
+       integer whose value is less than or equal to `x`. The result is \
+       returned as a float."
+    [("", Lang.float_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let f = Lang.to_float (List.assoc "" p) in
+      Lang.float (Float.floor f))
+
+let _ =
+  Lang.add_builtin "round" ~category:`Math
+    ~descr:
+      "Rounds `x` to the nearest integer with ties (fractional values of \
+       `0.5`) rounded away from zero, regardless of the current rounding \
+       direction. If `x` is an integer, `+0.`, `-0.`, `nan`, or `infinite`, \
+       `x` itself is returned."
+    [("", Lang.float_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let f = Lang.to_float (List.assoc "" p) in
+      Lang.float (Float.floor f))
+
+let _ =
+  Lang.add_builtin "sign" ~category:`Math
+    ~descr:"Return `1.` if the argument is positive and `-1.` otherwise."
+    [("", Lang.float_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let f = Lang.to_float (List.assoc "" p) in
+      Lang.float (if Float.sign_bit f then -1. else 1.))

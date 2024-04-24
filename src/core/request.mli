@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,14 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** A request is something from which we can produce a file. *)
-
-(** Metadatas of a request. *)
-type metadata = (string, string) Hashtbl.t
 
 (** An indicator is a resource location (URI), when meaningful, it can be
     declared as temporary if liquidsoap should destroy it after usage (this means
@@ -31,7 +28,8 @@ type metadata = (string, string) Hashtbl.t
 type indicator
 
 (** Create an indicator. *)
-val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
+val indicator :
+  ?metadata:Frame.metadata -> ?temporary:bool -> string -> indicator
 
 (** Type of requests, which are devices for obtaining a local file from an
     URI. *)
@@ -40,9 +38,12 @@ type t
 (** Create a request. *)
 val create :
   ?resolve_metadata:bool ->
+  ?excluded_metadata_resolvers:string list ->
   ?metadata:(string * string) list ->
   ?persistent:bool ->
   ?indicators:indicator list ->
+  cue_in_metadata:string option ->
+  cue_out_metadata:string option ->
   string ->
   t
 
@@ -113,6 +114,9 @@ val is_static : string -> bool
   * audio file, or simply because there was no enough time left. *)
 type resolve_flag = Resolved | Failed | Timeout
 
+(** Metadata resolvers priorities. *)
+val conf_metadata_decoder_priorities : Dtools.Conf.ut
+
 (** Read the metadata for the toplevel indicator of the request. This is usually
     performed automatically by [resolve] so that you do not have to use this,
     excepting when the [ctype] is [None]. *)
@@ -147,13 +151,10 @@ val push_indicators : t -> indicator list -> unit
 
 (** {1 Metadatas} *)
 
-val string_of_metadata : metadata -> string
-val short_string_of_metadata : metadata -> string
 val set_metadata : t -> string -> string -> unit
 val get_metadata : t -> string -> string option
 val set_root_metadata : t -> string -> string -> unit
-val get_root_metadata : t -> string -> string option
-val get_all_metadata : t -> metadata
+val get_all_metadata : t -> Frame.metadata
 
 (** {1 Logging}
     Every request has a separate log in which its history can be written. *)
@@ -189,10 +190,29 @@ val get_decoder : t -> Decoder.file_decoder_ops option
 (** Functions for computing duration. *)
 val dresolvers : (metadata:Frame.metadata -> string -> float) Plug.t
 
+(** Type for a metadata resolver. Resolvers are executed in priority
+    order and the first returned metadata take precedence over any other
+    one later returned. *)
+type metadata_resolver = {
+  priority : unit -> int;
+  resolver :
+    metadata:Frame.metadata ->
+    extension:string option ->
+    mime:string ->
+    string ->
+    (string * string) list;
+}
+
 (** Functions for resolving metadata. Metadata filling isn't included in Decoder
     because we want it to occur immediately after request resolution. *)
-val mresolvers :
-  (metadata:Frame.metadata -> string -> (string * string) list) Plug.t
+val mresolvers : metadata_resolver Plug.t
+
+(** Resolve metadata for a local file: *)
+val resolve_metadata :
+  initial_metadata:Frame.metadata ->
+  excluded:string list ->
+  string ->
+  Frame.metadata
 
 (** Functions for resolving URIs. *)
 val protocols : protocol Plug.t

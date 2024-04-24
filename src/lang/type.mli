@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ type constr_t += Num | Ord
 type constr = Type_base.constr = {
   t : constr_t;
   constr_descr : string;
+  univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
 
@@ -65,10 +66,10 @@ type meth = Type_base.meth = {
 type repr_t = Type_base.repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 val string_of_constr : constr -> string
+val record_constr : constr
 val num_constr : constr
 val ord_constr : constr
 
-module Subst = Type_base.Subst
 module R = Type_base.R
 
 type custom = Type_base.custom = ..
@@ -84,6 +85,8 @@ type custom_handler = Type_base.custom_handler = {
   to_string : custom -> string;
 }
 
+type 'a argument = bool * string * 'a
+
 type descr +=
   | Custom of custom_handler
   | Constr of constructed
@@ -92,7 +95,7 @@ type descr +=
   | Tuple of t list
   | Nullable of t
   | Meth of meth * t
-  | Arrow of (bool * string * t) list * t
+  | Arrow of t argument list * t
   | Var of invar ref
 
 exception NotImplemented
@@ -104,9 +107,30 @@ val unit : descr
 module Var = Type_base.Var
 module Vars = Type_base.Vars
 
+(** Generate fresh types from existing types. *)
+module Fresh : sig
+  type mapper = Type_base.Fresh.mapper
+
+  (* Use [selector] to pick variables to be re-freshed. If [level] is passed,
+     all new variables are created with the given level. *)
+  val init : ?selector:(var -> bool) -> ?level:int -> unit -> mapper
+
+  (* Generate a fresh var using the parameters passed when initializing
+     the corresponding handler. Generated variables are memoized. *)
+  val make_var : mapper -> var -> var
+
+  (* Generate a fresh type using the parameters passed when initializing
+     the corresponding handler. *)
+  val make : mapper -> t -> t
+end
+
+(* Generate a fully refreshed type. Shared variables are mapped
+   to shared fresh variables. *)
+val fresh : t -> t
 val make : ?pos:Pos.t -> descr -> t
 val deref : t -> t
 val demeth : t -> t
+val deep_demeth : t -> t
 val remeth : t -> t -> t
 val invoke : t -> string -> scheme
 val has_meth : t -> string -> bool

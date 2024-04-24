@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -129,8 +129,12 @@ let descr descr =
   in
   Type.Custom (kind_handler k)
 
+exception Never_type
+
 let rec content_type ?kind ty =
   match ((Type.demeth ty).Type.descr, kind) with
+    | Type.Custom { Type.typ = Type.Ground.Never.Type }, None ->
+        raise Never_type
     | Type.Custom { Type.typ = Kind (kind, ty) }, None -> content_type ~kind ty
     | Type.Custom { Type.typ = Format f }, Some k -> denormalize_format k f
     | Type.Var _, Some kind -> Content_base.default_format kind
@@ -142,7 +146,11 @@ let rec content_type ?kind ty =
              and encoders. Either use it in a track-specific operator, add a \
              type annotation or remove the variable."
           "eval"
-    | _ -> assert false
+    | _ ->
+        Runtime_error.raise
+          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~message:(Printf.sprintf "Invalid track type: %s" (Type.to_string ty))
+          "eval"
 
 module type Content = sig
   val kind : Content_base.kind
@@ -189,13 +197,14 @@ let is_format f m =
   let module Content = (val m : Content) in
   Content.is_format f
 
-let check_track ~t modules =
+let check_track ?univ_descr ~t modules =
   {
     Type.t;
     constr_descr =
       Printf.sprintf "a track of type: %s"
         (Utils.concat_with_last ~last:"or" ", "
            (List.map string_of_kind modules));
+    univ_descr;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let b = Type.demeth b in
@@ -211,13 +220,14 @@ let check_track ~t modules =
           | _ -> raise Type.Unsatisfied_constraint);
   }
 
-let pcm_audio = check_track ~t:PcmAudio pcm_modules
+let pcm_audio = check_track ~univ_descr:"pcm*" ~t:PcmAudio pcm_modules
 let internal_track = check_track ~t:InternalTrack internal_modules
 
 let internal_tracks =
   {
     Type.t = InternalTracks;
     constr_descr = "a set of internal tracks";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let meths, base_type = Type.split_meths b in
@@ -245,7 +255,8 @@ let internal_tracks =
 let track =
   {
     Type.t = Track;
-    constr_descr = "a source track";
+    constr_descr = "a track";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let b = Type.demeth b in
@@ -262,6 +273,7 @@ let muxed_tracks =
   {
     Type.t = MuxedTracks;
     constr_descr = "a set of tracks to be muxed into a source";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let meths, base_type = Type.split_meths b in
@@ -298,7 +310,8 @@ let audio_n ?(pcm_kind = Content_audio.kind) n =
          (Frame_base.audio_format ~pcm_kind
             {
               channel_layout =
-                lazy (Audio_converter.Channel_layout.layout_of_channels n);
+                Lazy.from_val
+                  (Audio_converter.Channel_layout.layout_of_channels n);
             })))
 
 let audio_mono ?pcm_kind () = audio_n ?pcm_kind 1

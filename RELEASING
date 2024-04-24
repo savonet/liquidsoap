@@ -7,39 +7,7 @@
     pending dependent bindings (see below on how to publish to `opam`).
  [] Update copyright years in headers and check that all files have license
      headers.
- [] Set git_snapshot to false in configure.ac, run ./bootstrap and ./configure
- [] Check contents in the man pages (mainly doc/liquidsoap.1.md).
  [] Fill-in CHANGES, with the release date.
- [] Download the tarball from the CI, add header to reference.txt,
-    copy doc/content to website/content/doc-<version>, update
-    website/Makefile to add the new version.
-
-Version number
---------------
-
-Version numbers MAJOR.MINOR.FIX are made of three integer numbers:
- - Versions with the same MAJOR number should be backward compatible.
-   We may (?) increase the MAJOR number without breaking compatibility,
-   e.g. in case of a major implementation change.
- - Increases of the FIX number are only used for bugfixes,
-   they can introduce (backward compatible) differences if meaningful
-   for the fix, e.g. introducing a setting.
-
-Using the FIX number for snapshots doesn't leave room for bugfixes.
-Using MINOR=9 (or 99) as we did for signalling a soon-to-be-coming
-version 1.0.0 turned out to be not so soon and didn't leave room
-for normally numbered releases.
-
-SNAPSHOT versions should be named alpha releases, e.g. 1.0.0 alpha.
-We shall similarly use beta, beta1, beta2, etc.
-Note that it makes it difficult to tell what versions come before
-or after an alpha/beta, but this is probably a good thing: the beta
-(development) versions are unrelated to normal (stable) versions.
-Typically, alpha and beta versions will have their own SCM branch.
-
-The special keywords alpha and beta invalidate compatibility rules:
-obviously, 0.9.x and 1.0.0 beta may be incompatible, but 1.0.0 beta1
-and beta2 may also be incompatible.
 
 Opam packages
 -------------

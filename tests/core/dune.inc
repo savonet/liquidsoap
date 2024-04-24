@@ -28,6 +28,20 @@
 
 
 (executable
+ (name ffmpeg_quality)
+ (modules ffmpeg_quality)
+ (libraries liquidsoap_core liquidsoap_optionals))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+
+  (:ffmpeg_quality ffmpeg_quality.exe))
+ (action (run %{ffmpeg_quality} )))
+
+
+(executable
  (name frame_test)
  (modules frame_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -196,20 +210,6 @@
 
 
 (executable
- (name source_test)
- (modules source_test)
- (libraries liquidsoap_core liquidsoap_optionals))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-
-  (:source_test source_test.exe))
- (action (run %{source_test} )))
-
-
-(executable
  (name start_stop_test)
  (modules start_stop_test)
  (libraries liquidsoap_core liquidsoap_optionals))
@@ -263,20 +263,6 @@
 
   (:strings_test strings_test.exe))
  (action (run %{strings_test} )))
-
-
-(executable
- (name taglib_test)
- (modules taglib_test)
- (libraries liquidsoap_core liquidsoap_optionals))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-
-  (:taglib_test taglib_test.exe))
- (action (run %{taglib_test} )))
 
 
 (executable

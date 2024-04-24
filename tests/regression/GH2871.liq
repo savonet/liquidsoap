@@ -1,9 +1,21 @@
 def f() =
   s = metronome()
   s = bpm(s)
-  clock.assign_new(sync="none",[s])
   output.dummy(fallible=true, s)
-  thread.run(delay=0.2, {if s.bpm() != 0. then test.pass() else test.fail () end})
+  thread.run.recurrent(
+    {
+      if
+        s.bpm() != 0.
+      then
+        begin
+          test.pass()
+          (-1.)
+        end
+      else
+        1.
+      end
+    }
+  )
 end
 
 test.check(f)

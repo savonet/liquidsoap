@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 
 (* Resolve a path. *)
 let resolve_path ?current_dir path =
+  let path = Lang_string.home_unrelate path in
   let current_dir =
     match current_dir with
       | None -> Sys.getcwd ()
@@ -31,19 +32,19 @@ let resolve_path ?current_dir path =
 
 let readable f =
   try
-    let c = open_out_gen [Open_rdonly] 0o644 f in
-    close_out c;
+    let c = open_in f in
+    close_in c;
     true
   with _ -> false
 
 let check_readable ?current_dir ~pos path =
   let resolved_path = resolve_path ?current_dir path in
   let details =
-    if path = resolved_path then ""
-    else " Given path: " ^ path ^ ", resolved path: " ^ resolved_path
+    if path = resolved_path then "Given path: " ^ path
+    else "Given path: " ^ path ^ ", resolved path: " ^ resolved_path
   in
   if not (Sys.file_exists resolved_path) then
-    Runtime_error.raise ~pos ~message:("File not found!" ^ details) "not_found";
+    Runtime_error.raise ~pos ~message:("File not found! " ^ details) "not_found";
   if not (readable resolved_path) then
     Runtime_error.raise ~pos
       ~message:("File is not readable!" ^ details)

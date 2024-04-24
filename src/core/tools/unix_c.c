@@ -11,6 +11,7 @@
 
 #ifdef WIN32
 #include <windows.h>
+#include <stdio.h>
 #else
 #include <unistd.h>
 #endif
@@ -19,20 +20,24 @@
  * be "C", otherwise float_of_string and other functions do not behave
  * as expected. This issues arises in particular when using telnet
  * commands that need floats and when loading modules in bytecode mode.. */
-CAMLprim value liquidsoap_set_locale(value unit)
+CAMLprim value liquidsoap_set_locale(value _locale)
 {
-  /* This will prevent further call to setlocale to override
-   * "C" */
+  CAMLparam1(_locale);
+  const char* locale = String_val(_locale);
+
 #ifdef WIN32
-  putenv("LANG=C");
-  putenv("LC_ALL=C");
+  char var[LOCALE_NAME_MAX_LENGTH];
+  snprintf(var, LOCALE_NAME_MAX_LENGTH, "LANG=%s", locale);
+  putenv(var);
+  snprintf(var, LOCALE_NAME_MAX_LENGTH, "LC_ALL=%s", locale);
+  putenv(var);
 #else
-  setenv("LANG","C",1);
-  setenv("LC_ALL","C",1);
+  setenv("LANG",locale,1);
+  setenv("LC_ALL",locale,1);
 #endif
-  /* This set the locale to "C". */
-  setlocale (LC_ALL, "C");
-  return Val_unit;
+  /* This set the locale. */
+  setlocale (LC_ALL, locale);
+  CAMLreturn(Val_unit);
 }
 
 CAMLprim value liquidsoap_get_timezone() {

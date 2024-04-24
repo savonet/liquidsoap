@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -61,18 +61,7 @@ let samplerate_converter channels =
   let quality = quality_of_string quality_conf#get in
   let converters = Array.init channels (fun _ -> Samplerate.create quality 1) in
   let convert converter ratio b ofs len =
-    let outlen = int_of_float (float len *. ratio) in
-    let buf = Audio.Mono.create outlen in
-    let i, o = Samplerate.process converter ratio b ofs len buf 0 outlen in
-    if i < len then
-      log#debug "Could not convert all the input buffer (%d instead of %d)." i
-        len;
-    if o < outlen then
-      log#debug "Unexpected output length (%d instead of %d)." o outlen;
-
-    (* TODO: the following would solve the issue but apparently messes up buffers *)
-    (* Audio.Mono.sub buf 0 o *)
-    buf
+    Samplerate.process_alloc converter ratio b ofs len
   in
   fun ratio b ofs len ->
     let data =

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -76,9 +76,9 @@ let _ =
         |> Option.map Charset.of_string
       in
       let metas =
-        let ret = Hashtbl.create (Hashtbl.length metas) in
-        Hashtbl.iter
-          (fun x y -> Hashtbl.add ret x (Charset.convert ?target:out_enc y))
+        let ret = Hashtbl.create 0 in
+        Frame.Metadata.iter
+          (fun x y -> Hashtbl.replace ret x (Charset.convert ?target:out_enc y))
           metas;
         ret
       in
@@ -94,7 +94,7 @@ let _ =
       in
       let headers =
         let h = Hashtbl.create 10 in
-        List.iter (fun (x, y) -> Hashtbl.add h x y) headers;
+        List.iter (fun (x, y) -> Hashtbl.replace h x y) headers;
         h
       in
       let protocol =

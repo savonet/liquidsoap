@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -57,11 +57,12 @@ type t = { pos : Pos.Option.t; descr : descr }
 (** Constraint type *)
 type constr_t = ..
 
-type constr_t += Num | Ord
+type constr_t += Num | Ord | Record
 
 type constr = {
   t : constr_t;
   constr_descr : string;
+  univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
 
@@ -109,28 +110,7 @@ end)
 
 let string_of_constr c = c.constr_descr
 
-(** Substitutions. *)
-module Subst = struct
-  module M = Map.Make (struct
-    type t = var
-
-    (* We can compare variables with their indices. *)
-    let compare (v : var) (v' : var) = compare v.name v'.name
-  end)
-
-  type subst = t M.t
-  type t = subst
-
-  let of_list l : t = M.of_seq (List.to_seq l)
-
-  (** Retrieve the value of a variable. *)
-  let value (s : t) (i : var) = M.find i s
-
-  (* let filter f (s : t) = M.filter (fun i t -> f i t) s *)
-
-  (** Whether we have the identity substitution. *)
-  let is_identity (s : t) = M.is_empty s
-end
+type 'a argument = bool * string * 'a
 
 module R = struct
   type meth = {
@@ -146,7 +126,7 @@ module R = struct
     | `Tuple of t list
     | `Nullable of t
     | `Meth of meth * t (* label, type scheme, JSON name, base type *)
-    | `Arrow of (bool * string * t) list * t
+    | `Arrow of t argument list * t
     | `Getter of t
     | `EVar of var (* existential variable *)
     | `UVar of var (* universal variable *)
@@ -180,7 +160,7 @@ type descr +=
   | Tuple of t list
   | Nullable of t  (** something that is either t or null *)
   | Meth of meth * t  (** t with a method added *)
-  | Arrow of (bool * string * t) list * t  (** a function *)
+  | Arrow of t argument list * t  (** a function *)
   | Var of invar ref  (** a type variable *)
 
 exception NotImplemented
@@ -220,6 +200,30 @@ let rec deref t =
 let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, t) -> demeth t | _ -> t
+
+(* This should preserve pos *)
+let rec deep_demeth t =
+  let t' =
+    match deref t with
+      | { descr = Getter t' } as t -> { t with descr = Getter (deep_demeth t') }
+      | { descr = List repr } as t ->
+          { t with descr = List { repr with t = deep_demeth repr.t } }
+      | { descr = Tuple l } as t ->
+          { t with descr = Tuple (List.map deep_demeth l) }
+      | { descr = Nullable t' } as t ->
+          { t with descr = Nullable (deep_demeth t') }
+      | { descr = Meth (_, t) } -> deep_demeth t
+      | { descr = Arrow (l, t') } as t ->
+          {
+            t with
+            descr =
+              Arrow
+                ( List.map (fun (x, y, t) -> (x, y, deep_demeth t)) l,
+                  deep_demeth t' );
+          }
+      | t -> t
+  in
+  { t' with pos = t.pos }
 
 let rec filter_meths t fn =
   let t = deref t in
@@ -284,19 +288,97 @@ let split_meths t =
   aux [] t
 
 (** Create a fresh variable. *)
+let var_name =
+  let c = ref (-1) in
+  fun () ->
+    incr c;
+    !c
+
 let var =
-  let name =
-    let c = ref (-1) in
-    fun () ->
-      incr c;
-      !c
-  in
   let f ?(constraints = []) ?(level = max_int) ?pos () =
     let constraints = Constraints.of_list constraints in
-    let name = name () in
+    let name = var_name () in
     make ?pos (Var (ref (Free { name; level; constraints })))
   in
   f
+
+module Fresh = struct
+  type mapper = {
+    level : int option;
+    selector : var -> bool;
+    var_maps : (var, var) Hashtbl.t;
+    link_maps : (invar ref, invar ref) Hashtbl.t;
+  }
+
+  let init ?(selector = fun _ -> true) ?level () =
+    {
+      level;
+      selector;
+      var_maps = Hashtbl.create 10;
+      link_maps = Hashtbl.create 10;
+    }
+
+  let make_var { level; selector; var_maps } var =
+    if not (selector var) then var
+    else (
+      try Hashtbl.find var_maps var
+      with Not_found ->
+        let level = Option.value ~default:var.level level in
+        let new_var = { var with name = var_name (); level } in
+        Hashtbl.replace var_maps var new_var;
+        new_var)
+
+  let make ({ selector; link_maps } as h) t =
+    let map_var = make_var h in
+    let map_descr map = function
+      | Custom c -> Custom { c with typ = c.copy_with map c.typ }
+      | Constr { constructor; params } ->
+          Constr
+            { constructor; params = List.map (fun (v, t) -> (v, map t)) params }
+      | Getter t -> Getter (map t)
+      | List { t; json_repr } -> List { t = map t; json_repr }
+      | Tuple l -> Tuple (List.map map l)
+      | Nullable t -> Nullable (map t)
+      | Meth ({ meth; optional; scheme = vars, t; doc; json_name }, t') ->
+          Meth
+            ( {
+                meth;
+                optional;
+                scheme = (List.map map_var vars, map t);
+                doc;
+                json_name;
+              },
+              map t' )
+      | Arrow (args, t) ->
+          Arrow (List.map (fun (b, s, t) -> (b, s, map t)) args, map t)
+      (* Here we keep all links. While it could be tempting to deref,
+         we are using links to compute type supremum in type unification
+         so we are better off keeping them. Also, we need to create fresh
+         links to make sure that a suppremum computation in the refreshed
+         type does not impact the original type. *)
+      | Var ({ contents = Link (v, t) } as link) ->
+          Var
+            (try Hashtbl.find link_maps link
+             with Not_found ->
+               let new_link = { contents = Link (v, map t) } in
+               Hashtbl.replace link_maps link new_link;
+               new_link)
+      | Var ({ contents = Free var } as link) as descr ->
+          if not (selector var) then descr
+          else
+            Var
+              (try Hashtbl.find link_maps link
+               with Not_found ->
+                 let new_link = { contents = Free (map_var var) } in
+                 Hashtbl.replace link_maps link new_link;
+                 new_link)
+      | _ -> assert false
+    in
+    let rec map { descr } = { pos = None; descr = map_descr map descr } in
+    map t
+end
+
+let fresh t = Fresh.make (Fresh.init ()) t
 
 let to_string_fun =
   ref (fun ?(generalized : var list option) _ ->

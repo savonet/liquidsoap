@@ -38,16 +38,8 @@ for a detailed example.
 The CUE format originates from CD burning programs. They describe the set of tracks of a whole CD and
 are accompanied by a single file containing audio data for the whole CD.
 
-This playlist format can be used in liquidsoap, using a `cue_cut` operator. By default, the CUE playlist
-parser will add metadata from cue-in and cue-out points for each track described in the playlist, which
-you can then pass to `cue_cut` to play each track of the playlist. Something like:
-
-```liquidsoap
-cue_cut(playlist("/path/to/file.cue"))
-```
-
-You can find an example of using `cue_cut` with cue sheets [here](split-cue.html) and a throughout
-explanation of how seeking in liquidsoap works [there](seek.html).
+By default, the CUE playlist parser will add metadata from cue-in and cue-out points for each track described in the playlist, which
+are automatically handled with source-base operators such as `playlist`.
 
 The metadata added for cue-in and cue-out positions can be customized using the following
 configuration keys:

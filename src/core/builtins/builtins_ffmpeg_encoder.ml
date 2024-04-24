@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -110,7 +110,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data; length } in
+                  let data = { Content.Video.params; data; length } in
                   let data = Ffmpeg_copy_content.lift_data data in
                   Generator.put generator field data
               | None -> ()
@@ -160,7 +160,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                               } ))
                           frames
                       in
-                      let data = { Ffmpeg_content_base.params; data; length } in
+                      let data = { Content.Video.params; data; length } in
                       let data = Ffmpeg_raw_content.Audio.lift_data data in
                       Generator.put generator field data
                   | None -> ())
@@ -247,15 +247,20 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
 
           let hwaccel = format.Ffmpeg_format.hwaccel in
           let hwaccel_device = format.Ffmpeg_format.hwaccel_device in
+          let hwaccel_pixel_format =
+            Option.map Avutil.Pixel_format.of_string
+              format.Ffmpeg_format.hwaccel_pixel_format
+          in
 
-          let hardware_context, target_pixel_format =
-            Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_device ~opts
-              ~target_pixel_format ~target_width ~target_height codec
+          let hardware_context, stream_pixel_format =
+            Ffmpeg_utils.mk_hardware_context ~hwaccel ~hwaccel_pixel_format
+              ~hwaccel_device ~opts ~target_pixel_format ~target_width
+              ~target_height codec
           in
 
           let encoder =
             Avcodec.Video.create_encoder ?hardware_context ~opts
-              ~frame_rate:target_frame_rate ~pixel_format:target_pixel_format
+              ~frame_rate:target_frame_rate ~pixel_format:stream_pixel_format
               ~width:target_width ~height:target_height ~time_base codec
           in
 
@@ -289,7 +294,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
                           } ))
                       packets
                   in
-                  let data = { Ffmpeg_content_base.params; data; length } in
+                  let data = { Content.Video.params; data; length } in
                   let data = Ffmpeg_copy_content.lift_data data in
                   Generator.put generator field data
               | None -> ()
@@ -345,7 +350,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
                             } ))
                         frames
                     in
-                    let data = { Ffmpeg_content_base.params; data; length } in
+                    let data = { Content.Video.params; data; length } in
                     let data = Ffmpeg_raw_content.Video.lift_data data in
                     Generator.put generator field data
                 | None -> ())
@@ -363,17 +368,16 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format ~field
 
   function
   | `Frame frame ->
-      let vstart = 0 in
-      let vstop = VFrame.position frame in
       let vbuf = VFrame.data frame in
-      for i = vstart to vstop - 1 do
-        let f = Video.Canvas.render vbuf i in
-        let vdata = Ffmpeg_utils.pack_image f in
-        let frame = InternalScaler.convert (Option.get !scaler) vdata in
-        Avutil.Frame.set_pts frame (Some !nb_frames);
-        nb_frames := Int64.succ !nb_frames;
-        encode_ffmpeg_frame frame
-      done
+      List.iter
+        (fun (_, img) ->
+          let f = Video.Canvas.Image.render img in
+          let vdata = Ffmpeg_utils.pack_image f in
+          let frame = InternalScaler.convert (Option.get !scaler) vdata in
+          Avutil.Frame.set_pts frame (Some !nb_frames);
+          nb_frames := Int64.succ !nb_frames;
+          encode_ffmpeg_frame frame)
+        vbuf.Content.Video.data
   | `Flush -> encode_frame `Flush
 
 let mk_encoder mode =
@@ -447,10 +451,7 @@ let mk_encoder mode =
                 (format_val, "Format option is not supported inline encoders"));
 
          let mk_encode_frame generator =
-           let output_frame_t =
-             let s = Typing.generalize ~level:(-1) output_frame_t in
-             Typing.instantiate ~level:(-1) s
-           in
+           let output_frame_t = Type.fresh output_frame_t in
 
            let stream = List.assoc format_field format.Ffmpeg_format.streams in
 
@@ -505,7 +506,7 @@ let mk_encoder mode =
                    (Frame.get_all_metadata frame);
                  List.iter
                    (fun pos -> Generator.add_track_mark ~pos generator)
-                   (List.filter (fun x -> x < size) (Frame.breaks frame));
+                   (List.filter (fun x -> x < size) (Frame.track_marks frame));
                  encode_frame (`Frame frame)
              | `Flush -> encode_frame `Flush
            in
@@ -551,10 +552,10 @@ let mk_encoder mode =
              ~write_frame:encode_frame ~name:(id ^ ".consumer")
              ~source:(Lang.source source) ()
          in
-         let input_frame_t =
-           Typing.instantiate ~level:(-1)
-             (Typing.generalize ~level:(-1) input_frame_t)
-         in
+         let stack = Liquidsoap_lang.Lang_core.pos p in
+         consumer#set_stack stack;
+
+         let input_frame_t = Type.fresh input_frame_t in
          Typing.(
            consumer#frame_type
            <: Lang.frame_t (Lang.univ_t ())
@@ -563,8 +564,8 @@ let mk_encoder mode =
          ( field,
            new Producer_consumer.producer
            (* We are expecting real-rate with a couple of hickups.. *)
-             ~create_known_clock:false ~check_self_sync:false
-             ~consumers:[consumer] ~name:(id ^ ".producer") () )))
+             ~stack ~check_self_sync:false ~consumers:[consumer]
+             ~name:(id ^ ".producer") () )))
 
 let () =
   List.iter mk_encoder [`Audio_encoded; `Audio_raw; `Video_encoded; `Video_raw]

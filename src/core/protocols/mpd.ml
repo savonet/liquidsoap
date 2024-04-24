@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ let search read write field v =
   let add () =
     if !file <> "" then
       ans :=
-        Request.indicator ~metadata:(Utils.hashtbl_of_list !metadata) !file
+        Request.indicator ~metadata:(Frame.Metadata.from_list !metadata) !file
         :: !ans
   in
   List.iter

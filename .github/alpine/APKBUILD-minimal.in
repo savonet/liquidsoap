@@ -1,0 +1,29 @@
+pkgname=@APK_PACKAGE@
+pkgver=@APK_VERSION@
+pkgrel=@APK_RELEASE@
+pkgdesc="Swiss-army knife for multimedia streaming"
+url="https://github.com/savonet/liquidsoap"
+arch="all"
+license="GPL-2.0-only"
+install="@APK_PACKAGE@.pre-install"
+options="!check textrels"
+
+package() {
+        eval "$(opam env)"
+        cd liquidsoap
+
+        export LIQUIDSOAP_BUILD_TARGET=posix
+        eval "$(opam config env)"
+        export OCAMLPATH=$(cat ../.ocamlpath)
+        dune build @install --release
+        dune install --relocatable --prefix "${pkgdir}/usr"
+        rm -rf "${pkgdir}/usr/share/liquidsoap-lang/libs/extra"
+
+        rm -rf "$pkgdir/usr/lib"
+        rm -rf "$pkgdir/usr/share/doc"
+        rm -rf "$pkgdir/usr/share/man"
+
+        mv "$pkgdir/usr/share/liquidsoap-lang" "$pkgdir/usr/share/liquidsoap"
+        rm -rf "$pkgdir/usr/share/liquidsoap/libs/extra"
+        cp -rf "$(opam var share)/camomile" "$pkgdir/usr/share/liquidsoap"
+}

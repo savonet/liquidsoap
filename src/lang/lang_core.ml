@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
+  id : int;
 }
 
 (** Type construction *)
@@ -83,9 +84,11 @@ let ref_t a = Type.reference a
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value; methods = Methods.empty }
+let mk ?pos value = { pos; value; methods = Methods.empty; id = id () }
 let unit = mk unit
 let int i = mk (Ground (Int i))
+let octal_int i = mk (Ground (OctalInt i))
+let hex_int i = mk (Ground (HexInt i))
 let bool i = mk (Ground (Bool i))
 let float i = mk (Ground (Float i))
 let string i = mk (Ground (String i))
@@ -101,29 +104,28 @@ let meth v l =
   }
 
 let record = meth unit
-let val_fun p f = mk (FFI (p, f))
+let val_fun p f = mk (FFI { ffi_args = p; ffi_fn = f })
 let term_fun p tm = mk (Fun (p, [], tm))
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
   let f t tm =
-    mk (Fun (p, [], { Term.t; term = tm; methods = Term.Methods.empty }))
+    let tm = Term.make ~t tm in
+    mk (Fun (p, [], tm))
   in
   let mkg g = Type.make g in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
   match c.value with
-    | Null -> f (Type.var ()) Term.Null
+    | Null -> f (Type.var ()) `Null
     | Tuple [] -> f (Type.make Type.unit) Term.unit
-    | Ground (Int i) ->
-        f (mkg Type.Ground.int) (Term.Ground (Term.Ground.Int i))
-    | Ground (Bool i) ->
-        f (mkg Type.Ground.bool) (Term.Ground (Term.Ground.Bool i))
+    | Ground (Int i) -> f (mkg Type.Ground.int) (`Ground (Term.Ground.Int i))
+    | Ground (Bool i) -> f (mkg Type.Ground.bool) (`Ground (Term.Ground.Bool i))
     | Ground (Float i) ->
-        f (mkg Type.Ground.float) (Term.Ground (Term.Ground.Float i))
+        f (mkg Type.Ground.float) (`Ground (Term.Ground.Float i))
     | Ground (String i) ->
-        f (mkg Type.Ground.string) (Term.Ground (Term.Ground.String i))
-    | _ -> mk (FFI (p, fun _ -> c))
+        f (mkg Type.Ground.string) (`Ground (Term.Ground.String i))
+    | _ -> mk (FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
 let reference get set =
   let get = val_fun [] (fun _ -> get ()) in
@@ -168,8 +170,14 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
   let value =
     {
       pos = None;
-      value = FFI (List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto, f);
+      value =
+        FFI
+          {
+            ffi_args = List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto;
+            ffi_fn = f;
+          };
       methods = Methods.empty;
+      id = id ();
     }
   in
   let doc () =
@@ -257,7 +265,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
 
 let add_builtin_base ~category ~descr ?flags ?base name value t =
   add_builtin_value ~category ~descr ?flags ?base name
-    { pos = t.Type.pos; value; methods = Methods.empty }
+    { pos = t.Type.pos; value; methods = Methods.empty; id = id () }
     t
 
 let add_module ?base name =
@@ -268,10 +276,10 @@ let add_module ?base name =
 let module_name name = name
 
 (* Delay this function in order not to have Lang depend on Evaluation. *)
-let apply_fun : (?pos:Pos.t -> value -> env -> value) ref =
+let apply_fun : (?pos:Pos.t list -> value -> env -> value) ref =
   ref (fun ?pos:_ _ -> assert false)
 
-let apply f p = !Hooks.collect_after (fun () -> !apply_fun f p)
+let apply f p = !apply_fun f p
 
 (** {1 High-level manipulation of values} *)
 
@@ -318,21 +326,24 @@ let to_float_getter t =
             | _ -> assert false)
     | _ -> assert false
 
-let to_int t = match t.value with Ground (Int s) -> s | _ -> assert false
+let to_int t =
+  match t.value with
+    | Ground (Int s) | Ground (OctalInt s) | Ground (HexInt s) -> s
+    | _ -> assert false
 
 let to_int_getter t =
   match t.value with
-    | Ground (Int n) -> fun () -> n
+    | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> fun () -> n
     | Fun _ | FFI _ -> (
         fun () ->
           match (apply t []).value with
-            | Ground (Int n) -> n
+            | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> n
             | _ -> assert false)
     | _ -> assert false
 
 let to_num t =
   match t.value with
-    | Ground (Int n) -> `Int n
+    | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> `Int n
     | Ground (Float x) -> `Float x
     | _ -> assert false
 
@@ -352,7 +363,7 @@ let to_int_list l = List.map to_int (to_list l)
 
 let to_getter t =
   match t.value with
-    | Fun ([], _, _) | FFI ([], _) -> fun () -> apply t []
+    | Fun ([], _, _) | FFI { ffi_args = []; _ } -> fun () -> apply t []
     | _ -> fun () -> t
 
 let to_ref t =

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,435 +26,74 @@ let mk_tokenizer ?(fname = "") lexbuf =
   Sedlexing.set_filename lexbuf fname;
   fun () ->
     match Lexer.token lexbuf with
-      | Parser.PP_STRING (s, pos) -> (Parser.STRING s, pos)
+      | Parser.PP_STRING (c, s, pos) -> (Parser.STRING (c, s), pos)
       | Parser.PP_REGEXP (r, flags, pos) -> (Parser.REGEXP (r, flags), pos)
-      | token -> (token, Sedlexing.lexing_positions lexbuf)
-
-(* The Lang_lexer is not quite enough for our needs, so we first define
-   convenient layers between it and the parser. First a pre-processor which
-   evaluates %ifdefs. *)
-let eval_ifdefs tokenizer =
-  let state = ref 0 in
-  let rec token () =
-    let go_on () =
-      incr state;
-      token ()
-    in
-    let rec skip () =
-      match tokenizer () with
-        | Parser.PP_ENDIF, _ -> token ()
-        | Parser.PP_ELSE, _ -> go_on ()
-        | _ -> skip ()
-    in
-    match tokenizer () with
-      | (Parser.PP_IFDEF v, _ | Parser.PP_IFNDEF v, _) as tok ->
-          let test =
-            match fst tok with
-              | Parser.PP_IFDEF _ -> fun x -> x
-              | Parser.PP_IFNDEF _ -> not
-              | _ -> assert false
-          in
-          (* XXX Less natural meaning than the original one. *)
-          if test (Environment.has_builtin v) then go_on () else skip ()
-      | Parser.PP_IFVERSION (cmp, ver), _ ->
-          let current = Lang_string.Version.of_string Build_config.version in
-          let ver = Lang_string.Version.of_string ver in
-          let test =
-            let compare = Lang_string.Version.compare current ver in
-            match cmp with
-              | `Eq -> compare = 0
-              | `Geq -> compare >= 0
-              | `Leq -> compare <= 0
-              | `Gt -> compare > 0
-              | `Lt -> compare < 0
-          in
-          if test then go_on () else skip ()
-      | (Parser.PP_IFENCODER, _ | Parser.PP_IFNENCODER, _) as tok ->
-          let has_enc =
-            try
-              let fmt =
-                let token = fst (tokenizer ()) in
-                match token with
-                  | Parser.ENCODER e ->
-                      !Hooks.make_encoder ~pos:None (Term.make Term.unit) (e, [])
-                  | _ -> failwith "expected an encoding format after %ifencoder"
-              in
-              !Hooks.has_encoder fmt
-            with _ -> false
-          in
-          let test =
-            if fst tok = Parser.PP_IFENCODER then fun x -> x else not
-          in
-          if test has_enc then go_on () else skip ()
-      | Parser.PP_ELSE, _ ->
-          if !state = 0 then failwith "no %ifdef to end here";
-          decr state;
-          skip ()
-      | Parser.PP_ENDIF, _ ->
-          if !state = 0 then failwith "no %ifdef to end here";
-          decr state;
-          token ()
-      | x -> x
-  in
-  token
-
-type includer_entry = {
-  tokenizer : tokenizer;
-  path : string;
-  channel : in_channel;
-}
-
-(** Expand %include statements by inserting the content of files. Filenames are
-   understood relatively to the current directory, which can be a relative path
-   such as "." or "..". *)
-let includer ~pwd tokenizer =
-  let stack = Stack.create () in
-  let peek () =
-    try (Stack.top stack).tokenizer with Stack.Empty -> tokenizer
-  in
-  let current_dir () = try (Stack.top stack).path with Stack.Empty -> pwd in
-  let rec token () =
-    match peek () () with
-      | Parser.PP_INCLUDE fname, (_, curp) ->
-          let resolved_fname =
-            Utils.check_readable ~current_dir:(current_dir ())
-              ~pos:[(curp, curp)]
-              fname
-          in
-          let channel = open_in resolved_fname in
-          let lexbuf = Sedlexing.Utf8.from_channel channel in
-          (* We use user-provided filename here to make it more clear
-             to the user. *)
-          let tokenizer = mk_tokenizer ~fname lexbuf in
-          Stack.push { tokenizer; path = Filename.dirname fname; channel } stack;
-          token ()
-      | (Parser.EOF, _) as tok ->
-          if Stack.is_empty stack then tok
-          else (
-            close_in (Stack.pop stack).channel;
-            token ())
-      | x -> x
-  in
-  token
+      | token -> (token, Sedlexing.lexing_bytes_positions lexbuf)
 
 (* The expander turns "bla #{e} bli" into ("bla "^string(e)^" bli"). *)
-type exp_item =
-  | String of string
-  | Expr of tokenizer
-  | Concat
-  | RPar
-  | LPar
-  | String_of
+type exp_item = String of string | Expr of tokenizer | End
+
+exception Found_interpolation
 
 let expand_string ?fname tokenizer =
   let state = Queue.create () in
   let add pos x = Queue.add (x, pos) state in
   let pop () = ignore (Queue.take state) in
-  let parse s pos =
-    let l = Regexp.split (Regexp.regexp "#{(.*?)}") s in
-    let l = if l = [] then [""] else l in
+  let clear () = Queue.clear state in
+  let is_interpolating () =
+    try
+      Queue.iter
+        (function Expr _, _ -> raise Found_interpolation | _ -> ())
+        state;
+      false
+    with Found_interpolation -> true
+  in
+  let parse ~sep s pos =
+    let rex = Re.Pcre.regexp "#\\{([^}]*)\\}" in
+    let l = Re.Pcre.full_split ~rex s in
+    let l = if l = [] then [Re.Pcre.Text s] else l in
     let add = add pos in
     let rec parse = function
-      | s :: x :: l ->
+      | Re.Pcre.Group (_, x) :: l ->
+          let x = Lexer.render_string ~pos ~sep x in
           let lexbuf = Sedlexing.Utf8.from_string x in
           let tokenizer = mk_tokenizer ?fname lexbuf in
           let tokenizer () = (fst (tokenizer ()), pos) in
-          List.iter add
-            [String s; Concat; LPar; String_of; Expr tokenizer; RPar; RPar];
-          if l <> [] then (
-            add Concat;
-            parse l)
-      | [x] -> add (String x)
-      | [] -> assert false
+          add (Expr tokenizer);
+          parse l
+      | Re.Pcre.Text x :: l ->
+          add (String x);
+          parse l
+      | Re.Pcre.NoGroup :: l | Re.Pcre.Delim _ :: l -> parse l
+      | [] -> add End
     in
     parse l
   in
   let rec token () =
     if Queue.is_empty state then (
       match tokenizer () with
-        | Parser.STRING s, pos ->
-            parse s pos;
-            if Queue.length state > 1 then (
-              add pos RPar;
-              (Parser.LPAR, pos))
-            else token ()
+        | (Parser.STRING (sep, s), pos) as tok ->
+            parse ~sep s pos;
+            if is_interpolating () then (Parser.BEGIN_INTERPOLATION sep, pos)
+            else (
+              clear ();
+              tok)
         | x -> x)
     else (
       let el, pos = Queue.peek state in
       match el with
         | String s ->
             pop ();
-            (Parser.STRING s, pos)
-        | Concat ->
-            pop ();
-            (Parser.BIN2 "^", pos)
-        | RPar ->
-            pop ();
-            (Parser.RPAR, pos)
-        | LPar ->
-            pop ();
-            (Parser.LPAR, pos)
-        | String_of ->
-            pop ();
-            (Parser.VARLPAR "string", pos)
+            (Parser.INTERPOLATED_STRING s, pos)
         | Expr tokenizer -> (
             match tokenizer () with
               | Parser.EOF, _ ->
                   pop ();
                   token ()
-              | x, _ -> (x, pos)))
-  in
-  token
-
-type doc_type = [ `Full | `Argsof of string list ]
-
-(* Glue the documenting comments to the corresponding PP_DEF (read pre-DEF) *
-   and strip out other comments. *)
-let parse_comments tokenizer =
-  let documented_def decoration (doc, doc_startp) (startp, endp) =
-    let startp =
-      match doc_startp with Some startp -> startp | None -> startp
-    in
-    let doc =
-      List.map
-        (fun x ->
-          Regexp.substitute
-            (Regexp.regexp ~flags:[`g] "^\\s*#\\s?")
-            ~subst:(fun _ -> "")
-            x)
-        doc
-    in
-    let doc =
-      if doc = [] then None
-      else (
-        let rec parse_doc (main, special, params, methods) = function
-          | [] -> (main, special, params, methods)
-          | line :: lines -> (
-              try
-                let sub =
-                  Regexp.exec
-                    (Regexp.regexp
-                       "^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$")
-                    line
-                in
-                let s = Option.get (List.nth sub.Regexp.matches 2) in
-                match Option.get (List.nth sub.Regexp.matches 1) with
-                  | "docof" ->
-                      let doc = Doc.Value.get s in
-                      let main =
-                        if doc.description <> "" then doc.description :: main
-                        else main
-                      in
-                      let params =
-                        List.filter_map
-                          (fun (l, a) ->
-                            match a.Doc.Value.arg_description with
-                              | Some d -> Some (l, d)
-                              | None -> None)
-                          doc.arguments
-                        @ params
-                      in
-                      let doc_specials =
-                        `Category (Doc.Value.string_of_category doc.category)
-                        :: List.map
-                             (fun f -> `Flag (Doc.Value.string_of_flag f))
-                             doc.flags
-                      in
-                      parse_doc
-                        (main, doc_specials @ special, params, methods)
-                        lines
-                  | "argsof" ->
-                      let s, only, except =
-                        try
-                          let sub =
-                            Regexp.exec
-                              (Regexp.regexp
-                                 "^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$")
-                              s
-                          in
-                          let s = Option.get (List.nth sub.Regexp.matches 1) in
-                          let args =
-                            List.filter
-                              (fun s -> s <> "")
-                              (List.map String.trim
-                                 (String.split_on_char ','
-                                    (Option.get (List.nth sub.Regexp.matches 2))))
-                          in
-                          let only, except =
-                            List.fold_left
-                              (fun (only, except) v ->
-                                if String.length v > 0 && v.[0] = '!' then
-                                  ( only,
-                                    String.sub v 1 (String.length v - 1)
-                                    :: except )
-                                else (v :: only, except))
-                              ([], []) args
-                          in
-                          (s, only, except)
-                        with Not_found -> (s, [], [])
-                      in
-                      let doc = Doc.Value.get s in
-                      let args =
-                        List.filter
-                          (fun (n, _) ->
-                            match n with
-                              | None -> false
-                              | Some n -> (
-                                  match (only, except) with
-                                    | [], except -> not (List.mem n except)
-                                    | only, except ->
-                                        List.mem n only
-                                        && not (List.mem n except)))
-                          doc.arguments
-                      in
-                      let args =
-                        List.filter_map
-                          (fun (n, a) ->
-                            Option.map
-                              (fun d -> (n, d))
-                              a.Doc.Value.arg_description)
-                          args
-                      in
-                      parse_doc (main, special, args @ params, methods) lines
-                  | "category" ->
-                      parse_doc
-                        (main, `Category s :: special, params, methods)
-                        lines
-                  | "flag" ->
-                      parse_doc
-                        (main, `Flag s :: special, params, methods)
-                        lines
-                  | "param" ->
-                      let sub =
-                        Regexp.exec
-                          (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
-                          s
-                      in
-                      let label = Option.get (List.nth sub.Regexp.matches 1) in
-                      let descr = Option.get (List.nth sub.Regexp.matches 2) in
-                      let label =
-                        if label.[0] = '~' then
-                          Some (String.sub label 1 (String.length label - 1))
-                        else None
-                      in
-                      let rec parse_descr descr lines =
-                        match lines with
-                          | [] -> raise Not_found
-                          | line :: lines ->
-                              let line =
-                                Regexp.substitute
-                                  (Regexp.regexp ~flags:[`g] "^ *")
-                                  ~subst:(fun _ -> "")
-                                  line
-                              in
-                              let n = String.length line - 1 in
-                              if line.[n] = '\\' then (
-                                let descr = String.sub line 0 n :: descr in
-                                parse_descr descr lines)
-                              else (
-                                let descr = List.rev (line :: descr) in
-                                (String.concat "" descr, lines))
-                      in
-                      let descr, lines = parse_descr [] (descr :: lines) in
-                      parse_doc
-                        (main, special, (label, descr) :: params, methods)
-                        lines
-                  | "method" ->
-                      let sub =
-                        Regexp.exec
-                          (Regexp.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
-                          s
-                      in
-                      let label = Option.get (List.nth sub.Regexp.matches 1) in
-                      let descr = Option.get (List.nth sub.Regexp.matches 2) in
-                      parse_doc
-                        (main, special, params, (label, descr) :: methods)
-                        lines
-                  | d -> failwith ("Unknown documentation item: " ^ d)
-              with Not_found ->
-                parse_doc (line :: main, special, params, methods) lines)
-        in
-        let main, special, params, methods = parse_doc ([], [], [], []) doc in
-        let main = List.rev main in
-        let params =
-          List.map
-            (fun (l, d) ->
-              ( l,
-                Doc.Value.
-                  {
-                    arg_type = "???";
-                    arg_default = None;
-                    arg_description = Some d;
-                  } ))
-            (List.rev params)
-        in
-        let methods =
-          List.map
-            (fun (l, d) ->
-              (l, Doc.Value.{ meth_type = "???"; meth_description = Some d }))
-            (List.rev methods)
-        in
-        let main = String.concat "\n" main in
-        let main = Lang_string.unbreak_md main in
-        (* let main = String.concat "\n" main in *)
-        let category, flags =
-          List.fold_left
-            (fun (c, f) s ->
-              match s with `Category c -> (c, f) | `Flag flag -> (c, flag :: f))
-            ("Uncategorized", []) special
-        in
-        let category = String.trim category in
-        let category =
-          match Doc.Value.category_of_string category with
-            | Some c -> c
-            | None ->
-                failwith
-                  (Printf.sprintf "Unknown category: %s (%s)." category
-                     (Pos.to_string (startp, endp)))
-        in
-        let flags =
-          let f f =
-            match Doc.Value.flag_of_string f with
-              | Some f -> f
-              | None ->
-                  failwith
-                    (Printf.sprintf "Unknown flag: %s (%s)." f
-                       (Pos.to_string (startp, endp)))
-          in
-          List.map f flags
-        in
-        Some
-          Doc.Value.
-            {
-              (* filled in later on *)
-              typ = "???";
-              category;
-              flags;
-              description = main;
-              (* TODO *)
-              examples = [];
-              arguments = params;
-              methods;
-            })
-    in
-    (Parser.DEF (doc, decoration), (startp, endp))
-  in
-  let comment = ref ([], None) in
-  let rec token () =
-    match tokenizer () with
-      | Parser.PP_COMMENT c, (startp, _) ->
-          comment := (c, Some startp);
-          token ()
-      | Parser.PP_DEF decoration, pos ->
-          let decoration =
-            Parser_helper.let_decoration_of_lexer_let_decoration decoration
-          in
-          let c = !comment in
-          comment := ([], None);
-          documented_def decoration c pos
-      | x ->
-          comment := ([], None);
-          x
+              | x, _ -> (x, pos))
+        | End ->
+            pop ();
+            (Parser.END_INTERPOLATION, pos))
   in
   token
 
@@ -503,18 +142,21 @@ let dotvar tokenizer =
 (** Change MINUS to UMINUS if the minus is not preceded by a number (or an
    expression which could produce a number). *)
 let uminus tokenizer =
-  let was_number = ref false in
+  let no_uminus = ref false in
   let token () =
     match tokenizer () with
-      | (Parser.INT _, _ | Parser.FLOAT _, _ | Parser.VAR _, _ | Parser.RPAR, _)
-        as t ->
-          was_number := true;
+      | ( Parser.INT _, _
+        | Parser.FLOAT _, _
+        | Parser.VAR _, _
+        | Parser.RPAR, _
+        | Parser.RCUR, _ ) as t ->
+          no_uminus := true;
           t
-      | Parser.MINUS, pos when not !was_number ->
-          was_number := false;
+      | Parser.MINUS, pos when not !no_uminus ->
+          no_uminus := false;
           (Parser.UMINUS, pos)
       | t ->
-          was_number := false;
+          no_uminus := false;
           t
   in
   token
@@ -560,10 +202,10 @@ let strip_newlines tokenizer =
   token
 
 (* Wrap the lexer with its extensions *)
-let mk_tokenizer ?fname ~pwd lexbuf =
+let mk_tokenizer ?fname lexbuf =
   let tokenizer =
-    mk_tokenizer ?fname lexbuf |> includer ~pwd |> eval_ifdefs |> parse_comments
-    |> expand_string ?fname |> int_meth |> dotvar |> uminus |> strip_newlines
+    mk_tokenizer ?fname lexbuf |> expand_string ?fname |> int_meth |> dotvar
+    |> uminus |> strip_newlines
   in
   fun () ->
     let t, (startp, endp) = tokenizer () in

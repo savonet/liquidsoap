@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,18 +20,26 @@
 
  *****************************************************************************)
 
+module Pcre = Re.Pcre
+
 let address_resolver s =
   let s = Harbor.file_descr_of_socket s in
   Utils.name_of_sockaddr ~rev_dns:Harbor_base.conf_revdns#get
     (Unix.getpeername s)
+
+let should_shutdown = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"input.harbor shutdown" (fun () ->
+      Atomic.set should_shutdown true)
 
 class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
   ~port ~meta_charset ~icy_charset ~replay_meta ~mountpoint ~on_connect
   ~on_disconnect ~login ~debug ~timeout () =
   let max_length = Some (Frame.main_of_seconds max) in
   object (self)
-    inherit Source.active_source ~name:"input.harbor" () as super
-    inherit Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
+    inherit Source.active_source ~name:"input.harbor" ()
+    inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
     val mutable relay_socket = None
 
     (** Function to read on socket. *)
@@ -45,7 +53,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     val mutable logf = None
 
     method connected_client =
-      Tutils.mutexify relay_m
+      Mutex.mutexify relay_m
         (fun () -> Option.map address_resolver relay_socket)
         ()
 
@@ -54,16 +62,14 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         | Some addr -> Printf.sprintf "source client connected from %s" addr
         | None -> "no source client connected"
 
-    method private output =
-      if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
-
+    method private output = if self#is_ready then ignore self#get_frame
     method reset = self#disconnect ~lock:true
     method buffer_length_cmd = Frame.seconds_of_audio self#length
 
     method login : string * (socket:Harbor.socket -> string -> string -> bool) =
       login
 
-    method stype = `Fallible
+    method fallible = true
     method icy_charset = icy_charset
     method meta_charset = meta_charset
 
@@ -72,11 +78,15 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       (* Metadata may contain only the "song" value
        * or "artist" and "title". Here, we use "song"
        * as the "title" field if "title" is not provided. *)
-      if not (Hashtbl.mem m "title") then (
-        try Hashtbl.add m "title" (Hashtbl.find m "song") with _ -> ());
+      let m =
+        if not (Frame.Metadata.mem "title" m) then (
+          try Frame.Metadata.add "title" (Frame.Metadata.find "song" m) m
+          with _ -> m)
+        else m
+      in
       self#log#important "New metadata chunk %s -- %s."
-        (try Hashtbl.find m "artist" with _ -> "?")
-        (try Hashtbl.find m "title" with _ -> "?");
+        (try Frame.Metadata.find "artist" m with _ -> "?")
+        (try Frame.Metadata.find "title" m with _ -> "?");
       Generator.add_metadata self#buffer m
 
     method get_mime_type = mime_type
@@ -87,7 +97,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       let read buf ofs len =
         let input =
           (fun buf len ->
-            let socket = Tutils.mutexify relay_m (fun () -> relay_socket) () in
+            let socket = Mutex.mutexify relay_m (fun () -> relay_socket) () in
             match socket with
               | None -> 0
               | Some socket -> (
@@ -105,9 +115,11 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
                     in
                     f ()
                   with e ->
-                    self#log#severe "Error while reading from client: %s"
-                      (Printexc.to_string e);
-                    self#disconnect ~lock:false;
+                    let bt = Printexc.get_backtrace () in
+                    Utils.log_exception ~log:self#log ~bt
+                      (Printf.sprintf "Error while reading from client: %s"
+                         (Printexc.to_string e));
+                    (try self#disconnect ~lock:false with _ -> ());
                     0))
             buf len
         in
@@ -131,9 +143,10 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       try
         let decoder, buffer = create_decoder input in
         while true do
-          Tutils.mutexify relay_m
+          Mutex.mutexify relay_m
             (fun () -> if relay_socket = None then failwith "relaying stopped")
             ();
+          if Atomic.get should_shutdown then failwith "shutdown called";
           decoder.Decoder.decode buffer
         done
       with e ->
@@ -145,22 +158,22 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
     val mutable is_registered = false
 
-    method! private wake_up act =
-      super#wake_up act;
-      Generator.set_max_length self#buffer max_length;
-      Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
-        (self :> Harbor.source);
-      is_registered <- true
+    initializer
+      self#on_wake_up (fun () ->
+          Generator.set_max_length self#buffer max_length;
+          Harbor.add_source ~pos ~transport ~port ~mountpoint ~icy
+            (self :> Harbor.source);
+          is_registered <- true);
 
-    method! private sleep =
-      self#disconnect ~lock:true;
-      if is_registered then Harbor.remove_source ~port ~mountpoint ();
-      is_registered <- false
+      self#on_sleep (fun () ->
+          self#disconnect ~lock:true;
+          if is_registered then Harbor.remove_source ~port ~mountpoint ();
+          is_registered <- false)
 
     method register_decoder mime =
       let mime =
         try
-          let sub = Pcre.exec ~pat:"^([^;]+);.*$" mime in
+          let sub = Pcre.exec ~rex:(Pcre.regexp "^([^;]+);.*$") mime in
           Pcre.get_substring sub 1
         with Not_found -> mime
       in
@@ -178,7 +191,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
     method relay stype (headers : (string * string) list) ?(read = Harbor.read)
         socket =
-      Tutils.mutexify relay_m
+      Mutex.mutexify relay_m
         (fun () ->
           if relay_socket <> None then raise Harbor.Mount_taken;
           self#register_decoder stype;
@@ -211,7 +224,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       relay_socket <- None
 
     method private disconnect_with_lock =
-      Tutils.mutexify relay_m (fun () -> self#disconnect_no_lock) ()
+      Mutex.mutexify relay_m (fun () -> self#disconnect_no_lock) ()
 
     method private after_disconnect =
       begin
@@ -244,9 +257,8 @@ let _ =
           "Shutdown the output or source.",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                if Source.Clock_variables.is_known s#clock then
-                  (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-                      (s' :> Source.source) = (s :> Source.source));
+                Clock.detach s#clock (s :> Clock.source);
+                s#sleep;
                 Lang.unit) );
         ( "stop",
           ([], Lang.fun_t [] Lang.unit_t),

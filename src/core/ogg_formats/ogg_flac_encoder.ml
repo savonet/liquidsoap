@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,9 +38,9 @@ let create_encoder ~flac ~comments () =
   let started = ref false in
   let m = Mutex.create () in
   let pages = ref [] in
-  let write_cb = Tutils.mutexify m (fun p -> pages := p :: !pages) in
+  let write_cb = Mutex.mutexify m (fun p -> pages := p :: !pages) in
   let flush_pages =
-    Tutils.mutexify m (fun () ->
+    Mutex.mutexify m (fun () ->
         let p = !pages in
         pages := [];
         List.rev p)
@@ -111,7 +111,9 @@ let create_encoder ~flac ~comments () =
 let create_flac = function
   | Ogg_format.Flac flac ->
       let reset ogg_enc m =
-        let comments = Utils.list_of_metadata (Meta_format.to_metadata m) in
+        let comments =
+          Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
+        in
         let enc = create_encoder ~flac ~comments () in
         Ogg_muxer.register_track ?fill:flac.Flac_format.fill ogg_enc enc
       in
@@ -122,4 +124,4 @@ let create_flac = function
       { Ogg_encoder.encode; reset; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "flac" create_flac
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "flac" create_flac

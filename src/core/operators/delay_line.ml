@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,13 +26,13 @@ open Source
 class delay (source : source) duration =
   let length () = Frame.audio_of_seconds (duration ()) in
   object (self)
-    inherit operator ~name:"amplify" [source] as super
+    inherit operator ~name:"amplify" [source]
     val mutable override = None
-    method stype = source#stype
-    method is_ready = source#is_ready
+    method fallible = source#fallible
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
 
     (** Length of the buffer in samples. *)
@@ -50,26 +50,25 @@ class delay (source : source) duration =
         buffer <- Audio.create self#audio_channels n;
         buffer_length <- n)
 
-    method! wake_up a =
-      super#wake_up a;
-      self#prepare (length ())
+    initializer self#on_wake_up (fun () -> self#prepare (length ()))
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
+    method private generate_frame =
+      let buf =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let position = source#frame_audio_position in
       let length = length () in
       self#prepare length;
       if length > 0 then
-        for i = offset to position - 1 do
+        for i = 0 to position - 1 do
           for c = 0 to self#audio_channels - 1 do
             let x = buf.(c).(i) in
             buf.(c).(i) <- buffer.(c).(pos);
             buffer.(c).(pos) <- x
           done;
           pos <- (pos + 1) mod length
-        done
+        done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

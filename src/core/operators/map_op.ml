@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,22 +25,21 @@ open Source
 class map ~field source f =
   object
     inherit operator ~name:"audio.map" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = Content.Audio.get_data (Frame.get buf field) in
-      for i = offset to AFrame.position buf - 1 do
+    method private generate_frame =
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
+      for i = 0 to source#frame_audio_position - 1 do
         for c = 0 to Array.length b - 1 do
           b.(c).(i) <- f b.(c).(i)
         done
-      done
+      done;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let to_fun_float f x = Lang.to_float (Lang.apply f [("", Lang.float x)])

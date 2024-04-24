@@ -7,13 +7,7 @@ def f() =
 
   s = audio.decode.pcm_s16(s)
 
-  output.file(
-    %ffmpeg(
-      %audio(codec="aac")
-    ),
-    "unified-pcm-types.aac",
-    s
-  )
+  output.file(%ffmpeg(%audio(codec = "aac")), "unified-pcm-types.aac", s)
 end
 
 test.check(f)

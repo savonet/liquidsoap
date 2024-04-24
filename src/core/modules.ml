@@ -1,6 +1,5 @@
 include Liquidsoap_lang.Modules
 
-let clock = Lang.add_module "clock"
 let configure = Lang.add_module "configure"
 let decoder = Lang.add_module "decoder"
 let encoder = Lang.add_module "encoder"

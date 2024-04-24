@@ -12,13 +12,20 @@ type socket =
   ; close : unit >
 
 and server =
-  < transport : transport ; accept : Unix.file_descr -> socket * Unix.sockaddr >
+  < transport : transport
+  ; accept : ?timeout:float -> Unix.file_descr -> socket * Unix.sockaddr >
 
 and transport =
   < name : string
   ; protocol : string
   ; default_port : int
-  ; connect : ?bind_address:string -> ?timeout:float -> string -> int -> socket
+  ; connect :
+      ?bind_address:string ->
+      ?timeout:float ->
+      ?prefer:[ `System_default | `Ipv4 | `Ipv6 ] ->
+      string ->
+      int ->
+      socket
   ; server : server >
 
 type uri = {
@@ -30,7 +37,18 @@ type uri = {
 
 (** Base unix connect *)
 val connect :
-  ?bind_address:string -> ?timeout:float -> string -> int -> Unix.file_descr
+  ?bind_address:string ->
+  ?timeout:float ->
+  ?prefer:[ `System_default | `Ipv4 | `Ipv6 ] ->
+  string ->
+  int ->
+  Unix.file_descr
+
+val accept :
+  ?timeout:float -> Unix.file_descr -> Unix.file_descr * Unix.sockaddr
+
+val set_socket_default :
+  read_timeout:float -> write_timeout:float -> Unix.file_descr -> unit
 
 (** Unix transport and socket. *)
 val unix_transport : transport

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ let decode_audio_frame ~field ~mode generator =
     | `Frame frame ->
         let data, params =
           match Ffmpeg_copy_content.get_data frame with
-            | { Ffmpeg_content_base.data; params = Some (`Audio params) } ->
+            | { Content.Video.data; params = Some (`Audio params) } ->
                 (data, params)
             | _ -> assert false
         in
@@ -165,7 +165,7 @@ let decode_audio_frame ~field ~mode generator =
 
     function
     | `Frame frame ->
-        let { Ffmpeg_content_base.data; params } =
+        let { Content.Video.data; params } =
           Ffmpeg_raw_content.Audio.get_data frame
         in
         let data =
@@ -181,14 +181,14 @@ let decode_audio_frame ~field ~mode generator =
 
   let convert
         : 'a 'b.
-          get_data:(Content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
+          get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
           decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
           [ `Frame of Frame.t | `Flush ] ->
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
         let frame = Frame.get frame field in
-        let { Ffmpeg_content_base.data; _ } = get_data frame in
+        let { Content.Video.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
   in
@@ -248,24 +248,32 @@ let decode_video_frame ~field ~mode generator =
         | Some v -> v
     in
 
-    fun ~time_base ~stream_idx frame ->
-      let width = Avutil.Video.frame_get_width frame in
-      let height = Avutil.Video.frame_get_height frame in
-      let pixel_format = Avutil.Video.frame_get_pixel_format frame in
-      let pixel_aspect = Avutil.Video.frame_get_pixel_aspect frame in
-      let scaler, fps_converter =
-        get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
-          ~stream_idx ()
+    let put ~scaler data =
+      let img =
+        Ffmpeg_utils.unpack_image ~width:internal_width ~height:internal_height
+          (InternalScaler.convert scaler data)
       in
-      Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (fun data ->
-          let img =
-            Ffmpeg_utils.unpack_image ~width:internal_width
-              ~height:internal_height
-              (InternalScaler.convert scaler data)
+      let data = Content.Video.lift_image (Video.Canvas.Image.make img) in
+      Generator.put generator field data
+    in
+
+    fun ~time_base ~stream_idx -> function
+      | `Frame frame ->
+          let width = Avutil.Video.frame_get_width frame in
+          let height = Avutil.Video.frame_get_height frame in
+          let pixel_format = Avutil.Video.frame_get_pixel_format frame in
+          let pixel_aspect = Avutil.Video.frame_get_pixel_aspect frame in
+          let scaler, fps_converter =
+            get_converter ?pixel_aspect ~pixel_format ~time_base ~width ~height
+              ~stream_idx ()
           in
-          let data = Video.Canvas.single_image img in
-          let data = Content.Video.lift_data data in
-          Generator.put generator field data)
+          Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (put ~scaler)
+      | `Flush ->
+          ignore
+            (Option.map
+               (fun (scaler, fps_converter) ->
+                 Ffmpeg_avfilter_utils.Fps.eof fps_converter (put ~scaler))
+               !converter)
   in
 
   let mk_copy_decoder () =
@@ -297,10 +305,10 @@ let decode_video_frame ~field ~mode generator =
             ignore
               (Option.map
                  (fun stream_idx ->
-                   Avcodec.flush_decoder decoder
-                     (convert
-                        ~time_base:(Option.get !current_time_base)
-                        ~stream_idx))
+                   Avcodec.flush_decoder decoder (fun frame ->
+                       convert
+                         ~time_base:(Option.get !current_time_base)
+                         ~stream_idx (`Frame frame)))
                  !current_stream_idx);
             mk_decoder ~params ~stream_idx ~time_base
         | Some d -> d
@@ -309,7 +317,7 @@ let decode_video_frame ~field ~mode generator =
     | `Frame frame ->
         let data, params =
           match Ffmpeg_copy_content.get_data frame with
-            | { Ffmpeg_content_base.data; params = Some (`Video params) } ->
+            | { Content.Video.data; params = Some (`Video params) } ->
                 (data, params)
             | _ -> assert false
         in
@@ -325,7 +333,9 @@ let decode_video_frame ~field ~mode generator =
                   time_base;
                 } ) ->
                 let decoder = get_decoder ~params ~time_base ~stream_idx in
-                Avcodec.decode decoder (convert ~time_base ~stream_idx) packet
+                Avcodec.decode decoder
+                  (fun frame -> convert ~time_base ~stream_idx (`Frame frame))
+                  packet
             | _ -> assert false)
           data
     | `Flush ->
@@ -338,18 +348,22 @@ let decode_video_frame ~field ~mode generator =
                    ~time_base:(Option.get !current_time_base)
                    ~stream_idx:(Option.get !current_stream_idx)
                in
-               Avcodec.flush_decoder decoder
-                 (convert
-                    ~time_base:(Option.get !current_time_base)
-                    ~stream_idx))
+               Avcodec.flush_decoder decoder (fun frame ->
+                   convert
+                     ~time_base:(Option.get !current_time_base)
+                     ~stream_idx (`Frame frame));
+               convert
+                 ~time_base:(Option.get !current_time_base)
+                 ~stream_idx `Flush)
              !current_stream_idx)
   in
 
   let mk_raw_decoder () =
     let convert = mk_converter () in
+    let last_params = ref None in
     function
     | `Frame frame ->
-        let { Ffmpeg_content_base.data; _ } =
+        let { Content.Video.data; _ } =
           Ffmpeg_raw_content.Video.get_data frame
         in
         let data =
@@ -357,21 +371,27 @@ let decode_video_frame ~field ~mode generator =
         in
         List.iter
           (fun (_, { Ffmpeg_raw_content.frame; stream_idx; time_base }) ->
-            convert ~time_base ~stream_idx frame)
+            last_params := Some (time_base, stream_idx);
+            convert ~time_base ~stream_idx (`Frame frame))
           data
-    | `Flush -> ()
+    | `Flush ->
+        ignore
+          (Option.map
+             (fun (time_base, stream_idx) ->
+               convert ~time_base ~stream_idx `Flush)
+             !last_params)
   in
 
   let convert
         : 'a 'b.
-          get_data:(Content.data -> ('a, 'b) Ffmpeg_content_base.content) ->
+          get_data:(Content.data -> ('a, 'b) Content_video.Base.content) ->
           decoder:([ `Frame of Content.data | `Flush ] -> unit) ->
           [ `Frame of Frame.t | `Flush ] ->
           unit =
    fun ~get_data ~decoder -> function
     | `Frame frame ->
         let frame = Frame.get frame field in
-        let { Ffmpeg_content_base.data; _ } = get_data frame in
+        let { Content.Video.data; _ } = get_data frame in
         if data = [] then () else decoder (`Frame frame)
     | `Flush -> decoder `Flush
   in
@@ -434,7 +454,7 @@ let mk_decoder mode =
                    (Frame.get_all_metadata frame);
                  List.iter
                    (fun pos -> Generator.add_track_mark ~pos generator)
-                   (List.filter (fun x -> x < size) (Frame.breaks frame));
+                   (List.filter (fun x -> x < size) (Frame.track_marks frame));
                  decode_frame (`Frame frame)
              | `Flush -> decode_frame `Flush
            in
@@ -467,9 +487,10 @@ let mk_decoder mode =
              ~always_enabled:true ~write_frame:decode_frame
              ~name:(id ^ ".consumer") ~source:(Lang.source source) ()
          in
+         let stack = Liquidsoap_lang.Lang_core.pos p in
+         consumer#set_stack stack;
 
-         let input_frame_t = Typing.generalize ~level:(-1) input_frame_t in
-         let input_frame_t = Typing.instantiate ~level:(-1) input_frame_t in
+         let input_frame_t = Type.fresh input_frame_t in
          Typing.(
            consumer#frame_type
            <: Lang.frame_t (Lang.univ_t ())
@@ -478,8 +499,8 @@ let mk_decoder mode =
          ( field,
            new Producer_consumer.producer
            (* We are expecting real-rate with a couple of hickups.. *)
-             ~create_known_clock:false ~check_self_sync:false
-             ~consumers:[consumer] ~name:(id ^ ".producer") () )))
+             ~stack ~check_self_sync:false ~consumers:[consumer]
+             ~name:(id ^ ".producer") () )))
 
 let () =
   List.iter mk_decoder [`Audio_encoded; `Audio_raw; `Video_encoded; `Video_raw]

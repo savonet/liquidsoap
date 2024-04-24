@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,12 +41,13 @@ let m = Mutex.create ()
 let rec watchdog () =
   let fd = Option.get !fd in
   let handler =
-    Tutils.mutexify m (fun _ ->
+    Mutex.mutexify m (fun _ ->
         let events = Inotify.read fd in
         List.iter
           (fun (wd, _, _, _) ->
-            let f = List.assoc wd !handlers in
-            f ())
+            match List.assoc wd !handlers with
+              | f -> f ()
+              | exception Not_found -> ())
           events;
         [watchdog ()])
   in
@@ -55,7 +56,7 @@ let rec watchdog () =
 let watch : watch =
  fun ~pos e file f ->
   if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
-  Tutils.mutexify m
+  Mutex.mutexify m
     (fun () ->
       if !fd = None then (
         fd := Some (Inotify.create ());
@@ -75,7 +76,7 @@ let watch : watch =
       let wd = Inotify.add_watch fd file e in
       handlers := (wd, f) :: !handlers;
       let unwatch =
-        Tutils.mutexify m (fun () ->
+        Mutex.mutexify m (fun () ->
             Inotify.rm_watch fd wd;
             handlers := List.remove_assoc wd !handlers)
       in

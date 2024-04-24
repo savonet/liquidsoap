@@ -4,49 +4,8 @@ Starting with liquidsoap `1.4.0`, it is possible to send your streams as [HLS ou
 
 The main operator is `output.file.hls`. Here's an example using it, courtesy of [srt2hls](https://github.com/mbugeia/srt2hls):
 
-```liquidsoap
-aac_lofi = %ffmpeg(format="mpegts",
-                   %audio(
-                     codec="aac",
-                     channels=2,
-                     ar=44100
-                   ))
+```{.liquidsoap include="output.file.hls.liq"}
 
-aac_midfi = %ffmpeg(format="mpegts",
-                    %audio(
-                      codec="aac",
-                      channels=2,
-                      ar=44100,
-                      b="96k"
-                    ))
-
-aac_hifi = %ffmpeg(format="mpegts",
-                   %audio(
-                     codec="aac",
-                     channels=2,
-                     ar=44100,
-                     b="192k"
-                   ))
-
-streams = [("aac_lofi",aac_lofi),
-           ("aac_midfi", aac_midfi),
-           ("aac_hifi", aac_hifi)]
-
-def segment_name(~position,~extname,stream_name) =
-  timestamp = int_of_float(gettimeofday())
-  duration = 2
-  "#{stream_name}_#{duration}_#{timestamp}_#{position}.#{extname}"
-end
-
-output.file.hls(playlist="live.m3u8",
-                segment_duration=2.0,
-                segments=5,
-                segments_overhead=5,
-                segment_name=segment_name,
-                persist_at="/path/to/state.config",
-                "/path/to/hls/directory",
-                streams,
-                source)
 ```
 
 Let's see what's important here:
@@ -69,51 +28,58 @@ Liquidsoap also provides `output.harbor.hls` which allows to serve HLS streams d
 liquidsoap. Their options should be the same as `output.file.hls`, except for harbor-specifc options `port` and `path`. It is
 not recommended for listener-facing setup but can be useful to sync up with a caching system such as cloudfront.
 
+## Keyframes and segment length
+
+In codec terminology, a `keyframe` can be understood as a piece of encoded data that contains enough information to start decoding the stream.
+Keyframes are very common in video codecs and can exist in audio codecs.
+
+In order to make sure that a HLS playlist can be decoded starting from any segment, liquidsoap tries to split segments on keyframe boundaries. When not possible,
+you will see a warning in the logs.
+
+Segment split is forced when reaching the value specified by `EXT-X-TARGETDURATION` to follow the HLS specifications. For metadata and extra tags, segment split will
+occur at the next keyframe.
+
+To make sure that all these requirements operate correctly, you should make sure to set a keyframe frequency in your encoder's settings that generates at lease one
+keyframe per segment.
+
+For instance, if your segments are at most `2s` long and encoded using `libx264`, you can use the `keyint` and `keyint-min` parameters, which are expressed
+in number of frames. If your video frame rate is `25fps` (liquidsoap's default), you should have at least one keyframe every `2 * 25 = 50` frames.
+
+```liquidsoap
+%ffmpeg(
+  ...,
+  %video(codec="libx264",
+         x264opts="keyint=50:min-keyint=50")
+)
+```
+
+## Metadata
+
+HLS outputs supports metadata in two ways:
+
+- Using the `%ffmpeg` encoder, through a `timed_id3` metadata logical stream with the `mpegts` format.
+- Through regular ID3 frames, as requested by the [HLS specifications](https://datatracker.ietf.org/doc/html/rfc8216#section-3.4) for `adts`, `mp3`, `ac3` and `eac3` formats with the `%ffmpeg` encoder and also natively using the `%mp3`, `%shine` or `%fdkaac` encoders.
+- There is currently no support for in-stream metadata for the `mp4` format.
+
+Metadata parameters are passed through the record methods of the streams' encoders. Here's an example
+
+```{.liquidsoap include="hls-metadata.liq"}
+
+```
+
+Parameters are:
+
+- `id3`: Set to `false` to deactivate metadata on the streams. Defaults to `true`.
+- `id3_version`: Set the `id3v2` version used to export metadata
+- `replay_id3`: By default, the latest metadata is inserted at the beginning of each segment to make sure new listeners always get the latest metadata. Set to `false` to disable it.
+
+Metadata for these formats are activated by default. If you are experiencing any issues with them, you can disable them by setting `id3` to `false`.
+
 ## Mp4 format
 
 `mp4` container is supported by requires specific parameters. Here's an example that mixes `aac` and `flac` audio, The parameters
 required for `mp4` are `movflags` and `frag_duration`.
 
-```liquidsoap
-radio = ...
+```{.liquidsoap include="hls-mp4.liq"}
 
-aac_lofi = %ffmpeg(format="mp4",
-                   movflags="+dash+skip_sidx+skip_trailer+frag_custom",
-                   frag_duration=10,
-                   %audio(
-                     codec="aac",
-                     channels=2,
-                     ar=44100,
-                     b="192k"
-                   ))
-
-flac_hifi = %ffmpeg(format="mp4",
-                    movflags="+dash+skip_sidx+skip_trailer+frag_custom",
-                    frag_duration=10,
-                    strict="-2",
-                    %audio(
-                      codec="flac",
-                      channels=2,
-                      ar=44100
-                    ))
-
-flac_hires = %ffmpeg(format="mp4",
-                     movflags="+dash+skip_sidx+skip_trailer+frag_custom",
-                     frag_duration=10,
-                     strict="-2",
-                     %audio(
-                       codec="flac",
-                       channels=2,
-                       ar=48000
-                     ))
-
-streams = [("aac_lofi", aac_lofi),
-           ("flac_hifi", flac_hifi),
-           ("flac_hires", flac_hires)]
-
-
-output.file.hls(playlist="live.m3u8",
-                "/path/to/directory",
-                streams,
-                radio)
 ```

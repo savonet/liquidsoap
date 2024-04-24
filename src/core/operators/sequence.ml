@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2023 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,102 +27,96 @@ open Source
   * advancing in the sequence. The [merge] flag will *not* merge tracks
   * while looping on the last source -- this behavior would not be suited
   * to the current use of [sequence] in transitions. *)
-class sequence ?(merge = false) sources =
-  let self_sync_type = Utils.self_sync_type sources in
+class sequence ?(merge = false) ?(single_track = true) sources =
+  let self_sync_type = Clock_base.self_sync_type sources in
+  let seq_sources = Atomic.make sources in
   object (self)
     inherit operator ~name:"sequence" sources
-    val mutable seq_sources = sources
+
+    inherit
+      generate_from_multiple_sources
+        ~merge:(fun () -> merge && List.length (Atomic.get seq_sources) <> 1)
+        ~track_sensitive:(fun () -> true)
+        ()
 
     method self_sync =
       ( Lazy.force self_sync_type,
-        match sources with hd :: _ -> snd hd#self_sync | [] -> false )
+        match sources with hd :: _ -> snd hd#self_sync | [] -> None )
 
-    method stype =
-      match List.rev sources with hd :: _ -> hd#stype | [] -> `Fallible
+    method fallible =
+      match List.rev sources with hd :: _ -> hd#fallible | [] -> true
 
-    method! private wake_up activation =
-      List.iter
-        (fun s -> (s :> source)#get_ready ((self :> source) :: activation))
-        sources
+    (* We have to wait until at least one source is ready. *)
+    val mutable has_started = false
 
-    method! private sleep =
-      List.iter (fun s -> (s :> source)#leave (self :> source)) sources
+    method private has_started =
+      match has_started with
+        | true -> true
+        | false ->
+            has_started <-
+              List.exists (fun s -> s#is_ready) (Atomic.get seq_sources);
+            has_started
 
-    (** When head_ready is true, it must be that:
-    *  - (List.hd seq_sources)#is_ready
-    *  - or we have started playing a track of (List.hd sources)
-    *    and that track has not ended yet.
-    * In case the head source becomes unavailable before its end of track,
-    * head_ready keeps the sequence operator available, so that its #get_frame
-    * can be called to properly end the track and cleanup the source if needed.
-    * If instead the operator had become unavailable then source#get would have
-    * inserted an end of track automatically instead of calling #get_frame. *)
-    val mutable head_ready = false
-
-    method is_ready =
-      head_ready || List.exists (fun s -> s#is_ready) seq_sources
+    method private get_source ~reselect () =
+      match (self#has_started, Atomic.get seq_sources) with
+        | _, [] -> None
+        | true, s :: [] ->
+            if
+              self#can_reselect
+                ~reselect:(match reselect with `Force -> `Ok | _ -> reselect)
+                s
+            then Some s
+            else None
+        | true, s :: rest ->
+            if
+              self#can_reselect
+                ~reselect:
+                  (match reselect with
+                    | `After_position _ when single_track -> `Force
+                    | v -> v)
+                s
+            then Some s
+            else (
+              self#log#info "Finished with %s" s#id;
+              Atomic.set seq_sources rest;
+              self#get_source ~reselect:`Ok ())
+        | _ -> None
 
     method remaining =
       if merge then (
         let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
-        List.fold_left ( + ) 0 (List.map (fun s -> s#remaining) seq_sources))
-      else (List.hd seq_sources)#remaining
+        List.fold_left ( + ) 0
+          (List.map (fun s -> s#remaining) (Atomic.get seq_sources)))
+      else (List.hd (Atomic.get seq_sources))#remaining
 
-    method seek len = match seq_sources with s :: _ -> s#seek len | [] -> 0
+    method seek_source =
+      match Atomic.get seq_sources with
+        | s :: _ -> s#seek_source
+        | _ -> (self :> Source.source)
 
     method abort_track =
       if merge then (
-        match List.rev seq_sources with
+        match List.rev (Atomic.get seq_sources) with
           | [] -> assert false
-          | hd :: _ -> seq_sources <- [hd]);
-      match seq_sources with hd :: _ -> hd#abort_track | _ -> ()
-
-    method private get_frame buf =
-      if head_ready then (
-        let hd = List.hd seq_sources in
-        hd#get buf;
-        if Frame.is_partial buf then (
-          head_ready <- false;
-          if List.length seq_sources > 1 then (
-            seq_sources <- List.tl seq_sources;
-            if merge && self#is_ready then (
-              let pos = Frame.position buf in
-              self#get_frame buf;
-              Frame.set_breaks buf
-                (Utils.remove_one (( = ) pos) (Frame.breaks buf))))))
-      else (
-        match seq_sources with
-          | a :: (_ :: _ as tl) ->
-              if a#is_ready then head_ready <- true else seq_sources <- tl;
-              self#get_frame buf
-          | [a] ->
-              assert a#is_ready;
-
-              (* Our #is_ready ensures that. *)
-              head_ready <- true;
-              self#get_frame buf
-          | [] -> assert false)
+          | hd :: _ -> Atomic.set seq_sources [hd]);
+      match Atomic.get seq_sources with hd :: _ -> hd#abort_track | _ -> ()
   end
 
 class merge_tracks source =
-  object (self)
+  object
     inherit operator ~name:"sequence" [source]
-    method stype = source#stype
-    method is_ready = source#is_ready
+    method fallible = source#fallible
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = -1
     method self_sync = source#self_sync
-    method seek = source#seek
+    method seek_source = source#seek_source
 
-    method private get_frame buf =
-      source#get buf;
-      if Frame.is_partial buf && source#is_ready then (
-        self#log#info "End of track: merging.";
-        self#get_frame buf;
-        Frame.set_breaks buf
-          (match Frame.breaks buf with
-            | b :: _ :: l -> b :: l
-            | _ -> assert false))
+    method private generate_frame =
+      let buf = source#get_frame in
+      Frame.set buf Frame.Fields.track_marks
+        (Content.make ~length:(Frame.position buf)
+           Content_timed.Track_marks.format)
   end
 
 let _ =
@@ -136,14 +130,21 @@ let _ =
           "Merge tracks when advancing from one source to the next one. This \
            will NOT merge consecutive tracks from the last source; see \
            merge_tracks() if you need that too." );
+      ( "single_track",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some
+          "Advance to the new track in the sequence on new track. Set to \
+           `false` to play each source until it becomes unavailable." );
       ("", Lang.list_t (Lang.source_t frame_t), None, None);
     ]
     ~category:`Track
     ~descr:
-      "Play only one track of every successive source, except for the last one \
-       which is played as much as available."
+      "Play a sequence of sources. By default, play one track per source, \
+       except for the last one which is played as much as available."
     ~return_t:frame_t
     (fun p ->
       new sequence
         ~merge:(Lang.to_bool (List.assoc "merge" p))
+        ~single_track:(Lang.to_bool (List.assoc "single_track" p))
         (Lang.to_source_list (List.assoc "" p)))

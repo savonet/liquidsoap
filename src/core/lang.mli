@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -29,7 +29,7 @@ type t = Liquidsoap_lang.Type.t
 
 type module_name = Liquidsoap_lang.Lang.module_name
 type scheme = Liquidsoap_lang.Type.scheme
-type regexp
+type regexp = Liquidsoap_lang.Lang.regexp
 
 (** {2 Values} *)
 
@@ -42,6 +42,7 @@ module Ground : sig
     descr : t -> string;
     to_json : pos:Liquidsoap_lang.Pos.t list -> t -> Json.t;
     compare : t -> t -> int;
+    comparison_op : t Liquidsoap_lang.Term.Ground.comparison_op option;
     typ : (module Liquidsoap_lang.Type.Ground.Custom);
   }
 
@@ -53,10 +54,16 @@ type value = Liquidsoap_lang.Value.t = {
   pos : Liquidsoap_lang.Pos.Option.t;
   value : in_value;
   methods : value Liquidsoap_lang.Value.Methods.t;
+  id : int;
 }
 
 and env = (string * value) list
-and lazy_env = (string * value Lazy.t) list
+and lazy_env = (string * value Stdlib.Lazy.t) list
+
+and ffi = Liquidsoap_lang.Value.ffi = {
+  ffi_args : (string * string * value option) list;
+  mutable ffi_fn : env -> value;
+}
 
 and in_value = Liquidsoap_lang.Value.in_value =
   | Ground of Ground.t
@@ -67,7 +74,7 @@ and in_value = Liquidsoap_lang.Value.in_value =
       (string * string * value option) list * lazy_env * Liquidsoap_lang.Term.t
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
-  | FFI of (string * string * value option) list * (env -> value)
+  | FFI of ffi
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
@@ -81,7 +88,7 @@ val iter_sources :
 
 (** {2 Computation} *)
 
-val apply_fun : (?pos:Liquidsoap_lang.Pos.t -> value -> env -> value) ref
+val apply_fun : (?pos:Liquidsoap_lang.Pos.t list -> value -> env -> value) ref
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
@@ -272,6 +279,8 @@ val http_transport_base_t : t
 
 val unit : value
 val int : int -> value
+val octal_int : int -> value
+val hex_int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
@@ -308,6 +317,8 @@ val pos : env -> Liquidsoap_lang.Pos.t list
 (** Convert a metadata packet to a list associating strings to strings. *)
 val metadata : Frame.metadata -> value
 
+val metadata_list : (string * string) list -> value
+
 (** Raise an error. *)
 val raise_error :
   ?bt:Printexc.raw_backtrace ->
@@ -331,12 +342,3 @@ val descr_of_regexp : regexp -> string
 
 (** Return a string description of a regexp value i.e. r/^foo\/bla$/g *)
 val string_of_regexp : regexp -> string
-
-module Regexp : sig
-  include Liquidsoap_lang.Regexp.T with type t := regexp
-
-  type sub = Liquidsoap_lang.Regexp.sub = {
-    matches : string option list;
-    groups : (string * string) list;
-  }
-end

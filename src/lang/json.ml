@@ -1,24 +1,57 @@
-type t = Json_base.t
+include Json_base
 
 (** A position. *)
 type pos = Lexing.position * Lexing.position
 
+let sedlexing_error ~pos ~message lexbuf =
+  let lexbuf_position = Sedlexing.lexing_bytes_positions lexbuf in
+  let message =
+    Printf.sprintf "In json data %s: %s" (Pos.to_string lexbuf_position) message
+  in
+  Runtime_error.raise ~message ~pos "json"
+
+let json5_processor =
+  MenhirLib.Convert.Simplified.traditional2revised Json_parser.json5
+
+let json_processor =
+  MenhirLib.Convert.Simplified.traditional2revised Json_parser.json
+
 let from_string ?(pos = []) ?(json5 = false) s =
-  let parser = if json5 then Json_parser.json5 else Json_parser.json in
-  let processor = MenhirLib.Convert.Simplified.traditional2revised parser in
-  let lexbuf = Sedlexing.Utf8.from_string s in
+  let processor = if json5 then json5_processor else json_processor in
+  let lexbuf =
+    let gen =
+      let pos = ref (-1) in
+      let len = String.length s in
+      fun () ->
+        incr pos;
+        if !pos < len then Some s.[!pos] else None
+    in
+    Sedlexing.Utf8.from_gen gen
+  in
   let tokenizer () =
     let token =
       if json5 then Json_lexer.json5_token lexbuf
       else Json_lexer.json_token lexbuf
     in
-    let startp, endp = Sedlexing.lexing_positions lexbuf in
+    let startp, endp = Sedlexing.lexing_bytes_positions lexbuf in
     (token, startp, endp)
   in
   try processor tokenizer with
     | Runtime_error.Runtime_error _ as exn ->
         let bt = Printexc.get_raw_backtrace () in
         Printexc.raise_with_backtrace exn bt
+    | Json_base.Parse_error { pos = lexbuf_pos; message } ->
+        let message =
+          Printf.sprintf "In json data %s: %s" (Pos.to_string lexbuf_pos)
+            message
+        in
+        Runtime_error.raise ~message ~pos "json"
+    | Sedlexing.InvalidCodepoint c ->
+        sedlexing_error ~pos
+          ~message:(Printf.sprintf "Invalid codepoint: %d" c)
+          lexbuf
+    | Sedlexing.MalFormed ->
+        sedlexing_error ~pos ~message:"Malformed input" lexbuf
     | _ -> Runtime_error.raise ~message:"Parse error" ~pos "json"
 
 (* Special version of utf8 quoting that uses [Uchar.rep]

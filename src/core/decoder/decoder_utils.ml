@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-    Liquidsoap, a programmable audio stream generator.
-    Copyright 2003-2023 Savonet team
+    Liquidsoap, a programmable stream generator.
+    Copyright 2003-2024 Savonet team
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -108,30 +108,29 @@ let video_resample ~in_freq ~out_freq =
    *     which o: nearest neighbour in the currently available buffer.
    *     This is not as good as nearest neighbour in the real stream.
    *
-   * Turns out the same code codes for when out_freq>in_freq too. *)
+   * Turns out the same code codes for when out_freq>in_freq works too. *)
   let in_pos = ref 0 in
   let in_freq = in_freq.num * out_freq.den
   and out_freq = out_freq.num * in_freq.num in
   let ratio = out_freq / in_freq in
-  fun input off len ->
-    let new_in_pos = !in_pos + len in
+  fun img ->
+    let new_in_pos = !in_pos + 1 in
     let already_out_len = !in_pos * ratio in
     let needed_out_len = new_in_pos * ratio in
     let out_len = needed_out_len - already_out_len in
     in_pos := new_in_pos mod in_freq;
-    Array.init out_len (fun i -> input.(off + (i * ratio)))
+    List.init out_len (fun _ -> img)
 
 let video_resample () =
   let state = ref None in
-  let exec resampler data = resampler data 0 (Video.Canvas.length data) in
-  fun ~in_freq ~out_freq (data : Content.Video.data) : Content.Video.data ->
-    if in_freq = out_freq then data
+  fun ~in_freq ~out_freq img ->
+    if in_freq = out_freq then [img]
     else (
       match !state with
         | Some (resampler, _in_freq, _out_freq)
           when in_freq = _in_freq && out_freq = _out_freq ->
-            exec resampler data
+            resampler img
         | _ ->
             let resampler = video_resample ~in_freq ~out_freq in
             state := Some (resampler, in_freq, out_freq);
-            exec resampler data)
+            resampler img)

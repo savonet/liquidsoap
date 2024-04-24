@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,14 +24,31 @@ include Type_base
 include Ref_type
 module Ground = Ground_type
 
+let record_constr =
+  {
+    t = Record;
+    constr_descr = "a record type";
+    univ_descr = None;
+    satisfied =
+      (fun ~subtype:_ ~satisfies b ->
+        let m, b = split_meths b in
+        match b.descr with
+          | Var _ -> satisfies b
+          | Tuple [] when m = [] -> raise Unsatisfied_constraint
+          | Tuple [] -> ()
+          | _ -> raise Unsatisfied_constraint);
+  }
+
 let num_constr =
   {
     t = Num;
     constr_descr = "a number type";
+    univ_descr = None;
     satisfied =
-      (fun ~subtype:_ ~satisfies:_ b ->
+      (fun ~subtype:_ ~satisfies b ->
         let b = demeth b in
         match b.descr with
+          | Var _ -> satisfies b
           | Custom { typ = Ground.Never.Type }
           | Custom { typ = Ground.Int.Type }
           | Custom { typ = Ground.Float.Type } ->
@@ -43,6 +60,7 @@ let ord_constr =
   {
     t = Ord;
     constr_descr = "an orderable type";
+    univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let m, b = split_meths b in

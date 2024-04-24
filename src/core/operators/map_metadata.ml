@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,45 +26,48 @@ class map_metadata source rewrite_f insert_missing update strip =
   object (self)
     inherit operator ~name:"metadata.map" [source]
     initializer Typing.(self#frame_type <: Lang.unit_t)
-    method stype = source#stype
-    method is_ready = source#is_ready
+    method fallible = source#fallible
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek n = source#seek n
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
 
     method private rewrite m =
       let m' = Lang.apply rewrite_f [("", Lang.metadata m)] in
-      let replace_val v =
+      let replace_val m v =
         let x, y = Lang.to_product v in
         let x = Lang.to_string x and y = Lang.to_string y in
-        if not strip then Hashtbl.replace m x y
-        else if y <> "" then Hashtbl.replace m x y
-        else Hashtbl.remove m x
+        if not strip then Frame.Metadata.add x y m
+        else if y <> "" then Frame.Metadata.add x y m
+        else Frame.Metadata.remove x m
       in
-      if not update then Hashtbl.clear m;
-      List.iter replace_val (Lang.to_list m')
+      let m = if not update then Frame.Metadata.empty else m in
+      List.fold_left replace_val m (Lang.to_list m')
 
-    val mutable in_track = false
-
-    method private get_frame buf =
-      let p = Frame.position buf in
-      source#get buf;
-      if insert_missing && (not in_track) && Frame.position buf > p then (
-        in_track <- true;
-        match Frame.get_metadata buf p with
-          | None ->
-              self#log#important "Inserting missing metadata.";
-              let h = Hashtbl.create 10 in
-              Frame.set_metadata buf p h
-          | Some _ -> ());
-      if Frame.is_partial buf then in_track <- false;
-      List.iter
-        (fun (t, m) ->
-          if t >= p then (
-            self#rewrite m;
-            if strip && Hashtbl.length m = 0 then Frame.free_metadata buf t))
+    method private process buf =
+      List.fold_left
+        (fun buf (t, m) ->
+          let m = self#rewrite m in
+          if strip && Frame.Metadata.is_empty m then Frame.free_metadata buf t
+          else Frame.add_metadata buf t m)
+        buf
         (Frame.get_all_metadata buf)
+
+    method private generate_frame =
+      match self#split_frame source#get_frame with
+        | frame, None -> self#process frame
+        | frame, Some new_track ->
+            let frame = self#process frame in
+            let new_track = self#process new_track in
+            Frame.append frame
+              (match (insert_missing, Frame.get_metadata new_track 0) with
+                | false, _ -> new_track
+                | true, None ->
+                    self#log#important "Inserting missing metadata.";
+                    Frame.add_metadata new_track 0
+                      (self#rewrite Frame.Metadata.empty)
+                | true, Some _ -> new_track)
   end
 
 let register =

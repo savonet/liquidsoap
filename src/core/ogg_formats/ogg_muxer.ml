@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -214,7 +214,7 @@ let register_track ?fill encoder track_encoder =
               stream_end = track_encoder.end_of_stream;
             }
   in
-  Hashtbl.add encoder.tracks serial track;
+  Hashtbl.replace encoder.tracks serial track;
   serial
 
 (** Start streams, set state to Streaming. *)

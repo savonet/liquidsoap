@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -158,7 +158,7 @@ let create speex ~metadata () =
 let create_speex = function
   | Ogg_format.Speex speex ->
       let reset ogg_enc m =
-        let m = Utils.list_of_metadata (Meta_format.to_metadata m) in
+        let m = Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m) in
         let title =
           try List.assoc "title" m
           with Not_found -> (
@@ -180,4 +180,4 @@ let create_speex = function
       { Ogg_encoder.reset; encode; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "speex" create_speex
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "speex" create_speex

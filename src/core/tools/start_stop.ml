@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,6 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
     method state = state
     method virtual private start : unit
     method virtual private stop : unit
-    method virtual stype : [ `Fallible | `Infallible ]
 
     (* Default [reset] method. Can be overridden if necessary. *)
     method reset =
@@ -67,39 +66,18 @@ class virtual base ~(on_start : unit -> unit) ~(on_stop : unit -> unit) =
         | `Idle, `Stopped | `Idle, `Idle -> ()
   end
 
-class virtual active_source ?get_clock ~name ~clock_safe
-  ~(on_start : unit -> unit) ~(on_stop : unit -> unit) ~fallible ~autostart () =
-  let get_clock =
-    Option.value ~default:(fun () -> Clock.clock name) get_clock
-  in
+class virtual active_source ~name ~(on_start : unit -> unit)
+  ~(on_stop : unit -> unit) ~fallible ~autostart () =
   object (self)
-    inherit Source.active_source ~name () as super
+    inherit Source.active_source ~name ()
     inherit base ~on_start ~on_stop as base
-    method stype = if fallible then `Fallible else `Infallible
-    method! private wake_up _ = if autostart then base#transition_to `Started
-    method! private sleep = base#transition_to `Stopped
-    method is_ready = state = `Started
-    val mutable clock = None
 
-    method private get_clock =
-      match clock with
-        | Some c -> c
-        | None ->
-            let c = get_clock () in
-            clock <- Some c;
-            c
+    initializer
+      self#on_wake_up (fun () -> if autostart then base#transition_to `Started)
 
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (self#get_clock :> Source.clock))
-
-    method virtual private get_frame : Frame.t -> unit
-    method virtual private memo : Frame.t
-
-    method private output =
-      if self#is_ready && AFrame.is_partial self#memo then self#get self#memo
+    method fallible = fallible
+    method private started = state = `Started
+    method private output = if self#is_ready then ignore self#get_frame
   end
 
 let base_proto ~label =
@@ -120,14 +98,8 @@ let base_proto ~label =
 
 let output_proto = base_proto ~label:"output"
 
-let active_source_proto ~fallible_opt ~clock_safe =
+let active_source_proto ~fallible_opt =
   base_proto ~label:"input"
-  @ [
-      ( "clock_safe",
-        Lang.bool_t,
-        Some (Lang.bool clock_safe),
-        Some "Force the use of a dedicated clock" );
-    ]
   @
   match fallible_opt with
     | `Nope -> []
@@ -164,7 +136,7 @@ let meth :
         "Ask the source or output to stop.",
         fun s ->
           val_fun [] (fun p ->
-              if s#stype = `Infallible then
+              if not s#fallible then
                 Lang.raise_error ~pos:(Lang.pos p)
                   ~message:"Source is infallible and cannot be stopped" "input";
               s#transition_to `Stopped;
@@ -174,8 +146,6 @@ let meth :
         "Shutdown the output or source.",
         fun s ->
           val_fun [] (fun _ ->
-              if Source.Clock_variables.is_known s#clock then
-                (Clock.get s#clock)#detach (fun (s' : Source.active_source) ->
-                    (s' :> Source.source) = (s :> Source.source));
+              Clock.detach s#clock (s :> Clock.source);
               unit) );
     ]

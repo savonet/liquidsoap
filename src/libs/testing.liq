@@ -9,19 +9,29 @@
 # @param ~on_delay Function called when a delay is introduced, with the delay as argument.
 # @param s Source in which the delays should be introduced.
 # @method frozen The stream production is frozen while set to `true`.
-def sleeper(~every=1., ~delay=1.1, ~delay_random=0., ~on_delay=fun (_) -> (), s)
+def sleeper(
+  ~every=1.,
+  ~delay=1.1,
+  ~delay_random=0.,
+  ~on_delay=fun (_) -> (),
+  s
+) =
   last = ref(0.)
   frozen = ref(false)
-  def f()
+
+  def f() =
     while frozen() do thread.pause(0.1) end
     now = source.time(s)
-    if now >= last() + every then
+    if
+      now >= last() + every
+    then
       last := now
       delay = delay + random.float(max=delay_random)
       on_delay(delay)
       thread.pause(delay)
     end
   end
-  s = source.on_frame(s,f)
-  s.{frozen = frozen}
+
+  s = source.on_frame(s, f)
+  s.{frozen=frozen}
 end

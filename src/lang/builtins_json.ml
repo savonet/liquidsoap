@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -233,6 +233,7 @@ module JsonSpecs = struct
     `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value ~pos v) :: l) v [])
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end
 
 module JsonValue = Value.MkAbstract (JsonSpecs)
@@ -340,8 +341,7 @@ let _ =
     (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
-      let scheme = Typing.generalize ~level:(-1) ty in
-      let ty = Typing.instantiate ~level:(-1) scheme in
+      let ty = Type.fresh ty in
       let json5 = Lang.to_bool (List.assoc "json5" p) in
       try
         let json = Json.from_string ~json5 s in

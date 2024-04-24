@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,19 +31,22 @@ let handle lbl f x =
     failwith
       (Printf.sprintf "Error while setting %s: %s" lbl (string_of_error e))
 
-class virtual base dev mode =
+class virtual base ~self_sync dev mode =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let samples_per_frame = AFrame.size () in
   let periods = Alsa_settings.periods#get in
   object (self)
-    inherit Source.no_seek
     method virtual log : Log.t
     method virtual audio_channels : int
     val mutable alsa_rate = -1
     val mutable pcm = None
     val mutable write = Pcm.writen_float
     val mutable read = Pcm.readn_float
-    method self_sync : Source.self_sync = (`Dynamic, pcm <> None)
+
+    method self_sync : Clock.self_sync =
+      if self_sync then
+        (`Dynamic, if pcm <> None then Some Alsa_settings.sync_source else None)
+      else (`Static, None)
 
     method open_device =
       self#log#important "Using ALSA %s." (Alsa.get_version ());
@@ -155,23 +158,17 @@ class virtual base dev mode =
       self#open_device
   end
 
-class output ~clock_safe ~start ~infallible ~on_stop ~on_start dev val_source =
+class output ~self_sync ~start ~infallible ~register_telnet ~on_stop ~on_start
+  dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "alsa_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~name ~output_kind:"output.alsa"
-          val_source start as super
+        ~infallible ~register_telnet ~on_stop ~on_start ~name
+          ~output_kind:"output.alsa" val_source start
 
-    inherit! base dev [Pcm.Playback]
-
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (Alsa_settings.get_clock () :> Source.clock))
-
+    inherit! base ~self_sync dev [Pcm.Playback]
     val mutable samplerate_converter = None
 
     method samplerate_converter =
@@ -222,26 +219,29 @@ class output ~clock_safe ~start ~infallible ~on_stop ~on_start dev val_source =
         else raise e
   end
 
-class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
+class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
   let samples_per_frame = AFrame.size () in
   object (self)
-    inherit base dev [Pcm.Capture]
+    inherit base ~self_sync dev [Pcm.Capture]
 
     inherit!
       Start_stop.active_source
-        ~get_clock:Alsa_settings.get_clock
         ~name:(Printf.sprintf "alsa_in(%s)" dev)
-        ~clock_safe ~on_start ~on_stop ~fallible ~autostart:start ()
+        ~on_start ~on_stop ~fallible ~autostart:start () as active_source
 
     method private start = self#open_device
     method private stop = self#close_device
     method remaining = -1
     method abort_track = ()
+    method seek_source = (self :> Source.source)
+    method private can_generate_frame = active_source#started
 
     (* TODO: convert samplerate *)
-    method private get_frame frame =
+    method private generate_frame =
       let pcm = Option.get pcm in
-      let buf = AFrame.pcm frame in
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       try
         let r = ref 0 in
         while !r < samples_per_frame do
@@ -252,7 +252,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
               !r (Audio.length buf);
           r := !r + read pcm buf !r (samples_per_frame - !r)
         done;
-        AFrame.add_break frame (AFrame.size ())
+        Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
       with e ->
         begin
           match e with
@@ -265,7 +265,7 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
         if e = Buffer_xrun || e = Suspended || e = Interrupted then (
           self#log#severe "Trying to recover..";
           Pcm.recover pcm e;
-          self#output)
+          self#generate_frame)
         else raise e
   end
 
@@ -277,14 +277,10 @@ let _ =
   Lang.add_operator ~base:Modules.output "alsa"
     (Output.proto
     @ [
-        ( "bufferize",
+        ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
-          Some "Bufferize output" );
-        ( "clock_safe",
-          Lang.bool_t,
-          Some (Lang.bool true),
-          Some "Force the use of the dedicated ALSA clock" );
+          Some "Mark the source as being synchronized by the ALSA driver." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "default"),
@@ -295,11 +291,11 @@ let _ =
     ~descr:"Output the source's stream to an ALSA output device."
     (fun p ->
       let e f v = f (List.assoc v p) in
-      let bufferize = e Lang.to_bool "bufferize" in
-      let clock_safe = e Lang.to_bool "clock_safe" in
+      let self_sync = e Lang.to_bool "self_sync" in
       let device = e Lang.to_string "device" in
       let source = List.assoc "" p in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let start = Lang.to_bool (List.assoc "start" p) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -309,14 +305,10 @@ let _ =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      if bufferize then
-        (new Alsa_out.output
-           ~clock_safe ~start ~on_start ~on_stop ~infallible device source
-          :> Output.output)
-      else
-        (new output
-           ~clock_safe ~infallible ~start ~on_start ~on_stop device source
-          :> Output.output))
+      (new output
+         ~self_sync ~infallible ~register_telnet ~start ~on_start ~on_stop
+         device source
+        :> Output.output))
 
 let _ =
   let return_t =
@@ -324,9 +316,12 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Modules.input "alsa"
-    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    (Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
-        ("bufferize", Lang.bool_t, Some (Lang.bool true), Some "Bufferize input");
+        ( "self_sync",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Mark the source as being synchronized by the ALSA driver." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "default"),
@@ -336,8 +331,7 @@ let _ =
     ~descr:"Stream from an ALSA input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
-      let bufferize = e Lang.to_bool "bufferize" in
-      let clock_safe = e Lang.to_bool "clock_safe" in
+      let self_sync = e Lang.to_bool "self_sync" in
       let device = e Lang.to_string "device" in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
@@ -349,9 +343,5 @@ let _ =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      if bufferize then
-        (new Alsa_in.mic ~clock_safe ~fallible ~on_start ~on_stop ~start device
-          :> Start_stop.active_source)
-      else
-        (new input ~clock_safe ~on_start ~on_stop ~fallible ~start device
-          :> Start_stop.active_source))
+      (new input ~self_sync ~on_start ~on_stop ~fallible ~start device
+        :> Start_stop.active_source))

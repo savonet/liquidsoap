@@ -4,14 +4,26 @@ Encoders are used to define formats into which raw sources should be encoded by
 an output. Syntax for encoder is: `%encoder(parameters...)` or, if you use
 default parameters, `%encoder`.
 
+Please note that not all encoding formats are available at all time. Most of
+them require optional dependencies. If a format is not available, you should see
+an error like this:
+
+```shell
+Error 12: Unsupported encoder: %sine().
+You must be missing an optional dependency.
+```
+
+In particular, due to limitations with static linking on windows, only the
+`%ffmpeg` encoder is available with our windows build. However, this encoder provides
+a lot of codecs and formats, and it is quite likely that it can provide what you need.
+
 ## Formats determine the stream content
 
 In most liquidsoap scripts, the encoding format determines what
 kind of data is streamed.
 
 The type of an encoding format depends on its parameter.
-For example, `%mp3` has type `format(audio=2,video=0,midi=0)`
-but `%mp3(mono)` has type `format(audio=1,video=0,midi=0)`.
+For example, `%mp3` has type `format(audio=pcm(stereo))`.
 
 The type of an output like `output.icecast`
 or `output.file` is something like
@@ -25,12 +37,12 @@ output.file(%mp3,"/tmp/foo.mp3",playlist("~/audio"))
 ```
 
 then the playlist source will have to stream stereo audio.
-Thus it will reject mono and video files.
 
-Liquidsoap provides operators that can be used to convert sources
-into a format acceptable for a given encoder. For instance, the `mean`
-operator transforms any audio source into a mono source and the `audio_to_stereo`
-operator transforms any audio source into a stereo source.
+In the case of audio format, liquidsoap tries its best to convert the format whenever
+possible. For instance, in the above, liquidsoap will convert mono files
+from the playlist to stereo files by duplicating the single audio channel
+in a mono file. Likewise, if the encoder requires mono audio, it will compute
+the mean of a stereo files.
 
 # List of formats and their syntax
 

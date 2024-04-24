@@ -1,7 +1,7 @@
 (* -*- mode: tuareg; -*- *)
 (*****************************************************************************
 
-    Liquidsoap, a programmable audio stream generator.
+    Liquidsoap, a programmable stream generator.
     Copyright 2003-2016 Savonet team
 
     This program is free software; you can redistribute it and/or modify
@@ -34,7 +34,7 @@ let conf_harbor_bind_addrs =
 let conf_harbor_max_conn =
   Dtools.Conf.int
     ~p:(conf_harbor#plug "max_connections")
-    ~d:2 "Maximum of pending source requests per port."
+    ~d:128 "Maximum of pending source requests per port."
 
 let conf_pass_verbose =
   Dtools.Conf.bool
@@ -63,10 +63,14 @@ let conf_icy_metadata =
       ]
     "Content-type (mime) of formats which allow shout metadata update."
 
-(* 300 sec timeout is the default value in Apache.. *)
 let conf_timeout =
   Dtools.Conf.float
     ~p:(conf_harbor#plug "timeout")
-    ~d:300. "Timeout for network operations (in seconds)."
+    ~d:120. "Timeout for network operations (in seconds)."
+
+let conf_accept_timeout =
+  Dtools.Conf.float
+    ~p:(conf_harbor#plug "accept_timeout")
+    ~d:3. "Timeout for network accept operations (in seconds)."
 
 let log = Log.make ["harbor"]

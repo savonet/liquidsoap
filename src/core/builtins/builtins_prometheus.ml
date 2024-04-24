@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ let get_latencies ~prefix ~label_names mode =
             ~help:(Printf.sprintf "Max %s latency since start" mode)
             (Printf.sprintf "%s%s_max_latency_seconds" prefix mode)
         in
-        Hashtbl.add latencies key (latency, peak_latency, max_latency);
+        Hashtbl.replace latencies key (latency, peak_latency, max_latency);
         (latency, peak_latency, max_latency)
 
 let last_data = ref None
@@ -144,7 +144,7 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     let max = ref (-1.) in
     let add_latency l =
       let t = Unix.gettimeofday () in
-      Hashtbl.add latencies t l;
+      Hashtbl.replace latencies t l;
       Hashtbl.filter_map_inplace
         (fun old_t v -> if t -. window <= old_t then Some v else None)
         latencies;
@@ -165,21 +165,18 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
   let last_start_time = ref 0. in
   let last_end_time = ref 0. in
   let last_data = Gauge.labels (get_last_data ~label_names) labels in
-  let wake_up ~stype:_ ~is_active:_ ~id:_ ~ctype:_ ~clock_id:_
-      ~clock_sync_mode:_ =
-    ()
-  in
+  let wake_up ~fallible:_ ~source_type:_ ~id:_ ~ctype:_ ~clock_id:_ = () in
   let sleep () = () in
-  let get_frame ~start_time ~end_time ~start_position ~end_position
-      ~is_partial:_ ~metadata:_ =
+  let generate_frame ~start_time ~end_time ~length ~has_track_mark:_ ~metadata:_
+      =
     last_start_time := start_time;
     last_end_time := end_time;
     Prometheus.Gauge.set last_data end_time;
-    let encoded_time = Frame.seconds_of_main (end_position - start_position) in
+    let encoded_time = Frame.seconds_of_main length in
     let latency = (end_time -. start_time) /. encoded_time in
     add_input_latency latency
   in
-  let after_output () =
+  let after_streaming_cycle () =
     let current_time = Unix.gettimeofday () in
     add_output_latency ((current_time -. !last_end_time) /. frame_duration);
     add_overall_latency ((current_time -. !last_start_time) /. frame_duration)
@@ -188,9 +185,9 @@ let source_monitor ~prefix ~label_names ~labels ~window s =
     {
       Source.wake_up;
       sleep;
-      get_frame;
-      before_output = (fun _ -> ());
-      after_output;
+      generate_frame;
+      before_streaming_cycle = (fun _ -> ());
+      after_streaming_cycle;
     }
   in
   s#add_watcher watcher

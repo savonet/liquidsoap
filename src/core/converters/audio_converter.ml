@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -92,7 +92,8 @@ module Samplerate = struct
 
   (** Log which converter is used at start. *)
   let () =
-    Lifecycle.before_start (fun () ->
+    Lifecycle.on_start ~name:"audio samplerate converter initialization"
+      (fun () ->
         let rec f = function
           | conv :: _ when Plug.get converters conv <> None ->
               log#important "Using samplerate converter: %s." conv

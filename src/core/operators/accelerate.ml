@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,31 +25,18 @@ open Source
 class accelerate ~ratio ~randomize source_val =
   let source = Lang.to_source source_val in
   object (self)
-    inherit operator ~name:"accelerate" [source] as super
-
-    inherit!
-      Child_support.base ~check_self_sync:true [source_val] as child_support
-
+    inherit operator ~name:"accelerate" []
+    inherit Child_support.base ~check_self_sync:true [source_val]
     method self_sync = source#self_sync
-    method stype = source#stype
-    method seek = source#seek
+    method fallible = source#fallible
+    method seek_source = source#seek_source
 
     method remaining =
       let rem = source#remaining in
       if rem = -1 then rem else int_of_float (float rem *. ratio ())
 
     method abort_track = source#abort_track
-
-    (** Frame used for dropping samples. *)
-    val mutable null = Frame.dummy ()
-
-    method! private wake_up x =
-      super#wake_up x;
-      null <- Frame.create self#content_type;
-      source#get_ready [(self :> source)]
-
-    method! private sleep = source#leave (self :> source)
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
 
     (** Filled ticks. *)
     val mutable filled = 0
@@ -73,26 +60,21 @@ class accelerate ~ratio ~randomize source_val =
           let l = (tanh (a *. 2.) +. 1.) /. 2. in
           Random.float 1. > 1. -. l))
 
-    method private get_frame frame =
+    method private generate_frame =
       let pos = ref 1 in
       (* Drop frames if we are late. *)
       (* TODO: we could also duplicate if we are in advance. *)
-      while !pos > 0 && self#must_drop do
-        Frame.clear null;
-        source#get null;
-        self#child_tick;
-        pos := Frame.position null;
+      while !pos > 0 && self#must_drop && source#is_ready do
+        self#on_child_tick (fun () ->
+            if source#is_ready then pos := Frame.position source#get_frame);
         skipped <- skipped + !pos
       done;
-      let before = Frame.position frame in
-      if !pos > 0 then source#get frame;
-      let after = Frame.position frame in
-      filled <- filled + (after - before);
-      self#child_tick
-
-    initializer
-      self#on_before_output (fun () -> child_support#child_before_output);
-      self#on_after_output (fun () -> child_support#child_after_output)
+      let buf = ref self#empty_frame in
+      if source#is_ready then (
+        self#on_child_tick (fun () ->
+            if source#is_ready then buf := source#get_frame);
+        filled <- filled + Frame.position !buf);
+      !buf
   end
 
 let _ =

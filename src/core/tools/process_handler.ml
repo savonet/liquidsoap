@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,26 +21,14 @@
  *****************************************************************************)
 
 type process = { stdin : out_channel; stdout : in_channel; stderr : in_channel }
-
-let open_process cmd env =
-  let stdout, stdin, stderr = Unix.open_process_full cmd env in
-  { stdin; stdout; stderr }
-
-let close_process { stdout; stdin; stderr } =
-  try Unix.close_process_full (stdout, stdin, stderr)
-  with Unix.Unix_error (Unix.ECHILD, _, _) -> Unix.WEXITED 0
-
-let wait { stdout; stdin; stderr } =
-  let pid = Unix.process_full_pid (stdout, stdin, stderr) in
-  try Unix.waitpid [] pid
-  with Unix.Unix_error (Unix.ECHILD, _, _) -> (pid, Unix.WEXITED 0)
+type status = [ `Exception of exn | `Status of Unix.process_status ]
 
 type _t = {
   in_pipe : Unix.file_descr;
   out_pipe : Unix.file_descr;
   p : process;
   mutable priority : Tutils.priority;
-  mutable status : Unix.process_status option;
+  mutable status : status option;
   mutable stopped : bool;
 }
 
@@ -56,7 +44,24 @@ type continuation =
 type 'a callback = 'a -> continuation
 type pull = Bytes.t -> int -> int -> int
 type push = Bytes.t -> int -> int -> int
-type status = [ `Exception of exn | `Status of Unix.process_status ]
+
+let open_process cmd env =
+  let stdout, stdin, stderr = Unix.open_process_full cmd env in
+  { stdin; stdout; stderr }
+
+let close_process { stdout; stdin; stderr } =
+  try `Status (Unix.close_process_full (stdout, stdin, stderr)) with
+    | Unix.Unix_error (Unix.ECHILD, _, _) -> `Status (Unix.WEXITED 0)
+    | exn -> `Exception exn
+
+let wait { stdout; stdin; stderr } =
+  let pid = Unix.process_full_pid (stdout, stdin, stderr) in
+  try
+    let pid, status = Unix.waitpid [] pid in
+    (pid, `Status status)
+  with
+    | Unix.Unix_error (Unix.ECHILD, _, _) -> (pid, `Status (Unix.WEXITED 0))
+    | exn -> (pid, `Exception exn)
 
 exception Finished
 
@@ -67,7 +72,7 @@ let get_process { process; _ } =
   match process with Some process -> process | None -> raise Finished
 
 let set_priority t =
-  Tutils.mutexify t.mutex (fun priority ->
+  Mutex.mutexify t.mutex (fun priority ->
       match t.process with
         | None -> raise Finished
         | Some p -> p.priority <- priority)
@@ -77,7 +82,7 @@ let stop_c, kill_c, done_c =
   (fn '0', fn '1', fn '2')
 
 let stop t =
-  Tutils.mutexify t.mutex
+  Mutex.mutexify t.mutex
     (fun () ->
       match t.process with
         | None -> raise Finished
@@ -86,7 +91,7 @@ let stop t =
     ()
 
 let kill t =
-  Tutils.mutexify t.mutex
+  Mutex.mutexify t.mutex
     (fun () ->
       match t.process with
         | None -> raise Finished
@@ -95,7 +100,7 @@ let kill t =
     ()
 
 let send_stop ~log t =
-  Tutils.mutexify t.mutex
+  Mutex.mutexify t.mutex
     (fun () ->
       let process = get_process t in
       if not process.stopped then (
@@ -116,7 +121,7 @@ let _kill = function
   | None -> ()
 
 let cleanup ~log t =
-  Tutils.mutexify t.mutex
+  Mutex.mutexify t.mutex
     (fun () ->
       log "Cleaning up process";
       let { process; _ } = t in
@@ -152,7 +157,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
          (fun () ->
            try
              let _, status = wait p in
-             Tutils.mutexify mutex
+             Mutex.mutexify mutex
                (fun () ->
                  if process.status = None then (
                    process.status <- Some status;
@@ -165,7 +170,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
   let process = create () in
   let t = { mutex; process = Some process } in
   let create =
-    Tutils.mutexify t.mutex (fun () ->
+    Mutex.mutexify t.mutex (fun () ->
         _kill t.process;
         t.process <- Some (create ()))
   in
@@ -280,15 +285,20 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
           in
           let descr =
             match status with
-              | Unix.WEXITED c -> Printf.sprintf "Process exited with code %d" c
-              | Unix.WSIGNALED s ->
+              | `Status (Unix.WEXITED c) ->
+                  Printf.sprintf "Process exited with code %d" c
+              | `Status (Unix.WSIGNALED s) ->
                   Printf.sprintf "Process was killed by signal %d" s
-              | Unix.WSTOPPED s ->
+              | `Status (Unix.WSTOPPED s) ->
                   Printf.sprintf "Process was stopped by signal %d" s
+              | `Exception exn ->
+                  Printf.sprintf
+                    "Exception %s was raised while stopping the process."
+                    (Printexc.to_string exn)
           in
           log descr;
           t.process <- None;
-          restart_decision (on_stop (`Status status))
+          restart_decision (on_stop status)
       | e -> (
           let bt = Printexc.get_backtrace () in
           let f e =
@@ -316,13 +326,13 @@ let really_write ?(offset = 0) ?length data push =
   f offset
 
 let on_stdout t fn =
-  let process = Tutils.mutexify t.mutex (fun () -> get_process t) () in
+  let process = Mutex.mutexify t.mutex (fun () -> get_process t) () in
   let fd = Unix.descr_of_in_channel process.p.stdout in
   fn (puller process.in_pipe fd)
 
 let on_stdin t fn =
   let process =
-    Tutils.mutexify t.mutex
+    Mutex.mutexify t.mutex
       (fun () ->
         match t.process with
           | Some process ->
@@ -335,11 +345,11 @@ let on_stdin t fn =
   fn (pusher fd)
 
 let on_stderr t fn =
-  let process = Tutils.mutexify t.mutex (fun () -> get_process t) () in
+  let process = Mutex.mutexify t.mutex (fun () -> get_process t) () in
   let fd = Unix.descr_of_in_channel process.p.stderr in
   fn (puller process.in_pipe fd)
 
 let stopped t =
-  Tutils.mutexify t.mutex
+  Mutex.mutexify t.mutex
     (fun () -> try (get_process t).stopped with Finished -> true)
     ()

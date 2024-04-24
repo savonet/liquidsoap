@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,12 +16,18 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Module to expose and hook up actions that need to happen
     over the lifecycle of the application. *)
+
+(** Initial load. Used for registering stuff that needs
+	  all OCaml modules to have been registered. *)
+val on_load : name:string -> (unit -> unit) -> unit
+
+val load : unit -> unit
 
 (** {1 Initialization} *)
 
@@ -32,22 +38,28 @@
 
 (** {2 Init start} *)
 
-val init_atom : Dtools.Init.t
-val before_init : (unit -> unit) -> unit
-val on_init : (unit -> unit) -> unit
-val after_init : (unit -> unit) -> unit
+val init : unit -> unit
+val before_init : name:string -> (unit -> unit) -> unit
+val on_init : name:string -> (unit -> unit) -> unit
+val after_init : name:string -> (unit -> unit) -> unit
 
 (** {2 Script parse} *)
 
-val before_script_parse : (unit -> unit) -> unit
-val on_script_parse : (unit -> unit) -> unit
-val after_script_parse : (unit -> unit) -> unit
+val before_script_parse : name:string -> (unit -> unit) -> unit
+val on_script_parse : name:string -> (unit -> unit) -> unit
+val after_script_parse : name:string -> (unit -> unit) -> unit
 
 (** {2 Application start} *)
 
-val before_start : (unit -> unit) -> unit
-val on_start : (unit -> unit) -> unit
-val after_start : (unit -> unit) -> unit
+val before_start : name:string -> (unit -> unit) -> unit
+val on_start : name:string -> (unit -> unit) -> unit
+val after_start : name:string -> (unit -> unit) -> unit
+
+(** {2 Application main loop} *)
+val before_main_loop : name:string -> (unit -> unit) -> unit
+
+val on_main_loop : name:string -> (unit -> unit) -> unit
+val after_main_loop : name:string -> (unit -> unit) -> unit
 
 (** {1 Shutdown} *)
 
@@ -59,24 +71,18 @@ val after_start : (unit -> unit) -> unit
 
 (** {2 Core shutdown} *)
 
-val before_core_shutdown : (unit -> unit) -> unit
-val on_core_shutdown : (unit -> unit) -> unit
-val after_core_shutdown : (unit -> unit) -> unit
+val before_core_shutdown : name:string -> (unit -> unit) -> unit
+val on_core_shutdown : name:string -> (unit -> unit) -> unit
+val after_core_shutdown : name:string -> (unit -> unit) -> unit
 
 (** {2 Scheduler shutdown} *)
 
-val before_scheduler_shutdown : (unit -> unit) -> unit
-val on_scheduler_shutdown : (unit -> unit) -> unit
-val after_scheduler_shutdown : (unit -> unit) -> unit
+val before_scheduler_shutdown : name:string -> (unit -> unit) -> unit
+val on_scheduler_shutdown : name:string -> (unit -> unit) -> unit
+val after_scheduler_shutdown : name:string -> (unit -> unit) -> unit
 
 (** {2 Final cleanup} *)
 
-val before_final_cleanup : (unit -> unit) -> unit
-val on_final_cleanup : (unit -> unit) -> unit
-val after_final_cleanup : (unit -> unit) -> unit
-
-(** {2 Stop} *)
-
-val before_stop : (unit -> unit) -> unit
-val on_stop : (unit -> unit) -> unit
-val after_stop : (unit -> unit) -> unit
+val before_final_cleanup : name:string -> (unit -> unit) -> unit
+val on_final_cleanup : name:string -> (unit -> unit) -> unit
+val after_final_cleanup : name:string -> (unit -> unit) -> unit

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,8 @@
  *****************************************************************************)
 
 (** Connect sources to FFmpeg filters. *)
+
+exception Not_ready
 
 let noop () = ()
 
@@ -80,34 +82,29 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
   object (self)
     inherit
       Output.output
-        ~infallible:false ~on_stop:noop ~on_start:noop ~name
-          ~output_kind:"ffmpeg.filter.input" (Lang.source source) true as super
+        ~infallible:false ~register_telnet:false ~on_stop:noop ~on_start:noop
+          ~name ~output_kind:"ffmpeg.filter.input" (Lang.source source) true as super
 
     inherit ['a] duration_converter
-    inherit! Source.no_seek
 
     initializer
       Typing.(
         self#frame_type <: frame_t;
         source#frame_type <: self#frame_type)
 
-    val mutable input = fun _ -> ()
+    val mutable input : [ `Frame of 'a Avutil.frame | `Flush ] -> unit =
+      fun _ -> ()
+
     method set_input fn = input <- fn
     val mutable init : 'a Avutil.frame -> unit = fun _ -> assert false
     method set_init v = init <- v
     method start = ()
     method stop = ()
     method! reset = ()
-    val mutable is_up = false
-    method! is_ready = is_up && super#is_ready
-
-    method! wake_up l =
-      is_up <- true;
-      super#wake_up l
-
-    method! sleep =
-      is_up <- false;
-      super#sleep
+    val is_up = Atomic.make false
+    method! can_generate_frame = Atomic.get is_up && super#can_generate_frame
+    initializer self#on_wake_up (fun () -> Atomic.set is_up true)
+    initializer self#on_sleep (fun () -> Atomic.set is_up false)
 
     method virtual raw_ffmpeg_frames
         : Content.data -> 'a Ffmpeg_raw_content.frame list
@@ -132,21 +129,18 @@ class virtual ['a] base_output ~pass_metadata ~name ~frame_t ~field source =
                         if pass_metadata then (
                           (* Pass only one metadata. *)
                           match Frame.get_all_metadata memo with
-                            | (_, m) :: _ ->
-                                Hashtbl.fold (fun k v m -> (k, v) :: m) m []
+                            | (_, m) :: _ -> Frame.Metadata.to_list m
                             | _ -> [])
                         else []
                       in
                       let metadata =
-                        if
-                          Frame.is_partial memo
-                          || List.length (Frame.breaks memo) > 1
-                        then (track_mark_metadata, "1") :: metadata
+                        if Frame.has_track_marks memo then
+                          (track_mark_metadata, "1") :: metadata
                         else metadata
                       in
                       if metadata <> [] then
-                        Avutil.Frame.set_metadata frame metadata);
-                    input frame)
+                        Avutil.Frame.set_metadata frame metadata;
+                      input (`Frame frame)))
                   frames)
         frames
   end
@@ -169,15 +163,15 @@ class video_output ~pass_metadata ~name ~frame_t ~field source =
       List.map snd Ffmpeg_raw_content.((Video.get_data content).VideoSpecs.data)
   end
 
-class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
-  ~is_ready ~pull frame_t =
+class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
+  frame_t =
   let stream_idx = Ffmpeg_content_base.new_stream_idx () in
   object (self)
     inherit ['a] duration_converter
     inherit Source.source ~name ()
-    inherit Source.no_seek
     initializer Typing.(self#frame_type <: frame_t)
-    method stype : Source.source_t = `Fallible
+    method seek_source = (self :> Source.source)
+    method fallible = true
     method remaining = Generator.remaining self#buffer
     method abort_track = ()
     method virtual buffer : Generator.t
@@ -187,20 +181,31 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
 
     val mutable output = None
 
+    method private metadata_timestamps ~time_base frame =
+      let get_time d =
+        string_of_float
+          (Frame.seconds_of_main
+             (Int64.to_int
+                (Ffmpeg_utils.convert_time_base ~src:time_base
+                   ~dst:(Ffmpeg_utils.liq_main_ticks_time_base ())
+                   d)))
+      in
+      List.fold_left
+        (fun result (label, fn) ->
+          match fn frame with
+            | None -> result
+            | Some v -> ("lavfi.liq." ^ label, get_time v) :: result)
+        []
+        [
+          ("pts", Avutil.Frame.pts);
+          ("duration", Avutil.Frame.duration);
+          ("best_effort_timestamp", Avutil.Frame.best_effort_timestamp);
+        ]
+
     method private flush_buffer output =
       let time_base = Avfilter.(time_base output.context) in
       fun () ->
         let frame = output.Avfilter.handler () in
-        if pass_metadata then (
-          let metadata = Avutil.Frame.metadata frame in
-          if metadata <> [] then (
-            let m = Hashtbl.create (List.length metadata) in
-            List.iter
-              (fun (k, v) -> if k <> track_mark_metadata then Hashtbl.add m k v)
-              metadata;
-            Generator.add_metadata self#buffer m;
-            if List.mem_assoc track_mark_metadata metadata then
-              Generator.add_track_mark self#buffer));
         match
           self#convert_duration ~convert_ts:false ~stream_idx ~time_base frame
         with
@@ -208,47 +213,62 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync_type ~self_sync
               let frames =
                 List.map
                   (fun (pos, frame) ->
+                    if pass_metadata then (
+                      let metadata = Avutil.Frame.metadata frame in
+                      if metadata <> [] then (
+                        let m =
+                          List.filter
+                            (fun (k, _) -> k <> track_mark_metadata)
+                            metadata
+                        in
+                        let pos = Generator.length self#buffer + pos in
+                        Generator.add_metadata ~pos self#buffer
+                          (Frame.Metadata.from_list
+                             (m @ self#metadata_timestamps ~time_base frame));
+                        if List.mem_assoc track_mark_metadata metadata then
+                          Generator.add_track_mark ~pos self#buffer));
                     (pos, { Ffmpeg_raw_content.time_base; stream_idx; frame }))
                   frames
               in
               self#put_data ~length frames
           | None -> ()
 
-    method self_sync : Source.self_sync =
-      (Lazy.force self_sync_type, self_sync ())
+    method self_sync : Clock.self_sync = self_sync self
 
     method pull =
-      (* Init is driven by the pull. *)
-      let output =
-        while output = None && is_ready () do
-          pull ()
-        done;
-        Option.get output
-      in
-      let flush = self#flush_buffer output in
-      let rec f () =
-        try
-          while true do
-            flush ()
-          done
-        with Avutil.Error `Eagain ->
-          if Generator.length self#buffer < Lazy.force Frame.size && is_ready ()
-          then (
-            pull ();
-            f ())
-      in
-      f ()
+      try
+        (* Init is driven by the pull. *)
+        let output =
+          while output = None do
+            if not (is_ready ()) then raise Not_ready;
+            pull ()
+          done;
+          Option.get output
+        in
+        let flush = self#flush_buffer output in
+        let rec f () =
+          try
+            while true do
+              flush ()
+            done
+          with Avutil.Error `Eagain ->
+            if
+              Generator.length self#buffer < Lazy.force Frame.size
+              && is_ready ()
+            then (
+              pull ();
+              f ())
+        in
+        f ()
+      with Not_ready -> ()
 
-    method is_ready =
+    method private can_generate_frame =
       Generator.length self#buffer >= Lazy.force Frame.size || is_ready ()
 
-    method private get_frame frame =
-      let b = Frame.breaks frame in
+    method private generate_frame =
+      let size = Lazy.force Frame.size in
       if Generator.length self#buffer < Lazy.force Frame.size then self#pull;
-      Generator.fill self#buffer frame;
-      if List.length b + 1 <> List.length (Frame.breaks frame) then (
-        let cur_pos = Frame.position frame in
-        Frame.set_breaks frame (b @ [cur_pos]))
+      Generator.slice self#buffer size
   end
 
 type audio_config = {
@@ -258,13 +278,12 @@ type audio_config = {
 }
 
 (* Same thing here. *)
-class audio_input ~field ~self_sync_type ~self_sync ~is_ready ~pull
-  ~pass_metadata frame_t =
+class audio_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
   object (self)
     inherit
       [[ `Audio ]] input_base
-        ~name:"ffmpeg.filter.audio.output" ~pass_metadata ~self_sync_type
-          ~self_sync ~is_ready ~pull frame_t
+        ~name:"ffmpeg.filter.audio.output" ~pass_metadata ~self_sync ~is_ready
+          ~pull frame_t
 
     initializer Typing.(self#frame_type <: frame_t)
 
@@ -301,13 +320,12 @@ type video_config = {
   pixel_format : Avutil.Pixel_format.t;
 }
 
-class video_input ~field ~self_sync_type ~self_sync ~is_ready ~pull
-  ~pass_metadata frame_t =
+class video_input ~field ~self_sync ~is_ready ~pull ~pass_metadata frame_t =
   object (self)
     inherit
       [[ `Video ]] input_base
-        ~name:"ffmpeg.filter.video.output" ~pass_metadata ~self_sync_type
-          ~self_sync ~is_ready ~pull frame_t
+        ~name:"ffmpeg.filter.video.output" ~pass_metadata ~self_sync ~is_ready
+          ~pull frame_t
 
     method set_output v =
       let output_format =

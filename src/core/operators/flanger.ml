@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,30 +28,30 @@ let pi = acos (-1.)
 class flanger (source : source) delay freq feedback phase =
   let past_len = Frame.audio_of_seconds delay in
   object (self)
-    inherit operator ~name:"flanger" [source] as super
-    method stype = source#stype
+    inherit operator ~name:"flanger" [source]
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable past = Audio.make 0 0 0.
 
-    method! wake_up a =
-      super#wake_up a;
-      past <- Audio.make self#audio_channels past_len 0.
+    initializer
+      self#on_wake_up (fun () ->
+          past <- Audio.make self#audio_channels past_len 0.)
 
     val mutable past_pos = 0
     val mutable omega = 0.
 
-    method private get_frame buf =
+    method private generate_frame =
       let feedback = feedback () in
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let position = source#frame_audio_position in
       let d_omega = 2. *. pi *. freq () /. float (Frame.audio_of_seconds 1.) in
-      for i = offset to position - 1 do
+      for i = 0 to position - 1 do
         for c = 0 to Array.length b - 1 do
           let delay =
             (past_pos + past_len
@@ -68,7 +68,8 @@ class flanger (source : source) delay freq feedback phase =
           omega <- omega -. (2. *. pi)
         done;
         past_pos <- (past_pos + 1) mod past_len
-      done
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

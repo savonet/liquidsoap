@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -27,7 +27,7 @@ type t = Type.t
 
 type module_name
 type scheme = Type.scheme
-type regexp
+type regexp = Builtins_regexp.regexp
 
 (** {2 Values} *)
 
@@ -40,6 +40,7 @@ module Ground : sig
     descr : t -> string;
     to_json : pos:Pos.t list -> t -> Json.t;
     compare : t -> t -> int;
+    comparison_op : t Term.Ground.comparison_op option;
     typ : (module Type.Ground.Custom);
   }
 
@@ -53,10 +54,16 @@ type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
+  id : int;
 }
 
 and env = (string * value) list
 and lazy_env = (string * value Lazy.t) list
+
+and ffi = Value.ffi = {
+  ffi_args : (string * string * value option) list;
+  mutable ffi_fn : env -> value;
+}
 
 and in_value = Value.in_value =
   | Ground of Ground.t
@@ -66,14 +73,14 @@ and in_value = Value.in_value =
   | Fun of (string * string * value option) list * lazy_env * Term.t
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
-  | FFI of (string * string * value option) list * (env -> value)
+  | FFI of ffi
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
 
 (** {2 Computation} *)
 
-val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
+val apply_fun : (?pos:Pos.t list -> value -> env -> value) ref
 
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
@@ -192,6 +199,8 @@ val getter_t : t -> t
 
 val unit : value
 val int : int -> value
+val octal_int : int -> value
+val hex_int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
@@ -244,12 +253,3 @@ val descr_of_regexp : regexp -> string
 
 (** Return a string description of a regexp value i.e. r/^foo\/bla$/g *)
 val string_of_regexp : regexp -> string
-
-module Regexp : sig
-  include Regexp.T with type t := regexp
-
-  type sub = Regexp.sub = {
-    matches : string option list;
-    groups : (string * string) list;
-  }
-end

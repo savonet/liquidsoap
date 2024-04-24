@@ -1,10 +1,9 @@
 tmp_dir = file.temp_dir("tmp")
-on_shutdown({file.rmdir(tmp_dir)})
+on_cleanup({file.rmdir(tmp_dir)})
 
 def f() =
-  enc     = %ffmpeg(format="mpegts",%audio(codec="aac"))
+  enc = %ffmpeg(format = "mpegts", %audio(codec = "aac"))
   streams = [("enc", enc)]
-
   output.file.hls(
     fallible=true,
     on_stop=test.pass,

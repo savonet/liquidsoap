@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2023 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -30,9 +30,9 @@ include Liquidsoap_lang.Lang_core.MkAbstract (struct
       (Frame.Fields.string_of_field f)
 
   let to_json ~pos _ =
-    Runtime_error.raise ~pos
-      ~message:(Printf.sprintf "Tracks cannot be represented as json")
+    Runtime_error.raise ~pos ~message:"Tracks cannot be represented as json"
       "json"
 
   let compare (f1, s1) (f2, s2) = Stdlib.compare (f1, s1#id) (f2, s2#id)
+  let comparison_op = None
 end)

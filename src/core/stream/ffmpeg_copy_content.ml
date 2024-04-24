@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 
 open Avutil
 open Avcodec
+include Content_video.Base
 
 let conf_ffmpeg_copy =
   Dtools.Conf.void
@@ -47,7 +48,7 @@ type packet_payload = {
 }
 
 module Specs = struct
-  include Ffmpeg_content_base
+  include Content_video.Base
 
   type kind = [ `Copy ]
   type params = params_payload option

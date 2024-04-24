@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -112,7 +112,11 @@ let create ?header input =
           with _ -> 0)
       | _, _, _ -> 0
   in
-  { Decoder.decode = (fun buffer -> !decoder ~buffer); seek }
+  {
+    Decoder.decode = (fun buffer -> !decoder ~buffer);
+    seek;
+    eof = (fun _ -> ());
+  }
 
 (* File decoding *)
 
@@ -177,8 +181,7 @@ let create_file_decoder ~metadata:_ ~ctype filename =
 let () =
   Plug.register Decoder.decoders "wav" ~doc:"Decode file or streams as WAV."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> wav_priority#get);
+      Decoder.priority = (fun () -> wav_priority#get);
       file_extensions = (fun () -> Some wav_file_extensions#get);
       mime_types = (fun () -> Some wav_mime_types#get);
       file_type;
@@ -206,8 +209,7 @@ let () =
   Plug.register Decoder.decoders "aiff"
     ~doc:"Decode as AIFF any file with a correct header."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> aiff_priorities#get);
+      Decoder.priority = (fun () -> aiff_priorities#get);
       file_extensions = (fun () -> Some aiff_file_extensions#get);
       mime_types = (fun () -> Some aiff_mime_types#get);
       file_type;
@@ -239,8 +241,7 @@ let () =
   Plug.register Decoder.decoders "pcm/basic"
     ~doc:"Decode audio/basic as headerless stereo U8 PCM at 8kHz."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> basic_priorities#get);
+      Decoder.priority = (fun () -> basic_priorities#get);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> Some basic_mime_types#get);
       file_type = (fun ~metadata:_ ~ctype:_ _ -> None);

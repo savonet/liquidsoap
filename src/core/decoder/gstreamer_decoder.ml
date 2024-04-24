@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -138,9 +138,8 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
       let y_stride = round4 width in
       let uv_stride = round4 (width / 2) in
       let img = Image.YUV420.make_data width height buf y_stride uv_stride in
-      let stream = Video.Canvas.single_image img in
       let fps = { Decoder.num = Lazy.force Frame.video_rate; den = 1 } in
-      buffer.Decoder.put_yuva420p ~fps stream);
+      buffer.Decoder.put_yuva420p ~fps (Video.Canvas.Image.make img));
     GU.flush ~log gst.bin
   in
   let seek off =
@@ -170,7 +169,7 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
     GU.flush ~log gst.bin
   in
-  ({ Decoder.decode; seek }, close, gst.bin)
+  ({ Decoder.decode; seek; eof = (fun _ -> ()) }, close, gst.bin)
 
 let mime_types =
   Dtools.Conf.list
@@ -293,12 +292,11 @@ let () =
   Plug.register Decoder.decoders "gstreamer"
     ~doc:"Decode a file or stream using GStreamer."
     {
-      Decoder.media_type = `Audio_video;
-      priority = (fun () -> priority#get);
+      Decoder.priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
       file_type =
-        (fun ~ctype:_ filename ->
+        (fun ~metadata:_ ~ctype:_ filename ->
           let channels = Lazy.force Frame.audio_channels in
           Some (get_type ~channels filename));
       file_decoder = Some file_decoder;
@@ -309,7 +307,7 @@ let () =
 
 (* See
    http://gstreamer.freedesktop.org/data/doc/gstreamer/head/manual/html/chapter-metadata.html *)
-let get_tags file =
+let get_tags ~metadata:_ file =
   if
     not
       (Decoder.test_file ~log ~mimes:mime_types#get
@@ -348,6 +346,14 @@ let get_tags file =
     GU.flush ~log bin;
     List.rev !ans
 
+let metadata_decoder_priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "gstreamer")
+    "Priority for the gstreamer metadata decoder" ~d:1
+
 let () =
   Plug.register Request.mresolvers "gstreamer" ~doc:"Read tags using GStreamer."
-    get_tags
+    {
+      Request.priority = (fun () -> metadata_decoder_priority#get);
+      resolver = get_tags;
+    }

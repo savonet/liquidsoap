@@ -1,53 +1,56 @@
-; Regenerate using dune build @gendune --auto-promote
-
-(include dune.inc)
-
 (env
+ (release
+  (js_of_ocaml
+   (flags
+    (:standard --enable effects))
+   (build_runtime_flags
+    (:standard --enable effects))))
  (dev
+  (js_of_ocaml
+   (flags
+    (:standard --enable effects))
+   (build_runtime_flags
+    (:standard --enable effects)))
   (flags
    (:standard -w -7-9 -warn-error -33))))
-
-(executable
- (name gen_dune)
- (libraries pcre)
- (modules gen_dune))
-
-(rule
- (alias gendune)
- (target dune.inc.gen)
- (deps
-  (source_tree .)
-  (source_tree ../libs))
- (action
-  (with-stdout-to
-   dune.inc.gen
-   (run ./gen_dune.exe))))
-
-(rule
- (alias gendune)
- (action
-  (diff dune.inc dune.inc.gen)))
 
 (library
  (name liquidsoap_js)
  (public_name liquidsoap-js)
  (optional)
- (modules init_js regexp_js)
+ (modules init_js)
  (preprocess
   (pps js_of_ocaml-ppx))
- (libraries liquidsoap_lang))
+ (libraries liquidsoap_lang liquidsoap_tooling))
 
 (install
- (files filesystem.js)
+ (files index.html)
  (section share)
  (package liquidsoap-js))
 
 (executable
  (name interactive_js)
  (modes js)
+ (optional)
  (modules interactive_js)
  (js_of_ocaml
   (javascript_files filesystem.js))
  (preprocess
   (pps ppx_string js_of_ocaml-ppx))
  (libraries liquidsoap_lang liquidsoap_js))
+
+(rule
+ (target filesystem.js)
+ (enabled_if
+  (not %{bin-available:js_of_ocaml}))
+ (action
+  (write-file %{target} "console.log(\"no js_of_ocaml available!\")")))
+
+(rule
+ (target filesystem.js)
+ (enabled_if %{bin-available:js_of_ocaml})
+ (deps
+  ./stdlib_js.liq
+  (glob_files ../libs/*.liq))
+ (action
+  (run js_of_ocaml build-fs -I . -I ../libs -o %{target} %{deps})))

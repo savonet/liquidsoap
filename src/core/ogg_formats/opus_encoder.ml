@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ let create_encoder ~opus ~comments () =
     while Generator.length gen >= frame_size_in_main do
       let content =
         Frame.Fields.find Frame.Fields.audio
-          (Generator.get ~length:frame_size_in_main gen)
+          (Generator.slice gen frame_size_in_main)
       in
       let pcm = Content.Audio.get_data content in
       let ret =
@@ -127,7 +127,9 @@ let create_encoder ~opus ~comments () =
 let create_opus = function
   | Ogg_format.Opus opus ->
       let reset ogg_enc m =
-        let comments = Utils.list_of_metadata (Meta_format.to_metadata m) in
+        let comments =
+          Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
+        in
         let enc = create_encoder ~opus ~comments () in
         Ogg_muxer.register_track ?fill:opus.Opus_format.fill ogg_enc enc
       in
@@ -138,4 +140,4 @@ let create_opus = function
       { Ogg_encoder.encode; reset; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "opus" create_opus
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "opus" create_opus

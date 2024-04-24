@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ let create ~format input =
   in
   (* TODO *)
   let seek _ = 0 in
-  { Decoder.decode = decoder; seek }
+  { Decoder.decode = decoder; seek; eof = (fun _ -> ()) }
 
 (* The mime types are inspired of GStreamer's convention. See
    http://gstreamer.freedesktop.org/data/doc/gstreamer/head/pwg/html/section-types-definitions.html
@@ -149,8 +149,7 @@ let parse_mime m =
 let () =
   Plug.register Decoder.decoders "raw audio" ~doc:"Decode audio/x-raw."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> 1);
+      Decoder.priority = (fun () -> 1);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> Some ["audio/x-raw"]);
       file_type = (fun ~metadata:_ ~ctype:_ _ -> None);

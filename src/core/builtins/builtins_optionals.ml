@@ -16,7 +16,6 @@ let () =
       ("ao", Ao_option.enabled);
       ("bjack", Bjack_option.enabled);
       ("camlimages", Camlimages_option.enabled);
-      ("camomile", Camomile_option.enabled);
       ("dssi", Dssi_option.enabled);
       ("faad", Faad_option.enabled);
       ("fdkaac", Fdkaac_option.enabled);
@@ -35,8 +34,6 @@ let () =
       ("lilv", Lilv_option.enabled);
       ("lo", Lo_option.enabled);
       ("mad", Mad_option.enabled);
-      ("magic", Magic_option.enabled);
-      ("mem_usage", Mem_usage_option.enabled);
       ("memtrace", Memtrace_option.enabled);
       ("ogg", Ogg_option.enabled);
       ("opus", Opus_option.enabled);

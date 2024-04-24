@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -95,8 +95,10 @@ let create_vorbis = function
       let channels = vorbis.Vorbis_format.channels in
       let samplerate = Lazy.force vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
-        let m = Meta_format.to_metadata m in
-        let metadata = Vorbis.tags m () in
+        let m = Frame.Metadata.Export.to_metadata m in
+        let metas = Hashtbl.create 0 in
+        Frame.Metadata.iter (fun k v -> Hashtbl.replace metas k v) m;
+        let metadata = Vorbis.tags metas () in
         let enc =
           (* For ABR, a value of -1 means unset.. *)
           let f x = match x with Some x -> x | None -> -1 in
@@ -120,4 +122,4 @@ let create_vorbis = function
       { Ogg_encoder.reset; encode; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "vorbis" create_vorbis
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "vorbis" create_vorbis

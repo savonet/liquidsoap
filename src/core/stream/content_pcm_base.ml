@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ type params = Content_audio.Specs.params
 let string_of_params = Content_audio.Specs.string_of_params
 let merge = Content_audio.Specs.merge
 let compatible = Content_audio.Specs.compatible
-let clear _ = ()
 
 let blit src src_pos dst dst_pos len =
   let ( ! ) = audio_of_main in
@@ -72,30 +71,6 @@ let length = function
 
 let clear_content ~v b ofs len =
   Array.iter (fun c -> Bigarray.Array1.fill (Bigarray.Array1.sub c ofs len) v) b
-
-let from_audio ~to_value ~fmt c =
-  Array.map
-    (fun c ->
-      Bigarray.Array1.init fmt Bigarray.c_layout (Array.length c) (fun pos ->
-          to_value c.(pos)))
-    c
-
-let to_audio ~of_value c =
-  Array.map
-    (fun c ->
-      Array.init (Bigarray.Array1.dim c) (fun pos ->
-          of_value (Bigarray.Array1.unsafe_get c pos)))
-    c
-
-let blit_audio ~to_value src src_ofs dst dst_ofs len =
-  Array.iter2
-    (fun src dst ->
-      Array.iteri
-        (fun pos v ->
-          if src_ofs <= pos && pos < len then
-            Bigarray.Array1.set dst (dst_ofs + (pos - src_ofs)) (to_value v))
-        src)
-    src dst
 
 let channels_of_format ~get_params p =
   Content_audio.Specs.(

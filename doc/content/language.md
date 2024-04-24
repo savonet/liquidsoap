@@ -699,7 +699,7 @@ for such arguments, the default value will be used. For instance, if for some
 reason we tend to generally measure samples over a period of 2.5 seconds, we can
 make this become the value for the `duration` parameter:
 
-```{.liquidsoap include="liq/samplerate3.liq" from=0 to=0}
+```{.liquidsoap include="samplerate3.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -1113,6 +1113,13 @@ let _.{foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
 # Record capture with sub-patterns. Same works for module!
 let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
 # foo = [1, 2, 3], x = 1, y = 2, z = 3, gni = "baz"
+
+# Record capture with optional methods:
+let { foo? } = ()
+# foo = null()
+
+let { foo? } = { foo = 123 }
+# foo = 123
 ```
 
 ## Combining patterns

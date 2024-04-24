@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ open Complex
 
 class fir (source : source) freq beta numcoeffs =
   object (self)
-    inherit operator ~name:"fir_filter" [source] as super
+    inherit operator ~name:"fir_filter" [source]
 
     (* Needed to compute RC *)
     val f1 = (1. -. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
@@ -37,9 +37,9 @@ class fir (source : source) freq beta numcoeffs =
     val mutable gain = 0.
     val mutable xv = [||]
 
-    method! wake_up a =
-      super#wake_up a;
-      xv <- Array.make_matrix self#audio_channels numcoeffs 0.
+    initializer
+      self#on_wake_up (fun () ->
+          xv <- Array.make_matrix self#audio_channels numcoeffs 0.)
 
     (* Coefficients *)
     val mutable xcoeffs = Array.make numcoeffs 0.
@@ -121,17 +121,17 @@ class fir (source : source) freq beta numcoeffs =
       self#log#info "Init done."
 
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method is_ready = source#is_ready
-    method seek = source#seek
+    method private can_generate_frame = source#is_ready
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
       let shift a =
         for i = 0 to Array.length a - 2 do
           a.(i) <- a.(i + 1)
@@ -147,12 +147,13 @@ class fir (source : source) freq beta numcoeffs =
       in
       let addtimes a b c = a +. (b *. c) in
       for c = 0 to 1 do
-        for i = offset to AFrame.position buf - 1 do
+        for i = 0 to source#frame_audio_position - 1 do
           shift xv.(c);
           xv.(c).(nzeros) <- b.(c).(i) /. gain;
           b.(c).(i) <- fold_left2 addtimes 0. xcoeffs xv.(c)
         done
-      done
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

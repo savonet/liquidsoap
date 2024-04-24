@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,14 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** Multithreading utilities *)
+
+val error_handler : bt:string -> exn -> bool
+val error_handlers : (bt:string -> exn -> bool) Stack.t
 
 (** {1 Thread wrapper}
   Give names to threads, and forbid them to raise an exception;
@@ -33,9 +36,12 @@ val create : ('a -> unit) -> 'a -> string -> Thread.t
 
 val main : unit -> unit
 val start : unit -> unit
-val has_started : unit -> bool
+val running : unit -> bool
+val finished : unit -> bool
 val shutdown : int -> unit
+val cleanup : unit -> unit
 val exit_code : unit -> int
+val exit : unit -> unit
 
 (** Special exception allowed for "clean" termination of Tutils threads.
   * All other exceptions are reported as bugs. *)
@@ -63,9 +69,6 @@ val scheduler : priority Duppy.scheduler
   * and after the call. *)
 val wait : Condition.t -> Mutex.t -> (unit -> bool) -> unit
 
-(** Make a function work in critical section, protected by a given lock. *)
-val mutexify : Mutex.t -> ('a -> 'b) -> 'a -> 'b
-
 exception Timeout of float
 
 type event =
@@ -83,5 +86,4 @@ val wait_for : ?log:(string -> unit) -> event -> float -> unit
   * This is meant to be used for assertions. *)
 val seems_locked : Mutex.t -> bool
 
-(** Thread-safe equivalent to Lazy.from_fun. *)
-val lazy_cell : (unit -> 'a) -> unit -> 'a
+val write_all : ?timeout:float -> Unix.file_descr -> bytes -> unit

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ let init input =
       | None -> ()
       | Some f ->
           let time = !time_offset + Mad.get_current_time !dec Mad.Seconds in
-          if not (Hashtbl.mem index time) then Hashtbl.add index time (f ())
+          if not (Hashtbl.mem index time) then Hashtbl.replace index time (f ())
   in
   (* Add an initial index. *)
   update_index ();
@@ -102,6 +102,7 @@ let create_decoder input =
         let data = get_data () in
         let { Mad.samplerate } = get_info () in
         buffer.Decoder.put_pcm ~samplerate data);
+    eof = (fun _ -> ());
   }
 
 (** Configuration keys for mad. *)
@@ -171,8 +172,7 @@ let () =
       "Use libmad to decode any file if its MIME type or file extension is \
        appropriate."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority#get);
+      Decoder.priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
       file_type = (fun ~metadata:_ ~ctype:_ f -> file_type f);
@@ -181,13 +181,12 @@ let () =
     }
 
 let check filename =
-  match Liqmagic.file_mime filename with
-    | Some mime -> List.mem mime mime_types#get
-    | None -> (
-        try
-          ignore (file_type filename);
-          true
-        with _ -> false)
+  List.mem (Magic_mime.lookup filename) mime_types#get
+  ||
+  try
+    ignore (file_type filename);
+    true
+  with _ -> false
 
 let duration ~metadata:_ file =
   if not (check file) then raise Not_found;

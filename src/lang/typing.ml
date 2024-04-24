@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -102,52 +102,16 @@ let generalizable ~level t = filter_vars (fun v -> v.level > level) t
 
 let generalize ~level t : scheme = (generalizable ~level t, t)
 
-(** Copy a term, substituting some EVars as indicated by a list of
-    associations. Other EVars are not copied, so sharing is preserved. *)
-let copy_with (subst : Subst.t) t =
-  let rec aux t =
-    let descr =
-      match t.descr with
-        | Var { contents = Free v } as var -> (
-            try (Subst.value subst v).descr with Not_found -> var)
-        | Constr c ->
-            let params = List.map (fun (v, t) -> (v, aux t)) c.params in
-            Constr { c with params }
-        | Custom c -> Custom { c with typ = c.copy_with aux c.typ }
-        | Getter t -> Getter (aux t)
-        | List { t; json_repr } -> List { t = aux t; json_repr }
-        | Nullable t -> Nullable (aux t)
-        | Tuple l -> Tuple (List.map aux l)
-        | Meth (({ scheme = g, t } as m), u) ->
-            (* We assume that we don't substitute generalized variables. *)
-            if !debug then
-              assert (Subst.M.for_all (fun v _ -> not (List.mem v g)) subst);
-            Meth ({ m with scheme = (g, aux t) }, aux u)
-        | Arrow (p, t) ->
-            Arrow (List.map (fun (o, l, t) -> (o, l, aux t)) p, aux t)
-        | Var { contents = Link (_, t) } ->
-            (* TODO: we remove the link here, it would be too difficult to preserve
-               sharing. We could at least keep it when no variable is changed. *)
-            (aux t).descr
-        | _ -> raise NotImplemented
-    in
-    Type.make ?pos:t.pos descr
-  in
-  if Subst.is_identity subst then t else aux t
-
 (** Instantiate a type scheme, given as a type together with a list of
-    generalized variables. Fresh variables are created with the given (current)
-    level, and attached to the appropriate constraints. This erases position
+    generalized variables. This erases position
     information, since they usually become irrelevant. *)
 let instantiate ~level ((generalized, t) : scheme) =
-  let subst =
-    List.map
-      (fun v ->
-        (v, var ~level ~constraints:(Constraints.elements v.constraints) ()))
-      generalized
-  in
-  let subst = Subst.of_list subst in
-  copy_with subst t
+  if generalized = [] then t
+  else (
+    let mapper =
+      Type.Fresh.init ~selector:(fun v -> List.memq v generalized) ~level ()
+    in
+    Type.Fresh.make mapper t)
 
 (** {1 Assignation} *)
 
@@ -181,6 +145,9 @@ let occur_check (a : var) =
     | _ -> raise NotImplemented
   in
   occur_check
+
+let do_occur_check = ref true
+let occur_check a t = if !do_occur_check then occur_check a t
 
 (** Lower all type variables to given level. *)
 let update_level level a =
@@ -250,6 +217,11 @@ let rec sup ~pos a b =
           with _ -> raise Incompatible)
       | Meth (m, a), _ -> meth_sup m a b
       | _, Meth (m, b) -> meth_sup m b a
+      | Constr { constructor = "source" }, _
+      | _, Constr { constructor = "source" }
+      | Constr { constructor = "format" }, _
+      | _, Constr { constructor = "format" } ->
+          b
       | ( Constr { constructor = c; params = a },
           Constr { constructor = d; params = b } ) ->
           if c <> d || List.length a <> List.length b then raise Incompatible;
@@ -419,8 +391,10 @@ and ( <: ) a b =
              bad choices. For instance, if we took int, but then have a 'a?, we
              change our mind and use int? instead. *)
           let b'' = try sup ~pos:b'.pos a b' with Incompatible -> b' in
-          (try b' <: b''
-           with e ->
+          (try
+             b' <: b''
+             (* The sup is allowed to return something invalid. See: https://github.com/savonet/liquidsoap/pull/3472 *)
+           with e when !debug ->
              failwith
                (Printf.sprintf "invalid sup: %s !< %s (%s)" (Type.to_string b')
                   (Type.to_string b'') (Printexc.to_string e)));
@@ -592,7 +566,8 @@ and ( <: ) a b =
                           },
                           var () ));
                 a <: b
-            | _ when optional -> a <: hide_meth l c
+            | _ when optional || Ground_type.Never.is_descr (deref t2).descr ->
+                a <: hide_meth l c
             | _ ->
                 raise
                   (Error

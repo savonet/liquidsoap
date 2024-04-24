@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -43,17 +43,6 @@ exception Invalid
 (* Raised when calling [merge] below. *)
 exception Incompatible_format of Contents.format * Contents.format
 
-type audio_params = Content_audio.Specs.params = {
-  channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
-}
-
-type video_params = Content_video.Specs.params = {
-  width : int Lazy.t option;
-  height : int Lazy.t option;
-}
-
-type midi_params = Content_midi.Specs.params = { channels : int }
-
 module type ContentSpecs = sig
   type kind
   type params
@@ -64,15 +53,8 @@ module type ContentSpecs = sig
   (* Length is in main ticks. *)
   val make : ?length:int -> params -> data
   val length : data -> int
-
-  (* TODO: This will be removed when reworking
-     the streaming API. *)
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
-
-  (* TODO: this will be removed when rewriting
-     streaming API. *)
-  val clear : data -> unit
 
   (** Params *)
 
@@ -128,12 +110,10 @@ type data = Contents.data
 (** Data *)
 
 val make : ?length:int -> format -> data
-val blit : data -> int -> data -> int -> int -> unit
 val fill : data -> int -> data -> int -> int -> unit
 val sub : data -> int -> int -> data
 val truncate : data -> int -> data
 val copy : data -> data
-val clear : data -> unit
 val length : data -> int
 val append : data -> data -> data
 val is_empty : data -> bool
@@ -159,11 +139,15 @@ val kind_of_string : string -> kind
 (** Internal content types. *)
 
 module Audio : sig
+  type audio_params = Content_audio.Specs.params = {
+    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.t;
+  }
+
   include
     Content
       with type kind = [ `Pcm ]
        and type params = audio_params
-       and type data = Audio.Mono.buffer array
+       and type data = Audio.t
 
   val kind : Contents.kind
   val channels_of_format : Contents.format -> int
@@ -171,17 +155,41 @@ module Audio : sig
 end
 
 module Video : sig
+  type ('a, 'b) video_content = ('a, 'b) Content_video.Base.content = {
+    length : int;
+    mutable params : 'a;
+    mutable data : (int * 'b) list;
+  }
+
+  type video_params = Content_video.Specs.params = {
+    width : int Lazy.t option;
+    height : int Lazy.t option;
+  }
+
   include
     Content
       with type kind = [ `Canvas ]
        and type params = video_params
-       and type data = Video.Canvas.t
+       and type data = (video_params, Video.Canvas.image) video_content
 
   val kind : Contents.kind
   val dimensions_of_format : Contents.format -> int * int
+  val lift_image : Video.Canvas.image -> Contents.data
+
+  type generator
+
+  val make_generator : params -> generator
+
+  val generate :
+    ?create:(pos:int -> width:int -> height:int -> unit -> Video.Canvas.image) ->
+    generator ->
+    int ->
+    data
 end
 
 module Midi : sig
+  type midi_params = Content_midi.Specs.params = { channels : int }
+
   include
     Content
       with type kind = [ `Midi ]
@@ -197,6 +205,7 @@ module Metadata : sig
   val format : format
   val get_data : Contents.data -> (int * Frame_base.metadata) list
   val set_data : Contents.data -> (int * Frame_base.metadata) list -> unit
+  val lift_data : (int * Frame_base.metadata) list -> Contents.data
 end
 
 module Track_marks : sig
@@ -205,6 +214,7 @@ module Track_marks : sig
   val format : format
   val get_data : Contents.data -> int list
   val set_data : Contents.data -> int list -> unit
+  val lift_data : int list -> Contents.data
 end
 
 (* Some tools *)

@@ -1,6 +1,6 @@
-module type T = sig
-  type t
+type t = ..
 
+module type T = sig
   val implementation : string
   val time : unit -> t
   val sleep_until : t -> unit

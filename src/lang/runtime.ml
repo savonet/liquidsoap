@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,19 +26,17 @@ let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
 let type_and_run ~throw ~lib ast =
-  ignore
-    (!Hooks.collect_after (fun () ->
-         if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
-         (* Type checking *)
-         Startup.time "Typechecking" (fun () ->
-             Typechecking.check ~throw ~ignored:true ast);
+  if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+  (* Type checking *)
+  Startup.time "Typechecking" (fun () ->
+      Typechecking.check ~throw ~ignored:true ast);
 
-         if Lazy.force Term.debug then
-           Printf.eprintf "Checking for unused variables...\n%!";
-         (* Check for unused variables, relies on types *)
-         Term.check_unused ~throw ~lib ast;
-         if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-         Startup.time "Evaluation" (fun () -> Evaluation.eval_toplevel ast)))
+  if Lazy.force Term.debug then
+    Printf.eprintf "Checking for unused variables...\n%!";
+  (* Check for unused variables, relies on types *)
+  Term.check_unused ~throw ~lib ast;
+  if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
+  ignore (Startup.time "Evaluation" (fun () -> Evaluation.eval_toplevel ast))
 
 (** {1 Error reporting} *)
 
@@ -65,7 +63,7 @@ let strict = ref false
 let throw ?(formatter = Format.std_formatter) lexbuf =
   let print_error ~formatter idx error =
     flush_all ();
-    let pos = Sedlexing.lexing_positions lexbuf in
+    let pos = Sedlexing.lexing_bytes_positions lexbuf in
     error_header ~formatter idx (Some pos);
     Format.fprintf formatter "%s\n@]@." error
   in
@@ -103,7 +101,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
   | Parser.Error | Parsing.Parse_error ->
       print_error ~formatter 2 "Parse error";
       raise Error
-  | Term.Parse_error (pos, s) ->
+  | Term_base.Parse_error (pos, s) ->
       error_header ~formatter 3 (Some pos);
       Format.fprintf formatter "%s@]@." s;
       raise Error
@@ -150,20 +148,16 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       Format.fprintf formatter
         "A source cannot belong to two clocks (%s,@ %s).@]@." a b;
       raise Error
-  | Error.Clock_loop (pos, a, b) ->
-      error_header ~formatter 11 pos;
-      Format.fprintf formatter "Cannot unify two nested clocks (%s,@ %s).@]@." a
-        b;
-      raise Error
-  | Term.Unsupported_format (pos, fmt) ->
+  (* Error 11 used to be Clock_loop. *)
+  | Term.Unsupported_encoder (pos, fmt) ->
       error_header ~formatter 12 pos;
       (if Sys.unix then
          Format.fprintf formatter
-           "Unsupported format: %s.@ You must be missing an optional \
+           "Unsupported encoder: %s.@ You must be missing an optional \
             dependency.@]@."
        else
          Format.fprintf formatter
-           "Unsupported format: %s.@ Please note that, on windows, %%mp3, \
+           "Unsupported encoder: %s.@ Please note that, on windows, %%mp3, \
             %%vorbis and many other encoders are not available. Instead, you \
             should use the %%ffmpeg encoder.@]@.")
         fmt;
@@ -185,7 +179,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
         (Lang_string.quote_string msg)
         pos;
       raise Error
-  | Sedlexing.MalFormed -> print_error ~formatter 15 "Malformed file."
+  | Sedlexing.MalFormed -> print_error ~formatter 15 "Malformed UTF8 content."
   | Term.Missing_arguments (pos, args) ->
       let args =
         List.map
@@ -216,23 +210,26 @@ let report lexbuf f =
 
 (** {1 Parsing} *)
 
-let mk_expr ?fname ~pwd processor lexbuf =
-  let processor = MenhirLib.Convert.Simplified.traditional2revised processor in
-  let tokenizer = Preprocessor.mk_tokenizer ?fname ~pwd lexbuf in
-  processor tokenizer
+let program = Term_reducer.program
 
-let from_lexbuf ?fname ?(dir = Sys.getcwd ()) ?(parse_only = false) ~ns ~lib
-    lexbuf =
+let interactive =
+  MenhirLib.Convert.Simplified.traditional2revised Parser.interactive
+
+let mk_expr ?fname processor lexbuf =
+  let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
+  Term_reducer.to_term parsed_term
+
+let from_lexbuf ?fname ?(parse_only = false) ~ns ~lib lexbuf =
   begin
     match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
   end;
   report lexbuf (fun ~throw () ->
-      let expr = mk_expr ?fname ~pwd:dir Parser.program lexbuf in
+      let expr = mk_expr ?fname program lexbuf in
       if not parse_only then type_and_run ~throw ~lib expr)
 
-let from_in_channel ?fname ?dir ?parse_only ~ns ~lib in_chan =
+let from_in_channel ?fname ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
-  from_lexbuf ?fname ?dir ?parse_only ~ns ~lib lexbuf
+  from_lexbuf ?fname ?parse_only ~ns ~lib lexbuf
 
 let from_file ?parse_only ~ns ~lib filename =
   let ic = open_in filename in
@@ -241,9 +238,7 @@ let from_file ?parse_only ~ns ~lib filename =
   let display_types = !Typechecking.display_types in
   if String.ends_with ~suffix:"stdlib.liq" filename then
     Typechecking.display_types := false;
-  from_in_channel ~fname
-    ~dir:(Filename.dirname filename)
-    ?parse_only ~ns ~lib ic;
+  from_in_channel ~fname ?parse_only ~ns ~lib ic;
   Typechecking.display_types := display_types;
   close_in ic
 
@@ -255,30 +250,41 @@ let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
     if error_on_no_stdlib then
       failwith "Could not find default stdlib.liq library!")
   else from_file ?parse_only ~ns:(Some file) ~lib:true file;
-  let file = Filename.concat dir "deprecations.liq" in
-  if deprecated then
-    if Sys.file_exists file then
-      from_file ?parse_only ~ns:(Some file) ~lib:true file
-    else Printf.eprintf "Warning: could not find deprecated library %s\n%!" file
+  let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
+  if deprecated && Sys.file_exists file then
+    from_file ?parse_only ~ns:(Some file) ~lib:true file
 
 let from_file = from_file ~ns:None
 
 let from_string ?parse_only ~lib expr =
-  let lexbuf = Sedlexing.Utf8.from_string expr in
+  let gen =
+    let pos = ref (-1) in
+    let len = String.length expr in
+    fun () ->
+      incr pos;
+      if !pos < len then Some expr.[!pos] else None
+  in
+  let lexbuf = Sedlexing.Utf8.from_gen gen in
   from_lexbuf ?parse_only ~ns:None ~lib lexbuf
 
 let parse_with_lexbuf s =
-  let lexbuf = Sedlexing.Utf8.from_string s in
-  (mk_expr ~pwd:(Sys.getcwd ()) Parser.program lexbuf, lexbuf)
+  let gen =
+    let pos = ref (-1) in
+    let len = String.length s in
+    fun () ->
+      incr pos;
+      if !pos < len then Some s.[!pos] else None
+  in
+  let lexbuf = Sedlexing.Utf8.from_gen gen in
+  (mk_expr program lexbuf, lexbuf)
 
 let parse s = fst (parse_with_lexbuf s)
 
 let eval ~ignored ~ty s =
   let expr, lexbuf = parse_with_lexbuf s in
-  let expr = Term.(make (Cast (expr, ty))) in
-  !Hooks.collect_after (fun () ->
-      report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
-      Evaluation.eval expr)
+  let expr = Term.(make (`Cast (expr, ty))) in
+  report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
+  Evaluation.eval expr
 
 let from_in_channel ?parse_only ~lib x =
   from_in_channel ?parse_only ~ns:None ~lib x
@@ -326,12 +332,10 @@ let interactive () =
     if
       try
         report lexbuf (fun ~throw () ->
-            let expr = mk_expr ~pwd:(Sys.getcwd ()) Parser.interactive lexbuf in
+            let expr = mk_expr interactive lexbuf in
             Typechecking.check ~throw ~ignored:false expr;
             Term.check_unused ~throw ~lib:true expr;
-            ignore
-              (!Hooks.collect_after (fun () ->
-                   Evaluation.eval_toplevel ~interactive:true expr)));
+            ignore (Evaluation.eval_toplevel ~interactive:true expr));
         true
       with
         | End_of_file ->
@@ -339,7 +343,7 @@ let interactive () =
             false
         | Error -> true
         | e ->
-            let e = Console.colorize [`white; `bold] (Printexc.to_string e) in
+            let e = Console.colorize [`bold] (Printexc.to_string e) in
             Format.printf "Exception: %s!@." e;
             true
     then loop ()

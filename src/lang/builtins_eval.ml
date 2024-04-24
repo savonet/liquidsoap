@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@ let _ =
     (Lang.univ_t ())
     (fun p ->
       let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
-      let scheme = Typing.generalize ~level:(-1) ty in
-      let ty = Typing.instantiate ~level:(-1) scheme in
+      let ty = Type.fresh ty in
       let s = Lang.to_string (List.assoc "" p) in
       try Runtime.eval ~ignored:false ~ty s with exn -> raise exn)

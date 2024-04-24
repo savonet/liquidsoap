@@ -1,6 +1,7 @@
 (env
  (release
-  (ocamlopt_flags (:standard -O2)))
+  (ocamlopt_flags
+   (:standard -O2)))
  (dev
   (flags
    (:standard -w -9))))
@@ -16,12 +17,6 @@
  (flags
   --unused-token
   DOTVAR
-  --unused-token
-  PP_COMMENT
-  --unused-token
-  PP_DEF
-  --unused-token
-  PP_DEFINE
   --unused-token
   PP_ELSE
   --unused-token
@@ -39,8 +34,6 @@
   --unused-token
   PP_IFVERSION
   --unused-token
-  PP_INCLUDE
-  --unused-token
   PP_INT_DOT_LCUR
   --unused-token
   PP_REGEXP
@@ -57,15 +50,23 @@
   (with-stdout-to
    %{target}
    (progn
-    (echo "let is_release = %{env:LIQUIDSOAP_RELEASE_BUILD=false}\n")
-    (echo "let git_sha = match String.trim \"")
+    (echo "let is_snapshot = %{env:IS_SNAPSHOT=true}\n")
+    (echo "let version = \"%{version:liquidsoap-lang}\"\n")
+    (echo "let version_len = String.length version\n")
+    (echo "let parsed_sha = String.trim \"")
     (with-accepted-exit-codes
      (or 0 128)
      (run git rev-parse --short HEAD))
-    (echo "\" with \"\" -> None | s -> Some s\n")
-    (echo "let version = \"%{version:liquidsoap-lang}\"\n")
+    (echo "\"\n")
+    (echo "let parsed_sha_len = String.length parsed_sha\n")
+    (echo "let dune_sha_len = 7\n")
+    (echo "let git_sha = match is_snapshot, parsed_sha with \n")
+    (echo "  | false, _ | _, \"\" -> None\n")
     (echo
-     "let version = version ^ (if is_release then \"\" else (match git_sha with None -> \"+dev\" | Some sha -> \"+git@\" ^ sha))\n")
+     "  | _, _ when dune_sha_len <= version_len && dune_sha_len <= parsed_sha_len && String.sub parsed_sha 0 dune_sha_len = String.sub version (version_len - dune_sha_len) dune_sha_len -> None\n")
+    (echo "  |  _, s -> Some s\n")
+    (echo
+     "let version = version ^ (if not is_snapshot then \"\" else (match git_sha with None -> \"+dev\" | Some sha -> \"+git@\" ^ sha))\n")
     (echo "let ext_exe = \"%{ocaml-config:ext_exe}\"\n")
     (echo "let architecture = \"%{ocaml-config:architecture}\"\n")
     (echo "let host = \"%{ocaml-config:host}\"\n")
@@ -81,8 +82,10 @@
  (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx ppx_string))
- (libraries liquidsoap-lang.console dune-site str unix menhirLib)
+ (libraries liquidsoap-lang.console dune-site re str unix menhirLib)
  (modules
+  active_value
+  backoff
   build_config
   builtins_bool
   builtins_eval
@@ -114,21 +117,27 @@
   lang_regexp
   lang_string
   lexer
+  methods
+  michael_scott_queue
   modules
+  parsed_term
   parser
   parser_helper
   pos
   plug
   preprocessor
   profiler
+  queues
   repr
   ref_type
-  regexp
   runtime
   runtime_error
+  runtime_term
   sites
   startup
   term
+  term_base
+  term_reducer
   type
   type_base
   typechecking

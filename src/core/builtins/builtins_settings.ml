@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ let dtools_constr =
   {
     t = Dtools;
     constr_descr = "unit, bool, int, float, string or [string]";
+    univ_descr = None;
     satisfied =
       (fun ~subtype ~satisfies:_ b ->
         let b = demeth b in
@@ -117,17 +118,7 @@ let settings_module =
              Printf.sprintf "Entry for configuration key %s" label ))
          conf#subs
      in
-     let log_t = get_type Dtools.Log.conf in
-     let init_t = get_type Dtools.Init.conf in
-     let settings_t =
-       get_type
-         ~sub:
-           [
-             ("init", ([], init_t), "Daemon settings");
-             ("log", ([], log_t), "Logging settings");
-           ]
-         Configure.conf
-     in
+     let settings_t = get_type Configure.conf in
      let get_v fn conv_to conv_from conf =
        let get =
          Lang.val_fun [] (fun _ ->
@@ -178,9 +169,7 @@ let settings_module =
            (Utils.normalize_parameter_string label, v))
          conf#subs
      in
-     let init = get_value Dtools.Init.conf in
-     let log = get_value Dtools.Log.conf in
-     settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
+     settings := get_value Configure.conf;
      ignore
        (Lang.add_builtin_value ~category:`Settings "settings"
           ~descr:"All settings." ~flags:[`Hidden] !settings settings_t))
@@ -230,10 +219,15 @@ let print_settings () =
   in
   let print_set ~path = function
     | Value.Tuple [] -> []
-    | (Value.Fun ([], _, _) | Value.FFI ([], _)) as value ->
+    | (Value.Fun ([], _, _) | Value.FFI { ffi_args = []; _ }) as value ->
         let value =
           Lang.apply
-            { Value.pos = None; value; methods = Value.Methods.empty }
+            {
+              Value.pos = None;
+              value;
+              methods = Value.Methods.empty;
+              id = Value.id ();
+            }
             []
         in
         [
@@ -253,7 +247,12 @@ let print_settings () =
 ```
 |} path
             (Value.to_string
-               { Value.pos = None; value; methods = Value.Methods.empty });
+               {
+                 Value.pos = None;
+                 value;
+                 methods = Value.Methods.empty;
+                 id = Value.id ();
+               });
         ]
   in
   let rec print_descr ~level ~path descr =

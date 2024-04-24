@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,27 +23,26 @@
 open Source
 
 class compress ~field (source : source) mu =
-  object
+  object (self)
     inherit operator ~name:"compress" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = Content.Audio.get_data (Frame.get buf field) in
-      for c = 0 to Array.length b - 1 do
+    method private generate_frame =
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
+      for c = 0 to self#audio_channels - 1 do
         let b_c = b.(c) in
-        for i = offset to AFrame.position buf - 1 do
+        for i = 0 to source#frame_audio_position - 1 do
           let x = b_c.(i) in
           let sign = if x < 0. then -1. else 1. in
           b_c.(i) <- sign *. (1. -. ((1. -. Utils.abs_float x) ** mu))
         done
-      done
+      done;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

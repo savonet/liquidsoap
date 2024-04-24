@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,6 +26,14 @@ external set_format : Unix.file_descr -> int -> int = "caml_oss_dsp_setfmt"
 external set_channels : Unix.file_descr -> int -> int = "caml_oss_dsp_channels"
 external set_rate : Unix.file_descr -> int -> int = "caml_oss_dsp_speed"
 
+module SyncSource = Clock.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "oss"
+end)
+
+let sync_source = SyncSource.make ()
+
 (** Wrapper for calling set_* functions and checking that the desired
   * value has been accepted. If not, the current behavior is a bit
   * too violent. *)
@@ -33,28 +41,21 @@ let force f fd x =
   let x' = f fd x in
   if x <> x' then failwith "cannot obtain desired OSS settings"
 
-(** Dedicated clock. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "OSS")
-
-class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
+class output ~self_sync ~on_start ~on_stop ~infallible ~register_telnet ~start
+  dev val_source =
   let samples_per_second = Lazy.force Frame.audio_rate in
   let name = Printf.sprintf "oss_out(%s)" dev in
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~name ~output_kind:"output.oss"
-          val_source start as super
-
-    inherit! Source.no_seek
-
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (get_clock () :> Source.clock))
+        ~infallible ~register_telnet ~on_stop ~on_start ~name
+          ~output_kind:"output.oss" val_source start
 
     val mutable fd = None
-    method! self_sync = (`Dynamic, fd <> None)
+
+    method! self_sync =
+      if self_sync then (`Dynamic, if fd <> None then Some sync_source else None)
+      else (`Static, None)
 
     method open_device =
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
@@ -84,21 +85,25 @@ class output ~clock_safe ~on_start ~on_stop ~infallible ~start dev val_source =
       assert (w = r)
   end
 
-class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
+class input ~self_sync ~start ~on_stop ~on_start ~fallible dev =
   let samples_per_second = Lazy.force Frame.audio_rate in
   object (self)
     inherit
       Start_stop.active_source
-        ~get_clock ~clock_safe
         ~name:(Printf.sprintf "oss_in(%s)" dev)
-        ~on_start ~on_stop ~fallible ~autostart:start ()
+        ~on_start ~on_stop ~fallible ~autostart:start () as active_source
 
-    inherit Source.no_seek
     val mutable fd = None
-    method self_sync = (`Dynamic, fd <> None)
+
+    method self_sync =
+      if self_sync then (`Dynamic, if fd <> None then Some sync_source else None)
+      else (`Static, None)
+
     method abort_track = ()
     method remaining = -1
+    method seek_source = (self :> Source.source)
     method private start = self#open_device
+    method private can_generate_frame = active_source#started
 
     method private open_device =
       let descr = Unix.openfile dev [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o400 in
@@ -113,17 +118,18 @@ class input ~clock_safe ~start ~on_stop ~on_start ~fallible dev =
       Unix.close (Option.get fd);
       fd <- None
 
-    method get_frame frame =
-      assert (0 = AFrame.position frame);
+    method generate_frame =
+      let length = Lazy.force Frame.size in
+      let frame = Frame.create ~length self#content_type in
+      let buf = Content.Audio.get_data (Frame.get frame Frame.Fields.audio) in
       let fd = Option.get fd in
-      let buf = AFrame.pcm frame in
       let len = 2 * Array.length buf * Audio.Mono.length buf.(0) in
       let s = Bytes.create len in
       let r = Unix.read fd s 0 len in
       (* TODO: recursive read ? *)
       assert (len = r);
       Audio.S16LE.to_audio (Bytes.unsafe_to_string s) 0 buf 0 len;
-      AFrame.add_break frame (AFrame.size ())
+      Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =
@@ -135,10 +141,10 @@ let _ =
     (Lang.add_operator ~base:Modules.output "oss"
        (Output.proto
        @ [
-           ( "clock_safe",
+           ( "self_sync",
              Lang.bool_t,
              Some (Lang.bool true),
-             Some "Force the use of the dedicated OSS clock." );
+             Some "Mark the source as being synchronized by the OSS driver." );
            ( "device",
              Lang.string_t,
              Some (Lang.string "/dev/dsp"),
@@ -150,6 +156,7 @@ let _ =
        (fun p ->
          let e f v = f (List.assoc v p) in
          let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+         let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
          let start = Lang.to_bool (List.assoc "start" p) in
          let on_start =
            let f = List.assoc "on_start" p in
@@ -159,11 +166,12 @@ let _ =
            let f = List.assoc "on_stop" p in
            fun () -> ignore (Lang.apply f [])
          in
-         let clock_safe = e Lang.to_bool "clock_safe" in
+         let self_sync = e Lang.to_bool "self_sync" in
          let device = e Lang.to_string "device" in
          let source = List.assoc "" p in
          (new output
-            ~start ~on_start ~on_stop ~infallible ~clock_safe device source
+            ~start ~on_start ~on_stop ~infallible ~register_telnet ~self_sync
+            device source
            :> Output.output)));
 
   let return_t =
@@ -171,8 +179,12 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Modules.input "oss"
-    (Start_stop.active_source_proto ~clock_safe:true ~fallible_opt:(`Yep false)
+    (Start_stop.active_source_proto ~fallible_opt:(`Yep false)
     @ [
+        ( "self_sync",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Mark the source as being synchronized by the OSS driver." );
         ( "device",
           Lang.string_t,
           Some (Lang.string "/dev/dsp"),
@@ -182,7 +194,7 @@ let _ =
     ~descr:"Stream from an OSS input device."
     (fun p ->
       let e f v = f (List.assoc v p) in
-      let clock_safe = e Lang.to_bool "clock_safe" in
+      let self_sync = e Lang.to_bool "self_sync" in
       let device = e Lang.to_string "device" in
       let start = Lang.to_bool (List.assoc "start" p) in
       let fallible = Lang.to_bool (List.assoc "fallible" p) in
@@ -194,4 +206,4 @@ let _ =
         let f = List.assoc "on_stop" p in
         fun () -> ignore (Lang.apply f [])
       in
-      new input ~start ~on_start ~on_stop ~fallible ~clock_safe device)
+      new input ~start ~on_start ~on_stop ~fallible ~self_sync device)

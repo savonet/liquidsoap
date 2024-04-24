@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,18 +33,17 @@ class resample ~field ~ratio source =
   in
   let () = Typing.(consumer#frame_type <: source#frame_type) in
   object (self)
-    inherit operator ~name:"stretch" [(consumer :> Source.source)] as super
-
-    inherit!
-      Child_support.base ~check_self_sync:true [source_val] as child_support
-
+    inherit operator ~name:"stretch" []
+    inherit Child_support.base ~check_self_sync:true [source_val]
     method self_sync = source#self_sync
-    method stype = source#stype
+    method fallible = source#fallible
 
-    method seek len =
+    method! seek len =
       let glen = min (Generator.length self#buffer) len in
       Generator.truncate self#buffer glen;
       (if glen < len then source#seek (len - glen) else 0) + glen
+
+    method seek_source = (self :> Source.source)
 
     method remaining =
       let rem = source#remaining in
@@ -52,17 +51,14 @@ class resample ~field ~ratio source =
       else int_of_float (float (rem + Generator.length self#buffer) *. ratio ())
 
     method abort_track = source#abort_track
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     val mutable converter = None
 
-    method! wake_up a =
-      super#wake_up a;
-      converter <- Some (Audio_converter.Samplerate.create self#audio_channels);
-      write_frame_ref := self#write_frame
-
     initializer
-      self#on_before_output (fun () -> child_support#child_before_output);
-      self#on_after_output (fun () -> child_support#child_after_output)
+      self#on_wake_up (fun () ->
+          converter <-
+            Some (Audio_converter.Samplerate.create self#audio_channels);
+          write_frame_ref := self#write_frame)
 
     method private write_frame =
       function `Frame frame -> self#process_frame frame | `Flush -> ()
@@ -84,9 +80,11 @@ class resample ~field ~ratio source =
         (fun (pos, m) ->
           Generator.add_metadata ~pos:(convert pos) self#buffer m)
         (Frame.get_all_metadata frame);
-      if Frame.is_partial frame then Generator.add_track_mark self#buffer
+      List.iter
+        (fun pos -> Generator.add_track_mark ~pos:(convert pos) self#buffer)
+        (Frame.track_marks frame)
 
-    method private get_frame frame =
+    method private generate_frame =
       consumer#set_output_enabled true;
       while
         Generator.length self#buffer < Lazy.force Frame.size && source#is_ready
@@ -94,7 +92,7 @@ class resample ~field ~ratio source =
         self#child_tick
       done;
       consumer#set_output_enabled false;
-      Generator.fill self#buffer frame
+      Generator.slice self#buffer (Lazy.force Frame.size)
   end
 
 let _ =

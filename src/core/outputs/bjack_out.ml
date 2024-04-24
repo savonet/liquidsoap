@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,13 +20,11 @@
 
  *****************************************************************************)
 
-open Mm
-
 (** Output using ocaml-jack. *)
 
 let bytes_per_sample = 2
 
-class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
+class output ~self_sync ~infallible ~register_telnet ~on_stop ~on_start ~server
   source =
   let samples_per_frame = AFrame.size () in
   let seconds_per_frame = Frame.seconds_of_audio samples_per_frame in
@@ -34,28 +32,15 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
   object (self)
     inherit
       Output.output
-        ~infallible ~on_stop ~on_start ~name:"output.jack"
-          ~output_kind:"output.jack" source true as super
-
-    inherit [Bytes.t] IoRing.output ~nb_blocks as ioring
-
-    method! wake_up a =
-      super#wake_up a;
-      let blank () =
-        Bytes.make
-          (samples_per_frame * self#audio_channels * bytes_per_sample)
-          '0'
-      in
-      ioring#init blank
-
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (Bjack_in.bjack_clock () :> Source.clock))
+        ~infallible ~register_telnet ~on_stop ~on_start ~name:"output.jack"
+          ~output_kind:"output.jack" source true
 
     val mutable device = None
-    method! self_sync = (`Dynamic, device <> None)
+
+    method! self_sync =
+      if self_sync then
+        (`Dynamic, if device <> None then Some Bjack_in.sync_source else None)
+      else (`Static, None)
 
     method get_device =
       match device with
@@ -68,8 +53,7 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
                 Bjack.open_t ~rate:samples_per_second
                   ~bits_per_sample:(bytes_per_sample * 8) ~input_channels:0
                   ~output_channels:self#audio_channels ~flags:[] ?server_name
-                  ~ringbuffer_size:
-                    (nb_blocks * samples_per_frame * bytes_per_sample)
+                  ~ringbuffer_size:(samples_per_frame * bytes_per_sample)
                   ~client_name:self#id ()
               with Bjack.Open ->
                 failwith "Could not open JACK device: is the server running?"
@@ -80,10 +64,19 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
             dev
         | Some d -> d
 
-    method push_block data =
+    method start = ignore self#get_device
+
+    method stop =
+      match device with
+        | Some d ->
+            Bjack.close d;
+            device <- None
+        | None -> ()
+
+    method send_frame frame =
       let dev = self#get_device in
-      let len = Bytes.length data in
-      let data = Bytes.unsafe_to_string data in
+      let data = AFrame.s16le frame in
+      let len = String.length data in
       let remaining = ref (len - Bjack.write dev data) in
       while !remaining > 0 do
         Thread.delay (seconds_per_frame /. 2.);
@@ -91,19 +84,6 @@ class output ~clock_safe ~infallible ~on_stop ~on_start ~nb_blocks ~server
         let written = Bjack.write dev tmp in
         remaining := !remaining - written
       done
-
-    method close =
-      match device with
-        | Some d ->
-            Bjack.close d;
-            device <- None
-        | None -> ()
-
-    method send_frame wav =
-      let push data =
-        Audio.S16LE.of_audio (AFrame.pcm wav) 0 data 0 (AFrame.size ())
-      in
-      ioring#put_block push
 
     method! reset = ()
   end
@@ -116,14 +96,10 @@ let _ =
   Lang.add_operator ~base:Modules.output "jack"
     (Output.proto
     @ [
-        ( "clock_safe",
+        ( "self_sync",
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Force the use of the dedicated bjack clock." );
-        ( "buffer_size",
-          Lang.int_t,
-          Some (Lang.int 2),
-          Some "Set buffer size, in frames." );
         ( "server",
           Lang.string_t,
           Some (Lang.string ""),
@@ -134,10 +110,10 @@ let _ =
     ~descr:"Output stream to jack."
     (fun p ->
       let source = List.assoc "" p in
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
-      let nb_blocks = Lang.to_int (List.assoc "buffer_size" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let server = Lang.to_string (List.assoc "server" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -147,5 +123,6 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       (new output
-         ~clock_safe ~infallible ~on_start ~on_stop ~nb_blocks ~server source
+         ~self_sync ~infallible ~register_telnet ~on_start ~on_stop ~server
+         source
         :> Output.output))

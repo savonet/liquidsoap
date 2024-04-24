@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ let server () =
   Server.create ~mode:(`TCP (`Port conf_port#get)) (Server.make ~callback ())
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start ~name:"prometheus initialization" (fun () ->
       if conf_server#get then
         ignore
           (Thread.create

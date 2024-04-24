@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,10 +40,12 @@ val load_libs :
    after printing language errors. *)
 val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
 
+val program :
+  (unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t
+
 val mk_expr :
   ?fname:string ->
-  pwd:string ->
-  (Parser.token, Term.t) MenhirLib.Convert.traditional ->
+  ((unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t) ->
   Sedlexing.lexbuf ->
   Term.t
 

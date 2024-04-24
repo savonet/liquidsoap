@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -36,16 +36,13 @@ class soundtouch source_val rate tempo pitch =
     Typing.(source#frame_type <: consumer#frame_type)
   in
   object (self)
-    inherit operator ~name:"soundtouch" [(consumer :> Source.source)] as super
-
-    inherit!
-      Child_support.base ~check_self_sync:true [source_val] as child_support
-
+    inherit operator ~name:"soundtouch" [(consumer :> Source.source)]
+    inherit Child_support.base ~check_self_sync:true [source_val]
     val mutable st = None
-    method stype = source#stype
+    method fallible = source#fallible
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
-    method seek = source#seek
+    method private can_generate_frame = source#is_ready
+    method seek_source = source#seek_source
     method remaining = -1
 
     method abort_track =
@@ -68,35 +65,34 @@ class soundtouch source_val rate tempo pitch =
         ignore (Soundtouch.get_samples_ni st buf 0 available);
         Generator.put self#buffer Frame.Fields.audio
           (Content.Audio.lift_data buf));
-      if AFrame.is_partial databuf then Generator.add_track_mark self#buffer;
-
-      (* It's almost impossible to know where to add metadata,
-       * b/c of tempo so we add then right here. *)
+      let gen_pos = Generator.length self#buffer in
       List.iter
-        (fun (_, m) -> Generator.add_metadata self#buffer m)
-        (AFrame.get_all_metadata databuf)
+        (fun pos -> Generator.add_track_mark ~pos:(pos + gen_pos) self#buffer)
+        (Frame.track_marks databuf);
 
-    method private get_frame buf =
+      List.iter
+        (fun (pos, m) ->
+          Generator.add_metadata ~pos:(pos + gen_pos) self#buffer m)
+        (Frame.get_all_metadata databuf)
+
+    method private generate_frame =
+      let size = Lazy.force Frame.size in
       consumer#set_output_enabled true;
-      while
-        Generator.length self#buffer < Lazy.force Frame.size && source#is_ready
-      do
+      while Generator.length self#buffer < size && source#is_ready do
         self#child_tick
       done;
       consumer#set_output_enabled false;
-      Generator.fill self#buffer buf
-
-    method! wake_up a =
-      super#wake_up a;
-      st <-
-        Some (Soundtouch.make self#audio_channels (Lazy.force Frame.audio_rate));
-      self#log#important "Using soundtouch %s."
-        (Soundtouch.get_version_string (Option.get st));
-      write_frame_ref := self#write_frame
+      Generator.slice self#buffer size
 
     initializer
-      self#on_before_output (fun () -> child_support#child_before_output);
-      self#on_after_output (fun () -> child_support#child_after_output)
+      self#on_wake_up (fun () ->
+          st <-
+            Some
+              (Soundtouch.make self#audio_channels
+                 (Lazy.force Frame.audio_rate));
+          self#log#important "Using soundtouch %s."
+            (Soundtouch.get_version_string (Option.get st));
+          write_frame_ref := self#write_frame)
   end
 
 let _ =

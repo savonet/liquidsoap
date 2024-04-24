@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -110,8 +110,7 @@ let test_ctype f filename =
 let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =
   Plug.register Decoder.decoders name ~doc
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority);
+      Decoder.priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
       file_type =
@@ -159,11 +158,12 @@ let external_input_oblivious process filename prebuf =
   let buffer = Decoder.mk_buffer ~ctype gen in
   let prebuf = Frame.main_of_seconds prebuf in
   let decoder = Wav_aiff_decoder.create input in
-  let fill frame =
+  let fread len =
     begin
       try
         while
-          Generator.length gen < prebuf && not (Process_handler.stopped process)
+          Generator.length gen < max prebuf len
+          && not (Process_handler.stopped process)
         do
           decoder.Decoder.decode buffer
         done
@@ -171,20 +171,20 @@ let external_input_oblivious process filename prebuf =
         log#info "Decoding %s ended: %s." command (Printexc.to_string e);
         close ()
     end;
-    Generator.fill gen frame;
-
+    Generator.slice gen len
+  in
+  let remaining () =
     (* We return -1 while the process is not yet
      * finished. *)
     if Process_handler.stopped process then Generator.length gen else -1
   in
-  { Decoder.fill; fseek = decoder.Decoder.seek; close }
+  { Decoder.fread; remaining; fseek = decoder.Decoder.seek; close }
 
 let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
     ~process prebuf =
   Plug.register Decoder.decoders name ~doc
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority);
+      Decoder.priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
       file_type =

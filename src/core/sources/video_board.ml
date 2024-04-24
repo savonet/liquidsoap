@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2023 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -51,15 +51,13 @@ class board ?duration img0 () =
               (x', y') (x, y);
             last_point <- Some (x, y)
 
-    method private synthesize frame off len =
-      let frame_width, frame_height = self#video_dimensions in
-      let off = Frame.video_of_main off in
-      let len = Frame.video_of_main len in
-      let buf = VFrame.data frame in
-      for i = off to off + len - 1 do
-        buf.(i) <-
-          Video.Canvas.Image.make ~width:frame_width ~height:frame_height img
-      done
+    method private synthesize length =
+      let frame = Frame.create ~length Frame.Fields.empty in
+      let create ~pos:_ ~width ~height () =
+        Video.Canvas.Image.make ~width ~height img
+      in
+      let buf = self#generate_video ~field:Frame.Fields.video ~create length in
+      Frame.set_data frame Frame.Fields.video Content.Video.lift_data buf
   end
 
 let _ =
@@ -83,23 +81,20 @@ let _ =
     Lang.val_fun
       [("", "", None)]
       (fun p ->
-        let c =
-          List.assoc "" p |> Lang.to_int |> Image.RGB8.Color.of_int
-          |> Image.Pixel.yuv_of_rgb
-        in
+        let c = List.assoc "" p |> Lang.to_int |> Video_effects.yuv_of_int in
         Image.YUV420.fill b#image c;
         Lang.unit)
   in
   let line_to board =
     Lang.val_fun
       [
-        ("color", "c", Some (Lang.int 0xffffff));
+        ("color", "c", Some (Lang.hex_int 0xffffff));
         ("", "x", None);
         ("", "y", None);
       ]
       (fun p ->
         let r, g, b =
-          List.assoc "c" p |> Lang.to_int |> Image.RGB8.Color.of_int
+          List.assoc "c" p |> Lang.to_int |> Video_effects.rgb_of_int
         in
         let x = List.assoc "x" p |> Lang.to_int in
         let y = List.assoc "y" p |> Lang.to_int in
@@ -119,7 +114,7 @@ let _ =
             let c = Image.RGB8.Color.to_int (r, g, b) in
             Lang.int c)
           (fun c ->
-            let r, g, b = c |> Lang.to_int |> Image.RGB8.Color.of_int in
+            let r, g, b = c |> Lang.to_int |> Video_effects.rgb_of_int in
             board#set_pixel (x, y) (r, g, b, 0xff)))
   in
   Lang.add_operator ~base:Modules.video "board"

@@ -6,14 +6,15 @@
 # Reopen stderr to /dev/null to
 # disable printing expected exception
 #reopen.stderr("/dev/null")
-
-on_shutdown(test.pass)
+on_cleanup(test.pass)
 
 def on_error(_) =
-  shutdown()
+  test.pass()
   3.
 end
 
 p = noise()
-o = output.icecast(%wav,fallible=true,host="nonexistent",
-                    mount="test",on_error=on_error,p)
+o =
+  output.icecast(
+    %wav, fallible=true, host="nonexistent", mount="test", on_error=on_error, p
+  )

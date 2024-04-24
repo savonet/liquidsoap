@@ -15,6 +15,51 @@ close to production. Streaming issues can build up over time. We do our best to
 release the most stable possible code but problems can arise from many reasons
 so, always best to first to a trial run before putting things to production!
 
+## From 2.2.x to 2.3.x
+
+### Crossfade transitions and track marks
+
+Track marks can now be properly passed through crossfade transitions. This means that you also have to make sure
+that your transition function is fallible! For instance, this silly transition function:
+
+```liquidsoap
+def transition(_, _) =
+  blank(duration=2.)
+end
+```
+
+Will never terminate!
+
+Typically, to insert a jingle you would do:
+
+```liquidsoap
+def transition(old, new) =
+  sequence([old.source, single("/path/to/jingle.mp3"), new.source])
+end
+```
+
+### Replaygain
+
+- There is a new `metadata.replaygain` function that extracts the replay gain value in _dB_ from the metadata.
+  It handles both `r128_track_gain` and `replaygain_track_gain` internally and returns a single unified gain value.
+
+- The `file.replaygain` function now takes a new compute parameter:
+  `file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name)`.
+  The compute parameter determines if gain should be calculated when the metadata does not already contain replaygain tags.
+
+- The `enable_replaygain_metadata` function now accepts a compute parameter to control replaygain calculation.
+
+- The `replaygain` function no longer takes an `ebu_r128` parameter. The signature is now simply: `replaygain(~id=null(), s)`.
+  Previously, `ebu_r128` allowed controlling whether EBU R128 or standard replaygain was used.
+  However, EBU R128 data is now extracted directly from metadata when available.
+  So `replaygain` cannot control the gain type via this parameter anymore.
+
+### `check_next`
+
+`check_next` in playlist operators is now called _before_ the request is resolved, to make it possible to cut out
+unwanted requests before consuming process time. If you need to see the request's metadata or if the request resolves
+into a valid tile, however, you might need to call `request.resolve` inside your `check_next` script.
+
 ## From 2.1.x to 2.2.x
 
 ### References
@@ -37,6 +82,18 @@ We applied the following changes:
 - Cleaned up and removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
 - Made `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
 
+### HLS events
+
+Starting with version `2.2.1`, on HLS outputs, `on_file_change` events are now `"created"`, `"updated"` and `"deleted"`. This breaking
+was required to reflect the fact that file changes are now atomic. See [this issue](https://github.com/savonet/liquidsoap/issues/3284)
+for more details.
+
+### `cue_cut`
+
+Starting with version `2.2.4`, the `cue_cut` operator has been removed. Requests cue-in and cue-out processing has been integrated
+directly into requests resolution. In most cases, you simply can remove the operator from your script. In some cases, you might
+need to disable `cue_in_metadata` and `cue_out_metadat` either when creating new requests or when creating `playlist` sources.
+
 ### Harbor HTTP server and SSL support
 
 The API for registering HTTP server endpoint and using SSL was completely rewritten. It should be more flexible and
@@ -53,61 +110,6 @@ a number of seconds.
 In most cases, your script will not execute until you have updated your custom `timeout`
 values but you should also review all of them to make sure that they follow the new
 convention.
-
-### `reopen_*` arguments in `output.file` and similar
-
-The `reopen_*` arguments have been unified in `output.file`, `output.pipe` and similar operators. Instead
-of 3 different arguments for metadata, errors and regular reloads, which was making the logic pretty hard to
-understand, now a single `should_reload` callback is given.
-
-The callback receives two optional arguments, `metadata` and `error` and is called in 3 different conditions:
-
-- When a new metadata comes up, in which case the `metadata` argument is present
-- When an error occurs, in which case the `error` argument is present
-- As the stream is playing unless a reopen is already scheduled, in which case both `metadata` and `error` arguments are `null`
-
-Each time that the callback is executed, if it returns a positive `float` number, then a reload is scheduled
-after that value (in seconds) has passed.
-
-For instance, to reload after `2.` seconds on errors and immediately on `metadata` but never otherwise, you can do:
-
-```liquidsoap
-def should_reload(~metadata, ~error) =
-  if null.defined(error) then
-    print("Reloading on error: #{error}")
-    2.
-  elsif null.defined(metadata) then
-    print("Reloading on metadata")
-    0.
-  else
-    null()
-  end
-end
-```
-
-Another use-case is to reload on top of each hour and do nothing on `metadata` or `error`. This can be a little more tricky because the callback
-is called on every audio frame so several times per seconds. To prevent multiple reloads in a row, we block
-all reloads after the first one until minute `00` has passed:
-
-```liquidsoap
-# Use a ref to reload only once on minute 00:
-has_reloaded = ref(false)
-
-def should_reload(~metadata, ~restart) =
-  if null.defined(metadata) or null.defined(restart) then
-    null()
-  elsif 00m and not has_reloaded() then
-    has_reloaded := true
-    0.
-  else
-    if not 00m then
-      # Reset has_reloaded
-      has_reloaded := false
-    end
-    null()
-  end
-end
-```
 
 ### Metadata overrides
 
@@ -179,7 +181,9 @@ output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 
 ### Other breaking changes
 
+- `reopen_on_error` and `reopen_on_metadata` in `output.file` an related outputs are now callbacks.
 - `request.duration` now returns a `nullable` float, `null` being value returned when the request duration could not be computed.
+- `getenv` (resp. `setenv`) has been renamed to `environment.get` (resp. `environment.set`).
 
 ## From 2.0.x to 2.1.x
 

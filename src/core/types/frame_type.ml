@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -118,13 +118,15 @@ let content_type frame_type =
     List.fold_left
       (fun (content_type, resolved_frame_type)
            ({ Type.meth = field; scheme = _, ty } as meth) ->
-        let format = Format_type.content_type ty in
-        let format_type = Type.make (Format_type.descr (`Format format)) in
-        ( Frame.Fields.add (Frame.Fields.register field) format content_type,
-          Type.make
-            (Type.Meth
-               ( { meth with Type.scheme = ([], format_type) },
-                 resolved_frame_type )) ))
+        try
+          let format = Format_type.content_type ty in
+          let format_type = Type.make (Format_type.descr (`Format format)) in
+          ( Frame.Fields.add (Frame.Fields.register field) format content_type,
+            Type.make
+              (Type.Meth
+                 ( { meth with Type.scheme = ([], format_type) },
+                   resolved_frame_type )) )
+        with Format_type.Never_type -> (content_type, resolved_frame_type))
       (Frame.Fields.empty, Type.make Type.unit)
       meths
   in

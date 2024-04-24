@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -110,12 +110,12 @@ let lazy_config_eval = ref false
 let delayed_eval = Queue.create ()
 
 let delayed f =
-  let ret = lazy (f ()) in
+  let ret = Lazy.from_fun f in
   Queue.push (fun () -> ignore (Lazy.force ret)) delayed_eval;
   ret
 
 let () =
-  Lifecycle.after_script_parse (fun () ->
+  Lifecycle.after_script_parse ~name:"frame settings eval" (fun () ->
       Queue.iter (fun f -> f ()) delayed_eval)
 
 let delayed_conf ~to_string x =
@@ -188,6 +188,7 @@ let main_of_video v = v * !!m_o_v
 let main_of_midi = main_of_audio
 let audio_of_main m = match !!m_o_a with 0 -> 0 | x -> m / x
 let video_of_main m = match !!m_o_v with 0 -> 0 | x -> m / x
+let video_of_main_f m = match !!m_o_v with 0 -> 0. | x -> float m /. float x
 
 (* TODO: for now MIDI rate is the same as audio rate. *)
 let midi_of_main = audio_of_main
@@ -207,42 +208,19 @@ let size =
       let audio = !!audio_rate in
       let video = !!video_rate in
       let main = !!main_rate in
-      let granularity =
-        match (audio, video) with
-          | 0, 0 -> assert false (* main_rate would error before this. *)
-          | audio, 0 -> main / audio
-          | 0, video -> main / video
-          | audio, video -> lcm (main / audio) (main / video)
-      in
-      let target =
-        log#important "Using %dHz audio, %dHz video, %dHz main." audio video
-          main;
-        log#important "Video frame size set to: %dx%d" conf_video_width#get
-          conf_video_height#get;
+      log#important "Using %dHz audio, %dHz video, %dHz main." audio video main;
+      log#important "Video frame size set to: %dx%d" conf_video_width#get
+        conf_video_height#get;
+      try
+        let size = main_of_audio conf_audio_size#get in
         log#important
-          "Frame size must be a multiple of %d ticks = %d audio samples = %d \
-           video samples."
-          granularity
-          (audio_of_main granularity)
-          (video_of_main granularity);
-        try
-          let d = conf_audio_size#get in
-          log#important
-            "Targeting 'frame.audio.size': %d audio samples = %d ticks." d
-            (main_of_audio d);
-          main_of_audio d
-        with Conf.Undefined _ ->
-          log#important
-            "Targeting 'frame.duration': %.2fs = %d audio samples = %d ticks."
-            conf_duration#get
-            (audio_of_seconds conf_duration#get)
-            (main_of_seconds conf_duration#get);
-          main_of_seconds conf_duration#get
-      in
-      let s = upper_multiple granularity (max 1 target) in
-      log#important
-        "Frames last %.2fs = %d audio samples = %d video samples = %d ticks."
-        (seconds_of_main s) (audio_of_main s) (video_of_main s) s;
-      s)
+          "Targeting 'frame.audio.size': %d audio samples = %d ticks = %.2fs."
+          conf_audio_size#get size (seconds_of_main size);
+        size
+      with Conf.Undefined _ ->
+        let size = main_of_seconds conf_duration#get in
+        log#important "Targeting 'frame.duration': %.2fs = %d ticks."
+          conf_duration#get size;
+        size)
 
 let duration = delayed (fun () -> float !!size /. float !!main_rate)

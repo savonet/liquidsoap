@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-   Liquidsoap, a programmable audio stream generator.
-   Copyright 2003-2023 Savonet team
+   Liquidsoap, a programmable stream generator.
+   Copyright 2003-2024 Savonet team
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ let mk_decoder ~stream_idx ~stream_time_base ~mk_packet ~put_data params =
               } ))
           packets
       in
-      let data = { Ffmpeg_content_base.params = Some params; data; length } in
+      let data = { Content.Video.params = Some params; data; length } in
       let data = Ffmpeg_copy_content.lift_data data in
       put_data buffer.Decoder.generator data
     with Empty | Corrupt (* Might want to change that later. *) -> ()

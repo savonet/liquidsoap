@@ -4,7 +4,9 @@
 # @category System
 def environment.get(~default="", s) =
   env = environment()
-  if not list.assoc.mem(s, env) then
+  if
+    not list.assoc.mem(s, env)
+  then
     default
   else
     list.assoc(default=default, s, env)
@@ -20,12 +22,13 @@ end
 def url.split_args(args) =
   def f(x) =
     ret = r/=/.split(x)
-    arg = url.decode(list.nth(default="",ret,0))
-    val = url.decode(list.nth(default="",ret,1))
-    (arg,val)
+    arg = url.decode(list.nth(default="", ret, 0))
+    val = url.decode(list.nth(default="", ret, 1))
+    (arg, val)
   end
+
   l = r/&/.split(args)
-  list.map(f,l)
+  list.map(f, l)
 end
 
 # Split an url of the form `foo?arg=bar&arg2=bar2` into
@@ -36,10 +39,12 @@ end
 def url.split(uri) =
   ret = r/(?<uri>[^\?]*)\?(?<args>.*)/.exec(uri).groups
   args = ret["args"]
-  if args != "" then
-    (url.decode(ret["uri"]),url.split_args(args))
+  if
+    args != ""
+  then
+    (url.decode(ret["uri"]), url.split_args(args))
   else
-    (url.decode(uri),[])
+    (url.decode(uri), [])
   end
 end
 
@@ -47,13 +52,24 @@ end
 # @category Programming
 def memoize(fn) =
   cached_result = ref([])
-  fun () -> begin
-    if cached_result() != [] then
-      list.hd(cached_result())
-    else
-      result = fn()
-      cached_result := [result]
-      result
+  fun () ->
+    begin
+      if
+        cached_result() != []
+      then
+        list.hd(cached_result())
+      else
+        result = fn()
+        cached_result := [result]
+        result
+      end
     end
-  end
+end
+
+let duration = ()
+
+# Convert a duration in seconds to hour/minutes/seconds
+# @category Time
+def duration.split(d) =
+  {hours=d / 3600, minutes=(d / 60) mod 60, seconds=(d mod 60)}
 end

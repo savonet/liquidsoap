@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,36 +29,37 @@ exception Error of string
 
 let log = Log.make ["annotate"]
 
-let parse s =
-  let lexbuf = Sedlexing.Utf8.from_string s in
-  try
-    let processor =
-      MenhirLib.Convert.Simplified.traditional2revised
-        Liquidsoap_lang.Parser.annotate
-    in
-    let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf in
-    let metadata = processor tokenizer in
-    let b = Buffer.create 10 in
-    let rec f () =
-      match Sedlexing.next lexbuf with
-        | Some c ->
-            Buffer.add_utf_8_uchar b c;
-            f ()
-        | None -> Buffer.contents b
-    in
-    (metadata, f ())
-  with _ ->
-    let startp, endp = Sedlexing.loc lexbuf in
-    let err = Printf.sprintf "Char %d-%d: Syntax error" startp endp in
-    log#info "Error while parsing annotate URI %s: %s"
-      (Lang_string.quote_string s)
-      err;
-    raise (Error err)
+let parse =
+  let processor =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Liquidsoap_lang.Parser.annotate
+  in
+  fun s ->
+    let lexbuf = Sedlexing.Utf8.from_string s in
+    try
+      let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
+      let metadata = processor tokenizer in
+      let b = Buffer.create 10 in
+      let rec f () =
+        match Sedlexing.next lexbuf with
+          | Some c ->
+              Buffer.add_utf_8_uchar b c;
+              f ()
+          | None -> Buffer.contents b
+      in
+      (metadata, f ())
+    with _ ->
+      let startp, endp = Sedlexing.loc lexbuf in
+      let err = Printf.sprintf "Char %d-%d: Syntax error" startp endp in
+      log#info "Error while parsing annotate URI %s: %s"
+        (Lang_string.quote_string s)
+        err;
+      raise (Error err)
 
 let annotate s ~log _ =
   try
     let metadata, uri = parse s in
-    [Request.indicator ~metadata:(Utils.hashtbl_of_list metadata) uri]
+    [Request.indicator ~metadata:(Frame.Metadata.from_list metadata) uri]
   with Error err ->
     log err;
     []

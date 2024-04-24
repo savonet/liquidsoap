@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ module type Custom = sig
   val is_descr : Type_base.descr -> bool
 end
 
-module Make (S : Spec) : Custom
+module Make (_ : Spec) : Custom
 module Int : Custom
 
 val int : Type_base.descr

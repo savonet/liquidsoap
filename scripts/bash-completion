@@ -28,7 +28,7 @@ _liquidsoap()
             ;;
 
         *)
-            _liquidsoap_reply+=("-c --check --list-settings -d --daemon --debug -h --help -i --interactive --list-functions --list-functions-md --list-extra-functions-md --list-plugins --list-protocols-md --no-stdlib --parse-only --profile --quiet -r --strict --version -v --verbose")
+            _liquidsoap_reply+=("-c --check --list-settings -d --daemon --debug -h --help -i --interactive --list-functions --list-functions-md --list-extra-functions-md --list-plugins --list-protocols-md --no-stdlib --parse-only --profile --quiet -r --strict --unsafe --version -v --verbose")
             compgen_opt+=(-o filenames -f)
             ;;
     esac

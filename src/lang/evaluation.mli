@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,4 +27,10 @@ val eval : ?env:(string * Value.t) list -> Term.t -> Value.t
 val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
 
 (** Apply a function to arguments. *)
-val apply : ?pos:Pos.t -> Value.t -> (string * Value.t) list -> Value.t
+val apply : ?pos:Pos.t list -> Value.t -> (string * Value.t) list -> Value.t
+
+(** Register a function to be executed after the next runtime evaluation completes. *)
+val on_after_eval : (unit -> unit) -> unit
+
+(** Execute a function then run all the [after_eval] callbacks. *)
+val after_eval : ?force:bool -> (unit -> 'a) -> 'a

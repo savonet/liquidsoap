@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -54,6 +54,7 @@ module ErrorDef = struct
       "json"
 
   let compare = Stdlib.compare
+  let comparison_op = None
 end
 
 module Error = struct
@@ -116,7 +117,8 @@ let _ =
     ~descr:
       "Register a callback to monitor errors raised during the execution of \
        the program. The callback is allow to re-raise a different error if \
-       needed."
+       needed. The callback passed to this function is called on every errors, \
+       not just uncaught errors."
     [("", Lang_core.fun_t [(false, "", Error.t)] Lang_core.unit_t, None, None)]
     Lang_core.unit_t
     (fun p ->

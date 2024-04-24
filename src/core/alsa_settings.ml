@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,6 +22,14 @@
 
 (** Alsa related settings *)
 
+module SyncSource = Clock.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "alsa"
+end)
+
+let sync_source = SyncSource.make ()
+
 (** ALSA should be quiet *)
 let () = Alsa.no_stderr_report ()
 
@@ -37,12 +45,6 @@ let error_translator e =
 let () = Printexc.register_printer error_translator
 let conf = Dtools.Conf.void ~p:(Configure.conf#plug "alsa") "ALSA configuration"
 
-let conf_buffer_length =
-  Dtools.Conf.int
-    ~p:(conf#plug "buffer_length")
-    ~d:1 "Buffer size, in frames"
-    ~comments:["This is only used for buffered ALSA I/O, and affects latency."]
-
 let periods =
   Dtools.Conf.int ~p:(conf#plug "periods") ~d:0 "Number of periods"
     ~comments:["Set to 0 to disable this setting and use ALSA's default."]
@@ -54,8 +56,3 @@ let alsa_buffer =
         "This setting is only used in buffered alsa I/O, and affects latency.";
         "Set to 0 to disable this setting and use ALSA's default.";
       ]
-
-(** A dedicated clock for all ALSA I/O operators, to make sure other
-  * blocking I/O inteferes with them. In the future, we might even want
-  * to have different clocks for different ALSA devices. *)
-let get_clock = Tutils.lazy_cell (fun () -> Clock.clock "alsa")

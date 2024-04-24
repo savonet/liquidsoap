@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,35 +28,34 @@ open Source
 class comb ~field (source : source) delay feedback =
   let past_len = Frame.audio_of_seconds delay in
   object (self)
-    inherit operator ~name:"comb" [source] as super
-    method stype = source#stype
+    inherit operator ~name:"comb" [source]
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable past = Audio.make 0 0 0.
 
-    method! private wake_up s =
-      super#wake_up s;
-      past <- Audio.make self#audio_channels past_len 0.
+    initializer
+      self#on_wake_up (fun () ->
+          past <- Audio.make self#audio_channels past_len 0.)
 
     val mutable past_pos = 0
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = Content.Audio.get_data (Frame.get buf field) in
-      let position = AFrame.position buf in
+    method private generate_frame =
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
+      let position = source#frame_audio_position in
       let feedback = feedback () in
-      for i = offset to position - 1 do
+      for i = 0 to position - 1 do
         for c = 0 to Array.length b - 1 do
           let oldin = b.(c).(i) in
           b.(c).(i) <- b.(c).(i) +. (past.(c).(past_pos) *. feedback);
           past.(c).(past_pos) <- oldin
         done;
         past_pos <- (past_pos + 1) mod past_len
-      done
+      done;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =

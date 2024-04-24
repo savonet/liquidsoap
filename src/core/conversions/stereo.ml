@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,11 +38,10 @@ class basic ~field source =
 
     inherit
       Conversion.base
-        ~audio:true source
-        ~converter:(fun ~frame tmp_frame ->
+        ~converter:(fun frame ->
           (* Set audio layer. *)
           let audio =
-            match Content.Audio.get_data (Frame.get tmp_frame field) with
+            match Content.Audio.get_data (Frame.get frame field) with
               | [||] ->
                   let len = AFrame.size () in
                   let buf = Audio.Mono.create len in
@@ -51,7 +50,8 @@ class basic ~field source =
               | [| chan |] -> [| chan; chan |]
               | audio -> Array.sub audio 0 2
           in
-          Frame.set frame field (Content.Audio.lift_data audio))
+          Frame.set_data frame field Content.Audio.lift_data audio)
+        source
   end
 
 let stereo =

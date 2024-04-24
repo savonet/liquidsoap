@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,13 +38,13 @@ let remove_first filter =
 let rec eval_pat pat v =
   let rec aux env pat v =
     match (pat, v) with
-      | PVar x, v -> (x, v) :: env
-      | PTuple pl, { Value.value = Value.Tuple l } ->
+      | `PVar x, v -> (x, v) :: env
+      | `PTuple pl, { Value.value = Value.Tuple l } ->
           List.fold_left2 aux env pl l
       (* The parser parses [x,y,z] as PList ([], None, l) *)
-      | ( PList (([] as l'), (None as spread), l),
+      | ( `PList (([] as l'), (None as spread), l),
           { Value.value = Value.List lv; pos } )
-      | PList (l, spread, l'), { Value.value = Value.List lv; pos } ->
+      | `PList (l, spread, l'), { Value.value = Value.List lv; pos } ->
           let ln = List.length l in
           let ln' = List.length l' in
           let lvn = List.length lv in
@@ -82,7 +82,7 @@ let rec eval_pat pat v =
           @ spread_env @ env
           @ List.fold_left2 aux [] l ll
           @ env
-      | PMeth (pat, l), _ ->
+      | `PMeth (pat, l), _ ->
           let m, v = Value.split_meths v in
           let fields = List.map fst l in
           let v =
@@ -95,8 +95,20 @@ let rec eval_pat pat v =
           let env = match pat with None -> env | Some pat -> aux env pat v in
           List.fold_left
             (fun env (lbl, pat) ->
-              let v = List.assoc lbl m in
-              (match pat with None -> [] | Some pat -> eval_pat pat v)
+              let v =
+                try List.assoc lbl m
+                with Not_found when pat = `Nullable ->
+                  Value.
+                    {
+                      pos = v.Value.pos;
+                      value = Null;
+                      methods = Methods.empty;
+                      id = Value.id ();
+                    }
+              in
+              (match pat with
+                | `None | `Nullable -> []
+                | `Pattern pat -> eval_pat pat v)
               @ [([lbl], v)]
               @ env)
             env l
@@ -149,15 +161,20 @@ let rec prepare_fun fv ~eval_check p env =
   let p =
     List.map
       (function
-        | lbl, var, _, Some v -> (lbl, var, Some (eval ~eval_check env v))
-        | lbl, var, _, None -> (lbl, var, None))
+        | { label; as_variable; default = Some v } ->
+            ( label,
+              Option.value ~default:label as_variable,
+              Some (eval ~eval_check env v) )
+        | { label; as_variable; default = None } ->
+            (label, Option.value ~default:label as_variable, None))
       p
   in
   (* Keep only once the variables we might use in the environment. *)
   let env = Env.restrict env fv in
   (p, env)
 
-and apply ?pos ~eval_check f l =
+and apply ?(pos = []) ~eval_check f l =
+  let apply_pos = match pos with [] -> None | p :: _ -> Some p in
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match f.Value.value with
@@ -166,7 +183,7 @@ and apply ?pos ~eval_check f l =
             fun pe ->
               let env = Env.adds e pe in
               eval ~eval_check env body )
-      | Value.FFI (p, f) -> (p, fun pe -> f (List.rev pe))
+      | Value.FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
   in
   (* Record error positions. *)
@@ -175,12 +192,12 @@ and apply ?pos ~eval_check f l =
       | Runtime_error.Runtime_error err ->
           let bt = Printexc.get_raw_backtrace () in
           Runtime_error.raise ~bt
-            ~pos:(Option.to_list pos @ err.pos)
+            ~pos:(Option.to_list apply_pos @ err.pos)
             ~message:err.Runtime_error.msg err.Runtime_error.kind
       | Internal_error (poss, e) ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace
-            (Internal_error (Option.to_list pos @ poss, e))
+            (Internal_error (Option.to_list apply_pos @ poss, e))
             bt
   in
   (* Provide given arguments. *)
@@ -203,53 +220,52 @@ and apply ?pos ~eval_check f l =
              with the mount/name params of output.icecast.*, the printing of
              the error should succeed at getting a position information. *)
           let v = Option.get v in
-          { v with Value.pos } )
+          { v with Value.pos = apply_pos } )
         :: pe)
       pe p
   in
   (* Add position *)
-  let pe =
-    pe
-    @ [
-        ( Lang_core.pos_var,
-          Lang_core.Stacktrace.to_value
-            (match pos with None -> [] | Some p -> [p]) );
-      ]
-  in
+  let pe = pe @ [(Lang_core.pos_var, Lang_core.Stacktrace.to_value pos)] in
   let v = f pe in
   (* Similarly here, the result of an FFI call should have some position
      information. For example, if we build a fallible source and pass it to an
      operator that expects an infallible one, an error is issued about that
      FFI-made value and a position is needed. *)
-  { v with Value.pos }
+  { v with Value.pos = apply_pos }
 
 and eval_base_term ~eval_check (env : Env.t) tm =
   let mk v =
-    Value.{ pos = tm.t.Type.pos; value = v; methods = Methods.empty }
+    Value.
+      {
+        pos = tm.t.Type.pos;
+        value = v;
+        methods = Methods.empty;
+        id = Value.id ();
+      }
   in
   match tm.term with
-    | Any -> mk Value.Null
-    | Ground g -> mk (Value.Ground g)
-    | Encoder (e, p) ->
+    | `Ground g -> mk (Value.Ground g)
+    | `Encoder (e, p) ->
         let pos = tm.t.Type.pos in
         let rec eval_param p =
           List.map
-            (fun (l, t) ->
-              ( l,
-                match t with
-                  | `Term t -> `Value (eval ~eval_check env t)
-                  | `Encoder (l, p) -> `Encoder (l, eval_param p) ))
+            (fun t ->
+              match t with
+                | `Anonymous s -> `Anonymous s
+                | `Labelled (l, t) -> `Labelled (l, eval ~eval_check env t)
+                | `Encoder (l, p) -> `Encoder (l, eval_param p))
             p
         in
         let p = eval_param p in
         !Hooks.make_encoder ~pos tm (e, p)
-    | List l -> mk (Value.List (List.map (eval ~eval_check env) l))
-    | Tuple l -> mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
-    | Null -> mk Value.Null
-    | Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
-    | Invoke { invoked = t; default; meth } -> (
+    | `List l -> mk (Value.List (List.map (eval ~eval_check env) l))
+    | `Tuple l ->
+        mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
+    | `Null -> mk Value.Null
+    | `Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
+    | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
-        match (Value.Methods.find_opt meth v.Value.methods, default) with
+        match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
           (* If method returns `null` and a default is provided, pick default. *)
           | Some Value.{ value = Null; methods }, Some default
             when Methods.is_empty methods ->
@@ -261,7 +277,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                 (Internal_error
                    ( Option.to_list tm.t.Type.pos,
                      "invoked method `" ^ meth ^ "` not found" )))
-    | Open (t, u) ->
+    | `Open (t, u) ->
         let t = eval ~eval_check env t in
         let env =
           Methods.fold
@@ -269,7 +285,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
             t.Value.methods env
         in
         eval ~eval_check env u
-    | Let { pat; replace; def = v; body = b; _ } ->
+    | `Let { pat; replace; def = v; body = b; _ } ->
         let v = eval ~eval_check env v in
         let penv =
           List.map
@@ -312,29 +328,43 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         in
         let env = Env.adds_lazy env penv in
         eval ~eval_check env b
-    | Fun (fv, p, body) ->
-        let p, env = prepare_fun ~eval_check fv p env in
-        mk (Value.Fun (p, env, body))
-    | RFun (x, fv, p, body) ->
-        let p, env = prepare_fun ~eval_check fv p env in
+    | `Fun ({ name; arguments; body } as p) ->
+        let fv = Term.free_fun_vars p in
+        let p, env = prepare_fun ~eval_check fv arguments env in
         let rec v () =
-          let env = Env.add_lazy env x (Lazy.from_fun v) in
+          let env =
+            match name with
+              | None -> env
+              | Some name -> Env.add_lazy env name (Lazy.from_fun v)
+          in
           mk (Value.Fun (p, env, body))
         in
         v ()
-    | Var var -> Env.lookup env var
-    | Seq (a, b) ->
+    | `Var var -> Env.lookup env var
+    | `Seq (a, b) ->
         ignore (eval ~eval_check env a);
         eval ~eval_check env b
-    | App (f, l) ->
+    | `App (f, l) ->
         let ans () =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
-          apply ?pos:tm.t.Type.pos ~eval_check f l
+          let pos =
+            match tm.t.Type.pos with
+              | None -> []
+              | Some p ->
+                  p
+                  ::
+                  (try
+                     List.map Lang_core.Position.of_value
+                       (Lang_core.to_list
+                          (Lazy.force (List.assoc Lang_core.pos_var env)))
+                   with _ -> [])
+          in
+          apply ~pos ~eval_check f l
         in
         if !profile then (
           match f.term with
-            | Var fname -> Profiler.time fname ans ()
+            | `Var fname -> Profiler.time fname ans ()
             | _ -> ans ())
         else ans ()
 
@@ -484,13 +514,13 @@ let toplevel_add ?doc pat ~t v =
 
 let rec eval_toplevel ?(interactive = false) t =
   match t.term with
-    | Let { doc; gen = generalized; replace; pat; def; body } ->
+    | `Let { doc; gen = generalized; replace; pat; def; body } ->
         let def_t, def =
           if not replace then (def.t, eval def)
           else (
             match pat with
-              | PVar [] -> assert false
-              | PVar (x :: l) ->
+              | `PVar [] -> assert false
+              | `PVar (x :: l) ->
                   let old_t, old =
                     ( List.assoc x (Environment.default_typing_environment ()),
                       List.assoc x (Environment.default_environment ()) )
@@ -499,7 +529,7 @@ let rec eval_toplevel ?(interactive = false) t =
                   let old_t = snd (Type.invokes old_t l) in
                   let old = Value.invokes old l in
                   (Type.remeth old_t def.t, Value.remeth old (eval def))
-              | PMeth _ | PList _ | PTuple _ ->
+              | `PMeth _ | `PList _ | `PTuple _ ->
                   failwith "TODO: cannot replace toplevel patterns for now")
         in
         toplevel_add ?doc pat ~t:(generalized, def_t) def;
@@ -512,7 +542,7 @@ let rec eval_toplevel ?(interactive = false) t =
             (fun f t -> Repr.print_scheme f (generalized, t))
             def_t (Value.to_string def);
         eval_toplevel ~interactive body
-    | Seq (a, b) ->
+    | `Seq (a, b) ->
         ignore
           (let v = eval_toplevel a in
            if v.Value.pos = None then { v with Value.pos = a.t.Type.pos } else v);
@@ -522,3 +552,59 @@ let rec eval_toplevel ?(interactive = false) t =
         if interactive && t.term <> unit then
           Format.printf "- : %a = %s@." Repr.print_type t.t (Value.to_string v);
         v
+
+(* Wrap all eval around after_eval *)
+
+module Queue = Queues.Queue
+open Effect
+open Effect.Deep
+
+type _ Effect.t +=
+  | After_run_lock : unit -> bool t
+  | After_run : (unit -> unit) -> unit t
+
+let on_after_eval fn = perform (After_run fn)
+
+let[@inline] after_eval ?(force = false) fn =
+  let after_eval_locked =
+    force
+    || try perform (After_run_lock ()) with Stdlib.Effect.Unhandled _ -> true
+  in
+  if after_eval_locked then (
+    let after_eval_queue = Queue.create () in
+    let fn () =
+      let v = fn () in
+      Queue.flush after_eval_queue (fun fn -> fn ());
+      v
+    in
+    match_with fn ()
+      {
+        retc = (fun v -> v);
+        effc =
+          (fun (type a) (eff : a t) ->
+            match eff with
+              | After_run_lock () ->
+                  Some (fun (k : (a, _) continuation) -> continue k false)
+              | After_run fn ->
+                  Queue.push after_eval_queue fn;
+                  Some (fun (k : (a, _) continuation) -> continue k ())
+              | _ -> None);
+        exnc =
+          (fun exn ->
+            let bt = Printexc.get_raw_backtrace () in
+            Queue.flush after_eval_queue (fun fn -> try fn () with _ -> ());
+            Printexc.raise_with_backtrace exn bt);
+      })
+  else fn ()
+
+let eval ?env term =
+  let[@inline] fn () = eval ?env term in
+  after_eval fn
+
+let eval_toplevel ?interactive term =
+  let[@inline] fn () = eval_toplevel ?interactive term in
+  after_eval fn
+
+let apply ?pos f p =
+  let[@inline] fn () = apply ?pos f p in
+  after_eval fn

@@ -8,30 +8,50 @@ let () =
           x
        end
      end *)
-  let _if = Term.make (Term.Var "if") in
-  let x = Term.make (Term.Var "x") in
-  let _false () = Term.make (Term.Ground (Term.Ground.Bool false)) in
+  let _if = Term.make (`Var "if") in
+  let x = Term.make (`Var "x") in
+  let _false () = Term.make (`Ground (Term.Ground.Bool false)) in
   let cond =
     Term.make
-      (Term.Invoke
-         { Term.invoked = x; default = Some (_false ()); meth = "foo" })
+      (`Invoke
+        { Term.invoked = x; invoke_default = Some (_false ()); meth = "foo" })
   in
   let _then =
     Term.make
-      (Term.Fun
-         ( Term.Vars.empty,
-           [],
-           Term.{ x with methods = Methods.add "foo" (_false ()) Methods.empty }
-         ))
+      (`Fun
+        {
+          Term.name = None;
+          arguments = [];
+          body =
+            Term.make ~t:x.Term.t
+              ~methods:(Term.Methods.add "foo" (_false ()) Term.Methods.empty)
+              x.Term.term;
+          free_vars = None;
+        })
   in
-  let _else = Term.make (Term.Fun (Term.Vars.empty, [], x)) in
+  let _else =
+    Term.make
+      (`Fun { Term.name = None; arguments = []; body = x; free_vars = None })
+  in
   let f =
     Term.make
-      (Term.Fun
-         ( Term.Vars.empty,
-           [("x", "x", Type.var (), None)],
-           Term.make
-             (Term.App (_if, [("", cond); ("then", _then); ("else", _else)])) ))
+      (`Fun
+        {
+          Term.free_vars = None;
+          name = None;
+          arguments =
+            [
+              {
+                Term.label = "x";
+                as_variable = None;
+                typ = Type.var ();
+                default = None;
+              };
+            ];
+          body =
+            Term.make
+              (`App (_if, [("", cond); ("then", _then); ("else", _else)]));
+        })
   in
   Typechecking.check ~throw:(fun exn -> raise exn) f;
   match (Type.deref f.Term.t).Type.descr with
@@ -41,3 +61,32 @@ let () =
           | [{ Type.meth = "foo"; optional = true; _ }] -> ()
           | _ -> assert false)
     | _ -> assert false
+
+exception Failed
+
+let () =
+  (* term = (1 : int.{opt?: string}).foo *)
+  let typ = Type.meth ~optional:true "opt" ([], Lang.string_t) Lang.int_t in
+  let term =
+    {
+      Term.t = typ;
+      term = `Ground (Term.Ground.Int 1);
+      methods = Term.Methods.empty;
+      id = 123;
+    }
+  in
+  let invoke =
+    {
+      Term.t = Lang.univ_t ();
+      term =
+        `Invoke { Term.invoked = term; invoke_default = None; meth = "opt" };
+      methods = Term.Methods.empty;
+      id = 234;
+    }
+  in
+  try
+    Typechecking.check ~throw:(fun exn -> raise exn) invoke;
+    raise Failed
+  with
+    | Failed -> raise Failed
+    | _ -> ()

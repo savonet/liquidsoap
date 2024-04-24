@@ -1,7 +1,24 @@
 (executable
  (name liquidsoap)
  (public_name liquidsoap)
- (package liquidsoap)
+ (package liquidsoap-core)
  (link_flags -cclib %{env:LDFLAGS=})
  (libraries liquidsoap_runtime)
  (modules liquidsoap))
+
+(rule
+ (target liquidsoap-macos-instruments.exe)
+ (enabled_if %{bin-available:codesign})
+ (deps ./liquidsoap.exe ./instruments.plist)
+ (action
+  (progn
+   (copy ./liquidsoap.exe ./liquidsoap-macos-instruments.exe)
+   (run
+    codesign
+    -s
+    -
+    -v
+    -f
+    --entitlements
+    instruments.plist
+    liquidsoap-macos-instruments.exe))))

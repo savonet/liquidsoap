@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,15 +42,13 @@ include MkContentBase (Specs)
 
 let kind = lift_kind `Pcm_s16
 let clear = Content_pcm_base.clear_content ~v:0
-let max_int16 = 32767.
-let to_value v = int_of_float (v *. max_int16)
-let of_value v = float v /. max_int16
+let from_audio c = Mm.Audio.to_int16_ba c 0 (Mm.Audio.length c)
+let to_audio = Mm.Audio.of_int16_ba
 
-let from_audio =
-  Content_pcm_base.from_audio ~to_value ~fmt:Bigarray.int16_signed
+let blit_audio src src_ofs dst dst_ofs len =
+  Mm.Audio.copy_to_int16_ba src src_ofs len
+    (Array.map (fun dst -> Bigarray.Array1.sub dst dst_ofs len) dst)
 
-let to_audio = Content_pcm_base.to_audio ~of_value
-let blit_audio = Content_pcm_base.blit_audio ~to_value
 let channels_of_format = Content_pcm_base.channels_of_format ~get_params
 
 external amplify :

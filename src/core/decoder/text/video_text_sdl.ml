@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ let init () =
   Sdl_utils.check Tsdl_ttf.Ttf.init ()
 
 let get_font font size =
-  let font = if font = "" then Configure.default_font else font in
+  let font = if font = "" then Configure.conf_default_font#get else font in
   try Sdl_utils.check (Ttf.open_font font) size
   with e ->
     raise
@@ -39,17 +39,22 @@ let get_font font size =
 let render_text ~font ~size text =
   let text = if text = "" then " " else text in
   let font = get_font font size in
-  let white = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
   let ts =
-    Sdl_utils.check
-      (fun () -> Ttf.render_utf8_blended_wrapped font text white Int32.zero)
-      ()
+    Fun.protect
+      (fun () ->
+        let white = Sdl.Color.create ~r:0xff ~g:0xff ~b:0xff ~a:0xff in
+        Sdl_utils.check
+          (fun () -> Ttf.render_utf8_blended_wrapped font text white Int32.zero)
+          ())
+      ~finally:(fun () -> Ttf.close_font font)
   in
-  Ttf.close_font font;
-  let img = Sdl_utils.Surface.to_img ts in
+  let img =
+    Fun.protect
+      (fun () -> Sdl_utils.Surface.to_img ts)
+      ~finally:(fun () -> Sdl.free_surface ts)
+  in
   let w = Video.Image.width img in
   let h = Video.Image.height img in
-  Sdl.free_surface ts;
 
   (* TODO: improve performance *)
   let get_pixel x y =

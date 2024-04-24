@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,7 +20,100 @@
 
  *****************************************************************************)
 
-open Liquidsoap_lang.Lang
+module Lang = Liquidsoap_lang.Lang
+open Lang
+
+module Alive_values_map = Liquidsoap_lang.Active_value.Make (struct
+  type t = Value.t
+
+  let id v = v.Value.id
+end)
+
+module ClockValue = struct
+  include Value.MkAbstract (struct
+    type content = Clock.t
+
+    let name = "clock"
+    let descr = Clock.descr
+
+    let to_json ~pos _ =
+      Lang.raise_error ~message:"Clocks cannot be represented as json" ~pos
+        "json"
+
+    let compare = Stdlib.compare
+    let comparison_op = None
+  end)
+
+  let base_t = t
+  let to_base_value = to_value
+
+  let methods =
+    [
+      ( "id",
+        Lang.fun_t [] Lang.string_t,
+        "The clock's id",
+        fun c -> Lang.val_fun [] (fun _ -> Lang.string (Clock.id c)) );
+      ( "sync",
+        Lang.fun_t [] Lang.string_t,
+        "The clock's current sync mode. One of: `\"stopped\"`, `\"stopping\"`, \
+         `\"auto\"`, `\"CPU\"`, `\"unsynced\"` or `\"passive\"`.",
+        fun c ->
+          Lang.val_fun [] (fun _ ->
+              Lang.string Clock.(string_of_sync_mode (sync c))) );
+      ( "start",
+        Lang.fun_t [] Lang.unit_t,
+        "Start the clock.",
+        fun c ->
+          Lang.val_fun
+            [("", "", Some (Lang.string "auto"))]
+            (fun p ->
+              let pos = Lang.pos p in
+              try
+                Clock.start c;
+                Lang.unit
+              with Clock.Invalid_state ->
+                Runtime_error.raise
+                  ~message:
+                    (Printf.sprintf "Invalid clock state: %s"
+                       Clock.(string_of_sync_mode (sync c)))
+                  ~pos "clock") );
+      ( "stop",
+        Lang.fun_t [] Lang.unit_t,
+        "Stop the clock. Does nothing if the clock is stopping or stopped.",
+        fun c ->
+          Lang.val_fun [] (fun _ ->
+              Clock.stop c;
+              Lang.unit) );
+      ( "self_sync",
+        Lang.fun_t [] Lang.bool_t,
+        "`true` if the clock is in control of its latency.",
+        fun c -> Lang.val_fun [] (fun _ -> Lang.bool (Clock.self_sync c)) );
+      ( "unify",
+        Lang.fun_t [(false, "", base_t)] Lang.unit_t,
+        "Unify the clock with another one. One of the two clocks should be in \
+         `\"stopped\"` sync mode.",
+        fun c ->
+          Lang.val_fun
+            [("", "", None)]
+            (fun p ->
+              let pos = match Lang.pos p with p :: _ -> Some p | [] -> None in
+              let c' = of_value (List.assoc "" p) in
+              Clock.unify ~pos c c';
+              Lang.unit) );
+      ( "ticks",
+        Lang.fun_t [] Lang.int_t,
+        "The total number of times the clock has ticked.",
+        fun c -> Lang.val_fun [] (fun _ -> Lang.int (Clock.ticks c)) );
+    ]
+
+  let t =
+    Lang.method_t base_t
+      (List.map (fun (lbl, typ, descr, _) -> (lbl, ([], typ), descr)) methods)
+
+  let to_value c =
+    Lang.meth (to_base_value c)
+      (List.map (fun (lbl, _, _, v) -> (lbl, v c)) methods)
+end
 
 let log = Log.make ["lang"]
 let metadata_t = list_t (product_t string_t string_t)
@@ -32,15 +125,12 @@ let to_metadata_list t =
   in
   List.map pop (to_list t)
 
-let to_metadata t =
-  let t = to_metadata_list t in
-  let metas = Hashtbl.create 10 in
-  List.iter (fun (a, b) -> Hashtbl.add metas a b) t;
-  metas
+let to_metadata t = Frame.Metadata.from_list (to_metadata_list t)
 
-let metadata m =
-  list (Hashtbl.fold (fun k v l -> product (string k) (string v) :: l) m [])
+let metadata_list m =
+  list (List.map (fun (k, v) -> product (string k) (string v)) m)
 
+let metadata m = metadata_list (Frame.Metadata.to_list m)
 let metadata_track_t = Format_type.metadata
 let track_marks_t = Format_type.track_marks
 
@@ -48,7 +138,10 @@ module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
   type content = Source.source
 
   let name = "source"
-  let descr s = Printf.sprintf "<source#%s>" s#id
+
+  let descr s =
+    Printf.sprintf "<source(id=%s, frame_type=%s>" s#id
+      (Type.to_string s#frame_type)
 
   let to_json ~pos _ =
     Runtime_error.raise ~pos
@@ -56,6 +149,7 @@ module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
       "json"
 
   let compare s1 s2 = Stdlib.compare s1#id s2#id
+  let comparison_op = None
 end)
 
 let source_methods =
@@ -69,7 +163,7 @@ let source_methods =
       "Indicate if a source is ready to stream. This does not mean that the \
        source is currently streaming, just that its resources are all properly \
        initialized.",
-      fun s -> val_fun [] (fun _ -> bool s#is_ready) );
+      fun (s : Source.source) -> val_fun [] (fun _ -> bool s#is_ready) );
     ( "buffered",
       ([], fun_t [] (list_t (product_t string_t float_t))),
       "Length of buffered data.",
@@ -160,7 +254,7 @@ let source_methods =
     ( "self_sync",
       ([], fun_t [] bool_t),
       "Is the source currently controlling its own real-time loop.",
-      fun s -> val_fun [] (fun _ -> bool (snd s#self_sync)) );
+      fun s -> val_fun [] (fun _ -> bool (snd s#self_sync <> None)) );
     ( "log",
       ( [],
         record_t
@@ -203,7 +297,9 @@ let source_methods =
       "`true` if the source is active, i.e. it is continuously animated by its \
        own clock whenever it is ready. Typically, `true` for outputs and \
        sources such as `input.http`.",
-      fun s -> val_fun [] (fun _ -> bool s#is_active) );
+      fun s ->
+        val_fun [] (fun _ ->
+            bool (match s#source_type with `Passive -> false | _ -> true)) );
     ( "seek",
       ([], fun_t [(false, "", float_t)] float_t),
       "Seek forward, in seconds (returns the amount of time effectively \
@@ -226,22 +322,23 @@ let source_methods =
     ( "fallible",
       ([], bool_t),
       "Indicate if a source may fail, i.e. may not be ready to stream.",
-      fun s -> bool (s#stype = `Fallible) );
+      fun s -> bool s#fallible );
+    ( "clock",
+      ([], ClockValue.base_t),
+      "The source's clock",
+      fun s -> ClockValue.to_base_value s#clock );
     ( "time",
       ([], fun_t [] float_t),
       "Get a source's time, based on its assigned clock.",
       fun s ->
         val_fun [] (fun _ ->
-            let ticks =
-              if Source.Clock_variables.is_known s#clock then
-                (Source.Clock_variables.get s#clock)#get_tick
-              else 0
-            in
+            let ticks = Clock.ticks s#clock in
             let frame_position =
               Lazy.force Frame.duration *. float_of_int ticks
             in
             let in_frame_position =
-              Frame.seconds_of_main (Frame.position s#memo)
+              if s#is_ready then Frame.(seconds_of_main (position s#get_frame))
+              else 0.
             in
             float (frame_position +. in_frame_position)) );
   ]
@@ -283,7 +380,7 @@ let source_methods ~base s =
   meth base (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
 
 let source s = source_methods ~base:(Source_val.to_value s) s
-let track = Track.to_value
+let track = Track.to_value ?pos:None
 let to_source = Source_val.of_value
 let to_source_list l = List.map to_source (to_list l)
 let to_track = Track.of_value
@@ -292,20 +389,32 @@ let to_track = Track.of_value
     the currently defined source as argument). *)
 type 'a operator_method = string * scheme * string * ('a -> value)
 
+let checked_values = Alive_values_map.create 10
+
 (** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
 let check_content v t =
-  let checked_values = ref [] in
   let check t t' = Typing.(t <: t') in
   let rec check_value v t =
-    if not (List.memq v !checked_values) then (
+    if not (Alive_values_map.mem checked_values v) then (
       (* We need to avoid checking the same value multiple times, otherwise we
          get an exponential blowup, see #1247. *)
-      checked_values := v :: !checked_values;
+      Alive_values_map.add checked_values v;
       match (v.Value.value, (Type.deref t).Type.descr) with
         | _, Type.Var _ -> ()
         | _ when Source_val.is_value v ->
             let source_t = source_t (Source_val.of_value v)#frame_type in
             check source_t t
+        | _ when Track.is_value v ->
+            let field, s = Track.of_value v in
+            if
+              field <> Frame.Fields.track_marks
+              && field <> Frame.Fields.metadata
+            then (
+              let t =
+                Frame_type.make (Type.var ())
+                  (Frame.Fields.add field t Frame.Fields.empty)
+              in
+              check s#frame_type t)
         | _ when Lang_encoder.V.is_value v ->
             let content_t =
               Encoder.type_of_format (Lang_encoder.V.of_value v)
@@ -318,23 +427,69 @@ let check_content v t =
             List.iter (fun v -> check_value v t) l
         | Value.Tuple l, Type.Tuple t -> List.iter2 check_value l t
         | Value.Null, _ -> ()
+        | _, Type.Nullable t -> check_value v t
         (* Value can have more methods than the type requires so check from the type here. *)
         | _, Type.Meth _ ->
             let meths, v = Value.split_meths v in
             let meths_t, t = Type.split_meths t in
             List.iter
-              (fun { Type.meth; optional; scheme = s } ->
-                let t = Typing.instantiate ~level:(-1) s in
+              (fun { Type.meth; optional; scheme = generalized, t } ->
+                let names = List.map (fun v -> v.Type.name) generalized in
+                let handler =
+                  Type.Fresh.init
+                    ~selector:(fun v -> List.mem v.Type.name names)
+                    ()
+                in
+                let t = Type.Fresh.make handler t in
                 try check_value (List.assoc meth meths) t
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        (* We don't check functions, assuming anything creating a source is a
-           FFI registered via add_operator so the check will happen there. *)
-        | Fun _, _ | FFI _, _ -> ()
+        | Fun ([], _, ret), Type.Getter t -> Typing.(ret.Term.t <: t)
+        | FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
+            ffi.ffi_fn <-
+              (fun env ->
+                let v = ffi_fn env in
+                check_value v t;
+                v)
+        | Fun (args, _, ret), Type.Arrow (args_t, ret_t) ->
+            List.iter
+              (fun typ ->
+                match typ with
+                  | true, lbl_t, typ ->
+                      List.iter
+                        (fun arg ->
+                          match arg with
+                            | lbl, _, Some v when lbl = lbl_t ->
+                                check_value v typ
+                            | _ -> ())
+                        args
+                  | _ -> ())
+              args_t;
+            Typing.(ret.Term.t <: ret_t)
+        | FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
+            List.iter
+              (fun typ ->
+                match typ with
+                  | true, lbl_t, typ ->
+                      List.iter
+                        (fun arg ->
+                          match arg with
+                            | lbl, _, Some v when lbl = lbl_t ->
+                                check_value v typ
+                            | _ -> ())
+                        ffi_args
+                  | _ -> ())
+              args_t;
+            ffi.ffi_fn <-
+              (fun env ->
+                let v = ffi_fn env in
+                check_value v ret_t;
+                v)
         | _ ->
             failwith
-              ("Unhandled value in check_content: " ^ Value.to_string v ^ "."))
+              (Printf.sprintf "Unhandled value in check_content: %s, type: %s."
+                 (Value.to_string v) (Type.to_string t)))
   in
   check_value v t
 
@@ -354,26 +509,52 @@ let check_content v t =
 let _meth = meth
 
 let check_arguments ~env ~return_t arguments =
-  (* Create a fresh instantiation of the return type and the type of arguments. *)
-  let return_t, arguments =
-    let s =
-      (* TODO: level -1 generalization is abusive, but it should be a good enough approximation for now *)
-      Typing.generalize ~level:(-1)
-        (Type.make
-           (Type.Tuple (return_t :: List.map (fun (_, t, _, _) -> t) arguments)))
-    in
-    let t = Typing.instantiate ~level:(-1) s in
-    match t.Type.descr with
-      | Type.Tuple (return_t :: arguments_t) ->
-          ( return_t,
-            List.map2
-              (fun (name, _, _, _) typ -> (name, typ))
-              arguments arguments_t )
-      | _ -> assert false
+  let handler = Type.Fresh.init () in
+  let return_t = Type.Fresh.make handler return_t in
+  let arguments =
+    List.map (fun (lbl, t, _, _) -> (lbl, Type.Fresh.make handler t)) arguments
   in
   let arguments =
     List.stable_sort (fun (l, _) (l', _) -> Stdlib.compare l l') arguments
   in
+  (* Generalize all terms inside the arguments *)
+  let map =
+    let open Liquidsoap_lang.Value in
+    let rec map { pos; value; methods } =
+      let value =
+        match value with
+          | Ground g -> Ground g
+          | List l -> List (List.map map l)
+          | Tuple l -> Tuple (List.map map l)
+          | Null -> Null
+          | Fun (args, lazy_env, ret) ->
+              Fun
+                ( List.map (fun (l, l', v) -> (l, l', Option.map map v)) args,
+                  lazy_env,
+                  Term.fresh ~handler ret )
+          | FFI ffi ->
+              FFI
+                {
+                  ffi_args =
+                    List.map
+                      (fun (l, l', v) -> (l, l', Option.map map v))
+                      ffi.ffi_args;
+                  ffi_fn =
+                    (fun env ->
+                      let v = ffi.ffi_fn env in
+                      map v);
+                }
+      in
+      {
+        pos;
+        value;
+        methods = Liquidsoap_lang.Methods.map map methods;
+        id = Value.id ();
+      }
+    in
+    map
+  in
+  let env = List.map (fun (lbl, v) -> (lbl, map v)) env in
   (* Negotiate content for all sources and formats in the arguments. *)
   let () =
     let env =
@@ -389,7 +570,7 @@ let check_arguments ~env ~return_t arguments =
         check_content v typ)
       arguments env
   in
-  return_t
+  (return_t, env)
 
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : 'a operator_method list)) ?base name arguments ~return_t f =
@@ -408,31 +589,19 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: List.stable_sort compare arguments
   in
   let f env =
-    let pos =
-      match Liquidsoap_lang.Lang_core.pos env with
-        | [] -> None
-        | p :: _ -> Some p
+    let return_t, env = check_arguments ~return_t ~env arguments in
+    let src : < Source.source ; .. > = f env in
+    src#set_stack (Liquidsoap_lang.Lang_core.pos env);
+    Typing.(src#frame_type <: return_t);
+    ignore
+      (Option.map
+         (fun id -> src#set_id id)
+         (to_valued_option to_string (List.assoc "id" env)));
+    let v =
+      let src = (src :> Source.source) in
+      if category = `Output then source_methods ~base:unit src else source src
     in
-    let return_t = check_arguments ~return_t ~env arguments in
-    try
-      let src : < Source.source ; .. > = f env in
-      Typing.(src#frame_type <: return_t);
-      ignore
-        (Option.map
-           (fun id -> src#set_id id)
-           (to_valued_option to_string (List.assoc "id" env)));
-      let v =
-        let src = (src :> Source.source) in
-        if category = `Output then source_methods ~base:unit src else source src
-      in
-      _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
-    with
-      | Source.Clock_conflict (a, b) ->
-          let bt = Printexc.get_raw_backtrace () in
-          Printexc.raise_with_backtrace (Error.Clock_conflict (pos, a, b)) bt
-      | Source.Clock_loop (a, b) ->
-          let bt = Printexc.get_raw_backtrace () in
-          Printexc.raise_with_backtrace (Error.Clock_loop (pos, a, b)) bt
+    _meth v (List.map (fun (name, _, _, fn) -> (name, fn src)) meth)
   in
   let base_t =
     if category = `Output then unit_t else source_t ~methods:false return_t
@@ -455,8 +624,9 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     :: arguments
   in
   let f env =
-    let return_t = check_arguments ~return_t ~env arguments in
+    let return_t, env = check_arguments ~return_t ~env arguments in
     let field, (src : < Source.source ; .. >) = f env in
+    src#set_stack (Liquidsoap_lang.Lang_core.pos env);
     (if field <> Frame.Fields.track_marks && field <> Frame.Fields.metadata then
        Typing.(
          src#frame_type
@@ -476,53 +646,54 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
   let category = `Track category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
+let itered_values = Alive_values_map.create 10
+
 let iter_sources ?(on_imprecise = fun () -> ()) f v =
-  let itered_values = ref [] in
   let rec iter_term env v =
     let iter_base_term env v =
       match v.Term.term with
-        | Term.Ground _ | Term.Encoder _ -> ()
-        | Term.List l -> List.iter (iter_term env) l
-        | Term.Tuple l -> List.iter (iter_term env) l
-        | Term.Any | Term.Null -> ()
-        | Term.Cast (a, _) -> iter_term env a
-        | Term.Invoke { Term.invoked = a } -> iter_term env a
-        | Term.Open (a, b) ->
+        | `Ground _ | `Encoder _ -> ()
+        | `List l -> List.iter (iter_term env) l
+        | `Tuple l -> List.iter (iter_term env) l
+        | `Null -> ()
+        | `Cast (a, _) -> iter_term env a
+        | `Invoke { Term.invoked = a } -> iter_term env a
+        | `Open (a, b) ->
             iter_term env a;
             iter_term env b
-        | Term.Let { Term.def = a; body = b; _ } | Term.Seq (a, b) ->
+        | `Let { Term.def = a; body = b; _ } | `Seq (a, b) ->
             iter_term env a;
             iter_term env b
-        | Term.Var v -> (
+        | `Var v -> (
             try
               (* If it's locally bound it won't be in [env]. *)
               (* TODO since inner-bound variables don't mask outer ones in [env],
                *   we are actually checking values that may be out of reach. *)
               let v = List.assoc v env in
-              if Lazy.is_val v then (
-                let v = Lazy.force v in
+              if Stdlib.Lazy.is_val v then (
+                let v = Stdlib.Lazy.force v in
                 iter_value v)
               else ()
             with Not_found -> ())
-        | Term.App (a, l) ->
+        | `App (a, l) ->
             iter_term env a;
             List.iter (fun (_, v) -> iter_term env v) l
-        | Term.Fun (_, proto, body) | Term.RFun (_, _, proto, body) ->
+        | `Fun { Term.arguments; body } | `RFun (_, { Term.arguments; body }) ->
             iter_term env body;
             List.iter
-              (fun (_, _, _, v) ->
-                match v with Some v -> iter_term env v | None -> ())
-              proto
+              (function
+                | { Term.default = Some v } -> iter_term env v | _ -> ())
+              arguments
     in
     Term.Methods.iter
       (fun _ meth_term -> iter_term env meth_term)
       v.Term.methods;
     iter_base_term env v
   and iter_value v =
-    if not (List.memq v !itered_values) then (
+    if not (Alive_values_map.mem itered_values v) then (
       (* We need to avoid checking the same value multiple times, otherwise we
          get an exponential blowup, see #1247. *)
-      itered_values := v :: !itered_values;
+      Alive_values_map.add itered_values v;
       Value.Methods.iter (fun _ v -> iter_value v) v.Value.methods;
       match v.value with
         | _ when Source_val.is_value v -> f (Source_val.of_value v)
@@ -535,7 +706,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
                will be unused in the execution of the function. *)
             iter_term env body;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-        | FFI (proto, _) ->
+        | FFI { ffi_args = proto; _ } ->
             on_imprecise ();
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
       (*

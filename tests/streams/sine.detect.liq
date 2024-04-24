@@ -1,9 +1,10 @@
 log.level.set(4)
 
-def f(freq)
-  print("Detected sine at #{freq}Hz.")
+def f(freq) =
+  print(
+    "Detected sine at #{freq}Hz."
+  )
   test.pass()
-  shutdown()
 end
 
 s = sine(440.)

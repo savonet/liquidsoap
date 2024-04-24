@@ -1,7 +1,5 @@
 #!/bin/sh
 
-dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
-
 set -e
 
 GITHUB_SHA="$1"
@@ -10,6 +8,7 @@ DOCKER_TAG="$3"
 PLATFORM="$4"
 IS_ROLLING_RELEASE="$5"
 IS_RELEASE="$6"
+MINIMAL_EXCLUDE_DEPS="$7"
 DEB_RELEASE=1
 
 ARCH=$(dpkg --print-architecture)
@@ -18,6 +17,7 @@ COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export DEBFULLNAME="The Savonet Team"
 export DEBEMAIL="savonet-users@lists.sourceforge.net"
+export LIQUIDSOAP_BUILD_TARGET=posix
 
 cd /tmp/liquidsoap-full/liquidsoap
 
@@ -37,7 +37,7 @@ else
   LIQ_PACKAGE="liquidsoap-${TAG}"
 fi
 
-echo "Building ${LIQ_PACKAGE}.."
+echo "::group:: build ${LIQ_PACKAGE}.."
 
 cp -rf .github/debian .
 
@@ -51,6 +51,61 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 fakeroot debian/rules binary
 
-cp /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+echo "::endgroup::"
 
-echo "##[set-output name=basename;]${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
+if [ "${PLATFORM}" = "amd64" ]; then
+  echo "::group:: save build config for ${LIQ_PACKAGE}.."
+
+  ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+
+  mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+fi
+
+echo "::endgroup::"
+
+echo "::group:: build ${LIQ_PACKAGE}-minimal.."
+
+# shellcheck disable=SC2086
+opam remove -y --verbose $MINIMAL_EXCLUDE_DEPS
+
+cd /tmp/liquidsoap-full
+make clean
+cp PACKAGES.minimal-build PACKAGES
+rm .ocamlpath
+cd liquidsoap
+./.github/scripts/build-posix.sh 1
+OCAMLPATH="$(cat ../.ocamlpath)"
+export OCAMLPATH
+
+rm -rf debian
+
+cp -rf .github/debian .
+
+rm -rf debian/changelog
+
+cp -f debian/control.in debian/control
+
+sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}-minimal#g" -i debian/control
+
+cp -rf debian/rules-minimal debian/rules
+
+dch --create --distribution unstable --package "${LIQ_PACKAGE}-minimal" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
+
+fakeroot debian/rules binary
+
+echo "::endgroup::"
+
+if [ "${PLATFORM}" = "amd64" ]; then
+  echo "::group:: save build config for ${LIQ_PACKAGE}.."
+
+  ./liquidsoap --build-config > "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+
+  echo "::endgroup::"
+fi
+
+mv /tmp/liquidsoap-full/*.deb "/tmp/${GITHUB_RUN_NUMBER}/${DOCKER_TAG}_${PLATFORM}/debian"
+
+{
+  echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
+  echo "basename-minimal=${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"
+} >> "${GITHUB_OUTPUT}"

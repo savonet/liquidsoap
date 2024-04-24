@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -62,7 +62,6 @@ module type ContentSpecs = sig
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
-  val clear : data -> unit
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -163,7 +162,6 @@ let parse_param kind label value =
   with Parsed_format p -> p
 
 type data_handler = {
-  blit : data -> int -> data -> int -> int -> unit;
   fill : data -> int -> data -> int -> int -> unit;
   sub : data -> int -> int -> data;
   truncate : data -> int -> data;
@@ -171,13 +169,11 @@ type data_handler = {
   is_empty : data -> bool;
   copy : data -> data;
   format : data -> format;
-  clear : data -> unit;
   append : data -> data -> data;
 }
 
 let dummy_handler =
   {
-    blit = (fun _ _ _ _ _ -> raise Invalid);
     fill = (fun _ _ _ _ _ -> raise Invalid);
     sub = (fun _ _ _ -> raise Invalid);
     truncate = (fun _ _ -> raise Invalid);
@@ -185,7 +181,6 @@ let dummy_handler =
     is_empty = (fun _ -> raise Invalid);
     copy = (fun _ -> raise Invalid);
     format = (fun _ -> raise Invalid);
-    clear = (fun _ -> raise Invalid);
     append = (fun _ _ -> raise Invalid);
   }
 
@@ -198,7 +193,6 @@ let register_data_handler t h =
 
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
 let make ?length k = (get_format_handler k).make length
-let blit src = (get_data_handler src).blit src
 let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
 let truncate d = (get_data_handler d).truncate d
@@ -207,7 +201,6 @@ let length c = (get_data_handler c)._length c
 let append c c' = (get_data_handler c).append c c'
 let copy c = (get_data_handler c).copy c
 let format c = (get_data_handler c).format c
-let clear c = (get_data_handler c).clear c
 let kind p = (get_format_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
 let string_of_format k = (get_format_handler k).string_of_format ()
@@ -251,14 +244,21 @@ module MkContentBase (C : ContentSpecs) :
           if len = max_int then max_int else len - offset
 
   let length { chunks } =
-    List.fold_left (fun cur chunk -> cur + chunk_length chunk) 0 chunks
+    List.fold_left
+      (fun cur chunk ->
+        let chunk_length = chunk_length chunk in
+        if cur = max_int || chunk_length = max_int then max_int
+        else cur + chunk_length)
+      0 chunks
 
   let is_empty d = length d = 0
 
   let sub data ofs len =
     let start = ofs in
     let stop = start + len in
-    assert (stop <= length data);
+    let data_length = length data in
+    if data_length < start || data_length < stop then
+      raise (Invalid_argument "Content.sub");
     {
       data with
       chunks =
@@ -298,11 +298,6 @@ module MkContentBase (C : ContentSpecs) :
     in
     { data with chunks = f len data.chunks }
 
-  let copy_chunks =
-    List.map (fun chunk -> { chunk with data = C.copy chunk.data })
-
-  let copy data = { data with chunks = copy_chunks data.chunks }
-
   let append d d' =
     let d = content d in
     let d' = content d' in
@@ -324,32 +319,28 @@ module MkContentBase (C : ContentSpecs) :
       C.blit data offset buf pos length;
       pos + length
     in
-    fun ?(force = false) d ->
+    fun ~copy d ->
       match (length d, d.chunks) with
         | 0, _ ->
             d.chunks <- [];
+            { d with chunks = [] }
+        | _, [{ offset = 0; length = None }] when not copy -> d
+        | _, [{ offset = 0; length = Some l; data }]
+          when l = C.length data && not copy ->
             d
-        | _, [{ offset = 0; length = None }] when not force -> d
         | length, _ ->
             let buf = C.make ~length d.params in
             ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
-            d.chunks <- [{ offset = 0; length = Some length; data = buf }];
-            d
+            if copy then
+              {
+                d with
+                chunks = [{ offset = 0; length = Some length; data = buf }];
+              }
+            else (
+              d.chunks <- [{ offset = 0; length = Some length; data = buf }];
+              d)
 
-  let blit src src_pos dst dst_pos len =
-    let src = content src in
-    let dst = content dst in
-    dst.params <- src.params;
-    let dst_len = length dst in
-    dst.chunks <-
-      (sub dst 0 dst_pos).chunks
-      @ (consolidate_chunks ~force:true (sub src src_pos len)).chunks
-      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
-    assert (dst_len = length dst)
-
-  let clear =
-    let clear_content { data } = C.clear data in
-    fun d -> List.iter clear_content (content d).chunks
+  let copy = consolidate_chunks ~copy:true
 
   let make ?length params =
     { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
@@ -409,7 +400,6 @@ module MkContentBase (C : ContentSpecs) :
     Queue.push format_of_string format_parsers;
     let data_handler =
       {
-        blit;
         fill;
         sub = (fun d ofs len -> (_type, Content (sub (content d) ofs len)));
         truncate = (fun d len -> (_type, Content (truncate (content d) len)));
@@ -417,7 +407,6 @@ module MkContentBase (C : ContentSpecs) :
         copy = (fun d -> (_type, Content (copy (content d))));
         format = (fun d -> Format (Unifier.make (params (content d))));
         _length = (fun d -> length (content d));
-        clear;
         append;
       }
     in
@@ -440,7 +429,7 @@ module MkContentBase (C : ContentSpecs) :
 
   let get_data d =
     let d = get_chunked_data d in
-    match (consolidate_chunks d).chunks with
+    match (consolidate_chunks ~copy:false d).chunks with
       | [] -> C.make ~length:0 d.params
       | [{ data }] -> data
       | _ -> raise Invalid

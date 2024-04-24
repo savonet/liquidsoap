@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -39,12 +39,17 @@ let file_extensions =
     "File extensions used for decoding metadata using native FLAC parser."
     ~d:["flac"]
 
-let get_tags ~metadata:_ parse fname =
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "flac_native")
+    "Priority for the flac native decoder" ~d:1
+
+let get_tags ~metadata:_ ~extension ~mime parse fname =
   try
     if
       not
-        (Decoder.test_file ~log ~mimes:mime_types#get
-           ~extensions:file_extensions#get fname)
+        (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+           ~extensions:(Some file_extensions#get) fname)
     then raise Metadata.Invalid;
     parse fname
   with
@@ -57,6 +62,9 @@ let get_tags ~metadata:_ parse fname =
         raise Not_found
 
 let () =
-  Plug.register Request.mresolvers "flac-native"
+  Plug.register Request.mresolvers "flac_native"
     ~doc:"Native FLAC metadata resolver."
-    (get_tags Metadata.FLAC.parse_file)
+    {
+      Request.priority = (fun () -> priority#get);
+      resolver = get_tags Metadata.FLAC.parse_file;
+    }

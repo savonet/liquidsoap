@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2023 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,300 +16,89 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-(** In this module we define the central streaming concepts: sources, active
-    sources and clocks.
+open Mm
+module Pcre = Re.Pcre
 
-    Sources can produce a stream, if something pulls it.
-    Sources can pull streams from other sources (such non-elementary sources
-    are called operators). But who starts pulling?
+exception Unavailable
 
-    Some sources have a noticeable effect, for example outputs.
-    Some are indirectly needed by outputs.
-    Some are useless, they have no direct or indirect observable effect.
-    We only want to pull data from sources that have an effect,
-    thereby "animating them". Those sources are called active.
+type streaming_state =
+  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
-    Clocks are in charge of animating active sources.
-    Each clock "owns" a number of active sources, and indirectly some
-    sources owned by those active sources, and controls access to their
-    streams. *)
-
-(** Fallibility type MUST be defined BEFORE clocks.
-    Otherwise the module cannot be well-typed since the list of all
-    clock variables refers to active sources and hence to #stype : source_t.
-    Don't mess with this, type errors will give you a hard time!
-    (By the way, there's no problem of scope escaping for class type
-    since those are structural, not nominal like a variant type.) *)
-type source_t = [ `Fallible | `Infallible ]
-
-(** {1 Proto clocks}
-
-    Roughly describe what a clock is, and build a notion of clock variable
-    on top of that. More concrete clock stuff is done the [Clock] module.
-
-    Clocks play two roles:
-     (1) making sure that one source belongs to only one time flow,
-     (2) giving a handle on how to run a time flow.
-
-    Most clocks are passive, i.e. they don't run anything
-    directly, but may only tick when something happens to a source.
-    The clock is the default, active clock:
-    when started, it launches a thread which keeps ticking regularly.
-
-    A clock needs to know all the active sources under its control,
-    so it can execute them. This might seem surprising in some cases:
-      cross(s)       <-- create a clock, assigns it to s
-      output.file(s) <-- also assigns it to the output
-    In effect, we make it equivalent to
-      cross(output.file(s))
-    Anyway, it'd be very strange that an output isn't animated at all.
-
-    Clock variables can represent an unknown clock, with attached outputs.
-    A source gets assigned a clock variable, which might leave it
-    a chance to choose that clock (by attempting to unify it).
-
-    The idea is that when an output is created it assigns a clock to itself
-    according to its sources' clocks. Eventually, all remaining unknown clocks
-    are forced to clock.
- *)
-
+type active = < reset : unit ; output : unit >
+type source_type = [ `Passive | `Active of active | `Output of active ]
 type sync = [ `Auto | `CPU | `None ]
-type self_sync = [ `Static | `Dynamic ] * bool
 
-class type ['a, 'b] proto_clock =
-  object
-    method id : string
-    method sync_mode : sync
-    method start : bool
+module SourceSync = Clock.MkSyncSource (struct
+  type t = < id : string >
 
-    (** Attach an active source, detach active sources by filter. *)
-
-    method attach : 'a -> unit
-    method detach : ('a -> bool) -> unit
-    method is_attached : 'a -> bool
-
-    (** Attach a sub_clock, get all subclocks, see below. *)
-
-    method attach_clock : 'b -> unit
-    method detach_clock : 'b -> unit
-    method sub_clocks : 'b list
-    method start_outputs : ('a -> bool) -> unit -> 'a list
-    method get_tick : int
-    method end_tick : unit
-  end
-
-(** {1 Clock variables}
-    Used to infer what clock a source belongs to.
-    Each variable comes with
-      - a list of active sources belonging to the clock, unused during
-        inference/unification, but animated by the clock when running
-      - a list of sub-clocks, used during unification's occurs-check
-        to avoid cycles which would result in unsound behavior
-        e.g. add([s,cross(f,s)]).
-    Clock constants are objects of type [proto_clock], but need to also
-    maintain the information attached to variables.
-
-    The unification algorithm can be described as follows, ignoring
-    the active source maintenance.
-    X[Y1,Y2,..,Yn] denotes a variable or constant clock with the set Gamma
-       of subclocks,
-       from a first-order unification perspective it should be thought of
-       as a term X(Y1,Y2,..,Yn,...) where the second ... denotes a
-       row variable: we don't know if there are more parameters there
-       (more subclocks)
-    We write X[Gamma] with Gamma list of clocks, and X[..Y..] when
-    Y belongs to the subclocks of X, or the subclocks of the subclocks,
-    etc.
-    Unification rules are:
-      X[..Y..] = Y[..]    ---> ERROR (occurs-check)
-      c1[...]  = c2[...]  ---> ERROR (rigid-rigid)
-      X[Gamma] = Y[Delta] ---> X,Y:=Z[Gamma,Delta]
-         Here Gamma,Delta denotes an union. It is possible that two
-         distinct variables might become unified, in which case we'll
-         end up with two occurrences of the same subclock.
-  *)
-
-(** Clock variables. *)
-type 'a var =
-  | Link of 'a link_t ref  (** a universal variable *)
-  | Known of ('a, 'a var) proto_clock  (** a constant variable *)
-
-and 'a unknown_source = {
-  start : bool option;
-  sources : 'a list;
-  sub_clocks : 'a var list;
-}
-
-(** Contents of a clock variable. *)
-and 'a link_t =
-  | Unknown of 'a unknown_source
-      (** the clock variable is unknown but depends on other variables *)
-  | Same_as of 'a var  (** the clock variable is substituted by another *)
-
-let debug = Sys.getenv_opt "LIQUIDSOAP_DEBUG" <> None
-let create_known c = Known c
-
-let create_unknown ?start ~sources ~sub_clocks () =
-  Link (ref (Unknown { start; sources; sub_clocks }))
-
-let rec deref = function Link { contents = Same_as a } -> deref a | x -> x
-
-let rec variable_to_string = function
-  | Link { contents = Same_as c } -> variable_to_string c
-  | Link ({ contents = Unknown { start; sources; sub_clocks } } as r) ->
-      Printf.sprintf "{id:%x,start:%s,sources=[%s],sub_clocks=[%s]}"
-        (Obj.magic r)
-        (match start with None -> "default" | Some v -> string_of_bool v)
-        (String.concat "," (List.map (fun s -> s#id) sources))
-        (String.concat "," (List.map variable_to_string sub_clocks))
-  | Known c ->
-      Printf.sprintf "%s[%s]" c#id
-        (String.concat "," (List.map variable_to_string c#sub_clocks))
-
-(** Equality modulo dereferencing, does not identify two variables with the same
-    sources and clocks. *)
-let var_eq a b =
-  let a = deref a in
-  let b = deref b in
-  match (a, b) with
-    | Link a, Link b -> a == b
-    | Known a, Known b -> a = b
-    | _, _ -> false
-
-exception Clock_conflict of string * string
-exception Clock_loop of string * string
-
-let rec sub_clocks = function
-  | Known c -> c#sub_clocks
-  | Link { contents = Unknown { sub_clocks } } -> sub_clocks
-  | Link { contents = Same_as x } -> sub_clocks x
-
-let occurs_check x y =
-  let rec aux = function
-    | [] -> ()
-    | [] :: tl -> aux tl
-    | (x' :: clocks) :: tl ->
-        if var_eq x x' then
-          raise (Clock_loop (variable_to_string x, variable_to_string y));
-        aux (sub_clocks x' :: clocks :: tl)
-  in
-  aux [sub_clocks y]
-
-let occurs_check x y =
-  occurs_check x y;
-  occurs_check y x
-
-let rec unify a b =
-  match (a, b) with
-    | Link { contents = Same_as a }, _ -> unify a b
-    | _, Link { contents = Same_as b } -> unify a b
-    | Known s, Known s' ->
-        if s <> s' then
-          raise (Clock_conflict (variable_to_string a, variable_to_string b))
-    | Link ra, Link rb when ra == rb -> ()
-    | ( Link
-          ({ contents = Unknown { start; sources = sa; sub_clocks = ca } } as
-          ra),
-        Link
-          ({
-             contents =
-               Unknown { start = start'; sources = sb; sub_clocks = cb };
-           } as rb) ) ->
-        let start =
-          match (start, start') with
-            | None, s | s, None -> s
-            | Some v, Some v' when v = v' -> Some v
-            | _ ->
-                raise
-                  (Clock_conflict (variable_to_string a, variable_to_string b))
-        in
-        occurs_check a b;
-        let merge =
-          let s = List.sort_uniq Stdlib.compare (List.rev_append sa sb) in
-          let sc = List.sort_uniq Stdlib.compare (List.rev_append ca cb) in
-          Link (ref (Unknown { start; sources = s; sub_clocks = sc }))
-        in
-        ra := Same_as merge;
-        rb := Same_as merge
-    | ( Known c,
-        Link
-          ({ contents = Unknown { start; sources = s; sub_clocks = sc } } as r)
-      )
-    | ( Link
-          ({ contents = Unknown { start; sources = s; sub_clocks = sc } } as r),
-        Known c ) ->
-        if start <> None && c#start <> Option.get start then
-          raise (Clock_conflict (variable_to_string a, variable_to_string b));
-        occurs_check (Known c) (Link r);
-        List.iter c#attach s;
-        List.iter c#attach_clock sc;
-        r := Same_as (Known c)
-
-let rec forget var subclock =
-  match var with
-    | Known c -> c#detach_clock subclock
-    | Link { contents = Same_as a } -> forget a subclock
-    | Link ({ contents = Unknown ({ sub_clocks } as c) } as r) ->
-        r :=
-          Unknown
-            { c with sub_clocks = List.filter (( <> ) subclock) sub_clocks }
+  let to_string s = Printf.sprintf "source(id=%s)" s#id
+end)
 
 (** {1 Sources} *)
 
 (** Instrumentation. *)
 
-type metadata = (int * (string, string) Hashtbl.t) list
-type clock_sync_mode = [ sync | `Unknown ]
+type metadata = (int * Frame.metadata) list
 
 type watcher = {
   wake_up :
-    stype:source_t ->
-    is_active:bool ->
+    fallible:bool ->
+    source_type:source_type ->
     id:string ->
     ctype:Frame.content_type ->
     clock_id:string ->
-    clock_sync_mode:clock_sync_mode ->
     unit;
   sleep : unit -> unit;
-  get_frame :
+  generate_frame :
     start_time:float ->
     end_time:float ->
-    start_position:int ->
-    end_position:int ->
-    is_partial:bool ->
+    length:int ->
+    has_track_mark:bool ->
     metadata:metadata ->
     unit;
-  before_output : unit -> unit;
-  after_output : unit -> unit;
+  before_streaming_cycle : unit -> unit;
+  after_streaming_cycle : unit -> unit;
 }
 
 let source_log = Log.make ["source"]
 
-(** Has any output been created? This is used by Main to decide if there's
-    anything "to run". Note that we could get rid of it, since outputs (active
-    sources) are actually registered to clock variables. *)
-let has_outputs = ref false
+let sleep s =
+  source_log#info "Source %s gets down." s#id;
+  try s#sleep
+  with e ->
+    let bt = Printexc.get_backtrace () in
+    Utils.log_exception ~log:source_log ~bt
+      (Printf.sprintf "Error when leaving output %s: %s!" s#id
+         (Printexc.to_string e))
 
-let add_new_output, iterate_new_outputs =
-  let lock = Mutex.create () in
-  let l = ref [] in
-  ( Tutils.mutexify lock (fun x -> l := x :: !l),
-    Tutils.mutexify lock (fun f ->
-        List.iter f !l;
-        l := []) )
-
-class virtual operator ?(name = "src") sources =
+class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
   let frame_type = Type.var () in
+  let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
   object (self)
     (** Monitoring *)
     val mutable watchers = []
 
     method add_watcher w = watchers <- w :: watchers
     method private iter_watchers fn = List.iter fn watchers
+    method clock = clock
+
+    initializer
+      List.iter (fun s -> Clock.unify ~pos:self#pos self#clock s#clock) sources;
+      Clock.attach self#clock (self :> Clock.source)
+
+    val stack = Unifier.make stack
+    method stack = Unifier.deref stack
+
+    method set_stack p =
+      Unifier.set stack p;
+      Clock.set_stack clock p
+
+    method stack_unifier = stack
+    method pos = match Unifier.deref stack with [] -> None | p :: _ -> Some p
 
     (** Logging and identification *)
 
@@ -324,7 +113,9 @@ class virtual operator ?(name = "src") sources =
     method id = id
 
     method set_id ?(definitive = true) s =
-      let s = Pcre.substitute ~pat:"[ \t\n.]" ~subst:(fun _ -> "_") s in
+      let s =
+        Pcre.substitute ~rex:(Pcre.regexp "[ \t\n.]") ~subst:(fun _ -> "_") s
+      in
       if not definitive_id then (
         id <- Lang_string.generate_id s;
         definitive_id <- definitive);
@@ -335,44 +126,27 @@ class virtual operator ?(name = "src") sources =
          changes, and [log] has already been initialized, reset it. *)
       if log != source_log then self#create_log
 
-    initializer
-      if debug then
-        Gc.finalise (fun s -> source_log#info "Garbage collected %s." s#id) self
-
     val mutex = Mutex.create ()
 
     method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
-      Tutils.mutexify mutex
+      Mutex.mutexify mutex
 
-    (** Is the source infallible, i.e. is it always guaranteed that there will
-        be always be a next track immediately available. *)
-    method virtual stype : source_t
+    method virtual fallible : bool
+    method source_type : source_type = `Passive
 
-    (** Is the source active *)
-    method is_active = false
+    method active =
+      match self#source_type with
+        | `Passive -> false
+        | `Output _ | `Active _ -> true
 
     (** Children sources *)
     val mutable sources : operator list = sources
 
-    (* Clock setup
-       Each source starts with an unknown clock.
-       This clock will be unified with children clocks in most cases.
-       Once the clock has been set to a concrete clock, it cannot be
-       changed anymore: a source lives in only one time flow.
+    method virtual self_sync : Clock.self_sync
 
-       We need a #set_clock method with a default behavior that can
-       be overridden, and it needs to be called at initialization:
-       #wake_up is too late since it's the clock who initiates it. *)
-    val clock : active_operator var =
-      create_unknown ~sources:[] ~sub_clocks:[] ()
-
-    method clock = clock
-    method virtual self_sync : self_sync
-
-    method private set_clock =
-      List.iter (fun s -> unify self#clock s#clock) sources
-
-    initializer self#set_clock
+    method source_sync self_sync =
+      if self_sync then Some (SourceSync.make (self :> < id : string >))
+      else None
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
@@ -387,6 +161,7 @@ class virtual operator ?(name = "src") sources =
       content_type_computation_allowed <- true
 
     val mutable ctype = None
+    method has_content_type = ctype <> None
 
     (* Content type. *)
     method content_type =
@@ -421,154 +196,62 @@ class virtual operator ?(name = "src") sources =
         (Option.get
            (Frame.Fields.find_opt Frame.Fields.video self#content_type))
 
-    (** Startup/shutdown.
-
-      Get the source ready for streaming on demand, have it release resources
-      when it's not used any more, and decide whether the source should run in
-      caching mode.
-
-      A source may be accessed by several sources, and must switch to caching
-      mode when it may be accessed by more than one source, in order to ensure
-      consistency of the delivered stream chunk.
-
-      Before that a source P accesses another source S it must activate it. The
-      activation can be static, or dynamic. A static activation means that
-      P may pull data from S at any time. A dynamic activation means that P
-      won't use S directly but may at some point build a source which will
-      access S. This dynamic creation may occur in the middle of an output
-      round, which is why S needs to know in advance, since in some cases it
-      might have to enter caching mode from the beginning of the round in case
-      the dynamic activation occurs.
-
-      An activation is identified by the path to the source which required it.
-      It is possible that two identical activations are done, and they should
-      not be treated as a single one.
-
-      In short, a source can avoid caching when: it has only one static
-      activation and all its dynamic activations are sub-paths of the static
-      one. When there is no static activation, there cannot be any access.
-
-      It is assumed that all streaming is done in one thread for a given clock,
-      so the activation management API is not thread-safe. *)
-
-    val mutable caching = false
-    val mutable dynamic_activations : operator list list = []
-    val mutable static_activations : operator list list = []
-
-    method private update_caching_mode =
-      let string_of activations =
-        String.concat ", "
-          (List.map
-             (fun l -> String.concat ":" (List.map (fun s -> s#id) l))
-             activations)
-      in
-      self#log#debug "Activations changed: static=[%s], dynamic=[%s]."
-        (string_of static_activations)
-        (string_of dynamic_activations);
-
-      (* Decide whether caching mode is needed, and why *)
-      match
-        if self#is_active then Some "active source"
-        else (
-          match static_activations with
-            | [] -> None
-            | [s] ->
-                if
-                  List.exists
-                    (fun d -> not (Utils.prefix (List.rev d) (List.rev s)))
-                    dynamic_activations
-                then Some "possible dynamic activation"
-                else None
-            | _ -> Some "two static activations")
-      with
-        | None ->
-            if caching then (
-              caching <- false;
-              self#log#debug "Disabling caching mode.")
-        | Some msg ->
-            if not caching then (
-              caching <- true;
-              self#log#debug "Enabling caching mode: %s." msg)
-
     val mutable on_wake_up = []
-
-    method on_wake_up =
-      self#mutexify (fun fn -> on_wake_up <- on_wake_up @ [fn])
+    method on_wake_up fn = on_wake_up <- fn :: on_wake_up
 
     initializer
       self#on_wake_up (fun () ->
-          let clock_id, clock_sync_mode =
-            match deref self#clock with
-              | Known c -> (c#id, (c#sync_mode :> clock_sync_mode))
-              | _ -> ("unknown", `Unknown)
-          in
+          List.iter (fun s -> s#wake_up) sources;
           self#iter_watchers (fun w ->
-              w.wake_up ~stype:self#stype ~is_active:self#is_active ~id:self#id
-                ~ctype:self#content_type ~clock_id ~clock_sync_mode))
+              w.wake_up ~fallible:self#fallible ~source_type:self#source_type
+                ~id:self#id ~ctype:self#content_type
+                ~clock_id:(Clock.id self#clock)))
 
-    (* Ask for initialization.
-       The current implementation makes it dangerous to call #get_ready from
-       another thread than the Root one, as interleaving with #get is
-       forbidden. *)
-    method get_ready ?(dynamic = false) (activation : operator list) =
-      self#content_type_computation_allowed;
-      if log == source_log then self#create_log;
-      if static_activations = [] && dynamic_activations = [] then (
-        source_log#info "Source %s gets up with content type: %s." id
-          (Frame.string_of_content_type self#content_type);
-        self#wake_up activation;
-        List.iter (fun fn -> fn ()) on_wake_up);
-      if dynamic then dynamic_activations <- activation :: dynamic_activations
-      else static_activations <- activation :: static_activations;
-      self#update_caching_mode
+    val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
+    method is_up = Atomic.get is_up = `True
+    val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
+
+    method wake_up =
+      if Atomic.compare_and_set is_up `False `True then (
+        try
+          self#content_type_computation_allowed;
+          if log == source_log then self#create_log;
+          source_log#info "Source %s gets up with content type: %s." id
+            (Frame.string_of_content_type self#content_type);
+          self#log#debug "Clock is %s." (Clock.id self#clock);
+          self#log#important "Content type is %s."
+            (Frame.string_of_content_type self#content_type);
+          List.iter (fun fn -> fn ()) on_wake_up
+        with exn ->
+          Atomic.set is_up `Error;
+          let bt = Printexc.get_backtrace () in
+          Utils.log_exception ~log ~bt
+            (Printf.sprintf "Error when starting source %s: %s!" self#id
+               (Printexc.to_string exn));
+          Tutils.shutdown 1)
 
     val mutable on_sleep = []
-    method on_sleep = self#mutexify (fun fn -> on_sleep <- on_sleep @ [fn])
+    method on_sleep fn = on_sleep <- fn :: on_sleep
+
+    method force_sleep =
+      if Atomic.compare_and_set is_up `True `False then (
+        source_log#info "Source %s gets down." id;
+        List.iter (fun fn -> fn ()) on_sleep)
+
+    method sleep =
+      match Atomic.get streaming_state with
+        | `Ready _ | `Unavailable ->
+            Clock.after_tick self#clock (fun () -> self#force_sleep)
+        | _ -> self#force_sleep
 
     initializer
+      Gc.finalise sleep self;
       self#on_sleep (fun () -> self#iter_watchers (fun w -> w.sleep ()))
-
-    (* Release the source, which will shutdown if possible.
-       The current implementation makes it dangerous to call #leave from
-       another thread than the Root one, as interleaving with #get is
-       forbidden. *)
-    method leave ?(failed_to_start = true) ?(dynamic = false) src =
-      let rec remove acc = function
-        | [] when failed_to_start -> []
-        | [] ->
-            self#log#critical "Got ill-balanced activations (from %s)!" src#id;
-            assert false
-        | (s :: _) :: tl when s = src -> List.rev_append acc tl
-        | h :: tl -> remove (h :: acc) tl
-      in
-      if dynamic then dynamic_activations <- remove [] dynamic_activations
-      else static_activations <- remove [] static_activations;
-      self#update_caching_mode;
-      if static_activations = [] && dynamic_activations = [] then (
-        source_log#info "Source %s gets down." id;
-        self#sleep;
-        List.iter (fun fn -> try fn () with _ -> ()) on_sleep)
-
-    method is_up = static_activations <> [] || dynamic_activations <> []
-
-    (** Two methods called for initialization and shutdown of the source *)
-    method private wake_up activation =
-      self#log#debug "Clock is %s." (variable_to_string self#clock);
-      self#log#important "Content type is %s."
-        (Frame.string_of_content_type self#content_type);
-      let activation = (self :> operator) :: activation in
-      List.iter (fun s -> s#get_ready ?dynamic:None activation) sources
-
-    method private sleep =
-      List.iter
-        (fun s ->
-          s#leave ?failed_to_start:None ?dynamic:None (self :> operator))
-        sources
 
     (** Streaming *)
 
-    (* Number of frames left in the current track: -1 means Infinity, time unit
-       is the frame. *)
+    (* Number of maste ticks left in the current track: -1 means unknown, time unit
+       is master tick. *)
     method virtual remaining : int
     val mutable elapsed = 0
     method elapsed = elapsed
@@ -578,34 +261,141 @@ class virtual operator ?(name = "src") sources =
       let e = self#elapsed in
       if r < 0 || e < 0 then -1 else e + r
 
-    (* [self#seek x] skips [x] main ticks.
-       Returns the number of ticks actually skipped.
-       By default it always returns 0, refusing to seek at all. *)
-    method virtual seek : int -> int
+    method virtual seek_source : source
 
-    (* Is there some data available for the next [get]?
-       Must always be true while playing a track, i.e. all tracks
-       must be properly ended. *)
-    method virtual is_ready : bool
+    method seek n =
+      let s = self#seek_source in
+      if (s :> < seek : int -> int >) == (self :> < seek : int -> int >) then 0
+      else s#seek n
+
+    method virtual private can_generate_frame : bool
+    method virtual private generate_frame : Frame.t
+
+    method is_ready =
+      if self#is_up then (
+        self#before_streaming_cycle;
+        match Atomic.get streaming_state with
+          | `Ready _ | `Done _ -> true
+          | _ -> false)
+      else false
+
+    val mutable _cache = None
+    val mutable consumed = 0
+    val mutable on_before_streaming_cycle = []
+
+    method on_before_streaming_cycle fn =
+      on_before_streaming_cycle <- fn :: on_before_streaming_cycle
+
+    initializer
+      self#on_before_streaming_cycle (fun () ->
+          self#iter_watchers (fun w -> w.before_streaming_cycle ()))
+
+    val mutable on_after_streaming_cycle = []
+
+    method on_after_streaming_cycle fn =
+      on_after_streaming_cycle <- fn :: on_after_streaming_cycle
+
+    initializer
+      self#on_after_streaming_cycle (fun () ->
+          self#iter_watchers (fun w -> w.after_streaming_cycle ()))
+
+    (* This is the implementation of the main streaming logic. *)
+    method private before_streaming_cycle =
+      match Atomic.get streaming_state with
+        | `Pending ->
+            List.iter (fun fn -> fn ()) on_before_streaming_cycle;
+            consumed <- 0;
+            let cache = Option.value ~default:self#empty_frame _cache in
+            let cache_pos = Frame.position cache in
+            let size = Lazy.force Frame.size in
+            let can_generate_frame = self#can_generate_frame in
+            if cache_pos > 0 || can_generate_frame then
+              Atomic.set streaming_state
+                (`Ready
+                  (fun () ->
+                    let buf =
+                      if can_generate_frame && cache_pos < size then
+                        Frame.append cache self#instrumented_generate_frame
+                      else cache
+                    in
+                    let buf_pos = Frame.position buf in
+                    let buf =
+                      if size < buf_pos then (
+                        _cache <- Some (Frame.after buf size);
+                        Frame.slice buf size)
+                      else (
+                        _cache <- None;
+                        buf)
+                    in
+                    Atomic.set streaming_state (`Done buf)))
+            else Atomic.set streaming_state `Unavailable;
+            Clock.after_tick self#clock (fun () -> self#after_streaming_cycle)
+        | _ -> ()
+
+    method private after_streaming_cycle =
+      (match (Atomic.get streaming_state, consumed) with
+        | `Done buf, n when n < Frame.position buf ->
+            let cache = Option.value ~default:self#empty_frame _cache in
+            _cache <- Some (Frame.append (Frame.after buf n) cache)
+        | _ -> ());
+      List.iter (fun fn -> fn ()) on_after_streaming_cycle;
+      Atomic.set streaming_state `Pending
+
+    method peek_frame =
+      match Atomic.get streaming_state with
+        | `Pending | `Unavailable ->
+            log#critical "source called while not ready!";
+            raise Unavailable
+        | `Ready fn ->
+            fn ();
+            self#peek_frame
+        | `Done data -> data
+
+    method get_partial_frame cb =
+      let data = cb self#peek_frame in
+      consumed <- max consumed (Frame.position data);
+      data
+
+    method consumed n = consumed <- max consumed n
+    method get_frame = self#get_partial_frame (fun f -> f)
+
+    method get_mutable_content field =
+      let content = Frame.get self#get_frame field in
+      (* Optimization is disabled for now. *)
+      Content.copy content
+
+    method get_mutable_frame field =
+      Frame.set self#get_frame field (self#get_mutable_content field)
+
+    method set_frame_data
+        : 'a.
+          Frame.field ->
+          (?offset:int -> ?length:int -> 'a -> Content.data) ->
+          'a ->
+          Frame.t =
+      fun field lift data -> Frame.set_data self#get_frame field lift data
+
+    method private split_frame frame =
+      match Frame.track_marks frame with
+        | 0 :: _ -> (self#empty_frame, Some frame)
+        | p :: _ -> (Frame.slice frame p, Some (Frame.after frame p))
+        | [] -> (frame, None)
+
+    method frame_has_track_mark = Frame.has_track_marks self#get_frame
+
+    method frame_track_mark =
+      match Frame.track_marks self#get_frame with
+        | pos :: _ -> Some pos
+        | _ -> None
+
+    method frame_metadata = Frame.get_all_metadata self#get_frame
+    method frame_position = Frame.position self#get_frame
+    method frame_audio_position = Frame.audio_of_main self#frame_position
 
     (* If possible, end the current track.
        Typically, that signal is just re-routed, or makes the next file
        to be played if there's anything like a file. *)
     method virtual abort_track : unit
-
-    (* In caching mode, remember what has been given during the current
-       tick. The generation is deferred until we actually have computed the kind
-       by unfication. *)
-    val mutable memo = None
-
-    method memo =
-      match memo with
-        | Some memo -> memo
-        | None ->
-            let m = Frame.create self#content_type in
-            memo <- Some m;
-            m
-
     val mutable buffer = None
 
     method buffer =
@@ -618,178 +408,147 @@ class virtual operator ?(name = "src") sources =
             buffer <- Some buf;
             buf
 
+    val mutable empty_frame = None
+
+    method empty_frame =
+      match empty_frame with
+        | Some frame -> frame
+        | None ->
+            let f = Frame.create ~length:0 self#content_type in
+            empty_frame <- Some f;
+            f
+
+    method end_of_track = Frame.add_track_mark self#empty_frame 0
     val mutable last_metadata = None
-    method last_metadata = self#mutexify (fun () -> last_metadata) ()
-    val mutable on_metadata : (Frame.metadata -> unit) list = []
+    method last_metadata = last_metadata
+    val mutable on_metadata : (Frame.metadata -> unit) List.t = []
+    method on_metadata fn = on_metadata <- fn :: on_metadata
+    val mutable on_track_called = false
 
-    method on_metadata =
-      self#mutexify (fun fn -> on_metadata <- on_metadata @ [fn])
+    initializer
+      self#on_before_streaming_cycle (fun () -> on_track_called <- false)
 
-    val mutable on_track : (Frame.metadata -> unit) list = []
+    val mutable on_track : (Frame.metadata -> unit) List.t = []
+    method on_track fn = on_track <- fn :: on_track
 
-    (* We want to notify of new tracks on the next call after a
-       partial frame. *)
-    val mutable was_partial = true
-    method on_track = self#mutexify (fun fn -> on_track <- on_track @ [fn])
+    method private set_last_metadata buf =
+      match List.rev (Frame.get_all_metadata buf) with
+        | (_, m) :: _ -> last_metadata <- Some m
+        | _ -> ()
 
-    method private instrumented_get_frame buf =
-      let start_time = Unix.gettimeofday () in
-      let start_position = Frame.position buf in
-      self#get_frame buf;
-      let end_time = Unix.gettimeofday () in
-      let end_position = Frame.position buf in
-      let is_partial = Frame.is_partial buf in
-      if is_partial then elapsed <- 0
-      else elapsed <- elapsed + end_position - start_position;
-      let metadata =
-        List.filter
-          (fun (pos, _) -> start_position <= pos)
-          (Frame.get_all_metadata buf)
+    method private execute_on_track buf =
+      if not on_track_called then (
+        on_track_called <- true;
+        self#set_last_metadata buf;
+        let m = Option.value ~default:Frame.Metadata.empty last_metadata in
+        self#log#debug "calling on_track handlers..";
+        List.iter (fun fn -> fn m) on_track)
+
+    val mutable last_images = Hashtbl.create 0
+
+    method last_image field =
+      match Hashtbl.find_opt last_images field with
+        | Some i -> i
+        | None ->
+            let width, height = self#video_dimensions in
+            let i = Video.Canvas.Image.create width height in
+            Hashtbl.replace last_images field i;
+            i
+
+    method private set_last_image ~field img =
+      Hashtbl.replace last_images field img
+
+    val mutable video_generators = Hashtbl.create 0
+
+    method private video_generator ~priv field =
+      match Hashtbl.find_opt video_generators (priv, field) with
+        | Some g -> g
+        | None ->
+            let params =
+              Content.Video.get_params
+                (Frame.Fields.find field self#content_type)
+            in
+            let g = Content.Video.make_generator params in
+            Hashtbl.replace video_generators (priv, field) g;
+            g
+
+    method private internal_generate_video ?create ~priv ~field length =
+      Content.Video.generate ?create (self#video_generator ~priv field) length
+
+    method private generate_video = self#internal_generate_video ~priv:false
+
+    method private nearest_image ~pos ~last_image buf =
+      let nearest =
+        List.fold_left
+          (fun current (p, img) ->
+            match current with
+              | Some (p', _) when abs (p' - pos) < abs (p - pos) -> current
+              | _ -> Some (p, img))
+          None buf.Content.Video.data
       in
+      match nearest with Some (_, img) -> img | None -> last_image
+
+    method private normalize_video ~field content =
+      let buf = Content.Video.get_data content in
+      let data = buf.Content.Video.data in
+      let last_image =
+        match List.rev data with
+          | (_, img) :: _ ->
+              self#set_last_image ~field img;
+              img
+          | [] -> self#last_image field
+      in
+      Content.Video.lift_data
+        (self#internal_generate_video ~field ~priv:true
+           ~create:(fun ~pos ~width:_ ~height:_ () ->
+             self#nearest_image ~pos ~last_image buf)
+           (Content.length content))
+
+    method private normalize_video_content =
+      Frame.Fields.mapi (fun field content ->
+          if
+            Content.Video.is_data content
+            && Frame.Fields.mem field self#content_type
+          then self#normalize_video ~field content
+          else content)
+
+    method private instrumented_generate_frame =
+      let start_time = Unix.gettimeofday () in
+      let buf = self#normalize_video_content self#generate_frame in
+      let end_time = Unix.gettimeofday () in
+      let length = Frame.position buf in
+      let track_marks = Frame.track_marks buf in
+      let buf =
+        match track_marks with
+          | p :: _ :: _ ->
+              self#log#important
+                "Source created multiple tracks in a single frame! Sub-frame \
+                 tracks are not supported and are merged into a single one..";
+              Frame.add_track_mark (Frame.drop_track_marks buf) p
+          | _ -> buf
+      in
+      let has_track_mark = track_marks <> [] in
+      if has_track_mark then elapsed <- 0 else elapsed <- elapsed + length;
+      let metadata = Frame.get_all_metadata buf in
       let on_metadata = self#mutexify (fun () -> on_metadata) () in
       List.iter
         (fun (i, m) ->
-          self#log#debug "Got metadata at position %d: calling handlers..." i;
+          self#log#debug
+            "generate_frame: got metadata at position %d: calling handlers..." i;
           List.iter (fun fn -> fn m) on_metadata)
         metadata;
-      (match List.rev metadata with
-        | (_, m) :: _ ->
-            self#mutexify (fun () -> last_metadata <- Some (Hashtbl.copy m)) ()
-        | [] -> ());
-      self#mutexify
-        (fun () ->
-          if was_partial then (
-            was_partial <- false;
-            let m =
-              match Frame.get_metadata buf start_position with
-                | None -> Hashtbl.create 0
-                | Some m -> m
-            in
-            List.iter (fun fn -> fn m) on_track);
-          was_partial <- is_partial)
-        ();
+      if has_track_mark then self#execute_on_track buf;
       self#iter_watchers (fun w ->
-          w.get_frame ~start_time ~start_position ~end_time ~end_position
-            ~is_partial ~metadata)
-
-    (* [#get buf] completes the frame with the next data in the stream.
-       Depending on whether caching is enabled or not,
-       it calls [#get_frame] directly or tries to get data from the cache frame,
-       filling it if needed.
-       Any source calling [other_source#get should] thus take care of clearing
-       the cache of the other source ([#advance]) at the end of the output
-       round ([#after_output]). *)
-    method get buf =
-      assert (Frame.is_partial buf);
-
-      (* In some cases we can't avoid #get being called on a non-ready
-         source, for example:
-         - A starts pumping B, stops in the middle of the track
-         - B finishes its track, becomes unavailable
-         - A starts streaming again, needs to receive an EOT before
-           having to worry about availability.
-
-           Another important example is crossfade, if e.g. a transition
-           returns a failling source.
-
-         So we add special cases where, instead of calling #get_frame, we
-         call silent_end_track to properly end a track by inserting a break.
-
-         This makes the whole protocol a bit sloppy as it weakens constraints
-         tying #is_ready and #get, preventing the detection of "bad" calls
-         of #get without prior check of #is_ready.
-
-         This fix makes it really important to keep #is_ready = true during a
-         track, otherwise the track will be ended without the source noticing! *)
-      let silent_end_track () = Frame.add_break buf (Frame.position buf) in
-      if not caching then
-        if not self#is_ready then silent_end_track ()
-        else (
-          let b = Frame.breaks buf in
-          self#instrumented_get_frame buf;
-          if List.length b + 1 > List.length (Frame.breaks buf) then (
-            self#log#severe "#get_frame added too many breaks!";
-            assert false);
-          if List.length b + 1 < List.length (Frame.breaks buf) then (
-            self#log#severe
-              "#get_frame returned a buffer without enough breaks!";
-            assert false))
-      else (
-        let memo = self#memo in
-        try Frame.get_chunk buf memo
-        with Frame.No_chunk ->
-          if not self#is_ready then silent_end_track ()
-          else (
-            (* [memo] has nothing new for [buf]. Feed [memo] and try again *)
-            let b = Frame.breaks memo in
-            let p = Frame.position memo in
-            self#instrumented_get_frame memo;
-            if List.length b + 1 <> List.length (Frame.breaks memo) then (
-              self#log#severe "#get_frame didn't add exactly one break!";
-              assert false)
-            else if Frame.is_partial buf then
-              if p < Frame.position memo then self#get buf
-              else Frame.add_break buf (Frame.position buf)))
-
-    (* That's the way the source produces audio data.
-       It cannot be called directly, but [#get] should be used instead, for
-       dealing with caching if needed. *)
-    method virtual private get_frame : Frame.t -> unit
-
-    (* Set to [true] when we're inside an output cycle. *)
-    val mutable in_output = false
-    val mutable on_before_output = []
-    method on_before_output fn = on_before_output <- fn :: on_before_output
-
-    initializer
-      List.iter
-        (fun s -> self#on_before_output (fun () -> s#before_output))
-        sources;
-      self#on_before_output (fun () ->
-          self#iter_watchers (fun w -> w.before_output ()))
-
-    (* Prepare for output round. *)
-    method before_output =
-      if not in_output then (
-        List.iter (fun fn -> fn ()) on_before_output;
-        in_output <- true)
-
-    val mutable on_after_output = []
-    method on_after_output fn = on_after_output <- fn :: on_after_output
-
-    initializer
-      self#on_after_output (fun () -> Frame.clear self#memo);
-      List.iter
-        (fun s -> self#on_after_output (fun () -> s#after_output))
-        sources;
-      self#on_after_output (fun () ->
-          self#iter_watchers (fun w -> w.after_output ()))
-
-    (* Cleanup after output round. *)
-    method after_output =
-      if in_output then (
-        List.iter (fun fn -> fn ()) on_after_output;
-        in_output <- false)
+          w.generate_frame ~start_time ~end_time ~length ~has_track_mark
+            ~metadata);
+      buf
   end
 
 (** Entry-point sources, which need to actively perform some task. *)
-and virtual active_operator ?name sources =
+and virtual active_operator ?stack ?clock ?name sources =
   object (self)
-    inherit operator ?name sources
-
-    initializer
-      has_outputs := true;
-      add_new_output (self :> active_operator);
-      ignore
-        (unify self#clock
-           (create_unknown
-              ~sources:[(self :> active_operator)]
-              ~sub_clocks:[] ()))
-
-    method! is_active = true
-
-    (** Start a new output round, may trigger the computation of a frame. *)
-    method virtual output : unit
+    inherit operator ?stack ?clock ?name sources
+    method! source_type : source_type = `Active (self :> active)
 
     (** Do whatever needed when the latency gets too big and is reset. *)
     method virtual reset : unit
@@ -797,65 +556,104 @@ and virtual active_operator ?name sources =
 
 (** Shortcuts for defining sources with no children *)
 
-class virtual source ?name () =
+and virtual source ?stack ?clock ?name () =
   object
-    inherit operator ?name []
+    inherit operator ?stack ?clock ?name []
   end
 
-class virtual active_source ?name () =
+class virtual active_source ?stack ?clock ?name () =
   object
-    inherit active_operator ?name []
+    inherit active_operator ?stack ?clock ?name []
   end
 
-class virtual no_seek =
+(* Reselect type. This drives the choice of next source.
+   In cases where the underlying source returns the same
+   choice after calling [get_source], we need to refuse
+   that source unless if can continue filling up the frame
+   that is being worked on. This what [`After_position]
+   captures. *)
+type reselect = [ `Ok | `Force | `After_position of int ]
+
+class virtual generate_from_multiple_sources ~merge ~track_sensitive () =
   object (self)
+    method virtual get_source : reselect:reselect -> unit -> source option
+    method virtual split_frame : Frame.t -> Frame.t * Frame.t option
+    method virtual empty_frame : Frame.t
+    method virtual private execute_on_track : Frame.t -> unit
+    method virtual private set_last_metadata : Frame.t -> unit
     method virtual log : Log.t
 
-    method seek (_ : int) =
-      self#log#important "Seeking not supported by this source!";
-      0
+    method private can_generate_frame =
+      match
+        self#get_source
+          ~reselect:(if track_sensitive () then `Ok else `Force)
+          ()
+      with
+        | Some s -> s#is_ready
+        | None -> false
+
+    val mutable current_source = None
+
+    method private begin_track buf =
+      if merge () then Frame.drop_track_marks buf
+      else (
+        self#execute_on_track buf;
+        Frame.add_track_mark buf 0)
+
+    method private can_reselect ~(reselect : reselect) (s : source) =
+      s#is_ready
+      &&
+      match reselect with
+        | `Ok -> true
+        | `Force -> false
+        | `After_position p -> p < Frame.position s#get_frame
+
+    method private continue_frame s =
+      s#get_partial_frame (fun frame ->
+          match self#split_frame frame with
+            | buf, Some next_track when Frame.position buf = 0 -> (
+                match current_source with
+                  | Some s' when s == s' -> self#empty_frame
+                  | _ -> self#begin_track next_track)
+            | buf, _ -> buf)
+
+    method private generate_frame =
+      let s = Option.get (self#get_source ~reselect:`Ok ()) in
+      assert s#is_ready;
+      let buf = self#continue_frame s in
+      let size = Lazy.force Frame.size in
+      let rec f ~last_source ~last_chunk buf =
+        let pos = Frame.position buf in
+        let last_chunk_pos = Frame.position last_chunk in
+        self#set_last_metadata last_chunk;
+        if pos < size then (
+          let rem = size - pos in
+          match
+            self#get_source ~reselect:(`After_position last_chunk_pos) ()
+          with
+            | Some s' when last_source == s' ->
+                let remainder =
+                  s#get_partial_frame (fun frame ->
+                      Frame.slice frame (last_chunk_pos + rem))
+                in
+                let new_track = Frame.after remainder last_chunk_pos in
+                f ~last_source ~last_chunk:remainder
+                  (Frame.append buf new_track)
+            | Some s ->
+                assert s#is_ready;
+                let new_track =
+                  s#get_partial_frame (fun frame ->
+                      match self#split_frame frame with
+                        | buf, _ when Frame.position buf = 0 ->
+                            Frame.slice frame rem
+                        | buf, _ -> Frame.slice buf rem)
+                in
+                f ~last_source:s ~last_chunk:new_track
+                  (Frame.append buf (self#begin_track new_track))
+            | _ -> (last_source, buf))
+        else (last_source, buf)
+      in
+      let last_source, buf = f ~last_source:s ~last_chunk:buf buf in
+      current_source <- Some last_source;
+      buf
   end
-
-(** Specialized shortcuts *)
-
-type clock_variable = active_source var
-
-class type clock =
-  object
-    method id : string
-    method start : bool
-    method sync_mode : sync
-    method attach : active_source -> unit
-    method detach : (active_source -> bool) -> unit
-    method is_attached : active_source -> bool
-    method attach_clock : clock_variable -> unit
-    method detach_clock : clock_variable -> unit
-    method sub_clocks : clock_variable list
-    method start_outputs : (active_source -> bool) -> unit -> active_source list
-    method get_tick : int
-    method end_tick : unit
-  end
-
-module Clock_variables = struct
-  let to_string = variable_to_string
-  let create_unknown = create_unknown
-  let create_known = create_known
-
-  let subclocks v =
-    match deref v with
-      | Link { contents = Unknown { sub_clocks } } -> sub_clocks
-      | _ -> assert false
-
-  let unify = unify
-  let forget = forget
-  let get v = match deref v with Known c -> c | _ -> assert false
-  let is_known v = match deref v with Known _ -> true | _ -> false
-
-  let should_start v =
-    match deref v with
-      | Link { contents = Unknown { start } } ->
-          Option.value ~default:true start
-      | _ -> assert false
-end
-
-let has_outputs () = !has_outputs

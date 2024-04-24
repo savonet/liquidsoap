@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -82,18 +82,20 @@ let off_string iw ih ox oy =
   let oy = f ((frame_h - ih) / 2) frame_h oy in
   (ox, oy)
 
-let create_decoder ~audio ~width ~height ~metadata img =
+let create_decoder ~ctype ~width ~height ~metadata img =
   let frame_width = width in
   let frame_height = height in
   (* Dimensions. *)
   let img_w = Image.YUV420.width img in
   let img_h = Image.YUV420.height img in
-  let width = try Hashtbl.find metadata "width" with Not_found -> "" in
-  let height = try Hashtbl.find metadata "height" with Not_found -> "" in
+  let width = try Frame.Metadata.find "width" metadata with Not_found -> "" in
+  let height =
+    try Frame.Metadata.find "height" metadata with Not_found -> ""
+  in
   let width, height = wh_string img_w img_h width height in
   (* Offset. *)
-  let off_x = try Hashtbl.find metadata "x" with Not_found -> "" in
-  let off_y = try Hashtbl.find metadata "y" with Not_found -> "" in
+  let off_x = try Frame.Metadata.find "x" metadata with Not_found -> "" in
+  let off_y = try Frame.Metadata.find "y" metadata with Not_found -> "" in
   let off_x, off_y = off_string width height off_x off_y in
   log#debug "Decoding to %dx%d at %dx%d" width height off_x off_y;
   (* We are likely to have no α channel, optimize it. *)
@@ -108,33 +110,37 @@ let create_decoder ~audio ~width ~height ~metadata img =
   let img = Video.Canvas.Image.translate off_x off_y img in
   let duration =
     try
-      let seconds = float_of_string (Hashtbl.find metadata "duration") in
+      let seconds = float_of_string (Frame.Metadata.find "duration" metadata) in
       if seconds < 0. then -1 else Frame.video_of_seconds seconds
     with Not_found -> -1
   in
   let duration = ref duration in
   let close () = () in
-  let fill frame =
-    let a0 = AFrame.position frame in
-    (* Fill in video. *)
-    let video = VFrame.data frame in
-    let start = VFrame.next_sample_position frame in
-    let stop =
-      if !duration = -1 then VFrame.size frame
-      else min (VFrame.size frame) (start + !duration)
-    in
-    VFrame.add_break frame stop;
-    for i = start to stop - 1 do
-      Video.Canvas.set video i img
-    done;
-    let a1 = AFrame.position frame in
-    if audio then AFrame.blankify frame a0 (a1 - a0);
-    if !duration = -1 then -1
-    else (
-      duration := !duration - (stop - start);
-      Frame.main_of_video !duration)
+  let remaining () =
+    if !duration = -1 then -1 else Frame.main_of_video !duration
   in
-  { Decoder.fill; fseek = (fun _ -> 0); close }
+  let generator =
+    Content.Video.make_generator
+      (Content.Video.get_params (Frame.Fields.find Frame.Fields.video ctype))
+  in
+  let fread length =
+    let frame = Frame.create ~length Frame.Fields.empty in
+    let video =
+      Content.Video.generate
+        ~create:(fun ~pos:_ ~width:_ ~height:_ () -> img)
+        generator length
+    in
+    let frame =
+      Frame.set_data frame Frame.Fields.video Content.Video.lift_data video
+    in
+    match Frame.Fields.find_opt Frame.Fields.audio ctype with
+      | None -> frame
+      | Some format ->
+          let pcm = Content.Audio.get_data (Content.make ~length format) in
+          Audio.clear pcm 0 (Frame.audio_of_main length);
+          Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data pcm
+  in
+  { Decoder.fread; remaining; fseek = (fun len -> len); close }
 
 let is_audio_compatible ctype =
   match Frame.Fields.find_opt Frame.Fields.audio ctype with
@@ -149,8 +155,7 @@ let is_video_compatible ctype =
 let () =
   Plug.register Decoder.decoders "image" ~doc:"Decoder for static images."
     {
-      Decoder.media_type = `Audio_video;
-      priority = (fun () -> 1);
+      Decoder.priority = (fun () -> 1);
       file_extensions = (fun () -> None);
       mime_types = (fun () -> None);
       file_type =
@@ -173,8 +178,6 @@ let () =
               Content.Video.dimensions_of_format
                 (Option.get (Frame.Fields.find_opt Frame.Fields.video ctype))
             in
-            create_decoder
-              ~audio:(Frame.Fields.mem Frame.Fields.audio ctype)
-              ~width ~height ~metadata img);
+            create_decoder ~ctype ~width ~height ~metadata img);
       stream_decoder = None;
     }

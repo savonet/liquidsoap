@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2023 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,54 +29,60 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
   ~threshold =
   object (self)
     (** State can be either
-    *  - `Noise l: the source is considered to be emitting,
-    *     but it has been silent for l samples;
-    *  - `Blank l: the source is considered to be silent,
-    *     but it has been noisy for l samples. *)
-    val mutable state = if start_blank then `Blank 0 else `Noise 0
+        - `Noise l: the source is considered to be emitting,
+           but it has been silent for l samples;
+        - `Blank l: the source is considered to be silent,
+           but it has been noisy for l samples. *)
+    val state = Atomic.make (if start_blank then `Blank 0 else `Noise 0)
 
+    val dB_levels = Atomic.make None
+    method dB_levels = Atomic.get dB_levels
     method virtual private log : Log.t
-    method is_blank = match state with `Blank _ -> true | _ -> false
+
+    method is_blank =
+      match Atomic.get state with `Blank _ -> true | _ -> false
 
     method private string_of_state =
       function `Blank _ -> "blank" | `Noise _ -> "no blank"
 
     method private set_state s =
       begin
-        match (state, s) with
+        match (Atomic.get state, s) with
           | `Blank _, `Noise _ | `Noise _, `Blank _ ->
               self#log#info "Setting state to %s" (self#string_of_state s)
           | _ -> ()
       end;
-      state <- s
+      Atomic.set state s
 
     (** This method should be called after the frame [s] has been
-    * filled, where [p0] is the position in [s] before filling. *)
-    method private check_blank s p0 =
-      (* TODO The [p0 > 0] condition may not be fully justified.
-       *      By the way it was absent in [blank.eat]. *)
-      if AFrame.is_partial s || p0 > 0 then (
+        filled, where [p0] is the position in [s] before filling. *)
+    method private check_blank s =
+      if Frame.track_marks s <> [] then (
         if
           (* Don't bother analyzing the end of this track, jump to the new state. *)
-          track_sensitive
+          track_sensitive ()
         then self#set_state (`Noise 0))
       else (
-        let len = AFrame.position s - p0 in
-        let rms = AFrame.rms s p0 len in
+        let len = AFrame.position s in
+        let rms = AFrame.rms s 0 len in
+        Atomic.set dB_levels (Some rms);
+        let threshold = threshold () in
         let noise =
           Array.fold_left (fun noise r -> noise || r > threshold) false rms
         in
-        match state with
+        match Atomic.get state with
           | `Noise blank_len ->
               if noise then (if blank_len <> 0 then self#set_state (`Noise 0))
               else (
                 let blank_len = blank_len + len in
-                if blank_len <= max_blank then self#set_state (`Noise blank_len)
+                if blank_len <= max_blank () then
+                  self#set_state (`Noise blank_len)
                 else self#set_state (`Blank 0))
           | `Blank noise_len ->
               if noise then (
                 let noise_len = noise_len + len in
-                if noise_len < min_noise then self#set_state (`Blank noise_len)
+                if noise_len < min_noise () then
+                  self#set_state (`Blank noise_len)
                 else self#set_state (`Noise 0))
               else if noise_len <> 0 then self#set_state (`Blank 0))
   end
@@ -86,103 +92,91 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
   object (self)
     inherit operator ~name:"blank.detect" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-    method stype = source#stype
-    method is_ready = source#is_ready
+    method fallible = source#fallible
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
 
-    method private get_frame ab =
-      let p0 = AFrame.position ab in
-      source#get ab;
+    method private generate_frame =
+      let buf = source#get_frame in
       let was_blank = self#is_blank in
       let is_blank =
-        self#check_blank ab p0;
+        self#check_blank buf;
         self#is_blank
       in
-      match (was_blank, is_blank) with
+      (match (was_blank, is_blank) with
         | true, false -> ignore (Lang.apply on_noise [])
         | false, true -> ignore (Lang.apply on_blank [])
-        | _ -> ()
+        | _ -> ());
+      buf
   end
 
 class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
   source =
   object (self)
     (* Stripping is easy:
-     *  - declare yourself as unavailable when the source is silent
-     *  - keep pulling data from the source during those times. *)
+       - declare yourself as unavailable when the source is silent
+       - keep pulling data from the source during those times. *)
     inherit active_operator ~name:"blank.strip" [source]
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
-    method stype = `Fallible
-    method is_ready = (not self#is_blank) && source#is_ready
+    method fallible = true
+    method private can_generate_frame = (not self#is_blank) && source#is_ready
     method remaining = if self#is_blank then 0 else source#remaining
-    method seek n = if self#is_blank then 0 else source#seek n
+
+    method seek_source =
+      if self#is_blank then (self :> Source.source) else source#seek_source
+
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame ab =
-      let p0 = AFrame.position ab in
-      let b0 = AFrame.breaks ab in
-      source#get ab;
-      self#check_blank ab p0;
-
-      (* It's useless to strip metadata, because [ab] is [memo]
-       * and metadata will not be copied from it outside of the track. *)
-      if self#is_blank then AFrame.set_breaks ab (p0 :: b0)
+    method private generate_frame =
+      let buf = source#get_frame in
+      self#check_blank buf;
+      buf
 
     method private output =
-      (* We only #get once in memo; this is why we can set_breaks every time
-       * in #get_frame.
-       * This behavior makes time flow slower than expected, but doesn't seem
-       * harmful. The advantage of doing this is that if stripping stops because
-       * the track ends, the beginning of the next track won't be lost. (Because
-       * of granularity issues, the change of #is_ready only takes effect at the
-       * end of the clock cycle). *)
-      if source#is_ready && self#is_blank && AFrame.is_partial self#memo then
-        self#get_frame self#memo
+      if source#is_ready && self#is_blank then ignore self#get_frame
 
     method reset = ()
   end
 
 class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
-  ~threshold source =
+  ~threshold source_val =
+  let source = Lang.to_source source_val in
   object (self)
-    (* Eating blank is trickier than stripping.
-     * TODO It requires control over the time flow of the source; we need
-     * to force our own clock onto it. *)
-    inherit operator ~name:"blank.eat" [source]
+    (* Eating blank is trickier than stripping. *)
+    inherit operator ~name:"blank.eat" []
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
+    inherit Child_support.base ~check_self_sync:true [source_val]
 
-    (** We strip when the source is silent,
-    * but only at the beginning of tracks if [at_beginning] is passed. *)
+    (** We strip when the source is silent, but only at the beginning of tracks
+        if [at_beginning] is passed. *)
 
     val mutable stripping = false
     val mutable beginning = true
-    method stype = `Fallible
-    method is_ready = source#is_ready
+    method fallible = true
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame ab =
+    method private generate_frame =
       let first = ref true in
-      let breaks = AFrame.breaks ab in
-      (* Do at least one round of pulling data from the source into [ab],
-       * and as many as needed for getting rid of silence. *)
-      while !first || stripping do
-        if not !first then AFrame.set_breaks ab breaks;
+      let frame = ref self#empty_frame in
+      while source#is_ready && (!first || stripping) do
         first := false;
-        let p0 = AFrame.position ab in
-        source#get ab;
-        if track_sensitive && AFrame.is_partial ab then (
+        self#on_child_tick (fun () ->
+            if source#is_ready then frame := source#get_frame);
+        let frame = !frame in
+        if track_sensitive () && Frame.track_marks frame <> [] then (
           stripping <- false;
           beginning <- true);
         let was_blank = self#is_blank in
         let is_blank =
-          self#check_blank ab p0;
+          self#check_blank frame;
           self#is_blank
         in
         match (was_blank, is_blank) with
@@ -192,13 +186,14 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
               stripping <- false;
               beginning <- false
           | _ -> ()
-      done
+      done;
+      !frame
   end
 
 let proto frame_t =
   [
     ( "threshold",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float (-40.)),
       Some "Power in decibels under which the stream is considered silent." );
     ( "start_blank",
@@ -206,15 +201,15 @@ let proto frame_t =
       Some (Lang.bool false),
       Some "Start assuming we have blank." );
     ( "max_blank",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 20.),
       Some "Maximum duration of silence allowed, in seconds." );
     ( "min_noise",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 0.),
       Some "Minimum duration of noise required to end silence, in seconds." );
     ( "track_sensitive",
-      Lang.bool_t,
+      Lang.getter_t Lang.bool_t,
       Some (Lang.bool true),
       Some "Reset blank counter at each track." );
     ("", Lang.source_t frame_t, None, None);
@@ -222,25 +217,47 @@ let proto frame_t =
 
 let extract p =
   let f v = List.assoc v p in
-  let s = Lang.to_source (f "") in
+  let s = f "" in
   let start_blank = Lang.to_bool (f "start_blank") in
   let max_blank =
-    let l = Lang.to_float (f "max_blank") in
-    Frame.audio_of_seconds l
+    let l = Lang.to_float_getter (f "max_blank") in
+    fun () -> Frame.audio_of_seconds (l ())
   in
   let min_noise =
-    let l = Lang.to_float (f "min_noise") in
-    Frame.audio_of_seconds l
+    let l = Lang.to_float_getter (f "min_noise") in
+    fun () -> Frame.audio_of_seconds (l ())
   in
   let threshold =
     let v = f "threshold" in
-    let t = Lang.to_float v in
-    if t > 0. then
-      raise (Error.Invalid_value (v, "threshold should be negative"));
-    Audio.lin_of_dB t
+    let t = Lang.to_float_getter v in
+    fun () ->
+      let t = t () in
+      if t > 0. then
+        raise (Error.Invalid_value (v, "threshold should be negative"));
+      Audio.lin_of_dB t
   in
-  let ts = Lang.to_bool (f "track_sensitive") in
+  let ts = Lang.to_bool_getter (f "track_sensitive") in
   (start_blank, max_blank, min_noise, threshold, ts, s)
+
+let meth () =
+  [
+    ( "dB_levels",
+      ([], Lang.fun_t [] (Lang.nullable_t (Lang.list_t Lang.float_t))),
+      "Return the detected dB level for each channel.",
+      fun s ->
+        Lang.val_fun [] (fun _ ->
+            match s#dB_levels with
+              | None -> Lang.null
+              | Some lvl ->
+                  Lang.list
+                    Array.(
+                      to_list
+                        (map (fun v -> Lang.float (Audio.dB_of_lin v)) lvl))) );
+    ( "is_blank",
+      ([], Lang.fun_t [] Lang.bool_t),
+      "Indicate whether blank was detected.",
+      fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
+  ]
 
 let _ =
   let frame_t =
@@ -248,14 +265,7 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Blank.blank "detect" ~return_t:frame_t
-    ~category:`Track
-    ~meth:
-      [
-        ( "is_blank",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Indicate whether blank was detected.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
-      ]
+    ~category:`Track ~meth:(meth ())
     ~descr:"Calls a given handler when detecting a blank."
     (( "",
        Lang.fun_t [] Lang.unit_t,
@@ -275,29 +285,23 @@ let _ =
       in
       new detect
         ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive ~on_blank
-        ~on_noise s)
+        ~on_noise (Lang.to_source s))
 
 let _ =
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
-  Lang.add_operator ~base:Blank.blank "strip" ~return_t:frame_t
-    ~meth:
-      [
-        ( "is_blank",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Indicate whether blank was detected.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
-      ]
+  Lang.add_operator ~base:Blank.blank "strip" ~return_t:frame_t ~meth:(meth ())
     ~category:`Track
     ~descr:"Make the source unavailable when it is streaming blank."
-    (proto frame_t)
-    (fun p ->
+    (proto frame_t) (fun p ->
       let start_blank, max_blank, min_noise, threshold, track_sensitive, s =
         extract p
       in
-      new strip ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold s)
+      new strip
+        ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
+        (Lang.to_source s))
 
 let _ =
   let frame_t =
@@ -305,13 +309,7 @@ let _ =
       (Frame.Fields.make ~audio:(Format_type.audio ()) ())
   in
   Lang.add_operator ~base:Blank.blank "eat" ~return_t:frame_t ~category:`Track
-    ~meth:
-      [
-        ( "is_blank",
-          ([], Lang.fun_t [] Lang.bool_t),
-          "Indicate whether blank was detected.",
-          fun s -> Lang.val_fun [] (fun _ -> Lang.bool s#is_blank) );
-      ]
+    ~meth:(meth ())
     ~descr:
       "Eat blanks, i.e., drop the contents of the stream until it is not blank \
        anymore."
