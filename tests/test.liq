@@ -138,7 +138,7 @@ end
 # is within 10^-digits.
 # @param ~digits The number of decimal digits to compare. Default is 7.
 # @flag hidden
-def test._almost_equals(~digits=7, first, second) =
+def test._almost_equal(~digits=7, first, second) =
   diff = abs(float(first) - float(second))
   if
     diff * float(pow(10, digits)) < 0.5
@@ -153,17 +153,17 @@ end
 # Values are considered almost equal if their difference
 # is within 10^-digits.
 # @param ~digits The number of decimal digits to compare. Default is 7.
-def test.almost_equals(~digits=7, first, second) =
-  is_almost_equals = test._almost_equals(digits=digits, first, second)
+def test.almost_equal(~digits=7, first, second) =
+  is_almost_equal = test._almost_equal(digits=digits, first, second)
   if
-    not is_almost_equals
+    not is_almost_equal
   then
     error.raise(
       error.failure,
       "#{string.quote(string(first))} != #{
         string.quote(string(second))
       }
-       up to #{digits} digits, diff = #{is_almost_equals.diff}."
+       up to #{digits} digits, diff = #{is_almost_equal.diff}."
     )
 
     test.fail()
@@ -174,17 +174,17 @@ end
 # Values are considered not almost equal if their difference
 # is greater than 10^-digits.
 # @param ~digits The number of decimal digits to compare. Default is 7.
-def test.not_almost_equals(~digits=7, first, second) =
-  is_almost_equals = test._almost_equals(digits=digits, first, second)
+def test.not_almost_equal(~digits=7, first, second) =
+  is_almost_equal = test._almost_equal(digits=digits, first, second)
   if
-    is_almost_equals
+    is_almost_equal
   then
     error.raise(
       error.failure,
       "#{string.quote(string(first))} == #{
         string.quote(string(second))
       }
-       up to #{digits} digits, diff = #{is_almost_equals.diff}."
+       up to #{digits} digits, diff = #{is_almost_equal.diff}."
     )
 
     test.fail()
