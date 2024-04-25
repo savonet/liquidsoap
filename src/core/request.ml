@@ -399,17 +399,16 @@ let read_metadata t =
   if t.resolve_metadata then (
     let indicator = peek_indicator t in
     let name = indicator.string in
-    if not (file_exists name) then
-      log#important "File %s does not exist!" (Lang_string.quote_string name)
-    else if not (file_is_readable name) then
-      log#important "Read permission denied for %s!"
-        (Lang_string.quote_string name)
-    else (
-      let metadata =
-        resolve_metadata ~initial_metadata:(get_all_metadata t)
-          ~excluded:t.excluded_metadata_resolvers name
-      in
-      indicator.metadata <- Frame.Metadata.append indicator.metadata metadata))
+    if file_exists name then
+      if not (file_is_readable name) then
+        log#important "Read permission denied for %s!"
+          (Lang_string.quote_string name)
+      else (
+        let metadata =
+          resolve_metadata ~initial_metadata:(get_all_metadata t)
+            ~excluded:t.excluded_metadata_resolvers name
+        in
+        indicator.metadata <- Frame.Metadata.append indicator.metadata metadata))
 
 let local_check t =
   read_metadata t;
