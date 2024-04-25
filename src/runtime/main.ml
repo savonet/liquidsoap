@@ -191,12 +191,14 @@ let process_request s =
         Printf.printf "%s\n" metadata;
         Printf.printf "duration = %!";
         begin
-          try
-            Printf.printf "%.2f s\n"
-              (Request.duration
-                 ~metadata:(Request.get_all_metadata req)
-                 (Option.get (Request.get_filename req)))
-          with Not_found -> Printf.printf "failed\n"
+          match
+            Request.duration
+              ~metadata:(Request.get_all_metadata req)
+              (Option.get (Request.get_filename req))
+          with
+            | Some f -> Printf.printf "%.2f s\n" f
+            | None -> Printf.printf "n/a\n"
+            | exception Not_found -> Printf.printf "failed\n"
         end;
         Request.destroy req
 
