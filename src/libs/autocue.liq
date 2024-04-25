@@ -191,7 +191,9 @@ def autocue.internal.ebur128(~ratio=50., ~timeout=10., r) =
     )
     []
   else
-    s = request.once(r)
+    # r is pre-resolved to a pcm audio file so we need to
+    # re-create a request here.
+    s = request.once(request.create(resolve_metadata=false, request.filename(r)))
     frames = ref([])
 
     def ebur128(s) =
@@ -755,6 +757,9 @@ autocue.register(name="internal", autocue.internal.implementation)
 
 let file.autocue = ()
 
+# Dummy blank source for resolving requests.
+let file.autocue.blank = (blank():source(audio=pcm))
+
 # Return the file's autocue values as metadata suitable for metadata override.
 # @category Source / Audio processing
 def file.autocue.metadata(uri) =
@@ -793,7 +798,7 @@ def file.autocue.metadata(uri) =
   r = request.create(excluded_metadata_resolvers=["autocue"], uri)
 
   if
-    not request.resolve(r)
+    not request.resolve(content_type=file.autocue.blank, r)
   then
     log(
       level=2,
