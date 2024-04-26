@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 let error fmt =
   Printf.ksprintf
     (fun message -> Runtime_error.raise ~pos:[] ~message "sqlite")

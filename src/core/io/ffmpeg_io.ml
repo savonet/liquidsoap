@@ -22,8 +22,6 @@
 
 exception Not_connected
 
-module Pcre = Re.Pcre
-
 module Metadata = struct
   include Map.Make (struct
     type t = string

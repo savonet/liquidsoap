@@ -22,7 +22,6 @@
 
 open Mm
 open Source
-module Pcre = Re.Pcre
 
 let chan = 0
 

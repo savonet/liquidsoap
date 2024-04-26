@@ -22,8 +22,6 @@
 
 (** base class *)
 
-module Pcre = Re.Pcre
-
 let output = Modules.output
 
 let encoder_factory ?format format_val =

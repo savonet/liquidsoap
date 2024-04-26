@@ -22,7 +22,6 @@
 
 open Value
 open Ground
-module Pcre = Re.Pcre
 
 type decode_type = [ `Raw | `Internal ]
 type content_type = [ `Audio | `Video ]

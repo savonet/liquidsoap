@@ -1,5 +1,3 @@
-module Pcre = Re.Pcre
-
 let variables = [("LIQUIDSOAP_VERSION", Liquidsoap_lang.Build_config.version)]
 
 let () =
