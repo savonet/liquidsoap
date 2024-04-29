@@ -174,9 +174,9 @@ end
 
 # Get frames from ffmpeg.filter.ebur128
 # @flag hidden
-def autocue.internal.ebur128(~ratio=50., ~timeout=10., r) =
+def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
 %ifdef ffmpeg.filter.ebur128
-  duration = null.get(default=0., request.duration(request.filename(r)))
+  duration = null.get(default=0., request.duration(filename))
   estimated_processing_time = duration / ratio
 
   if
@@ -191,9 +191,7 @@ def autocue.internal.ebur128(~ratio=50., ~timeout=10., r) =
     )
     []
   else
-    # r is pre-resolved to a pcm audio file so we need to
-    # re-create a request here.
-    s = request.once(request.create(resolve_metadata=false, request.filename(r)))
+    s = request.once(request.create(resolve_metadata=false, filename))
     frames = ref([])
 
     def ebur128(s) =
@@ -226,7 +224,7 @@ end
 
 # Compute autocue data
 # @flag hidden
-def autocue.internal.implementation(r) =
+def autocue.internal.implementation(~metadata, filename) =
   lufs_target = settings.autocue.internal.lufs_target()
   cue_in_threshold = settings.autocue.internal.cue_in_threshold()
   cue_out_threshold = settings.autocue.internal.cue_out_threshold()
@@ -245,7 +243,8 @@ def autocue.internal.implementation(r) =
   timeout = settings.autocue.internal.timeout()
 
   metadata_overrides = settings.autocue.internal.metadata_override()
-  metadata = request.metadata(r)
+
+  metadata = (metadata:[(string*string)])
 
   if
     list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
@@ -253,17 +252,17 @@ def autocue.internal.implementation(r) =
     log(
       level=2,
       label="autocue.internal.metadata",
-      "Override metadata detected for #{request.uri(r)}, disabling autocue!"
+      "Override metadata detected for #{filename}, disabling autocue!"
     )
     null()
   else
     log(
       level=4,
       label="autocue.internal",
-      "Starting to process #{request.uri(r)}"
+      "Starting to process #{filename}"
     )
 
-    frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, r)
+    frames = autocue.internal.ebur128(ratio=ratio, timeout=timeout, filename)
 
     if
       list.length(frames) < 2
@@ -295,7 +294,7 @@ def autocue.internal.implementation(r) =
       log(
         level=4,
         label="autocue.internal",
-        "Processing results for #{request.uri(r)}"
+        "Processing results for #{filename}"
       )
 
       log(
@@ -762,7 +761,7 @@ let file.autocue.blank = (blank():source(audio=pcm))
 
 # Return the file's autocue values as metadata suitable for metadata override.
 # @category Source / Audio processing
-def file.autocue.metadata(uri) =
+def file.autocue.metadata(~metadata, uri) =
   preferred_implementation = settings.autocue.preferred()
   implementations = settings.autocue.implementations()
   let (implementation_name, implementation) =
@@ -800,6 +799,7 @@ def file.autocue.metadata(uri) =
   if
     not request.resolve(content_type=file.autocue.blank, r)
   then
+    request.destroy(r)
     log(
       level=2,
       label="autocue",
@@ -807,7 +807,8 @@ def file.autocue.metadata(uri) =
     )
     []
   else
-    autocue = implementation(r)
+    autocue = implementation(metadata=metadata, request.filename(r))
+    request.destroy(r)
 
     if
       null.defined(autocue)
@@ -934,7 +935,7 @@ def enable_autocue_metadata() =
   settings.crossfade.assume_autocue := true
 
   def autocue_metadata(~metadata, fname) =
-    autocue_metadata = file.autocue.metadata(fname)
+    autocue_metadata = file.autocue.metadata(metadata=metadata, fname)
 
     all_amplify = [...settings.autocue.amplify_aliases(), "liq_amplify"]
     user_supplied_amplify =
@@ -1011,7 +1012,7 @@ end
 # Define autocue protocol
 # @flag hidden
 def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
-  cue_metadata = file.autocue.metadata(arg)
+  cue_metadata = file.autocue.metadata(metadata=[], arg)
 
   if
     cue_metadata != []
