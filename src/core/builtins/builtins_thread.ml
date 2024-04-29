@@ -83,9 +83,7 @@ let _ =
           on_error
       in
       let f () =
-        try
-          Liquidsoap_lang.Evaluation.after_eval ~force:true (fun () ->
-              Lang.to_float (Lang.apply f []))
+        try Lang.to_float (Lang.apply f [])
         with exn -> (
           let bt = Printexc.get_raw_backtrace () in
           match on_error with

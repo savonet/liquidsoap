@@ -28,9 +28,3 @@ val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
 
 (** Apply a function to arguments. *)
 val apply : ?pos:Pos.t list -> Value.t -> (string * Value.t) list -> Value.t
-
-(** Register a function to be executed after the next runtime evaluation completes. *)
-val on_after_eval : (unit -> unit) -> unit
-
-(** Execute a function then run all the [after_eval] callbacks. *)
-val after_eval : ?force:bool -> (unit -> 'a) -> 'a

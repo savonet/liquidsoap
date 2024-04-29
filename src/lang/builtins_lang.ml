@@ -143,33 +143,6 @@ let liquidsoap_version =
     Lang.string_t
 
 let _ =
-  Lang.add_builtin ~base:liquidsoap "after_eval" ~category:`Liquidsoap
-    ~descr:
-      "Register a function to be executed when the current evaluation \
-       terminates. Exceptions raised by the function are ignored."
-    [("", Lang.fun_t [] Lang.unit_t, None, None)]
-    Lang.unit_t
-    (fun p ->
-      let fn = List.assoc "" p in
-      let fn () = ignore (Lang.apply fn []) in
-      Evaluation.on_after_eval fn;
-      Lang.unit)
-
-let _ =
-  let univ = Lang.univ_t () in
-  Lang.add_builtin ~base:liquidsoap "exec_after_eval" ~category:`Liquidsoap
-    ~descr:
-      "Execute all computations registered via `after_eval` during the \
-       execution of the given function immediately after the function has \
-       returned."
-    [("", Lang.fun_t [] univ, None, None)]
-    univ
-    (fun p ->
-      let fn = List.assoc "" p in
-      let fn () = Lang.apply fn [] in
-      Evaluation.after_eval ~force:true fn)
-
-let _ =
   Lang.add_builtin_base ~base:liquidsoap "executable" ~category:`Liquidsoap
     ~descr:"Path to the Liquidsoap executable."
     Lang.(Ground (Ground.String Sys.executable_name))
