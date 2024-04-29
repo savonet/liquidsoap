@@ -97,6 +97,7 @@ let _ =
           handler =
             (fun _ ->
               let delay = f () in
+              Clock.after_eval ();
               if delay >= 0. then [task delay] else []);
         }
       in

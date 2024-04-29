@@ -483,6 +483,8 @@ let after_tick c fn =
   let x = active_params c in
   Queue.push x.after_tick fn
 
+let after_eval () = Queue.iter clocks start
+
 let self_sync c =
   let clock = Unifier.deref c in
   match Atomic.get clock.state with
