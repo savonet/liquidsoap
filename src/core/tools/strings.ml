@@ -158,20 +158,20 @@ module Mutable = struct
   let to_strings { strings } = strings
 
   let add m s =
-    Mutex.mutexify m.mutex (fun () -> m.strings <- add m.strings s) ()
+    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- add m.strings s) ()
 
   let add_substring m s ofs len =
-    Mutex.mutexify m.mutex
+    Mutex_utils.mutexify m.mutex
       (fun () -> m.strings <- add_substring m.strings s ofs len)
       ()
 
   let add_subbytes m b ofs len =
-    Mutex.mutexify m.mutex
+    Mutex_utils.mutexify m.mutex
       (fun () -> m.strings <- add_subbytes m.strings b ofs len)
       ()
 
   let unsafe_add_subbytes m b ofs len =
-    Mutex.mutexify m.mutex
+    Mutex_utils.mutexify m.mutex
       (fun () -> m.strings <- unsafe_add_subbytes m.strings b ofs len)
       ()
 
@@ -179,60 +179,71 @@ module Mutable = struct
   let unsafe_add_bytes t b = unsafe_add_subbytes t b 0 (Bytes.length b)
 
   let dda s m =
-    Mutex.mutexify m.mutex (fun () -> m.strings <- dda s m.strings) ()
+    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- dda s m.strings) ()
 
   let append_strings m t =
-    Mutex.mutexify m.mutex (fun () -> m.strings <- append m.strings t) ()
+    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- append m.strings t) ()
 
   let drop m len =
-    Mutex.mutexify m.mutex (fun () -> m.strings <- drop m.strings len) ()
+    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- drop m.strings len) ()
 
   let keep m len =
-    Mutex.mutexify m.mutex (fun () -> m.strings <- keep m.strings len) ()
+    Mutex_utils.mutexify m.mutex (fun () -> m.strings <- keep m.strings len) ()
 
   let append m m' =
-    Mutex.mutexify m.mutex
+    Mutex_utils.mutexify m.mutex
       (fun () ->
-        Mutex.mutexify m'.mutex
+        Mutex_utils.mutexify m'.mutex
           (fun () -> m.strings <- append m.strings m'.strings)
           ())
       ()
 
   let iter_view fn m =
-    Mutex.mutexify m.mutex (fun () -> iter_view fn m.strings) ()
+    Mutex_utils.mutexify m.mutex (fun () -> iter_view fn m.strings) ()
 
-  let iter fn m = Mutex.mutexify m.mutex (fun () -> iter fn m.strings) ()
+  let iter fn m = Mutex_utils.mutexify m.mutex (fun () -> iter fn m.strings) ()
 
   let map_view fn m =
-    Mutex.mutexify m.mutex (fun () -> of_strings (map_view fn m.strings)) ()
+    Mutex_utils.mutexify m.mutex
+      (fun () -> of_strings (map_view fn m.strings))
+      ()
 
   let map fn m =
-    Mutex.mutexify m.mutex (fun () -> of_strings (map fn m.strings)) ()
+    Mutex_utils.mutexify m.mutex (fun () -> of_strings (map fn m.strings)) ()
 
   let fold_view fn x0 m =
-    Mutex.mutexify m.mutex (fun () -> fold_view fn x0 m.strings) ()
+    Mutex_utils.mutexify m.mutex (fun () -> fold_view fn x0 m.strings) ()
 
-  let fold fn x0 m = Mutex.mutexify m.mutex (fun () -> fold fn x0 m.strings) ()
+  let fold fn x0 m =
+    Mutex_utils.mutexify m.mutex (fun () -> fold fn x0 m.strings) ()
 
   let flush m =
-    Mutex.mutexify m.mutex
+    Mutex_utils.mutexify m.mutex
       (fun () ->
         let content = m.strings in
         m.strings <- [];
         content)
       ()
 
-  let is_empty m = Mutex.mutexify m.mutex (fun () -> is_empty m.strings) ()
-  let length m = Mutex.mutexify m.mutex (fun () -> length m.strings) ()
-  let to_bytes m = Mutex.mutexify m.mutex (fun () -> to_bytes m.strings) ()
-  let to_string m = Mutex.mutexify m.mutex (fun () -> to_string m.strings) ()
+  let is_empty m =
+    Mutex_utils.mutexify m.mutex (fun () -> is_empty m.strings) ()
+
+  let length m = Mutex_utils.mutexify m.mutex (fun () -> length m.strings) ()
+
+  let to_bytes m =
+    Mutex_utils.mutexify m.mutex (fun () -> to_bytes m.strings) ()
+
+  let to_string m =
+    Mutex_utils.mutexify m.mutex (fun () -> to_string m.strings) ()
 
   let blit m mo b bo len =
-    Mutex.mutexify m.mutex (fun () -> blit (sub m.strings mo len) b bo) ()
+    Mutex_utils.mutexify m.mutex (fun () -> blit (sub m.strings mo len) b bo) ()
 
   let sub m ofs len =
-    Mutex.mutexify m.mutex (fun () -> of_strings (sub m.strings ofs len)) ()
+    Mutex_utils.mutexify m.mutex
+      (fun () -> of_strings (sub m.strings ofs len))
+      ()
 
   let substring m ofs len =
-    Mutex.mutexify m.mutex (fun () -> substring m.strings ofs len) ()
+    Mutex_utils.mutexify m.mutex (fun () -> substring m.strings ofs len) ()
 end

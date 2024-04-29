@@ -51,7 +51,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     val mutable logf = None
 
     method connected_client =
-      Mutex.mutexify relay_m
+      Mutex_utils.mutexify relay_m
         (fun () -> Option.map address_resolver relay_socket)
         ()
 
@@ -95,7 +95,9 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       let read buf ofs len =
         let input =
           (fun buf len ->
-            let socket = Mutex.mutexify relay_m (fun () -> relay_socket) () in
+            let socket =
+              Mutex_utils.mutexify relay_m (fun () -> relay_socket) ()
+            in
             match socket with
               | None -> 0
               | Some socket -> (
@@ -141,7 +143,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       try
         let decoder, buffer = create_decoder input in
         while true do
-          Mutex.mutexify relay_m
+          Mutex_utils.mutexify relay_m
             (fun () -> if relay_socket = None then failwith "relaying stopped")
             ();
           if Atomic.get should_shutdown then failwith "shutdown called";
@@ -189,7 +191,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
     method relay stype (headers : (string * string) list) ?(read = Harbor.read)
         socket =
-      Mutex.mutexify relay_m
+      Mutex_utils.mutexify relay_m
         (fun () ->
           if relay_socket <> None then raise Harbor.Mount_taken;
           self#register_decoder stype;
@@ -222,7 +224,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       relay_socket <- None
 
     method private disconnect_with_lock =
-      Mutex.mutexify relay_m (fun () -> self#disconnect_no_lock) ()
+      Mutex_utils.mutexify relay_m (fun () -> self#disconnect_no_lock) ()
 
     method private after_disconnect =
       begin

@@ -72,7 +72,7 @@ let get_process { process; _ } =
   match process with Some process -> process | None -> raise Finished
 
 let set_priority t =
-  Mutex.mutexify t.mutex (fun priority ->
+  Mutex_utils.mutexify t.mutex (fun priority ->
       match t.process with
         | None -> raise Finished
         | Some p -> p.priority <- priority)
@@ -82,7 +82,7 @@ let stop_c, kill_c, done_c =
   (fn '0', fn '1', fn '2')
 
 let stop t =
-  Mutex.mutexify t.mutex
+  Mutex_utils.mutexify t.mutex
     (fun () ->
       match t.process with
         | None -> raise Finished
@@ -91,7 +91,7 @@ let stop t =
     ()
 
 let kill t =
-  Mutex.mutexify t.mutex
+  Mutex_utils.mutexify t.mutex
     (fun () ->
       match t.process with
         | None -> raise Finished
@@ -100,7 +100,7 @@ let kill t =
     ()
 
 let send_stop ~log t =
-  Mutex.mutexify t.mutex
+  Mutex_utils.mutexify t.mutex
     (fun () ->
       let process = get_process t in
       if not process.stopped then (
@@ -121,7 +121,7 @@ let _kill = function
   | None -> ()
 
 let cleanup ~log t =
-  Mutex.mutexify t.mutex
+  Mutex_utils.mutexify t.mutex
     (fun () ->
       log "Cleaning up process";
       let { process; _ } = t in
@@ -157,7 +157,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
          (fun () ->
            try
              let _, status = wait p in
-             Mutex.mutexify mutex
+             Mutex_utils.mutexify mutex
                (fun () ->
                  if process.status = None then (
                    process.status <- Some status;
@@ -170,7 +170,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
   let process = create () in
   let t = { mutex; process = Some process } in
   let create =
-    Mutex.mutexify t.mutex (fun () ->
+    Mutex_utils.mutexify t.mutex (fun () ->
         _kill t.process;
         t.process <- Some (create ()))
   in
@@ -326,13 +326,13 @@ let really_write ?(offset = 0) ?length data push =
   f offset
 
 let on_stdout t fn =
-  let process = Mutex.mutexify t.mutex (fun () -> get_process t) () in
+  let process = Mutex_utils.mutexify t.mutex (fun () -> get_process t) () in
   let fd = Unix.descr_of_in_channel process.p.stdout in
   fn (puller process.in_pipe fd)
 
 let on_stdin t fn =
   let process =
-    Mutex.mutexify t.mutex
+    Mutex_utils.mutexify t.mutex
       (fun () ->
         match t.process with
           | Some process ->
@@ -345,11 +345,11 @@ let on_stdin t fn =
   fn (pusher fd)
 
 let on_stderr t fn =
-  let process = Mutex.mutexify t.mutex (fun () -> get_process t) () in
+  let process = Mutex_utils.mutexify t.mutex (fun () -> get_process t) () in
   let fd = Unix.descr_of_in_channel process.p.stderr in
   fn (puller process.in_pipe fd)
 
 let stopped t =
-  Mutex.mutexify t.mutex
+  Mutex_utils.mutexify t.mutex
     (fun () -> try (get_process t).stopped with Finished -> true)
     ()

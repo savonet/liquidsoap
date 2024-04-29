@@ -9,4 +9,4 @@
 (library
  (name liquidsoap_stdlib)
  (wrapped false)
- (libraries liquidsoap_lang))
+ (libraries threads liquidsoap_lang))

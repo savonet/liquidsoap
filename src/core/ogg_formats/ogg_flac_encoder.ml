@@ -38,9 +38,9 @@ let create_encoder ~flac ~comments () =
   let started = ref false in
   let m = Mutex.create () in
   let pages = ref [] in
-  let write_cb = Mutex.mutexify m (fun p -> pages := p :: !pages) in
+  let write_cb = Mutex_utils.mutexify m (fun p -> pages := p :: !pages) in
   let flush_pages =
-    Mutex.mutexify m (fun () ->
+    Mutex_utils.mutexify m (fun () ->
         let p = !pages in
         pages := [];
         List.rev p)

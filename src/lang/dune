@@ -82,10 +82,9 @@
  (public_name liquidsoap-lang)
  (preprocess
   (pps sedlex.ppx ppx_string))
- (libraries liquidsoap-lang.console dune-site re str unix menhirLib)
+ (libraries liquidsoap-lang.console dune-site re saturn_lockfree str unix menhirLib)
  (modules
   active_value
-  backoff
   build_config
   builtins_bool
   builtins_eval
@@ -118,7 +117,6 @@
   lang_string
   lexer
   methods
-  michael_scott_queue
   modules
   parsed_term
   parser

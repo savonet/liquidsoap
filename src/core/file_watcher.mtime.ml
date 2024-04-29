@@ -47,7 +47,7 @@ let m = Mutex.create ()
 let file_mtime file = (Unix.stat file).Unix.st_mtime
 
 let rec handler _ =
-  Mutex.mutexify m
+  Mutex_utils.mutexify m
     (fun () ->
       List.iter
         (fun ({ file; callback; mtime } as w) ->
@@ -68,7 +68,7 @@ let watch : watch =
  fun ~pos e file callback ->
   if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
   if List.mem `Modify e then
-    Mutex.mutexify m
+    Mutex_utils.mutexify m
       (fun () ->
         if not !launched then begin
           launched := true;
@@ -82,7 +82,7 @@ let watch : watch =
         let mtime = try file_mtime file with _ -> 0. in
         watched := { file; mtime; callback } :: !watched;
         let unwatch =
-          Mutex.mutexify m (fun () ->
+          Mutex_utils.mutexify m (fun () ->
               watched := List.filter (fun w -> w.file <> file) !watched)
         in
         unwatch)

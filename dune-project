@@ -44,7 +44,7 @@
 (package
   (name liquidsoap-core)
   (depends
-    (ocaml (>= 5.1))
+    (ocaml (>= 4.14))
     (dtools (>= 0.4.5))
     (duppy (>= 0.9.3))
     (mm (>= 0.8.4))
@@ -152,6 +152,7 @@
   (depends
     (ocaml (>= 5.1))
     dune-site
+    (saturn_lockfree (>= 0.4.1))
     (re (>= 1.11.0))
     (ppx_string :build)
     (sedlex (>= 3.2))

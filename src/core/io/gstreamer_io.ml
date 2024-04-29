@@ -69,7 +69,7 @@ class virtual ['a, 'b] element_factory ~on_error =
     method virtual make_element : ('a, 'b) element
 
     method private get_element =
-      Mutex.mutexify element_m
+      Mutex_utils.mutexify element_m
         (fun () ->
           match element with
             | Some el -> el
@@ -81,7 +81,7 @@ class virtual ['a, 'b] element_factory ~on_error =
 
     method private restart_task =
       let should_run =
-        Mutex.mutexify restart_m
+        Mutex_utils.mutexify restart_m
           (fun () ->
             if not restarting then (
               restarting <- true;
@@ -92,7 +92,7 @@ class virtual ['a, 'b] element_factory ~on_error =
       if should_run then (
         try
           self#log#important "Restarting pipeline.";
-          Mutex.mutexify element_m
+          Mutex_utils.mutexify element_m
             (fun () ->
               begin
                 match element with
@@ -110,7 +110,7 @@ class virtual ['a, 'b] element_factory ~on_error =
                 ~on_error:(fun err -> retry_in <- on_error (Flushing_error err))
                 el.bin)
             ();
-          Mutex.mutexify restart_m (fun () -> restarting <- false) ();
+          Mutex_utils.mutexify restart_m (fun () -> restarting <- false) ();
           if retry_in >= 0. then
             self#log#info
               "An error occurred while restarting pipeline, will retry in %.02f"
@@ -124,12 +124,12 @@ class virtual ['a, 'b] element_factory ~on_error =
                (Printexc.to_string exn));
           retry_in <- on_error exn;
           self#log#important "Will retry again in %.02f" retry_in;
-          Mutex.mutexify restart_m (fun () -> restarting <- false) ();
+          Mutex_utils.mutexify restart_m (fun () -> restarting <- false) ();
           retry_in)
       else -1.
 
     method private register_task ~priority scheduler =
-      Mutex.mutexify task_m
+      Mutex_utils.mutexify task_m
         (fun () ->
           task <-
             Some
@@ -137,7 +137,7 @@ class virtual ['a, 'b] element_factory ~on_error =
         ()
 
     method private stop_task =
-      Mutex.mutexify task_m
+      Mutex_utils.mutexify task_m
         (fun () ->
           match task with
             | None -> ()
@@ -147,7 +147,7 @@ class virtual ['a, 'b] element_factory ~on_error =
         ()
 
     method private restart =
-      Mutex.mutexify task_m
+      Mutex_utils.mutexify task_m
         (fun () ->
           match task with None -> () | Some t -> Duppy.Async.wake_up t)
         ()
@@ -213,7 +213,7 @@ class output ~self_sync ~on_error ~infallible ~register_telnet ~on_start
       self#stop_task;
       started <- false;
       let todo =
-        Mutex.mutexify element_m
+        Mutex_utils.mutexify element_m
           (fun () ->
             match element with
               | None -> fun () -> ()
@@ -530,7 +530,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     method! sleep =
       self#stop_task;
       let todo =
-        Mutex.mutexify element_m
+        Mutex_utils.mutexify element_m
           (fun () ->
             match element with
               | Some el ->
@@ -568,10 +568,11 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
         let m = Mutex.create () in
         let counter = ref 0 in
         App_sink.emit_signals sink;
-        App_sink.on_new_sample sink (Mutex.mutexify m (fun () -> incr counter));
-        let pending = Mutex.mutexify m (fun () -> !counter) in
+        App_sink.on_new_sample sink
+          (Mutex_utils.mutexify m (fun () -> incr counter));
+        let pending = Mutex_utils.mutexify m (fun () -> !counter) in
         let pull =
-          Mutex.mutexify m (fun () ->
+          Mutex_utils.mutexify m (fun () ->
               let b = pull sink in
               decr counter;
               b)
