@@ -176,7 +176,7 @@ end
 # @flag hidden
 def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
 %ifdef ffmpeg.filter.ebur128
-  duration = null.get(default=0., request.duration(filename))
+  duration = null.get(default=0., request.duration(resolve_metadata=false, filename))
   estimated_processing_time = duration / ratio
 
   if
@@ -224,7 +224,7 @@ end
 
 # Compute autocue data
 # @flag hidden
-def autocue.internal.implementation(~metadata, filename) =
+def autocue.internal.implementation(~request_metadata, ~file_metadata, filename) =
   lufs_target = settings.autocue.internal.lufs_target()
   cue_in_threshold = settings.autocue.internal.cue_in_threshold()
   cue_out_threshold = settings.autocue.internal.cue_out_threshold()
@@ -244,7 +244,7 @@ def autocue.internal.implementation(~metadata, filename) =
 
   metadata_overrides = settings.autocue.internal.metadata_override()
 
-  metadata = (metadata:[(string*string)])
+  metadata = [...request_metadata, ...file_metadata]
 
   if
     list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
@@ -807,7 +807,11 @@ def file.autocue.metadata(~metadata, uri) =
     )
     []
   else
-    autocue = implementation(metadata=metadata, request.filename(r))
+    autocue = implementation(
+      request_metadata=metadata,
+      file_metadata=request.metadata(r),
+      request.filename(r)
+    )
     request.destroy(r)
 
     if
