@@ -104,3 +104,4 @@ val on_tick : t -> (unit -> unit) -> unit
 val tick : t -> unit
 val after_tick : t -> (unit -> unit) -> unit
 val time_implementation : unit -> Liq_time.implementation
+val after_eval : unit -> unit

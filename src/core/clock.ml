@@ -332,46 +332,46 @@ let rec active_params c =
     | _ -> raise Invalid_state
 
 and _tick ~clock x =
-  Evaluation.after_eval (fun () ->
-      Queue.flush clock.pending_activations (fun s ->
-          check_stopped ();
-          s#wake_up;
-          match s#source_type with
-            | `Active _ -> WeakQueue.push x.active_sources s
-            | `Output _ -> Queue.push x.outputs s
-            | `Passive -> WeakQueue.push x.passive_sources s);
-      let sub_clocks =
-        List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
-      in
-      let sources = _animated_sources x in
-      List.iter
-        (fun s ->
-          check_stopped ();
-          try
-            match s#source_type with
-              | `Output s | `Active s -> s#output
-              | _ -> assert false
-          with exn when exn <> Has_stopped ->
-            let bt = Printexc.get_raw_backtrace () in
-            if Queue.is_empty clock.on_error then (
-              log#severe "Source %s failed while streaming: %s!\n%s" s#id
-                (Printexc.to_string exn)
-                (Printexc.raw_backtrace_to_string bt);
-              if not allow_streaming_errors#get then Tutils.shutdown 1
-              else _detach clock s)
-            else Queue.iter clock.on_error (fun fn -> fn exn bt))
-        sources;
-      Queue.flush x.on_tick (fun fn ->
-          check_stopped ();
-          fn ());
-      List.iter
-        (fun (c, old_ticks) ->
-          if ticks c = old_ticks then
-            _tick ~clock:(Unifier.deref c) (active_params c))
-        sub_clocks;
-      Atomic.incr x.ticks;
+  Queue.flush clock.pending_activations (fun s ->
       check_stopped ();
-      _after_tick ~clock x)
+      s#wake_up;
+      match s#source_type with
+        | `Active _ -> WeakQueue.push x.active_sources s
+        | `Output _ -> Queue.push x.outputs s
+        | `Passive -> WeakQueue.push x.passive_sources s);
+  let sub_clocks =
+    List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
+  in
+  let sources = _animated_sources x in
+  List.iter
+    (fun s ->
+      check_stopped ();
+      try
+        match s#source_type with
+          | `Output s | `Active s -> s#output
+          | _ -> assert false
+      with exn when exn <> Has_stopped ->
+        let bt = Printexc.get_raw_backtrace () in
+        if Queue.is_empty clock.on_error then (
+          log#severe "Source %s failed while streaming: %s!\n%s" s#id
+            (Printexc.to_string exn)
+            (Printexc.raw_backtrace_to_string bt);
+          if not allow_streaming_errors#get then Tutils.shutdown 1
+          else _detach clock s)
+        else Queue.iter clock.on_error (fun fn -> fn exn bt))
+    sources;
+  Queue.flush x.on_tick (fun fn ->
+      check_stopped ();
+      fn ());
+  List.iter
+    (fun (c, old_ticks) ->
+      if ticks c = old_ticks then
+        _tick ~clock:(Unifier.deref c) (active_params c))
+    sub_clocks;
+  Atomic.incr x.ticks;
+  check_stopped ();
+  _after_tick ~clock x;
+  Queue.iter clocks start
 
 and _clock_thread ~clock x =
   let has_sources_to_process () =
@@ -468,7 +468,6 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
       }
   in
   Queue.push clocks c;
-  Evaluation.on_after_eval (fun () -> start c);
   c
 
 let () =
@@ -483,6 +482,8 @@ let on_tick c fn =
 let after_tick c fn =
   let x = active_params c in
   Queue.push x.after_tick fn
+
+let after_eval () = Queue.iter clocks start
 
 let self_sync c =
   let clock = Unifier.deref c in

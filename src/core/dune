@@ -177,6 +177,7 @@
   mpd
   ms_stereo
   muxer
+  mutex_utils
   native_audio_converter
   native_video_converter
   noblank

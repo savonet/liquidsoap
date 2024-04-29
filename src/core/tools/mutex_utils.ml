@@ -20,11 +20,14 @@
 
  *****************************************************************************)
 
-(** Evaluate a term in a given environment. *)
-val eval : ?env:(string * Value.t) list -> Term.t -> Value.t
-
-(** Evaluate a toplevel term. *)
-val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
-
-(** Apply a function to arguments. *)
-val apply : ?pos:Pos.t list -> Value.t -> (string * Value.t) list -> Value.t
+let mutexify m f x =
+  Mutex.lock m;
+  match f x with
+    | exception exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Mutex.unlock m;
+        Printexc.raise_with_backtrace exn bt
+    | v ->
+        Mutex.unlock m;
+        v
+  [@@inline always]

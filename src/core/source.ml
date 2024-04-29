@@ -128,7 +128,7 @@ class virtual operator ?(stack = []) ?clock ?(name = "src") sources =
     val mutex = Mutex.create ()
 
     method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b =
-      Mutex.mutexify mutex
+      Mutex_utils.mutexify mutex
 
     method virtual fallible : bool
     method source_type : source_type = `Passive

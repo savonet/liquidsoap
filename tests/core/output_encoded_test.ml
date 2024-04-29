@@ -34,9 +34,7 @@ class encoded_test =
 
 let () =
   Frame_settings.lazy_config_eval := true;
-  let encoded_test =
-    Liquidsoap_lang.Evaluation.after_eval (fun () -> new encoded_test)
-  in
+  let encoded_test = new encoded_test in
   encoded_test#content_type_computation_allowed;
   let frame =
     Frame.create ~length:(Lazy.force Frame.size) encoded_test#content_type

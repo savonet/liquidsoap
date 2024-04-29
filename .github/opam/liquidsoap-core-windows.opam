@@ -16,7 +16,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.2"}
-  "ocaml-windows" {>= "5.1.1"}
+  "ocaml-windows" {>= "4.14"}
   "camomile-windows" {>= "2.0.0"}
   "camomile" {>= "2.0.0"}
   "dtools-windows" {>= "0.4.5"}
@@ -24,6 +24,7 @@ depends: [
   "mm-windows" {>= "0.8.4"}
   "re-windows" {>= "1.11.0"}
   "cry-windows" {>= "1.0.1"}
+  "saturn_lockfree-windows"
   "sedlex" {>= "3.2"}
   "sedlex-windows" {>= "3.2"}
   "magic-mime-windows"

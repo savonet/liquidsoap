@@ -20,11 +20,4 @@
 
  *****************************************************************************)
 
-(** Evaluate a term in a given environment. *)
-val eval : ?env:(string * Value.t) list -> Term.t -> Value.t
-
-(** Evaluate a toplevel term. *)
-val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
-
-(** Apply a function to arguments. *)
-val apply : ?pos:Pos.t list -> Value.t -> (string * Value.t) list -> Value.t
+val mutexify : Mutex.t -> ('a -> 'b) -> 'a -> 'b
