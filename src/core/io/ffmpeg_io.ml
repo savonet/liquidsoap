@@ -45,6 +45,7 @@ let normalize_metadata =
       (lbl, v))
 
 exception Stopped
+exception Shutdown
 
 type container = {
   input : Avutil.input Avutil.container;
@@ -190,6 +191,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private do_connect () =
       Generator.set_max_length self#buffer max_length;
       try
+        if Atomic.get shutdown then raise Shutdown;
         if Atomic.compare_and_set source_status `Stopping `Stopped then
           raise Stopped;
         if Atomic.compare_and_set source_status `Starting `Polling then (
@@ -211,6 +213,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
                     (string_of_source_status v)));
         -1.
       with
+        | Shutdown -> -1.
         | Stopped ->
             Atomic.set source_status `Stopped;
             -1.
