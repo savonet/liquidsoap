@@ -212,6 +212,10 @@ let _ =
 let _ =
   Lang.add_builtin ~base:request "duration" ~category:`Liquidsoap
     [
+      ( "resolve_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Set to `false` to prevent metadata resolution on this request." );
       ( "metadata",
         Lang.metadata_t,
         Some (Lang.list []),
@@ -230,10 +234,11 @@ let _ =
        typically if the file was not recognized as valid audio."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
+      let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
       let metadata = Lang.to_metadata_list (List.assoc "metadata" p) in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r =
-        Request.create ~resolve_metadata:true ~metadata ~cue_in_metadata:None
+        Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
           ~cue_out_metadata:None f
       in
       if Request.resolve ~ctype:None r timeout = Request.Resolved then (
