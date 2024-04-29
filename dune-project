@@ -150,7 +150,7 @@
 (package
   (name liquidsoap-lang)
   (depends
-    (ocaml (>= 5.1))
+    (ocaml (>= 4.14))
     dune-site
     (saturn_lockfree (>= 0.4.1))
     (re (>= 1.11.0))
@@ -164,7 +164,7 @@
 (package
   (name liquidsoap-js)
   (depends
-    (ocaml (>= 5.1))
+    (ocaml (>= 4.14))
     (liquidsoap-lang (= :version))
     js_of_ocaml-ppx
     (js_of_ocaml (< 5.6.0)))

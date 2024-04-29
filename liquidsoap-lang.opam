@@ -9,7 +9,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.6"}
-  "ocaml" {>= "5.1"}
+  "ocaml" {>= "4.14"}
   "dune-site"
   "saturn_lockfree" {>= "0.4.1"}
   "re" {>= "1.11.0"}
