@@ -145,6 +145,59 @@ def f() =
     test.pass()
   end
 
+  # Works as expected with finally
+  ret = ref(false)
+  try
+    ()
+  finally
+    ret := true
+  end
+  test.equal(ret(), true)
+
+  ret = ref(false)
+  try
+    ()
+  catch _ do
+    ()
+  finally
+    ret := true
+  end
+  test.equal(ret(), true)
+
+  ret = ref(false)
+  try
+    error.raise(error.not_found)
+  catch _ do
+    ()
+  finally
+    ret := true
+  end
+  test.equal(ret(), true)
+
+  ret = ref(false)
+  try
+    error.raise(error.not_found)
+  catch _ : [error.not_found] do
+    ()
+  finally
+    ret := true
+  end
+  test.equal(ret(), true)
+
+  ret = ref(false)
+  try
+    try
+      error.raise(error.not_found)
+    catch _ : [error.not_found] do
+      error.raise(error.failure)
+    finally
+      ret := true
+    end
+  catch _ : [error.failure] do
+    ()
+  end
+  test.equal(ret(), true)
+
   # Catches error
   def on_error(~backtrace, e) =
     print(

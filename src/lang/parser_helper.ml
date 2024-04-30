@@ -204,6 +204,17 @@ let args_of_json_parse ~pos = function
 let mk = Parsed_term.make
 let mk_fun ~pos arguments body = mk ~pos (`Fun (arguments, body))
 
+let mk_try ?ensure ?handler ?errors_list ~variable ~body ~pos () =
+  mk ~pos
+    (`Try
+      {
+        try_body = body;
+        try_variable = variable;
+        try_errors_list = errors_list;
+        try_handler = handler;
+        try_finally = ensure;
+      })
+
 let mk_let ~pos _let body =
   let ast =
     match _let with

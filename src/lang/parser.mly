@@ -50,7 +50,7 @@ open Parser_helper
 %token <Parser_helper.lexer_let_decoration> DEF
 %token REPLACES
 %token COALESCE
-%token TRY CATCH DO
+%token TRY CATCH FINALLY DO
 %token IF THEN ELSE ELSIF
 %token SLASH
 %token OPEN
@@ -253,17 +253,15 @@ expr:
                                          iterable_for_loop = $6
                                        } ) }
   | expr COALESCE expr               { mk ~pos:$loc (`Coalesce ($1, $3)) }
+  | TRY exprs FINALLY exprs END          { mk_try ~pos:$loc ~ensure:$4 ~variable:"_" ~body:$2 () }
   | TRY exprs CATCH optvar COLON varlist DO exprs END
-                                     { mk~pos:$loc (`Try {
-                                         Term.try_body = $2;
-                                         try_variable = $4;
-                                         try_errors_list = Some (mk ~pos:$loc($6) (`List $6));
-                                         try_handler = $8 }) }
-  | TRY exprs CATCH optvar DO exprs END { mk~pos:$loc (`Try {
-                                         Term.try_body = $2;
-                                         try_variable = $4;
-                                         try_errors_list =  None;
-                                         try_handler = $6 }) }
+                                     { mk_try ~pos:$loc ~handler:$8 ~errors_list:(mk ~pos:$loc($6) (`List $6)) ~variable:$4 ~body:$2 () }
+  | TRY exprs CATCH optvar COLON varlist DO exprs FINALLY exprs END
+                                     { mk_try ~pos:$loc ~ensure:$10 ~handler:$8 ~errors_list:(mk ~pos:$loc($6) (`List $6)) ~variable:$4 ~body:$2 () }
+  | TRY exprs CATCH optvar DO exprs END
+                                     { mk_try ~pos:$loc ~handler:$6 ~variable:$4 ~body:$2 () }
+  | TRY exprs CATCH optvar DO exprs FINALLY exprs END
+                                     { mk_try ~pos:$loc ~ensure:$8 ~handler:$6 ~variable:$4 ~body:$2 () }
   | IF exprs THEN exprs if_elsif END { mk ~pos:$loc (`If {if_condition = $2; if_then = $4; if_elsif = fst $5; if_else = snd $5 }) }
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
   | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_elsif = []; if_else = Some $5}) }

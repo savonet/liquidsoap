@@ -55,11 +55,11 @@ def file.write.stream(
   ~temp_dir=null(),
   p
 ) =
-  let (fd, finally) =
+  let (fd, exec) =
     if
       atomic
     then
-      let (temp_dir, finally) =
+      let (temp_dir, ensure) =
         if
           null.defined(temp_dir)
         then
@@ -70,26 +70,23 @@ def file.write.stream(
         end
       tmp = path.concat(temp_dir, "atomic.write")
       if append and file.exists(p) then file.copy(p, tmp) end
-      def finally() =
-        ensure(
-          finally=finally,
-          {
-            try
-              file.move(atomic=true, tmp, p)
-            catch _ : [error.file.cross_device] do
-              log(
-                label="file.write",
-                "Atomic rename failed! Directory for temporary files appears to \
-                 be on a different file system. Please set it to the same one \
-                 using `temp_dir` argument to guarantee atomic file operations!"
-              )
-              file.copy(force=true, tmp, p)
-            end
-          }
-        )
+      def exec() =
+        try
+          file.move(atomic=true, tmp, p)
+        catch _ : [error.file.cross_device] do
+          log(
+            label="file.write",
+            "Atomic rename failed! Directory for temporary files appears to be \
+             on a different file system. Please set it to the same one using \
+             `temp_dir` argument to guarantee atomic file operations!"
+          )
+          file.copy(force=true, tmp, p)
+        finally
+          ensure()
+        end
       end
       fd = file.open(write=true, append=append, perms=perms, tmp)
-      (fd, finally)
+      (fd, exec)
     else
       (file.open(write=true, append=append, perms=perms, p), {()})
     end
@@ -100,7 +97,7 @@ def file.write.stream(
       s == ""
     then
       fd.close()
-      finally()
+      exec()
     else
       fd.write(s)
     end

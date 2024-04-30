@@ -86,7 +86,8 @@ and _try = {
   try_body : t;
   try_variable : string;
   try_errors_list : t option;
-  try_handler : t;
+  try_handler : t option;
+  try_finally : t option;
 }
 
 and let_decoration =
@@ -243,10 +244,11 @@ let rec iter_term fn ({ term } as tm) =
         iter_term fn iterable_for_loop
     | `List l ->
         List.iter (function `Term tm | `Ellipsis tm -> iter_term fn tm) l
-    | `Try { try_body; try_errors_list; try_handler } ->
+    | `Try { try_body; try_errors_list; try_handler; try_finally } -> (
         iter_term fn try_body;
         (match try_errors_list with None -> () | Some tm -> iter_term fn tm);
-        iter_term fn try_handler
+        (match try_handler with Some tm -> iter_term fn tm | None -> ());
+        match try_finally with Some tm -> iter_term fn tm | None -> ())
     | `Regexp _ -> ()
     | `Time_interval _ -> ()
     | `Time _ -> ()
