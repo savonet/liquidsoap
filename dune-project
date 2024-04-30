@@ -46,11 +46,11 @@
   (depends
     (ocaml (>= 4.14))
     (dtools (>= 0.4.5))
-    (duppy (>= 0.9.3))
+    (duppy (>= 0.9.4))
     (mm (>= 0.8.4))
     (re (>= 1.11.0))
     (ocurl (>= 0.9.2))
-    (cry (>= 1.0.2))
+    (cry (>= 1.0.3))
     (camomile (>= 2.0.0))
     uri
     fileutils
