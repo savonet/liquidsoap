@@ -826,7 +826,6 @@ def file.autocue.metadata(~metadata, uri) =
       null.defined(autocue)
     then
       autocue = null.get(autocue)
-      log(level=1, "FROM AUTOCUE: #{autocue}")
       let {cue_in, cue_out, fade_in, fade_out} = autocue
 
       extra_metadata = autocue.extra_metadata ?? []
