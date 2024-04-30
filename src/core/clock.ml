@@ -384,16 +384,16 @@ and _clock_thread ~clock x =
     _cleanup ~clock x;
     Atomic.set clock.state (`Stopped x.sync)
   in
-  let rec run () =
+  let run () =
     try
-      if
+      while
         (match Atomic.get clock.state with `Started _ -> true | _ -> false)
         && (not (Atomic.get global_stop))
         && has_sources_to_process ()
-      then (
-        _tick ~clock x;
-        run ())
-      else on_stop ()
+      do
+        _tick ~clock x
+      done;
+      on_stop ()
     with Has_stopped -> on_stop ()
   in
   ignore
