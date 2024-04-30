@@ -807,17 +807,26 @@ def file.autocue.metadata(~metadata, uri) =
     )
     []
   else
-    autocue = implementation(
-      request_metadata=metadata,
-      file_metadata=request.metadata(r),
-      request.filename(r)
-    )
-    request.destroy(r)
+    autocue =
+      try
+        autocue = implementation(
+          request_metadata=metadata,
+          file_metadata=request.metadata(r),
+          request.filename(r)
+        )
+        request.destroy(r)
+        autocue
+       catch err do
+         request.destroy(r)
+         log(level=2, label="autocue", "Error while processing autocue: #{err}")
+         error.raise(err)
+       end
 
     if
       null.defined(autocue)
     then
       autocue = null.get(autocue)
+      log(level=1, "FROM AUTOCUE: #{autocue}")
       let {cue_in, cue_out, fade_in, fade_out} = autocue
 
       extra_metadata = autocue.extra_metadata ?? []
