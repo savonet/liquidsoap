@@ -1,16 +1,5 @@
 (env
- (release
-  (js_of_ocaml
-   (flags
-    (:standard --enable effects))
-   (build_runtime_flags
-    (:standard --enable effects))))
  (dev
-  (js_of_ocaml
-   (flags
-    (:standard --enable effects))
-   (build_runtime_flags
-    (:standard --enable effects)))
   (flags
    (:standard -w -7-9 -warn-error -33))))
 
@@ -18,7 +7,9 @@
  (name liquidsoap_js)
  (public_name liquidsoap-js)
  (optional)
- (modules init_js)
+ (modules)
+ (js_of_ocaml
+  (javascript_files runtime.js))
  (preprocess
   (pps js_of_ocaml-ppx))
  (libraries liquidsoap_lang liquidsoap_tooling))
