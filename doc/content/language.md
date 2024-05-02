@@ -1237,7 +1237,7 @@ takes as arguments the error to raise and the error message. For instance:
 error.raise(error.not_found, "we could not find your result")
 ```
 
-Finally, we should mention that all the errors should be declared in advance
+We should also mention that all the errors should be declared in advance
 with the function `error.register`, which takes as argument the name of the new
 error to register:
 
@@ -1245,6 +1245,50 @@ error to register:
 myerr = error.register("my_error")
 error.raise(myerr, "testing my own error")
 ```
+
+Lastly, if you need to make sure that a certain piece of code is executed
+whether or not there is an exception raised, you can use _finally_:
+
+```liquidsoap
+# Without a catch block
+try
+  ...
+finally
+  ...
+end
+
+# With a catch block
+try
+  ...
+catch ... do
+  ...
+finally
+  ...
+end
+```
+
+This is roughly equivalent to:
+
+```liquidsoap
+finally_called = ref(false)
+def finally() = ... end
+try
+  let ret = ...
+  finally_called := true
+  finally()
+  ret
+# If specified:
+catch ... do
+  let ret = ...
+  if not finally_called() then finally() end
+  ret
+end
+```
+
+The biggest different is that `finally` is called on all errors, including internal errors that cannot
+be caught by the runtime code.
+
+Errors raised in a `finally` block do override any previously raised errors.
 
 ### Nullable values
 

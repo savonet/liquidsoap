@@ -574,7 +574,8 @@ let regexp_reducer ~pos ~to_term:_ = function
       `App (op, [("", regexp); ("flags", flags)])
 
 let try_reducer ~pos ~to_term = function
-  | `Try { try_body; try_variable; try_errors_list; try_handler } ->
+  | `Try { try_body; try_variable; try_errors_list; try_handler; try_finally }
+    ->
       let try_body = mk_fun ~pos [] (to_term try_body) in
       let err_arg =
         [
@@ -586,7 +587,18 @@ let try_reducer ~pos ~to_term = function
           };
         ]
       in
-      let handler = mk_fun ~pos:try_handler.pos err_arg (to_term try_handler) in
+      let finally_pos, finally =
+        match try_finally with
+          | None -> (pos, mk ~pos (`Tuple []))
+          | Some tm -> (tm.pos, to_term tm)
+      in
+      let finally = mk_fun ~pos:finally_pos [] finally in
+      let handler_pos, handler =
+        match try_handler with
+          | None -> (pos, mk ~pos (`Tuple []))
+          | Some tm -> (tm.pos, to_term tm)
+      in
+      let handler = mk_fun ~pos:handler_pos err_arg handler in
       let error_module = mk ~pos (`Var "error") in
       let try_errors_list =
         match try_errors_list with
@@ -598,7 +610,14 @@ let try_reducer ~pos ~to_term = function
           (`Invoke
             { invoked = error_module; invoke_default = None; meth = "catch" })
       in
-      `App (op, [("errors", try_errors_list); ("", try_body); ("", handler)])
+      `App
+        ( op,
+          [
+            ("errors", try_errors_list);
+            ("body", try_body);
+            ("catch", handler);
+            ("finally", finally);
+          ] )
 
 let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in

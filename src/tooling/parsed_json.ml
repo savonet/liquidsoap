@@ -94,13 +94,14 @@ let json_of_iterable_for ~to_json
   ]
 
 let json_of_try ~to_json
-    { try_body; try_variable; try_errors_list; try_handler } =
+    { try_body; try_variable; try_errors_list; try_handler; try_finally } =
   [
     ("body", to_json try_body);
     ("variable", `String try_variable);
     ( "errors_list",
       match try_errors_list with None -> `Null | Some tm -> to_json tm );
-    ("handler", to_json try_handler);
+    ("handler", match try_handler with None -> `Null | Some tm -> to_json tm);
+    ("finally", match try_finally with None -> `Null | Some tm -> to_json tm);
   ]
 
 let type_node ~typ ?(extra = []) value =
