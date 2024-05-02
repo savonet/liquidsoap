@@ -213,6 +213,9 @@ def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
     frames()
   end
 %else
+  ignore(ratio)
+  ignore(timeout)
+  ignore(filename)
   log(
     level=2,
     label="autocue.internal",
