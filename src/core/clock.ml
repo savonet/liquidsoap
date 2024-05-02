@@ -371,6 +371,7 @@ and _tick ~clock x =
   Atomic.incr x.ticks;
   check_stopped ();
   _after_tick ~clock x;
+  check_stopped ();
   Queue.iter clocks start
 
 and _clock_thread ~clock x =
@@ -483,7 +484,7 @@ let after_tick c fn =
   let x = active_params c in
   Queue.push x.after_tick fn
 
-let after_eval () = Queue.iter clocks start
+let after_eval () = if not (Atomic.get global_stop) then Queue.iter clocks start
 
 let self_sync c =
   let clock = Unifier.deref c in
