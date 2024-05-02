@@ -7,7 +7,7 @@ end
 protocol.add("media", media_protocol)
 
 def check_metadata(m) =
-  if list.assoc.mem("foo", m) then test.pass() else test.fail() end
+  if not list.assoc.mem("foo", m) then test.fail() end
 end
 
 def check_metadata_resolver(~metadata, _) =
