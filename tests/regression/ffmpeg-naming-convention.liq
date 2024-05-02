@@ -24,8 +24,6 @@ def f() =
   s = once(s)
 
   def on_close(_) =
-    process.run("sync")
-
     j =
       process.read(
         "ffprobe -v quiet -print_format json -show_streams \
