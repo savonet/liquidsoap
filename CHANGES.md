@@ -57,6 +57,66 @@ Changed:
 
 ---
 
+# 2.2.5 (2024-05-01) (Mayday!)
+
+New:
+
+- Added `enable_autocue_metadata` and `autocue:` protocol to automatically compute cue points and crossfade parameters (#3753, #3811, @RM-FM and @Moonbase59)
+- Added various ffmpeg timestamps when exporting ffmpeg metadata from filters.
+- Added `db_levels` method to `blank.*` sources (#3790)
+- Added `excluded_metadata_resolvers` to `request.create` to make it possible to selectively disable specific metadata resolvers when resolving requests.
+- Normalized expected API from `autocue`, allow multiple implementation and adapt `cross`/`crossfade` to work with it out of the box with workaround for short tracks.
+- Added private and swapped memory reporting when compiled with `mem_usage`.
+- Added priorities to metadata deocoders, allows finer-control of metadata overriding. (#3887)
+
+Changed:
+
+- Allow to disable `http.*` url normalization. Add warning when url normalization changes the url (#3789)
+- Add `namespace` and optional source IDs to `mix`.
+
+Fixed:
+
+- Prevent request metadata from overriding root metadata (#3813)
+- Fixed `source.drop` and `source.dump` clock initialization.
+- Fixed bogus report of non-monotonous PTS content when using raw ffmpeg content.
+- Fixed streaming errors when disconnecting `input.harbor`.
+- Fixed issues with rendered id3v2 frame that contain binary data (#3817)
+- Fixed memory leaks with SRT listen socket polling callbacks.
+- Fixed `%ffmpeg` copy muxer logic with some audio/video streams (#3840)
+- Fixed `duration` metadata calculation in the presence of `cue_in`/`cue_out` metadata.
+
+---
+
+# 2.2.4 (2024-02-04)
+
+New:
+
+- Added support for `id3v2` metadata in `output.*.hls` when using `%mp3`, `%shine` or `%fdkaac` encoders (#3604)
+- Added option to set preferred address class (`ipv4`, `ipv6` or system default) when resolving hostnames in http transports and `output.icecast`
+- Added `self_sync` option to `input.srt` to accommodate for streams in file mode (#3684)
+- Added `curve` parameter to fade functions and `liq_fade_{in,skip,out}_curve` metadata override (#3691)
+- Added `delay` parameter to fade functions to make it possible to add delay before fade happens. Add `liq_fade_{in,skip,out}_delay` metadata override.
+- Added `single_track` option to allow `sequence` to play each source until they are unavailable while keeping track marks.
+
+Changed:
+
+- `cue_cut` operator has been removed. Cueing mechanisms have been moved to underlying file-based sources. See migration notes for more details.
+
+Fixed:
+
+- Fix pop/click at the end of fade out/in (#3318)
+- Fix audio/video synchronization issues when decoding live streams using ffmpeg.
+- Fix issues with TLS connecting clients not being properly timed out (#3598)
+- Make sure reconnection errors are router through the regulat `on_error` callback in `output.icecast` (#3635)
+- Fixed discontinuity count after a restart in HLS outputs.
+- Fixed file header logic when reopening in `output.file` (#3675)
+- Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmepg`, SRT sources and `request.dynamic`)
+- Fixed invalid array fill in `add` (#3678)
+- Fixed deadlock when connecting to a non-SSL icecast using the TLS transport (#3681)
+- Fixed crash when closing external process (#3685)
+
+---
+
 # 2.2.2 (2023-11-02)
 
 New:
