@@ -329,6 +329,7 @@ let _after_tick ~clock x =
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
+    | _ when Atomic.get global_stop -> raise Has_stopped
     | _ -> raise Invalid_state
 
 and _tick ~clock x =
