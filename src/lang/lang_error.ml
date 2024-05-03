@@ -140,27 +140,54 @@ let _ =
         Lang_core.nullable_t (Lang_core.list_t Error.base_t),
         None,
         Some "Kinds of errors to catch. Catches all errors if not set." );
-      ("", Lang_core.fun_t [] a, None, Some "Function to execute.");
-      ("", Lang_core.fun_t [(false, "", Error.t)] a, None, Some "Error handler.");
+      ("body", Lang_core.fun_t [] a, None, Some "Function to execute.");
+      ( "catch",
+        Lang_core.fun_t [(false, "", Error.t)] a,
+        None,
+        Some "Error handler." );
+      ( "finally",
+        Lang_core.fun_t [] Lang_core.unit_t,
+        None,
+        Some "Invariant handler." );
     ]
     a
     (fun p ->
       let errors =
         Option.map
           (fun v -> List.map Error.of_value (Lang_core.to_list v))
-          (Lang_core.to_option (Lang_core.assoc "errors" 1 p))
+          (Lang_core.to_option (List.assoc "errors" p))
       in
-      let f = Lang_core.to_fun (Lang_core.assoc "" 1 p) in
-      let h = Lang_core.to_fun (Lang_core.assoc "" 2 p) in
-      try f []
+      let body = Lang_core.to_fun (List.assoc "body" p) in
+      let catch = Lang_core.to_fun (List.assoc "catch" p) in
+      let finally = Lang_core.to_fun (List.assoc "finally" p) in
+      let finally_called = Atomic.make false in
+      try
+        let v = body [] in
+        Atomic.set finally_called true;
+        ignore (finally []);
+        v
       with
-      | Runtime_error.(Runtime_error { kind; msg })
-      when errors = None
-           || List.exists (fun err -> err.kind = kind) (Option.get errors)
-      ->
-        h
-          [
-            ( "",
-              Error.to_value
-                (Runtime_error.make ~pos:(Lang_core.pos p) ~message:msg kind) );
-          ])
+        | Runtime_error.(Runtime_error { kind; msg })
+          when errors = None
+               || List.exists (fun err -> err.kind = kind) (Option.get errors)
+          ->
+            let v =
+              try
+                catch
+                  [
+                    ( "",
+                      Error.to_value
+                        (Runtime_error.make ~pos:(Lang_core.pos p) ~message:msg
+                           kind) );
+                  ]
+              with exn when not (Atomic.get finally_called) ->
+                let bt = Printexc.get_raw_backtrace () in
+                ignore (finally []);
+                Printexc.raise_with_backtrace exn bt
+            in
+            if not (Atomic.get finally_called) then ignore (finally []);
+            v
+        | exn when Atomic.get finally_called ->
+            let bt = Printexc.get_raw_backtrace () in
+            ignore (finally []);
+            Printexc.raise_with_backtrace exn bt)

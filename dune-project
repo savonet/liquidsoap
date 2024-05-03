@@ -46,11 +46,11 @@
   (depends
     (ocaml (>= 4.14))
     (dtools (>= 0.4.5))
-    (duppy (>= 0.9.3))
+    (duppy (>= 0.9.4))
     (mm (>= 0.8.4))
     (re (>= 1.11.0))
     (ocurl (>= 0.9.2))
-    (cry (>= 1.0.2))
+    (cry (>= 1.0.3))
     (camomile (>= 2.0.0))
     uri
     fileutils
@@ -167,7 +167,7 @@
     (ocaml (>= 4.14))
     (liquidsoap-lang (= :version))
     js_of_ocaml-ppx
-    (js_of_ocaml (< 5.6.0)))
+    (js_of_ocaml (>= 5.7.2)))
   (conflicts
     (liquidsoap (<> :version)))
   (synopsis "Liquidsoap language - javascript wrapper"))

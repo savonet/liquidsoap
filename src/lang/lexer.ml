@@ -202,6 +202,7 @@ let rec token lexbuf =
     | "def", Plus skipped, "replaces", Plus skipped -> DEF `Replaces
     | "def" -> DEF `None
     | "try" -> TRY
+    | "finally" -> FINALLY
     | "catch" -> CATCH
     | "do" -> DO
     | "let", Plus skipped, "replaces", Plus skipped -> LET `Replaces

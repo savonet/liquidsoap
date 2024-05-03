@@ -329,6 +329,7 @@ let _after_tick ~clock x =
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
+    | _ when Atomic.get global_stop -> raise Has_stopped
     | _ -> raise Invalid_state
 
 and _tick ~clock x =
@@ -371,6 +372,7 @@ and _tick ~clock x =
   Atomic.incr x.ticks;
   check_stopped ();
   _after_tick ~clock x;
+  check_stopped ();
   Queue.iter clocks start
 
 and _clock_thread ~clock x =
@@ -384,16 +386,16 @@ and _clock_thread ~clock x =
     _cleanup ~clock x;
     Atomic.set clock.state (`Stopped x.sync)
   in
-  let rec run () =
+  let run () =
     try
-      if
+      while
         (match Atomic.get clock.state with `Started _ -> true | _ -> false)
         && (not (Atomic.get global_stop))
         && has_sources_to_process ()
-      then (
-        _tick ~clock x;
-        run ())
-      else on_stop ()
+      do
+        _tick ~clock x
+      done;
+      on_stop ()
     with Has_stopped -> on_stop ()
   in
   ignore
@@ -483,7 +485,7 @@ let after_tick c fn =
   let x = active_params c in
   Queue.push x.after_tick fn
 
-let after_eval () = Queue.iter clocks start
+let after_eval () = if not (Atomic.get global_stop) then Queue.iter clocks start
 
 let self_sync c =
   let clock = Unifier.deref c in

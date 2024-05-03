@@ -77,6 +77,16 @@ val mk :
   Term.parsed_ast ->
   Term.t
 
+val mk_try :
+  ?ensure:Term.t ->
+  ?handler:Term.t ->
+  ?errors_list:Term.t ->
+  variable:string ->
+  body:Term.t ->
+  pos:Pos.t ->
+  unit ->
+  Term.t
+
 val mk_fun : pos:Pos.t -> arglist -> Term.t -> Term.t
 val mk_encoder : pos:Pos.t -> string -> Term.encoder_params -> Term.t
 val args_of_json_parse : pos:Pos.t -> (string * 'a) list -> (string * 'a) list
