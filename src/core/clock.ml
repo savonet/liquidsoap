@@ -472,10 +472,18 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
   Queue.push clocks c;
   c
 
+let start_pending () =
+  List.iter (Queue.push clocks)
+    (Queue.fold_flush clocks
+       (fun c clocks ->
+         start c;
+         c :: clocks)
+       [])
+
 let () =
   Lifecycle.before_start ~name:"Clocks start" (fun () ->
       Atomic.set started true;
-      Queue.iter clocks start)
+      start_pending ())
 
 let on_tick c fn =
   let x = active_params c in
@@ -485,7 +493,7 @@ let after_tick c fn =
   let x = active_params c in
   Queue.push x.after_tick fn
 
-let after_eval () = if not (Atomic.get global_stop) then Queue.iter clocks start
+let after_eval () = if not (Atomic.get global_stop) then start_pending ()
 
 let self_sync c =
   let clock = Unifier.deref c in
