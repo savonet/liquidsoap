@@ -33,12 +33,6 @@ module Queue = struct
     in
     f ()
 
-  let fold_flush q fn ret =
-    let rec f ret =
-      match pop_opt q with Some el -> f (fn el ret) | None -> ret
-    in
-    f ret
-
   let elements q =
     let rec f l cursor =
       match next cursor with
