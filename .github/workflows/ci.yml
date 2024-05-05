@@ -380,7 +380,7 @@ jobs:
             platform: armhf
           - os: ubuntu_jammy
             platform: armhf
-          - os: ubuntu_lunar
+          - os: ubuntu_noble
             platform: armhf
     container:
       image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
