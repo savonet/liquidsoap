@@ -99,7 +99,7 @@ end
 
 def test.equal(v, v') =
   if
-    v != v'
+    "#{v}" != "#{v'}"
   then
     msg =
       "expected:\r\n#{string.quote(string(v'))}\r\ngot:\r\n#{
@@ -117,7 +117,7 @@ let test.not = ()
 
 def test.not.equal(first, second) =
   if
-    first == second
+    "#{first}" == "#{second}"
   then
     msg =
       "expected\r\n

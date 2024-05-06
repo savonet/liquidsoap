@@ -142,7 +142,27 @@ def f() =
     x.foo.gni.bla(1, 2, 3).blo
   end
 
-  test.equal(f({foo={gni={bla=(fun (_, _, _, ~foo="gni") -> {blo=123})}}}), 123)
+  test.equal(
+    f(
+      {
+        foo=
+          {
+            gni=
+              {
+                bla=
+                  (
+                    fun (_, _, _, ~foo="gni") ->
+                      begin
+                        ignore(foo)
+                        {blo=123}
+                      end
+                  )
+              }
+          }
+      }
+    ),
+    123
+  )
 
   def f(x) =
     x.foo?.gni.bla(1, 2, 3)
@@ -195,7 +215,7 @@ def f() =
   let {foo, ...y} = x
   test.equal(foo, 123)
   test.equal(y.gni, "aabb")
-  test.equal(y, ())
+  test.equal(y, {gni="aabb"})
   test.equal(y?.foo, null())
   x = 1.{foo=123, gni="aabb"}
   let {foo, ...y} = x
@@ -212,15 +232,14 @@ def f() =
   x = {foo=3.14}.{foo=123, gni="aabb"}
   let {foo, ...y} = x
   test.equal(foo, 123)
-  test.equal(y.gni, "aabb")
-  test.equal(y, ())
+  test.equal(y, {gni="aabb"})
   test.equal(y?.foo, null())
   x = {foo=123, gni="aabb"}
   y = {bla=3.14, ...x}
-  test.equal(y, {foo=123, gni="aabb", bla=3.14})
+  test.equal(y, {gni="aabb", foo=123, bla=3.14})
   x = 1.{foo=123, gni="aabb"}
   y = {bla=3.14, ...x}
-  test.equal(y, {foo=123, gni="aabb", bla=3.14})
+  test.equal(y, {gni="aabb", foo=123, bla=3.14})
 
   # Make sure that a function that takes a record of the
   # type { foo?: int} can take a record of the type: {foo?: never}
@@ -243,10 +262,6 @@ def f() =
 
   g({blo="bla"})
 
-  # Allow optional trailing comma
-  x = {foo="bar", gni=123}
-  x = "aabb".{foo="bar", gni=123}
-
   # Allow optional method extraction
   let {x?} = ()
   test.equal(x, null())
@@ -263,7 +278,7 @@ def f() =
     false
   end
 
-  def json.parse.gni(x) =
+  def json.parse.gni(_) =
     true
   end
 
@@ -275,10 +290,10 @@ def f() =
 
   x = {foo=123}
   y = {gni="aabb"}
-  test.equal({...x, ...y}, {foo=123, gni="aabb"})
-  test.equal({...x, gna=3.14, ...y}, {foo=123, bla=3.14, gni="aabb"})
+  test.equal({...x, ...y}, {gni="aabb", foo=123})
+  test.equal({...x, gna=3.14, ...y}, {gni="aabb", gna=3.14, foo=123})
   test.equal(
-    {...x, gna=3.14, ...y, foo="bar"}, {foo="bar", bla=3.14, gni="aabb"}
+    {...x, gna=3.14, ...y, foo="bar"}, {foo="bar", gni="aabb", gna=3.14}
   )
 
   x = {foo=1}
