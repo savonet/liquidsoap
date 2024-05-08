@@ -207,7 +207,8 @@ let rec value_of_typed_json ~ty json =
 let value_of_typed_json ~ty json =
   try value_of_typed_json ~ty json with
     | Failed v ->
-        Runtime_error.raise
+        let bt = Printexc.get_raw_backtrace () in
+        Runtime_error.raise ~bt
           ~message:
             (Printf.sprintf
                "Parsing error: json value cannot be parsed as type %s"
