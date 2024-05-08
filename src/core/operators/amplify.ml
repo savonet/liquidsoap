@@ -34,13 +34,29 @@ class amplify ~field (source : source) override_field coeff =
     method seek_source = source#seek_source
     method self_sync = source#self_sync
 
+    method private amplify k c offset len =
+      match Content.format c with
+        | f when Content.Audio.is_format f ->
+            let data = Content.Audio.get_data c in
+            Audio.amplify k data offset len
+        | f when Content_pcm_s16.is_format f ->
+            let data = Content_pcm_s16.get_data c in
+            Content_pcm_s16.amplify
+              (Array.map (fun c -> Bigarray.Array1.sub c offset len) data)
+              k
+        | f when Content_pcm_f32.is_format f ->
+            let data = Content_pcm_f32.get_data c in
+            Content_pcm_f32.amplify
+              (Array.map (fun c -> Bigarray.Array1.sub c offset len) data)
+              k
+        | _ -> assert false
+
     method private process buf =
       let k = match override with Some o -> o | None -> coeff () in
       if k <> 1. then (
         let content = Frame.get buf field in
-        let data = Content.Audio.get_data content in
-        Audio.amplify k data 0 (Audio.length data);
-        Frame.set_data buf field Content.Audio.lift_data data)
+        self#amplify k content 0 (Frame.audio_of_main (Content.length content));
+        Frame.set buf field content)
       else buf
 
     method private set_override buf =
@@ -74,7 +90,7 @@ class amplify ~field (source : source) override_field coeff =
   end
 
 let _ =
-  let frame_t = Format_type.audio () in
+  let frame_t = Lang.pcm_audio_t () in
   Lang.add_track_operator ~base:Modules.track_audio "amplify"
     [
       ("", Lang.getter_t Lang.float_t, None, Some "Multiplicative factor.");

@@ -54,6 +54,17 @@ end
   However, EBU R128 data is now extracted directly from metadata when available.
   So `replaygain` cannot control the gain type via this parameter anymore.
 
+### `check_next`
+
+`check_next` in playlist operators is now called _before_ the request is resolved, to make it possible to cut out
+unwanted requests before consuming process time. If you need to see the request's metadata or if the request resolves
+into a valid tile, however, you might need to call `request.resolve` inside your `check_next` script.
+
+### Prometheus
+
+The default port for the Prometheus metrics exporter has changed from `9090` to `9599`.
+As before, you can change it with `settings.prometheus.server.port := <your port value>`.
+
 ## From 2.1.x to 2.2.x
 
 ### References

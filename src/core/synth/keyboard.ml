@@ -114,7 +114,7 @@ class keyboard =
               events = [`Read Unix.stdin];
             });
 
-      self#on_sleep (Mutex.mutexify lock (fun () -> run_id <- run_id + 1))
+      self#on_sleep (Mutex_utils.mutexify lock (fun () -> run_id <- run_id + 1))
 
     method reset = ()
 

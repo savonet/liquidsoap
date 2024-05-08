@@ -2,6 +2,7 @@ log.level.set(3)
 first = ref("")
 
 def filter(r) =
+  ignore(request.resolve(r))
   m = request.metadata(r)
   if
     first() == ""

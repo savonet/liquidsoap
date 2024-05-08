@@ -31,6 +31,10 @@ let _ =
   Lang.add_builtin ~base:decoder_metadata "add" ~category:`Liquidsoap
     ~descr:"Register an external file metadata decoder."
     [
+      ( "priority",
+        Lang.getter_t Lang.int_t,
+        Some (Lang.int 1),
+        Some "Resolver's priority." );
       ("", Lang.string_t, None, Some "Format/resolver's name.");
       ( "",
         resolver_t,
@@ -43,6 +47,7 @@ let _ =
     (fun p ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
+      let priority = Lang.to_int_getter (List.assoc "priority" p) in
       let resolver ~metadata ~extension:_ ~mime:_ name =
         let ret =
           Lang.apply f
@@ -55,7 +60,8 @@ let _ =
         in
         ret
       in
-      Plug.register Request.mresolvers format ~doc:"" resolver;
+      Plug.register Request.mresolvers format ~doc:""
+        { Request.priority; resolver };
       Lang.unit)
 
 let add_playlist_parser ~format name (parser : Playlist_parser.parser) =

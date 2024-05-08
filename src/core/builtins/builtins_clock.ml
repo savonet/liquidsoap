@@ -79,5 +79,5 @@ let _ =
                  "Invalid sync mode! Should be one of: `\"auto\"`, `\"CPU\"`, \
                   `\"unsynced\"` or `\"passive\"`" ))
       in
-      let pos = match Lang.pos p with p :: _ -> Some p | [] -> None in
-      Lang_source.ClockValue.to_value (Clock.create ?pos ?on_error ?id ~sync ()))
+      Lang_source.ClockValue.to_value
+        (Clock.create ~stack:(Lang.pos p) ?on_error ?id ~sync ()))

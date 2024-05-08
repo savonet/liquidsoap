@@ -20,66 +20,7 @@
 
  *****************************************************************************)
 
-exception Invalid_state
-
-module Evaluation = Liquidsoap_lang.Evaluation
-
-type active_source = < reset : unit ; output : unit >
-
-type source_type =
-  [ `Passive | `Active of active_source | `Output of active_source ]
-
-type sync_source = ..
-type self_sync = [ `Static | `Dynamic ] * sync_source option
-
-module Queue = struct
-  include Liquidsoap_lang.Queues.Queue
-
-  let push q v = if not (exists q (fun v' -> v == v')) then push q v
-end
-
-module WeakQueue = struct
-  include Liquidsoap_lang.Queues.WeakQueue
-
-  let push q v = if not (exists q (fun v' -> v == v')) then push q v
-end
-
-exception Sync_source_name of string
-
-let sync_sources_handlers = Queue.create ()
-
-let string_of_sync_source s =
-  try
-    Queue.iter sync_sources_handlers (fun fn -> fn s);
-    assert false
-  with Sync_source_name s -> s
-
-module type SyncSource = sig
-  type t
-
-  val to_string : t -> string
-end
-
-module MkSyncSource (S : SyncSource) = struct
-  type sync_source += Sync_source of S.t
-
-  let make v = Sync_source v
-
-  let () =
-    Queue.push sync_sources_handlers (function
-      | Sync_source v -> raise (Sync_source_name (S.to_string v))
-      | _ -> ())
-end
-
-type source =
-  < id : string
-  ; self_sync : self_sync
-  ; source_type : source_type
-  ; active : bool
-  ; wake_up : unit
-  ; force_sleep : unit
-  ; is_ready : bool
-  ; get_frame : Frame.t >
+include Clock_base
 
 type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
 type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
@@ -185,7 +126,7 @@ type state =
 type clock = {
   id : string Unifier.t;
   sub_ids : string list;
-  pos : Pos.Option.t Atomic.t;
+  stack : Pos.t list Atomic.t;
   state : state Atomic.t;
   pending_activations : source Queue.t;
   sub_clocks : t Queue.t;
@@ -328,18 +269,25 @@ let _animated_sources { outputs; active_sources } =
 
 let _self_sync ~clock x =
   let self_sync_sources =
-    List.(
-      sort_uniq Stdlib.compare
-        (filter (fun s -> snd s#self_sync <> None) (_animated_sources x)))
+    List.fold_left
+      (fun self_sync_sources s ->
+        match s#self_sync with
+          | _, None -> self_sync_sources
+          | _, Some sync_source ->
+              SelfSyncSet.add
+                { sync_source; name = s#id; stack = s#stack }
+                self_sync_sources)
+      SelfSyncSet.empty (_animated_sources x)
   in
-  if List.length self_sync_sources > 1 then
-    Runtime_error.raise
-      ~pos:(match Atomic.get clock.pos with Some p -> [p] | None -> [])
-      ~message:
-        (Printf.sprintf "Clock %s has multiple synchronization sources!"
-           (_id clock))
-      "source";
-  List.length self_sync_sources = 1
+  if SelfSyncSet.cardinal self_sync_sources > 1 then
+    raise
+      (Sync_error
+         {
+           name = Printf.sprintf "clock %s" (_id clock);
+           stack = Atomic.get clock.stack;
+           sync_sources = SelfSyncSet.elements self_sync_sources;
+         });
+  SelfSyncSet.cardinal self_sync_sources = 1
 
 let ticks c =
   match Atomic.get (Unifier.deref c).state with
@@ -381,49 +329,51 @@ let _after_tick ~clock x =
 let rec active_params c =
   match Atomic.get (Unifier.deref c).state with
     | `Stopping s | `Started s -> s
+    | _ when Atomic.get global_stop -> raise Has_stopped
     | _ -> raise Invalid_state
 
 and _tick ~clock x =
-  Evaluation.after_eval (fun () ->
-      Queue.flush clock.pending_activations (fun s ->
-          check_stopped ();
-          s#wake_up;
-          match s#source_type with
-            | `Active _ -> WeakQueue.push x.active_sources s
-            | `Output _ -> Queue.push x.outputs s
-            | `Passive -> WeakQueue.push x.passive_sources s);
-      let sub_clocks =
-        List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
-      in
-      let sources = _animated_sources x in
-      List.iter
-        (fun s ->
-          check_stopped ();
-          try
-            match s#source_type with
-              | `Output s | `Active s -> s#output
-              | _ -> assert false
-          with exn when exn <> Has_stopped ->
-            let bt = Printexc.get_raw_backtrace () in
-            if Queue.is_empty clock.on_error then (
-              log#severe "Source %s failed while streaming: %s!\n%s" s#id
-                (Printexc.to_string exn)
-                (Printexc.raw_backtrace_to_string bt);
-              if not allow_streaming_errors#get then Tutils.shutdown 1
-              else _detach clock s)
-            else Queue.iter clock.on_error (fun fn -> fn exn bt))
-        sources;
-      Queue.flush x.on_tick (fun fn ->
-          check_stopped ();
-          fn ());
-      List.iter
-        (fun (c, old_ticks) ->
-          if ticks c = old_ticks then
-            _tick ~clock:(Unifier.deref c) (active_params c))
-        sub_clocks;
-      Atomic.incr x.ticks;
+  Queue.flush clock.pending_activations (fun s ->
       check_stopped ();
-      _after_tick ~clock x)
+      s#wake_up;
+      match s#source_type with
+        | `Active _ -> WeakQueue.push x.active_sources s
+        | `Output _ -> Queue.push x.outputs s
+        | `Passive -> WeakQueue.push x.passive_sources s);
+  let sub_clocks =
+    List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
+  in
+  let sources = _animated_sources x in
+  List.iter
+    (fun s ->
+      check_stopped ();
+      try
+        match s#source_type with
+          | `Output s | `Active s -> s#output
+          | _ -> assert false
+      with exn when exn <> Has_stopped ->
+        let bt = Printexc.get_raw_backtrace () in
+        if Queue.is_empty clock.on_error then (
+          log#severe "Source %s failed while streaming: %s!\n%s" s#id
+            (Printexc.to_string exn)
+            (Printexc.raw_backtrace_to_string bt);
+          if not allow_streaming_errors#get then Tutils.shutdown 1
+          else _detach clock s)
+        else Queue.iter clock.on_error (fun fn -> fn exn bt))
+    sources;
+  Queue.flush x.on_tick (fun fn ->
+      check_stopped ();
+      fn ());
+  List.iter
+    (fun (c, old_ticks) ->
+      if ticks c = old_ticks then
+        _tick ~clock:(Unifier.deref c) (active_params c))
+    sub_clocks;
+  Atomic.incr x.ticks;
+  check_stopped ();
+  _after_tick ~clock x;
+  check_stopped ();
+  Queue.iter clocks start
 
 and _clock_thread ~clock x =
   let has_sources_to_process () =
@@ -436,16 +386,16 @@ and _clock_thread ~clock x =
     _cleanup ~clock x;
     Atomic.set clock.state (`Stopped x.sync)
   in
-  let rec run () =
+  let run () =
     try
-      if
+      while
         (match Atomic.get clock.state with `Started _ -> true | _ -> false)
         && (not (Atomic.get global_stop))
         && has_sources_to_process ()
-      then (
-        _tick ~clock x;
-        run ())
-      else on_stop ()
+      do
+        _tick ~clock x
+      done;
+      on_stop ()
     with Has_stopped -> on_stop ()
   in
   ignore
@@ -503,8 +453,8 @@ and start ?(force = false) c =
         if sync <> `Passive then _clock_thread ~clock x
     | _ -> ()
 
-let create ?pos ?on_error ?(id = "generic") ?(sub_ids = []) ?(sync = `Automatic)
-    () =
+let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
+    ?(sync = `Automatic) () =
   let on_error_queue = Queue.create () in
   (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
   let c =
@@ -512,7 +462,7 @@ let create ?pos ?on_error ?(id = "generic") ?(sub_ids = []) ?(sync = `Automatic)
       {
         id = Unifier.make id;
         sub_ids;
-        pos = Atomic.make pos;
+        stack = Atomic.make stack;
         pending_activations = Queue.create ();
         sub_clocks = Queue.create ();
         state = Atomic.make (`Stopped sync);
@@ -520,13 +470,20 @@ let create ?pos ?on_error ?(id = "generic") ?(sub_ids = []) ?(sync = `Automatic)
       }
   in
   Queue.push clocks c;
-  Evaluation.on_after_eval (fun () -> start c);
   c
+
+let start_pending () =
+  List.iter (Queue.push clocks)
+    (Queue.fold_flush clocks
+       (fun c clocks ->
+         start c;
+         c :: clocks)
+       [])
 
 let () =
   Lifecycle.before_start ~name:"Clocks start" (fun () ->
       Atomic.set started true;
-      Queue.iter clocks start)
+      start_pending ())
 
 let on_tick c fn =
   let x = active_params c in
@@ -536,6 +493,8 @@ let after_tick c fn =
   let x = active_params c in
   Queue.push x.after_tick fn
 
+let after_eval () = if not (Atomic.get global_stop) then start_pending ()
+
 let self_sync c =
   let clock = Unifier.deref c in
   match Atomic.get clock.state with
@@ -543,19 +502,21 @@ let self_sync c =
     | _ -> false
 
 let tick clock = _tick ~clock:(Unifier.deref clock) (active_params clock)
-let set_pos c pos = Atomic.set (Unifier.deref c).pos pos
+
+let set_stack c stack =
+  ignore (Atomic.compare_and_set (Unifier.deref c).stack [] stack)
 
 let create_sub_clock ~id clock =
   let clock = Unifier.deref clock in
   let sub_clock =
-    create ?pos:(Atomic.get clock.pos) ~id
+    create ~stack:(Atomic.get clock.stack) ~id
       ~sub_ids:(clock.sub_ids @ ["child"])
       ~sync:`Passive ()
   in
   Queue.push clock.sub_clocks sub_clock;
   sub_clock
 
-let create ?pos ?on_error ?id ?sync () = create ?pos ?on_error ?id ?sync ()
+let create ?stack ?on_error ?id ?sync () = create ?stack ?on_error ?id ?sync ()
 
 let clocks () =
   List.sort_uniq

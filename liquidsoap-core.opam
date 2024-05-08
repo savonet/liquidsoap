@@ -9,18 +9,18 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.6"}
-  "ocaml" {>= "5.1"}
+  "ocaml" {>= "4.14"}
   "dtools" {>= "0.4.5"}
-  "duppy" {>= "0.9.3"}
+  "duppy" {>= "0.9.4"}
   "mm" {>= "0.8.4"}
   "re" {>= "1.11.0"}
   "ocurl" {>= "0.9.2"}
-  "cry" {>= "1.0.2"}
+  "cry" {>= "1.0.3"}
   "camomile" {>= "2.0.0"}
   "uri"
   "fileutils"
   "menhirLib"
-  "mem_usage"
+  "mem_usage" {>= "0.1.1"}
   "metadata" {>= "0.3.0"}
   "magic-mime"
   "dune-build-info"
@@ -92,7 +92,7 @@ conflicts: [
   "inotify" {< "1.0"}
   "ladspa" {< "0.2.0"}
   "lame" {< "0.3.7"}
-  "lastfm" {< "0.3.0"}
+  "lastfm" {< "0.3.4"}
   "lo" {< "0.2.0"}
   "mad" {< "0.5.0"}
   "magic" {< "0.6"}

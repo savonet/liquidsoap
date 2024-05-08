@@ -22,6 +22,11 @@
 
 let thread = Modules.thread
 let thread_run = Lang.add_module ~base:thread "run"
+let should_stop = Atomic.make false
+
+let () =
+  Lifecycle.before_scheduler_shutdown ~name:"thread shutdown" (fun () ->
+      Atomic.set should_stop true)
 
 let _ =
   Lang.add_builtin ~base:thread "delay" ~category:`Programming
@@ -83,9 +88,7 @@ let _ =
           on_error
       in
       let f () =
-        try
-          Liquidsoap_lang.Evaluation.after_eval ~force:true (fun () ->
-              Lang.to_float (Lang.apply f []))
+        try Lang.to_float (Lang.apply f [])
         with exn -> (
           let bt = Printexc.get_raw_backtrace () in
           match on_error with
@@ -99,7 +102,10 @@ let _ =
           handler =
             (fun _ ->
               let delay = f () in
-              if delay >= 0. then [task delay] else []);
+              if Atomic.get should_stop then []
+              else (
+                Clock.after_eval ();
+                if delay >= 0. then [task delay] else []));
         }
       in
       Lifecycle.after_start ~name:"thread start" (fun () ->

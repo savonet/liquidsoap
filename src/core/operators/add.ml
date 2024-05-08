@@ -30,12 +30,12 @@ type ('a, 'b) track = { mutable fields : 'a field list; data : 'b }
 
 class virtual base ~name tracks =
   let sources = List.map (fun { data } -> data) tracks in
-  let self_sync = Utils.self_sync sources in
+  let self_sync = Clock_base.self_sync sources in
   let infallible = List.exists (fun s -> not s#fallible) sources in
   object (self)
     inherit Source.operator ~name sources
     method fallible = not infallible
-    method self_sync = self_sync ()
+    method self_sync = self_sync ~source:self ()
 
     method remaining =
       let f cur pos =
@@ -453,6 +453,7 @@ let _ =
         in
         let tracks = audio_tracks @ video_tracks in
         let tracks = (Frame.Fields.metadata, snd (List.hd tracks)) :: tracks in
+        let track_sources = List.map (fun (_, s) -> s) tracks in
         let tracks =
           List.map
             (fun (field, track) ->
@@ -461,4 +462,9 @@ let _ =
             tracks
         in
         let p = [("", Lang.meth Lang.unit tracks)] in
-        (Muxer.muxer_operator p :> Source.source)))
+        let s = (Muxer.muxer_operator p :> Source.source) in
+        (* Make sure all track positions are the same as the top-level source. *)
+        List.iter
+          (fun t -> Unifier.(t#stack_unifier <-- s#stack_unifier))
+          track_sources;
+        s))

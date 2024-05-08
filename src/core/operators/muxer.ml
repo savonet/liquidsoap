@@ -36,7 +36,7 @@ class muxer tracks =
       [] tracks
   in
   let fallible = List.exists (fun s -> s#fallible) sources in
-  let self_sync = Utils.self_sync sources in
+  let self_sync = Clock_base.self_sync sources in
   object (self)
     (* Pass duplicated list to operator to make sure caching is properly enabled. *)
     inherit
@@ -44,7 +44,7 @@ class muxer tracks =
         ~name:"source"
         (List.map (fun { source } -> source) tracks)
 
-    method self_sync = self_sync ()
+    method self_sync = self_sync ~source:self ()
     method fallible = fallible
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private sources_ready = List.for_all (fun s -> s#is_ready) sources

@@ -233,7 +233,7 @@ class virtual ['a] input_base ~name ~pass_metadata ~self_sync ~is_ready ~pull
               self#put_data ~length frames
           | None -> ()
 
-    method self_sync : Clock.self_sync = self_sync ()
+    method self_sync : Clock.self_sync = self_sync self
 
     method pull =
       try

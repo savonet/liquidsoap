@@ -21,7 +21,6 @@
   *****************************************************************************)
 
 open Harbor_base
-module Pcre = Re.Pcre
 module Monad = Duppy.Monad
 module Type = Liquidsoap_lang.Type
 module Http_base = Http

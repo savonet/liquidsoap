@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 module Queue = struct
-  include Michael_scott_queue
+  include Saturn_lockfree.Queue
 
   let flush q fn =
     let rec f () =
@@ -32,6 +32,12 @@ module Queue = struct
         | None -> ()
     in
     f ()
+
+  let fold_flush q fn ret =
+    let rec f ret =
+      match pop_opt q with Some el -> f (fn el ret) | None -> ret
+    in
+    f ret
 
   let elements q =
     let rec f l cursor =

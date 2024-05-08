@@ -50,3 +50,10 @@ let blit_audio src src_ofs dst dst_ofs len =
     (Array.map (fun dst -> Bigarray.Array1.sub dst dst_ofs len) dst)
 
 let channels_of_format = Content_pcm_base.channels_of_format ~get_params
+
+external amplify :
+  (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t ->
+  float ->
+  unit = "liquidsoap_amplify_f32_ba"
+
+let amplify c v = Array.iter (fun c -> amplify c v) c

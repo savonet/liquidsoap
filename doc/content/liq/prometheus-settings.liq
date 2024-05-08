@@ -1,3 +1,3 @@
 # Prometheus settings
 settings.prometheus.server := true
-settings.prometheus.server.port := 9090
+settings.prometheus.server.port := 9599

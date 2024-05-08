@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 let conf_scheduler =
   Dtools.Conf.void
     ~p:(Configure.conf#plug "scheduler")
@@ -139,7 +137,7 @@ let queues = ref Set.empty
 let join_all ~set () =
   let rec f () =
     try
-      Mutex.mutexify lock
+      Mutex_utils.mutexify lock
         (fun () ->
           let name, c = Set.choose !set in
           log#info "Waiting for thread %s to shutdown" name;
@@ -168,13 +166,13 @@ exception Exit
 let create ~queue f x s =
   let c = Condition.create () in
   let set = if queue then queues else all in
-  Mutex.mutexify lock
+  Mutex_utils.mutexify lock
     (fun () ->
       let id =
         let process x =
           try
             f x;
-            Mutex.mutexify lock
+            Mutex_utils.mutexify lock
               (fun () ->
                 set := Set.remove (s, c) !set;
                 log#info "Thread %S terminated (%d remaining)." s
@@ -208,7 +206,7 @@ let create ~queue f x s =
             with e ->
               let l = Pcre.split ~rex:(Pcre.regexp "\n") bt in
               List.iter (log#info "%s") l;
-              Mutex.mutexify lock
+              Mutex_utils.mutexify lock
                 (fun () ->
                   set := Set.remove (s, c) !set;
                   if
@@ -296,7 +294,7 @@ let start () =
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
-  Mutex.mutexify m
+  Mutex_utils.mutexify m
     (fun () ->
       while not (f ()) do
         Condition.wait c m

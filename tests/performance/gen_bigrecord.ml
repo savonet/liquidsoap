@@ -11,7 +11,7 @@ let parse_memory_consumption script =
   Printf.printf "Big record memory consumption: %s\n%!"
     Mem_usage.(
       prettify_bytes
-        (mem_after.process_physical_memory - mem_before.process_physical_memory))
+        (mem_after.process_private_memory - mem_before.process_private_memory))
 
 (* Remove type information. *)
 let rec strip tm =
@@ -34,7 +34,7 @@ let term_memory_consumption script =
   Printf.printf "Big record term-only memory consumption: %s\n%!"
     Mem_usage.(
       prettify_bytes
-        (mem_after.process_physical_memory - mem_before.process_physical_memory))
+        (mem_after.process_private_memory - mem_before.process_private_memory))
 
 let () =
   let indexes = List.init 5000 string_of_int in

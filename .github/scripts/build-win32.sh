@@ -47,6 +47,7 @@ opam repository set-url windows https://github.com/ocaml-cross/opam-cross-window
 opam update windows
 # shellcheck disable=SC2046
 opam upgrade -y $(echo "$OPAM_DEPS" | sed -e 's#,# #g') ffmpeg-windows ffmpeg-avutil-windows
+opam remove -y pcre-windows
 
 # Debug
 opam reinstall -y cry-windows

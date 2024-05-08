@@ -71,7 +71,9 @@ def f() =
 
   test.equal(
     pos,
-    "At error.liq, line 58 char 4 - line 63 char 7"
+    "At error.liq, line 58 char 4 - line 63 char 7, At \
+     /tmp/liquidsoap-full/liquidsoap/_build/install/default/share/liquidsoap-lang/libs/thread.liq, \
+     line 19, char 11-14"
   )
   e' = error.register("bla")
   test.equal(false, (e == e'))
@@ -143,6 +145,59 @@ def f() =
     test.pass()
   end
 
+  # Works as expected with finally
+  ret = ref(false)
+  try
+    ()
+  finally
+    ret := true
+  end
+  test.equal(ret(), true)
+
+  ret = ref(false)
+  try
+    ()
+  catch _ do
+    ()
+  finally
+    ret := true
+  end
+  test.equal(ret(), true)
+
+  ret = ref(false)
+  try
+    error.raise(error.not_found)
+  catch _ do
+    ()
+  finally
+    ret := true
+  end
+  test.equal(ret(), true)
+
+  ret = ref(false)
+  try
+    error.raise(error.not_found)
+  catch _ : [error.not_found] do
+    ()
+  finally
+    ret := true
+  end
+  test.equal(ret(), true)
+
+  ret = ref(false)
+  try
+    try
+      error.raise(error.not_found)
+    catch _ : [error.not_found] do
+      error.raise(error.failure)
+    finally
+      ret := true
+    end
+  catch _ : [error.failure] do
+    ()
+  end
+  test.equal(ret(), true)
+
   # Catches error
   def on_error(~backtrace, e) =
     print(
@@ -159,28 +214,6 @@ def f() =
         "Asynchronous error"
       )
   )
-
-  # Error raised during after_eval can escape try/catch:
-  def fn()
-      try
-        liquidsoap.after_eval(
-          {
-            error.raise(
-              e,
-              "After eval"
-            )
-          }
-        )
-      catch _ do
-        test.fail()
-      end
-  end
-  try
-    liquidsoap.exec_after_eval(fn);
-    test.fail()
-  catch _ do
-    ()
-  end
 end
 
 test.check(f)

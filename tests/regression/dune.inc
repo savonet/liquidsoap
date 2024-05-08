@@ -513,6 +513,21 @@
  (alias citest)
  (package liquidsoap)
  (deps
+  GH3813.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3813.liq liquidsoap %{test_liq} GH3813.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
   GH3840.liq
   ../media/all_media_files
   ../../src/bin/liquidsoap.exe
@@ -523,6 +538,21 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} GH3840.liq liquidsoap %{test_liq} GH3840.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  GH3881.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} GH3881.liq liquidsoap %{test_liq} GH3881.liq)))
 
 (rule
  (alias citest)
@@ -733,6 +763,21 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} input_rtmp.liq liquidsoap %{test_liq} input_rtmp.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  metadata-resolvers-metadata.liq
+  ../media/all_media_files
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action (run %{run_test} metadata-resolvers-metadata.liq liquidsoap %{test_liq} metadata-resolvers-metadata.liq)))
 
 (rule
  (alias citest)

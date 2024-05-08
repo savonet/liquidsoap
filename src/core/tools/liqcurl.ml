@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 let () = Curl.global_init Curl.CURLINIT_GLOBALALL
 
 let string_of_curl_code = function

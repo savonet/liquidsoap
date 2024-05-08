@@ -69,9 +69,11 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     val mutable current = Atomic.make None
     method current = Atomic.get current
     method self_sync = (`Static, None)
+    val should_skip = Atomic.make false
 
     (** How to unload a request. *)
     method private end_request =
+      Atomic.set should_skip false;
       remaining <- 0;
       match Atomic.exchange current None with
         | None -> ()
@@ -117,12 +119,13 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                    {
                      req;
                      fread =
-                       Mutex.mutexify m (fun len ->
+                       Mutex_utils.mutexify m (fun len ->
                            let buf = decoder.Decoder.fread len in
                            remaining <- decoder.Decoder.remaining ();
                            buf);
                      seek =
-                       Mutex.mutexify m (fun len -> decoder.Decoder.fseek len);
+                       Mutex_utils.mutexify m (fun len ->
+                           decoder.Decoder.fseek len);
                      close = decoder.Decoder.close;
                    });
               remaining <- decoder.Decoder.remaining ();
@@ -162,7 +165,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           let buf =
             Frame.append buf (self#generate_from_current_request (size - pos))
           in
-          if Frame.is_partial buf then (
+          if Atomic.get should_skip || Frame.is_partial buf then (
             self#end_request;
             let buf = Frame.add_track_mark buf (Frame.position buf) in
             if self#fetch_request then fill buf else buf)
@@ -181,7 +184,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       match self#current with None -> 0 | Some cur -> cur.seek x
 
     method seek_source = (self :> Source.source)
-    method abort_track = self#end_request
+    method abort_track = Atomic.set should_skip true
     val mutable retry_status = None
 
     method can_generate_frame =
@@ -259,7 +262,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     initializer
       self#on_wake_up (fun () ->
           assert (task = None);
-          Mutex.mutexify state_lock
+          Mutex_utils.mutexify state_lock
             (fun () ->
               assert (state = `Sleeping);
               let t =
@@ -289,7 +292,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                if it's currently resolving a file or not.  So we first put the queue
                into an harmless state: we put the state to `Tired and wait for it to
                acknowledge it by setting it to `Sleeping. *)
-            Mutex.mutexify state_lock (fun () -> state <- `Tired) ();
+            Mutex_utils.mutexify state_lock (fun () -> state <- `Tired) ();
 
             (* Make sure the task is awake so that it can see our signal. *)
             Duppy.Async.wake_up (Option.get task);
@@ -309,7 +312,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       (* Avoid trying to wake up the task during the shutdown process where it
          might have been stopped already, in which case we'd get an
          exception. *)
-      Mutex.mutexify state_lock
+      Mutex_utils.mutexify state_lock
         (fun () ->
           if state = `Running then Duppy.Async.wake_up (Option.get task))
         ()
@@ -336,7 +339,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
       if
         (* Is the source running? And does it need prefetching? If the test fails,
            the task sleeps. *)
-        Mutex.mutexify state_lock
+        Mutex_utils.mutexify state_lock
           (fun () ->
             match state with
               | `Starting ->

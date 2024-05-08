@@ -20,8 +20,6 @@
 
   *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 let _ =
   Lang.add_builtin ~base:Modules.server "register" ~category:`Interaction
     ~descr:

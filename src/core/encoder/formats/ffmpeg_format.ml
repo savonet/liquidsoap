@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-module Pcre = Re.Pcre
-
 type opt_val =
   [ `String of string | `Int of int | `Int64 of int64 | `Float of float ]
 

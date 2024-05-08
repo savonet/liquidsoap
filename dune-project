@@ -44,18 +44,18 @@
 (package
   (name liquidsoap-core)
   (depends
-    (ocaml (>= 5.1))
+    (ocaml (>= 4.14))
     (dtools (>= 0.4.5))
-    (duppy (>= 0.9.3))
+    (duppy (>= 0.9.4))
     (mm (>= 0.8.4))
     (re (>= 1.11.0))
     (ocurl (>= 0.9.2))
-    (cry (>= 1.0.2))
+    (cry (>= 1.0.3))
     (camomile (>= 2.0.0))
     uri
     fileutils
     menhirLib
-    mem_usage
+    (mem_usage (>= 0.1.1))
     (metadata (>= 0.3.0))
     magic-mime
     dune-build-info
@@ -124,7 +124,7 @@
     (inotify (< 1.0))
     (ladspa (< 0.2.0))
     (lame (< 0.3.7))
-    (lastfm (< 0.3.0))
+    (lastfm (< 0.3.4))
     (lo (< 0.2.0))
     (mad (< 0.5.0))
     (magic (< 0.6))
@@ -150,8 +150,9 @@
 (package
   (name liquidsoap-lang)
   (depends
-    (ocaml (>= 5.1))
+    (ocaml (>= 4.14))
     dune-site
+    (saturn_lockfree (>= 0.4.1))
     (re (>= 1.11.0))
     (ppx_string :build)
     (sedlex (>= 3.2))
@@ -163,10 +164,10 @@
 (package
   (name liquidsoap-js)
   (depends
-    (ocaml (>= 5.1))
+    (ocaml (>= 4.14))
     (liquidsoap-lang (= :version))
     js_of_ocaml-ppx
-    (js_of_ocaml (< 5.6.0)))
+    (js_of_ocaml (>= 5.7.2)))
   (conflicts
     (liquidsoap (<> :version)))
   (synopsis "Liquidsoap language - javascript wrapper"))

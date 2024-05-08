@@ -35,7 +35,7 @@ let encoder id ext =
   let mutex = Mutex.create () in
   let condition = Condition.create () in
   let restart_decision =
-    Mutex.mutexify mutex (fun () ->
+    Mutex_utils.mutexify mutex (fun () ->
         let decision =
           match (!is_metadata_restart, !is_stop) with
             | _, true -> false
@@ -92,7 +92,7 @@ let encoder id ext =
   in
   let log s = log#important "%s" s in
   let on_stdout =
-    Mutex.mutexify mutex (fun puller ->
+    Mutex_utils.mutexify mutex (fun puller ->
         begin
           let len = puller bytes 0 Utils.pagesize in
           match len with
@@ -106,7 +106,7 @@ let encoder id ext =
       ext.process
   in
   let insert_metadata =
-    Mutex.mutexify mutex (fun _ ->
+    Mutex_utils.mutexify mutex (fun _ ->
         if ext.restart = Metadata then (
           is_metadata_restart := true;
           Process_handler.stop process))
@@ -138,7 +138,7 @@ let encoder id ext =
         Audio.S16LE.of_audio b start sbuf 0 len;
         Strings.unsafe_of_bytes sbuf)
     in
-    Mutex.mutexify mutex
+    Mutex_utils.mutexify mutex
       (fun () ->
         try
           Process_handler.on_stdin process (fun push ->
@@ -156,7 +156,7 @@ let encoder id ext =
     Strings.Mutable.flush buf
   in
   let stop =
-    Mutex.mutexify mutex (fun () ->
+    Mutex_utils.mutexify mutex (fun () ->
         is_stop := true;
         Process_handler.stop process;
         Condition.wait condition mutex;

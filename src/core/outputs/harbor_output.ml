@@ -232,7 +232,7 @@ let add_meta c data =
   in
   let get_meta () =
     let meta =
-      Mutex.mutexify c.meta.metadata_m
+      Mutex_utils.mutexify c.meta.metadata_m
         (fun () ->
           let meta = c.meta.metadata in
           c.meta.metadata <- None;
@@ -260,7 +260,7 @@ let add_meta c data =
 let rec client_task c =
   let* data =
     Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
-      (Mutex.mutexify c.mutex
+      (Mutex_utils.mutexify c.mutex
          (fun () ->
            let buflen = Strings.Mutable.length c.buffer in
            let data =
@@ -282,13 +282,13 @@ let rec client_task c =
   in
   let* state =
     Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
-      (let ret = Mutex.mutexify c.mutex (fun () -> c.state) () in
+      (let ret = Mutex_utils.mutexify c.mutex (fun () -> c.state) () in
        Duppy.Monad.return ret)
   in
   if state <> Done then client_task c else Duppy.Monad.return ()
 
 let client_task c =
-  Mutex.mutexify c.mutex
+  Mutex_utils.mutexify c.mutex
     (fun () ->
       assert (c.state = Hello);
       c.state <- Sending)
@@ -435,7 +435,7 @@ class output p =
     method insert_metadata m =
       let m = Frame.Metadata.Export.to_metadata m in
       let m = recode m in
-      Mutex.mutexify metadata.metadata_m
+      Mutex_utils.mutexify metadata.metadata_m
         (fun () -> metadata.metadata <- Some m)
         ();
       (Option.get encoder).Encoder.insert_metadata
@@ -504,7 +504,7 @@ class output p =
               in
               Utils.log_exception ~log:self#log ~bt msg;
               self#log#info "Client %s disconnected" ip;
-              Mutex.mutexify client.mutex
+              Mutex_utils.mutexify client.mutex
                 (fun () ->
                   client.state <- Done;
                   ignore (Strings.Mutable.flush client.buffer))
@@ -535,7 +535,9 @@ class output p =
       Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
         (Harbor.relayed reply (fun () ->
              self#log#info "Client %s connected" ip;
-             Mutex.mutexify clients_m (fun () -> Queue.push client clients) ();
+             Mutex_utils.mutexify clients_m
+               (fun () -> Queue.push client clients)
+               ();
              on_connect ~protocol ~uri
                ~headers:(Frame.Metadata.from_list headers)
                ip))
@@ -556,12 +558,12 @@ class output p =
         (match dump with
           | Some s -> Strings.iter (output_substring s) b
           | None -> ());
-        Mutex.mutexify clients_m
+        Mutex_utils.mutexify clients_m
           (fun () ->
             Queue.iter
               (fun c ->
                 let start =
-                  Mutex.mutexify c.mutex
+                  Mutex_utils.mutexify c.mutex
                     (fun () ->
                       match c.state with
                         | Hello ->
@@ -607,11 +609,11 @@ class output p =
       encoder <- None;
       Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
       let new_clients = Queue.create () in
-      Mutex.mutexify clients_m
+      Mutex_utils.mutexify clients_m
         (fun () ->
           Queue.iter
             (fun c ->
-              Mutex.mutexify c.mutex
+              Mutex_utils.mutexify c.mutex
                 (fun () ->
                   c.state <- Done;
                   Duppy.Monad.run
