@@ -39,6 +39,16 @@ module Queue = struct
     in
     f ret
 
+  let iter_flush q fn =
+    let rec f () =
+      match pop_opt q with
+        | Some el ->
+            fn el;
+            f ()
+        | None -> ()
+    in
+    f ()
+
   let elements q =
     let rec f l cursor =
       match next cursor with
