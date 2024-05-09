@@ -91,6 +91,21 @@ module WeakQueue = struct
           match Weak.get x i with Some v -> fn v | None -> ()
         done)
 
+  let batch_size = 1024
+
+  let push_batches q elements =
+    let len = List.length elements in
+    let n_batches = int_of_float (ceil (float len /. float batch_size)) in
+    for i = 0 to n_batches - 1 do
+      let entry = Weak.create batch_size in
+      let offset = i * batch_size in
+      let max_pos = min (len - offset) batch_size in
+      for pos = 0 to max_pos - 1 do
+        Weak.set entry pos (Some (List.nth elements (pos + offset)))
+      done;
+      Queue.push q entry
+    done
+
   let elements q =
     let rec f rem =
       match Queue.pop_opt q with
@@ -110,13 +125,7 @@ module WeakQueue = struct
         | None -> rem
     in
     let rem = f [] in
-    let len = List.length rem in
-    if len > 0 then (
-      let entry = Weak.create len in
-      for i = 0 to len - 1 do
-        Weak.set entry i (Some (List.nth rem i))
-      done;
-      Queue.push q entry);
+    push_batches q rem;
     rem
 
   let exists q fn = List.exists fn (elements q)
