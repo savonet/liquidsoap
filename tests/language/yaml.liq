@@ -7,15 +7,13 @@ def f() =
   j.add("record", {a=1, b="ert"})
   j.remove("foo")
   j = yaml.stringify(j)
-  test.equal(
-    j, 'record:
+  test.equal(j, 'record:
   a: 1
   b: ert
 key_with_methods: value
 bla: bar
 baz: 3.14
-'
-  )
+')
 
   let yaml.parse (x :
     {
@@ -27,7 +25,7 @@ baz: 3.14
   ) = j
 
   test.equal(
-    x, {record={b="ert", a=1.0}, key_with_methods="value", bla="bar", baz=3.14}
+    x, {bla="bar", baz=3.14, key_with_methods="value", record={a=1., b="ert"}}
   )
 
   test.pass()
