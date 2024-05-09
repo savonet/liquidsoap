@@ -334,6 +334,14 @@ def f() =
      input.http(self_sync=true,"http://foo.bar")]))'
   )
 
+  section("METHODS")
+  correct(
+    'x = {foo="bar", gni=123,}'
+  )
+  correct(
+    '_ = "aabb".{foo="bar", gni=123,}'
+  )
+
   section(
     "OPTIONAL METHODS"
   )
