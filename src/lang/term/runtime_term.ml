@@ -19,10 +19,12 @@ type pattern =
 
 and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
 
-type 'a term = {
+type 'a meth = { mutable unused : bool; meth : 'a term }
+
+and 'a term = {
   mutable t : Type.t;
   term : 'a;
-  methods : 'a term Methods.t;
+  mutable methods : 'a meth Methods.t;
   id : int;
 }
 
@@ -74,6 +76,7 @@ and let_t = {
   doc : Doc.Value.t option;
   replace : bool;
   pat : pattern;
+  mutable unused : bool;
   mutable gen : Type.var list;
   def : t;
   body : t;

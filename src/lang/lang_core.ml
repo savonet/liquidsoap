@@ -219,7 +219,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
           ( m.meth,
             Doc.Value.
               {
-                meth_type = Repr.string_of_scheme m.scheme;
+                meth_type = Repr.string_of_scheme (Lazy.force m.scheme);
                 meth_description = d;
               } ))
         meth

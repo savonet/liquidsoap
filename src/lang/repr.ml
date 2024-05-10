@@ -171,7 +171,8 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)
         | Nullable t -> `Nullable (repr g t)
-        | Meth ({ meth = l; optional; scheme = g', u; json_name }, v) ->
+        | Meth ({ meth = l; optional; scheme; json_name }, v) ->
+            let g', u = Lazy.force scheme in
             let gen =
               List.map
                 (fun v -> match uvar (g' @ g) v with `UVar v -> v)

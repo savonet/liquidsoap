@@ -322,7 +322,9 @@ let rec to_string (v : t) =
     (if v.term = `Tuple [] then "" else term ^ ".")
     ^ "{"
     ^ String.concat ", "
-        (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
+        (List.map
+           (fun (l, { meth; unused = _ }) -> l ^ "=" ^ to_string meth)
+           methods)
     ^ "}")
 
 (** Create a new value. *)
@@ -332,7 +334,12 @@ let id =
 
 let make ?pos ?t ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  { t; term = e; methods; id = id () }
+  {
+    t;
+    term = e;
+    methods = Methods.map (fun meth -> { meth; unused = true }) methods;
+    id = id ();
+  }
 
 let rec free_vars_pat = function
   | `PVar [] -> assert false
@@ -417,7 +424,7 @@ let rec free_term_vars tm =
           (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
   in
   Methods.fold
-    (fun _ meth_term fv -> Vars.union fv (free_vars meth_term))
+    (fun _ { meth; unused = _ } fv -> Vars.union fv (free_vars meth))
     tm.methods (root_free_vars tm.term)
 
 and free_fun_vars = function
@@ -481,7 +488,7 @@ exception Unused_variable of (string * Pos.t)
 let check_unused ~throw ~lib tm =
   let rec check ?(toplevel = false) v tm =
     let v =
-      Methods.fold (fun _ meth_term e -> check e meth_term) tm.methods v
+      Methods.fold (fun _ { meth; unused = _ } e -> check e meth) tm.methods v
     in
     match tm.term with
       | `Var s -> Vars.remove s v
@@ -674,6 +681,7 @@ let rec fresh ~handler { t; term; methods } =
               doc;
               replace;
               pat;
+              unused = true;
               gen = List.map (Type.Fresh.make_var handler) gen;
               def = fresh ~handler def;
               body = fresh ~handler body;
@@ -724,9 +732,56 @@ let rec fresh ~handler { t; term; methods } =
     {
       t = Type.Fresh.make handler t;
       term;
-      methods = Methods.map (fresh ~handler) methods;
+      methods =
+        Methods.map
+          (fun { meth; unused = _ } ->
+            { meth = fresh ~handler meth; unused = true })
+          methods;
       id = id ();
     }
   in
   ActiveTerm.add active_terms term;
   term
+
+let rec prune_unused tm =
+  {
+    tm with
+    methods =
+      Methods.filter (fun _ { meth = _; unused } -> not unused) tm.methods;
+    term = prune_unused_term tm.term;
+  }
+
+and prune_unused_term = function
+  | `Null -> `Null
+  | `Var _ as tm -> tm
+  | `Encoder _ as tm -> tm
+  | `Ground _ as tm -> tm
+  | `Tuple l -> `Tuple (List.map prune_unused l)
+  | `Open (t, t') -> `Open (prune_unused t, prune_unused t')
+  | `Seq (t, t') -> `Seq (prune_unused t, prune_unused t')
+  | `Let { unused = true; body } -> (prune_unused body).term
+  | `Let _let ->
+      `Let
+        { _let with def = prune_unused _let.def; body = prune_unused _let.body }
+  | `List l -> `List (List.map prune_unused l)
+  | `Cast (t, typ) -> `Cast (prune_unused t, typ)
+  | `App (t, l) ->
+      `App (prune_unused t, List.map (fun (lbl, t) -> (lbl, prune_unused t)) l)
+  | `Invoke invoke ->
+      `Invoke
+        {
+          invoke with
+          invoked = prune_unused invoke.invoked;
+          invoke_default = Option.map prune_unused invoke.invoke_default;
+        }
+  | `Fun func ->
+      `Fun
+        {
+          func with
+          body = prune_unused func.body;
+          arguments =
+            List.map
+              (fun arg ->
+                { arg with default = Option.map prune_unused arg.default })
+              func.arguments;
+        }

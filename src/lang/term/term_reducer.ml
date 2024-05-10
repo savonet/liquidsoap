@@ -190,7 +190,11 @@ let args_of, app_of =
             let body =
               mk
                 ~t:(Type.make ~pos body.t.Type.descr)
-                ~methods:body.Term.methods body.Term.term
+                ~methods:
+                  (Methods.map
+                     (fun { Term.meth; unused = _ } -> meth)
+                     body.Term.methods)
+                body.Term.term
             in
             mk_tm
               (`Fun
@@ -208,9 +212,10 @@ let args_of, app_of =
       ~methods:
         (Methods.mapi
            (fun key meth ->
-             let { Type.scheme = _, t } =
+             let { Type.scheme } =
                List.find (fun { Type.meth } -> meth = key) meths
              in
+             let _, t = Lazy.force scheme in
              process_value ~t meth)
            v.Value.methods)
       tm.Term.term
@@ -296,7 +301,9 @@ and update_invoke_default ~pos ~optional expr name value =
         let value, invoked =
           mk_invoke_default ~pos ~name ~optional value invoked
         in
-        mk ~t:expr.Term.t ~methods:expr.Term.methods
+        mk ~t:expr.Term.t
+          ~methods:
+            (Methods.map (fun { meth; unused = _ } -> meth) expr.Term.methods)
           (`Invoke
             {
               invoked;
@@ -314,7 +321,9 @@ and update_invoke_default ~pos ~optional expr name value =
           mk_invoke_default ~pos ~name ~optional value
             { invoked with invoke_default }
         in
-        mk ~t:expr.Term.t ~methods:expr.Term.methods
+        mk ~t:expr.Term.t
+          ~methods:
+            (Methods.map (fun { meth; unused = _ } -> meth) expr.Term.methods)
           (`App
             ( mk ~pos
                 (`Invoke
@@ -632,7 +641,16 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
     mk ~pos (`App (parser, [("json5", json5); ("type", tty); ("", def)]))
   in
   let def = mk ~pos (`Cast (def, ty)) in
-  `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
+  `Let
+    {
+      Term_base.doc = None;
+      unused = true;
+      replace = false;
+      pat;
+      gen = [];
+      def;
+      body;
+    }
 
 let mk_let_yaml_parse ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
@@ -640,7 +658,16 @@ let mk_let_yaml_parse ~pos (pat, def, cast) body =
   let parser = mk ~pos (`Var "_internal_yaml_parser_") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
   let def = mk ~pos (`Cast (def, ty)) in
-  `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
+  `Let
+    {
+      Term_base.doc = None;
+      unused = true;
+      replace = false;
+      pat;
+      gen = [];
+      def;
+      body;
+    }
 
 let mk_let_sqlite_row ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
@@ -648,7 +675,16 @@ let mk_let_sqlite_row ~pos (pat, def, cast) body =
   let parser = mk ~pos (`Var "_sqlite_row_parser_") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
   let def = mk ~pos (`Cast (def, ty)) in
-  `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
+  `Let
+    {
+      Term_base.doc = None;
+      unused = true;
+      replace = false;
+      pat;
+      gen = [];
+      def;
+      body;
+    }
 
 let mk_let_sqlite_query ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
@@ -686,7 +722,16 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
   in
   let def = mk ~pos (`App (map, [("", mapper); ("", def)])) in
   let def = mk ~pos (`Cast (def, ty)) in
-  `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
+  `Let
+    {
+      Term_base.doc = None;
+      unused = true;
+      replace = false;
+      pat;
+      gen = [];
+      def;
+      body;
+    }
 
 let mk_rec_fun ~pos pat arguments body =
   let name =
@@ -702,7 +747,16 @@ let mk_eval ~pos (pat, def, body, cast) =
   let eval = mk ~pos (`Var "_eval_") in
   let def = mk ~pos (`App (eval, [("type", tty); ("", def)])) in
   let def = mk ~pos (`Cast (def, ty)) in
-  `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
+  `Let
+    {
+      Term_base.doc = None;
+      unused = true;
+      replace = false;
+      pat;
+      gen = [];
+      def;
+      body;
+    }
 
 let string_of_let_decoration = function
   | `None -> ""
@@ -726,19 +780,46 @@ let mk_let ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
-        `Let { Term_base.doc = None; replace; pat; gen = []; def; body }
+        `Let
+          {
+            Term_base.doc = None;
+            unused = true;
+            replace;
+            pat;
+            gen = [];
+            def;
+            body;
+          }
     | Some arglist, `Recursive ->
         let def = mk_rec_fun ~pos pat arglist def in
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
-        `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
+        `Let
+          {
+            Term_base.doc = None;
+            unused = true;
+            replace = false;
+            pat;
+            gen = [];
+            def;
+            body;
+          }
     | None, `None | None, `Replaces ->
         let replace = decoration = `Replaces in
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
-        `Let { Term_base.doc = None; replace; pat; gen = []; def; body }
+        `Let
+          {
+            Term_base.doc = None;
+            unused = true;
+            replace;
+            pat;
+            gen = [];
+            def;
+            body;
+          }
     | None, `Eval -> mk_eval ~pos (pat, def, body, cast)
     | None, `Json_parse args ->
         let args = List.map (fun (l, v) -> (l, to_term v)) args in
@@ -922,6 +1003,7 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
               {
                 doc = None;
                 replace = false;
+                unused = true;
                 pat = `PVar ["_"];
                 gen = [];
                 def = src;
@@ -931,6 +1013,7 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
                       {
                         doc = None;
                         replace = true;
+                        unused = true;
                         pat = `PVar ["_"];
                         gen = [];
                         def = dst;
@@ -949,7 +1032,10 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
             | `Method (name, tm) ->
                 {
                   term with
-                  methods = Methods.add name (to_term tm) term.methods;
+                  methods =
+                    Methods.add name
+                      { meth = to_term tm; unused = true }
+                      term.methods;
                 })
           term methods
     | term ->

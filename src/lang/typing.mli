@@ -33,6 +33,8 @@ val filter_vars : (var -> bool) -> t -> var list
 (** A typing environment. *)
 type env = (string * scheme) list
 
+type lazy_env = (string * scheme Lazy.t) list
+
 (** Instantiate a type. *)
 val instantiate : level:int -> scheme -> t
 

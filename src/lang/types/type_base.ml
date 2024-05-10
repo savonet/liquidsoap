@@ -93,7 +93,7 @@ type scheme = var list * t
 type meth = {
   meth : string;  (** name of the method *)
   optional : bool;  (** is the method optional? *)
-  scheme : scheme;  (** type scheme *)
+  scheme : scheme Lazy.t;  (** type scheme *)
   doc : string;  (** documentation *)
   json_name : string option;  (** name when represented as JSON *)
 }
@@ -242,7 +242,7 @@ let rec remeth t u =
 (** Type of a method in a type. *)
 let rec invoke t l =
   match (deref t).descr with
-    | Meth (m, _) when m.meth = l -> m.scheme
+    | Meth ({ meth; scheme }, _) when meth = l -> Lazy.force scheme
     | Meth (_, t) -> invoke t l
     | _ -> raise Not_found
 
@@ -262,7 +262,8 @@ let rec invokes t = function
 
 (** Add a method to a type. *)
 let meth ?pos ?json_name ?(optional = false) meth scheme ?(doc = "") t =
-  make ?pos (Meth ({ meth; optional; scheme; doc; json_name }, t))
+  make ?pos
+    (Meth ({ meth; optional; scheme = Lazy.from_val scheme; doc; json_name }, t))
 
 (** Add a submethod to a type. *)
 let rec meths ?pos l v t =
@@ -339,12 +340,15 @@ module Fresh = struct
       | List { t; json_repr } -> List { t = map t; json_repr }
       | Tuple l -> Tuple (List.map map l)
       | Nullable t -> Nullable (map t)
-      | Meth ({ meth; optional; scheme = vars, t; doc; json_name }, t') ->
+      | Meth ({ meth; optional; scheme; doc; json_name }, t') ->
           Meth
             ( {
                 meth;
                 optional;
-                scheme = (List.map map_var vars, map t);
+                scheme =
+                  lazy
+                    (let vars, t = Lazy.force scheme in
+                     (List.map map_var vars, map t));
                 doc;
                 json_name;
               },

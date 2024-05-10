@@ -70,7 +70,8 @@ let ord_constr =
           | Tuple [] ->
               (* For records, we want to ensure that all fields are ordered. *)
               List.iter
-                (fun { scheme = v, a } ->
+                (fun { scheme } ->
+                  let v, a = Lazy.force scheme in
                   if v <> [] then raise Unsatisfied_constraint;
                   satisfies a)
                 m

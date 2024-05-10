@@ -30,7 +30,7 @@ let make ?pos base_type fields =
         {
           Type.meth = field;
           optional = false;
-          scheme = ([], field_type);
+          scheme = Lazy.from_val ([], field_type);
           doc = "Field " ^ field;
           json_name = None;
         }
@@ -49,7 +49,7 @@ let set_field frame_type field field_type =
     {
       Type.meth = field;
       optional = false;
-      scheme = ([], field_type);
+      scheme = Lazy.from_val ([], field_type);
       doc = "Field " ^ field;
       json_name = None;
     }
@@ -65,7 +65,8 @@ let get_field frame_type field =
   let fields, _ = Type.split_meths frame_type in
   match
     List.find_map
-      (fun Type.{ meth; scheme = _, field_type } ->
+      (fun Type.{ meth; scheme } ->
+        let _, field_type = Lazy.force scheme in
         if meth = field then Some field_type else None)
       fields
   with
@@ -101,13 +102,13 @@ let content_type frame_type =
                 This is in case the source has types such as { audio = 'a } *)
              Typing.satisfies_constraint base_type Format_type.internal_tracks;
              List.iter
-               (function
-                 | { Type.meth = "audio"; scheme = [], ty } ->
-                     Typing.(
-                       ty <: Format_type.audio ~pcm_kind:Content_audio.kind ())
-                 | { Type.meth = "video"; scheme = [], ty } ->
-                     Typing.(ty <: Format_type.video ())
-                 | _ -> ())
+               (fun { Type.meth; scheme } ->
+                 match (meth, Lazy.force scheme) with
+                   | "audio", ([], ty) ->
+                       Typing.(
+                         ty <: Format_type.audio ~pcm_kind:Content_audio.kind ())
+                   | "video", ([], ty) -> Typing.(ty <: Format_type.video ())
+                   | _ -> ())
                meths
            with _ -> ());
           frame_type
@@ -117,14 +118,15 @@ let content_type frame_type =
   let content_type, resolved_frame_type =
     List.fold_left
       (fun (content_type, resolved_frame_type)
-           ({ Type.meth = field; scheme = _, ty } as meth) ->
+           ({ Type.meth = field; scheme } as meth) ->
         try
+          let _, ty = Lazy.force scheme in
           let format = Format_type.content_type ty in
           let format_type = Type.make (Format_type.descr (`Format format)) in
           ( Frame.Fields.add (Frame.Fields.register field) format content_type,
             Type.make
               (Type.Meth
-                 ( { meth with Type.scheme = ([], format_type) },
+                 ( { meth with Type.scheme = Lazy.from_val ([], format_type) },
                    resolved_frame_type )) )
         with Format_type.Never_type -> (content_type, resolved_frame_type))
       (Frame.Fields.empty, Type.make Type.unit)

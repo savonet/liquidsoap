@@ -236,7 +236,8 @@ let internal_tracks =
           | Type.Tuple [] -> ()
           | _ -> raise Type.Unsatisfied_constraint);
         List.iter
-          (fun { Type.scheme = _, typ } ->
+          (fun { Type.scheme } ->
+            let _, typ = Lazy.force scheme in
             match (Type.demeth typ).Type.descr with
               | Type.(Custom { typ = Ground.Never.Type }) -> ()
               | Type.Custom { Type.typ = Kind (k, _) }
@@ -282,7 +283,8 @@ let muxed_tracks =
           | Type.Tuple [] -> ()
           | _ -> raise Type.Unsatisfied_constraint);
         List.iter
-          (fun { Type.scheme = _, typ } ->
+          (fun { Type.scheme } ->
+            let _, typ = Lazy.force scheme in
             match (Type.demeth typ).Type.descr with
               | Type.(Custom { typ = Ground.Never.Type }) -> ()
               | Type.Custom { Type.typ = Kind _ }

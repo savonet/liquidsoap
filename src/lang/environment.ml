@@ -67,7 +67,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                       ( {
                           meth = l;
                           optional = false;
-                          scheme = (g, t);
+                          scheme = Lazy.from_val (g, t);
                           doc = "";
                           json_name = None;
                         },
@@ -83,7 +83,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                       ( {
                           meth = l;
                           optional = false;
-                          scheme = (vg, vt);
+                          scheme = Lazy.from_val (vg, vt);
                           doc = "";
                           json_name = None;
                         },

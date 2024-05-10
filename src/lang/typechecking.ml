@@ -24,6 +24,7 @@ open Term
 open Typing
 
 let debug = ref false
+let env_assoc var env = Lazy.force (List.assoc var env)
 
 (** {1 Type checking / inference} *)
 
@@ -42,7 +43,9 @@ let value_restriction t =
       | _ -> false
   in
   value_restriction t
-  && Methods.for_all (fun _ meth_term -> value_restriction meth_term) t.methods
+  && Methods.for_all
+       (fun _ { meth; unused = _ } -> value_restriction meth)
+       t.methods
 
 (** A simple mechanism for delaying printing toplevel tasks as late as possible,
     to avoid seeing too many unknown variables. *)
@@ -124,7 +127,7 @@ let rec type_of_pat ~level ~pos = function
                     ( {
                         meth = lbl;
                         optional;
-                        scheme = ([], a);
+                        scheme = Lazy.from_val ([], a);
                         doc = "";
                         json_name = None;
                       },
@@ -139,7 +142,8 @@ let rec type_of_pat ~level ~pos = function
       (env, ty)
 
 (* Type-check an expression. *)
-let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
+let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.lazy_env) e
+    =
   let check = check ~throw in
   if !debug then Printf.printf "\n# %s : ?\n\n%!" (Term.to_string e);
   let check ?print_toplevel ~level ~env e =
@@ -161,13 +165,17 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           | { label; as_variable; typ; default = None } ->
               update_level level typ;
               ( (false, label, typ) :: p,
-                (Option.value ~default:label as_variable, ([], typ)) :: env )
+                ( Option.value ~default:label as_variable,
+                  Lazy.from_val ([], typ) )
+                :: env )
           | { label; as_variable; typ; default = Some v } ->
               update_level level typ;
               base_check v;
               v.t <: typ;
               ( (true, label, typ) :: p,
-                (Option.value ~default:label as_variable, ([], typ)) :: env ))
+                ( Option.value ~default:label as_variable,
+                  Lazy.from_val ([], typ) )
+                :: env ))
         ([], env) arguments
     in
     let proto_t = List.rev proto_t in
@@ -224,9 +232,10 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           check ~level ~env a;
           let rec aux t =
             match (Type.deref t).Type.descr with
-              | Type.(Meth ({ meth = l'; scheme = s; optional = false }, _))
+              | Type.(Meth ({ meth = l'; scheme; optional = false }, _))
                 when l = l' ->
-                  (fst s, Typing.instantiate ~level s)
+                  let gen, typ = Lazy.force scheme in
+                  (gen, Typing.instantiate ~level (gen, typ))
               | Type.(Meth (_, c)) -> aux c
               | _ ->
                   (* We did not find the method, the type we will infer is not the
@@ -241,7 +250,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                            ( {
                                meth = l;
                                optional = invoke_default <> None;
-                               scheme = ([], x);
+                               scheme = Lazy.from_val ([], x);
                                doc = "";
                                json_name = None;
                              },
@@ -269,8 +278,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           a.t <: mk Type.unit;
           let rec aux env t =
             match (Type.deref t).Type.descr with
-              | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
-                  aux ((l, (g, u)) :: env) t
+              | Type.(Meth ({ meth = l; scheme }, t)) ->
+                  aux ((l, scheme) :: env) t
               | _ -> env
           in
           let env = aux env a.t in
@@ -341,13 +350,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           let env =
             match p.name with
               | None -> env
-              | Some name -> (name, ([], base_type)) :: env
+              | Some name -> (name, Lazy.from_val ([], base_type)) :: env
           in
           check_fun ~env e p
       | `Var var ->
           let s =
-            try List.assoc var env
-            with Not_found -> raise (Unbound (pos, var))
+            try env_assoc var env with Not_found -> raise (Unbound (pos, var))
           in
           base_type >: Typing.instantiate ~level s;
           if Lazy.force Term.debug then
@@ -360,31 +368,46 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             if value_restriction def then fst (generalize ~level def.t) else []
           in
           let penv, pa = type_of_pat ~level ~pos pat in
-          def.t <: pa;
+          let typecheck =
+            lazy
+              (l.unused <- false;
+               def.t <: pa)
+          in
           let penv =
             List.map
               (fun (ll, a) ->
                 match ll with
                   | [] -> assert false
                   | [x] ->
-                      let a =
-                        if replace then Type.remeth (snd (List.assoc x env)) a
-                        else a
+                      let scheme =
+                        lazy
+                          (Lazy.force typecheck;
+                           let a =
+                             if replace then
+                               Type.remeth (snd (env_assoc x env)) a
+                             else a
+                           in
+                           if !debug then
+                             Printf.printf "\nLET %s : %s\n%!" x
+                               (Repr.string_of_scheme (generalized, a));
+                           (generalized, a))
                       in
-                      if !debug then
-                        Printf.printf "\nLET %s : %s\n%!" x
-                          (Repr.string_of_scheme (generalized, a));
-                      (x, (generalized, a))
+                      (x, scheme)
                   | l :: ll -> (
                       try
-                        let g, t = List.assoc l env in
-                        let a =
-                          (* If we are replacing the value, we keep the previous methods. *)
-                          if replace then
-                            Type.remeth (snd (Type.invokes t ll)) a
-                          else a
+                        let scheme =
+                          lazy
+                            (Lazy.force typecheck;
+                             let g, t = env_assoc l env in
+                             let a =
+                               (* If we are replacing the value, we keep the previous methods. *)
+                               if replace then
+                                 Type.remeth (snd (Type.invokes t ll)) a
+                               else a
+                             in
+                             (g, Type.meths ?pos ll (generalized, a) t))
                         in
-                        (l, (g, Type.meths ?pos ll (generalized, a) t))
+                        (l, scheme)
                       with Not_found -> raise (Unbound (pos, l))))
               penv
           in
@@ -403,14 +426,20 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   in
   e.t
   >: Methods.fold
-       (fun meth meth_term t ->
+       (fun meth ({ meth = meth_term; unused = _ } as m) t ->
          check ~level ~env meth_term;
+         let gen, typ = Typing.generalize ~level meth_term.t in
+         let scheme =
+           lazy
+             (m.unused <- false;
+              (gen, typ))
+         in
          Type.make ?pos
            (Type.Meth
               ( {
                   Type.meth;
                   optional = false;
-                  scheme = Typing.generalize ~level meth_term.t;
+                  scheme;
                   doc = "";
                   json_name = None;
                 },
@@ -426,7 +455,10 @@ let check ?env ?(ignored = false) ~throw e =
     let env =
       match env with
         | Some env -> env
-        | None -> Environment.default_typing_environment ()
+        | None ->
+            List.map
+              (fun (lbl, scheme) -> (lbl, Lazy.from_val scheme))
+              (Environment.default_typing_environment ())
     in
     check ~print_toplevel ~throw ~level:0 ~env e;
     if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then

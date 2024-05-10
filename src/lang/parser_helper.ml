@@ -166,7 +166,7 @@ and mk_meth_ty ?pos base { Term.name; optional; typ; json_name } =
          ( {
              meth = name;
              optional;
-             scheme = ([], mk_ty ?pos typ);
+             scheme = Lazy.from_val ([], mk_ty ?pos typ);
              doc = "";
              json_name;
            },

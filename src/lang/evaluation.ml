@@ -376,7 +376,8 @@ and eval_term ~eval_check env tm =
       v with
       methods =
         Methods.fold
-          (fun k tm m -> Methods.add k (eval ~eval_check env tm) m)
+          (fun k { meth = tm; unused = _ } m ->
+            Methods.add k (eval ~eval_check env tm) m)
           tm.methods v.Value.methods;
     }
 
@@ -493,7 +494,7 @@ let toplevel_add ?doc pat ~t v =
                         | Some m -> m.meth_description
                         | None -> Some m.doc
                     in
-                    let t = Repr.string_of_scheme m.scheme in
+                    let t = Repr.string_of_scheme (Lazy.force m.scheme) in
                     (l, Doc.Value.{ meth_type = t; meth_description = d }))
                   methods
               in

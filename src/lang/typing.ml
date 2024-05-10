@@ -35,6 +35,7 @@ let debug_subtyping = ref false
 let forget_arguments = true
 
 type env = (string * scheme) list
+type lazy_env = (string * scheme Lazy.t) list
 
 let rec hide_meth l a =
   match (deref a).descr with
@@ -82,7 +83,8 @@ let filter_vars f t =
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
-      | Meth ({ scheme = g, t }, u) ->
+      | Meth ({ scheme }, u) ->
+          let g, t = Lazy.force scheme in
           let l = List.filter (fun v -> not (List.mem v g)) (aux l t) in
           aux l u
       | Constr c -> List.fold_left (fun l (_, t) -> aux l t) l c.params
@@ -127,10 +129,11 @@ let occur_check (a : var) =
     | { descr = Getter t } -> occur_check t
     | { descr = List { t } } -> occur_check t
     | { descr = Nullable t } -> occur_check t
-    | { descr = Meth ({ scheme = g, t }, u) } ->
+    | { descr = Meth ({ scheme }, u) } ->
         (* We assume that a is not a generalized variable of t. *)
         (* TODO: we should not lower the level of bound variables, but this
            complicates the code and has little effect. *)
+        let g, t = Lazy.force scheme in
         assert (not (List.exists (Var.eq a) g));
         occur_check t;
         occur_check u
@@ -190,7 +193,8 @@ let rec sup ~pos a b =
                  ( {
                      m with
                      optional = m.optional || optional;
-                     scheme = scheme_sup t' m.scheme;
+                     scheme =
+                       lazy (scheme_sup (Lazy.force t') (Lazy.force m.scheme));
                    },
                    sup a b ))
           with Incompatible -> sup a b)
@@ -317,6 +321,8 @@ and unify_meth a b l =
       - {foo?:never} <: {foo?:int}
       and prohibit:
        - {foo?:int} <: {foo:int?} *)
+   let s1 = Lazy.force s1 in
+   let s2 = Lazy.force s2 in
    let s1 =
      match (optional1, optional2, (deref (snd s1)).descr) with
        | true, true, t when Ground_type.Never.is_descr t -> s2
@@ -545,7 +551,8 @@ and ( <: ) a b =
           try a <: t2 with Error (a, b) -> raise (Error (a, `Nullable b)))
       | Meth ({ meth = l }, _), _ when Type.has_meth b l -> unify_meth a b l
       | _, Meth ({ meth = l }, _) when Type.has_meth a l -> unify_meth a b l
-      | _, Meth ({ meth = l; optional; scheme = g2, t2; json_name }, c) -> (
+      | _, Meth ({ meth = l; optional; scheme; json_name }, c) -> (
+          let g2, t2 = Lazy.force scheme in
           let a' = demeth a in
           match a'.descr with
             | Var { contents = Free _ } ->
@@ -560,7 +567,7 @@ and ( <: ) a b =
                         ( {
                             meth = l;
                             optional;
-                            scheme = (g2, t2);
+                            scheme = Lazy.from_val (g2, t2);
                             doc = "";
                             json_name = None;
                           },

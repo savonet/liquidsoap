@@ -433,7 +433,8 @@ let check_content v t =
             let meths, v = Value.split_meths v in
             let meths_t, t = Type.split_meths t in
             List.iter
-              (fun { Type.meth; optional; scheme = generalized, t } ->
+              (fun { Type.meth; optional; scheme } ->
+                let generalized, t = Lazy.force scheme in
                 let names = List.map (fun v -> v.Type.name) generalized in
                 let handler =
                   Type.Fresh.init
@@ -686,7 +687,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
               arguments
     in
     Term.Methods.iter
-      (fun _ meth_term -> iter_term env meth_term)
+      (fun _ { Term.meth; unused = _ } -> iter_term env meth)
       v.Term.methods;
     iter_base_term env v
   and iter_value v =
