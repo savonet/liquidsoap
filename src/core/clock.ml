@@ -238,9 +238,11 @@ let unify =
   let unify c c' =
     let clock = Unifier.deref c in
     let clock' = Unifier.deref c' in
-    Queue.iter clock.pending_activations (Queue.push clock'.pending_activations);
-    Queue.iter clock.sub_clocks (Queue.push clock'.sub_clocks);
-    Queue.iter clock.on_error (Queue.push clock'.on_error);
+    Queue.iter_flush clock.pending_activations
+      (Queue.push clock'.pending_activations);
+    Queue.iter_flush clock.sub_clocks (Queue.push clock'.sub_clocks);
+    Queue.iter_flush clock.on_error (Queue.push clock'.on_error);
+    Queue.filter clocks (fun el -> el != c);
     Unifier.(clock.id <-- clock'.id);
     Unifier.(c <-- c')
   in

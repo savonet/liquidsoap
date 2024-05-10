@@ -32,6 +32,7 @@ module Queue : sig
   val peek_opt : 'a t -> 'a option
   val flush : 'a t -> ('a -> unit) -> unit
   val fold_flush : 'a t -> ('a -> 'b -> 'b) -> 'b -> 'b
+  val iter_flush : 'a t -> ('a -> unit) -> unit
   val elements : 'a t -> 'a list
   val exists : 'a t -> ('a -> bool) -> bool
   val iter : 'a t -> ('a -> unit) -> unit
