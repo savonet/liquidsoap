@@ -24,6 +24,7 @@ module Runtime = Liquidsoap_lang.Runtime
 module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
+module Queue = Liquidsoap_lang.Queues.Queue
 
 let usage =
   {|Usage : liquidsoap [OPTION, SCRIPT or EXPR]...
@@ -84,124 +85,91 @@ let deprecated = ref true
 (* Shall we start an interactive interpreter (REPL) *)
 let interactive = ref false
 let log = Log.make ["main"]
+let to_load = Queue.create ()
 
-(** [load_libs] should be called before loading a script or looking up the
-    documentation, to make sure that pervasive libraries have been loaded,
-    unless the user explicitly opposed to it. *)
-let load_libs =
+(** Evaluate the user script. *)
+let eval () =
   Lifecycle.load ();
   (* Register settings module. Needs to be done last to make sure every
      dependent OCaml module has been linked. *)
   Stdlib.Lazy.force Builtins_settings.settings_module;
-  let loaded = ref false in
-  fun () ->
-    if !stdlib && not !loaded then (
-      try
-        let t = Sys.time () in
-        Runtime.load_libs ~error_on_no_stdlib ~deprecated:!deprecated
-          ~parse_only:!parse_only ();
-        log#important "Standard library loaded in %.02f seconds."
-          (Sys.time () -. t);
-        loaded := true
-      with Liquidsoap_lang.Runtime.Error ->
-        Dtools.Init.exec Dtools.Log.stop;
-        flush_all ();
-        exit 1)
-
-let last_item_lib = ref false
-
-(** Evaluate a script or expression.
-
-    This used to be done immediately, which made it possible to write things
-    like "liquidsoap myscript.liq -h myop" and get some doc on an operator.
-
-    Now, we delay each evaluation because the last item has to be treated as a
-    non-library, ie. all defined variables should be used. By default the last
-    item is (the only one) not treated as a library, for better diagnosis, but
-    this can be disabled (which is useful when --checking a lib).
-*)
-let do_eval, eval =
-  let delayed = ref None in
-  let eval src ~lib =
-    try
-      load_libs ();
-      match src with
-        | `StdIn -> Runtime.from_in_channel ~lib ~parse_only:!parse_only stdin
-        | `Expr_or_File expr when not (Sys.file_exists expr) ->
-            Runtime.from_string ~lib ~parse_only:!parse_only expr
-        | `Expr_or_File f ->
-            let basename = Filename.basename f in
-            let basename =
-              try Filename.chop_extension basename with _ -> basename
-            in
-            Utils.var_script := basename;
-            Startup.time ("Loaded " ^ f) (fun () ->
-                Runtime.from_file ~lib ~parse_only:!parse_only f)
-    with Liquidsoap_lang.Runtime.Error ->
-      Dtools.Init.exec Dtools.Log.stop;
-      flush_all ();
-      exit 1
+  let scripts =
+    if !stdlib then
+      List.map
+        (fun f -> `Expr_or_file f)
+        (Runtime.libs ~error_on_no_stdlib ~deprecated:!deprecated ())
+    else []
   in
-  let force ~lib =
-    match !delayed with
-      | Some f ->
-          f ~lib;
-          delayed := None
-      | None -> ()
+  let scripts = scripts @ Queue.flush_elements to_load in
+  let script =
+    List.fold_left
+      (fun script -> function
+        | `Stdin -> Printf.sprintf "%s\n%%include \"-\"" script
+        | `Expr_or_file expr when not (Sys.file_exists expr) ->
+            Printf.sprintf "%s\n%s" script expr
+        | `Expr_or_file f -> Printf.sprintf "%s\n%%include %S" script f)
+      "" scripts
   in
-  ( force,
-    fun src ->
-      force ~lib:true;
-      delayed := Some (eval src) )
+  let t = Sys.time () in
+  try
+    Runtime.from_string ~lib:false ~parse_only:!parse_only script;
+    log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
+  with Liquidsoap_lang.Runtime.Error ->
+    Dtools.Init.exec Dtools.Log.stop;
+    flush_all ();
+    exit 1
 
-let load_libs () =
-  do_eval ~lib:true;
-  load_libs ()
+let with_eval =
+  let do_run_streams = run_streams in
+  let do_exit = exit in
+  fun ?(exit = true) ?(run_streams = false) fn ->
+    do_run_streams := run_streams;
+    eval ();
+    fn ();
+    if exit then do_exit 0
 
 let lang_doc name =
-  run_streams := false;
-  load_libs ();
-  try Lang_string.kprint_string ~pager:true (Doc.Value.print name)
-  with Not_found -> Printf.printf "Plugin not found!\n%!"
+  with_eval (fun () ->
+      try Lang_string.kprint_string ~pager:true (Doc.Value.print name)
+      with Not_found -> Printf.printf "Plugin not found!\n%!")
 
 let process_request s =
-  load_libs ();
-  run_streams := false;
-  let req = Request.create ~cue_in_metadata:None ~cue_out_metadata:None s in
-  match Request.resolve ~ctype:None req 20. with
-    | Request.Failed ->
-        Printf.eprintf "Request resolution failed.\n";
-        Request.destroy req;
-        flush_all ();
-        exit 2
-    | Request.Timeout ->
-        Printf.eprintf "Request resolution timeout.\n";
-        Request.destroy req;
-        flush_all ();
-        exit 1
-    | Request.Resolved ->
-        Request.read_metadata req;
-        let metadata =
-          Request.get_all_metadata req
-          |> Frame.Metadata.to_list |> List.to_seq
-          |> Seq.map (fun (k, v) ->
-                 (k, if String.length v > 1024 then "<redacted>" else v))
-          |> Seq.map (fun (k, v) -> k ^ " = " ^ v)
-          |> List.of_seq |> String.concat "\n"
-        in
-        Printf.printf "%s\n" metadata;
-        Printf.printf "duration = %!";
-        begin
-          match
-            Request.duration
-              ~metadata:(Request.get_all_metadata req)
-              (Option.get (Request.get_filename req))
-          with
-            | Some f -> Printf.printf "%.2f s\n" f
-            | None -> Printf.printf "n/a\n"
-            | exception Not_found -> Printf.printf "failed\n"
-        end;
-        Request.destroy req
+  with_eval (fun () ->
+      let req = Request.create ~cue_in_metadata:None ~cue_out_metadata:None s in
+      match Request.resolve ~ctype:None req 20. with
+        | Request.Failed ->
+            Printf.eprintf "Request resolution failed.\n";
+            Request.destroy req;
+            flush_all ();
+            exit 2
+        | Request.Timeout ->
+            Printf.eprintf "Request resolution timeout.\n";
+            Request.destroy req;
+            flush_all ();
+            exit 1
+        | Request.Resolved ->
+            Request.read_metadata req;
+            let metadata =
+              Request.get_all_metadata req
+              |> Frame.Metadata.to_list |> List.to_seq
+              |> Seq.map (fun (k, v) ->
+                     (k, if String.length v > 1024 then "<redacted>" else v))
+              |> Seq.map (fun (k, v) -> k ^ " = " ^ v)
+              |> List.of_seq |> String.concat "\n"
+            in
+            Printf.printf "%s\n" metadata;
+            Printf.printf "duration = %!";
+            begin
+              match
+                Request.duration
+                  ~metadata:(Request.get_all_metadata req)
+                  (Option.get (Request.get_filename req))
+              with
+                | Some f -> Printf.printf "%.2f s\n" f
+                | None -> Printf.printf "n/a\n"
+                | exception Not_found -> Printf.printf "failed\n"
+            end;
+            Request.destroy req)
 
 let format_doc s =
   let prefix = "\t  " in
@@ -227,7 +195,7 @@ let options =
   ref
     ([
        ( ["-"],
-         Arg.Unit (fun () -> eval `StdIn),
+         Arg.Unit (fun () -> Queue.push to_load `Stdin),
          "Read script from standard input." );
        ( ["-r"; "--request"],
          Arg.String process_request,
@@ -239,13 +207,6 @@ let options =
        ( ["-c"; "--check"],
          Arg.Unit (fun () -> run_streams := false),
          "Check and evaluate scripts but do not perform any streaming." );
-       ( ["-cl"; "--check-lib"],
-         Arg.Unit
-           (fun () ->
-             last_item_lib := true;
-             run_streams := false),
-         "Like --check but treats all scripts and expressions as libraries, so \
-          that unused toplevel variables are not reported." );
        ( ["-p"; "--parse-only"],
          Arg.Unit
            (fun () ->
@@ -307,67 +268,60 @@ let options =
         ( ["--list-plugins"],
           Arg.Unit
             (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true Doc.Plug.print_string),
+              with_eval (fun () ->
+                  Lang_string.kprint_string ~pager:true Doc.Plug.print_string)),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
              protocols)." );
         ( ["--list-functions"],
           Arg.Unit
             (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true Doc.Value.print_functions),
+              with_eval (fun () ->
+                  Lang_string.kprint_string ~pager:true
+                    Doc.Value.print_functions)),
           Printf.sprintf "List all functions." );
         ( ["--list-functions-by-category"],
           Arg.Unit
             (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true
-                Doc.Value.print_functions_by_category),
+              with_eval (fun () ->
+                  Lang_string.kprint_string ~pager:true
+                    Doc.Value.print_functions_by_category)),
           Printf.sprintf "List all functions, sorted by category." );
         ( ["--list-functions-md"],
           Arg.Unit
             (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.Value.print_functions_md ~extra:false)),
+              with_eval (fun () ->
+                  Lang_string.kprint_string ~pager:true
+                    (Doc.Value.print_functions_md ~extra:false))),
           Printf.sprintf "Documentation of all functions in markdown format." );
         ( ["--list-functions-json"],
           Arg.Unit
             (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.print_string ~pager:true
-                (Json.to_string ~compact:false (Doc.Value.to_json ()))),
+              with_eval (fun () ->
+                  Lang_string.print_string ~pager:true
+                    (Json.to_string ~compact:false (Doc.Value.to_json ())))),
           Printf.sprintf "Documentation of all functions in JSON format." );
         ( ["--list-extra-functions-md"],
           Arg.Unit
             (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.Value.print_functions_md ~extra:true)),
+              with_eval (fun () ->
+                  Lang_string.kprint_string ~pager:true
+                    (Doc.Value.print_functions_md ~extra:true))),
           Printf.sprintf "Documentation of all extra functions in markdown." );
         ( ["--list-deprecated-functions-md"],
           Arg.Unit
             (fun () ->
-              run_streams := false;
               deprecated := true;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true
-                (Doc.Value.print_functions_md ~deprecated:true)),
+              with_eval (fun () ->
+                  Lang_string.kprint_string ~pager:true
+                    (Doc.Value.print_functions_md ~deprecated:true))),
           Printf.sprintf
             "Documentation of all deprecated functions in markdown." );
         ( ["--list-protocols-md"],
           Arg.Unit
             (fun () ->
-              run_streams := false;
-              load_libs ();
-              Lang_string.kprint_string ~pager:true Doc.Protocol.print_md),
+              with_eval (fun () ->
+                  Lang_string.kprint_string ~pager:true Doc.Protocol.print_md)),
           Printf.sprintf "Documentation of all protocols in markdown." );
         ( ["--no-stdlib"],
           Arg.Clear stdlib,
@@ -413,10 +367,9 @@ See <http://liquidsoap.info> for more information.
         ( ["--list-settings"],
           Arg.Unit
             (fun () ->
-              load_libs ();
-              Lang_string.print_string ~pager:true
-                (Builtins_settings.print_settings ());
-              exit 0),
+              with_eval (fun () ->
+                  Lang_string.print_string ~pager:true
+                    (Builtins_settings.print_settings ()))),
           "Display configuration keys in markdown format." );
         ( ["--unsafe"],
           Arg.Unit (fun () -> Typing.do_occur_check := false),
@@ -495,7 +448,7 @@ We hope you enjoy this snapshot build of Liquidsoap!
   Lifecycle.on_script_parse ~name:"main application script parse" (fun () ->
       (* Parse command-line, and notably load scripts. *)
       parse Shebang.argv (expand_options !options)
-        (fun s -> eval (`Expr_or_File s))
+        (fun s -> Queue.push to_load (`Expr_or_file s))
         usage;
 
       if !interactive then (
@@ -513,7 +466,7 @@ We hope you enjoy this snapshot build of Liquidsoap!
       (* Allow frame settings to be evaluated here: *)
       Frame_settings.lazy_config_eval := true;
 
-      do_eval ~lib:!last_item_lib)
+      eval ())
 
 let initial_cleanup () =
   if !Term.profile then
@@ -718,14 +671,14 @@ let () =
       Server.start ();
       Tutils.start ();
 
-      if !interactive then (
-        load_libs ();
-        ignore
-          (Thread.create
-             (fun () ->
-               Runtime.interactive ();
-               Tutils.shutdown 0)
-             ())));
+      if !interactive then
+        with_eval ~exit:false ~run_streams:true (fun () ->
+            ignore
+              (Thread.create
+                 (fun () ->
+                   Runtime.interactive ();
+                   Tutils.shutdown 0)
+                 ())));
 
   Lifecycle.on_main_loop ~name:"main application main loop" Tutils.main
 

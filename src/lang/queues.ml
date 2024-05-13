@@ -33,13 +33,13 @@ module Queue = struct
     in
     f ()
 
-  let fold_flush q fn ret =
+  let flush_fold q fn ret =
     let rec f ret =
       match pop_opt q with Some el -> f (fn el ret) | None -> ret
     in
     f ret
 
-  let iter_flush q fn =
+  let flush_iter q fn =
     let rec f () =
       match pop_opt q with
         | Some el ->
@@ -48,6 +48,9 @@ module Queue = struct
         | None -> ()
     in
     f ()
+
+  let flush_elements q =
+    List.rev (flush_fold q (fun el elements -> el :: elements) [])
 
   let elements q =
     let rec f l cursor =

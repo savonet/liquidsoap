@@ -231,7 +231,7 @@ let from_in_channel ?fname ?parse_only ~ns ~lib in_chan =
   let lexbuf = Sedlexing.Utf8.from_channel in_chan in
   from_lexbuf ?fname ?parse_only ~ns ~lib lexbuf
 
-let from_file ?parse_only ~ns ~lib filename =
+let from_file ?ns ?parse_only ~lib filename =
   let ic = open_in filename in
   let fname = Lang_string.home_unrelate filename in
   (* Don't show inferred types for standard library *)
@@ -241,20 +241,6 @@ let from_file ?parse_only ~ns ~lib filename =
   from_in_channel ~fname ?parse_only ~ns ~lib ic;
   Typechecking.display_types := display_types;
   close_in ic
-
-let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
-    ?(stdlib = "stdlib.liq") () =
-  let dir = !Hooks.liq_libs_dir () in
-  let file = Filename.concat dir stdlib in
-  if not (Sys.file_exists file) then (
-    if error_on_no_stdlib then
-      failwith "Could not find default stdlib.liq library!")
-  else from_file ?parse_only ~ns:(Some file) ~lib:true file;
-  let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
-  if deprecated && Sys.file_exists file then
-    from_file ?parse_only ~ns:(Some file) ~lib:true file
-
-let from_file = from_file ~ns:None
 
 let from_string ?parse_only ~lib expr =
   let gen =
@@ -349,3 +335,21 @@ let interactive () =
     then loop ()
   in
   loop ()
+
+let libs ?(error_on_no_stdlib = true) ?(deprecated = true)
+    ?(stdlib = "stdlib.liq") () =
+  let dir = !Hooks.liq_libs_dir () in
+  let file = Filename.concat dir stdlib in
+  let libs =
+    if not (Sys.file_exists file) then
+      if error_on_no_stdlib then
+        failwith "Could not find default stdlib.liq library!"
+      else []
+    else [file]
+  in
+  let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
+  if deprecated && Sys.file_exists file then libs @ [file] else libs
+
+let load_libs ?error_on_no_stdlib ?parse_only ?deprecated ?stdlib () =
+  let libs = libs ?error_on_no_stdlib ?deprecated ?stdlib () in
+  List.iter (fun lib -> from_file ?parse_only ~ns:lib ~lib:true lib) libs

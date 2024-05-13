@@ -786,10 +786,10 @@ let includer_reducer ~to_term = function
                   Utils.check_readable ~current_dir ~pos:[inc_pos] inc_name
                 with _ when v = `Extra -> raise No_extra)
         in
-        let ic = open_in fname in
+        let ic = if fname = "-" then stdin else open_in fname in
         let term =
           Fun.protect
-            ~finally:(fun () -> close_in ic)
+            ~finally:(fun () -> if fname <> "-" then close_in ic)
             (fun () ->
               let lexbuf = Sedlexing.Utf8.from_channel ic in
               mk_expr ~fname program lexbuf)
