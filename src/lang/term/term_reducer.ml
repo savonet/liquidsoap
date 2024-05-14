@@ -235,8 +235,8 @@ let args_of ~only ~except ~pos ~env name =
                 try List.find (fun { label } -> label = n) filtered_args
                 with Not_found ->
                   parse_error ~pos
-                    (Printf.sprintf
-                       "Builtin %s does not have an argument named %s" name n))
+                    (Printf.sprintf "%s does not have an argument named %s" name
+                       n))
               only
           else filtered_args
         in
@@ -246,12 +246,13 @@ let args_of ~only ~except ~pos ~env name =
               | Some _ -> ()
               | None ->
                   parse_error ~pos
-                    (Printf.sprintf
-                       "Builtin %s does not have an argument named %s" name n))
+                    (Printf.sprintf "%s does not have an argument named %s" name
+                       n))
           except;
         List.filter (fun { label } -> not (List.mem label except)) filtered_args
-    | Some _ ->
-        parse_error ~pos (Printf.sprintf "Builtin %s is not a function!" name)
+    | Some tm ->
+        Printf.printf "Term: %s\n%!" (Term_base.to_string tm);
+        parse_error ~pos (Printf.sprintf "%s is not a function!" name)
     | None -> builtin_args_of ~only ~except ~pos name
 
 let expand_argsof ~pos ~env ~to_term args =
@@ -752,10 +753,19 @@ let string_of_let_decoration = function
 let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
     ({ decoration; pat; arglist; def; cast }, body) =
   let def = to_term ~env def in
-  let body =
+  let mk_body def =
     let env =
       match pat with
-        | `PVar path -> (String.concat "." path, def) :: env
+        | `PVar path ->
+            let path = String.concat "." path in
+            let env =
+              if decoration <> `Replaces then
+                List.filter
+                  (fun (p, _) -> not (String.starts_with ~prefix:path p))
+                  env
+              else env
+            in
+            (path, def) :: env
         | _ -> env
     in
     to_term ~env body
@@ -770,26 +780,38 @@ let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
+        let body = mk_body def in
         `Let { Term_base.doc = None; replace; pat; gen = []; def; body }
     | Some arglist, `Recursive ->
         let def = mk_rec_fun ~pos pat arglist def in
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
+        let body = mk_body def in
         `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
     | None, `None | None, `Replaces ->
         let replace = decoration = `Replaces in
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
+        let body = mk_body def in
         `Let { Term_base.doc = None; replace; pat; gen = []; def; body }
-    | None, `Eval -> mk_eval ~pos (pat, def, body, cast)
+    | None, `Eval ->
+        let body = mk_body def in
+        mk_eval ~pos (pat, def, body, cast)
     | None, `Json_parse args ->
         let args = List.map (fun (l, v) -> (l, to_term v)) args in
+        let body = mk_body def in
         mk_let_json_parse ~pos (args, pat, def, cast) body
-    | None, `Yaml_parse -> mk_let_yaml_parse ~pos (pat, def, cast) body
-    | None, `Sqlite_row -> mk_let_sqlite_row ~pos (pat, def, cast) body
-    | None, `Sqlite_query -> mk_let_sqlite_query ~pos (pat, def, cast) body
+    | None, `Yaml_parse ->
+        let body = mk_body def in
+        mk_let_yaml_parse ~pos (pat, def, cast) body
+    | None, `Sqlite_row ->
+        let body = mk_body def in
+        mk_let_sqlite_row ~pos (pat, def, cast) body
+    | None, `Sqlite_query ->
+        let body = mk_body def in
+        mk_let_sqlite_query ~pos (pat, def, cast) body
     | Some _, v ->
         parse_error ~pos
           (string_of_let_decoration v
