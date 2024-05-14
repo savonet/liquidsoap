@@ -25,6 +25,8 @@ type processor =
     Parsed_term.t )
   MenhirLib.Convert.revised
 
+type env = (string list * Runtime_term.t) list
+
 open Parsed_term
 open Term.Ground
 include Runtime_term
@@ -225,7 +227,7 @@ let args_of, app_of =
   let app_of ~pos = gen_args_of ~pos get_app in
   (args_of, app_of)
 
-let expand_appof ~pos ~to_term (args : Parsed_term.app_arg list) =
+let expand_appof ~pos ~env:_ ~to_term (args : Parsed_term.app_arg list) =
   List.rev
     (List.fold_left
        (fun args -> function
@@ -234,7 +236,7 @@ let expand_appof ~pos ~to_term (args : Parsed_term.app_arg list) =
          | `Term (l, v) -> (l, to_term v) :: args)
        [] args)
 
-let expand_argsof ~pos ~to_term args =
+let expand_argsof ~pos ~env:_ ~to_term args =
   List.rev
     (List.fold_left
        (fun args -> function
@@ -329,7 +331,7 @@ and update_invoke_default ~pos ~optional expr name value =
               args ))
     | _ -> expr
 
-let mk_invoke ?(default : Parsed_term.t option) ~pos ~to_term expr v =
+let mk_invoke ?(default : Parsed_term.t option) ~pos ~env ~to_term expr v =
   let expr = to_term expr in
   let default = Option.map to_term default in
   let optional, value =
@@ -345,7 +347,7 @@ let mk_invoke ?(default : Parsed_term.t option) ~pos ~to_term expr v =
             meth;
           }
     | `App (meth, args) ->
-        let args = expand_appof ~pos ~to_term args in
+        let args = expand_appof ~pos ~env ~to_term args in
         let value = mk_app_invoke_default ~pos ~args value in
         let expr = update_invoke_default ~pos ~optional expr meth value in
         `App
@@ -358,11 +360,11 @@ let mk_invoke ?(default : Parsed_term.t option) ~pos ~to_term expr v =
                 }),
             args )
 
-let mk_coalesce ~pos ~(default : Parsed_term.t) ~to_term
+let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
     (computed : Parsed_term.t) =
   match computed.term with
     | `Invoke { invoked; meth = `String m } ->
-        mk_invoke ~pos ~default ~to_term invoked (`String m)
+        mk_invoke ~pos ~env ~default ~to_term invoked (`String m)
     | _ ->
         let null = mk ~pos (`Var "null") in
         let op =
@@ -714,11 +716,16 @@ let string_of_let_decoration = function
   | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
-  let def = to_term def in
-  let body = to_term body in
+let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
+    ({ decoration; pat; arglist; def; cast }, body) =
+  let def = to_term ~env def in
+  let body =
+    let env = match pat with `PVar path -> (path, def) :: env | _ -> env in
+    to_term ~env body
+  in
+  let to_term = to_term ~env in
   let cast = Option.map (Parser_helper.mk_ty ~pos) cast in
-  let arglist = Option.map (expand_argsof ~pos ~to_term) arglist in
+  let arglist = Option.map (expand_argsof ~pos ~env ~to_term) arglist in
   match (arglist, decoration) with
     | Some arglist, `None | Some arglist, `Replaces ->
         let replace = decoration = `Replaces in
@@ -754,12 +761,15 @@ let mk_let ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
         parse_error ~pos
           (string_of_let_decoration v ^ " only applies to function assignments")
 
-let rec concat_term t t' =
+let rec concat_term (t : Parsed_term.t) (t' : Parsed_term.t) =
   match t with
-    | { term = `Let p } as t ->
-        { t with term = `Let { p with body = concat_term p.body t' } }
-    | { term = `Seq (s, s') } -> { t with term = `Seq (s, concat_term s' t') }
-    | _ -> mk ?pos:t.t.Type.pos (`Seq (t, t'))
+    | { term = `Let (def, body) } ->
+        { t with term = `Let (def, concat_term body t') }
+    | { term = `Def (def, body) } ->
+        { t with term = `Def (def, concat_term body t') }
+    | { term = `Binding (def, body) } ->
+        { t with term = `Binding (def, concat_term body t') }
+    | _ -> Parsed_term.make ~pos:t.Parsed_term.pos (`Seq (t, t'))
 
 exception No_extra
 
@@ -797,95 +807,104 @@ let includer_reducer ~to_term = function
         (to_term term).term
       with No_extra -> `Tuple [])
 
-let rec to_ast ~pos : parsed_ast -> Term.runtime_ast = function
-  | `Include _ as ast -> includer_reducer ~to_term ast
-  | `Get _ as ast -> get_reducer ~pos ~to_term ast
-  | `Set _ as ast -> set_reducer ~pos ~to_term ast
-  | `Inline_if _ as ast -> if_reducer ~pos ~to_term ast
-  | `If _ as ast -> if_reducer ~pos ~to_term ast
-  | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
-      pp_if_reducer ~pos ~to_term ast
-  | `While _ as ast -> while_reducer ~pos ~to_term ast
-  | `For _ as ast -> for_reducer ~pos ~to_term ast
-  | `Iterable_for _ as ast -> iterable_for_reducer ~pos ~to_term ast
-  | `Not _ as ast -> not_reducer ~pos ~to_term ast
-  | `Negative _ as ast -> negative_reducer ~pos ~to_term ast
-  | `Append _ as ast -> append_reducer ~pos ~to_term ast
-  | `Assoc _ as ast -> assoc_reducer ~pos ~to_term ast
-  | `Infix _ as ast -> infix_reducer ~pos ~to_term ast
-  | `Bool _ as ast -> bool_reducer ~pos ~to_term ast
-  | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~to_term ast
-  | `Regexp _ as ast -> regexp_reducer ~pos ~to_term ast
-  | `Try _ as ast -> try_reducer ~pos ~to_term ast
-  | `String_interpolation (sep, l) ->
-      let l =
-        List.map
-          (function
-            | `String s ->
-                `Term
-                  (mk_parsed ~pos
-                     (`Ground (Term.Ground.String (render_string ~pos ~sep s))))
-            | `Term tm ->
-                `Term
-                  (mk_parsed ~pos
-                     (`App (mk_parsed ~pos (`Var "string"), [`Term ("", tm)]))))
-          l
-      in
-      let op =
-        mk_parsed ~pos
-          (`Invoke
-            {
-              invoked = mk_parsed ~pos (`Var "string");
-              meth = `String "concat";
-              optional = false;
-            })
-      in
-      to_ast ~pos (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
-  | `Def p | `Let p | `Binding p -> mk_let ~pos ~to_term p
-  | `Coalesce (t, default) -> mk_coalesce ~pos ~to_term ~default t
-  | `At (t, t') -> `App (to_term t', [("", to_term t)])
-  | `Time t -> mk_time_pred ~pos (during ~pos t)
-  | `Time_interval (t, t') -> mk_time_pred ~pos (between ~pos t t')
-  | `Ground g -> `Ground g
-  | `Encoder e -> `Encoder (to_encoder e)
-  | `List l -> list_reducer ~pos ~to_term (List.rev l)
-  | `Tuple l -> `Tuple (List.map to_term l)
-  | `String (sep, s) -> `Ground (String (render_string ~pos ~sep s))
-  | `Int i
-    when String.length i >= 2 && String.(lowercase_ascii (sub i 0 2)) = "0x" ->
-      `Ground (HexInt (int_of_string i))
-  | `Int i
-    when String.length i >= 2 && String.(lowercase_ascii (sub i 0 2)) = "0o" ->
-      `Ground (OctalInt (int_of_string i))
-  | `Int i -> `Ground (Int (int_of_string i))
-  | `Float (sign, ipart, fpart) ->
-      let fpart =
-        let fpart = String.(concat "" (split_on_char '_' fpart)) in
-        if fpart = "" then 0.
-        else float_of_string fpart /. (10. ** float_of_int (String.length fpart))
-      in
-      let ipart = if ipart = "" then 0. else float_of_string ipart in
-      `Ground (Float ((if sign then 1. else -1.) *. (ipart +. fpart)))
-  | `Eof -> `Tuple []
-  | `Null -> `Null
-  | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ~pos typ)
-  | `Invoke { invoked; optional; meth } ->
-      let default = if optional then Some (mk_parsed ~pos `Null) else None in
-      mk_invoke ~pos ?default ~to_term invoked meth
-  | `Open (t, t') -> `Open (to_term t, to_term t')
-  | `Var s -> `Var s
-  | `Seq (t, t') -> `Seq (to_term t, to_term t')
-  | `App (t, args) ->
-      let args = expand_appof ~pos ~to_term args in
-      `App (to_term t, args)
-  | `Fun (args, body) -> `Fun (to_func ~pos ~to_term args body)
-  | `RFun (name, args, body) -> `Fun (to_func ~pos ~to_term ~name args body)
-  | `Parenthesis _ | `Block _ | `Methods _ -> assert false
+let rec to_ast ~env ~pos ast =
+  let to_term_with_env = to_term in
+  let to_term = to_term ~env in
+  match ast with
+    | `Include _ as ast -> includer_reducer ~to_term ast
+    | `Get _ as ast -> get_reducer ~pos ~to_term ast
+    | `Set _ as ast -> set_reducer ~pos ~to_term ast
+    | `Inline_if _ as ast -> if_reducer ~pos ~to_term ast
+    | `If _ as ast -> if_reducer ~pos ~to_term ast
+    | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
+        pp_if_reducer ~pos ~to_term ast
+    | `While _ as ast -> while_reducer ~pos ~to_term ast
+    | `For _ as ast -> for_reducer ~pos ~to_term ast
+    | `Iterable_for _ as ast -> iterable_for_reducer ~pos ~to_term ast
+    | `Not _ as ast -> not_reducer ~pos ~to_term ast
+    | `Negative _ as ast -> negative_reducer ~pos ~to_term ast
+    | `Append _ as ast -> append_reducer ~pos ~to_term ast
+    | `Assoc _ as ast -> assoc_reducer ~pos ~to_term ast
+    | `Infix _ as ast -> infix_reducer ~pos ~to_term ast
+    | `Bool _ as ast -> bool_reducer ~pos ~to_term ast
+    | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~to_term ast
+    | `Regexp _ as ast -> regexp_reducer ~pos ~to_term ast
+    | `Try _ as ast -> try_reducer ~pos ~to_term ast
+    | `String_interpolation (sep, l) ->
+        let l =
+          List.map
+            (function
+              | `String s ->
+                  `Term
+                    (mk_parsed ~pos
+                       (`Ground
+                         (Term.Ground.String (render_string ~pos ~sep s))))
+              | `Term tm ->
+                  `Term
+                    (mk_parsed ~pos
+                       (`App (mk_parsed ~pos (`Var "string"), [`Term ("", tm)]))))
+            l
+        in
+        let op =
+          mk_parsed ~pos
+            (`Invoke
+              {
+                invoked = mk_parsed ~pos (`Var "string");
+                meth = `String "concat";
+                optional = false;
+              })
+        in
+        to_ast ~env ~pos (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
+    | `Def p | `Let p | `Binding p ->
+        mk_let ~pos ~env ~to_term:to_term_with_env p
+    | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
+    | `At (t, t') -> `App (to_term t', [("", to_term t)])
+    | `Time t -> mk_time_pred ~pos (during ~pos t)
+    | `Time_interval (t, t') -> mk_time_pred ~pos (between ~pos t t')
+    | `Ground g -> `Ground g
+    | `Encoder e -> `Encoder (to_encoder ~env e)
+    | `List l -> list_reducer ~pos ~to_term (List.rev l)
+    | `Tuple l -> `Tuple (List.map to_term l)
+    | `String (sep, s) -> `Ground (String (render_string ~pos ~sep s))
+    | `Int i
+      when String.length i >= 2 && String.(lowercase_ascii (sub i 0 2)) = "0x"
+      ->
+        `Ground (HexInt (int_of_string i))
+    | `Int i
+      when String.length i >= 2 && String.(lowercase_ascii (sub i 0 2)) = "0o"
+      ->
+        `Ground (OctalInt (int_of_string i))
+    | `Int i -> `Ground (Int (int_of_string i))
+    | `Float (sign, ipart, fpart) ->
+        let fpart =
+          let fpart = String.(concat "" (split_on_char '_' fpart)) in
+          if fpart = "" then 0.
+          else
+            float_of_string fpart /. (10. ** float_of_int (String.length fpart))
+        in
+        let ipart = if ipart = "" then 0. else float_of_string ipart in
+        `Ground (Float ((if sign then 1. else -1.) *. (ipart +. fpart)))
+    | `Eof -> `Tuple []
+    | `Null -> `Null
+    | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ~pos typ)
+    | `Invoke { invoked; optional; meth } ->
+        let default = if optional then Some (mk_parsed ~pos `Null) else None in
+        mk_invoke ~pos ~env ?default ~to_term invoked meth
+    | `Open (t, t') -> `Open (to_term t, to_term t')
+    | `Var s -> `Var s
+    | `Seq (t, t') -> `Seq (to_term t, to_term t')
+    | `App (t, args) ->
+        let args = expand_appof ~pos ~env ~to_term args in
+        `App (to_term t, args)
+    | `Fun (args, body) -> `Fun (to_func ~pos ~env ~to_term args body)
+    | `RFun (name, args, body) ->
+        `Fun (to_func ~pos ~env ~to_term ~name args body)
+    | `Parenthesis _ | `Block _ | `Methods _ -> assert false
 
-and to_func ~pos ~to_term ?name arguments body =
+and to_func ~pos ~env ~to_term ?name arguments body =
   {
     name;
-    arguments = expand_argsof ~pos ~to_term arguments;
+    arguments = expand_argsof ~pos ~env ~to_term arguments;
     body = to_term body;
     free_vars = None;
   }
@@ -894,24 +913,24 @@ and to_encoder_string = function
   | `Verbatim s -> s
   | `String (pos, (sep, s)) -> render_string ~pos ~sep s
 
-and to_encoder_params l =
+and to_encoder_params ~env l =
   List.map
     (function
       | `Anonymous s -> `Anonymous (to_encoder_string s)
-      | `Labelled (s, t) -> `Labelled (to_encoder_string s, to_term t)
-      | `Encoder e -> `Encoder (to_encoder e))
+      | `Labelled (s, t) -> `Labelled (to_encoder_string s, to_term ~env t)
+      | `Encoder e -> `Encoder (to_encoder ~env e))
     l
 
-and to_encoder (lbl, params) = (lbl, to_encoder_params params)
+and to_encoder ~env (lbl, params) = (lbl, to_encoder_params ~env params)
 
-and to_term_base (tm : Parsed_term.t) : Term.t =
+and to_term_base ~env (tm : Parsed_term.t) : Term.t =
   match tm.term with
     | `Seq (({ term = `Include _ } as t), t')
     | `Seq (({ term = `If_def _ } as t), t')
     | `Seq (({ term = `If_encoder _ } as t), t')
     | `Seq (({ term = `If_version _ } as t), t') ->
-        concat_term (to_term t) (to_term t')
-    | `Parenthesis tm | `Block tm -> to_term tm
+        to_term ~env (concat_term t t')
+    | `Parenthesis tm | `Block tm -> to_term ~env tm
     | `Methods (base, methods) ->
         (* let _ = src in
            let replaces _ = dst in
@@ -941,15 +960,15 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
         let term =
           match base with
             | None -> mk ~pos:tm.pos (`Tuple [])
-            | Some tm -> to_term tm
+            | Some tm -> to_term ~env tm
         in
         List.fold_left
           (fun term -> function
-            | `Ellipsis src -> replace_methods ~src:(to_term src) term
+            | `Ellipsis src -> replace_methods ~src:(to_term ~env src) term
             | `Method (name, tm) ->
                 {
                   term with
-                  methods = Methods.add name (to_term tm) term.methods;
+                  methods = Methods.add name (to_term ~env tm) term.methods;
                 })
           term methods
     | term ->
@@ -959,7 +978,7 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
             tm.comments
         in
         let term =
-          match (to_ast ~pos:tm.pos term, List.rev comments) with
+          match (to_ast ~env ~pos:tm.pos term, List.rev comments) with
             | `Let p, (pos, doc) :: _ ->
                 `Let
                   { p with doc = Doc.parse_doc ~pos (String.concat "\n" doc) }
@@ -972,7 +991,10 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
           id = Term_base.id ();
         }
 
-and to_term parsed_term =
-  let term = to_term_base parsed_term in
+and to_term ~env parsed_term =
+  let term = to_term_base ~env parsed_term in
   Term_base.ActiveTerm.add Term_base.active_terms term;
   term
+
+let to_term = to_term ~env:[]
+let to_encoder_params = to_encoder_params ~env:[]
