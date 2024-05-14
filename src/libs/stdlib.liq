@@ -41,6 +41,7 @@
 %include "testing.liq"
 %include "liquidsoap.liq"
 
+#<
 %include_extra "extra/file.liq"
 %include_extra "extra/native.liq"
 %include_extra "extra/audio.liq"
@@ -58,5 +59,6 @@
 %include_extra "extra/fades.liq"
 %include_extra "extra/video.liq"
 %include_extra "extra/autocue.liq"
+>#
 
 set_settings_ref(settings)

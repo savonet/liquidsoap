@@ -22,6 +22,7 @@
 
 %{
 open Parsed_term
+open Parsed_term.Generic
 open Parsed_term.Ground
 (* All auxiliary functions for parser are there *)
 open Parser_helper

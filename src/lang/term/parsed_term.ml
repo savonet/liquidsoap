@@ -66,147 +66,173 @@ and type_annotation =
 
 type _of = { only : string list; except : string list; source : string }
 
-type _if = {
-  if_condition : t;
-  if_then : t;
-  if_elsif : (t * t) list;
-  if_else : t option;
-}
-
-and _while = { while_condition : t; while_loop : t }
-and _for = { for_variable : string; for_from : t; for_to : t; for_loop : t }
-
-and iterable_for = {
-  iterable_for_variable : string;
-  iterable_for_iterator : t;
-  iterable_for_loop : t;
-}
-
-and _try = {
-  try_body : t;
-  try_variable : string;
-  try_errors_list : t option;
-  try_handler : t option;
-  try_finally : t option;
-}
-
-and let_decoration =
-  [ `None
-  | `Recursive
-  | `Replaces
-  | `Eval
-  | `Sqlite_query
-  | `Sqlite_row
-  | `Yaml_parse
-  | `Json_parse of (string * t) list ]
-
-and _let = {
-  decoration : let_decoration;
-  pat : pattern;
-  arglist : fun_arg list option;
-  cast : type_annotation option;
-  def : t;
-}
-
-and invoke = { invoked : t; optional : bool; meth : invoke_meth }
-and invoke_meth = [ `String of string | `App of string * app_arg list ]
-and app_arg = [ `Term of string * t | `Argsof of _of ]
-
-and fun_arg =
-  [ `Term of (t, type_annotation option) func_argument | `Argsof of _of ]
-
-and list_el = [ `Term of t | `Ellipsis of t ]
-
-and if_def = {
-  if_def_negative : bool;
-  if_def_condition : string;
-  if_def_then : t;
-  if_def_else : t option;
-}
-
-and if_version = {
-  if_version_op : [ `Eq | `Geq | `Leq | `Gt | `Lt ];
-  if_version_version : Lang_string.Version.t;
-  if_version_then : t;
-  if_version_else : t option;
-}
-
-and if_encoder = {
-  if_encoder_negative : bool;
-  if_encoder_condition : string;
-  if_encoder_then : t;
-  if_encoder_else : t option;
-}
-
-and time_el = {
+type time_el = {
   week : int option;
   hours : int option;
   minutes : int option;
   seconds : int option;
 }
 
-(* These terms are reduced at runtime *)
-and parsed_ast =
-  [ `If of _if
-  | `Inline_if of _if
-  | `If_def of if_def
-  | `If_version of if_version
-  | `If_encoder of if_encoder
-  | `While of _while
-  | `For of _for
-  | `Iterable_for of iterable_for
-  | `List of list_el list
-  | `Try of _try
-  | `Regexp of string * char list
-  | `Time_interval of time_el * time_el
-  | `Time of time_el
-  | `Def of _let * t
-  | `Let of _let * t
-  | `Binding of _let * t
-  | `Cast of t * type_annotation
-  | `App of t * app_arg list
-  | `Invoke of invoke
-  | `Fun of fun_arg list * t
-  | `RFun of string * fun_arg list * t
-  | `Not of t
-  | `Get of t
-  | `Set of t * t
-  | `Methods of t option * methods list
-  | `Negative of t
-  | `Append of t * t
-  | `Assoc of t * t
-  | `Infix of t * string * t
-  | `Bool of string * t list
-  | `Coalesce of t * t
-  | `At of t * t
-  | `Simple_fun of t
-  | `String_interpolation of char * string_interpolation list
-  | `Include of inc
-  | `Int of string
-  | `Float of bool * string * string
-  | `String of char * string
-  | `Block of t
-  | `Parenthesis of t
-  | `Encoder of encoder
-  | `Eof
-  | t ast ]
-
-and t = {
-  term : parsed_ast;
+type 't term = {
+  term : 't;
   pos : Pos.t;
   mutable comments : (Pos.t * comment) list;
 }
 
-and methods = [ `Ellipsis of t | `Method of string * t ]
-and string_interpolation = [ `String of string | `Term of t ]
+module Generic = struct
+  type 't _if = {
+    if_condition : 't;
+    if_then : 't;
+    if_elsif : ('t * 't) list;
+    if_else : 't option;
+  }
 
-and encoder_params =
-  [ `Anonymous of string_param
-  | `Encoder of encoder
-  | `Labelled of string_param * t ]
-  list
+  type 't _while = { while_condition : 't; while_loop : 't }
 
-and encoder = string * encoder_params
+  type 't _for = {
+    for_variable : string;
+    for_from : 't;
+    for_to : 't;
+    for_loop : 't;
+  }
+
+  type 't iterable_for = {
+    iterable_for_variable : string;
+    iterable_for_iterator : 't;
+    iterable_for_loop : 't;
+  }
+
+  type 't _try = {
+    try_body : 't;
+    try_variable : string;
+    try_errors_list : 't option;
+    try_handler : 't option;
+    try_finally : 't option;
+  }
+
+  type 't let_decoration =
+    [ `None
+    | `Recursive
+    | `Replaces
+    | `Eval
+    | `Sqlite_query
+    | `Sqlite_row
+    | `Yaml_parse
+    | `Json_parse of (string * 't) list ]
+
+  type 't fun_arg =
+    [ `Term of ('t, type_annotation option) func_argument | `Argsof of _of ]
+
+  type 't _let = {
+    decoration : 't let_decoration;
+    pat : pattern;
+    arglist : 't fun_arg list option;
+    cast : type_annotation option;
+    def : 't;
+  }
+
+  type 't app_arg = [ `Term of string * 't | `Argsof of _of ]
+  type 't invoke_meth = [ `String of string | `App of string * 't app_arg list ]
+  type 't invoke = { invoked : 't; optional : bool; meth : 't invoke_meth }
+  type 't list_el = [ `Term of 't | `Ellipsis of 't ]
+
+  type 't if_def = {
+    if_def_negative : bool;
+    if_def_condition : string;
+    if_def_then : 't;
+    if_def_else : 't option;
+  }
+
+  type 't if_version = {
+    if_version_op : [ `Eq | `Geq | `Leq | `Gt | `Lt ];
+    if_version_version : Lang_string.Version.t;
+    if_version_then : 't;
+    if_version_else : 't option;
+  }
+
+  type 't if_encoder = {
+    if_encoder_negative : bool;
+    if_encoder_condition : string;
+    if_encoder_then : 't;
+    if_encoder_else : 't option;
+  }
+
+  type 't methods = [ `Ellipsis of 't | `Method of string * 't ]
+  type 't string_interpolation = [ `String of string | `Term of 't ]
+
+  type 't encoder_params =
+    [ `Anonymous of string_param
+    | `Encoder of 't encoder
+    | `Labelled of string_param * 't ]
+    list
+
+  and 't encoder = string * 't encoder_params
+
+  (* These terms are reduced at runtime *)
+  type 't methods_ast = [ `Methods of 't option * 't methods list ]
+
+  type 't no_methods_ast =
+    [ `If of 't _if
+    | `Inline_if of 't _if
+    | `While of 't _while
+    | `For of 't _for
+    | `Iterable_for of 't iterable_for
+    | `List of 't list_el list
+    | `Try of 't _try
+    | `Regexp of string * char list
+    | `Time_interval of time_el * time_el
+    | `Time of time_el
+    | `Def of 't _let * 't
+    | `Let of 't _let * 't
+    | `Binding of 't _let * 't
+    | `Cast of 't * type_annotation
+    | `App of 't * 't app_arg list
+    | `Invoke of 't invoke
+    | `Fun of 't fun_arg list * 't
+    | `RFun of string * 't fun_arg list * 't
+    | `Not of 't
+    | `Get of 't
+    | `Set of 't * 't
+    | `Negative of 't
+    | `Append of 't * 't
+    | `Assoc of 't * 't
+    | `Infix of 't * string * 't
+    | `Bool of string * 't list
+    | `Coalesce of 't * 't
+    | `At of 't * 't
+    | `Simple_fun of 't
+    | `String_interpolation of char * 't string_interpolation list
+    | `Int of string
+    | `Float of bool * string * string
+    | `String of char * string
+    | `Encoder of 't encoder
+    | 't ast ]
+
+  type 't expanded_ast = [ 't no_methods_ast | 't methods_ast ]
+
+  type 't parsed_ast =
+    [ 't expanded_ast
+    | 't methods_ast
+    | `Include of inc
+    | `If_def of 't if_def
+    | `Parenthesis of 't
+    | `Block of 't
+    | `Eof
+    | `If_version of 't if_version
+    | `If_encoder of 't if_encoder ]
+end
+
+open Generic
+
+type t = t Generic.parsed_ast term
+type fun_arg = t Generic.fun_arg
+type _let = t Generic._let
+type let_decoration = t Generic.let_decoration
+type parsed_ast = t Generic.parsed_ast
+type list_el = t Generic.list_el
+type methods = t Generic.methods
+type app_arg = t Generic.app_arg
+type encoder_params = t Generic.encoder_params
 
 let unit = `Tuple []
 let make ?(comments = []) ~pos term = { pos; term; comments }

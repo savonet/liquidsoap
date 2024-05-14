@@ -22,6 +22,7 @@
 
 open Liquidsoap_lang
 open Parsed_term
+open Parsed_term.Generic
 
 let json_of_position { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } : Json.t
     =
