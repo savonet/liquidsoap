@@ -71,7 +71,7 @@ def f() =
 
   test.equal(
     pos,
-    "At error.liq, line 58 char 4 - line 63 char 7, At \
+    "At ./error.liq, line 58 char 4 - line 63 char 7, At \
      /tmp/liquidsoap-full/liquidsoap/_build/install/default/share/liquidsoap-lang/libs/thread.liq, \
      line 19, char 11-14"
   )
