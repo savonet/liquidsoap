@@ -46,51 +46,67 @@ let debug_variance = ref false
 
 (** {2 Types} *)
 
-type variance = [ `Covariant | `Invariant ]
-
 (** Type description *)
-type descr = ..
 
-(** A type *)
+type variance = [ `Covariant | `Invariant ]
+type 'a argument = bool * string * 'a
+
+module R = struct
+  type 'a meth = {
+    name : string;
+    optional : bool;
+    scheme : 'a var list * 'a t;
+    json_name : string option;
+  }
+
+  and 'a t =
+    [ `Constr of string * (variance * 'a t) list
+    | `List of 'a t * [ `Object | `Tuple ]
+    | `Tuple of 'a t list
+    | `Nullable of 'a t
+    | `Meth of 'a meth * 'a t (* label, type scheme, JSON name, base type *)
+    | `Arrow of 'a t argument list * 'a t
+    | `Getter of 'a t
+    | `EVar of 'a var (* existential variable *)
+    | `UVar of 'a var (* universal variable *)
+    | `Ellipsis (* omitted sub-term *)
+    | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
+    | `Debug of
+      string * 'a t * string
+      (* add annotations before / after, mostly used for debugging *) ]
+
+  and 'a var = string * 'a Type_constraints.t
+end
+
+type custom = ..
+
 type t = { pos : Pos.Option.t; descr : descr }
 
-(** Constraint type *)
-type constr_t = ..
-
-type constr_t += Num | Ord | Record
-
-type constr = {
-  t : constr_t;
+and constr = {
   constr_descr : string;
   univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
 
-module Constraints = Set.Make (struct
-  type t = constr
-
-  let compare { t } { t = t' } = Stdlib.compare t t'
-end)
-
 (** A type constructor applied to arguments (e.g. source). *)
-type constructed = { constructor : string; params : (variance * t) list }
+and constructed = { constructor : string; params : (variance * t) list }
 
 (** Contents of a variable. *)
-type var = {
+and var = {
   name : int;
   mutable level : int;
-  mutable constraints : Constraints.t;
+  mutable constraints : constr Type_constraints.t;
 }
 
-type invar =
+and invar =
   | Free of var  (** the variable is free *)
   | Link of variance * t  (** the variable has bee substituted *)
 
 (** A type scheme (i.e. a type with universally quantified variables). *)
-type scheme = var list * t
+and scheme = var list * t
 
 (** A method. *)
-type meth = {
+and meth = {
   meth : string;  (** name of the method *)
   optional : bool;  (** is the method optional? *)
   scheme : scheme;  (** type scheme *)
@@ -98,61 +114,20 @@ type meth = {
   json_name : string option;  (** name when represented as JSON *)
 }
 
-type repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
+and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
-(** Sets of type descriptions. *)
-module DS = Set.Make (struct
-  type t = string * Constraints.t
-
-  let compare (s, v) (s', v') =
-    match Stdlib.compare s s' with 0 -> Constraints.compare v v' | x -> x
-end)
-
-let string_of_constr c = c.constr_descr
-
-type 'a argument = bool * string * 'a
-
-module R = struct
-  type meth = {
-    name : string;
-    optional : bool;
-    scheme : var list * t;
-    json_name : string option;
-  }
-
-  and t =
-    [ `Constr of string * (variance * t) list
-    | `List of t * [ `Object | `Tuple ]
-    | `Tuple of t list
-    | `Nullable of t
-    | `Meth of meth * t (* label, type scheme, JSON name, base type *)
-    | `Arrow of t argument list * t
-    | `Getter of t
-    | `EVar of var (* existential variable *)
-    | `UVar of var (* universal variable *)
-    | `Ellipsis (* omitted sub-term *)
-    | `Range_Ellipsis (* omitted sub-terms (in a list, e.g. list of args) *)
-    | `Debug of
-      string * t * string
-      (* add annotations before / after, mostly used for debugging *) ]
-
-  and var = string * Constraints.t
-end
-
-type custom = ..
-
-type custom_handler = {
+and custom_handler = {
   typ : custom;
   copy_with : (t -> t) -> custom -> custom;
   occur_check : (t -> unit) -> custom -> unit;
   filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
-  repr : (var list -> t -> R.t) -> var list -> custom -> R.t;
+  repr : (var list -> t -> constr R.t) -> var list -> custom -> constr R.t;
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
   sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
 }
 
-type descr +=
+and descr =
   | Custom of custom_handler
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)
@@ -162,6 +137,21 @@ type descr +=
   | Meth of meth * t  (** t with a method added *)
   | Arrow of t argument list * t  (** a function *)
   | Var of invar ref  (** a type variable *)
+
+module Constraints = struct
+  include Type_constraints
+
+  type nonrec t = constr Type_constraints.t
+end
+
+module DS = Set.Make (struct
+  type nonrec t = string * Constraints.t
+
+  let compare (s, v) (s', v') =
+    match Stdlib.compare s s' with 0 -> Constraints.compare v v' | x -> x
+end)
+
+let string_of_constr c = c.constr_descr
 
 exception NotImplemented
 exception Exists of Pos.Option.t * string
@@ -372,7 +362,6 @@ module Fresh = struct
                  let new_link = { contents = Free (map_var var) } in
                  Hashtbl.replace link_maps link new_link;
                  new_link)
-      | _ -> assert false
     in
     let rec map { descr } = { pos = None; descr = map_descr map descr } in
     map t

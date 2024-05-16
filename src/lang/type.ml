@@ -26,7 +26,6 @@ module Ground = Ground_type
 
 let record_constr =
   {
-    t = Record;
     constr_descr = "a record type";
     univ_descr = None;
     satisfied =
@@ -41,7 +40,6 @@ let record_constr =
 
 let num_constr =
   {
-    t = Num;
     constr_descr = "a number type";
     univ_descr = None;
     satisfied =
@@ -58,7 +56,6 @@ let num_constr =
 
 let ord_constr =
   {
-    t = Ord;
     constr_descr = "an orderable type";
     univ_descr = None;
     satisfied =

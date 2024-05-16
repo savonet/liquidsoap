@@ -90,7 +90,6 @@ let filter_vars f t =
       | Var { contents = Free var } ->
           if f var && not (List.exists (Var.eq var) l) then var :: l else l
       | Var { contents = Link _ } -> assert false
-      | _ -> raise NotImplemented
   in
   aux [] t
 
@@ -142,7 +141,6 @@ let occur_check (a : var) =
         if Type.Var.eq a x then raise (Occur_check (a, b));
         x.level <- min a.level x.level
     | { descr = Var { contents = Link (_, b) } } -> occur_check b
-    | _ -> raise NotImplemented
   in
   occur_check
 
