@@ -134,7 +134,6 @@ module Expanded_term = struct
           { t with term = `Binding (def, concat_term body t') }
       | { term = `Seq (t1, t2) } as tm ->
           { tm with term = `Seq (t1, concat_term t2 t') }
-      | { term = `Tuple [] } -> t'
       | _ -> Parsed_term.make ~pos:t.Parsed_term.pos (`Seq (t, t'))
 
   let rec expand_encoder (lbl, params) =
