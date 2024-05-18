@@ -172,7 +172,11 @@ module Generic = struct
   type 't methods_ast = [ `Methods of 't option * 't methods list ]
 
   type 't no_methods_ast =
-    [ `If of 't _if
+    [ `Include of inc
+    | `If_def of 't if_def
+    | `If_version of 't if_version
+    | `If_encoder of 't if_encoder
+    | `If of 't _if
     | `Inline_if of 't _if
     | `While of 't _while
     | `For of 't _for
@@ -213,13 +217,9 @@ module Generic = struct
   type 't parsed_ast =
     [ 't expanded_ast
     | 't methods_ast
-    | `Include of inc
-    | `If_def of 't if_def
     | `Parenthesis of 't
     | `Block of 't
-    | `Eof
-    | `If_version of 't if_version
-    | `If_encoder of 't if_encoder ]
+    | `Eof ]
 end
 
 open Generic

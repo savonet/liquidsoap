@@ -51,295 +51,89 @@ let mk_expr ?fname processor lexbuf =
   Parser_helper.attach_comments parsed_term;
   parsed_term
 
-module Expanded_term = struct
-  type t = t Parsed_term.Generic.expanded_ast Parsed_term.term
-
-  let pp_if_reducer ~pos = function
-    | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else }
-      -> (
-        let if_def_else =
-          Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_def_else
+let pp_if_reducer ~env ~pos = function
+  | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else } -> (
+      let if_def_else =
+        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_def_else
+      in
+      match
+        ( List.mem_assoc if_def_condition env
+          || Environment.has_builtin if_def_condition,
+          if_def_negative )
+      with
+        | true, false | false, true -> if_def_then
+        | _ -> if_def_else)
+  | `If_version
+      { if_version_op; if_version_version; if_version_then; if_version_else }
+    -> (
+      let if_version_else =
+        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_version_else
+      in
+      let current_version =
+        Lang_string.Version.of_string Build_config.version
+      in
+      match
+        ( if_version_op,
+          Lang_string.Version.compare current_version if_version_version )
+      with
+        | `Eq, 0 -> if_version_then
+        | `Geq, v when v >= 0 -> if_version_then
+        | `Leq, v when v <= 0 -> if_version_then
+        | `Gt, v when v > 0 -> if_version_then
+        | `Lt, v when v < 0 -> if_version_then
+        | _ -> if_version_else)
+  | `If_encoder
+      {
+        if_encoder_negative;
+        if_encoder_condition;
+        if_encoder_then;
+        if_encoder_else;
+      } -> (
+      let if_encoder_else =
+        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_encoder_else
+      in
+      try
+        let encoder =
+          !Hooks.make_encoder ~pos:None (mk Term.unit) (if_encoder_condition, [])
         in
-        match (Environment.has_builtin if_def_condition, if_def_negative) with
-          | true, false | false, true -> if_def_then
-          | _ -> if_def_else)
-    | `If_version
-        { if_version_op; if_version_version; if_version_then; if_version_else }
-      -> (
-        let if_version_else =
-          Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_version_else
+        match (!Hooks.has_encoder encoder, if_encoder_negative) with
+          | true, false | false, true -> if_encoder_then
+          | _ -> if_encoder_else
+      with _ -> if_encoder_else)
+
+let includer_reducer ~pos = function
+  | `Include { inc_type; inc_name; inc_pos } -> (
+      try
+        let fname =
+          match inc_type with
+            | `Lib -> Filename.concat (!Hooks.liq_libs_dir ()) inc_name
+            | v -> (
+                try
+                  let current_dir =
+                    Filename.dirname (fst inc_pos).Lexing.pos_fname
+                  in
+                  Utils.check_readable ~current_dir ~pos:[inc_pos] inc_name
+                with _ when v = `Extra -> raise No_extra)
         in
-        let current_version =
-          Lang_string.Version.of_string Build_config.version
-        in
-        match
-          ( if_version_op,
-            Lang_string.Version.compare current_version if_version_version )
-        with
-          | `Eq, 0 -> if_version_then
-          | `Geq, v when v >= 0 -> if_version_then
-          | `Leq, v when v <= 0 -> if_version_then
-          | `Gt, v when v > 0 -> if_version_then
-          | `Lt, v when v < 0 -> if_version_then
-          | _ -> if_version_else)
-    | `If_encoder
-        {
-          if_encoder_negative;
-          if_encoder_condition;
-          if_encoder_then;
-          if_encoder_else;
-        } -> (
-        let if_encoder_else =
-          Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_encoder_else
-        in
-        try
-          let encoder =
-            !Hooks.make_encoder ~pos:None (mk Term.unit)
-              (if_encoder_condition, [])
-          in
-          match (!Hooks.has_encoder encoder, if_encoder_negative) with
-            | true, false | false, true -> if_encoder_then
-            | _ -> if_encoder_else
-        with _ -> if_encoder_else)
+        let ic = if fname = "-" then stdin else open_in fname in
+        Fun.protect
+          ~finally:(fun () -> if fname <> "-" then close_in ic)
+          (fun () ->
+            let lexbuf = Sedlexing.Utf8.from_channel ic in
+            mk_expr ~fname program lexbuf)
+      with No_extra -> Parsed_term.make ~pos (`Tuple []))
 
-  let includer_reducer ~pos = function
-    | `Include { inc_type; inc_name; inc_pos } -> (
-        try
-          let fname =
-            match inc_type with
-              | `Lib -> Filename.concat (!Hooks.liq_libs_dir ()) inc_name
-              | v -> (
-                  try
-                    let current_dir =
-                      Filename.dirname (fst inc_pos).Lexing.pos_fname
-                    in
-                    Utils.check_readable ~current_dir ~pos:[inc_pos] inc_name
-                  with _ when v = `Extra -> raise No_extra)
-          in
-          let ic = if fname = "-" then stdin else open_in fname in
-          Fun.protect
-            ~finally:(fun () -> if fname <> "-" then close_in ic)
-            (fun () ->
-              let lexbuf = Sedlexing.Utf8.from_channel ic in
-              mk_expr ~fname program lexbuf)
-        with No_extra -> Parsed_term.make ~pos (`Tuple []))
-
-  let rec concat_term (t : t) (t' : t) =
-    match t with
-      | { term = `Let (def, body) } ->
-          { t with term = `Let (def, concat_term body t') }
-      | { term = `Def (def, body) } ->
-          { t with term = `Def (def, concat_term body t') }
-      | { term = `Binding (def, body) } ->
-          { t with term = `Binding (def, concat_term body t') }
-      | { term = `Seq (t1, t2) } as tm ->
-          { tm with term = `Seq (t1, concat_term t2 t') }
-      | _ -> Parsed_term.make ~pos:t.Parsed_term.pos (`Seq (t, t'))
-
-  let rec expand_encoder (lbl, params) =
-    ( lbl,
-      List.map
-        (function
-          | `Encoder enc -> `Encoder (expand_encoder enc)
-          | `Labelled (lbl, t) -> `Labelled (lbl, expand_term t)
-          | `Anonymous _ as v -> v)
-        params )
-
-  and expand_term : Parsed_term.t -> t =
-   fun tm ->
-    let expand_decoration = function
-      | `None -> `None
-      | `Recursive -> `Recursive
-      | `Replaces -> `Replaces
-      | `Eval -> `Eval
-      | `Sqlite_query -> `Sqlite_query
-      | `Sqlite_row -> `Sqlite_row
-      | `Yaml_parse -> `Yaml_parse
-      | `Json_parse l ->
-          `Json_parse (List.map (fun (lbl, t) -> (lbl, expand_term t)) l)
-    in
-    let expand_func_arg ({ default } as arg) =
-      { arg with default = Option.map expand_term default }
-    in
-    let expand_arglist =
-      List.map (function
-        | `Term arg -> `Term (expand_func_arg arg)
-        | `Argsof _ as el -> el)
-    in
-    let expand_app_arg =
-      List.map (function
-        | `Argsof _ as el -> el
-        | `Term (lbl, t) -> `Term (lbl, expand_term t))
-    in
-    let expand_fun_args =
-      List.map (function
-        | `Term arg -> `Term (expand_func_arg arg)
-        | `Argsof _ as v -> v)
-    in
-    let term =
-      match tm.Parsed_term.term with
-        | `Include _ as ast ->
-            (expand_term (includer_reducer ~pos:tm.Parsed_term.pos ast)).term
-        | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast)
-          ->
-            (expand_term (pp_if_reducer ~pos:tm.pos ast)).term
-        | `Seq ({ pos; term = `Include _ as ast }, t') ->
-            let t = expand_term (includer_reducer ~pos ast) in
-            let t' = expand_term t' in
-            (concat_term t t').term
-        | `Seq ({ pos; term = `If_def _ as ast }, t')
-        | `Seq ({ pos; term = `If_encoder _ as ast }, t')
-        | `Seq ({ pos; term = `If_version _ as ast }, t') ->
-            let t = expand_term (pp_if_reducer ~pos ast) in
-            let t' = expand_term t' in
-            (concat_term t t').term
-        | `Seq (t, t') -> `Seq (expand_term t, expand_term t')
-        | `Parenthesis tm | `Block tm -> (expand_term tm).term
-        | `Eof -> `Tuple []
-        | `If { if_condition; if_then; if_elsif; if_else } ->
-            `If
-              {
-                if_condition = expand_term if_condition;
-                if_then = expand_term if_then;
-                if_elsif =
-                  List.map
-                    (fun (t, t') -> (expand_term t, expand_term t'))
-                    if_elsif;
-                if_else = Option.map expand_term if_else;
-              }
-        | `Inline_if { if_condition; if_then; if_elsif; if_else } ->
-            `If
-              {
-                if_condition = expand_term if_condition;
-                if_then = expand_term if_then;
-                if_elsif =
-                  List.map
-                    (fun (t, t') -> (expand_term t, expand_term t'))
-                    if_elsif;
-                if_else = Option.map expand_term if_else;
-              }
-        | `While { while_condition; while_loop } ->
-            `While
-              {
-                while_condition = expand_term while_condition;
-                while_loop = expand_term while_loop;
-              }
-        | `For ({ for_from; for_to; for_loop } as _for) ->
-            `For
-              {
-                _for with
-                for_from = expand_term for_from;
-                for_to = expand_term for_to;
-                for_loop = expand_term for_loop;
-              }
-        | `Iterable_for ({ iterable_for_iterator; iterable_for_loop } as _for)
-          ->
-            `Iterable_for
-              {
-                _for with
-                iterable_for_iterator = expand_term iterable_for_iterator;
-                iterable_for_loop = expand_term iterable_for_loop;
-              }
-        | `List l ->
-            `List
-              (List.map
-                 (function
-                   | `Term t -> `Term (expand_term t)
-                   | `Ellipsis t -> `Ellipsis (expand_term t))
-                 l)
-        | `Try ({ try_body; try_errors_list; try_handler; try_finally } as _try)
-          ->
-            `Try
-              {
-                _try with
-                try_body = expand_term try_body;
-                try_errors_list = Option.map expand_term try_errors_list;
-                try_handler = Option.map expand_term try_handler;
-                try_finally = Option.map expand_term try_finally;
-              }
-        | `Regexp _ as ast -> ast
-        | `Time_interval _ as ast -> ast
-        | `Time _ as ast -> ast
-        | `Def (({ decoration; arglist; def } as _let), body) ->
-            `Def
-              ( {
-                  _let with
-                  decoration = expand_decoration decoration;
-                  def = expand_term def;
-                  arglist = Option.map expand_arglist arglist;
-                },
-                expand_term body )
-        | `Let (({ decoration; arglist; def } as _let), body) ->
-            `Let
-              ( {
-                  _let with
-                  decoration = expand_decoration decoration;
-                  def = expand_term def;
-                  arglist = Option.map expand_arglist arglist;
-                },
-                expand_term body )
-        | `Binding (({ decoration; arglist; def } as _let), body) ->
-            `Binding
-              ( {
-                  _let with
-                  decoration = expand_decoration decoration;
-                  def = expand_term def;
-                  arglist = Option.map expand_arglist arglist;
-                },
-                expand_term body )
-        | `Cast (t, typ) -> `Cast (expand_term t, typ)
-        | `App (t, app_arg) -> `App (expand_term t, expand_app_arg app_arg)
-        | `Invoke ({ invoked; meth } as invoke) ->
-            `Invoke
-              {
-                invoke with
-                invoked = expand_term invoked;
-                meth =
-                  (match meth with
-                    | `String _ as s -> s
-                    | `App (n, app_arg) -> `App (n, expand_app_arg app_arg));
-              }
-        | `Fun (fun_args, t) -> `Fun (expand_fun_args fun_args, expand_term t)
-        | `RFun (name, fun_args, t) ->
-            `RFun (name, expand_fun_args fun_args, expand_term t)
-        | `Not t -> `Not (expand_term t)
-        | `Get t -> `Get (expand_term t)
-        | `Set (t, t') -> `Set (expand_term t, expand_term t')
-        | `Methods (t, methods) ->
-            `Methods
-              ( Option.map expand_term t,
-                List.map
-                  (function
-                    | `Ellipsis t -> `Ellipsis (expand_term t)
-                    | `Method (name, t) -> `Method (name, expand_term t))
-                  methods )
-        | `Negative t -> `Negative (expand_term t)
-        | `Append (t, t') -> `Append (expand_term t, expand_term t')
-        | `Assoc (t, t') -> `Assoc (expand_term t, expand_term t')
-        | `Infix (t, op, t') -> `Infix (expand_term t, op, expand_term t')
-        | `Bool (b, l) -> `Bool (b, List.map expand_term l)
-        | `Coalesce (t, t') -> `Coalesce (expand_term t, expand_term t')
-        | `At (t, t') -> `At (expand_term t, expand_term t')
-        | `Simple_fun t -> `Simple_fun (expand_term t)
-        | `String_interpolation (c, l) ->
-            `String_interpolation
-              ( c,
-                List.map
-                  (function
-                    | `String _ as s -> s | `Term t -> `Term (expand_term t))
-                  l )
-        | `Int _ as ast -> ast
-        | `Float _ as ast -> ast
-        | `String _ as ast -> ast
-        | `Encoder enc -> `Encoder (expand_encoder enc)
-        | `Ground _ as ast -> ast
-        | `Open (t, t') -> `Open (expand_term t, expand_term t')
-        | `Tuple l -> `Tuple (List.map expand_term l)
-        | `Var _ as ast -> ast
-        | `Null -> `Null
-    in
-    { tm with Parsed_term.term }
-end
+let rec concat_term (t : Parsed_term.t) (t' : Parsed_term.t) =
+  match t with
+    | { term = `Let (def, body) } ->
+        { t with term = `Let (def, concat_term body t') }
+    | { term = `Def (def, body) } ->
+        { t with term = `Def (def, concat_term body t') }
+    | { term = `Binding (def, body) } ->
+        { t with term = `Binding (def, concat_term body t') }
+    | { term = `Seq (t1, t2) } as tm ->
+        { tm with term = `Seq (t1, concat_term t2 t') }
+    | _ -> Parsed_term.make ~pos:t.pos (`Seq (t, t'))
 
 (** Time intervals *)
 
@@ -667,7 +461,7 @@ and update_invoke_default ~pos ~optional expr name value =
               args ))
     | _ -> expr
 
-let mk_invoke ?(default : Expanded_term.t option) ~pos ~env ~to_term expr v =
+let mk_invoke ?(default : Parsed_term.t option) ~pos ~env ~to_term expr v =
   let expr = to_term expr in
   let default = Option.map to_term default in
   let optional, value =
@@ -696,8 +490,8 @@ let mk_invoke ?(default : Expanded_term.t option) ~pos ~env ~to_term expr v =
                 }),
             args )
 
-let mk_coalesce ~pos ~(default : Expanded_term.t) ~env ~to_term
-    (computed : Expanded_term.t) =
+let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
+    (computed : Parsed_term.t) =
   match computed.term with
     | `Invoke { invoked; meth = `String m } ->
         mk_invoke ~pos ~env ~default ~to_term invoked (`String m)
@@ -1006,7 +800,7 @@ let string_of_let_decoration = function
   | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~env ~pos ~(to_term : env:env -> Expanded_term.t -> Runtime_term.t)
+let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
     ({ decoration; pat; arglist; def; cast }, body) =
   let def = to_term ~env def in
   let mk_body def =
@@ -1091,12 +885,15 @@ let rec to_encoder_params ~env ~to_term l =
 and to_encoder ~env ~to_term (lbl, params) =
   (lbl, to_encoder_params ~env ~to_term params)
 
-type no_methods = Expanded_term.t Parsed_term.Generic.no_methods_ast
+type no_methods = Parsed_term.t Parsed_term.Generic.no_methods_ast
 
 let rec to_ast ~env ~pos ast =
   let to_term_with_env = to_term in
   let to_term = to_term ~env in
   match ast with
+    | `Include _ as ast -> (to_term (includer_reducer ~pos ast)).term
+    | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
+        (to_term (pp_if_reducer ~pos ~env ast)).term
     | `Get _ as ast -> get_reducer ~pos ~to_term ast
     | `Set _ as ast -> set_reducer ~pos ~to_term ast
     | `Inline_if _ as ast -> if_reducer ~pos ~to_term ast
@@ -1190,8 +987,19 @@ and to_func ~pos ~env ~to_term ?name arguments body =
     free_vars = None;
   }
 
-and to_term_base ~env (tm : Expanded_term.t) : Term.t =
+and to_term_base ~env (tm : Parsed_term.t) : Term.t =
   match tm.term with
+    | `Seq ({ pos; term = `Include _ as ast }, t') ->
+        let t = includer_reducer ~pos ast in
+        to_term ~env (concat_term t t')
+    | `Seq ({ pos; term = `If_def _ as ast }, t')
+    | `Seq ({ pos; term = `If_encoder _ as ast }, t')
+    | `Seq ({ pos; term = `If_version _ as ast }, t') ->
+        let t = pp_if_reducer ~pos ~env ast in
+        to_term ~env (concat_term t t')
+    | `Block tm -> to_term ~env tm
+    | `Parenthesis tm -> to_term ~env tm
+    | `Eof -> to_term ~env { tm with term = `Tuple [] }
     | `Methods (base, methods) ->
         (* let _ = src in
            let replaces _ = dst in
@@ -1252,14 +1060,11 @@ and to_term_base ~env (tm : Expanded_term.t) : Term.t =
           id = Term_base.id ();
         }
 
-and to_term : env:env -> Expanded_term.t -> Runtime_term.t =
+and to_term : env:env -> Parsed_term.t -> Runtime_term.t =
  fun ~env parsed_term ->
   let term = to_term_base ~env parsed_term in
   Term_base.ActiveTerm.add Term_base.active_terms term;
   term
 
-let to_encoder_params =
-  to_encoder_params ~env:[] ~to_term:(fun ~env tm ->
-      to_term ~env (Expanded_term.expand_term tm))
-
-let to_term tm = to_term ~env:[] (Expanded_term.expand_term tm)
+let to_encoder_params = to_encoder_params ~env:[] ~to_term
+let to_term tm = to_term ~env:[] tm
