@@ -22,14 +22,6 @@
 
 type Type.custom += Kind of (Content_base.kind * Type.t)
 type Type.custom += Format of Content_base.format
-
-type Type.constr_t +=
-  | PcmAudio
-  | Track
-  | MuxedTracks
-  | InternalTrack
-  | InternalTracks
-
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 let get_format = function Format f -> f | _ -> assert false
@@ -197,10 +189,9 @@ let is_format f m =
   let module Content = (val m : Content) in
   Content.is_format f
 
-let check_track ?univ_descr ~t modules =
+let check_track ?univ_descr modules =
   {
-    Type.t;
-    constr_descr =
+    Type.constr_descr =
       Printf.sprintf "a track of type: %s"
         (Utils.concat_with_last ~last:"or" ", "
            (List.map string_of_kind modules));
@@ -220,13 +211,12 @@ let check_track ?univ_descr ~t modules =
           | _ -> raise Type.Unsatisfied_constraint);
   }
 
-let pcm_audio = check_track ~univ_descr:"pcm*" ~t:PcmAudio pcm_modules
-let internal_track = check_track ~t:InternalTrack internal_modules
+let pcm_audio = check_track ~univ_descr:"pcm*" pcm_modules
+let internal_track = check_track internal_modules
 
 let internal_tracks =
   {
-    Type.t = InternalTracks;
-    constr_descr = "a set of internal tracks";
+    Type.constr_descr = "a set of internal tracks";
     univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
@@ -254,8 +244,7 @@ let internal_tracks =
 
 let track =
   {
-    Type.t = Track;
-    constr_descr = "a track";
+    Type.constr_descr = "a track";
     univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
@@ -271,8 +260,7 @@ let track =
 
 let muxed_tracks =
   {
-    Type.t = MuxedTracks;
-    constr_descr = "a set of tracks to be muxed into a source";
+    Type.constr_descr = "a set of tracks to be muxed into a source";
     univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->

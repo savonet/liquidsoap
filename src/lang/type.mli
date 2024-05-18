@@ -26,14 +26,23 @@ val debug_variance : bool ref
 
 (** {2 Types} *)
 
+open Type_base
+
 type variance = [ `Covariant | `Invariant ]
-type descr = Type_base.descr = ..
 type t = Type_base.t = private { pos : Pos.Option.t; descr : descr }
-type constr_t = Type_base.constr_t = ..
-type constr_t += Num | Ord
+
+type descr = Type_base.descr =
+  | Custom of custom_handler
+  | Constr of constructed
+  | Getter of t  (** a getter: something that is either a t or () -> t *)
+  | List of repr_t
+  | Tuple of t list
+  | Nullable of t  (** something that is either t or null *)
+  | Meth of meth * t  (** t with a method added *)
+  | Arrow of t argument list * t  (** a function *)
+  | Var of invar ref  (** a type variable *)
 
 type constr = Type_base.constr = {
-  t : constr_t;
   constr_descr : string;
   univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
@@ -52,7 +61,7 @@ type var = Type_base.var = {
   mutable constraints : Constraints.t;
 }
 
-type invar = Free of var | Link of variance * t
+type invar = Type_base.invar = Free of var | Link of variance * t
 type scheme = var list * t
 
 type meth = Type_base.meth = {
@@ -86,17 +95,6 @@ type custom_handler = Type_base.custom_handler = {
 }
 
 type 'a argument = bool * string * 'a
-
-type descr +=
-  | Custom of custom_handler
-  | Constr of constructed
-  | Getter of t
-  | List of repr_t
-  | Tuple of t list
-  | Nullable of t
-  | Meth of meth * t
-  | Arrow of t argument list * t
-  | Var of invar ref
 
 exception NotImplemented
 exception Exists of Pos.Option.t * string

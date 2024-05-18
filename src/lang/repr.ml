@@ -31,6 +31,8 @@ let global_evar_names = ref false
 open Type_base
 include R
 
+type t = Type_base.constr R.t
+
 (** Given a position, find the relevant excerpt. *)
 let excerpt (start, stop) =
   try
@@ -197,8 +199,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | Var { contents = Link (`Covariant, t) } when !debug || !debug_variance
           ->
             `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (_, t) } -> repr g t
-        | _ -> raise NotImplemented)
+        | Var { contents = Link (_, t) } -> repr g t)
   in
   repr generalized t
 
