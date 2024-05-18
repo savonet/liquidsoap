@@ -24,6 +24,7 @@ type 'a t
 
 val create : unit -> 'a t
 val add : 'a -> 'a t -> 'a t
+val mem : 'a -> 'a t -> bool
 val compare : 'a t -> 'a t -> int
 val of_list : 'a list -> 'a t
 val elements : 'a t -> 'a list

@@ -24,6 +24,7 @@ type 'a t = 'a list
 
 let create () = []
 let add el set = el :: List.filter (fun e -> e != el) set
+let mem = List.memq
 
 let of_list l =
   List.fold_left
