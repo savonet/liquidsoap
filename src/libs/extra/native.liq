@@ -88,7 +88,6 @@ let native.request = request
 def native.request.dynamic(%argsof(request.dynamic), f) =
   ignore(available)
   ignore(timeout)
-  ignore(native)
 
   def f() =
     try

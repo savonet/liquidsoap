@@ -1,4 +1,3 @@
-let request.queue = ()
 %ifdef native
 let stdlib_native = native
 %endif
