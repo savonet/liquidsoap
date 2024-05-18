@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Value
-open Ground
 
 let log = Log.make ["gstreamer"]
 
@@ -29,7 +28,7 @@ let type_of_encoder p =
   let has_video =
     List.exists
       (function
-        | `Labelled ("has_video", { Term.term = `Ground (Bool true) }) -> true
+        | `Labelled ("has_video", { Term.term = `Bool true }) -> true
         | _ -> false)
       p
   in
@@ -61,33 +60,33 @@ let make ?pos params =
     let perhaps = function "" -> None | s -> Some s in
     List.fold_left
       (fun f -> function
-        | `Labelled ("stereo", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("stereo", { value = Bool b; _ }) ->
             { f with Gstreamer_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("mono", { value = Bool b; _ }) ->
             { f with Gstreamer_format.channels = (if b then 1 else 2) }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Gstreamer_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Gstreamer_format.channels = 2 }
-        | `Labelled ("channels", { value = Ground (Int i); _ }) ->
+        | `Labelled ("channels", { value = Int i; _ }) ->
             { f with Gstreamer_format.channels = i }
-        | `Labelled ("audio", { value = Ground (String s); _ }) ->
+        | `Labelled ("audio", { value = String s; _ }) ->
             { f with Gstreamer_format.audio = perhaps s }
-        | `Labelled ("has_video", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("has_video", { value = Bool b; _ }) ->
             { f with Gstreamer_format.has_video = b }
-        | `Labelled ("video", { value = Ground (String s); _ }) ->
+        | `Labelled ("video", { value = String s; _ }) ->
             let video = perhaps s in
             let has_video =
               if video = None then false else f.Gstreamer_format.has_video
             in
             { f with Gstreamer_format.has_video; video }
-        | `Labelled ("muxer", { value = Ground (String s); _ }) ->
+        | `Labelled ("muxer", { value = String s; _ }) ->
             { f with Gstreamer_format.muxer = perhaps s }
-        | `Labelled ("metadata", { value = Ground (String s); _ }) ->
+        | `Labelled ("metadata", { value = String s; _ }) ->
             { f with Gstreamer_format.metadata = s }
-        | `Labelled ("log", { value = Ground (Int i); _ }) ->
+        | `Labelled ("log", { value = Int i; _ }) ->
             { f with Gstreamer_format.log = i }
-        | `Labelled ("pipeline", { value = Ground (String s); _ }) ->
+        | `Labelled ("pipeline", { value = String s; _ }) ->
             { f with Gstreamer_format.pipeline = perhaps s }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params

@@ -529,11 +529,11 @@ let parse_input_args args =
             (args, Av.Format.find_input_format format)
         | `Labelled (k, Term.{ term = `Var v; _ }) ->
             ((k, `String v) :: args, format)
-        | `Labelled (k, Term.{ term = `Ground (Ground.String s); _ }) ->
+        | `Labelled (k, Term.{ term = `String s; _ }) ->
             ((k, `String s) :: args, format)
-        | `Labelled (k, Term.{ term = `Ground (Ground.Int i); _ }) ->
+        | `Labelled (k, Term.{ term = `Int i; _ }) ->
             ((k, `Int i) :: args, format)
-        | `Labelled (k, Term.{ term = `Ground (Ground.Float f); _ }) ->
+        | `Labelled (k, Term.{ term = `Float f; _ }) ->
             ((k, `Float f) :: args, format)
         | _ -> assert false)
       ([], None) args

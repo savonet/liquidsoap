@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-(** Abstract operator which selects one of its children sources
+(** Custom operator which selects one of its children sources
   * either at the beginning of a track or at every frame,
   * depending on a parametrizable predicate.
   * A few specializations of it are defined below. *)
@@ -44,12 +44,7 @@ type selection = {
 let satisfied f = Lang.to_bool (Lang.apply f [])
 
 let trivially_true = function
-  | {
-      Lang.value =
-        Lang.Fun (_, _, { Term.term = `Ground (Term.Ground.Bool true); _ });
-      _;
-    } ->
-      true
+  | { Lang.value = Lang.Fun (_, _, { Term.term = `Bool true; _ }); _ } -> true
   | _ -> false
 
 let pick_selection (p, _, s) = (p, s)

@@ -59,11 +59,11 @@ let string_of_regexp { descr; flags } =
     (String.concat ""
        (List.sort Stdlib.compare (List.map string_of_regexp_flag flags)))
 
-module RegExp = Value.MkAbstract (struct
+module RegExp = Value.MkCustom (struct
   type content = regexp
 
   let name = "regexp"
-  let descr = string_of_regexp
+  let to_string = string_of_regexp
 
   let to_json ~pos _ =
     Runtime_error.raise ~pos ~message:"Regexp cannot be represented as json"
@@ -73,8 +73,6 @@ module RegExp = Value.MkAbstract (struct
     Stdlib.compare
       (r.descr, List.sort Stdlib.compare r.flags)
       (r'.descr, List.sort Stdlib.compare r'.flags)
-
-  let comparison_op = None
 end)
 
 let test_t = Lang_core.fun_t [(false, "", Lang_core.string_t)] Lang_core.bool_t

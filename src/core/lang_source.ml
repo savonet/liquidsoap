@@ -30,18 +30,17 @@ module Alive_values_map = Liquidsoap_lang.Active_value.Make (struct
 end)
 
 module ClockValue = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Clock.t
 
     let name = "clock"
-    let descr = Clock.descr
+    let to_string = Clock.descr
 
     let to_json ~pos _ =
       Lang.raise_error ~message:"Clocks cannot be represented as json" ~pos
         "json"
 
     let compare = Stdlib.compare
-    let comparison_op = None
   end)
 
   let base_t = t
@@ -134,12 +133,12 @@ let metadata m = metadata_list (Frame.Metadata.to_list m)
 let metadata_track_t = Format_type.metadata
 let track_marks_t = Format_type.track_marks
 
-module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
+module Source_val = Liquidsoap_lang.Lang_core.MkCustom (struct
   type content = Source.source
 
   let name = "source"
 
-  let descr s =
+  let to_string s =
     Printf.sprintf "<source(id=%s, frame_type=%s>" s#id
       (Type.to_string s#frame_type)
 
@@ -149,7 +148,6 @@ module Source_val = Liquidsoap_lang.Lang_core.MkAbstract (struct
       "json"
 
   let compare s1 s2 = Stdlib.compare s1#id s2#id
-  let comparison_op = None
 end)
 
 let source_methods =
@@ -422,7 +420,12 @@ let check_content v t =
             let frame_t = Frame_type.make unit_t content_t in
             let encoder_t = Lang_encoder.L.format_t frame_t in
             check encoder_t t
-        | Value.Ground _, _ -> ()
+        | Value.Int _, _
+        | Value.Float _, _
+        | Value.String _, _
+        | Value.Bool _, _
+        | Value.Custom _, _ ->
+            ()
         | Value.List l, Type.List { Type.t } ->
             List.iter (fun v -> check_value v t) l
         | Value.Tuple l, Type.Tuple t -> List.iter2 check_value l t
@@ -520,10 +523,15 @@ let check_arguments ~env ~return_t arguments =
   (* Generalize all terms inside the arguments *)
   let map =
     let open Liquidsoap_lang.Value in
-    let rec map { pos; value; methods } =
+    let rec map { pos; value; flags; methods } =
       let value =
         match value with
-          | Ground g -> Ground g
+          | (Int _ as ast)
+          | (Float _ as ast)
+          | (String _ as ast)
+          | (Bool _ as ast)
+          | (Custom _ as ast) ->
+              ast
           | List l -> List (List.map map l)
           | Tuple l -> Tuple (List.map map l)
           | Null -> Null
@@ -549,6 +557,7 @@ let check_arguments ~env ~return_t arguments =
         pos;
         value;
         methods = Liquidsoap_lang.Methods.map map methods;
+        flags;
         id = Value.id ();
       }
     in
@@ -652,7 +661,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let rec iter_term env v =
     let iter_base_term env v =
       match v.Term.term with
-        | `Ground _ | `Encoder _ -> ()
+        | `Int _ | `Float _ | `Bool _ | `String _ | `Custom _ | `Encoder _ -> ()
         | `List l -> List.iter (iter_term env) l
         | `Tuple l -> List.iter (iter_term env) l
         | `Null -> ()
@@ -697,7 +706,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
       Value.Methods.iter (fun _ v -> iter_value v) v.Value.methods;
       match v.value with
         | _ when Source_val.is_value v -> f (Source_val.of_value v)
-        | Ground _ -> ()
+        | Int _ | String _ | Float _ | Bool _ | Custom _ -> ()
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
         | Null -> ()
@@ -708,42 +717,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
         | FFI { ffi_args = proto; _ } ->
             on_imprecise ();
-            List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-      (*
-        | Ref r ->
-            if List.memq r !static_analysis_failed then ()
-            else (
-              (* Do not walk inside references, otherwise the list of "contained"
-                 sources may change from one time to the next, which makes it
-                 impossible to avoid ill-balanced activations. Not walking inside
-                 references does not break things more than they are already:
-                 detecting sharing in presence of references to sources cannot be
-                 done statically anyway. We display a fat log message to warn
-                 about this risky situation. *)
-              let may_have_source =
-                let rec aux v =
-                  match v.value with
-                    | _ when Source_val.is_value v -> true
-                    | Ground _ | Null -> false
-                    | List l -> List.exists aux l
-                    | Tuple l -> List.exists aux l
-                    | Ref r -> aux (Atomic.get r)
-                    | Fun _ | FFI _ -> true
-                    | Meth (_, v, t) -> aux v || aux t
-                in
-                aux v
-              in
-              static_analysis_failed := r :: !static_analysis_failed;
-              if may_have_source then (
-                match on_reference with
-                  | Some f -> f ()
-                  | None ->
-                      log#severe
-                        "WARNING! Found a reference, potentially containing \
-                         sources, inside a dynamic source-producing function. \
-                         Static analysis cannot be performed: make sure you \
-                         are not sharing sources contained in references!"))
-               *))
+            List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto)
   in
   iter_value v
 

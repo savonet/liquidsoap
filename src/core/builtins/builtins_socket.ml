@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 module Socket_domain = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Unix.socket_domain
 
     let name = "socket_domain"
@@ -30,13 +30,12 @@ module Socket_domain = struct
       Lang.raise_error ~pos
         ~message:"Socket domain cannot be represented as json" "json"
 
-    let descr = function
+    let to_string = function
       | Unix.PF_UNIX -> "socket.domain.unix"
       | Unix.PF_INET -> "socket.domain.inet"
       | Unix.PF_INET6 -> "socket.domain.inet6"
 
     let compare = Stdlib.compare
-    let comparison_op = None
   end)
 
   let unix = to_value Unix.PF_UNIX
@@ -45,7 +44,7 @@ module Socket_domain = struct
 end
 
 module Socket_type = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Unix.socket_type
 
     let name = "socket_type"
@@ -54,7 +53,7 @@ module Socket_type = struct
       Lang.raise_error ~pos ~message:"Socket type cannot be represented as json"
         "json"
 
-    let descr = function
+    let to_string = function
       | Unix.SOCK_STREAM -> "socket.type.stream"
       | Unix.SOCK_DGRAM -> "socket.type.dgram"
       | Unix.SOCK_RAW -> "socket.type.raw"
@@ -64,7 +63,6 @@ module Socket_type = struct
       | Unix.SOCK_SEQPACKET -> assert false
 
     let compare = Stdlib.compare
-    let comparison_op = None
   end)
 
   let stream = to_value Unix.SOCK_STREAM
@@ -73,10 +71,10 @@ module Socket_type = struct
 end
 
 module Inet_addr = struct
-  let descr s =
+  let to_string s =
     Printf.sprintf "socket.internet_address(%S)" (Unix.string_of_inet_addr s)
 
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Unix.inet_addr
 
     let name = "internet_address"
@@ -85,12 +83,10 @@ module Inet_addr = struct
       Lang.raise_error ~pos
         ~message:"Internet address type cannot be represented as json" "json"
 
-    let descr = descr
+    let to_string = to_string
 
     let compare s s' =
       Stdlib.compare (Unix.string_of_inet_addr s) (Unix.string_of_inet_addr s')
-
-    let comparison_op = None
   end)
 
   let base_t = t
@@ -119,7 +115,7 @@ module Inet_addr = struct
 end
 
 module Socket_addr = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Unix.sockaddr
 
     let name = "socket_address"
@@ -128,15 +124,14 @@ module Socket_addr = struct
       Lang.raise_error ~pos
         ~message:"Socket address type cannot be represented as json" "json"
 
-    let descr = function
+    let to_string = function
       | Unix.ADDR_UNIX s -> Printf.sprintf "socket.address.unix(%S)" s
       | Unix.ADDR_INET (inet_addr, port) ->
           Printf.sprintf "socket.address.inet(%s, %i)"
-            (Inet_addr.descr inet_addr)
+            (Inet_addr.to_string inet_addr)
             port
 
     let compare = Stdlib.compare
-    let comparison_op = None
   end)
 
   let base_t = t
@@ -174,7 +169,7 @@ module Socket_addr = struct
 end
 
 module Socket_value = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Http.socket
 
     let name = "socket"
@@ -183,13 +178,12 @@ module Socket_value = struct
       Lang.raise_error ~pos ~message:"Socket cannot be represented as json"
         "json"
 
-    let descr s = Printf.sprintf "<%s socket>" s#typ
+    let to_string s = Printf.sprintf "<%s socket>" s#typ
     let compare = Stdlib.compare
-    let comparison_op = None
   end)
 
   let meths =
-    let descr_of_mode = function `Read -> "read" | `Write -> "write" in
+    let string_of_mode = function `Read -> "read" | `Write -> "write" in
     let wait_t ~mode t =
       Lang.method_t t
         [
@@ -202,7 +196,7 @@ module Socket_value = struct
                 ]
                 Lang.unit_t ),
             "Execute the given callback when the socket is ready to "
-            ^ descr_of_mode mode ^ " some data" );
+            ^ string_of_mode mode ^ " some data" );
         ]
     in
     let wait_meth ~mode socket v =

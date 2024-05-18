@@ -22,13 +22,12 @@
 
 open Liquidsoap_lang
 open Term
-open Term.Ground
 
-module V = Lang_core.MkAbstract (struct
+module V = Lang_core.MkCustom (struct
   type content = Encoder.format
 
   let name = "encoder"
-  let descr = Encoder.string_of_format
+  let to_string = Encoder.string_of_format
 
   let to_json ~pos _ =
     Runtime_error.raise ~pos
@@ -36,7 +35,6 @@ module V = Lang_core.MkAbstract (struct
       "json"
 
   let compare = Stdlib.compare
-  let comparison_op = None
 end)
 
 module L = struct
@@ -95,7 +93,7 @@ let channels_of_params ?(default = 2) p =
       (function
         | `Anonymous s when String.lowercase_ascii s = "mono" -> Some 1
         | `Anonymous s when String.lowercase_ascii s = "stereo" -> Some 2
-        | `Labelled ("stereo", { term = `Ground (Bool b); _ }) ->
+        | `Labelled ("stereo", { term = `Bool b; _ }) ->
             Some (if b then 2 else 1)
         | `Labelled ("stereo", ({ t = { Type.pos } } as tm)) ->
             raise_error ~pos
@@ -103,15 +101,14 @@ let channels_of_params ?(default = 2) p =
                  "Invalid value %s for stereo mode. Only static `true` or \
                   `false` are allowed."
                  (Term.to_string tm))
-        | `Labelled ("mono", { term = `Ground (Bool b); _ }) ->
-            Some (if b then 1 else 2)
+        | `Labelled ("mono", { term = `Bool b; _ }) -> Some (if b then 1 else 2)
         | `Labelled ("mono", ({ t = { Type.pos } } as tm)) ->
             raise_error ~pos
               (Printf.sprintf
                  "Invalid value %s for mono mode. Only static `true` or \
                   `false` are allowed."
                  (Term.to_string tm))
-        | `Labelled ("channels", { term = `Ground (Int n) }) -> Some n
+        | `Labelled ("channels", { term = `Int n }) -> Some n
         | `Labelled ("channels", ({ t = { Type.pos } } as tm)) ->
             raise_error ~pos
               (Printf.sprintf

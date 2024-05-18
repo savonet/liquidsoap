@@ -22,7 +22,7 @@
 
 include Type_base
 include Ref_type
-module Ground = Ground_type
+module Custom = Type_custom
 
 let record_constr =
   {
@@ -47,10 +47,7 @@ let num_constr =
         let b = demeth b in
         match b.descr with
           | Var _ -> satisfies b
-          | Custom { typ = Ground.Never.Type }
-          | Custom { typ = Ground.Int.Type }
-          | Custom { typ = Ground.Float.Type } ->
-              ()
+          | Never | Int | Float -> ()
           | _ -> raise Unsatisfied_constraint);
   }
 
@@ -63,7 +60,7 @@ let ord_constr =
         let m, b = split_meths b in
         match b.descr with
           | Var _ -> satisfies b
-          | Custom c when Ground_type.is_ground c.Type_base.typ -> ()
+          | Custom _ | Int | Float | String | Bool -> ()
           | Tuple [] ->
               (* For records, we want to ensure that all fields are ordered. *)
               List.iter

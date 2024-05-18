@@ -10,7 +10,7 @@ let () =
      end *)
   let _if = Term.make (`Var "if") in
   let x = Term.make (`Var "x") in
-  let _false () = Term.make (`Ground (Term.Ground.Bool false)) in
+  let _false () = Term.make (`Ground false) in
   let cond =
     Term.make
       (`Invoke
@@ -68,12 +68,7 @@ let () =
   (* term = (1 : int.{opt?: string}).foo *)
   let typ = Type.meth ~optional:true "opt" ([], Lang.string_t) Lang.int_t in
   let term =
-    {
-      Term.t = typ;
-      term = `Ground (Term.Ground.Int 1);
-      methods = Term.Methods.empty;
-      id = 123;
-    }
+    { Term.t = typ; term = `Int 1; methods = Term.Methods.empty; id = 123 }
   in
   let invoke =
     {

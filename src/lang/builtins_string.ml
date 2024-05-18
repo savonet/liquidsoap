@@ -19,7 +19,7 @@ let string =
       in
       let v = if show_fields then v else dv in
       match v with
-        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
+        | { Lang.value = Lang.(String s); _ } -> Lang.string s
         | v -> Lang.string (Value.to_string v))
 
 let _ =

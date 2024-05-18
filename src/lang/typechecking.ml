@@ -35,7 +35,7 @@ let value_restriction t =
       | `Fun _ -> true
       | `Null -> true
       | `List l | `Tuple l -> List.for_all value_restriction l
-      | `Ground _ -> true
+      | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> true
       | `Let l -> value_restriction l.def && value_restriction l.body
       | `Cast (t, _) -> value_restriction t
       (* | Invoke (t, _) -> value_restriction t *)
@@ -102,9 +102,7 @@ let rec type_of_pat ~level ~pos = function
         ty
         <: List.fold_left
              (fun ty (label, _) ->
-               Type.meth ~optional:true label
-                 ([], Type.make ?pos Ground_type.never)
-                 ty)
+               Type.meth ~optional:true label ([], Type.make ?pos Type.Never) ty)
              (Type.var ~level ?pos ()) l);
       let env, ty =
         List.fold_left
@@ -186,7 +184,11 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let base_type = Type.var () in
   let () =
     match e.term with
-      | `Ground g -> base_type >: mk (Ground.to_descr g)
+      | `Int _ -> base_type >: mk Int
+      | `Float _ -> base_type >: mk Float
+      | `String _ -> base_type >: mk String
+      | `Bool _ -> base_type >: mk Bool
+      | `Custom g -> base_type >: mk (Custom.to_descr g)
       | `Encoder f ->
           (* Ensure that we only use well-formed terms. *)
           let rec check_enc (_, p) =

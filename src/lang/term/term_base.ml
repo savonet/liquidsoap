@@ -24,6 +24,9 @@
 
 include Runtime_term
 
+type encoder = t Runtime_term.encoder
+type encoder_params = t Runtime_term.encoder_params
+
 (** An internal error. Those should not happen in theory... *)
 exception Internal_error of (Pos.t list * string)
 
@@ -70,170 +73,7 @@ let ref_t ?pos t =
 
 (** {2 Terms} *)
 
-module Ground = struct
-  type t = ground = ..
-
-  type 'a comparison_op = {
-    eq : 'a -> 'a -> bool;
-    neq : 'a -> 'a -> bool;
-    lte : 'a -> 'a -> bool;
-    lt : 'a -> 'a -> bool;
-    gte : 'a -> 'a -> bool;
-    gt : 'a -> 'a -> bool;
-  }
-
-  type content = {
-    descr : t -> string;
-    to_json : pos:Pos.t list -> t -> Json.t;
-    compare : t -> t -> int;
-    comparison_op : t comparison_op option;
-    typ : (module Type.Ground.Custom);
-  }
-
-  let handlers = Hashtbl.create 10
-
-  let register matcher c =
-    let module C = (val c.typ : Type.Ground.Custom) in
-    Hashtbl.replace handlers C.Type (c, matcher)
-
-  exception Found of content
-
-  let find v =
-    try
-      Hashtbl.iter
-        (fun _ (c, matcher) -> if matcher v then raise (Found c))
-        handlers;
-      raise Not_found
-    with Found c -> c
-
-  let to_string (v : t) = (find v).descr v
-  let to_json (v : t) = (find v).to_json v
-
-  let to_descr (v : t) =
-    let module C = (val (find v).typ : Type.Ground.Custom) in
-    C.descr
-
-  let to_type (v : t) =
-    let module C = (val (find v).typ : Type.Ground.Custom) in
-    C.Type
-
-  let compare (v : t) = (find v).compare v
-
-  type t +=
-    | Bool of bool
-    | Int of int
-    | OctalInt of int
-    | HexInt of int
-    | String of string
-    | Float of float
-
-  let () =
-    let compare conv v v' = Stdlib.compare (conv v) (conv v') in
-    let to_bool = function Bool b -> b | _ -> assert false in
-    let to_string b = string_of_bool (to_bool b) in
-    let to_json ~pos:_ b = `Bool (to_bool b) in
-    register
-      (function Bool _ -> true | _ -> false)
-      {
-        descr = to_string;
-        to_json;
-        compare = compare to_bool;
-        comparison_op = None;
-        typ = (module Type.Ground.Bool : Type.Ground.Custom);
-      };
-
-    let to_int = function
-      | Int i | OctalInt i | HexInt i -> i
-      | _ -> assert false
-    in
-    let to_string = function
-      | Int i -> string_of_int i
-      | OctalInt i -> Printf.sprintf "0o%o" i
-      | HexInt i -> Printf.sprintf "0x%x" i
-      | _ -> assert false
-    in
-    let to_json ~pos:_ i = `Int (to_int i) in
-    register
-      (function Int _ | OctalInt _ | HexInt _ -> true | _ -> false)
-      {
-        descr = to_string;
-        to_json;
-        compare = compare to_int;
-        comparison_op = None;
-        typ = (module Type.Ground.Int : Type.Ground.Custom);
-      };
-
-    let to_string = function
-      | String s -> Lang_string.quote_string s
-      | _ -> assert false
-    in
-    let to_json ~pos:_ = function String s -> `String s | _ -> assert false in
-    register
-      (function String _ -> true | _ -> false)
-      {
-        descr = to_string;
-        to_json;
-        compare = compare (function String s -> s | _ -> assert false);
-        comparison_op = None;
-        typ = (module Type.Ground.String : Type.Ground.Custom);
-      };
-    let to_float = function Float f -> f | _ -> assert false in
-    let to_json ~pos:_ f = `Float (to_float f) in
-    register
-      (function Float _ -> true | _ -> false)
-      {
-        descr = (fun f -> string_of_float (to_float f));
-        to_json;
-        compare = compare to_float;
-        comparison_op =
-          Some
-            {
-              eq = (fun v v' -> to_float v = to_float v');
-              neq = (fun v v' -> to_float v <> to_float v');
-              lte = (fun v v' -> to_float v <= to_float v');
-              lt = (fun v v' -> to_float v < to_float v');
-              gte = (fun v v' -> to_float v >= to_float v');
-              gt = (fun v v' -> to_float v > to_float v');
-            };
-        typ = (module Type.Ground.Float : Type.Ground.Custom);
-      }
-end
-
-module type GroundDef = sig
-  type content
-
-  val descr : content -> string
-  val to_json : pos:Pos.t list -> content -> Json.t
-  val compare : content -> content -> int
-  val comparison_op : content Ground.comparison_op option
-  val typ : (module Type.Ground.Custom)
-end
-
-module MkGround (D : GroundDef) = struct
-  type Ground.t += Ground of D.content
-
-  let () =
-    let to_ground = function Ground g -> g | _ -> assert false in
-    let to_json ~pos v = D.to_json ~pos (to_ground v) in
-    let compare v v' = D.compare (to_ground v) (to_ground v') in
-    let comparison_op =
-      Option.map
-        (fun { Ground.eq; neq; lte; lt; gte; gt } ->
-          {
-            Ground.eq = (fun v v' -> eq (to_ground v) (to_ground v'));
-            neq = (fun v v' -> neq (to_ground v) (to_ground v'));
-            gte = (fun v v' -> gte (to_ground v) (to_ground v'));
-            gt = (fun v v' -> gt (to_ground v) (to_ground v'));
-            lte = (fun v v' -> lte (to_ground v) (to_ground v'));
-            lt = (fun v v' -> lt (to_ground v) (to_ground v'));
-          })
-        D.comparison_op
-    in
-    let descr v = D.descr (to_ground v) in
-    Ground.register
-      (function Ground _ -> true | _ -> false)
-      { Ground.typ = D.typ; to_json; compare; comparison_op; descr }
-end
+module Custom = Term_custom
 
 let unit = `Tuple []
 
@@ -241,7 +81,7 @@ let unit = `Tuple []
 let rec is_ground x =
   match x.term with
     | `List l | `Tuple l -> List.for_all is_ground l
-    | `Null | `Ground _ -> true
+    | `Null | `Int _ | `Float _ | `String _ | `Bool _ -> true
     | _ -> false
 
 let rec string_of_pat = function
@@ -273,7 +113,14 @@ let rec string_of_pat = function
 let rec to_string (v : t) =
   let to_base_string (v : t) =
     match v.term with
-      | `Ground g -> Ground.to_string g
+      | `Custom c -> Custom.to_string c
+      | `Int i ->
+          if has_flag v octal_int then Printf.sprintf "0o%o" i
+          else if has_flag v hex_int then Printf.sprintf "0x%x" i
+          else string_of_int i
+      | `Float f -> string_of_float f
+      | `Bool b -> string_of_bool b
+      | `String s -> Lang_string.quote_string s
       | `Encoder e ->
           let rec aux (e, p) =
             let p =
@@ -330,9 +177,9 @@ let id =
   let counter = Atomic.make 0 in
   fun () -> Atomic.fetch_and_add counter 1
 
-let make ?pos ?t ?(methods = Methods.empty) e =
+let make ?pos ?t ?(flags = 0) ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  { t; term = e; methods; id = id () }
+  { t; term = e; methods; flags; id = id () }
 
 let rec free_vars_pat = function
   | `PVar [] -> assert false
@@ -381,7 +228,7 @@ let rec bound_vars_pat = function
 
 let rec free_term_vars tm =
   let root_free_vars = function
-    | `Ground _ -> Vars.empty
+    | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> Vars.empty
     | `Var x -> Vars.singleton x
     | `Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
@@ -485,7 +332,8 @@ let check_unused ~throw ~lib tm =
     in
     match tm.term with
       | `Var s -> Vars.remove s v
-      | `Ground _ -> v
+      | `Int _ | `Float _ | `String _ | `Bool _ -> v
+      | `Custom _ -> v
       | `Tuple l -> List.fold_left (fun a -> check a) v l
       | `Null -> v
       | `Cast (e, _) -> check v e
@@ -557,82 +405,57 @@ let check_unused ~throw ~lib tm =
   (* Unused free variables may remain *)
   ignore (check ~toplevel:true Vars.empty tm)
 
-(* Abstract types. *)
+(* Custom types. *)
 
-module type Abstract = sig
+module type Custom = sig
   type content
 
   val t : Type.t
-  val to_ground : content -> Ground.t
-  val of_ground : Ground.t -> content
-  val is_ground : Ground.t -> bool
+  val to_custom : content -> Custom.t
+  val of_custom : Custom.t -> content
+  val is_custom : Custom.t -> bool
   val to_term : content -> t
   val of_term : t -> content
   val is_term : t -> bool
 end
 
-module type AbstractDef = sig
+module type CustomDef = sig
   type content
 
   val name : string
+  val to_string : content -> string
   val to_json : pos:Pos.t list -> content -> Json.t
-  val descr : content -> string
   val compare : content -> content -> int
-  val comparison_op : content Ground.comparison_op option
 end
 
-module MkAbstract (Def : AbstractDef) = struct
-  module T = Type.Ground.Make (struct
+module MkCustom (Def : CustomDef) = struct
+  type custom += Term of Def.content
+
+  module T = Type.Custom.Make (struct
     let name = Def.name
   end)
 
-  type Ground.t += Value of Def.content
+  include Custom.Make (struct
+    include Def
 
-  let () =
-    let to_value = function Value v -> v | _ -> assert false in
-    let compare v v' = Def.compare (to_value v) (to_value v') in
-    let comparison_op =
-      Option.map
-        (fun { Ground.eq; neq; lte; lt; gte; gt } ->
-          {
-            Ground.eq = (fun v v' -> eq (to_value v) (to_value v'));
-            neq = (fun v v' -> neq (to_value v) (to_value v'));
-            gte = (fun v v' -> gte (to_value v) (to_value v'));
-            gt = (fun v v' -> gt (to_value v) (to_value v'));
-            lte = (fun v v' -> lte (to_value v) (to_value v'));
-            lt = (fun v v' -> lt (to_value v) (to_value v'));
-          })
-        Def.comparison_op
-    in
-    let descr v = Def.descr (to_value v) in
-    let to_json ~pos v = Def.to_json ~pos (to_value v) in
-    Ground.register
-      (function Value _ -> true | _ -> false)
-      {
-        Ground.descr;
-        to_json;
-        compare;
-        comparison_op;
-        typ = (module T : Type.Ground.Custom);
-      }
+    let typ = (module T : Type.Custom.Implementation)
+  end)
 
-  type content = Def.content
+  let t = Type.make descr
 
-  let t = Type.make T.descr
-  let of_ground = function Value c -> c | _ -> assert false
-  let to_ground c = Value c
-  let is_ground = function Value _ -> true | _ -> false
-  let of_term t = match t.term with `Ground (Value c) -> c | _ -> assert false
+  let of_term t =
+    match t.term with `Custom c -> of_custom c | _ -> assert false
 
   let to_term c =
     {
       t = Type.make T.descr;
-      term = `Ground (Value c);
+      term = `Custom (to_custom c);
       methods = Methods.empty;
+      flags = 0;
       id = id ();
     }
 
-  let is_term t = match t.term with `Ground (Value _) -> true | _ -> false
+  let is_term t = match t.term with `Custom c -> is_custom c | _ -> false
 end
 
 module ActiveTerm = Active_value.Make (struct
@@ -648,8 +471,8 @@ let trim_runtime_types () =
   ActiveTerm.iter (fun term -> term.t <- Type.deep_demeth term.t) active_terms
 
 (** Create a new value. *)
-let make ?pos ?t ?methods e =
-  let term = make ?pos ?t ?methods e in
+let make ?pos ?t ?flags ?methods e =
+  let term = make ?pos ?t ?flags ?methods e in
   let t = match t with Some t -> t | None -> Type.var ?pos () in
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
@@ -659,10 +482,10 @@ let make ?pos ?t ?methods e =
   ActiveTerm.add active_terms term;
   term
 
-let rec fresh ~handler { t; term; methods } =
+let rec fresh ~handler { t; term; methods; flags } =
   let term =
     match term with
-      | `Ground g -> `Ground g
+      | `Int _ | `String _ | `Float _ | `Bool _ | `Custom _ -> term
       | `Tuple l -> `Tuple (List.map (fresh ~handler) l)
       | `Null -> `Null
       | `Open (t, t') -> `Open (fresh ~handler t, fresh ~handler t')
@@ -725,6 +548,7 @@ let rec fresh ~handler { t; term; methods } =
       t = Type.Fresh.make handler t;
       term;
       methods = Methods.map (fresh ~handler) methods;
+      flags;
       id = id ();
     }
   in

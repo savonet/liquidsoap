@@ -801,7 +801,7 @@ let resolve ~ctype t timeout =
 
 let peek_indicator t = (peek_indicator t).string
 
-module Value = Value.MkAbstract (struct
+module Value = Value.MkCustom (struct
   type content = t
 
   let name = "request"
@@ -810,7 +810,6 @@ module Value = Value.MkAbstract (struct
     Runtime_error.raise ~pos ~message:"Requests cannot be represented as json"
       "json"
 
-  let descr r = Printf.sprintf "<request(id=%d)>" (get_id r)
+  let to_string r = Printf.sprintf "<request(id=%d)>" (get_id r)
   let compare = Stdlib.compare
-  let comparison_op = None
 end)

@@ -21,8 +21,7 @@
  *****************************************************************************)
 
 include Value
-module Ground = Term.Ground
-open Ground
+module Custom = Term.Custom
 module Methods = Term.Methods
 
 type t = Type.t
@@ -33,16 +32,17 @@ type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
+  flags : Term.flags;
   id : int;
 }
 
 (** Type construction *)
 
-let int_t = Type.make Type.Ground.int
+let int_t = Type.make Type.Int
 let unit_t = Type.make Type.unit
-let float_t = Type.make Type.Ground.float
-let bool_t = Type.make Type.Ground.bool
-let string_t = Type.make Type.Ground.string
+let float_t = Type.make Type.Float
+let bool_t = Type.make Type.Bool
+let string_t = Type.make Type.String
 let tuple_t l = Type.make (Type.Tuple l)
 let product_t a b = tuple_t [a; b]
 
@@ -84,14 +84,16 @@ let ref_t a = Type.reference a
 
 (** Value construction *)
 
-let mk ?pos value = { pos; value; methods = Methods.empty; id = id () }
+let mk ?pos ?(flags = 0) value =
+  { pos; value; flags; methods = Methods.empty; id = id () }
+
 let unit = mk unit
-let int i = mk (Ground (Int i))
-let octal_int i = mk (Ground (OctalInt i))
-let hex_int i = mk (Ground (HexInt i))
-let bool i = mk (Ground (Bool i))
-let float i = mk (Ground (Float i))
-let string i = mk (Ground (String i))
+let int i = mk (Int i)
+let octal_int i = mk ~flags:Term.octal_int (Int i)
+let hex_int i = mk ~flags:Term.hex_int (Int i)
+let bool i = mk (Bool i)
+let float i = mk (Float i)
+let string i = mk (String i)
 let tuple l = mk (Tuple l)
 let product a b = tuple [a; b]
 let list l = mk (List l)
@@ -119,12 +121,10 @@ let val_cst_fun p c =
   match c.value with
     | Null -> f (Type.var ()) `Null
     | Tuple [] -> f (Type.make Type.unit) Term.unit
-    | Ground (Int i) -> f (mkg Type.Ground.int) (`Ground (Term.Ground.Int i))
-    | Ground (Bool i) -> f (mkg Type.Ground.bool) (`Ground (Term.Ground.Bool i))
-    | Ground (Float i) ->
-        f (mkg Type.Ground.float) (`Ground (Term.Ground.Float i))
-    | Ground (String i) ->
-        f (mkg Type.Ground.string) (`Ground (Term.Ground.String i))
+    | Int i -> f (mkg Type.Int) (`Int i)
+    | Bool i -> f (mkg Type.Bool) (`Bool i)
+    | Float i -> f (mkg Type.Float) (`Float i)
+    | String i -> f (mkg Type.String) (`String i)
     | _ -> mk (FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
 let reference get set =
@@ -177,6 +177,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
             ffi_fn = f;
           };
       methods = Methods.empty;
+      flags = 0;
       id = id ();
     }
   in
@@ -265,7 +266,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
 
 let add_builtin_base ~category ~descr ?flags ?base name value t =
   add_builtin_value ~category ~descr ?flags ?base name
-    { pos = t.Type.pos; value; methods = Methods.empty; id = id () }
+    { pos = t.Type.pos; value; methods = Methods.empty; flags = 0; id = id () }
     t
 
 let add_module ?base name =
@@ -284,16 +285,14 @@ let apply f p = !apply_fun f p
 (** {1 High-level manipulation of values} *)
 
 let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
-let to_bool t = match t.value with Ground (Bool b) -> b | _ -> assert false
+let to_bool t = match t.value with Bool b -> b | _ -> assert false
 
 let to_bool_getter t =
   match t.value with
-    | Ground (Bool b) -> fun () -> b
+    | Bool b -> fun () -> b
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (Bool b) -> b
-            | _ -> assert false)
+          match (apply t []).value with Bool b -> b | _ -> assert false)
     | _ -> assert false
 
 let to_fun f =
@@ -301,51 +300,37 @@ let to_fun f =
     | Fun _ | FFI _ -> fun args -> apply f args
     | _ -> assert false
 
-let to_string t =
-  match t.value with Ground (String s) -> s | _ -> assert false
+let to_string t = match t.value with String s -> s | _ -> assert false
 
 let to_string_getter t =
   match t.value with
-    | Ground (String s) -> fun () -> s
+    | String s -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (String s) -> s
-            | _ -> assert false)
+          match (apply t []).value with String s -> s | _ -> assert false)
     | _ -> assert false
 
-let to_float t = match t.value with Ground (Float s) -> s | _ -> assert false
+let to_float t = match t.value with Float s -> s | _ -> assert false
 
 let to_float_getter t =
   match t.value with
-    | Ground (Float s) -> fun () -> s
+    | Float s -> fun () -> s
     | Fun _ | FFI _ -> (
         fun () ->
-          match (apply t []).value with
-            | Ground (Float s) -> s
-            | _ -> assert false)
+          match (apply t []).value with Float s -> s | _ -> assert false)
     | _ -> assert false
 
-let to_int t =
-  match t.value with
-    | Ground (Int s) | Ground (OctalInt s) | Ground (HexInt s) -> s
-    | _ -> assert false
+let to_int t = match t.value with Int s -> s | _ -> assert false
 
 let to_int_getter t =
   match t.value with
-    | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> fun () -> n
+    | Int n -> fun () -> n
     | Fun _ | FFI _ -> (
-        fun () ->
-          match (apply t []).value with
-            | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> n
-            | _ -> assert false)
+        fun () -> match (apply t []).value with Int n -> n | _ -> assert false)
     | _ -> assert false
 
 let to_num t =
-  match t.value with
-    | Ground (Int n) | Ground (OctalInt n) | Ground (HexInt n) -> `Int n
-    | Ground (Float x) -> `Float x
-    | _ -> assert false
+  match t.value with Int n -> `Int n | Float x -> `Float x | _ -> assert false
 
 let to_list t = match t.value with List l -> l | _ -> assert false
 let to_tuple t = match t.value with Tuple l -> l | _ -> assert false

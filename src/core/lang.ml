@@ -23,7 +23,7 @@ let format_t t =
        { Type.constructor = "format"; Type.params = [(`Invariant, t)] })
 
 module HttpTransport = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Http.transport
 
     let name = "http_transport"
@@ -32,9 +32,8 @@ module HttpTransport = struct
       Runtime_error.raise ~pos
         ~message:"Http transport cannot be represented as json" "json"
 
-    let descr transport = Printf.sprintf "<%s_transport>" transport#name
+    let to_string transport = Printf.sprintf "<%s_transport>" transport#name
     let compare = Stdlib.compare
-    let comparison_op = None
   end)
 
   let meths =
