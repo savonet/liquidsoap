@@ -66,10 +66,6 @@ let id =
 let has_flag { flags } flag = flags land flag <> 0
 let unit : in_value = Tuple []
 
-let string_of_float f =
-  let s = string_of_float f in
-  if s.[String.length s - 1] = '.' then s ^ "0" else s
-
 let rec to_string v =
   let base_string v =
     match v.value with
@@ -77,7 +73,7 @@ let rec to_string v =
           if has_flag v Term.octal_int then Printf.sprintf "0o%o" i
           else if has_flag v Term.hex_int then Printf.sprintf "0x%x" i
           else string_of_int i
-      | Float f -> Printf.sprintf "%f" f
+      | Float f -> Utils.string_of_float f
       | Bool b -> string_of_bool b
       | String s -> Lang_string.quote_string s
       | Custom g -> Custom.to_string g

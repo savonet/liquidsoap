@@ -50,3 +50,7 @@ let check_readable ?current_dir ~pos path =
       ~message:("File is not readable!" ^ details)
       "not_found";
   resolved_path
+
+let string_of_float f =
+  let s = Printf.sprintf "%g" f in
+  if not (String.contains s '.' || String.contains s 'e') then s ^ ".0" else s
