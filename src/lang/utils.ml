@@ -52,5 +52,5 @@ let check_readable ?current_dir ~pos path =
   resolved_path
 
 let string_of_float f =
-  let s = Printf.sprintf "%g" f in
-  if not (String.contains s '.' || String.contains s 'e') then s ^ ".0" else s
+  let s = string_of_float f in
+  if s.[String.length s - 1] = '.' then s ^ "0" else s
