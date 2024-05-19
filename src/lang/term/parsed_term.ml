@@ -184,7 +184,7 @@ and parsed_ast =
   | `Include of inc
   | `Int of string
   | `Bool of bool
-  | `Float of bool * string * string
+  | `Float of string
   | `String of char * string
   | `Block of t
   | `Parenthesis of t

@@ -457,9 +457,7 @@ let rec to_ast_json ~to_json = function
         ]
   | `Bool b -> ast_node ~typ:"ground" [("value", `String (string_of_bool b))]
   | `Int i -> ast_node ~typ:"ground" [("value", `String i)]
-  | `Float (sign, ipart, fpart) ->
-      ast_node ~typ:"ground"
-        [("value", `String ((if sign then "" else "-") ^ ipart ^ "." ^ fpart))]
+  | `Float v -> ast_node ~typ:"ground" [("value", `String v)]
   | `Parenthesis tm -> ast_node ~typ:"parenthesis" [("value", to_json tm)]
   | `Block tm -> ast_node ~typ:"block" [("value", to_json tm)]
   | `String (c, s) ->

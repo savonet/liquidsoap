@@ -374,7 +374,7 @@ let rec deprecated_of_json d j =
       | String _, `String s -> string s
       (* Be liberal and allow casting basic types to string. *)
       | String _, `Int i -> string (string_of_int i)
-      | String _, `Float x -> string (string_of_float x)
+      | String _, `Float x -> string (Utils.string_of_float x)
       | String _, `Bool b -> string (string_of_bool b)
       | List [], `Tuple [] -> list []
       | List (d :: _), `Tuple l ->

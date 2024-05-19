@@ -28,6 +28,8 @@ type processor =
 open Parsed_term
 include Runtime_term
 
+exception Float_parsed of float
+
 let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
 let render_string ~pos ~sep s = Lexer.render_string ~pos ~sep s
 let mk = Term.make
@@ -853,14 +855,11 @@ let rec to_ast ~pos : parsed_ast -> Term.ast = function
   | `String (sep, s) -> `String (render_string ~pos ~sep s)
   | `Bool _ as ast -> ast
   | `Int i -> `Int (int_of_string i)
-  | `Float (sign, ipart, fpart) ->
-      let fpart =
-        let fpart = String.(concat "" (split_on_char '_' fpart)) in
-        if fpart = "" then 0.
-        else float_of_string fpart /. (10. ** float_of_int (String.length fpart))
-      in
-      let ipart = if ipart = "" then 0. else float_of_string ipart in
-      `Float ((if sign then 1. else -1.) *. (ipart +. fpart))
+  | `Float f -> (
+      try
+        ignore (Scanf.sscanf f "%f" (fun v -> raise (Float_parsed v)));
+        parse_error ~pos (Printf.sprintf "Invalid float value: %s" f)
+      with Float_parsed f -> `Float f)
   | `Eof -> `Tuple []
   | `Null -> `Null
   | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ~pos typ)

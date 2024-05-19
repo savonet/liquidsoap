@@ -35,7 +35,7 @@ open Parser_helper
 %token <char * string > STRING
 %token <string * char list > REGEXP
 %token <string> INT PP_INT_DOT_LCUR
-%token <string * string> FLOAT
+%token <string> FLOAT
 %token <bool> BOOL
 %token <Parsed_term.time_el> TIME
 %token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
@@ -216,7 +216,7 @@ expr:
   | INT                              { mk ~pos:$loc (`Int $1) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
   | BOOL                             { mk ~pos:$loc (`Bool $1) }
-  | FLOAT                            { mk ~pos:$loc (`Float (true, fst $1, snd $1)) }
+  | FLOAT                            { mk ~pos:$loc (`Float $1) }
   | STRING                           { mk ~pos:$loc (`String $1) }
   | string_interpolation             { mk ~pos:$loc (`String_interpolation $1) }
   | VAR                              { mk ~pos:$loc (`Var $1) }
@@ -348,12 +348,12 @@ ty_content_args:
 ty_content_arg:
   | VAR                  { ("", `Verbatim $1) }
   | INT                  { ("", `Verbatim $1) }
-  | FLOAT                { ("", `Verbatim (fst $1 ^ "." ^ snd $1)) }
+  | FLOAT                { ("", `Verbatim $1) }
   | STRING               { ("", `String ($loc($1), $1)) }
   | VAR GETS VAR         { ($1, `Verbatim $3) }
   | VAR GETS STRING      { ($1, `String ($loc($3), $3)) }
   | VAR GETS INT         { ($1, `Verbatim $3) }
-  | VAR GETS FLOAT       { ($1, `Verbatim (fst $3 ^ "." ^ snd $3)) }
+  | VAR GETS FLOAT       { ($1, `Verbatim $3) }
 
 ty_tuple:
   | ty TIMES ty { [$1; $3] }
@@ -647,7 +647,7 @@ if_version_op:
 if_version_version:
   | VERSION  { $1 }
   | INT      { Lang_string.Version.of_string $1 }
-  | FLOAT    { Lang_string.Version.of_string (fst $1 ^ "." ^ snd $1) }
+  | FLOAT    { Lang_string.Version.of_string $1 }
 
 if_version:
   | PP_IFVERSION if_version_op if_version_version exprs PP_ENDIF { {
@@ -679,7 +679,7 @@ annotate_key:
 
 annotate_value:
   | INT { $1 }
-  | FLOAT { fst $1 ^ "." ^ snd $1 }
+  | FLOAT { $1 }
   | BOOL { string_of_bool $1 }
   | VAR { $1 }
   | STRING { render_string ~pos:$loc $1 }
