@@ -118,7 +118,7 @@ let rec to_string (v : t) =
           if has_flag v octal_int then Printf.sprintf "0o%o" i
           else if has_flag v hex_int then Printf.sprintf "0x%x" i
           else string_of_int i
-      | `Float f -> string_of_float f
+      | `Float f -> Printf.sprintf "%f" f
       | `Bool b -> string_of_bool b
       | `String s -> Lang_string.quote_string s
       | `Encoder e ->
