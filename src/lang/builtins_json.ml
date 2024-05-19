@@ -183,7 +183,7 @@ let rec value_of_typed_json ~ty json =
                    in
                    raise (Failed (nullable, `Tuple l)))
                t)
-      | `String s, Type.Int -> Lang.string s
+      | `String s, Type.String -> Lang.string s
       | `Bool b, Type.Bool -> Lang.bool b
       | `Float f, Type.Float -> Lang.float f
       | `Int i, Type.Float -> Lang.float (float i)
