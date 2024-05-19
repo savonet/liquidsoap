@@ -60,7 +60,7 @@ let ord_constr =
         let m, b = split_meths b in
         match b.descr with
           | Var _ -> satisfies b
-          | Custom _ | Int | Float | String | Bool -> ()
+          | Custom _ | Int | Float | String | Bool | Never -> ()
           | Tuple [] ->
               (* For records, we want to ensure that all fields are ordered. *)
               List.iter
