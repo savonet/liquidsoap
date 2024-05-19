@@ -20,34 +20,68 @@
 
  *****************************************************************************)
 
+type op = {
+  name : string;
+  value_op : int -> bool;
+  ground_op : 'a. 'a -> 'a -> bool;
+}
+
+let operators =
+  [
+    {
+      name = "==";
+      value_op = (fun c -> c = 0);
+      ground_op = (fun c c' -> c = c');
+    };
+    {
+      name = "!=";
+      value_op = (fun c -> c <> 0);
+      ground_op = (fun c c' -> c <> c');
+    };
+    {
+      name = "<";
+      value_op = (fun c -> c = -1);
+      ground_op = (fun c c' -> c < c');
+    };
+    {
+      name = "<=";
+      value_op = (fun c -> c <> 1);
+      ground_op = (fun c c' -> c <= c');
+    };
+    {
+      name = ">=";
+      value_op = (fun c -> c <> -1);
+      ground_op = (fun c c' -> c >= c');
+    };
+    {
+      name = ">";
+      value_op = (fun c -> c = 1);
+      ground_op = (fun c c' -> c > c');
+    };
+  ]
+
 let () =
   let t = Lang.univ_t ~constraints:[Type.ord_constr] () in
-  let register_op ~ground_op name op =
-    ignore
-      (Lang.add_builtin name ~category:`Bool
-         ~descr:"Comparison of comparable values."
-         [("", t, None, None); ("", t, None, None)]
-         Lang.bool_t
-         (fun p ->
-           let v = Lang.assoc "" 1 p in
-           let v' = Lang.assoc "" 2 p in
-           Lang.bool
-             (match (v.Value.value, v'.Value.value) with
-               | Value.Custom g, Value.Custom g' ->
-                   op (Term.Custom.compare g g')
-               | (Value.Int _ as v), (Value.Int _ as v')
-               | (Value.Float _ as v), (Value.Float _ as v')
-               | (Value.String _ as v), (Value.String _ as v')
-               | (Value.Bool _ as v), (Value.Bool _ as v') ->
-                   ground_op v v'
-               | _ -> op (Value.compare v v'))))
-  in
-  register_op ~ground_op:(fun c c' -> c == c') "==" (fun c -> c = 0);
-  register_op ~ground_op:(fun c c' -> c <> c') "!=" (fun c -> c <> 0);
-  register_op ~ground_op:(fun c c' -> c < c') "<" (fun c -> c = -1);
-  register_op ~ground_op:(fun c c' -> c <= c') "<=" (fun c -> c <> 1);
-  register_op ~ground_op:(fun c c' -> c >= c') ">=" (fun c -> c <> -1);
-  register_op ~ground_op:(fun c c' -> c > c') ">" (fun c -> c = 1)
+  List.iter
+    (fun { name; value_op; ground_op } ->
+      ignore
+        (Lang.add_builtin name ~category:`Bool
+           ~descr:"Comparison of comparable values."
+           [("", t, None, None); ("", t, None, None)]
+           Lang.bool_t
+           (fun p ->
+             let v = Lang.assoc "" 1 p in
+             let v' = Lang.assoc "" 2 p in
+             Lang.bool
+               (match (v.Value.value, v'.Value.value) with
+                 | Value.Custom g, Value.Custom g' ->
+                     value_op (Term.Custom.compare g g')
+                 | Value.Int v, Value.Int v' -> ground_op v v'
+                 | Value.Float v, Value.Float v' -> ground_op v v'
+                 | Value.String v, Value.String v' -> ground_op v v'
+                 | Value.Bool v, Value.Bool v' -> ground_op v v'
+                 | _ -> value_op (Value.compare v v')))))
+    operators
 
 let _ =
   Lang.add_builtin "and" ~category:`Bool
