@@ -660,6 +660,7 @@ end
 
 # Simple transition for crossfade
 # @category Source / Fade
+# @param ~log Logging utility
 # @param ~fade_in  Fade-in duration, if any.
 # @param ~fade_out Fade-out duration, if any.
 # @param ~initial_fade_in_metadata Initial fade-in metadata
@@ -667,6 +668,7 @@ end
 # @param a Ending track
 # @param b Starting track
 def cross.simple(
+  ~log,
   ~fade_in=3.,
   ~fade_out=3.,
   ~initial_fade_in_metadata=[],
@@ -674,6 +676,37 @@ def cross.simple(
   a,
   b
 ) =
+  fade_out_start_next =
+    if
+      list.assoc.mem("liq_fade_out_start_next", initial_fade_out_metadata)
+    then
+      float_of_string(initial_fade_out_metadata["liq_fade_out_start_next"])
+    else
+      0.
+    end
+
+  fade_in_delay =
+    if
+      list.assoc.mem("liq_fade_in_duration", initial_fade_in_metadata)
+    then
+      float_of_string(initial_fade_in_metadata["liq_fade_in_duration"])
+    else
+      fade_out_start_next
+    end
+
+  fade_in_delay =
+    if
+      source.duration(b) < source.duration(a)
+    then
+      delay = source.duration(a) - source.duration(b)
+      log(
+        "Adding #{delay} of fade_in_delay to match ending source"
+      )
+      fade_in_delay + delay
+    else
+      fade_in_delay
+    end
+
   def fade.out(s) =
     fade.out(
       type="sin",
@@ -689,145 +722,17 @@ def cross.simple(
       type="sin",
       persist_overrides=true,
       duration=fade_in,
-      initial_metadata=initial_fade_in_metadata,
+      initial_metadata=
+        [
+          ...list.assoc.remove("liq_fade_in_delay", initial_fade_in_metadata),
+          ("liq_fade_in_delay", "#{fade_in_delay}")
+        ],
       s
     )
   end
 
   add = fun (a, b) -> add(normalize=false, [b, a])
   add(fade.out(a), fade.in(b))
-end
-
-# Smart transition for crossfade
-# @category Source / Fade
-# @param ~log Default logger
-# @param ~fade_in  Fade-in duration, if any.
-# @param ~fade_out Fade-out duration, if any.
-# @param ~high     Value, in dB, for loud sound level.
-# @param ~medium   Value, in dB, for medium sound level.
-# @param ~margin   Margin to detect sources that have too different sound level for crossing.
-# @param ~default Smart crossfade: transition used when no rule applies (default: sequence).
-# @param a Ending track
-# @param b Starting track
-def cross.smart(
-  ~log=fun (x) -> log(label="cross.smart", x),
-  ~fade_in=3.,
-  ~fade_out=3.,
-  ~default=(fun (a, b) -> (sequence([a, b]) : source)),
-  ~high=-15.,
-  ~medium=-32.,
-  ~margin=4.,
-  a,
-  b
-) =
-  def fade.out(s) =
-    fade.out(
-      persist_overrides=true,
-      type="sin",
-      duration=fade_out,
-      initial_metadata=s.metadata,
-      s.source
-    )
-  end
-
-  def fade.in(s) =
-    fade.in(
-      persist_overrides=true,
-      type="sin",
-      duration=fade_in,
-      initial_metadata=s.metadata,
-      s.source
-    )
-  end
-
-  add = fun (a, b) -> add(normalize=false, [b, a])
-
-  if
-    # If A and B are not too loud and close, fully cross-fade them.
-    a.db_level <= medium
-  and
-    b.db_level <= medium
-  and
-    abs(a.db_level - b.db_level) <= margin
-  then
-    log(
-      "Old <= medium, new <= medium and |old-new| <= margin."
-    )
-    log(
-      "Old and new source are not too loud and close."
-    )
-    log(
-      "Transition: crossed, fade-in, fade-out."
-    )
-    add(fade.out(a), fade.in(b))
-  elsif
-    # If B is significantly louder than A, only fade-out A.
-    # We don't want to fade almost silent things, ask for >medium.
-    b.db_level >= a.db_level + margin
-  and
-    a.db_level >= medium
-  and
-    b.db_level <= high
-  then
-    log(
-      "new >= old + margin, old >= medium and new <= high."
-    )
-    log(
-      "New source is significantly louder than old one."
-    )
-    log(
-      "Transition: crossed, fade-out."
-    )
-    add(fade.out(a), b.source)
-  elsif
-    # Opposite as the previous one.
-    a.db_level >= b.db_level + margin
-  and
-    b.db_level >= medium
-  and
-    a.db_level <= high
-  then
-    log(
-      "old >= new + margin, new >= medium and old <= high"
-    )
-    log(
-      "Old source is significantly louder than new one."
-    )
-    log(
-      "Transition: crossed, fade-in."
-    )
-    add(a.source, fade.in(b))
-  elsif
-    # Do not fade if it's already very low.
-    b.db_level >= a.db_level + margin
-  and
-    a.db_level <= medium
-  and
-    b.db_level <= high
-  then
-    log(
-      "new >= old + margin, old <= medium and new <= high."
-    )
-    log(
-      "Do not fade if it's already very low."
-    )
-    log(
-      "Transition: crossed, no fade."
-    )
-    add(a.source, b.source)
-
-    # What to do with a loud end and a quiet beginning ?
-    # A good idea is to use a jingle to separate the two tracks,
-    # but that's another story.
-  else
-    # Otherwise, A and B are just too loud to overlap nicely, or the
-    # difference between them is too large and overlapping would completely
-    # mask one of them.
-    log(
-      "No transition: using default."
-    )
-    default(a.source, b.source)
-  end
 end
 
 # @docof cross
@@ -842,54 +747,34 @@ def replaces cross(%argsof(cross), ~deduplicate=true, transition, s) =
     s = cross(%argsof(cross[!id]), transition, s)
     dedup = metadata.deduplicate(s)
 
-    dedup.{buffered=s.buffered, cross_duration=s.cross_duration}
+    dedup.{
+      buffered=s.buffered,
+      start_duration=s.start_duration,
+      end_duration=s.end_duration
+    }
   end
 end
 
 # Crossfade between tracks, taking the respective volume levels into account in
 # the choice of the transition.
 # @category Source / Fade
-# @param ~id           Force the value of the source ID.
-# @param ~duration     Duration (in seconds) of buffered data from each track \
-#                      that is used to compute the transition between tracks.
-# @param ~override_duration \
-#                      Metadata field which, if present and containing a \
-#                      float, overrides the 'duration' parameter for current \
-#                      track.
-# @param ~persist_override Keep duration override on track change.
-# @param ~fade_in      Fade-in duration, if any.
-# @param ~fade_out     Fade-out duration, if any.
-# @param ~width        Width of the volume analysis window.
-# @param ~duration_margin \
-#                      Acceptable deviation from the expected duration to allow \
-#                      the computation of a proper crossfade, in percent. if buffered \
-#                      length is above or below this value, the default crossfade \
-#                      transition is used.
-# @param ~default      Transition used when no rule apply or when there is not enough \
-#                      data to compute the crossfade (default: sequence).
-# @param ~smart        Enable smart crossfading
-# @param ~high         Smart crossfade: value, in dB, for loud sound level.
-# @param ~medium       Smart crossfade: value, in dB, for medium sound level.
-# @param ~margin       Smart crossfade: margin to detect sources that have too different \
-#                      sound level for crossing.
+# @argsof cross[id,start_duration,end_duration,override_start_duration,override_end_duration,persist_override,width]
 # @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
 #                      removes duplicate metadata from the returned source.
 # @param s             The input source.
 def crossfade(
-  ~id=null(),
-  ~duration=5.,
-  ~override_duration="liq_cross_duration",
-  ~persist_override=false,
+  %argsof(cross[
+    id,
+    start_duration,
+    end_duration,
+    override_start_duration,
+    override_end_duration,
+    persist_override,
+    width]
+  ),
   ~fade_in=3.,
   ~fade_out=3.,
-  ~smart=false,
-  ~default=(fun (a, b) -> (sequence([a, b]) : source)),
-  ~high=-15.,
-  ~medium=-32.,
-  ~margin=4.,
   ~deduplicate=true,
-  ~duration_margin=0.1,
-  ~width=2.,
   s
 ) =
   id = string.id.default(default="crossfade", id)
@@ -898,7 +783,7 @@ def crossfade(
     log(label=id, level=level, x)
   end
 
-  def simple_transition(a, b) =
+  def transition(a, b) =
     list.iter(
       fun (x) ->
         log(
@@ -931,10 +816,8 @@ def crossfade(
       }"
     )
 
-    log(
-      "Simple transition: crossed, fade-in, fade-out."
-    )
     cross.simple(
+      log=log,
       fade_in=fade_in,
       fade_out=fade_out,
       initial_fade_in_metadata=b.metadata,
@@ -944,75 +827,16 @@ def crossfade(
     )
   end
 
-  def acceptable_duration(m) =
-    (1. - duration_margin) * m.expected_duration <= m.buffered
-  and
-    m.buffered <= (1. + duration_margin) * m.expected_duration
-  end
-
-  def smart_transition(a, b) =
-    list.iter(
-      fun (x) ->
-        log(
-          level=4,
-          "Before: #{x}"
-        ),
-      metadata.cover.remove(a.metadata)
-    )
-
-    log(
-      level=4,
-      "Before: expected duration: #{a.expected_duration}, buffered: #{
-        a.buffered
-      }"
-    )
-
-    list.iter(
-      fun (x) ->
-        log(
-          level=4,
-          "After : #{x}"
-        ),
-      metadata.cover.remove(b.metadata)
-    )
-
-    log(
-      level=4,
-      "After: expected duration: #{b.expected_duration}, buffered: #{
-        b.buffered
-      }"
-    )
-
-    if
-      not acceptable_duration(a) or not acceptable_duration(b)
-    then
-      log(
-        "Not enough data for crossing: using default transition"
-      )
-      default(a.source, b.source)
-    else
-      cross.smart(
-        log=log,
-        fade_in=fade_in,
-        fade_out=fade_out,
-        default=default,
-        high=high,
-        medium=medium,
-        margin=margin,
-        a,
-        b
-      )
-    end
-  end
-
-  transition = if smart then smart_transition else simple_transition end
-
   cross(
-    id=id,
-    width=width,
-    duration=duration,
-    persist_override=persist_override,
-    override_duration=override_duration,
+    %argsof(cross[
+      id,
+      start_duration,
+      end_duration,
+      override_start_duration,
+      override_end_duration,
+      persist_override,
+      width]
+    ),
     deduplicate=deduplicate,
     transition,
     s

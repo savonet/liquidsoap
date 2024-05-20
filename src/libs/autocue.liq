@@ -22,8 +22,8 @@ let settings.autocue.metadata = ()
 let settings.autocue.metadata.priority =
   settings.make(
     description=
-      "Priority for the autocue metadata resolver. Default value allows it \
-       to override both file and request metadata.",
+      "Priority for the autocue metadata resolver. Default value allows it to \
+       override both file and request metadata.",
     10
   )
 
@@ -176,7 +176,8 @@ end
 # @flag hidden
 def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
 %ifdef ffmpeg.filter.ebur128
-  duration = null.get(default=0., request.duration(resolve_metadata=false, filename))
+  duration =
+    null.get(default=0., request.duration(resolve_metadata=false, filename))
   estimated_processing_time = duration / ratio
 
   if
@@ -185,8 +186,9 @@ def autocue.internal.ebur128(~ratio=50., ~timeout=10., filename) =
     log(
       level=2,
       label="autocue.internal",
-      "Estimated processing duration is too long, autocue disabled! #{duration} \
-      / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing \
+      "Estimated processing duration is too long, autocue disabled! #{
+        duration
+      } / #{ratio} = #{estimated_processing_time} (Duration / Ratio = Processing \
        duration; max. allowed: #{timeout})"
     )
     []
@@ -227,7 +229,11 @@ end
 
 # Compute autocue data
 # @flag hidden
-def autocue.internal.implementation(~request_metadata, ~file_metadata, filename) =
+def autocue.internal.implementation(
+  ~request_metadata,
+  ~file_metadata,
+  filename
+) =
   lufs_target = settings.autocue.internal.lufs_target()
   cue_in_threshold = settings.autocue.internal.cue_in_threshold()
   cue_out_threshold = settings.autocue.internal.cue_out_threshold()
@@ -596,8 +602,9 @@ def autocue.internal.implementation(~request_metadata, ~file_metadata, filename)
             log(
               level=3,
               label="autocue.internal.sustained_ending",
-              "Sustained ending detected (drop off: #{detect_dropoff} / slope: \
-              #{detect_slope})"
+              "Sustained ending detected (drop off: #{detect_dropoff} / slope: #{
+                detect_slope
+              })"
             )
 
             if
@@ -627,14 +634,16 @@ def autocue.internal.implementation(~request_metadata, ~file_metadata, filename)
             log(
               level=4,
               label="autocue.internal.sustained_ending",
-              "Changed crossfade threshold: #{lufs_cross_threshold} => \
-              #{lufs_cross_threshold_sustained()}"
+              "Changed crossfade threshold: #{lufs_cross_threshold} => #{
+                lufs_cross_threshold_sustained()
+              }"
             )
             log(
               level=4,
               label="autocue.internal.sustained_ending",
-              "Changed cue out threshold: #{lufs_cue_out_threshold} => \
-              #{lufs_cue_out_threshold_sustained()}"
+              "Changed cue out threshold: #{lufs_cue_out_threshold} => #{
+                lufs_cue_out_threshold_sustained()
+              }"
             )
 
             cross_cue_init = cross_cue()
@@ -760,7 +769,7 @@ autocue.register(name="internal", autocue.internal.implementation)
 let file.autocue = ()
 
 # Dummy blank source for resolving requests.
-let file.autocue.blank = (blank():source(audio=pcm))
+let file.autocue.blank = (blank() : source(audio=pcm))
 
 # Return the file's autocue values as metadata suitable for metadata override.
 # @category Source / Audio processing
@@ -812,18 +821,23 @@ def file.autocue.metadata(~metadata, uri) =
   else
     autocue =
       try
-        autocue = implementation(
-          request_metadata=metadata,
-          file_metadata=request.metadata(r),
-          request.filename(r)
-        )
+        autocue =
+          implementation(
+            request_metadata=metadata,
+            file_metadata=request.metadata(r),
+            request.filename(r)
+          )
         request.destroy(r)
         autocue
-       catch err do
-         request.destroy(r)
-         log(level=2, label="autocue", "Error while processing autocue: #{err}")
-         error.raise(err)
-       end
+      catch err do
+        request.destroy(r)
+        log(
+          level=2,
+          label="autocue",
+          "Error while processing autocue: #{err}"
+        )
+        error.raise(err)
+      end
 
     if
       null.defined(autocue)
@@ -872,6 +886,8 @@ def file.autocue.metadata(~metadata, uri) =
           start_next
         end
 
+      fade_out_start_next = start_next - fade_out_start
+
       let fade_out_delay =
         if
           start_next < fade_out_start
@@ -914,14 +930,17 @@ def file.autocue.metadata(~metadata, uri) =
       [
         ("liq_autocue", implementation_name),
         ...opt_arg("liq_amplify", amplify),
-        ("liq_cross_start_next", string(start_next)),
+
         ("liq_cue_in", string(cue_in)),
         ("liq_cue_out", string(cue_out)),
-        ("liq_cross_duration", string(cross_duration)),
+        ("liq_cross_start_duration", string(cross_duration)),
+        ("liq_cross_end_duration", string(cross_duration)),
         ("liq_fade_in", string(fade_in)),
         ...opt_arg("liq_fade_in_type", fade_in_type),
         ...opt_arg("liq_fade_in_curve", fade_in_curve),
+
         ("liq_fade_out", string(fade_out)),
+        ("liq_fade_out_start_next", string(fade_out_start_next)),
         ("liq_fade_out_delay", string(fade_out_delay)),
         ...opt_arg("liq_fade_out_type", fade_out_type),
         ...opt_arg("liq_fade_out_curve", fade_out_curve),
@@ -942,12 +961,10 @@ end
 # decoded by Liquidsoap and add cue-in/out and crossfade metadata when these
 # values can be computed. This function sets `settings.request.prefetch` to `2`
 # to account for the latency introduced by the `autocue` computation when resolving
-# reausts and sets `settings.crossfade.assume_autocue` to `true` as well. For a
-# finer-grained processing, use the `autocue:` protocol.
+# reausts. For a finer-grained processing, use the `autocue:` protocol.
 # @category Liquidsoap
 def enable_autocue_metadata() =
   if settings.request.prefetch() == 1 then settings.request.prefetch := 2 end
-  settings.crossfade.assume_autocue := true
 
   def autocue_metadata(~metadata, fname) =
     autocue_metadata = file.autocue.metadata(metadata=metadata, fname)
@@ -981,8 +998,9 @@ def enable_autocue_metadata() =
             log(
               level=3,
               label="autocue.metadata",
-              "User-supplied amplify metadata detected: #{user_supplied_amplify_labels}, \
-              keeping user-provided data."
+              "User-supplied amplify metadata detected: #{
+                user_supplied_amplify_labels
+              }, keeping user-provided data."
             )
             list.assoc.remove("liq_amplify", autocue_metadata)
           elsif
@@ -991,8 +1009,9 @@ def enable_autocue_metadata() =
             log(
               level=3,
               label="autocue.metadata",
-              "User-supplied amplify metadata detected: #{user_supplied_amplify_labels}, \
-              overriding with data."
+              "User-supplied amplify metadata detected: #{
+                user_supplied_amplify_labels
+              }, overriding with data."
             )
             [
               ...list.assoc.remove("liq_amplify", autocue_metadata),
@@ -1005,8 +1024,9 @@ def enable_autocue_metadata() =
             log(
               level=2,
               label="autocue.metadata",
-              "Invalid value for `settings.autocue.amplify_behavior`: \
-              #{settings.autocue.amplify_behavior()}"
+              "Invalid value for `settings.autocue.amplify_behavior`: #{
+                settings.autocue.amplify_behavior()
+              }"
             )
             autocue_metadata
           end
@@ -1018,9 +1038,7 @@ def enable_autocue_metadata() =
     autocue_metadata
   end
   decoder.metadata.add(
-    priority=settings.autocue.metadata.priority,
-    "autocue",
-    autocue_metadata
+    priority=settings.autocue.metadata.priority, "autocue", autocue_metadata
   )
 end
 
