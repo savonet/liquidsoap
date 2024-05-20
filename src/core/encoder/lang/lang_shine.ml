@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Value
-open Ground
 
 let type_of_encoder p =
   Encoder.audio_type ~pcm_kind:Content.Audio.kind
@@ -40,19 +39,19 @@ let make params =
   let shine =
     List.fold_left
       (fun f -> function
-        | `Labelled ("stereo", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("stereo", { value = Bool b; _ }) ->
             { f with Shine_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("mono", { value = Bool b; _ }) ->
             { f with Shine_format.channels = (if b then 1 else 2) }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Shine_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Shine_format.channels = 2 }
-        | `Labelled ("channels", { value = Ground (Int i); _ }) ->
+        | `Labelled ("channels", { value = Int i; _ }) ->
             { f with Shine_format.channels = i }
-        | `Labelled ("samplerate", { value = Ground (Int i); _ }) ->
+        | `Labelled ("samplerate", { value = Int i; _ }) ->
             { f with Shine_format.samplerate = Lazy.from_val i }
-        | `Labelled ("bitrate", { value = Ground (Int i); _ }) ->
+        | `Labelled ("bitrate", { value = Int i; _ }) ->
             { f with Shine_format.bitrate = i }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Shine_format.channels = 1 }

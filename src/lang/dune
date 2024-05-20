@@ -104,7 +104,6 @@
   error
   evaluation
   extralib
-  ground_type
   hooks
   json_base
   json_lexer
@@ -135,10 +134,12 @@
   startup
   term
   term_base
+  term_custom
   term_reducer
   type
   type_base
   type_constraints
+  type_custom
   typechecking
   typing
   unifier

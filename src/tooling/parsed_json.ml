@@ -22,7 +22,6 @@
 
 open Liquidsoap_lang
 open Parsed_term
-open Parsed_term.Generic
 
 let json_of_position { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } : Json.t
     =
@@ -429,7 +428,7 @@ let rec to_ast_json ~to_json = function
   | `Infix (t, op, t') ->
       ast_node ~typ:"infix"
         [("left", to_json t); ("op", `String op); ("right", to_json t')]
-  | `Bool (op, l) ->
+  | `BoolOp (op, l) ->
       ast_node ~typ:"bool"
         [("op", `String op); ("value", `Tuple (List.map to_json l))]
   | `Simple_fun t -> ast_node ~typ:"simple_fun" [("value", to_json t)]
@@ -450,16 +449,15 @@ let rec to_ast_json ~to_json = function
                  (List.map (fun c -> `String (Char.escaped c)) flags)) );
         ]
   | `Try p -> ast_node ~typ:"try" (json_of_try ~to_json p)
-  | `Ground g ->
+  | `Custom g ->
       ast_node ~typ:"ground"
         [
           ( "value",
-            `String (Json.to_string (Term_base.Ground.to_json ~pos:[] g)) );
+            `String (Json.to_string (Term_base.Custom.to_json ~pos:[] g)) );
         ]
+  | `Bool b -> ast_node ~typ:"ground" [("value", `String (string_of_bool b))]
   | `Int i -> ast_node ~typ:"ground" [("value", `String i)]
-  | `Float (sign, ipart, fpart) ->
-      ast_node ~typ:"ground"
-        [("value", `String ((if sign then "" else "-") ^ ipart ^ "." ^ fpart))]
+  | `Float v -> ast_node ~typ:"ground" [("value", `String v)]
   | `Parenthesis tm -> ast_node ~typ:"parenthesis" [("value", to_json tm)]
   | `Block tm -> ast_node ~typ:"block" [("value", to_json tm)]
   | `String (c, s) ->

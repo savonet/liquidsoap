@@ -22,13 +22,13 @@ let should_fail t t' =
   with _ -> ()
 
 let () =
-  should_work (var ()).descr Ground.bool Ground.bool;
-  should_work Ground.bool (var ()).descr Ground.bool;
+  should_work (var ()).descr Bool Bool;
+  should_work Bool (var ()).descr Bool;
 
-  should_fail Ground.bool Ground.int;
+  should_fail Bool Int;
   should_fail
-    (List { t = make Ground.bool; json_repr = `Tuple })
-    (List { t = make Ground.int; json_repr = `Tuple });
+    (List { t = make Bool; json_repr = `Tuple })
+    (List { t = make Int; json_repr = `Tuple });
 
   let mk_meth meth ty t =
     Meth
@@ -42,19 +42,19 @@ let () =
         make t )
   in
 
-  let m = mk_meth "aa" Ground.int Ground.bool in
+  let m = mk_meth "aa" Int Bool in
 
-  should_work m Ground.bool Ground.bool;
+  should_work m Bool Bool;
 
-  let n = mk_meth "b" Ground.bool m in
+  let n = mk_meth "b" Bool m in
 
   should_work m n m;
 
-  let n = mk_meth "aa" Ground.int Ground.int in
+  let n = mk_meth "aa" Int Int in
 
   should_fail m n;
 
-  let n = mk_meth "aa" Ground.bool Ground.bool in
+  let n = mk_meth "aa" Bool Bool in
 
   should_fail m n;
 

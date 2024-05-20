@@ -22,15 +22,14 @@
 
 (** Values are untyped normal forms of terms. *)
 
-(** Ground values. *)
-module Ground = Term.Ground
-
+module Custom = Term.Custom
 module Methods = Term.Methods
 
 type t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : t Methods.t;
+  flags : Term.flags;
   id : int;
 }
 
@@ -45,7 +44,11 @@ and ffi = {
 }
 
 and in_value =
-  | Ground of Ground.t
+  | Int of int
+  | Float of float
+  | String of string
+  | Bool of bool
+  | Custom of Custom.t
   | List of t list
   | Tuple of t list
   | Null
@@ -60,16 +63,20 @@ let id =
   let counter = Atomic.make 0 in
   fun () -> Atomic.fetch_and_add counter 1
 
+let has_flag { flags } flag = flags land flag <> 0
 let unit : in_value = Tuple []
-
-let string_of_float f =
-  let s = string_of_float f in
-  if s.[String.length s - 1] = '.' then s ^ "0" else s
 
 let rec to_string v =
   let base_string v =
     match v.value with
-      | Ground g -> Ground.to_string g
+      | Int i ->
+          if has_flag v Term.octal_int then Printf.sprintf "0o%o" i
+          else if has_flag v Term.hex_int then Printf.sprintf "0x%x" i
+          else string_of_int i
+      | Float f -> Utils.string_of_float f
+      | Bool b -> string_of_bool b
+      | String s -> Lang_string.quote_string s
+      | Custom g -> Custom.to_string g
       | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | Null -> "null"
@@ -115,7 +122,11 @@ let split_meths e = (Methods.bindings e.methods, demeth e)
 
 let compare a b =
   let rec aux = function
-    | Ground a, Ground b -> Ground.compare a b
+    | Int i, Int i' -> Stdlib.compare i i'
+    | Float f, Float f' -> Stdlib.compare f f'
+    | Bool b, Bool b' -> Stdlib.compare b b'
+    | String s, String s' -> Stdlib.compare s s'
+    | Custom a, Custom b -> Custom.compare a b
     | Tuple l, Tuple m ->
         List.fold_left2
           (fun cmp a b -> if cmp <> 0 then cmp else compare a b)
@@ -163,13 +174,15 @@ let compare a b =
                      [
                        {
                          pos = None;
-                         value = Ground (Ground.String lbl);
+                         value = String lbl;
                          methods = Methods.empty;
+                         flags = 0;
                          id = id ();
                        };
                        v;
                      ];
                  methods = Methods.empty;
+                 flags = 0;
                  id = id ();
                })
              a)
@@ -185,13 +198,15 @@ let compare a b =
                      [
                        {
                          pos = None;
-                         value = Ground (Ground.String lbl);
+                         value = String lbl;
                          methods = Methods.empty;
+                         flags = 0;
                          id = id ();
                        };
                        v;
                      ];
                  methods = Methods.empty;
+                 flags = 0;
                  id = id ();
                })
              b)
@@ -201,47 +216,52 @@ let compare a b =
   in
   compare a b
 
-(* Abstract values. *)
+(* Custom values. *)
 
-module type Abstract = sig
-  include Term.Abstract
+module type Custom = sig
+  include Term.Custom
 
   val to_value : ?pos:Pos.t -> content -> t
   val of_value : t -> content
   val is_value : t -> bool
 end
 
-module type AbstractDef = Term.AbstractDef
+module type CustomDef = Term.CustomDef
 
-module MkAbstractFromTerm (Term : Term.Abstract) = struct
+module MkCustomFromTerm (Term : Term.Custom) = struct
   include Term
 
   let to_value ?pos c =
-    { pos; value = Ground (to_ground c); methods = Methods.empty; id = id () }
+    {
+      pos;
+      value = Custom (to_custom c);
+      methods = Methods.empty;
+      flags = 0;
+      id = id ();
+    }
 
   let of_value t =
     match t.value with
-      | Ground g when is_ground g -> of_ground g
+      | Custom g when is_custom g -> of_custom g
       | _ -> assert false
 
-  let is_value t = match t.value with Ground g -> is_ground g | _ -> false
+  let is_value t = match t.value with Custom g -> is_custom g | _ -> false
 end
 
-module MkAbstract (Def : AbstractDef) = struct
-  module Term = Term.MkAbstract (Def)
-  include MkAbstractFromTerm (Term)
+module MkCustom (Def : CustomDef) = struct
+  module Term = Term.MkCustom (Def)
+  include MkCustomFromTerm (Term)
 end
 
-module RuntimeType = MkAbstract (struct
+module RuntimeType = MkCustom (struct
   type content = Type.t
 
   let name = "type"
-  let descr _ = "type"
+  let to_string _ = "type"
 
   let to_json ~pos _ =
     Runtime_error.raise ~pos ~message:"Types cannot be represented as json"
       "json"
 
   let compare = Stdlib.compare
-  let comparison_op = None
 end)

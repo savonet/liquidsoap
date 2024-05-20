@@ -23,7 +23,6 @@
 (** Helper functions for the parser. *)
 
 open Parsed_term
-open Parsed_term.Generic
 module Term = Parsed_term
 module Vars = Term_base.Vars
 
@@ -114,11 +113,11 @@ let mk_clock_ty ?pos () =
 let mk_named_ty ?pos = function
   | "_" -> Type.var ?pos ()
   | "unit" -> Type.make Type.unit
-  | "never" -> Type.make Type.Ground.never
-  | "bool" -> Type.make Type.Ground.bool
-  | "int" -> Type.make Type.Ground.int
-  | "float" -> Type.make Type.Ground.float
-  | "string" -> Type.make Type.Ground.string
+  | "never" -> Type.make Type.Never
+  | "bool" -> Type.make Type.Bool
+  | "int" -> Type.make Type.Int
+  | "float" -> Type.make Type.Float
+  | "string" -> Type.make Type.String
   | "ref" -> Type.reference (Type.var ())
   | "clock" -> mk_clock_ty ?pos ()
   | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }

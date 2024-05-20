@@ -185,8 +185,8 @@ let register name osc_t liq_t =
          in
          let osc_val v =
            match v.Lang.value with
-             | Lang.(Ground (Ground.String s)) -> [Osc.Types.String s]
-             | Lang.(Ground (Ground.Float x)) -> [Osc.Types.Float32 x]
+             | Lang.(String s) -> [Osc.Types.String s]
+             | Lang.(Float x) -> [Osc.Types.Float32 x]
              | _ -> failwith "Unhandled value."
          in
          let packet =

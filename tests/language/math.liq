@@ -21,6 +21,12 @@ def test_db_lin() =
   test.equal(nan == nan, false)
   test.equal(nan != nan, true)
 
+  test.equal(1e4, 10000.0)
+  test.equal(1e+4, 10000.0)
+  test.equal(1e-4, 0.0001)
+  test.equal(1.1e-4, 0.00011)
+  test.equal(1.e-4, 0.0001)
+
   test.pass()
 end
 

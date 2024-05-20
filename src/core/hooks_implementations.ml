@@ -38,7 +38,7 @@ let render_string = function
 let mk_field_t ~pos kind params =
   match kind with
     | "any" -> Type.var ~pos ()
-    | "none" | "never" -> Type.make Type.Ground.never
+    | "none" | "never" -> Type.make Type.Never
     | _ -> (
         try
           let k = Content.kind_of_string kind in

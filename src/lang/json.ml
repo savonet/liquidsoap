@@ -99,7 +99,7 @@ let rec to_string_compact ~json5 = function
                  might want to consider using the `json5` representation."
               "json"
         | _ ->
-            let s = string_of_float f in
+            let s = Utils.string_of_float f in
             let s = Printf.sprintf "%s" s in
             if s.[String.length s - 1] = '.' then Printf.sprintf "%s0" s else s)
   | `Tuple l ->

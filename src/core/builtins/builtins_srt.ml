@@ -247,7 +247,7 @@ module Socket_value = struct
   let stats_t =
     Lang.record_t (List.map (fun (name, t, _) -> (name, t)) stats_specs)
 
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Srt.socket
 
     let name = "srt_socket"
@@ -256,9 +256,8 @@ module Socket_value = struct
       Runtime_error.raise ~pos
         ~message:"SRT socket cannot be represented as json" "json"
 
-    let descr _ = "<srt_socket>"
+    let to_string _ = "<srt_socket>"
     let compare = Stdlib.compare
-    let comparison_op = None
   end)
 
   let meths =

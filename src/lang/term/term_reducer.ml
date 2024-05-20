@@ -28,11 +28,10 @@ type processor =
 type env = (string * Runtime_term.t) list
 
 open Parsed_term
-open Parsed_term.Generic
-open Term.Ground
 include Runtime_term
 
 exception No_extra
+exception Float_parsed of float
 
 let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
 let render_string ~pos ~sep s = Lexer.render_string ~pos ~sep s
@@ -192,7 +191,7 @@ let during ~pos d =
   (t, t + d, p)
 
 let mk_time_pred ~pos (a, b, c) =
-  let args = List.map (fun x -> ("", mk ~pos (`Ground (Int x)))) [a; b; c] in
+  let args = List.map (fun x -> ("", mk ~pos (`Int x))) [a; b; c] in
   `App (mk ~pos (`Var "time_in_mod"), args)
 
 let rec get_env_args ~pos t args =
@@ -232,9 +231,15 @@ and term_of_value_base ~pos t v =
       | _ -> assert false
   in
   let process_value ~t v =
-    let mk_tm term = mk ~t:(Type.make ~pos t.Type.descr) term in
+    let mk_tm ?(flags = 0) term =
+      mk ~flags ~t:(Type.make ~pos t.Type.descr) term
+    in
     match v.Value.value with
-      | Value.Ground g -> mk_tm (`Ground g)
+      | Value.Int i -> mk_tm ~flags:v.Value.flags (`Int i)
+      | Value.Float f -> mk_tm (`Float f)
+      | Value.Bool b -> mk_tm (`Bool b)
+      | Value.String s -> mk_tm (`String s)
+      | Value.Custom g -> mk_tm (`Custom g)
       | Value.List l ->
           mk_tm
             (`List (List.map (term_of_value_base ~pos (get_list_type ())) l))
@@ -593,8 +598,8 @@ let infix_reducer ~pos ~to_term = function
       let op = mk ~pos (`Var op) in
       `App (op, [("", to_term tm); ("", to_term tm')])
 
-let bool_reducer ~pos ~to_term = function
-  | `Bool (op, tm :: terms) ->
+let bool_op_reducer ~pos ~to_term = function
+  | `BoolOp (op, tm :: terms) ->
       List.fold_left
         (fun tm tm' ->
           let op = mk ~pos (`Var op) in
@@ -602,7 +607,7 @@ let bool_reducer ~pos ~to_term = function
           let tm' = mk_fun ~pos [] (to_term tm') in
           `App (op, [("", tm); ("", tm')]))
         (to_term tm).term terms
-  | `Bool (_, []) -> assert false
+  | `BoolOp (_, []) -> assert false
 
 let simple_fun_reducer ~pos:_ ~to_term = function
   | `Simple_fun tm ->
@@ -650,11 +655,9 @@ let assoc_reducer ~pos ~to_term = function
 let regexp_reducer ~pos ~to_term:_ = function
   | `Regexp (regexp, flags) ->
       let regexp = render_string ~pos ~sep:'/' regexp in
-      let regexp = mk ~pos (`Ground (Term_base.Ground.String regexp)) in
+      let regexp = mk ~pos (`String regexp) in
       let flags = List.map Char.escaped flags in
-      let flags =
-        List.map (fun s -> mk ~pos (`Ground (Term_base.Ground.String s))) flags
-      in
+      let flags = List.map (fun s -> mk ~pos (`String s)) flags in
       let flags = mk ~pos (`List flags) in
       let op = mk ~pos (`Var "regexp") in
       `App (op, [("", regexp); ("flags", flags)])
@@ -711,7 +714,7 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let json5 =
     match List.assoc_opt "json5" args with
       | Some v -> v
-      | None -> Term.(make (`Ground (Ground.Bool false)))
+      | None -> Term.(make (`Bool false))
   in
   let parser = mk ~pos (`Var "_internal_json_parser_") in
   let def =
@@ -885,12 +888,11 @@ let rec to_encoder_params ~env ~to_term l =
 and to_encoder ~env ~to_term (lbl, params) =
   (lbl, to_encoder_params ~env ~to_term params)
 
-type no_methods = Parsed_term.t Parsed_term.Generic.no_methods_ast
-
 let rec to_ast ~env ~pos ast =
   let to_term_with_env = to_term in
   let to_term = to_term ~env in
   match ast with
+    | `Methods _ | `Block _ | `Parenthesis _ | `Eof -> assert false
     | `Include _ as ast -> (to_term (includer_reducer ~pos ast)).term
     | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
         (to_term (pp_if_reducer ~pos ~env ast)).term
@@ -906,7 +908,8 @@ let rec to_ast ~env ~pos ast =
     | `Append _ as ast -> append_reducer ~pos ~to_term ast
     | `Assoc _ as ast -> assoc_reducer ~pos ~to_term ast
     | `Infix _ as ast -> infix_reducer ~pos ~to_term ast
-    | `Bool _ as ast -> bool_reducer ~pos ~to_term ast
+    | `Bool _ as ast -> ast
+    | `BoolOp _ as ast -> bool_op_reducer ~pos ~to_term ast
     | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~to_term ast
     | `Regexp _ as ast -> regexp_reducer ~pos ~to_term ast
     | `Try _ as ast -> try_reducer ~pos ~to_term ast
@@ -914,11 +917,7 @@ let rec to_ast ~env ~pos ast =
         let l =
           List.map
             (function
-              | `String s ->
-                  `Term
-                    (mk_parsed ~pos
-                       (`Ground
-                         (Term.Ground.String (render_string ~pos ~sep s))))
+              | `String s -> `Term (mk_parsed ~pos (`String (sep, s)))
               | `Term tm ->
                   `Term
                     (mk_parsed ~pos
@@ -941,29 +940,17 @@ let rec to_ast ~env ~pos ast =
     | `At (t, t') -> `App (to_term t', [("", to_term t)])
     | `Time t -> mk_time_pred ~pos (during ~pos t)
     | `Time_interval (t, t') -> mk_time_pred ~pos (between ~pos t t')
-    | `Ground g -> `Ground g
+    | `Custom _ as ast -> ast
     | `Encoder e -> `Encoder (to_encoder ~to_term:to_term_with_env ~env e)
     | `List l -> list_reducer ~pos ~to_term (List.rev l)
     | `Tuple l -> `Tuple (List.map to_term l)
-    | `String (sep, s) -> `Ground (String (render_string ~pos ~sep s))
-    | `Int i
-      when String.length i >= 2 && String.(lowercase_ascii (sub i 0 2)) = "0x"
-      ->
-        `Ground (HexInt (int_of_string i))
-    | `Int i
-      when String.length i >= 2 && String.(lowercase_ascii (sub i 0 2)) = "0o"
-      ->
-        `Ground (OctalInt (int_of_string i))
-    | `Int i -> `Ground (Int (int_of_string i))
-    | `Float (sign, ipart, fpart) ->
-        let fpart =
-          let fpart = String.(concat "" (split_on_char '_' fpart)) in
-          if fpart = "" then 0.
-          else
-            float_of_string fpart /. (10. ** float_of_int (String.length fpart))
-        in
-        let ipart = if ipart = "" then 0. else float_of_string ipart in
-        `Ground (Float ((if sign then 1. else -1.) *. (ipart +. fpart)))
+    | `String (sep, s) -> `String (render_string ~pos ~sep s)
+    | `Int i -> `Int (int_of_string i)
+    | `Float f -> (
+        try
+          ignore (Scanf.sscanf f "%f" (fun v -> raise (Float_parsed v)));
+          parse_error ~pos (Printf.sprintf "Invalid float value: %s" f)
+        with Float_parsed f -> `Float f)
     | `Null -> `Null
     | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ~pos typ)
     | `Invoke { invoked; optional; meth } ->
@@ -1040,11 +1027,23 @@ and to_term_base ~env (tm : Parsed_term.t) : Term.t =
                   methods = Methods.add name (to_term ~env tm) term.methods;
                 })
           term methods
-    | #no_methods as term ->
+    | term ->
         let comments =
           List.filter_map
             (function pos, `Before c -> Some (pos, c) | _ -> None)
             tm.comments
+        in
+        let flags =
+          match term with
+            | `Int i
+              when String.length i >= 2
+                   && String.(lowercase_ascii (sub i 0 2)) = "0x" ->
+                Term.hex_int
+            | `Int i
+              when String.length i >= 2
+                   && String.(lowercase_ascii (sub i 0 2)) = "0o" ->
+                Term.octal_int
+            | _ -> 0
         in
         let term =
           match (to_ast ~env ~pos:tm.pos term, List.rev comments) with
@@ -1057,6 +1056,7 @@ and to_term_base ~env (tm : Parsed_term.t) : Term.t =
           t = Type.var ~pos:tm.pos ();
           term;
           methods = Methods.empty;
+          flags;
           id = Term_base.id ();
         }
 

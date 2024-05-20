@@ -40,10 +40,7 @@ let insert_value_constr =
           match (deref typ).descr with
             | Var _ -> satisfies typ
             | Nullable typ -> check typ
-            | Custom { typ = Ground.Float.Type }
-            | Custom { typ = Ground.Int.Type }
-            | Custom { typ = Ground.String.Type } ->
-                ()
+            | Float | Int | String -> ()
             | _ -> raise Unsatisfied_constraint
         in
         check b);
@@ -71,7 +68,7 @@ let insert_record_constr =
 type row = { row : Sqlite3.row; headers : Sqlite3.headers }
 
 module SqliteRow = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = row
 
     let name = "sqlite.row"
@@ -80,9 +77,8 @@ module SqliteRow = struct
       Runtime_error.raise ~pos
         ~message:"Sqlite rows cannot be represented as json" "json"
 
-    let descr _ = "sqlite.row"
+    let to_string _ = "sqlite.row"
     let compare = Stdlib.compare
-    let comparison_op = None
   end)
 
   let t =
@@ -120,9 +116,9 @@ let header_types ty =
       | Nullable typ ->
           let typ = to_type ~nullable:false typ in
           if nullable then `Nullable typ else typ
-      | Custom { typ = Ground.Float.Type } -> `Float
-      | Custom { typ = Ground.Int.Type } -> `Int
-      | Custom { typ = Ground.String.Type } -> `String
+      | Float -> `Float
+      | Int -> `Int
+      | String -> `String
       | Var _ -> raise Not_found
       | _ -> assert false
   in

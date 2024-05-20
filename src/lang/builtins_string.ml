@@ -19,7 +19,7 @@ let string =
       in
       let v = if show_fields then v else dv in
       match v with
-        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
+        | { Lang.value = Lang.(String s); _ } -> Lang.string s
         | v -> Lang.string (Value.to_string v))
 
 let _ =
@@ -470,7 +470,7 @@ let _ =
       let s =
         match dp with
           | Some d -> Printf.sprintf "%.*f" d x
-          | None -> string_of_float x
+          | None -> Utils.string_of_float x
       in
       Lang.string s)
 

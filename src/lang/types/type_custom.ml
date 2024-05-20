@@ -24,20 +24,13 @@ module type Spec = sig
   val name : string
 end
 
-module type Custom = sig
-  type Type_base.custom += Type
-
+module type Implementation = sig
   val descr : Type_base.descr
   val is_descr : Type_base.descr -> bool
 end
 
-let types = ref []
-
 module Make (S : Spec) = struct
   type Type_base.custom += Type
-
-  let () = types := Type :: !types
-  let get = function Type -> Type | _ -> assert false
 
   let is_descr = function
     | Type_base.Custom { Type_base.typ = Type } -> true
@@ -46,25 +39,16 @@ module Make (S : Spec) = struct
   let handler =
     {
       Type_base.typ = Type;
-      copy_with = (fun _ c -> get c);
+      copy_with = (fun _ c -> c);
       occur_check = (fun _ _ -> ());
-      filter_vars =
-        (fun _ l c ->
-          ignore (get c);
-          l);
-      repr =
-        (fun _ _ c ->
-          ignore (get c);
-          `Constr (S.name, []));
-      subtype = (fun _ c c' -> assert (get c = get c'));
+      filter_vars = (fun _ l _ -> l);
+      repr = (fun _ _ _ -> `Constr (S.name, []));
+      subtype = (fun _ c c' -> assert (c = c'));
       sup =
         (fun _ c c' ->
-          assert (get c = get c');
+          assert (c = c');
           c);
-      to_string =
-        (fun c ->
-          ignore (get c);
-          S.name);
+      to_string = (fun _ -> S.name);
     }
 
   let descr = Type_base.Custom handler
@@ -73,34 +57,3 @@ module Make (S : Spec) = struct
     Type_base.register_type S.name (fun () ->
         Type_base.make (Type_base.Custom handler))
 end
-
-module Int = Make (struct
-  let name = "int"
-end)
-
-let int = Int.descr
-
-module Float = Make (struct
-  let name = "float"
-end)
-
-let float = Float.descr
-
-module String = Make (struct
-  let name = "string"
-end)
-
-let string = String.descr
-
-module Bool = Make (struct
-  let name = "bool"
-end)
-
-let bool = Bool.descr
-
-module Never = Make (struct
-  let name = "never"
-end)
-
-let never = Never.descr
-let is_ground v = List.mem v !types

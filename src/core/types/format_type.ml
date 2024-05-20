@@ -125,8 +125,7 @@ exception Never_type
 
 let rec content_type ?kind ty =
   match ((Type.demeth ty).Type.descr, kind) with
-    | Type.Custom { Type.typ = Type.Ground.Never.Type }, None ->
-        raise Never_type
+    | Type.Never, None -> raise Never_type
     | Type.Custom { Type.typ = Kind (kind, ty) }, None -> content_type ~kind ty
     | Type.Custom { Type.typ = Format f }, Some k -> denormalize_format k f
     | Type.Var _, Some kind -> Content_base.default_format kind
@@ -201,7 +200,7 @@ let check_track ?univ_descr modules =
         let b = Type.demeth b in
         match b.Type.descr with
           | Type.Var _ -> satisfies b
-          | Type.(Custom { typ = Ground.Never.Type }) -> ()
+          | Type.Never -> ()
           | Type.Custom { Type.typ = Kind (k, _) }
             when List.exists (is_kind k) modules ->
               ()
@@ -228,7 +227,7 @@ let internal_tracks =
         List.iter
           (fun { Type.scheme = _, typ } ->
             match (Type.demeth typ).Type.descr with
-              | Type.(Custom { typ = Ground.Never.Type }) -> ()
+              | Type.Never -> ()
               | Type.Custom { Type.typ = Kind (k, _) }
                 when List.exists (is_kind k) internal_modules ->
                   ()
@@ -251,7 +250,7 @@ let track =
         let b = Type.demeth b in
         match b.Type.descr with
           | Type.Var _ -> satisfies b
-          | Type.(Custom { typ = Ground.Never.Type })
+          | Type.Never
           | Type.Custom { Type.typ = Kind _ }
           | Type.Custom { Type.typ = Format _ } ->
               ()
@@ -272,7 +271,7 @@ let muxed_tracks =
         List.iter
           (fun { Type.scheme = _, typ } ->
             match (Type.demeth typ).Type.descr with
-              | Type.(Custom { typ = Ground.Never.Type }) -> ()
+              | Type.Never -> ()
               | Type.Custom { Type.typ = Kind _ }
               | Type.Custom { Type.typ = Format _ } ->
                   ()

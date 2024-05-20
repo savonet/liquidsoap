@@ -32,6 +32,11 @@ type variance = [ `Covariant | `Invariant ]
 type t = Type_base.t = private { pos : Pos.Option.t; descr : descr }
 
 type descr = Type_base.descr =
+  | String
+  | Int
+  | Float
+  | Bool
+  | Never
   | Custom of custom_handler
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)
@@ -158,7 +163,7 @@ val string_of_scheme : scheme -> string
 val is_fun : t -> bool
 val is_source : t -> bool
 
-module Ground = Ground_type
+module Custom = Type_custom
 
 val register_type : string -> (unit -> t) -> unit
 val find_type_opt : string -> (unit -> t) option

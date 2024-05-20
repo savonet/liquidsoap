@@ -108,52 +108,49 @@ let pull graph =
 let self_sync graph source =
   (Clock_base.self_sync ~source (Queue.elements graph.graph_inputs)) ()
 
-module Graph = Value.MkAbstract (struct
+module Graph = Value.MkCustom (struct
   type content = graph
 
   let name = "ffmpeg.filter.graph"
-  let descr _ = name
+  let to_string _ = name
 
   let to_json ~pos _ =
     Lang.raise_error
       ~message:"Ffmpeg filter graph cannot be represented as json" ~pos "json"
 
   let compare = Stdlib.compare
-  let comparison_op = None
 end)
 
-module Audio = Value.MkAbstract (struct
+module Audio = Value.MkCustom (struct
   type content =
     [ `Input of ([ `Attached ], [ `Audio ], [ `Input ]) Avfilter.pad
     | `Output of ([ `Attached ], [ `Audio ], [ `Output ]) Avfilter.pad Lazy.t
     ]
 
   let name = "ffmpeg.filter.audio"
-  let descr _ = name
+  let to_string _ = name
 
   let to_json ~pos _ =
     Lang.raise_error ~pos
       ~message:"Ffmpeg filter audio input cannot be represented as json" "json"
 
   let compare = Stdlib.compare
-  let comparison_op = None
 end)
 
-module Video = Value.MkAbstract (struct
+module Video = Value.MkCustom (struct
   type content =
     [ `Input of ([ `Attached ], [ `Video ], [ `Input ]) Avfilter.pad
     | `Output of ([ `Attached ], [ `Video ], [ `Output ]) Avfilter.pad Lazy.t
     ]
 
   let name = "ffmpeg.filter.video"
-  let descr _ = name
+  let to_string _ = name
 
   let to_json ~pos _ =
     Lang.raise_error ~pos
       ~message:"Ffmpeg filter video input cannot be represented as json" "json"
 
   let compare = Stdlib.compare
-  let comparison_op = None
 end)
 
 let uniq_name =

@@ -78,6 +78,7 @@ let filter_vars f t =
   let rec aux l t =
     let t = deref t in
     match t.descr with
+      | Int | Float | String | Bool | Never -> l
       | Custom c -> c.filter_vars aux l c.typ
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
@@ -121,6 +122,12 @@ exception Occur_check of var * t
     prepare the instantiation [a<-b] by adjusting the levels. *)
 let occur_check (a : var) =
   let rec occur_check = function
+    | { descr = Int }
+    | { descr = Float }
+    | { descr = String }
+    | { descr = Bool }
+    | { descr = Never } ->
+        ()
     | { descr = Constr c } -> List.iter (fun (_, x) -> occur_check x) c.params
     | { descr = Tuple l } -> List.iter occur_check l
     | { descr = Getter t } -> occur_check t
@@ -194,9 +201,12 @@ let rec sup ~pos a b =
           with Incompatible -> sup a b)
       | None -> mk (Meth ({ m with optional = true }, sup a b))
   in
+  let a = deref a in
+  let b = deref b in
   if a == b then a
   else (
-    match ((deref a).descr, (deref b).descr) with
+    match (a.descr, b.descr) with
+      | v, v' when v == v' -> a
       | Var { contents = Free _ }, _ -> b
       | _, Var { contents = Free _ } -> a
       | Nullable a, Nullable b -> mk (Nullable (sup a b))
@@ -317,7 +327,7 @@ and unify_meth a b l =
        - {foo?:int} <: {foo:int?} *)
    let s1 =
      match (optional1, optional2, (deref (snd s1)).descr) with
-       | true, true, t when Ground_type.Never.is_descr t -> s2
+       | true, true, Never -> s2
        | _, true, Nullable t -> (fst s1, t)
        | true, false, _ -> raise (Error (Repr.make a, Repr.make b))
        | _ -> s1
@@ -381,6 +391,7 @@ and ( <: ) a b =
     Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
   if a != b then (
     match (a.descr, b.descr) with
+      | a, b when a == b -> ()
       | Var { contents = Free v }, Var { contents = Free v' } when Var.eq v v'
         ->
           ()
@@ -564,8 +575,7 @@ and ( <: ) a b =
                           },
                           var () ));
                 a <: b
-            | _ when optional || Ground_type.Never.is_descr (deref t2).descr ->
-                a <: hide_meth l c
+            | _ when optional || (deref t2).descr = Never -> a <: hide_meth l c
             | _ ->
                 raise
                   (Error

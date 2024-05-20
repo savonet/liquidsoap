@@ -32,7 +32,11 @@ let rec json_of_value ?pos v : Json.t =
   let m, v = Value.split_meths v in
   match v.Value.value with
     | Value.Null -> `Null
-    | Value.Ground g -> Term.Ground.to_json ~pos g
+    | Value.Int i -> `Int i
+    | Value.Float f -> `Float f
+    | Value.Bool b -> `Bool b
+    | Value.String s -> `String s
+    | Value.Custom g -> Term.Custom.to_json ~pos g
     | Value.List l -> `Tuple (List.map (json_of_value ~pos) l)
     | Value.Tuple [] when m <> [] ->
         `Assoc (List.map (fun (l, v) -> (l, json_of_value ~pos v)) m)
@@ -148,12 +152,7 @@ let rec value_of_typed_json ~ty json =
           Type.(
             List
               {
-                t =
-                  {
-                    descr =
-                      Tuple
-                        [{ descr = Custom { typ = Ground.String.Type } }; ty];
-                  };
+                t = { descr = Tuple [{ descr = String }; ty] };
                 json_repr = `Object;
               }) ) ->
           Lang.list
@@ -184,23 +183,18 @@ let rec value_of_typed_json ~ty json =
                    in
                    raise (Failed (nullable, `Tuple l)))
                t)
-      | `String s, Type.(Custom { typ = Ground.String.Type }) -> Lang.string s
-      | `Bool b, Type.(Custom { typ = Ground.Bool.Type }) -> Lang.bool b
-      | `Float f, Type.(Custom { typ = Ground.Float.Type }) -> Lang.float f
-      | `Int i, Type.(Custom { typ = Ground.Float.Type }) ->
-          Lang.float (float i)
-      | `Int i, Type.(Custom { typ = Ground.Int.Type }) -> Lang.int i
+      | `String s, Type.String -> Lang.string s
+      | `Bool b, Type.Bool -> Lang.bool b
+      | `Float f, Type.Float -> Lang.float f
+      | `Int i, Type.Float -> Lang.float (float i)
+      | `Int i, Type.Int -> Lang.int i
       | _, Type.Var _ ->
           Typing.(ty <: type_of_json json);
           Lang.null
-      | _, Type.(Custom { typ = Ground.String.Type }) ->
-          raise (Failed (nullable, `String))
-      | _, Type.(Custom { typ = Ground.Bool.Type }) ->
-          raise (Failed (nullable, `Bool))
-      | _, Type.(Custom { typ = Ground.Float.Type }) ->
-          raise (Failed (nullable, `Float))
-      | _, Type.(Custom { typ = Ground.Int.Type }) ->
-          raise (Failed (nullable, `Int))
+      | _, Type.String -> raise (Failed (nullable, `String))
+      | _, Type.Bool -> raise (Failed (nullable, `Bool))
+      | _, Type.Float -> raise (Failed (nullable, `Float))
+      | _, Type.Int -> raise (Failed (nullable, `Int))
       | _ -> assert false
   with _ when nullable -> Lang.null
 
@@ -228,16 +222,15 @@ module JsonSpecs = struct
   type content = (string, Lang.value) Hashtbl.t
 
   let name = "json"
-  let descr _ = "json"
+  let to_string _ = "json"
 
   let to_json ~pos v =
     `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value ~pos v) :: l) v [])
 
   let compare = Stdlib.compare
-  let comparison_op = None
 end
 
-module JsonValue = Value.MkAbstract (JsonSpecs)
+module JsonValue = Value.MkCustom (JsonSpecs)
 
 let json =
   let val_t = Lang.univ_t () in
@@ -372,17 +365,17 @@ let rec deprecated_of_json d j =
   Lang.(
     match (d.value, j) with
       | Tuple [], `Null -> unit
-      | Ground (Ground.Bool _), `Bool b -> bool b
+      | Bool _, `Bool b -> bool b
       (* JSON specs do not differentiate between ints and floats. Therefore, we
          should parse int as floats when required. *)
-      | Ground (Ground.Int _), `Int i -> int i
-      | Ground (Ground.Float _), `Int i -> float (float_of_int i)
-      | Ground (Ground.Float _), `Float x -> float x
-      | Ground (Ground.String _), `String s -> string s
+      | Int _, `Int i -> int i
+      | Float _, `Int i -> float (float_of_int i)
+      | Float _, `Float x -> float x
+      | String _, `String s -> string s
       (* Be liberal and allow casting basic types to string. *)
-      | Ground (Ground.String _), `Int i -> string (string_of_int i)
-      | Ground (Ground.String _), `Float x -> string (string_of_float x)
-      | Ground (Ground.String _), `Bool b -> string (string_of_bool b)
+      | String _, `Int i -> string (string_of_int i)
+      | String _, `Float x -> string (Utils.string_of_float x)
+      | String _, `Bool b -> string (string_of_bool b)
       | List [], `Tuple [] -> list []
       | List (d :: _), `Tuple l ->
           (* TODO: we could also try with other elements of the default list... *)
@@ -390,8 +383,7 @@ let rec deprecated_of_json d j =
           list l
       | Tuple dd, `Tuple jj when List.length dd = List.length jj ->
           tuple (List.map2 deprecated_of_json dd jj)
-      | ( List ({ value = Tuple [{ value = Ground (Ground.String _) }; d] } :: _),
-          `Assoc l ) ->
+      | List ({ value = Tuple [{ value = String _ }; d] } :: _), `Assoc l ->
           (* Try to convert the object to a list of pairs, dropping fields that
              cannot be parsed.  This requires the target type to be [(string*'a)],
              currently it won't work if it is [?T] which would be obtained with
