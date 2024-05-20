@@ -29,12 +29,9 @@ let escape =
   let rex = Pcre.regexp "'" in
   fun s -> "'" ^ Pcre.substitute ~rex ~subst:(fun _ -> "''") s ^ "'"
 
-type Type.constr_t += Insert_value | Insert_record
-
 let insert_value_constr =
   let open Type in
   {
-    t = Insert_value;
     constr_descr = "int, float, string or null.";
     univ_descr = None;
     satisfied =
@@ -55,7 +52,6 @@ let insert_value_constr =
 let insert_record_constr =
   let open Type in
   {
-    t = Insert_record;
     constr_descr = "a record with int, float, string or null methods.";
     univ_descr = None;
     satisfied =

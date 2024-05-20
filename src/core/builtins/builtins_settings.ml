@@ -24,13 +24,10 @@ exception Found of (Lang.value * Lang.value option)
 
 let settings = ref Lang.null
 
-type Type.constr_t += Dtools
-
 let dtools_constr =
   let open Liquidsoap_lang in
   let open Type in
   {
-    t = Dtools;
     constr_descr = "unit, bool, int, float, string or [string]";
     univ_descr = None;
     satisfied =

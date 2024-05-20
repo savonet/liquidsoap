@@ -138,6 +138,7 @@
   term_reducer
   type
   type_base
+  type_constraints
   typechecking
   typing
   unifier
