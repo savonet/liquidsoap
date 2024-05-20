@@ -168,6 +168,11 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     if filter_out t then `Ellipsis
     else (
       match t.descr with
+        | Int -> `Constr ("int", [])
+        | Float -> `Constr ("float", [])
+        | String -> `Constr ("string", [])
+        | Bool -> `Constr ("bool", [])
+        | Never -> `Constr ("never", [])
         | Custom c -> c.repr repr g c.typ
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)

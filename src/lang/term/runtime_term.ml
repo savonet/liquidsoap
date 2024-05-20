@@ -8,7 +8,16 @@ module Methods = struct
   type 'a t = 'a typ
 end
 
-type ground = ..
+type custom = ..
+
+type custom_handler = {
+  to_string : custom -> string;
+  to_json : pos:Pos.t list -> custom -> Json.t;
+  compare : custom -> custom -> int;
+  typ : (module Type.Custom.Implementation);
+}
+
+type custom_term = { value : custom; handler : custom_handler }
 
 type pattern =
   [ `PVar of string list  (** a field *)
@@ -19,12 +28,20 @@ type pattern =
 
 and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
 
+type flags = int
+
+let octal_int = 0b1
+let hex_int = 0b10
+
 type 'a term = {
   mutable t : Type.t;
   term : 'a;
+  flags : flags;
   methods : 'a term Methods.t;
   id : int;
 }
+
+let has_flag { flags } flag = flags land flag <> 0
 
 (* ~l1:x1 .. ?li:(xi=defi) .. *)
 type ('a, 'b) func_argument = {
@@ -43,38 +60,43 @@ type ('a, 'b) func = {
 
 type 'a app = 'a * (string * 'a) list
 
-type 'a ast =
-  [ `Ground of ground
+type 'a common_ast =
+  [ `Custom of custom_term
   | `Tuple of 'a list
   | `Null
   | `Open of 'a * 'a
   | `Var of string
   | `Seq of 'a * 'a ]
 
-type t = runtime_ast term
+type 'a invoke = { invoked : 'a; invoke_default : 'a option; meth : string }
 
-and runtime_ast =
-  [ `Let of let_t
-  | `List of t list
-  | `Cast of t * Type.t
-  | `App of t * (string * t) list
-  | `Invoke of invoke
-  | `Encoder of encoder
-  | `Fun of (t, Type.t) func
-  | t ast ]
+type 'a encoder_params =
+  [ `Anonymous of string | `Encoder of 'a encoder | `Labelled of string * 'a ]
+  list
 
-and invoke = { invoked : t; invoke_default : t option; meth : string }
+and 'a encoder = string * 'a encoder_params
 
-and encoder_params =
-  [ `Anonymous of string | `Encoder of encoder | `Labelled of string * t ] list
-
-and encoder = string * encoder_params
-
-and let_t = {
+type 'a let_t = {
   doc : Doc.Value.t option;
   replace : bool;
   pat : pattern;
   mutable gen : Type.var list;
-  def : t;
-  body : t;
+  def : 'a;
+  body : 'a;
 }
+
+type 'a runtime_ast =
+  [ `Int of int
+  | `Float of float
+  | `String of string
+  | `Bool of bool
+  | `Let of 'a let_t
+  | `List of 'a list
+  | `Cast of 'a * Type.t
+  | `App of 'a * (string * 'a) list
+  | `Invoke of 'a invoke
+  | `Encoder of 'a encoder
+  | `Fun of ('a, Type.t) func ]
+
+type t = ast term
+and ast = [ t common_ast | t runtime_ast ]

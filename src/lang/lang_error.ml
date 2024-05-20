@@ -37,7 +37,7 @@ module ErrorDef = struct
 
   let name = "error"
 
-  let descr { kind; msg; pos } =
+  let to_string { kind; msg; pos } =
     let pos =
       if pos <> [] then
         Printf.sprintf ",positions=%s"
@@ -54,11 +54,10 @@ module ErrorDef = struct
       "json"
 
   let compare = Stdlib.compare
-  let comparison_op = None
 end
 
 module Error = struct
-  include Value.MkAbstract ((ErrorDef : Value.AbstractDef))
+  include Value.MkCustom ((ErrorDef : Value.CustomDef))
 
   let meths =
     [

@@ -31,29 +31,14 @@ type regexp = Builtins_regexp.regexp
 
 (** {2 Values} *)
 
-(** A typed value. *)
-module Ground : sig
-  type t = Term.Ground.t = ..
-  type t += Bool of bool | Int of int | String of string | Float of float
-
-  type content = Term.Ground.content = {
-    descr : t -> string;
-    to_json : pos:Pos.t list -> t -> Json.t;
-    compare : t -> t -> int;
-    comparison_op : t Term.Ground.comparison_op option;
-    typ : (module Type.Ground.Custom);
-  }
-
-  val register : (t -> bool) -> content -> unit
-  val to_string : t -> string
-end
-
+module Custom = Value.Custom
 module Methods = Term.Methods
 
 type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
+  flags : Term.flags;
   id : int;
 }
 
@@ -66,7 +51,11 @@ and ffi = Value.ffi = {
 }
 
 and in_value = Value.in_value =
-  | Ground of Ground.t
+  | Int of int
+  | Float of float
+  | String of string
+  | Bool of bool
+  | Custom of Custom.t
   | List of value list
   | Tuple of value list
   | Null

@@ -217,4 +217,4 @@ val resolve_metadata :
 (** Functions for resolving URIs. *)
 val protocols : protocol Plug.t
 
-module Value : Value.Abstract with type content := t
+module Value : Value.Custom with type content := t

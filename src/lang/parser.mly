@@ -22,7 +22,6 @@
 
 %{
 open Parsed_term
-open Parsed_term.Ground
 (* All auxiliary functions for parser are there *)
 open Parser_helper
 %}
@@ -36,7 +35,7 @@ open Parser_helper
 %token <char * string > STRING
 %token <string * char list > REGEXP
 %token <string> INT PP_INT_DOT_LCUR
-%token <string * string> FLOAT
+%token <string> FLOAT
 %token <bool> BOOL
 %token <Parsed_term.time_el> TIME
 %token <Parsed_term.time_el * Parsed_term.time_el> INTERVAL
@@ -216,8 +215,8 @@ expr:
   | LPAR expr RPAR                   { mk ~pos:$loc (`Parenthesis $2) }
   | INT                              { mk ~pos:$loc (`Int $1) }
   | NOT expr                         { mk ~pos:$loc (`Not $2) }
-  | BOOL                             { mk ~pos:$loc (`Ground (Bool $1)) }
-  | FLOAT                            { mk ~pos:$loc (`Float (true, fst $1, snd $1)) }
+  | BOOL                             { mk ~pos:$loc (`Bool $1) }
+  | FLOAT                            { mk ~pos:$loc (`Float $1) }
   | STRING                           { mk ~pos:$loc (`String $1) }
   | string_interpolation             { mk ~pos:$loc (`String_interpolation $1) }
   | VAR                              { mk ~pos:$loc (`Var $1) }
@@ -266,15 +265,15 @@ expr:
   | REGEXP                           {  mk ~pos:$loc (`Regexp $1) }
   | expr QUESTION expr COLON expr    { mk ~pos:$loc (`Inline_if {if_condition = $1; if_then = $3; if_elsif = []; if_else = Some $5}) }
   | expr AND expr                  { match $1.term, $3.term with
-                                       | `Bool ("and", l), `Bool ("and", l') -> mk ~pos:$loc (`Bool ("and", l@l'))
-                                       |  `Bool ("and", l), _ -> mk ~pos:$loc (`Bool ("and", l@[$3]))
-                                       |  _, `Bool ("and", l) -> mk ~pos:$loc (`Bool ("and", $1::l))
-                                       | _ -> mk ~pos:$loc (`Bool ("and", [$1; $3])) }
+                                       | `BoolOp ("and", l), `BoolOp ("and", l') -> mk ~pos:$loc (`BoolOp ("and", l@l'))
+                                       |  `BoolOp ("and", l), _ -> mk ~pos:$loc (`BoolOp ("and", l@[$3]))
+                                       |  _, `BoolOp ("and", l) -> mk ~pos:$loc (`BoolOp ("and", $1::l))
+                                       | _ -> mk ~pos:$loc (`BoolOp ("and", [$1; $3])) }
   | expr OR expr                  { match $1.term, $3.term with
-                                       | `Bool ("or", l), `Bool ("or", l') -> mk ~pos:$loc (`Bool ("or", l@l'))
-                                       |  `Bool ("or", l), _ -> mk ~pos:$loc (`Bool ("or", l@[$3]))
-                                       |  _, `Bool ("or", l) -> mk ~pos:$loc (`Bool ("or", $1::l))
-                                       | _ -> mk ~pos:$loc (`Bool ("or", [$1; $3])) }
+                                       | `BoolOp ("or", l), `BoolOp ("or", l') -> mk ~pos:$loc (`BoolOp ("or", l@l'))
+                                       |  `BoolOp ("or", l), _ -> mk ~pos:$loc (`BoolOp ("or", l@[$3]))
+                                       |  _, `BoolOp ("or", l) -> mk ~pos:$loc (`BoolOp ("or", $1::l))
+                                       | _ -> mk ~pos:$loc (`BoolOp ("or", [$1; $3])) }
   | expr BIN1 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
   | expr BIN2 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
   | expr BIN3 expr                 { mk ~pos:$loc (`Infix ($1, $2, $3)) }
@@ -349,12 +348,12 @@ ty_content_args:
 ty_content_arg:
   | VAR                  { ("", `Verbatim $1) }
   | INT                  { ("", `Verbatim $1) }
-  | FLOAT                { ("", `Verbatim (fst $1 ^ "." ^ snd $1)) }
+  | FLOAT                { ("", `Verbatim $1) }
   | STRING               { ("", `String ($loc($1), $1)) }
   | VAR GETS VAR         { ($1, `Verbatim $3) }
   | VAR GETS STRING      { ($1, `String ($loc($3), $3)) }
   | VAR GETS INT         { ($1, `Verbatim $3) }
-  | VAR GETS FLOAT       { ($1, `Verbatim (fst $3 ^ "." ^ snd $3)) }
+  | VAR GETS FLOAT       { ($1, `Verbatim $3) }
 
 ty_tuple:
   | ty TIMES ty { [$1; $3] }
@@ -648,7 +647,7 @@ if_version_op:
 if_version_version:
   | VERSION  { $1 }
   | INT      { Lang_string.Version.of_string $1 }
-  | FLOAT    { Lang_string.Version.of_string (fst $1 ^ "." ^ snd $1) }
+  | FLOAT    { Lang_string.Version.of_string $1 }
 
 if_version:
   | PP_IFVERSION if_version_op if_version_version exprs PP_ENDIF { {
@@ -680,7 +679,7 @@ annotate_key:
 
 annotate_value:
   | INT { $1 }
-  | FLOAT { fst $1 ^ "." ^ snd $1 }
+  | FLOAT { $1 }
   | BOOL { string_of_bool $1 }
   | VAR { $1 }
   | STRING { render_string ~pos:$loc $1 }

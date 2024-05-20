@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Value
-open Ground
 
 let type_of_encoder p =
   Encoder.audio_type ~pcm_kind:Content.Audio.kind
@@ -44,43 +43,43 @@ let make params =
   let speex =
     List.fold_left
       (fun f -> function
-        | `Labelled ("stereo", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("stereo", { value = Bool b; _ }) ->
             { f with Speex_format.stereo = b }
-        | `Labelled ("mono", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("mono", { value = Bool b; _ }) ->
             { f with Speex_format.stereo = not b }
-        | `Labelled ("samplerate", { value = Ground (Int i); _ }) ->
+        | `Labelled ("samplerate", { value = Int i; _ }) ->
             { f with Speex_format.samplerate = Lazy.from_val i }
-        | `Labelled ("abr", { value = Ground (Int i); _ }) ->
+        | `Labelled ("abr", { value = Int i; _ }) ->
             { f with Speex_format.bitrate_control = Speex_format.Abr i }
-        | `Labelled ("quality", { value = Ground (Int q); pos }) ->
+        | `Labelled ("quality", { value = Int q; pos }) ->
             (* Doc say this should be from 0 to 10. *)
             if q < 0 || q > 10 then
               Lang_encoder.raise_error ~pos "Speex quality should be in 0..10";
             { f with Speex_format.bitrate_control = Speex_format.Quality q }
-        | `Labelled ("vbr", { value = Ground (Int q); _ }) ->
+        | `Labelled ("vbr", { value = Int q; _ }) ->
             { f with Speex_format.bitrate_control = Speex_format.Vbr q }
-        | `Labelled ("mode", { value = Ground (String s); _ })
+        | `Labelled ("mode", { value = String s; _ })
           when String.lowercase_ascii s = "wideband" ->
             { f with Speex_format.mode = Speex_format.Wideband }
-        | `Labelled ("mode", { value = Ground (String s); _ })
+        | `Labelled ("mode", { value = String s; _ })
           when String.lowercase_ascii s = "narrowband" ->
             { f with Speex_format.mode = Speex_format.Narrowband }
-        | `Labelled ("mode", { value = Ground (String s); _ })
+        | `Labelled ("mode", { value = String s; _ })
           when String.lowercase_ascii s = "ultra-wideband" ->
             { f with Speex_format.mode = Speex_format.Ultra_wideband }
-        | `Labelled ("frames_per_packet", { value = Ground (Int i); _ }) ->
+        | `Labelled ("frames_per_packet", { value = Int i; _ }) ->
             { f with Speex_format.frames_per_packet = i }
-        | `Labelled ("complexity", { value = Ground (Int i); pos }) ->
+        | `Labelled ("complexity", { value = Int i; pos }) ->
             (* Doc says this should be between 1 and 10. *)
             if i < 1 || i > 10 then
               Lang_encoder.raise_error ~pos
                 "Speex complexity should be in 1..10";
             { f with Speex_format.complexity = Some i }
-        | `Labelled ("bytes_per_page", { value = Ground (Int i); _ }) ->
+        | `Labelled ("bytes_per_page", { value = Int i; _ }) ->
             { f with Speex_format.fill = Some i }
-        | `Labelled ("dtx", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("dtx", { value = Bool b; _ }) ->
             { f with Speex_format.dtx = b }
-        | `Labelled ("vad", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("vad", { value = Bool b; _ }) ->
             { f with Speex_format.vad = b }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Speex_format.stereo = false }

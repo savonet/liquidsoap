@@ -103,6 +103,7 @@ let rec eval_pat pat v =
                       pos = v.Value.pos;
                       value = Null;
                       methods = Methods.empty;
+                      flags = 0;
                       id = Value.id ();
                     }
               in
@@ -240,11 +241,16 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         pos = tm.t.Type.pos;
         value = v;
         methods = Methods.empty;
+        flags = tm.flags;
         id = Value.id ();
       }
   in
   match tm.term with
-    | `Ground g -> mk (Value.Ground g)
+    | `Int i -> mk (Value.Int i)
+    | `Float f -> mk (Value.Float f)
+    | `Bool b -> mk (Value.Bool b)
+    | `String s -> mk (Value.String s)
+    | `Custom g -> mk (Value.Custom g)
     | `Encoder (e, p) ->
         let pos = tm.t.Type.pos in
         let rec eval_param p =

@@ -65,9 +65,7 @@ let _ =
       let nl = Lang.to_bool (List.assoc "newline" p) in
       let v = List.assoc "" p in
       let v =
-        match v.Lang.value with
-          | Lang.(Ground (Ground.String s)) -> s
-          | _ -> Value.to_string v
+        match v.Lang.value with Lang.(String s) -> s | _ -> Value.to_string v
       in
       print_string v;
       if nl then print_string "\n";
@@ -139,13 +137,13 @@ let liquidsoap = Modules.liquidsoap
 let liquidsoap_version =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"Liquidsoap version string." ~base:liquidsoap "version"
-    Lang.(Ground (Ground.String Build_config.version))
+    Lang.(String Build_config.version)
     Lang.string_t
 
 let _ =
   Lang.add_builtin_base ~base:liquidsoap "executable" ~category:`Liquidsoap
     ~descr:"Path to the Liquidsoap executable."
-    Lang.(Ground (Ground.String Sys.executable_name))
+    Lang.(String Sys.executable_name)
     Lang.string_t
 
 let liquidsoap_functions = Lang.add_module ~base:liquidsoap "functions"
@@ -158,13 +156,13 @@ let _ =
 let _ =
   Lang.add_builtin_base ~category:`System
     ~descr:"Type of OS running liquidsoap." ~base:Modules.os "type"
-    Lang.(Ground (Ground.String Sys.os_type))
+    Lang.(String Sys.os_type)
     Lang.string_t
 
 let _ =
   Lang.add_builtin_base ~category:`System ~descr:"Executable file extension."
     "exe_ext"
-    Lang.(Ground (Ground.String Build_config.ext_exe))
+    Lang.(String Build_config.ext_exe)
     Lang.string_t
 
 let _ =
@@ -187,7 +185,7 @@ let _ =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"OCaml version used to compile liquidspap."
     ~base:liquidsoap_build_config "ocaml_version"
-    Lang.(Ground (Ground.String Sys.ocaml_version))
+    Lang.(String Sys.ocaml_version)
     Lang.string_t
 
 let _ =
@@ -196,21 +194,21 @@ let _ =
     "git_sha"
     (match Build_config.git_sha with
       | None -> Lang.Null
-      | Some sha -> Lang.(Ground (Ground.String sha)))
+      | Some sha -> Lang.(String sha))
     Lang.(nullable_t string_t)
 
 let _ =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"Is this build a development snapshot?" ~base:liquidsoap_build_config
     "is_snapshot"
-    Lang.(Ground (Ground.Bool Build_config.is_snapshot))
+    Lang.(Bool Build_config.is_snapshot)
     Lang.bool_t
 
 let _ =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"Is this build a release build?" ~base:liquidsoap_build_config
     "is_release"
-    Lang.(Ground (Ground.Bool (not Build_config.is_snapshot)))
+    Lang.(Bool (not Build_config.is_snapshot))
     Lang.bool_t
 
 let () =
@@ -220,7 +218,7 @@ let () =
         (Lang.add_builtin_base ~category:`Configuration
            ~descr:("Build-time configuration value for " ^ name)
            ~base:liquidsoap_build_config name
-           Lang.(Ground (Ground.String value))
+           Lang.(String value)
            Lang.string_t))
     [
       ("architecture", Build_config.architecture);

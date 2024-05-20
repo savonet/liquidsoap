@@ -202,19 +202,19 @@ let _ =
 let _ =
   Lang.add_builtin_base ~category:`Math ~descr:"Maximal representable integer."
     "max_int"
-    Lang.(Ground (Ground.Int max_int))
+    Lang.(Int max_int)
     Lang.int_t
 
 let _ =
   Lang.add_builtin_base ~category:`Math ~descr:"Minimal representable integer."
     "min_int"
-    Lang.(Ground (Ground.Int min_int))
+    Lang.(Int min_int)
     Lang.int_t
 
 let _ =
   Lang.add_builtin_base ~category:`Math
     ~descr:"Float representation of infinity." "infinity"
-    Lang.(Ground (Ground.Float infinity))
+    Lang.(Float infinity)
     Lang.float_t
 
 let _ =
@@ -227,7 +227,7 @@ let _ =
        `false` and `!=` returns `true` if one or both of their arguments is \
        `nan`."
     "nan"
-    Lang.(Ground (Ground.Float nan))
+    Lang.(Float nan)
     Lang.float_t
 
 let _ =

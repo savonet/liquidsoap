@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-(** Abstract classes for easy creation of output nodes. *)
+(** Custom classes for easy creation of output nodes. *)
 
 val fallibility_check : bool ref
 

@@ -20,35 +20,30 @@
 
  *****************************************************************************)
 
-module type Spec = sig
-  val name : string
+type custom = Runtime_term.custom = ..
+type t = Runtime_term.custom_term
+
+val to_string : t -> string
+val to_json : pos:Pos.t list -> t -> Json.t
+val to_descr : t -> Type_base.descr
+val compare : t -> t -> int
+
+module type Specs = sig
+  type content
+
+  val to_string : content -> string
+  val to_json : pos:Pos.t list -> content -> Json.t
+  val compare : content -> content -> int
+  val typ : (module Type.Custom.Implementation)
 end
 
-module type Custom = sig
-  type Type_base.custom += Type
+module type Implementation = sig
+  type content
 
+  val to_custom : content -> t
+  val of_custom : t -> content
+  val is_custom : t -> bool
   val descr : Type_base.descr
-  val is_descr : Type_base.descr -> bool
 end
 
-module Make (_ : Spec) : Custom
-module Int : Custom
-
-val int : Type_base.descr
-
-module Float : Custom
-
-val float : Type_base.descr
-
-module String : Custom
-
-val string : Type_base.descr
-
-module Bool : Custom
-
-val bool : Type_base.descr
-
-module Never : Custom
-
-val never : Type_base.descr
-val is_ground : Type_base.custom -> bool
+module Make (S : Specs) : Implementation with type content = S.content

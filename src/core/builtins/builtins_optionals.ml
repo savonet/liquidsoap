@@ -9,7 +9,7 @@ let () =
         (Lang.add_builtin_base ~category:`Configuration
            ~descr:("Build-time configuration for " ^ name)
            ~base:liquidsoap_build_config_optionals name
-           Lang.(Ground (Ground.Bool value))
+           Lang.(Bool value)
            Lang.bool_t))
     [
       ("alsa", Alsa_option.enabled);

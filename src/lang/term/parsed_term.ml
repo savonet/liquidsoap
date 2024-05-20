@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 include Runtime_term
-module Ground = Term_base.Ground
+module Custom = Term_base.Custom
 
 type comment = [ `Before of string list | `After of string list ]
 type string_param = [ `Verbatim of string | `String of Pos.t * (char * string) ]
@@ -176,20 +176,21 @@ and parsed_ast =
   | `Append of t * t
   | `Assoc of t * t
   | `Infix of t * string * t
-  | `Bool of string * t list
+  | `BoolOp of string * t list
   | `Coalesce of t * t
   | `At of t * t
   | `Simple_fun of t
   | `String_interpolation of char * string_interpolation list
   | `Include of inc
   | `Int of string
-  | `Float of bool * string * string
+  | `Bool of bool
+  | `Float of string
   | `String of char * string
   | `Block of t
   | `Parenthesis of t
   | `Encoder of encoder
   | `Eof
-  | t ast ]
+  | t common_ast ]
 
 and t = {
   term : parsed_ast;
@@ -290,7 +291,7 @@ let rec iter_term fn ({ term } as tm) =
     | `Infix (tm, _, tm') ->
         iter_term fn tm;
         iter_term fn tm'
-    | `Bool (_, l) -> List.iter (iter_term fn) l
+    | `BoolOp (_, l) -> List.iter (iter_term fn) l
     | `Coalesce (tm, tm') ->
         iter_term fn tm;
         iter_term fn tm'
@@ -299,7 +300,7 @@ let rec iter_term fn ({ term } as tm) =
         iter_term fn tm'
     | `Simple_fun tm -> iter_term fn tm
     | `Include _ -> ()
-    | `Ground _ -> ()
+    | `Custom _ -> ()
     | `Encoder _ -> ()
     | `Tuple l -> List.iter (iter_term fn) l
     | `Null -> ()
@@ -316,6 +317,7 @@ let rec iter_term fn ({ term } as tm) =
     | `Int _ -> ()
     | `Float _ -> ()
     | `String _ -> ()
+    | `Bool _ -> ()
     | `Var _ -> ()
     | `Eof -> ()
     | `String_interpolation (_, l) ->

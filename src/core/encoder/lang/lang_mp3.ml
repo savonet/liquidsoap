@@ -21,7 +21,6 @@
  *****************************************************************************)
 
 open Value
-open Ground
 
 let type_of_encoder p =
   Encoder.audio_type ~pcm_kind:Content.Audio.kind
@@ -53,11 +52,11 @@ let mp3_base_defaults () =
   }
 
 let mp3_base f = function
-  | `Labelled ("stereo", { value = Ground (Bool b); _ }) ->
+  | `Labelled ("stereo", { value = Bool b; _ }) ->
       { f with Mp3_format.stereo = b }
-  | `Labelled ("mono", { value = Ground (Bool b); _ }) ->
+  | `Labelled ("mono", { value = Bool b; _ }) ->
       { f with Mp3_format.stereo = not b }
-  | `Labelled ("stereo_mode", { value = Ground (String m); pos }) ->
+  | `Labelled ("stereo_mode", { value = String m; pos }) ->
       let mode =
         match m with
           | "default" -> Mp3_format.Default
@@ -66,20 +65,20 @@ let mp3_base f = function
           | _ -> Lang_encoder.raise_error ~pos "invalid stereo mode"
       in
       { f with Mp3_format.stereo_mode = mode }
-  | `Labelled ("internal_quality", { value = Ground (Int q); pos }) ->
+  | `Labelled ("internal_quality", { value = Int q; pos }) ->
       if q < 0 || q > 9 then
         Lang_encoder.raise_error ~pos
           "internal quality must be a value between 0 and 9";
       { f with Mp3_format.internal_quality = q }
-  | `Labelled ("samplerate", { value = Ground (Int i); pos }) ->
+  | `Labelled ("samplerate", { value = Int i; pos }) ->
       { f with Mp3_format.samplerate = check_samplerate ~pos (Lazy.from_val i) }
-  | `Labelled ("id3v2", { value = Ground (Bool true); _ }) ->
+  | `Labelled ("id3v2", { value = Bool true; _ }) ->
       { f with Mp3_format.id3v2 = Some 3 }
-  | `Labelled ("id3v2", { value = Ground (Bool false); _ }) ->
+  | `Labelled ("id3v2", { value = Bool false; _ }) ->
       { f with Mp3_format.id3v2 = None }
-  | `Labelled ("id3v2", { value = Ground (Int v); _ }) ->
+  | `Labelled ("id3v2", { value = Int v; _ }) ->
       { f with Mp3_format.id3v2 = Some v }
-  | `Labelled ("id3v2", { value = Ground (String "none"); _ }) ->
+  | `Labelled ("id3v2", { value = String "none"; _ }) ->
       { f with Mp3_format.id3v2 = None }
   | `Anonymous s when String.lowercase_ascii s = "mono" ->
       { f with Mp3_format.stereo = false }
@@ -103,7 +102,7 @@ let make_cbr params =
   let mp3 =
     List.fold_left
       (fun f -> function
-        | `Labelled ("bitrate", { value = Ground (Int i); pos }) ->
+        | `Labelled ("bitrate", { value = Int i; pos }) ->
             if not (List.mem i allowed_bitrates) then
               Lang_encoder.raise_error ~pos "invalid bitrate value";
             set_bitrate f i
@@ -195,22 +194,21 @@ let make_abr_vbr ~default params =
     in
     List.fold_left
       (fun f -> function
-        | `Labelled ("quality", { value = Ground (Int q); pos }) when is_vbr f
-          ->
+        | `Labelled ("quality", { value = Int q; pos }) when is_vbr f ->
             if q < 0 || q > 9 then
               Lang_encoder.raise_error ~pos "quality should be in [0..9]";
             set_quality f (Some q)
-        | `Labelled ("hard_min", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("hard_min", { value = Bool b; _ }) ->
             set_hard_min f (Some b)
-        | `Labelled ("bitrate", { value = Ground (Int i); pos }) ->
+        | `Labelled ("bitrate", { value = Int i; pos }) ->
             if not (List.mem i allowed_bitrates) then
               Lang_encoder.raise_error ~pos "invalid bitrate value";
             set_mean_bitrate f (Some i)
-        | `Labelled ("min_bitrate", { value = Ground (Int i); pos }) ->
+        | `Labelled ("min_bitrate", { value = Int i; pos }) ->
             if not (List.mem i allowed_bitrates) then
               Lang_encoder.raise_error ~pos "invalid bitrate value";
             set_min_bitrate f (Some i)
-        | `Labelled ("max_bitrate", { value = Ground (Int i); pos }) ->
+        | `Labelled ("max_bitrate", { value = Int i; pos }) ->
             if not (List.mem i allowed_bitrates) then
               Lang_encoder.raise_error ~pos "invalid bitrate value";
             set_max_bitrate f (Some i)

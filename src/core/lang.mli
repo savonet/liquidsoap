@@ -33,27 +33,13 @@ type regexp = Liquidsoap_lang.Lang.regexp
 
 (** {2 Values} *)
 
-(** A typed value. *)
-module Ground : sig
-  type t = Liquidsoap_lang.Term.Ground.t = ..
-  type t += Bool of bool | Int of int | String of string | Float of float
-
-  type content = Liquidsoap_lang.Term.Ground.content = {
-    descr : t -> string;
-    to_json : pos:Liquidsoap_lang.Pos.t list -> t -> Json.t;
-    compare : t -> t -> int;
-    comparison_op : t Liquidsoap_lang.Term.Ground.comparison_op option;
-    typ : (module Liquidsoap_lang.Type.Ground.Custom);
-  }
-
-  val register : (t -> bool) -> content -> unit
-  val to_string : t -> string
-end
+module Custom = Value.Custom
 
 type value = Liquidsoap_lang.Value.t = {
   pos : Liquidsoap_lang.Pos.Option.t;
   value : in_value;
   methods : value Liquidsoap_lang.Value.Methods.t;
+  flags : Liquidsoap_lang.Term.flags;
   id : int;
 }
 
@@ -66,7 +52,11 @@ and ffi = Liquidsoap_lang.Value.ffi = {
 }
 
 and in_value = Liquidsoap_lang.Value.in_value =
-  | Ground of Ground.t
+  | Int of int
+  | Float of float
+  | String of string
+  | Bool of bool
+  | Custom of Custom.t
   | List of value list
   | Tuple of value list
   | Null
@@ -271,7 +261,7 @@ val metadata_t : t
 (** A getter on an arbitrary type. *)
 val getter_t : t -> t
 
-(** Abstract http transport with all methods *)
+(** Custom http transport with all methods *)
 val http_transport_t : t
 
 (** Same with no methods. *)

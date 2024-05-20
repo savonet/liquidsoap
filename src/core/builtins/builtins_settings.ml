@@ -34,17 +34,9 @@ let dtools_constr =
       (fun ~subtype ~satisfies:_ b ->
         let b = demeth b in
         match b.descr with
-          | Custom { typ }
-            when List.mem typ
-                   [
-                     Ground_type.Bool.Type;
-                     Ground_type.Int.Type;
-                     Ground_type.Float.Type;
-                     Ground_type.String.Type;
-                   ] ->
-              ()
+          | Bool | Int | Float | String -> ()
           | Tuple [] -> ()
-          | List { t = b } -> subtype b (make Ground_type.string)
+          | List { t = b } -> subtype b (make String)
           | _ -> raise Unsatisfied_constraint);
   }
 
@@ -223,6 +215,7 @@ let print_settings () =
               Value.pos = None;
               value;
               methods = Value.Methods.empty;
+              flags = 0;
               id = Value.id ();
             }
             []
@@ -248,6 +241,7 @@ let print_settings () =
                  Value.pos = None;
                  value;
                  methods = Value.Methods.empty;
+                 flags = 0;
                  id = Value.id ();
                });
         ]
@@ -322,18 +316,15 @@ let _ =
         let get = grab path !settings in
         let v = Lang.apply get [] in
         match (default.Lang.value, v.Lang.value) with
-          | Lang.(Ground (Ground.Bool _)), Lang.(Ground (Ground.Bool _))
-          | Lang.(Ground (Ground.Int _)), Lang.(Ground (Ground.Int _))
-          | Lang.(Ground (Ground.Float _)), Lang.(Ground (Ground.Float _))
-          | Lang.(Ground (Ground.String _)), Lang.(Ground (Ground.String _))
+          | Lang.(Bool _), Lang.(Bool _)
+          | Lang.(Int _), Lang.(Int _)
+          | Lang.(Float _), Lang.(Float _)
+          | Lang.(String _), Lang.(String _)
           | Lang.(List []), Lang.(List [])
-          | ( Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)),
-              Lang.(List []) )
-          | ( Lang.(List []),
-              Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)) )
-          | ( Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)),
-              Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)) )
-            ->
+          | Lang.(List ({ pos = _; value = String _ } :: _)), Lang.(List [])
+          | Lang.(List []), Lang.(List ({ pos = _; value = String _ } :: _))
+          | ( Lang.(List ({ pos = _; value = String _ } :: _)),
+              Lang.(List ({ pos = _; value = String _ } :: _)) ) ->
               v
           | _ ->
               log#severe

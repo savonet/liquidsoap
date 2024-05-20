@@ -50,3 +50,7 @@ let check_readable ?current_dir ~pos path =
       ~message:("File is not readable!" ^ details)
       "not_found";
   resolved_path
+
+let string_of_float f =
+  let s = string_of_float f in
+  if s.[String.length s - 1] = '.' then s ^ "0" else s

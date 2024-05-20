@@ -280,14 +280,14 @@ let rec token lexbuf =
         let matched = Sedlexing.Utf8.lexeme lexbuf in
         let matched = String.sub matched 0 (String.length matched - 2) in
         PP_INT_DOT_LCUR matched
+    | ( Star decimal_literal,
+        Star ('.', Star decimal_literal),
+        ('e' | 'E'),
+        Star ('+' | '-'),
+        decimal_literal ) ->
+        FLOAT (Sedlexing.Utf8.lexeme lexbuf)
     | Star decimal_literal, '.', Star decimal_literal ->
-        let matched = Sedlexing.Utf8.lexeme lexbuf in
-        let idx = String.index matched '.' in
-        let ipart = String.sub matched 0 idx in
-        let fpart =
-          String.sub matched (idx + 1) (String.length matched - idx - 1)
-        in
-        FLOAT (ipart, fpart)
+        FLOAT (Sedlexing.Utf8.lexeme lexbuf)
     | ( decimal_literal,
         ".",
         decimal_literal,

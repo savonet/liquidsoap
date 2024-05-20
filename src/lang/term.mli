@@ -31,32 +31,21 @@ val debug : bool Lazy.t
 val profile : bool ref
 val ref_t : ?pos:Pos.t -> Type.t -> Type.t
 
-module Ground = Term_base.Ground
-
-module type GroundDef = sig
-  type content
-
-  val descr : content -> string
-  val to_json : pos:Pos.t list -> content -> Json.t
-  val compare : content -> content -> int
-  val comparison_op : content Ground.comparison_op option
-  val typ : (module Type.Ground.Custom)
-end
-
-module MkGround : functor (D : GroundDef) -> sig
-  type Ground.t += Ground of D.content
-end
+module Custom = Term_base.Custom
 
 type encoder_params =
   [ `Anonymous of string | `Encoder of encoder | `Labelled of string * t ] list
 
 and encoder = string * encoder_params
 
-val unit : runtime_ast
+val unit : ast
 val is_ground : t -> bool
 val string_of_pat : pattern -> string
 val to_string : t -> string
-val make : ?pos:Pos.t -> ?t:Type.t -> ?methods:t Methods.t -> runtime_ast -> t
+
+val make :
+  ?pos:Pos.t -> ?t:Type.t -> ?flags:int -> ?methods:t Methods.t -> ast -> t
+
 val trim_runtime_types : unit -> unit
 val free_vars_pat : pattern -> Vars.t
 val bound_vars_pat : pattern -> Vars.t
@@ -74,39 +63,25 @@ exception Unused_variable of (string * Pos.t)
 
 val check_unused : throw:(exn -> unit) -> lib:bool -> t -> unit
 
-module type Abstract = sig
+module type Custom = sig
   type content
 
   val t : Type.t
-  val to_ground : content -> Ground.t
-  val of_ground : Ground.t -> content
-  val is_ground : Ground.t -> bool
+  val to_custom : content -> Custom.t
+  val of_custom : Custom.t -> content
+  val is_custom : Custom.t -> bool
   val to_term : content -> t
   val of_term : t -> content
   val is_term : t -> bool
 end
 
-module type AbstractDef = sig
+module type CustomDef = sig
   type content
 
   val name : string
+  val to_string : content -> string
   val to_json : pos:Pos.t list -> content -> Json.t
-  val descr : content -> string
   val compare : content -> content -> int
-  val comparison_op : content Ground.comparison_op option
 end
 
-module MkAbstract : functor (Def : AbstractDef) -> sig
-  module T : Type.Ground.Custom
-
-  type Ground.t += Value of Def.content
-  type content = Def.content
-
-  val t : Type.t
-  val of_ground : Ground.t -> Def.content
-  val to_ground : Def.content -> Ground.t
-  val is_ground : Ground.t -> bool
-  val of_term : t -> Def.content
-  val to_term : Def.content -> t
-  val is_term : t -> bool
-end
+module MkCustom (Def : CustomDef) : Custom with type content = Def.content

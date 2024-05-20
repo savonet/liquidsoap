@@ -20,18 +20,13 @@
 
  *****************************************************************************)
 
-include Liquidsoap_lang.Lang_core.MkCustom (struct
-  type content = Frame.field * Source.source
+module type Spec = sig
+  val name : string
+end
 
-  let name = "track"
+module type Implementation = sig
+  val descr : Type_base.descr
+  val is_descr : Type_base.descr -> bool
+end
 
-  let to_string (f, s) =
-    Printf.sprintf "track(source=%s,field=%s)" s#id
-      (Frame.Fields.string_of_field f)
-
-  let to_json ~pos _ =
-    Runtime_error.raise ~pos ~message:"Tracks cannot be represented as json"
-      "json"
-
-  let compare (f1, s1) (f2, s2) = Stdlib.compare (f1, s1#id) (f2, s2#id)
-end)
+module Make (_ : Spec) : Implementation

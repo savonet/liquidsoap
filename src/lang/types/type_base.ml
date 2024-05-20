@@ -128,6 +128,11 @@ and custom_handler = {
 }
 
 and descr =
+  | String
+  | Int
+  | Float
+  | Bool
+  | Never
   | Custom of custom_handler
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)
@@ -321,6 +326,11 @@ module Fresh = struct
   let make ({ selector; link_maps } as h) t =
     let map_var = make_var h in
     let map_descr map = function
+      | Int -> Int
+      | Float -> Float
+      | String -> String
+      | Bool -> Bool
+      | Never -> Never
       | Custom c -> Custom { c with typ = c.copy_with map c.typ }
       | Constr { constructor; params } ->
           Constr

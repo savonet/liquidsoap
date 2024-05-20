@@ -21,14 +21,13 @@
  *****************************************************************************)
 
 open Value
-open Ground
 
 let type_of_encoder p =
   let channels = Lang_encoder.channels_of_params p in
   match
     List.find_map (function `Labelled ("video", p) -> Some p | _ -> None) p
   with
-    | Some { Term.term = `Ground (Bool true) } ->
+    | Some { Term.term = `Bool true } ->
         Encoder.audio_video_type ~pcm_kind:Content.Audio.kind channels
     | Some ({ t = { Type.pos } } as tm) ->
         Lang_encoder.raise_error ~pos
@@ -55,19 +54,19 @@ let make params =
   let ext =
     List.fold_left
       (fun f -> function
-        | `Labelled ("stereo", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("stereo", { value = Bool b; _ }) ->
             { f with External_encoder_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("mono", { value = Bool b; _ }) ->
             { f with External_encoder_format.channels = (if b then 1 else 2) }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with External_encoder_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with External_encoder_format.channels = 2 }
-        | `Labelled ("channels", { value = Ground (Int c); _ }) ->
+        | `Labelled ("channels", { value = Int c; _ }) ->
             { f with External_encoder_format.channels = c }
-        | `Labelled ("samplerate", { value = Ground (Int i); _ }) ->
+        | `Labelled ("samplerate", { value = Int i; _ }) ->
             { f with External_encoder_format.samplerate = Lazy.from_val i }
-        | `Labelled ("video", { value = Ground (Bool b); _ }) ->
+        | `Labelled ("video", { value = Bool b; _ }) ->
             let w, h =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -77,7 +76,7 @@ let make params =
               f with
               External_encoder_format.video = (if b then Some (w, h) else None);
             }
-        | `Labelled ("width", { value = Ground (Int w); _ }) ->
+        | `Labelled ("width", { value = Int w; _ }) ->
             let _, h =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -85,7 +84,7 @@ let make params =
             in
             let w = Lazy.from_val w in
             { f with External_encoder_format.video = Some (w, h) }
-        | `Labelled ("height", { value = Ground (Int h); _ }) ->
+        | `Labelled ("height", { value = Int h; _ }) ->
             let w, _ =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -93,21 +92,21 @@ let make params =
             in
             let h = Lazy.from_val h in
             { f with External_encoder_format.video = Some (w, h) }
-        | `Labelled ("header", { value = Ground (Bool h); _ }) ->
+        | `Labelled ("header", { value = Bool h; _ }) ->
             { f with External_encoder_format.header = h }
-        | `Labelled ("restart_on_crash", { value = Ground (Bool h); _ }) ->
+        | `Labelled ("restart_on_crash", { value = Bool h; _ }) ->
             { f with External_encoder_format.restart_on_crash = h }
         | `Anonymous s when String.lowercase_ascii s = "restart_on_metadata" ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Metadata;
             }
-        | `Labelled ("restart_after_delay", { value = Ground (Int i); _ }) ->
+        | `Labelled ("restart_after_delay", { value = Int i; _ }) ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Delay i;
             }
-        | `Labelled ("process", { value = Ground (String s); _ }) ->
+        | `Labelled ("process", { value = String s; _ }) ->
             { f with External_encoder_format.process = s }
         | `Anonymous s -> { f with External_encoder_format.process = s }
         | t -> Lang_encoder.raise_generic_error t)
