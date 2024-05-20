@@ -8,6 +8,7 @@ New:
   behavior. Mostly, things should be roughly the same with differences around
   behavors related to track marks (`source.on_track` and etc). See @TODO@ for
   more details (#3577)
+- Optimized runtime (#3927, #3928)
 - Allow frames smaller than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage. See @TODO@ for more details (#3607)
