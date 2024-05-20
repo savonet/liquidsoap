@@ -27,6 +27,9 @@
     deleting a local file). *)
 type indicator
 
+(** Root configuration node. *)
+val conf : Dtools.Conf.ut
+
 (** Create an indicator. *)
 val indicator :
   ?metadata:Frame.metadata -> ?temporary:bool -> string -> indicator

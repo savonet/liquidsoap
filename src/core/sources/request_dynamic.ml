@@ -23,6 +23,9 @@
 open Source
 module Queue = Liquidsoap_lang.Queues.Queue
 
+let conf_prefetch =
+  Dtools.Conf.int ~p:(Request.conf#plug "prefetch") ~d:1 "Default prefetch"
+
 (* Scheduler priority for request resolutions. *)
 let priority = `Maybe_blocking
 
@@ -48,7 +51,8 @@ let log_failed_request (log : Log.t) request ans =
       | Request.Resolved -> assert false)
 
 let extract_queued_params p =
-  let l = Lang.to_int (List.assoc "prefetch" p) in
+  let l = Lang.to_valued_option Lang.to_int (List.assoc "prefetch" p) in
+  let l = Option.value ~default:conf_prefetch#get l in
   let t = Lang.to_float (List.assoc "timeout" p) in
   (l, t)
 
@@ -451,8 +455,8 @@ let _ =
           "Whether some new requests are available (when set to false, it \
            stops after current playing request)." );
       ( "prefetch",
-        Lang.int_t,
-        Some (Lang.int 1),
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
         Some "How many requests should be queued in advance." );
       ( "timeout",
         Lang.float_t,

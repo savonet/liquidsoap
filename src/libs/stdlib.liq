@@ -22,6 +22,7 @@
 %include "request.liq"
 %include "audio.liq"
 %include "fades.liq"
+%include "autocue.liq"
 %include "replaygain.liq"
 %include "http_codes.liq"
 %include "http.liq"
@@ -57,6 +58,5 @@
 %include_extra "extra/metadata.liq"
 %include_extra "extra/fades.liq"
 %include_extra "extra/video.liq"
-%include_extra "extra/autocue.liq"
 
 set_settings_ref(settings)

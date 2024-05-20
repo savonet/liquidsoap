@@ -23,6 +23,16 @@
 open Mm
 open Source
 
+let conf =
+  Dtools.Conf.void ~p:(Configure.conf#plug "crossfade") "Crossfade settings"
+
+let conf_assume_autocue =
+  Dtools.Conf.bool
+    ~p:(conf#plug "assume_autocue")
+    ~d:false
+    "Assume autocue when all 4 cue in/out and fade in/out metadata override \
+     are present."
+
 class consumer ~clock buffer =
   object (self)
     inherit Source.source ~clock ~name:"cross.buffer" ()
