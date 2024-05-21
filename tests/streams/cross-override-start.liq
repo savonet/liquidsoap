@@ -8,7 +8,7 @@ b =
   metadata.map(
     id="b",
     update=false,
-    (fun (_) -> [("source", "b"), ("liq_cross_duration", "1.1")]),
+    (fun (_) -> [("source", "b"), ("liq_cross_start_duration", "1.1")]),
     b
   )
 
@@ -16,7 +16,7 @@ c = sine(duration=5., 440.)
 c = metadata.map(id="c", update=false, (fun (_) -> [("source", "c")]), c)
 
 s = sequence([a, b, c])
-s = crossfade(duration=5., s)
+s = crossfade(start_duration=5., end_duration=4., s)
 
 track_count = ref(0)
 
@@ -29,16 +29,16 @@ def on_metadata(m) =
     track_count() == 2
   then
     if m["source"] != "b" then test.fail() end
+    if s.end_duration() != 4. then test.fail() end
     if s.start_duration() != 1.1 then test.fail() end
-    if s.end_duration() != 1.1 then test.fail() end
   end
 
   if
     track_count() == 3
   then
     if m["source"] != "c" then test.fail() end
+    if s.end_duration() != 4. then test.fail() end
     if s.start_duration() != 5. then test.fail() end
-    if s.end_duration() != 5. then test.fail() end
     success := true
   end
 end
