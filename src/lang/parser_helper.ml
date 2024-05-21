@@ -173,7 +173,7 @@ and mk_meth_ty ?pos base { Term.name; optional; typ; json_name } =
            base )))
 
 let let_args ~decoration ~pat ?arglist ~def ?cast () =
-  { Parsed_term.decoration; pat; arglist; def; cast }
+  { decoration; pat; arglist; def; cast }
 
 let mk_json_assoc_object_ty ~pos = function
   | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty

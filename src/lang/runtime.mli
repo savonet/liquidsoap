@@ -27,6 +27,14 @@ exception Error
 (** Raise errors for warnings. *)
 val strict : bool ref
 
+(** Return the list of external libraries. *)
+val libs :
+  ?error_on_no_stdlib:bool ->
+  ?deprecated:bool ->
+  ?stdlib:string ->
+  unit ->
+  string list
+
 (** Load the external libraries. *)
 val load_libs :
   ?error_on_no_stdlib:bool ->
@@ -53,7 +61,7 @@ val mk_expr :
 val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
 
 (** Evaluate a script from a file. *)
-val from_file : ?parse_only:bool -> lib:bool -> string -> unit
+val from_file : ?ns:string -> ?parse_only:bool -> lib:bool -> string -> unit
 
 (** Evaluate a script from a string. *)
 val from_string : ?parse_only:bool -> lib:bool -> string -> unit

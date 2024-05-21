@@ -25,9 +25,12 @@ type processor =
     Parsed_term.t )
   MenhirLib.Convert.revised
 
+type env = (string * Runtime_term.t) list
+
 open Parsed_term
 include Runtime_term
 
+exception No_extra
 exception Float_parsed of float
 
 let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
@@ -37,6 +40,99 @@ let mk_parsed = Parsed_term.make
 
 let mk_fun ~pos arguments body =
   Term.make ~pos (`Fun Term.{ free_vars = None; name = None; arguments; body })
+
+let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
+
+let mk_expr ?fname processor lexbuf =
+  let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
+  Parser_helper.clear_comments ();
+  let parsed_term = processor tokenizer in
+  Parser_helper.attach_comments parsed_term;
+  parsed_term
+
+let pp_if_reducer ~env ~pos = function
+  | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else } -> (
+      let if_def_else =
+        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_def_else
+      in
+      match
+        ( List.mem_assoc if_def_condition env
+          || Environment.has_builtin if_def_condition,
+          if_def_negative )
+      with
+        | true, false | false, true -> if_def_then
+        | _ -> if_def_else)
+  | `If_version
+      { if_version_op; if_version_version; if_version_then; if_version_else }
+    -> (
+      let if_version_else =
+        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_version_else
+      in
+      let current_version =
+        Lang_string.Version.of_string Build_config.version
+      in
+      match
+        ( if_version_op,
+          Lang_string.Version.compare current_version if_version_version )
+      with
+        | `Eq, 0 -> if_version_then
+        | `Geq, v when v >= 0 -> if_version_then
+        | `Leq, v when v <= 0 -> if_version_then
+        | `Gt, v when v > 0 -> if_version_then
+        | `Lt, v when v < 0 -> if_version_then
+        | _ -> if_version_else)
+  | `If_encoder
+      {
+        if_encoder_negative;
+        if_encoder_condition;
+        if_encoder_then;
+        if_encoder_else;
+      } -> (
+      let if_encoder_else =
+        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_encoder_else
+      in
+      try
+        let encoder =
+          !Hooks.make_encoder ~pos:None (mk Term.unit) (if_encoder_condition, [])
+        in
+        match (!Hooks.has_encoder encoder, if_encoder_negative) with
+          | true, false | false, true -> if_encoder_then
+          | _ -> if_encoder_else
+      with _ -> if_encoder_else)
+
+let includer_reducer ~pos = function
+  | `Include { inc_type; inc_name; inc_pos } -> (
+      try
+        let fname =
+          match inc_type with
+            | `Lib -> Filename.concat (!Hooks.liq_libs_dir ()) inc_name
+            | v -> (
+                try
+                  let current_dir =
+                    Filename.dirname (fst inc_pos).Lexing.pos_fname
+                  in
+                  Utils.check_readable ~current_dir ~pos:[inc_pos] inc_name
+                with _ when v = `Extra -> raise No_extra)
+        in
+        let ic = if fname = "-" then stdin else open_in fname in
+        Fun.protect
+          ~finally:(fun () -> if fname <> "-" then close_in ic)
+          (fun () ->
+            let lexbuf = Sedlexing.Utf8.from_channel ic in
+            mk_expr ~fname program lexbuf)
+      with No_extra -> Parsed_term.make ~pos (`Tuple []))
+
+let rec concat_term (t : Parsed_term.t) (t' : Parsed_term.t) =
+  match t with
+    | { term = `Let (def, body) } ->
+        { t with term = `Let (def, concat_term body t') }
+    | { term = `Def (def, body) } ->
+        { t with term = `Def (def, concat_term body t') }
+    | { term = `Binding (def, body) } ->
+        { t with term = `Binding (def, concat_term body t') }
+    | { term = `Seq (t1, t2) } as tm ->
+        { tm with term = `Seq (t1, concat_term t2 t') }
+    | _ -> Parsed_term.make ~pos:t.pos (`Seq (t, t'))
 
 (** Time intervals *)
 
@@ -98,7 +194,101 @@ let mk_time_pred ~pos (a, b, c) =
   let args = List.map (fun x -> ("", mk ~pos (`Int x))) [a; b; c] in
   `App (mk ~pos (`Var "time_in_mod"), args)
 
-let gen_args_of ~only ~except ~pos get_args name =
+let rec get_env_args ~pos t args =
+  let get_arg_type t name =
+    match (Type.deref t).Type.descr with
+      | Type.Arrow (l, _) ->
+          let _, _, t = List.find (fun (_, n, _) -> n = name) l in
+          t
+      | _ ->
+          parse_error ~pos
+            (Printf.sprintf
+               "Cannot get argument type of %s, this is not a function, it has \
+                type: %s."
+               name (Type.to_string t))
+  in
+  List.map
+    (fun (n, n', v) ->
+      let t = Type.make ~pos (get_arg_type t n).Type.descr in
+      let as_variable = if n = n' then None else Some n' in
+      {
+        label = n;
+        as_variable;
+        typ = t;
+        default = Option.map (term_of_value ~pos ~name:n t) v;
+      })
+    args
+
+and term_of_value_base ~pos t v =
+  let get_list_type () =
+    match (Type.deref t).Type.descr with
+      | Type.(List { t }) -> t
+      | _ -> assert false
+  in
+  let get_tuple_type pos =
+    match (Type.deref t).Type.descr with
+      | Type.Tuple t -> List.nth t pos
+      | _ -> assert false
+  in
+  let process_value ~t v =
+    let mk_tm ?(flags = 0) term =
+      mk ~flags ~t:(Type.make ~pos t.Type.descr) term
+    in
+    match v.Value.value with
+      | Value.Int i -> mk_tm ~flags:v.Value.flags (`Int i)
+      | Value.Float f -> mk_tm (`Float f)
+      | Value.Bool b -> mk_tm (`Bool b)
+      | Value.String s -> mk_tm (`String s)
+      | Value.Custom g -> mk_tm (`Custom g)
+      | Value.List l ->
+          mk_tm
+            (`List (List.map (term_of_value_base ~pos (get_list_type ())) l))
+      | Value.Tuple l ->
+          mk_tm
+            (`Tuple
+              (List.mapi
+                 (fun idx v -> term_of_value_base ~pos (get_tuple_type idx) v)
+                 l))
+      | Value.Null -> mk_tm `Null
+      (* Ignoring env is not correct here but this is an internal operator
+         so we have to trust that devs using it via %argsof now that they are doing. *)
+      | Value.Fun (args, _, body) ->
+          let body =
+            mk
+              ~t:(Type.make ~pos body.t.Type.descr)
+              ~methods:body.Term.methods body.Term.term
+          in
+          mk_tm
+            (`Fun
+              {
+                Term_base.name = None;
+                arguments = get_env_args ~pos t args;
+                body;
+                free_vars = None;
+              })
+      | _ -> assert false
+  in
+  let meths, _ = Type.split_meths t in
+  let tm = process_value ~t v in
+  mk ~t:tm.Term.t
+    ~methods:
+      (Methods.mapi
+         (fun key meth ->
+           let { Type.scheme = _, t } =
+             List.find (fun { Type.meth } -> meth = key) meths
+           in
+           process_value ~t meth)
+         v.Value.methods)
+    tm.Term.term
+
+and term_of_value ~pos ~name t v =
+  try term_of_value_base ~pos t v
+  with _ ->
+    parse_error ~pos
+      (Printf.sprintf "Argument %s: value %s cannot be represented as a term"
+         name (Value.to_string v))
+
+let builtin_args_of ~only ~except ~pos name =
   match Environment.get_builtin name with
     | Some ((_, t), Value.{ value = Fun (args, _, _) })
     | Some ((_, t), Value.{ value = FFI { ffi_args = args; _ } }) ->
@@ -127,126 +317,51 @@ let gen_args_of ~only ~except ~pos get_args name =
         let filtered_args =
           List.filter (fun (n, _, _) -> not (List.mem n except)) filtered_args
         in
-        get_args ~pos t filtered_args
+        get_env_args ~pos t filtered_args
     | Some _ ->
         parse_error ~pos (Printf.sprintf "Builtin %s is not a function!" name)
     | None ->
         parse_error ~pos (Printf.sprintf "Builtin %s is not registered!" name)
 
-let args_of, app_of =
-  let rec get_args ~pos t args =
-    let get_arg_type t name =
-      match (Type.deref t).Type.descr with
-        | Type.Arrow (l, _) ->
-            let _, _, t = List.find (fun (_, n, _) -> n = name) l in
-            t
-        | _ ->
-            parse_error ~pos
-              (Printf.sprintf
-                 "Cannot get argument type of %s, this is not a function, it \
-                  has type: %s."
-                 name (Type.to_string t))
-    in
-    List.map
-      (fun (n, n', v) ->
-        let t = Type.make ~pos (get_arg_type t n).Type.descr in
-        let as_variable = if n = n' then None else Some n' in
-        {
-          label = n;
-          as_variable;
-          typ = t;
-          default = Option.map (term_of_value ~pos ~name:n t) v;
-        })
-      args
-  and get_app ~pos _ args =
-    List.map (fun (n, _, _) -> (n, mk ~t:(Type.var ~pos ()) (`Var n))) args
-  and term_of_value_base ~pos t v =
-    let get_list_type () =
-      match (Type.deref t).Type.descr with
-        | Type.(List { t }) -> t
-        | _ -> assert false
-    in
-    let get_tuple_type pos =
-      match (Type.deref t).Type.descr with
-        | Type.Tuple t -> List.nth t pos
-        | _ -> assert false
-    in
-    let process_value ~t v =
-      let mk_tm ?(flags = 0) term =
-        mk ~flags ~t:(Type.make ~pos t.Type.descr) term
-      in
-      match v.Value.value with
-        | Value.Int i -> mk_tm ~flags:v.Value.flags (`Int i)
-        | Value.Float f -> mk_tm (`Float f)
-        | Value.Bool b -> mk_tm (`Bool b)
-        | Value.String s -> mk_tm (`String s)
-        | Value.Custom g -> mk_tm (`Custom g)
-        | Value.List l ->
-            mk_tm
-              (`List (List.map (term_of_value_base ~pos (get_list_type ())) l))
-        | Value.Tuple l ->
-            mk_tm
-              (`Tuple
-                (List.mapi
-                   (fun idx v -> term_of_value_base ~pos (get_tuple_type idx) v)
-                   l))
-        | Value.Null -> mk_tm `Null
-        (* Ignoring env is not correct here but this is an internal operator
-           so we have to trust that devs using it via %argsof now that they are doing. *)
-        | Value.Fun (args, _, body) ->
-            let body =
-              mk
-                ~t:(Type.make ~pos body.t.Type.descr)
-                ~methods:body.Term.methods body.Term.term
-            in
-            mk_tm
-              (`Fun
-                {
-                  Term_base.name = None;
-                  arguments = get_args ~pos t args;
-                  body;
-                  free_vars = None;
-                })
-        | _ -> assert false
-    in
-    let meths, _ = Type.split_meths t in
-    let tm = process_value ~t v in
-    mk ~t:tm.Term.t
-      ~methods:
-        (Methods.mapi
-           (fun key meth ->
-             let { Type.scheme = _, t } =
-               List.find (fun { Type.meth } -> meth = key) meths
-             in
-             process_value ~t meth)
-           v.Value.methods)
-      tm.Term.term
-  and term_of_value ~pos ~name t v =
-    try term_of_value_base ~pos t v
-    with _ ->
-      parse_error ~pos
-        (Printf.sprintf "Argument %s: value %s cannot be represented as a term"
-           name (Value.to_string v))
-  in
-  let args_of ~pos = gen_args_of ~pos get_args in
-  let app_of ~pos = gen_args_of ~pos get_app in
-  (args_of, app_of)
+let args_of ~only ~except ~pos ~env name =
+  match List.assoc_opt name env with
+    | Some { term = `Fun { arguments } } ->
+        let filtered_args =
+          List.filter (fun { label } -> label <> "") arguments
+        in
+        let filtered_args =
+          if only <> [] then
+            List.map
+              (fun n ->
+                try List.find (fun { label } -> label = n) filtered_args
+                with Not_found ->
+                  parse_error ~pos
+                    (Printf.sprintf "%s does not have an argument named %s" name
+                       n))
+              only
+          else filtered_args
+        in
+        List.iter
+          (fun n ->
+            match List.find_opt (fun { label } -> label = n) filtered_args with
+              | Some _ -> ()
+              | None ->
+                  parse_error ~pos
+                    (Printf.sprintf "%s does not have an argument named %s" name
+                       n))
+          except;
+        List.filter (fun { label } -> not (List.mem label except)) filtered_args
+    | Some tm ->
+        Printf.printf "Term: %s\n%!" (Term_base.to_string tm);
+        parse_error ~pos (Printf.sprintf "%s is not a function!" name)
+    | None -> builtin_args_of ~only ~except ~pos name
 
-let expand_appof ~pos ~to_term (args : Parsed_term.app_arg list) =
+let expand_argsof ~pos ~env ~to_term args =
   List.rev
     (List.fold_left
        (fun args -> function
          | `Argsof { only; except; source } ->
-             List.rev (app_of ~pos ~only ~except source) @ args
-         | `Term (l, v) -> (l, to_term v) :: args)
-       [] args)
-
-let expand_argsof ~pos ~to_term args =
-  List.rev
-    (List.fold_left
-       (fun args -> function
-         | `Argsof { only; except; source } ->
-             List.rev (args_of ~pos ~only ~except source) @ args
+             List.rev (args_of ~pos ~env ~only ~except source) @ args
          | `Term arg ->
              {
                arg with
@@ -257,6 +372,21 @@ let expand_argsof ~pos ~to_term args =
                default = Option.map to_term arg.default;
              }
              :: args)
+       [] args)
+
+let app_of ~pos ~only ~except ~env source =
+  let args = args_of ~pos ~only ~except ~env source in
+  List.map
+    (fun { label } -> (label, mk ~t:(Type.var ~pos ()) (`Var label)))
+    args
+
+let expand_appof ~pos ~env ~to_term args =
+  List.rev
+    (List.fold_left
+       (fun args -> function
+         | `Argsof { only; except; source } ->
+             List.rev (app_of ~pos ~only ~except ~env source) @ args
+         | `Term (l, v) -> (l, to_term v) :: args)
        [] args)
 
 (** When doing chained calls, we want to update all nested defaults so that, e.g.
@@ -336,7 +466,7 @@ and update_invoke_default ~pos ~optional expr name value =
               args ))
     | _ -> expr
 
-let mk_invoke ?(default : Parsed_term.t option) ~pos ~to_term expr v =
+let mk_invoke ?(default : Parsed_term.t option) ~pos ~env ~to_term expr v =
   let expr = to_term expr in
   let default = Option.map to_term default in
   let optional, value =
@@ -352,7 +482,7 @@ let mk_invoke ?(default : Parsed_term.t option) ~pos ~to_term expr v =
             meth;
           }
     | `App (meth, args) ->
-        let args = expand_appof ~pos ~to_term args in
+        let args = expand_appof ~pos ~env ~to_term args in
         let value = mk_app_invoke_default ~pos ~args value in
         let expr = update_invoke_default ~pos ~optional expr meth value in
         `App
@@ -365,11 +495,11 @@ let mk_invoke ?(default : Parsed_term.t option) ~pos ~to_term expr v =
                 }),
             args )
 
-let mk_coalesce ~pos ~(default : Parsed_term.t) ~to_term
+let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
     (computed : Parsed_term.t) =
   match computed.term with
     | `Invoke { invoked; meth = `String m } ->
-        mk_invoke ~pos ~default ~to_term invoked (`String m)
+        mk_invoke ~pos ~env ~default ~to_term invoked (`String m)
     | _ ->
         let null = mk ~pos (`Var "null") in
         let op =
@@ -421,52 +551,6 @@ let if_reducer ~pos ~to_term = function
       in
       term.term
 
-let pp_if_reducer ~pos ~to_term = function
-  | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else } -> (
-      let if_def_else =
-        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_def_else
-      in
-      match (Environment.has_builtin if_def_condition, if_def_negative) with
-        | true, false | false, true -> (to_term if_def_then).term
-        | _ -> (to_term if_def_else).term)
-  | `If_version
-      { if_version_op; if_version_version; if_version_then; if_version_else }
-    -> (
-      let if_version_else =
-        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_version_else
-      in
-      let current_version =
-        Lang_string.Version.of_string Build_config.version
-      in
-      match
-        ( if_version_op,
-          Lang_string.Version.compare current_version if_version_version )
-      with
-        | `Eq, 0 -> (to_term if_version_then).term
-        | `Geq, v when v >= 0 -> (to_term if_version_then).term
-        | `Leq, v when v <= 0 -> (to_term if_version_then).term
-        | `Gt, v when v > 0 -> (to_term if_version_then).term
-        | `Lt, v when v < 0 -> (to_term if_version_then).term
-        | _ -> (to_term if_version_else).term)
-  | `If_encoder
-      {
-        if_encoder_negative;
-        if_encoder_condition;
-        if_encoder_then;
-        if_encoder_else;
-      } -> (
-      let if_encoder_else =
-        Option.value ~default:(mk_parsed ~pos (`Tuple [])) if_encoder_else
-      in
-      try
-        let encoder =
-          !Hooks.make_encoder ~pos:None (mk Term.unit) (if_encoder_condition, [])
-        in
-        match (!Hooks.has_encoder encoder, if_encoder_negative) with
-          | true, false | false, true -> (to_term if_encoder_then).term
-          | _ -> (to_term if_encoder_else).term
-      with _ -> (to_term if_encoder_else).term)
-
 let while_reducer ~pos ~to_term = function
   | `While { while_condition; while_loop } ->
       let op = mk ~pos (`Var "while") in
@@ -514,7 +598,7 @@ let infix_reducer ~pos ~to_term = function
       let op = mk ~pos (`Var op) in
       `App (op, [("", to_term tm); ("", to_term tm')])
 
-let bool_reducer ~pos ~to_term = function
+let bool_op_reducer ~pos ~to_term = function
   | `BoolOp (op, tm :: terms) ->
       List.fold_left
         (fun tm tm' ->
@@ -719,11 +803,29 @@ let string_of_let_decoration = function
   | `Yaml_parse -> "yaml.parse"
   | `Json_parse _ -> "json.parse"
 
-let mk_let ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
-  let def = to_term def in
-  let body = to_term body in
+let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
+    ({ decoration; pat; arglist; def; cast }, body) =
+  let def = to_term ~env def in
+  let mk_body def =
+    let env =
+      match pat with
+        | `PVar path ->
+            let path = String.concat "." path in
+            let env =
+              if decoration <> `Replaces then
+                List.filter
+                  (fun (p, _) -> not (String.starts_with ~prefix:path p))
+                  env
+              else env
+            in
+            (path, def) :: env
+        | _ -> env
+    in
+    to_term ~env body
+  in
+  let to_term = to_term ~env in
   let cast = Option.map (Parser_helper.mk_ty ~pos) cast in
-  let arglist = Option.map (expand_argsof ~pos ~to_term) arglist in
+  let arglist = Option.map (expand_argsof ~pos ~env ~to_term) arglist in
   match (arglist, decoration) with
     | Some arglist, `None | Some arglist, `Replaces ->
         let replace = decoration = `Replaces in
@@ -731,26 +833,38 @@ let mk_let ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
+        let body = mk_body def in
         `Let { Term_base.doc = None; replace; pat; gen = []; def; body }
     | Some arglist, `Recursive ->
         let def = mk_rec_fun ~pos pat arglist def in
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
+        let body = mk_body def in
         `Let { Term_base.doc = None; replace = false; pat; gen = []; def; body }
     | None, `None | None, `Replaces ->
         let replace = decoration = `Replaces in
         let def =
           match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
         in
+        let body = mk_body def in
         `Let { Term_base.doc = None; replace; pat; gen = []; def; body }
-    | None, `Eval -> mk_eval ~pos (pat, def, body, cast)
+    | None, `Eval ->
+        let body = mk_body def in
+        mk_eval ~pos (pat, def, body, cast)
     | None, `Json_parse args ->
         let args = List.map (fun (l, v) -> (l, to_term v)) args in
+        let body = mk_body def in
         mk_let_json_parse ~pos (args, pat, def, cast) body
-    | None, `Yaml_parse -> mk_let_yaml_parse ~pos (pat, def, cast) body
-    | None, `Sqlite_row -> mk_let_sqlite_row ~pos (pat, def, cast) body
-    | None, `Sqlite_query -> mk_let_sqlite_query ~pos (pat, def, cast) body
+    | None, `Yaml_parse ->
+        let body = mk_body def in
+        mk_let_yaml_parse ~pos (pat, def, cast) body
+    | None, `Sqlite_row ->
+        let body = mk_body def in
+        mk_let_sqlite_row ~pos (pat, def, cast) body
+    | None, `Sqlite_query ->
+        let body = mk_body def in
+        mk_let_sqlite_query ~pos (pat, def, cast) body
     | Some _, v ->
         parse_error ~pos
           (string_of_let_decoration v
@@ -759,153 +873,120 @@ let mk_let ~pos ~to_term ({ decoration; pat; arglist; def; cast }, body) =
         parse_error ~pos
           (string_of_let_decoration v ^ " only applies to function assignments")
 
-let rec concat_term t t' =
-  match t with
-    | { term = `Let p } as t ->
-        { t with term = `Let { p with body = concat_term p.body t' } }
-    | { term = `Seq (s, s') } -> { t with term = `Seq (s, concat_term s' t') }
-    | _ -> mk ?pos:t.t.Type.pos (`Seq (t, t'))
+let to_encoder_string = function
+  | `Verbatim s -> s
+  | `String (pos, (sep, s)) -> render_string ~pos ~sep s
 
-exception No_extra
+let rec to_encoder_params ~env ~to_term l =
+  List.map
+    (function
+      | `Anonymous s -> `Anonymous (to_encoder_string s)
+      | `Labelled (s, t) -> `Labelled (to_encoder_string s, to_term ~env t)
+      | `Encoder e -> `Encoder (to_encoder ~to_term ~env e))
+    l
 
-let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
+and to_encoder ~env ~to_term (lbl, params) =
+  (lbl, to_encoder_params ~env ~to_term params)
 
-let mk_expr ?fname processor lexbuf =
-  let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
-  Parser_helper.clear_comments ();
-  let parsed_term = processor tokenizer in
-  Parser_helper.attach_comments parsed_term;
-  parsed_term
-
-let includer_reducer ~to_term = function
-  | `Include { inc_type; inc_name; inc_pos } -> (
-      try
-        let fname =
-          match inc_type with
-            | `Lib -> Filename.concat (!Hooks.liq_libs_dir ()) inc_name
-            | v -> (
-                try
-                  let current_dir =
-                    Filename.dirname (fst inc_pos).Lexing.pos_fname
-                  in
-                  Utils.check_readable ~current_dir ~pos:[inc_pos] inc_name
-                with _ when v = `Extra -> raise No_extra)
+let rec to_ast ~env ~pos ast =
+  let to_term_with_env = to_term in
+  let to_term = to_term ~env in
+  match ast with
+    | `Methods _ | `Block _ | `Parenthesis _ | `Eof -> assert false
+    | `Include _ as ast -> (to_term (includer_reducer ~pos ast)).term
+    | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
+        (to_term (pp_if_reducer ~pos ~env ast)).term
+    | `Get _ as ast -> get_reducer ~pos ~to_term ast
+    | `Set _ as ast -> set_reducer ~pos ~to_term ast
+    | `Inline_if _ as ast -> if_reducer ~pos ~to_term ast
+    | `If _ as ast -> if_reducer ~pos ~to_term ast
+    | `While _ as ast -> while_reducer ~pos ~to_term ast
+    | `For _ as ast -> for_reducer ~pos ~to_term ast
+    | `Iterable_for _ as ast -> iterable_for_reducer ~pos ~to_term ast
+    | `Not _ as ast -> not_reducer ~pos ~to_term ast
+    | `Negative _ as ast -> negative_reducer ~pos ~to_term ast
+    | `Append _ as ast -> append_reducer ~pos ~to_term ast
+    | `Assoc _ as ast -> assoc_reducer ~pos ~to_term ast
+    | `Infix _ as ast -> infix_reducer ~pos ~to_term ast
+    | `Bool _ as ast -> ast
+    | `BoolOp _ as ast -> bool_op_reducer ~pos ~to_term ast
+    | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~to_term ast
+    | `Regexp _ as ast -> regexp_reducer ~pos ~to_term ast
+    | `Try _ as ast -> try_reducer ~pos ~to_term ast
+    | `String_interpolation (sep, l) ->
+        let l =
+          List.map
+            (function
+              | `String s -> `Term (mk_parsed ~pos (`String (sep, s)))
+              | `Term tm ->
+                  `Term
+                    (mk_parsed ~pos
+                       (`App (mk_parsed ~pos (`Var "string"), [`Term ("", tm)]))))
+            l
         in
-        let ic = open_in fname in
-        let term =
-          Fun.protect
-            ~finally:(fun () -> close_in ic)
-            (fun () ->
-              let lexbuf = Sedlexing.Utf8.from_channel ic in
-              mk_expr ~fname program lexbuf)
+        let op =
+          mk_parsed ~pos
+            (`Invoke
+              {
+                invoked = mk_parsed ~pos (`Var "string");
+                meth = `String "concat";
+                optional = false;
+              })
         in
-        (to_term term).term
-      with No_extra -> `Tuple [])
+        to_ast ~env ~pos (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
+    | `Def p | `Let p | `Binding p ->
+        mk_let ~pos ~env ~to_term:to_term_with_env p
+    | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
+    | `At (t, t') -> `App (to_term t', [("", to_term t)])
+    | `Time t -> mk_time_pred ~pos (during ~pos t)
+    | `Time_interval (t, t') -> mk_time_pred ~pos (between ~pos t t')
+    | `Custom _ as ast -> ast
+    | `Encoder e -> `Encoder (to_encoder ~to_term:to_term_with_env ~env e)
+    | `List l -> list_reducer ~pos ~to_term (List.rev l)
+    | `Tuple l -> `Tuple (List.map to_term l)
+    | `String (sep, s) -> `String (render_string ~pos ~sep s)
+    | `Int i -> `Int (int_of_string i)
+    | `Float f -> (
+        try
+          ignore (Scanf.sscanf f "%f" (fun v -> raise (Float_parsed v)));
+          parse_error ~pos (Printf.sprintf "Invalid float value: %s" f)
+        with Float_parsed f -> `Float f)
+    | `Null -> `Null
+    | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ~pos typ)
+    | `Invoke { invoked; optional; meth } ->
+        let default = if optional then Some (mk_parsed ~pos `Null) else None in
+        mk_invoke ~pos ~env ?default ~to_term invoked meth
+    | `Open (t, t') -> `Open (to_term t, to_term t')
+    | `Var s -> `Var s
+    | `Seq (t, t') -> `Seq (to_term t, to_term t')
+    | `App (t, args) ->
+        let args = expand_appof ~pos ~env ~to_term args in
+        `App (to_term t, args)
+    | `Fun (args, body) -> `Fun (to_func ~pos ~env ~to_term args body)
+    | `RFun (name, args, body) ->
+        `Fun (to_func ~pos ~env ~to_term ~name args body)
 
-let rec to_ast ~pos : parsed_ast -> Term.ast = function
-  | `Include _ as ast -> includer_reducer ~to_term ast
-  | `Get _ as ast -> get_reducer ~pos ~to_term ast
-  | `Set _ as ast -> set_reducer ~pos ~to_term ast
-  | `Inline_if _ as ast -> if_reducer ~pos ~to_term ast
-  | `If _ as ast -> if_reducer ~pos ~to_term ast
-  | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
-      pp_if_reducer ~pos ~to_term ast
-  | `While _ as ast -> while_reducer ~pos ~to_term ast
-  | `For _ as ast -> for_reducer ~pos ~to_term ast
-  | `Iterable_for _ as ast -> iterable_for_reducer ~pos ~to_term ast
-  | `Not _ as ast -> not_reducer ~pos ~to_term ast
-  | `Negative _ as ast -> negative_reducer ~pos ~to_term ast
-  | `Append _ as ast -> append_reducer ~pos ~to_term ast
-  | `Assoc _ as ast -> assoc_reducer ~pos ~to_term ast
-  | `Infix _ as ast -> infix_reducer ~pos ~to_term ast
-  | `BoolOp _ as ast -> bool_reducer ~pos ~to_term ast
-  | `Simple_fun _ as ast -> simple_fun_reducer ~pos ~to_term ast
-  | `Regexp _ as ast -> regexp_reducer ~pos ~to_term ast
-  | `Try _ as ast -> try_reducer ~pos ~to_term ast
-  | `String_interpolation (sep, l) ->
-      let l =
-        List.map
-          (function
-            | `String s -> `Term (mk_parsed ~pos (`String (sep, s)))
-            | `Term tm ->
-                `Term
-                  (mk_parsed ~pos
-                     (`App (mk_parsed ~pos (`Var "string"), [`Term ("", tm)]))))
-          l
-      in
-      let op =
-        mk_parsed ~pos
-          (`Invoke
-            {
-              invoked = mk_parsed ~pos (`Var "string");
-              meth = `String "concat";
-              optional = false;
-            })
-      in
-      to_ast ~pos (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
-  | `Def p | `Let p | `Binding p -> mk_let ~pos ~to_term p
-  | `Coalesce (t, default) -> mk_coalesce ~pos ~to_term ~default t
-  | `At (t, t') -> `App (to_term t', [("", to_term t)])
-  | `Time t -> mk_time_pred ~pos (during ~pos t)
-  | `Time_interval (t, t') -> mk_time_pred ~pos (between ~pos t t')
-  | `Custom _ as ast -> ast
-  | `Encoder e -> `Encoder (to_encoder e)
-  | `List l -> list_reducer ~pos ~to_term (List.rev l)
-  | `Tuple l -> `Tuple (List.map to_term l)
-  | `String (sep, s) -> `String (render_string ~pos ~sep s)
-  | `Bool _ as ast -> ast
-  | `Int i -> `Int (int_of_string i)
-  | `Float f -> (
-      try
-        ignore (Scanf.sscanf f "%f" (fun v -> raise (Float_parsed v)));
-        parse_error ~pos (Printf.sprintf "Invalid float value: %s" f)
-      with Float_parsed f -> `Float f)
-  | `Eof -> `Tuple []
-  | `Null -> `Null
-  | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ~pos typ)
-  | `Invoke { invoked; optional; meth } ->
-      let default = if optional then Some (mk_parsed ~pos `Null) else None in
-      mk_invoke ~pos ?default ~to_term invoked meth
-  | `Open (t, t') -> `Open (to_term t, to_term t')
-  | `Var s -> `Var s
-  | `Seq (t, t') -> `Seq (to_term t, to_term t')
-  | `App (t, args) ->
-      let args = expand_appof ~pos ~to_term args in
-      `App (to_term t, args)
-  | `Fun (args, body) -> `Fun (to_func ~pos ~to_term args body)
-  | `RFun (name, args, body) -> `Fun (to_func ~pos ~to_term ~name args body)
-  | `Parenthesis _ | `Block _ | `Methods _ -> assert false
-
-and to_func ~pos ~to_term ?name arguments body =
+and to_func ~pos ~env ~to_term ?name arguments body =
   {
     name;
-    arguments = expand_argsof ~pos ~to_term arguments;
+    arguments = expand_argsof ~pos ~env ~to_term arguments;
     body = to_term body;
     free_vars = None;
   }
 
-and to_encoder_string = function
-  | `Verbatim s -> s
-  | `String (pos, (sep, s)) -> render_string ~pos ~sep s
-
-and to_encoder_params l =
-  List.map
-    (function
-      | `Anonymous s -> `Anonymous (to_encoder_string s)
-      | `Labelled (s, t) -> `Labelled (to_encoder_string s, to_term t)
-      | `Encoder e -> `Encoder (to_encoder e))
-    l
-
-and to_encoder (lbl, params) = (lbl, to_encoder_params params)
-
-and to_term_base (tm : Parsed_term.t) : Term.t =
+and to_term_base ~env (tm : Parsed_term.t) : Term.t =
   match tm.term with
-    | `Seq (({ term = `Include _ } as t), t')
-    | `Seq (({ term = `If_def _ } as t), t')
-    | `Seq (({ term = `If_encoder _ } as t), t')
-    | `Seq (({ term = `If_version _ } as t), t') ->
-        concat_term (to_term t) (to_term t')
-    | `Parenthesis tm | `Block tm -> to_term tm
+    | `Seq ({ pos; term = `Include _ as ast }, t') ->
+        let t = includer_reducer ~pos ast in
+        to_term ~env (concat_term t t')
+    | `Seq ({ pos; term = `If_def _ as ast }, t')
+    | `Seq ({ pos; term = `If_encoder _ as ast }, t')
+    | `Seq ({ pos; term = `If_version _ as ast }, t') ->
+        let t = pp_if_reducer ~pos ~env ast in
+        to_term ~env (concat_term t t')
+    | `Block tm -> to_term ~env tm
+    | `Parenthesis tm -> to_term ~env tm
+    | `Eof -> to_term ~env { tm with term = `Tuple [] }
     | `Methods (base, methods) ->
         (* let _ = src in
            let replaces _ = dst in
@@ -935,15 +1016,15 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
         let term =
           match base with
             | None -> mk ~pos:tm.pos (`Tuple [])
-            | Some tm -> to_term tm
+            | Some tm -> to_term ~env tm
         in
         List.fold_left
           (fun term -> function
-            | `Ellipsis src -> replace_methods ~src:(to_term src) term
+            | `Ellipsis src -> replace_methods ~src:(to_term ~env src) term
             | `Method (name, tm) ->
                 {
                   term with
-                  methods = Methods.add name (to_term tm) term.methods;
+                  methods = Methods.add name (to_term ~env tm) term.methods;
                 })
           term methods
     | term ->
@@ -965,7 +1046,7 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
             | _ -> 0
         in
         let term =
-          match (to_ast ~pos:tm.pos term, List.rev comments) with
+          match (to_ast ~env ~pos:tm.pos term, List.rev comments) with
             | `Let p, (pos, doc) :: _ ->
                 `Let
                   { p with doc = Doc.parse_doc ~pos (String.concat "\n" doc) }
@@ -979,7 +1060,11 @@ and to_term_base (tm : Parsed_term.t) : Term.t =
           id = Term_base.id ();
         }
 
-and to_term parsed_term =
-  let term = to_term_base parsed_term in
+and to_term : env:env -> Parsed_term.t -> Runtime_term.t =
+ fun ~env parsed_term ->
+  let term = to_term_base ~env parsed_term in
   Term_base.ActiveTerm.add Term_base.active_terms term;
   term
+
+let to_encoder_params = to_encoder_params ~env:[] ~to_term
+let to_term tm = to_term ~env:[] tm
