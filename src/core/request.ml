@@ -726,8 +726,9 @@ let () =
 
 let resolve ~ctype t timeout =
   match t.status with
-    | Ready -> Resolved
-    | Idle ->
+    | Ready when Frame.compatible (Option.get t.ctype) (Option.get ctype) ->
+        Resolved
+    | Idle | Ready ->
         assert (
           t.ctype = None
           || Frame.compatible (Option.get t.ctype) (Option.get ctype));
