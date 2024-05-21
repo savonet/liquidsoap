@@ -34,6 +34,7 @@ module Specs = struct
 
   type data = Audio.Mono.buffer array
 
+  let name = "pcm"
   let string_of_kind = function `Pcm -> "pcm"
 
   let string_of_params { channel_layout } =

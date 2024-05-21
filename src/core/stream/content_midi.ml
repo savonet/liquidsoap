@@ -30,6 +30,7 @@ module Specs = struct
   type params = { channels : int }
   type data = MIDI.Multitrack.t
 
+  let name = "midi"
   let internal_content_type = Some `Midi
   let string_of_kind = function `Midi -> "midi"
   let string_of_params { channels } = Printf.sprintf "channels=%d" channels

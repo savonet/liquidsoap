@@ -1,3 +1,5 @@
+open Term_hash
+
 (** Sets of variables. *)
 module Vars = Set.Make (String)
 
@@ -8,16 +10,19 @@ module Methods = struct
   type 'a t = 'a typ
 end
 
-type custom = ..
+type custom [@@deriving hash]
 
 type custom_handler = {
-  to_string : custom -> string;
-  to_json : pos:Pos.t list -> custom -> Json.t;
-  compare : custom -> custom -> int;
-  typ : (module Type.Custom.Implementation);
+  name : string;
+  to_string : custom -> string; [@hash.ignore]
+  to_json : pos:Pos.t list -> custom -> Json.t; [@hash.ignore]
+  compare : custom -> custom -> int; [@hash.ignore]
+  typ : Type.t; [@hash.ignore]
 }
+[@@deriving hash]
 
 type custom_term = { value : custom; handler : custom_handler }
+[@@deriving hash]
 
 type pattern =
   [ `PVar of string list  (** a field *)
@@ -25,6 +30,7 @@ type pattern =
   | `PList of pattern list * string option * pattern list  (** a list *)
   | `PMeth of pattern option * (string * meth_term_default) list
     (** a value with methods *) ]
+[@@deriving hash]
 
 and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
 
@@ -38,7 +44,6 @@ type 'a term = {
   term : 'a;
   flags : flags;
   methods : 'a term Methods.t;
-  id : int;
 }
 
 let has_flag { flags } flag = flags land flag <> 0
@@ -50,6 +55,7 @@ type ('a, 'b) func_argument = {
   default : 'a option;
   typ : 'b;
 }
+[@@deriving hash]
 
 type ('a, 'b) func = {
   mutable free_vars : Vars.t option;
@@ -67,6 +73,7 @@ type 'a common_ast =
   | `Open of 'a * 'a
   | `Var of string
   | `Seq of 'a * 'a ]
+[@@deriving hash]
 
 type 'a invoke = { invoked : 'a; invoke_default : 'a option; meth : string }
 

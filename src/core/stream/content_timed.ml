@@ -84,6 +84,7 @@ module Metadata_specs = struct
   type params = unit
   type data = Metadata_base.t content
 
+  let name = "metadata"
   let internal_content_type = None
   let kind = `Metadata
   let string_of_kind _ = "metadata"
@@ -126,6 +127,7 @@ module Track_marks_specs = struct
   type kind = [ `Track_marks ]
   type data = unit content
 
+  let name = "track_marks"
   let internal_content_type = None
   let kind = `Track_marks
   let string_of_kind _ = "track_marks"

@@ -24,8 +24,10 @@ type 'a chunk = { data : 'a; offset : int; length : int option }
 type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
 
 module Contents = struct
-  type format = ..
-  type kind = ..
+  type format_content
+  type format = string * format_content Unifier.t
+  type kind_content
+  type kind = string * kind_content
   type _type = int
   type content = ..
   type data = _type * content
@@ -58,6 +60,7 @@ module type ContentSpecs = sig
   type params
   type data
 
+  val name : string
   val make : ?length:int -> params -> data
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
@@ -221,15 +224,20 @@ let merge p p' =
 let duplicate p = (get_format_handler p).duplicate ()
 let compatible p p' = (get_format_handler p).compatible p'
 let string_of_kind k = (get_kind_handler k).string_of_kind ()
+let content_names = ref []
 
 module MkContentBase (C : ContentSpecs) :
   Content
     with type kind = C.kind
      and type params = C.params
      and type data = C.data = struct
-  type Contents.kind += Kind of C.kind
-  type Contents.format += Format of C.params Unifier.t
+  include C
+
   type Contents.content += Content of (C.params, C.data) chunks
+
+  let () =
+    if List.mem C.name !content_names then failwith "custom term exist!";
+    content_names := C.name :: !content_names
 
   let _type = Contents.register_type ()
   let content = function _, Content d -> d | _ -> raise Invalid
@@ -345,52 +353,72 @@ module MkContentBase (C : ContentSpecs) :
   let make ?length params =
     { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
 
+  let deref : Contents.format_content Unifier.t -> params =
+   fun p -> Obj.magic (Unifier.deref p)
+
+  let to_format_content : params -> Contents.format_content = Obj.magic
+  let to_kind_content : kind -> Contents.kind_content = Obj.magic
+  let to_kind : Contents.kind_content -> kind = Obj.magic
+
   let merge p p' =
-    let p' = match p' with Format p' -> p' | _ -> raise Invalid in
-    let m = C.merge (Unifier.deref p) (Unifier.deref p') in
-    Unifier.set p' m;
+    let p' = match p' with n, p' when n = C.name -> p' | _ -> raise Invalid in
+    let m = C.merge (deref p) (deref p') in
+    Unifier.set p' (to_format_content m);
     Unifier.(p <-- p')
 
   let compatible p p' =
     match p' with
-      | Format p' -> C.compatible (Unifier.deref p) (Unifier.deref p')
+      | n, p' when n = C.name -> C.compatible (deref p) (deref p')
       | _ -> false
 
-  let kind_of_string s = Option.map (fun p -> Kind p) (C.kind_of_string s)
+  let is_kind (n, _) = n = C.name
+  let lift_kind k : Contents.kind = (C.name, to_kind_content k)
+
+  let get_kind = function
+    | n, k when n = C.name -> to_kind k
+    | _ -> raise Invalid
+
+  let is_format (n, _) = n = C.name
+
+  let lift_params p : Contents.format =
+    (C.name, Unifier.make (to_format_content p))
+
+  let get_params = function
+    | n, p when n = C.name -> deref p
+    | _ -> raise Invalid
+
+  let is_data = function _, Content _ -> true | _ -> false
+  let kind_of_string s = Option.map lift_kind (C.kind_of_string s)
 
   let format_of_string kind label value =
-    match kind with
-      | Kind _ ->
-          Option.map
-            (fun p -> Format (Unifier.make p))
-            (C.parse_param label value)
+    match (kind : Contents.kind) with
+      | n, _ when n = C.name ->
+          Option.map lift_params (C.parse_param label value)
       | _ -> None
 
   let () =
     register_kind_handler (function
-      | Kind k ->
+      | n, k when n = C.name ->
+          let k = to_kind k in
           Some
             {
-              default_format =
-                (fun () -> Format (Unifier.make (C.default_params k)));
+              default_format = (fun () -> lift_params (C.default_params k));
               string_of_kind = (fun () -> C.string_of_kind k);
             }
       | _ -> None);
     register_format_handler (function
-      | Format p ->
+      | n, p when n = C.name ->
           Some
             {
-              kind = (fun () -> Kind C.kind);
-              make =
-                (fun length ->
-                  (_type, Content (make ?length (Unifier.deref p))));
+              kind = (fun () -> lift_kind C.kind);
+              make = (fun length -> (_type, Content (make ?length (deref p))));
               merge = (fun p' -> merge p p');
-              duplicate = (fun () -> Format Unifier.(make (deref p)));
+              duplicate = (fun () -> (C.name, Unifier.(make (deref p))));
               compatible = (fun p' -> compatible p p');
               string_of_format =
                 (fun () ->
                   let kind = C.string_of_kind C.kind in
-                  let params = C.string_of_params (Unifier.deref p) in
+                  let params = C.string_of_params (deref p) in
                   match params with
                     | "" -> kind
                     | _ -> Printf.sprintf "%s(%s)" kind params);
@@ -405,20 +433,12 @@ module MkContentBase (C : ContentSpecs) :
         truncate = (fun d len -> (_type, Content (truncate (content d) len)));
         is_empty = (fun d -> is_empty (content d));
         copy = (fun d -> (_type, Content (copy (content d))));
-        format = (fun d -> Format (Unifier.make (params (content d))));
+        format = (fun d -> lift_params (params (content d)));
         _length = (fun d -> length (content d));
         append;
       }
     in
     register_data_handler _type data_handler
-
-  let is_kind = function Kind _ -> true | _ -> false
-  let lift_kind f = Kind f
-  let get_kind = function Kind f -> f | _ -> raise Invalid
-  let is_format = function Format _ -> true | _ -> false
-  let lift_params p = Format (Unifier.make p)
-  let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
-  let is_data = function _, Content _ -> true | _ -> false
 
   let lift_data ?(offset = 0) ?length d =
     ( _type,

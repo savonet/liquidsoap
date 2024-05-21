@@ -20,19 +20,25 @@
 
  *****************************************************************************)
 
+open Term_hash
 include Runtime_term
 module Custom = Term_base.Custom
 
 type comment = [ `Before of string list | `After of string list ]
-type string_param = [ `Verbatim of string | `String of Pos.t * (char * string) ]
-type track_annotation = string * string_param
-type inc_type = [ `Lib | `Extra | `Default ]
+
+type string_param =
+  [ `Verbatim of string | `String of (Pos.t[@hash.ignore]) * (char * string) ]
+[@@deriving hash]
+
+type track_annotation = string * string_param [@@deriving hash]
+type inc_type = [ `Lib | `Extra | `Default ] [@@deriving hash]
 
 type inc = {
   inc_type : inc_type;
   inc_name : string;
-  inc_pos : Lexing.position * Lexing.position;
+  inc_pos : Lexing.position * Lexing.position; [@hash.ignore]
 }
+[@@deriving hash]
 
 type meth_annotation = {
   optional : bool;
@@ -52,19 +58,23 @@ and source_annotation = {
   tracks : source_track_annotation list;
 }
 
+and argument = bool * string * type_annotation
+
 and type_annotation =
   [ `Named of string
   | `Nullable of type_annotation
   | `List of type_annotation
   | `Json_object of type_annotation
   | `Tuple of type_annotation list
-  | `Arrow of type_annotation Type.argument list * type_annotation
+  | `Arrow of argument list * type_annotation
   | `Record of meth_annotation list
   | `Method of type_annotation * meth_annotation list
   | `Invoke of type_annotation * string
   | `Source of string * source_annotation ]
+[@@deriving hash]
 
 type _of = { only : string list; except : string list; source : string }
+[@@deriving hash]
 
 type _if = {
   if_condition : t;
@@ -194,9 +204,11 @@ and parsed_ast =
 
 and t = {
   term : parsed_ast;
-  pos : Pos.t;
-  mutable comments : (Pos.t * comment) list;
+  pos : Pos.t; [@hash.ignore]
+  mutable comments : (Pos.t * comment) list; [@hash.ignore]
+  mutable hash : string option; [@hash.ignore]
 }
+[@@deriving hash]
 
 and methods = [ `Ellipsis of t | `Method of string * t ]
 and string_interpolation = [ `String of string | `Term of t ]
@@ -210,7 +222,7 @@ and encoder_params =
 and encoder = string * encoder_params
 
 let unit = `Tuple []
-let make ?(comments = []) ~pos term = { pos; term; comments }
+let make ?(comments = []) ~pos term = { pos; term; comments; hash = None }
 
 let rec iter_term fn ({ term } as tm) =
   if term <> `Eof then fn tm;
@@ -333,3 +345,11 @@ and iter_fun_args fn args =
           match tm.default with Some tm -> iter_term fn tm | None -> ())
       | `Argsof _ -> ())
     args
+
+let hash tm =
+  match tm.hash with
+    | Some hash -> hash
+    | None ->
+        let hash = hash tm in
+        tm.hash <- Some hash;
+        hash

@@ -179,7 +179,7 @@ let id =
 
 let make ?pos ?t ?(flags = 0) ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  { t; term = e; methods; flags; id = id () }
+  { t; term = e; methods; flags }
 
 let rec free_vars_pat = function
   | `PVar [] -> assert false
@@ -416,7 +416,6 @@ module type Custom = sig
   val is_custom : Custom.t -> bool
   val to_term : content -> t
   val of_term : t -> content
-  val is_term : t -> bool
 end
 
 module type CustomDef = sig
@@ -429,46 +428,44 @@ module type CustomDef = sig
 end
 
 module MkCustom (Def : CustomDef) = struct
-  type custom += Term of Def.content
-
   module T = Type.Custom.Make (struct
+    type content = unit
+
     let name = Def.name
+    let copy_with _ _ = ()
+    let occur_check _ _ = ()
+    let filter_vars _ l _ = l
+    let subtype _ c c' = assert (c = c')
+
+    let sup _ c c' =
+      assert (c = c');
+      c
+
+    let repr _ _ _ = `Constr (name, [])
+    let to_string _ = name
   end)
+
+  let descr = Type.Custom (T.handler ())
+  let t = Type.make descr
+  let () = Type.register_type Def.name (fun () -> Type.make descr)
 
   include Custom.Make (struct
     include Def
 
-    let typ = (module T : Type.Custom.Implementation)
+    let t = t
   end)
-
-  let t = Type.make descr
 
   let of_term t =
     match t.term with `Custom c -> of_custom c | _ -> assert false
 
   let to_term c =
     {
-      t = Type.make T.descr;
+      t = Type.make descr;
       term = `Custom (to_custom c);
       methods = Methods.empty;
       flags = 0;
-      id = id ();
     }
-
-  let is_term t = match t.term with `Custom c -> is_custom c | _ -> false
 end
-
-module ActiveTerm = Active_value.Make (struct
-  type typ = t
-  type t = typ
-
-  let id { id } = id
-end)
-
-let active_terms = ActiveTerm.create 1024
-
-let trim_runtime_types () =
-  ActiveTerm.iter (fun term -> term.t <- Type.deep_demeth term.t) active_terms
 
 (** Create a new value. *)
 let make ?pos ?t ?flags ?methods e =
@@ -479,7 +476,6 @@ let make ?pos ?t ?flags ?methods e =
       (Pos.Option.to_string t.Type.pos)
       (try to_string term with _ -> "<?>")
       (Repr.string_of_type t);
-  ActiveTerm.add active_terms term;
   term
 
 let rec fresh ~handler { t; term; methods; flags } =
@@ -543,14 +539,9 @@ let rec fresh ~handler { t; term; methods; flags } =
               body = fresh ~handler body;
             }
   in
-  let term =
-    {
-      t = Type.Fresh.make handler t;
-      term;
-      methods = Methods.map (fresh ~handler) methods;
-      flags;
-      id = id ();
-    }
-  in
-  ActiveTerm.add active_terms term;
-  term
+  {
+    t = Type.Fresh.make handler t;
+    term;
+    methods = Methods.map (fresh ~handler) methods;
+    flags;
+  }

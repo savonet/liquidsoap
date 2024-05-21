@@ -53,12 +53,6 @@ let conf_strip_types_types =
     ~p:(conf_runtime#plug "strip_types")
     ~d:true "Strip runtime types whenever possible to optimize memory usage."
 
-let () =
-  Lifecycle.after_script_parse ~name:"strip types and cleanup memory" (fun () ->
-      if conf_strip_types_types#get then (
-        Liquidsoap_lang.Term.trim_runtime_types ();
-        Gc.full_major ()))
-
 let _ =
   let kind = Lang.univ_t () in
   Lang.add_builtin ~category:`Liquidsoap ~base:encoder "content_type"

@@ -22,9 +22,10 @@ let () =
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
+ (action (run %%{run_test} %s liquidsoap %%{test_liq} %s%s)))
   |}
-        test test test)
+        test test test
+        (if test = "type_errors.liq" then " --top-level" else ""))
     tests;
 
   let output_tests =

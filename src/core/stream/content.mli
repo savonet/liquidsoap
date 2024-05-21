@@ -48,6 +48,8 @@ module type ContentSpecs = sig
   type params
   type data
 
+  val name : string
+
   (** Data *)
 
   (* Length is in main ticks. *)

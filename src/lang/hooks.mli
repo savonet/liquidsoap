@@ -12,6 +12,7 @@ val make_log : (string list -> log) ref
 val log : string list -> log
 val liq_libs_dir : (unit -> string) ref
 val log_path : string option ref
+val cache_maintenance : (unit -> unit) ref
 
 (* Media-specific dependencies. *)
 

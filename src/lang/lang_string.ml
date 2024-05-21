@@ -342,7 +342,9 @@ let kprint_string ?(pager = false) f =
 
 (** Operations on versions of Liquidsoap. *)
 module Version = struct
-  type t = int list * string
+  open Term_hash
+
+  type t = int list * string [@@deriving hash]
 
   (* We assume something like, 2.0.0+git@7e211ffd *)
   let of_string s : t =

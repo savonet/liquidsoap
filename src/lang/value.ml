@@ -76,7 +76,7 @@ let rec to_string v =
       | Float f -> Utils.string_of_float f
       | Bool b -> string_of_bool b
       | String s -> Lang_string.quote_string s
-      | Custom g -> Custom.to_string g
+      | Custom c -> Custom.to_string c
       | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | Null -> "null"
@@ -223,7 +223,6 @@ module type Custom = sig
 
   val to_value : ?pos:Pos.t -> content -> t
   val of_value : t -> content
-  val is_value : t -> bool
 end
 
 module type CustomDef = Term.CustomDef
@@ -241,11 +240,9 @@ module MkCustomFromTerm (Term : Term.Custom) = struct
     }
 
   let of_value t =
-    match t.value with
-      | Custom g when is_custom g -> of_custom g
-      | _ -> assert false
+    match t.value with Custom c -> of_custom c | _ -> assert false
 
-  let is_value t = match t.value with Custom g -> is_custom g | _ -> false
+  let is_value t = match t.value with Custom c -> is_custom c | _ -> false
 end
 
 module MkCustom (Def : CustomDef) = struct

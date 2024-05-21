@@ -58,6 +58,8 @@ module AudioSpecs = struct
 
   type data = (params, audio frame) content
 
+  let name = "ffmpeg.raw.audio"
+
   let frame_params { frame } =
     {
       channel_layout = Some (Audio.frame_get_channel_layout frame);
@@ -154,6 +156,8 @@ module VideoSpecs = struct
   }
 
   type data = (params, video frame) content
+
+  let name = "ffmpeg.raw.video"
 
   let frame_params { frame } =
     {

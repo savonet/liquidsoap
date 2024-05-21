@@ -36,6 +36,8 @@ depends: [
   "dune-build-info-windows"
   "ppx_string" {build}
   "ppx_string-windows" {build}
+  "ppx_hash" {build}
+  "ppx_hash-windows" {build}
 ]
 depopts: [
   "alsa-windows"

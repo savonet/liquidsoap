@@ -30,6 +30,22 @@ open Type_base
 
 type variance = [ `Covariant | `Invariant ]
 type t = Type_base.t = private { pos : Pos.Option.t; descr : descr }
+type custom = Type_base.custom
+
+type custom_handler = Type_base.custom_handler = {
+  typ : custom;
+  custom_name : string;
+  copy_with : (t -> t) -> custom -> custom;
+  occur_check : (t -> unit) -> custom -> unit;
+  filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
+  repr : (var list -> t -> constr R.t) -> var list -> custom -> constr R.t;
+  subtype : (t -> t -> unit) -> custom -> custom -> unit;
+  sup : (t -> t -> t) -> custom -> custom -> custom;
+  to_string : custom -> string;
+}
+
+type invar = Type_base.invar = Free of var | Link of variance * t
+type var_t = Type_base.var_t = { id : int; mutable contents : invar }
 
 type descr = Type_base.descr =
   | String
@@ -45,7 +61,7 @@ type descr = Type_base.descr =
   | Nullable of t  (** something that is either t or null *)
   | Meth of meth * t  (** t with a method added *)
   | Arrow of t argument list * t  (** a function *)
-  | Var of invar ref  (** a type variable *)
+  | Var of var_t  (** a type variable *)
 
 type constr = Type_base.constr = {
   constr_descr : string;
@@ -66,7 +82,6 @@ type var = Type_base.var = {
   mutable constraints : Constraints.t;
 }
 
-type invar = Type_base.invar = Free of var | Link of variance * t
 type scheme = var list * t
 
 type meth = Type_base.meth = {
@@ -85,19 +100,6 @@ val num_constr : constr
 val ord_constr : constr
 
 module R = Type_base.R
-
-type custom = Type_base.custom = ..
-
-type custom_handler = Type_base.custom_handler = {
-  typ : custom;
-  copy_with : (t -> t) -> custom -> custom;
-  occur_check : (t -> unit) -> custom -> unit;
-  filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
-  repr : (var list -> t -> Repr.t) -> var list -> custom -> Repr.t;
-  subtype : (t -> t -> unit) -> custom -> custom -> unit;
-  sup : (t -> t -> t) -> custom -> custom -> custom;
-  to_string : custom -> string;
-}
 
 type 'a argument = bool * string * 'a
 

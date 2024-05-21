@@ -25,6 +25,7 @@ module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
 module Queue = Liquidsoap_lang.Queues.Queue
+open Runtime
 
 let usage =
   {|Usage : liquidsoap [OPTION, SCRIPT or EXPR]...
@@ -70,8 +71,8 @@ let root_error () =
     | false, _, 0 -> Some "root guid (group)"
     | _ -> None
 
-(* Do not run, don't even check the scripts. *)
-let parse_only = ref false
+let eval_mode : Runtime.eval_mode ref =
+  ref (`Eval { fetch_cache = true; save_cache = true; eval = `True })
 
 (* Should we load the stdlib? *)
 let stdlib = ref true
@@ -112,29 +113,31 @@ let eval () =
   in
   let t = Sys.time () in
   try
-    Runtime.from_string ~lib:false ~parse_only:!parse_only script;
+    Runtime.from_string ~eval_mode:!eval_mode script;
     log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
   with Liquidsoap_lang.Runtime.Error ->
     Dtools.Init.exec Dtools.Log.stop;
     flush_all ();
     exit 1
 
-let with_eval =
+let with_stdlib =
   let do_run_streams = run_streams in
   let do_exit = exit in
   fun ?(exit = true) ?(run_streams = false) fn ->
     do_run_streams := run_streams;
+    eval_mode :=
+      `Eval { fetch_cache = true; save_cache = true; eval = `Toplevel };
     eval ();
     fn ();
     if exit then do_exit 0
 
 let lang_doc name =
-  with_eval (fun () ->
+  with_stdlib (fun () ->
       try Lang_string.kprint_string ~pager:true (Doc.Value.print name)
       with Not_found -> Printf.printf "Plugin not found!\n%!")
 
 let process_request s =
-  with_eval (fun () ->
+  with_stdlib (fun () ->
       let req = Request.create ~cue_in_metadata:None ~cue_out_metadata:None s in
       match Request.resolve ~ctype:None req 20. with
         | Request.Failed ->
@@ -205,15 +208,44 @@ let options =
          "Get help about a scripting value: source, operator, builtin or \
           library function, etc." );
        ( ["-c"; "--check"],
-         Arg.Unit (fun () -> run_streams := false),
-         "Check and evaluate scripts but do not perform any streaming." );
-       ( ["-p"; "--parse-only"],
          Arg.Unit
            (fun () ->
              run_streams := false;
-             deprecated := false;
-             parse_only := true),
-         "Parse scripts but do not type-check and run them." );
+             eval_mode :=
+               match !eval_mode with
+                 | `Parse_only ->
+                     `Eval
+                       { fetch_cache = true; save_cache = true; eval = `False }
+                 | `Eval config -> `Eval { config with eval = `False }),
+         "Parse, type-check but do not evaluate the script." );
+       ( ["-p"; "--parse-only"],
+         Arg.Unit (fun () -> eval_mode := `Parse_only),
+         "Parse script but do not type-check and run them." );
+       ( ["--top-level"],
+         Arg.Unit
+           (fun () ->
+             eval_mode :=
+               `Eval
+                 { fetch_cache = false; save_cache = false; eval = `Toplevel }),
+         "Disqble caching and register script definitions at top-level. Used \
+          internally for testing." );
+       ( ["--cache-only"],
+         Arg.Unit
+           (fun () ->
+             run_streams := false;
+             eval_mode :=
+               `Eval { fetch_cache = false; save_cache = true; eval = `False }),
+         "Parse, type-check and save script's cache but do no run it." );
+       ( ["--no-cache"],
+         Arg.Unit
+           (fun () ->
+             match !eval_mode with
+               | `Parse_only -> ()
+               | `Eval config ->
+                   eval_mode :=
+                     `Eval
+                       { config with fetch_cache = false; save_cache = false }),
+         "Parse, type-check and save script's cache but do no run it." );
        ( ["-q"; "--quiet"],
          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
          "Do not print log messages on standard output." );
@@ -268,7 +300,7 @@ let options =
         ( ["--list-plugins"],
           Arg.Unit
             (fun () ->
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.kprint_string ~pager:true Doc.Plug.print_string)),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -276,35 +308,35 @@ let options =
         ( ["--list-functions"],
           Arg.Unit
             (fun () ->
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.kprint_string ~pager:true
                     Doc.Value.print_functions)),
           Printf.sprintf "List all functions." );
         ( ["--list-functions-by-category"],
           Arg.Unit
             (fun () ->
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.kprint_string ~pager:true
                     Doc.Value.print_functions_by_category)),
           Printf.sprintf "List all functions, sorted by category." );
         ( ["--list-functions-md"],
           Arg.Unit
             (fun () ->
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.kprint_string ~pager:true
                     (Doc.Value.print_functions_md ~extra:false))),
           Printf.sprintf "Documentation of all functions in markdown format." );
         ( ["--list-functions-json"],
           Arg.Unit
             (fun () ->
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.print_string ~pager:true
                     (Json.to_string ~compact:false (Doc.Value.to_json ())))),
           Printf.sprintf "Documentation of all functions in JSON format." );
         ( ["--list-extra-functions-md"],
           Arg.Unit
             (fun () ->
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.kprint_string ~pager:true
                     (Doc.Value.print_functions_md ~extra:true))),
           Printf.sprintf "Documentation of all extra functions in markdown." );
@@ -312,7 +344,7 @@ let options =
           Arg.Unit
             (fun () ->
               deprecated := true;
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.kprint_string ~pager:true
                     (Doc.Value.print_functions_md ~deprecated:true))),
           Printf.sprintf
@@ -320,7 +352,7 @@ let options =
         ( ["--list-protocols-md"],
           Arg.Unit
             (fun () ->
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.kprint_string ~pager:true Doc.Protocol.print_md)),
           Printf.sprintf "Documentation of all protocols in markdown." );
         ( ["--no-stdlib"],
@@ -358,7 +390,12 @@ See <http://liquidsoap.info> for more information.
               exit 0),
           "Print out opam's liquidsoap.config, for internal use." );
         ( ["--interactive"],
-          Arg.Set interactive,
+          Arg.Unit
+            (fun () ->
+              interactive := true;
+              eval_mode :=
+                `Eval
+                  { fetch_cache = true; save_cache = true; eval = `Toplevel }),
           "Start an interactive interpreter." );
         ( ["--"],
           Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
@@ -367,7 +404,7 @@ See <http://liquidsoap.info> for more information.
         ( ["--list-settings"],
           Arg.Unit
             (fun () ->
-              with_eval (fun () ->
+              with_stdlib (fun () ->
                   Lang_string.print_string ~pager:true
                     (Builtins_settings.print_settings ()))),
           "Display configuration keys in markdown format." );
@@ -404,6 +441,12 @@ let parse argv l f msg =
     | Arg.Help msg ->
         Lang_string.print_string ~pager:true msg;
         exit 0
+
+let parse_options () =
+  (* Parse command-line, and notably load scripts. *)
+  parse Shebang.argv (expand_options !options)
+    (fun s -> Queue.push to_load (`Expr_or_file s))
+    usage
 
 let absolute s =
   if String.length s > 0 && s.[0] <> '/' then Sys.getcwd () ^ "/" ^ s else s
@@ -446,10 +489,7 @@ We hope you enjoy this snapshot build of Liquidsoap!
          |> String.split_on_char '\n'));
 
   Lifecycle.on_script_parse ~name:"main application script parse" (fun () ->
-      (* Parse command-line, and notably load scripts. *)
-      parse Shebang.argv (expand_options !options)
-        (fun s -> Queue.push to_load (`Expr_or_file s))
-        usage;
+      parse_options ();
 
       if !interactive then (
         let default_log =
@@ -672,14 +712,12 @@ let () =
       Tutils.start ();
 
       if !interactive then
-        with_eval ~exit:false ~run_streams:true (fun () ->
-            ignore
-              (Thread.create
-                 (fun () ->
-                   Runtime.interactive ();
-                   Tutils.shutdown 0)
-                 ())));
-
+        ignore
+          (Thread.create
+             (fun () ->
+               Runtime.interactive ();
+               Tutils.shutdown 0)
+             ()));
   Lifecycle.on_main_loop ~name:"main application main loop" Tutils.main
 
 (* Here we go! *)

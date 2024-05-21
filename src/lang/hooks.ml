@@ -13,6 +13,7 @@ let make_encoder =
 let has_encoder = ref (fun _ -> false)
 let liq_libs_dir = ref (fun () -> raise Not_found)
 let log_path = ref None
+let cache_maintenance = ref (fun () -> ())
 
 type log =
   < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a
