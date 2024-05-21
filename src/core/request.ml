@@ -440,9 +440,7 @@ let push_indicators t l =
     add_log t
       (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string hd.string));
     t.indicators <- l :: t.indicators;
-    t.decoder <- None;
-    let indicator = peek_indicator t in
-    if file_exists indicator.string then read_metadata t)
+    t.decoder <- None)
 
 let resolved t = match t.status with Ready | Playing -> true | _ -> false
 
