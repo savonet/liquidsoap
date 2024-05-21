@@ -171,33 +171,35 @@ class cross val_source ~end_duration_getter ~override_end_duration
                     | buf, _ -> buf));
       !frame
 
+    method private process_override_metadata m =
+      (match Frame.Metadata.find_opt override_end_duration m with
+        | None -> ()
+        | Some v -> (
+            try
+              self#log#info
+                "Overriding crossfade before duration from metadata %s"
+                override_end_duration;
+              let l = float_of_string v in
+              end_duration_getter <- (fun () -> l);
+              self#set_end_main_duration
+            with _ -> ()));
+      match Frame.Metadata.find_opt override_start_duration m with
+        | None -> ()
+        | Some v -> (
+            try
+              self#log#info
+                "Overriding crossfade after duration from metadata %s"
+                override_start_duration;
+              let l = float_of_string v in
+              start_duration_getter <- (fun () -> l);
+              self#set_start_main_duration
+            with _ -> ())
+
+    initializer self#on_metadata self#process_override_metadata
+
     method private append mode buf_frame =
       let l = Frame.get_all_metadata buf_frame in
-      List.iter
-        (fun (_, m) ->
-          (match Frame.Metadata.find_opt override_end_duration m with
-            | None -> ()
-            | Some v -> (
-                try
-                  self#log#info
-                    "Overriding crossfade before duration from metadata %s"
-                    override_end_duration;
-                  let l = float_of_string v in
-                  end_duration_getter <- (fun () -> l);
-                  self#set_end_main_duration
-                with _ -> ()));
-          match Frame.Metadata.find_opt override_start_duration m with
-            | None -> ()
-            | Some v -> (
-                try
-                  self#log#info
-                    "Overriding crossfade after duration from metadata %s"
-                    override_start_duration;
-                  let l = float_of_string v in
-                  start_duration_getter <- (fun () -> l);
-                  self#set_start_main_duration
-                with _ -> ()))
-        l;
+      List.iter (fun (_, m) -> self#process_override_metadata m) l;
       (match (List.rev l, mode) with
         | (_, m) :: _, `Before -> before_metadata <- Some m
         | (_, m) :: _, `After -> after_metadata <- Some m
