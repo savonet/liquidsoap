@@ -64,7 +64,7 @@ val initial_uri : t -> string
 val destroy : ?force:bool -> t -> unit
 
 (** Status of a request. *)
-type status = Idle | Resolving | Ready | Playing | Destroyed
+type status = Idle | Resolving | Ready | Playing | Destroyed | Failed
 
 (** Current status of a request. *)
 val status : t -> status

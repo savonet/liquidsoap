@@ -107,7 +107,7 @@ type indicator = {
   mutable metadata : Frame.metadata;
 }
 
-type status = Idle | Resolving | Ready | Playing | Destroyed
+type status = Idle | Resolving | Ready | Playing | Destroyed | Failed
 
 type t = {
   id : int;
@@ -356,7 +356,7 @@ let resolve_metadata ~initial_metadata ~excluded name =
                 Frame.Metadata.add k v metadata
               else metadata)
             metadata ans
-        with _ -> metadata)
+        with Not_found -> metadata)
       metadata decoders
   in
   let metadata =
@@ -488,6 +488,7 @@ let update_metadata t =
       | Resolving -> "resolving"
       | Ready -> "ready"
       | Playing -> "playing"
+      | Failed -> "failed"
       | Destroyed -> "destroyed")
 
 let get_metadata t k =
@@ -724,76 +725,82 @@ let () =
       Atomic.set should_fail true)
 
 let resolve ~ctype t timeout =
-  assert (
-    t.ctype = None || Frame.compatible (Option.get t.ctype) (Option.get ctype));
-  log#debug "Resolving request %s." (string_of_indicators t);
-  t.ctype <- ctype;
-  t.resolving <- Some (Unix.time ());
-  t.status <- Resolving;
-  let maxtime = Unix.time () +. timeout in
-  let resolve_step () =
-    let i = peek_indicator t in
-    log#f 6 "Resolve step %s in %s." i.string (string_of_indicators t);
-    (* If the file is local we only need to check that it's valid, we'll
-       actually do that in a single local_check for all local indicators on the
-       top of the stack. *)
-    if file_exists i.string then local_check t
-    else (
-      match parse_uri i.string with
-        | Some (proto, arg) -> (
-            match Plug.get protocols proto with
-              | Some handler ->
-                  add_log t
-                    (Printf.sprintf "Resolving %s (timeout %.0fs)..."
-                       (Lang_string.quote_string i.string)
-                       timeout);
-                  let production =
-                    handler.resolve ~log:(add_log t) arg maxtime
-                  in
-                  if production = [] then (
-                    log#info
-                      "Failed to resolve %s! For more info, see server command \
-                       `request.trace %d`."
-                      (Lang_string.quote_string i.string)
-                      t.id;
-                    ignore (pop_indicator t))
-                  else push_indicators t production
+  match t.status with
+    | Ready -> Resolved
+    | Idle ->
+        assert (
+          t.ctype = None
+          || Frame.compatible (Option.get t.ctype) (Option.get ctype));
+        log#debug "Resolving request %s." (string_of_indicators t);
+        t.ctype <- ctype;
+        t.resolving <- Some (Unix.time ());
+        t.status <- Resolving;
+        let maxtime = Unix.time () +. timeout in
+        let resolve_step () =
+          let i = peek_indicator t in
+          log#f 6 "Resolve step %s in %s." i.string (string_of_indicators t);
+          (* If the file is local we only need to check that it's valid, we'll
+             actually do that in a single local_check for all local indicators on the
+             top of the stack. *)
+          if file_exists i.string then local_check t
+          else (
+            match parse_uri i.string with
+              | Some (proto, arg) -> (
+                  match Plug.get protocols proto with
+                    | Some handler ->
+                        add_log t
+                          (Printf.sprintf "Resolving %s (timeout %.0fs)..."
+                             (Lang_string.quote_string i.string)
+                             timeout);
+                        let production =
+                          handler.resolve ~log:(add_log t) arg maxtime
+                        in
+                        if production = [] then (
+                          log#info
+                            "Failed to resolve %s! For more info, see server \
+                             command `request.trace %d`."
+                            (Lang_string.quote_string i.string)
+                            t.id;
+                          ignore (pop_indicator t))
+                        else push_indicators t production
+                    | None ->
+                        log#important "Unknown protocol %S in URI %s!" proto
+                          (Lang_string.quote_string i.string);
+                        add_log t "Unknown protocol!";
+                        pop_indicator t)
               | None ->
-                  log#important "Unknown protocol %S in URI %s!" proto
+                  let log_level = if i.string = "" then 4 else 3 in
+                  log#f log_level "Nonexistent file or ill-formed URI %s!"
                     (Lang_string.quote_string i.string);
-                  add_log t "Unknown protocol!";
+                  add_log t "Nonexistent file or ill-formed URI!";
                   pop_indicator t)
-        | None ->
-            let log_level = if i.string = "" then 4 else 3 in
-            log#f log_level "Nonexistent file or ill-formed URI %s!"
-              (Lang_string.quote_string i.string);
-            add_log t "Nonexistent file or ill-formed URI!";
-            pop_indicator t)
-  in
-  let result =
-    try
-      while true do
-        if Atomic.get should_fail then raise No_indicator;
-        let timeleft = maxtime -. Unix.time () in
-        if timeleft > 0. then resolve_step ()
-        else (
-          add_log t "Global timeout.";
-          raise ExnTimeout)
-      done;
-      assert false
-    with
-      | Request_resolved -> Resolved
-      | ExnTimeout -> Timeout
-      | No_indicator ->
-          add_log t "Every possibility failed!";
-          Failed
-  in
-  log#debug "Resolved to %s." (string_of_indicators t);
-  let excess = Unix.time () -. maxtime in
-  if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
-  t.resolving <- None;
-  if result <> Resolved then t.status <- Idle else t.status <- Ready;
-  result
+        in
+        let result =
+          try
+            while true do
+              if Atomic.get should_fail then raise No_indicator;
+              let timeleft = maxtime -. Unix.time () in
+              if timeleft > 0. then resolve_step ()
+              else (
+                add_log t "Global timeout.";
+                raise ExnTimeout)
+            done;
+            assert false
+          with
+            | Request_resolved -> Resolved
+            | ExnTimeout -> Timeout
+            | No_indicator ->
+                add_log t "Every possibility failed!";
+                Failed
+        in
+        log#debug "Resolved to %s." (string_of_indicators t);
+        let excess = Unix.time () -. maxtime in
+        if excess > 0. then
+          log#severe "Time limit exceeded by %.2f secs!" excess;
+        t.resolving <- None;
+        if result <> Resolved then t.status <- Failed else t.status <- Ready;
+        result
+    | _ -> Failed
 
 (* Make a few functions more user-friendly, internal stuff is over. *)
 
