@@ -257,8 +257,8 @@ class cross val_source ~end_duration_getter ~override_end_duration
 
     (* Analyze the beginning of a new track. *)
     method private analyze_after ~expected_end_duration =
-      let expected_start_duration = start_main_duration in
       let rec f ~is_first () =
+        let expected_start_duration = start_main_duration in
         if
           Generator.length gen_after < expected_start_duration
           && source#is_ready
@@ -276,11 +276,12 @@ class cross val_source ~end_duration_getter ~override_end_duration
             self#log#critical
               "End of track reached while buffering next track data, crossfade \
                duration is longer than the track's duration. Make sure to \
-               adjust the crossfade duration to avoid issues.")
+               adjust the crossfade duration to avoid issues.";
+            self#create_after ~expected_start_duration ~expected_end_duration)
           else f ~is_first:false ())
+        else self#create_after ~expected_start_duration ~expected_end_duration
       in
-      f ~is_first:true ();
-      self#create_after ~expected_start_duration ~expected_end_duration
+      f ~is_first:true ()
 
     (* Sum up analysis and build the transition *)
     method private create_after ~expected_start_duration ~expected_end_duration
