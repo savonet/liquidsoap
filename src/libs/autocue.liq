@@ -255,21 +255,13 @@ def autocue.internal.implementation(
 
   metadata = [...request_metadata, ...file_metadata]
 
-  override =
-    try
-      list.find(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
-    catch _ : [error.not_found] do
-      null()
-    end
-
   if
-    null.defined(override)
+    list.exists(fun (el) -> list.mem(fst(el), metadata_overrides), metadata)
   then
     log(
       level=2,
       label="autocue.internal.metadata",
-      "Override metadata detected for #{filename}: #{override}, disabling \
-       autocue!"
+      "Override metadata detected for #{filename}, disabling autocue!"
     )
     null()
   else
