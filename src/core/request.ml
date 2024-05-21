@@ -113,6 +113,7 @@ type t = {
   id : int;
   initial_uri : string;
   resolve_metadata : bool;
+  mutable metadata_resolved : bool;
   excluded_metadata_resolvers : string list;
   cue_in_metadata : string option;
   cue_out_metadata : string option;
@@ -394,7 +395,8 @@ let file_is_readable name =
   with Unix.Unix_error _ -> false
 
 let read_metadata t =
-  if t.resolve_metadata then (
+  if t.resolve_metadata && not t.metadata_resolved then (
+    t.metadata_resolved <- true;
     let indicator = peek_indicator t in
     let name = indicator.string in
     if file_exists name then
@@ -516,6 +518,7 @@ module Pool = Pool.Make (struct
       cue_out_metadata = None;
       ctype = None;
       resolve_metadata = false;
+      metadata_resolved = false;
       excluded_metadata_resolvers = [];
       persistent = false;
       status = Destroyed;
@@ -599,6 +602,7 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
         cue_out_metadata;
         ctype = None;
         resolve_metadata;
+        metadata_resolved = false;
         excluded_metadata_resolvers;
         (* This is fixed when resolving the request. *)
         persistent;
