@@ -41,8 +41,8 @@ class consumer ~clock buffer =
 (** [rms_width] is in samples.
   * [cross_length] is in ticks (like #remaining estimations) and must be at least one frame. *)
 class cross val_source ~end_duration_getter ~override_end_duration
-  ~start_duration_getter ~override_start_duration ~persist_override ~rms_width
-  transition =
+  ~override_duration ~start_duration_getter ~override_start_duration
+  ~persist_override ~rms_width transition =
   let s = Lang.to_source val_source in
   let original_end_duration_getter = end_duration_getter in
   let original_start_duration_getter = start_duration_getter in
@@ -172,12 +172,24 @@ class cross val_source ~end_duration_getter ~override_end_duration
       !frame
 
     method private process_override_metadata m =
-      (match Frame.Metadata.find_opt override_end_duration m with
+      (match Frame.Metadata.find_opt override_duration m with
         | None -> ()
         | Some v -> (
             try
               self#log#info
-                "Overriding crossfade before duration from metadata %s"
+                "Overriding crossfade start and end duration from metadata %s"
+                override_duration;
+              let l = float_of_string v in
+              end_duration_getter <- (fun () -> l);
+              start_duration_getter <- (fun () -> l);
+              self#set_end_main_duration;
+              self#set_start_main_duration
+            with _ -> ()));
+      (match Frame.Metadata.find_opt override_end_duration m with
+        | None -> ()
+        | Some v -> (
+            try
+              self#log#info "Overriding crossfade end duration from metadata %s"
                 override_end_duration;
               let l = float_of_string v in
               end_duration_getter <- (fun () -> l);
@@ -188,7 +200,7 @@ class cross val_source ~end_duration_getter ~override_end_duration
         | Some v -> (
             try
               self#log#info
-                "Overriding crossfade after duration from metadata %s"
+                "Overriding crossfade start duration from metadata %s"
                 override_start_duration;
               let l = float_of_string v in
               start_duration_getter <- (fun () -> l);
@@ -394,17 +406,23 @@ let _ =
   Lang.add_operator "cross"
     [
       ( "start_duration",
-        Lang.getter_t Lang.float_t,
-        Some (Lang.float 5.),
+        Lang.nullable_t (Lang.getter_t Lang.float_t),
+        Some Lang.null,
         Some
           "Duration (in seconds) of buffered data from the start of each track \
            that is used to compute the transition between tracks." );
       ( "end_duration",
-        Lang.getter_t Lang.float_t,
-        Some (Lang.float 5.),
+        Lang.nullable_t (Lang.getter_t Lang.float_t),
+        Some Lang.null,
         Some
           "Duration (in seconds) of buffered data from the end of each track \
            that is used to compute the transition between tracks." );
+      ( "duration",
+        Lang.getter_t Lang.float_t,
+        Some (Lang.float 5.),
+        Some
+          "Duration (in seconds) of buffered data from the end and start of \
+           each track that is used to compute the transition between tracks." );
       ( "override_start_duration",
         Lang.string_t,
         Some (Lang.string "liq_cross_start_duration"),
@@ -417,6 +435,12 @@ let _ =
         Some
           "Metadata field which, if present and containing a float, overrides \
            the 'end_duration' parameter for current track." );
+      ( "override_duration",
+        Lang.string_t,
+        Some (Lang.string "liq_cross_duration"),
+        Some
+          "Metadata field which, if present and containing a float, overrides \
+           the 'duration' parameter for current track." );
       ( "persist_override",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -456,16 +480,27 @@ let _ =
        of track."
     (fun p ->
       let start_duration_getter =
-        Lang.to_float_getter (List.assoc "start_duration" p)
+        Lang.to_valued_option Lang.to_float_getter
+          (List.assoc "start_duration" p)
       in
       let end_duration_getter =
-        Lang.to_float_getter (List.assoc "end_duration" p)
+        Lang.to_valued_option Lang.to_float_getter (List.assoc "end_duration" p)
+      in
+      let duration_getter = Lang.to_float_getter (List.assoc "duration" p) in
+      let start_duration_getter =
+        Option.value ~default:duration_getter start_duration_getter
+      in
+      let end_duration_getter =
+        Option.value ~default:duration_getter end_duration_getter
       in
       let override_start_duration =
         Lang.to_string (List.assoc "override_start_duration" p)
       in
       let override_end_duration =
         Lang.to_string (List.assoc "override_end_duration" p)
+      in
+      let override_duration =
+        Lang.to_string (List.assoc "override_duration" p)
       in
       let persist_override = Lang.to_bool (List.assoc "persist_override" p) in
       let rms_width = Lang.to_float (List.assoc "width" p) in
@@ -474,4 +509,5 @@ let _ =
       let source = Lang.assoc "" 2 p in
       new cross
         source transition ~start_duration_getter ~end_duration_getter ~rms_width
-        ~override_start_duration ~override_end_duration ~persist_override)
+        ~override_start_duration ~override_end_duration ~override_duration
+        ~persist_override)
