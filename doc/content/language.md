@@ -1424,3 +1424,44 @@ def f(x) = # This is a single line comment.
   123
 end
 ```
+
+## Caching
+
+Type-checking scripts can take a lot of time and consume memory. To optimize things, this step can be cached.
+
+During the first execution, the script is parsed, type checked and evaluated. On second and any following execution, a cache of the script is used, reducing the typechecking phase, sometimes by a `100x` factor!
+
+Here's a log without caching on a M3 macbook pro:
+
+```
+2024/05/25 18:38:00 [startup:3] Cache retrieval: 0.01s
+2024/05/25 18:38:00 [startup:3] Typechecking: 2.58s
+2024/05/25 18:38:00 [startup:3] Evaluation: 0.01s
+```
+
+And the same log after caching:
+
+```
+2024/05/25 18:38:27 [startup:3] Loading script from cache!
+2024/05/25 18:38:27 [startup:3] Cache retrieval: 0.03s
+2024/05/25 18:38:27 [startup:3] Evaluation: 0.02s
+```
+
+Scripts can be cached ahead of time without executing them, for instance while compiling a docker image, using `--cache-only`. Caching can also be disabled using `--no-cache`.
+
+On windows, the default cache directory is located in the same directory as the binary. On unix systems, it is located at: `$HOME/.cache/liquidsoap`
+
+For obvious reasons, cache parameters have to be set before parsing and executing scripts so:
+
+- cache directory can be changed using the `LIQ_CACHE_DIR` environments
+- cache can be disabled by setting `LIQ_CACHE` to anything else than `"true"`
+
+At runtime, `liquidsoap.config()` returns the cache directory.
+
+There is a cache maintenance routine which deletes unused cache files after `10` days and keeps the cache to a maximum of `200` files. This can be configured
+via `settings.cache.max_day` and `settings.cache.max_files`.
+
+However, also for obvious reasons, these values can only be changed _after_ executing the script so setting a values in your script will not affect the initial maintenance done
+during the script's loading.
+
+Thus, if you need to change the defaults and run the cache maintenance, you can configure the values in your script and run `liquidsoap.cache.maintenance()` manually.
