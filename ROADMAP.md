@@ -24,28 +24,33 @@
 
 ## For 2.3
 
-### Done: 
+### Done:
+
 - ~~Rewrite streaming loop~~
 - ~~rewrite the clock system~~
   - ~~the code is unreadable and overengineered ⇒ simplify it~~
   - we want to get rid of the assumption clock = thread
- 
+
 ### In progress
+
 - Optimize runtime: start time, typing and memory usage
 
 ### TODO
+
 - remove requests and use sources instead everywhere (a request is a source with
   one track [or more])
   - Precise scheduling with queue.push, etc.: we could make the track available
     at some precise time if requests were sources...
   - this may allow stuff like `append` more easily
- 
+
 ### Maybe
+
 - Update the book
 
 ## For 2.4
 
 ### Maybe
+
 - support for ffmpeg subtitles
 - use OCaml 5 threads (#2879)
 - Add support for modules, load minimal API by default
