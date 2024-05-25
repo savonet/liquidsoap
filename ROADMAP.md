@@ -25,7 +25,7 @@
 ## For 2.3
 
 ### Done: 
-~~- Rewrite streaming loop~~
+- ~~Rewrite streaming loop~~
 - ~~rewrite the clock system~~
   - ~~the code is unreadable and overengineered ⇒ simplify it~~
   - we want to get rid of the assumption clock = thread
