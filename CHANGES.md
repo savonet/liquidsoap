@@ -8,10 +8,13 @@ New:
   behavior. Mostly, things should be roughly the same with differences around
   behavors related to track marks (`source.on_track` and etc). See @TODO@ for
   more details (#3577)
-- Optimized runtime (#3927, #3928, #3919)
 - Allow frames smaller than one video frames, typically values under `0.04s`.
   Smaller frames means less latency and memory consumption at the expense of
   a higher CPU usage. See @TODO@ for more details (#3607)
+- Optimized runtime (#3927, #3928, #3919)
+- Add `video.canvas` to make it possible to position video elements independently
+  of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/)
+- Add cover manager (#3651)
 - Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
   one stream is encoded.
 - Allow trailing commas in record definition (#3300).
