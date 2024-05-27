@@ -24,16 +24,6 @@ type custom_handler = {
 type custom_term = { value : custom; handler : custom_handler }
 [@@deriving hash]
 
-type pattern =
-  [ `PVar of string list  (** a field *)
-  | `PTuple of pattern list  (** a tuple *)
-  | `PList of pattern list * string option * pattern list  (** a list *)
-  | `PMeth of pattern option * (string * meth_term_default) list
-    (** a value with methods *) ]
-[@@deriving hash]
-
-and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
-
 type flags = int
 
 let octal_int = 0b1
@@ -83,6 +73,8 @@ type 'a encoder_params =
 
 and 'a encoder = string * 'a encoder_params
 
+type pattern = [ `PVar of string list | `PTuple of string list ]
+
 type 'a let_t = {
   doc : Doc.Value.t option;
   replace : bool;
@@ -102,6 +94,7 @@ type 'a runtime_ast =
   | `Cast of 'a * Type.t
   | `App of 'a * (string * 'a) list
   | `Invoke of 'a invoke
+  | `Hide of 'a * string list
   | `Encoder of 'a encoder
   | `Fun of ('a, Type.t) func ]
 

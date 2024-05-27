@@ -29,6 +29,7 @@ and trim_ast = function
   | `App (t, l) ->
       trim_term t;
       List.iter (fun (_, t) -> trim_term t) l
+  | `Hide (tm, _) -> trim_term tm
   | `Invoke { invoked; invoke_default } -> (
       trim_term invoked;
       match invoke_default with None -> () | Some t -> trim_term t)

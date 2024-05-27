@@ -46,8 +46,6 @@ val to_string : t -> string
 val make :
   ?pos:Pos.t -> ?t:Type.t -> ?flags:int -> ?methods:t Methods.t -> ast -> t
 
-val free_vars_pat : pattern -> Vars.t
-val bound_vars_pat : pattern -> Vars.t
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
 val free_fun_vars : (t, Type.t) func -> Vars.t
 val can_ignore : Type.t -> bool

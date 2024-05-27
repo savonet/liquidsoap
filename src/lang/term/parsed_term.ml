@@ -40,6 +40,20 @@ type inc = {
 }
 [@@deriving hash]
 
+type pattern = { pat_pos : Pos.t; [@hash.ignore] pat_entry : pattern_entry }
+[@@deriving hash]
+
+and pattern_entry =
+  [ `PVar of string list  (** a field *)
+  | `PTuple of pattern list  (** a tuple *)
+  | `PList of
+    pattern list * ((Pos.t[@hash.ignore]) * string) option * pattern list
+    (** a list *)
+  | `PMeth of pattern option * (string * meth_term_default) list
+    (** a value with methods *) ]
+
+and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
+
 type meth_annotation = {
   optional : bool;
   name : string;

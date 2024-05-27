@@ -57,84 +57,20 @@ let add_task, pop_tasks =
       with Queue.Empty -> () )
 
 (** Generate a type with fresh variables for a pattern. *)
-let rec type_of_pat ~level ~pos = function
+let type_of_pat ~level ~pos = function
   | `PVar x ->
       let a = Type.var ~level ?pos () in
       ([(x, a)], a)
   | `PTuple l ->
       let env, l =
         List.fold_left
-          (fun (env, l) p ->
-            let env', a = type_of_pat ~level ~pos p in
-            (env' @ env, a :: l))
+          (fun (env, l) var ->
+            let a = Type.var ~level ?pos () in
+            (([var], a) :: env, a :: l))
           ([], []) l
       in
       let l = List.rev l in
       (env, Type.make ?pos (Type.Tuple l))
-  | `PList (l, spread, l') ->
-      let fold_env l ty =
-        List.fold_left
-          (fun (env, ty, ety) p ->
-            let env', ty' = type_of_pat ~level ~pos p in
-            let ty = Typing.sup ~pos ty ty' in
-            (env' @ env, ty, ty' :: ety))
-          ([], ty, []) l
-      in
-      let ty = Type.var ~level ?pos () in
-      let env, ty, ety = fold_env l ty in
-      let env', ty, ety' = fold_env l' ty in
-      let spread_env =
-        match spread with
-          | None -> []
-          | Some v ->
-              [([v], Type.make ?pos Type.(List { t = ty; json_repr = `Tuple }))]
-      in
-      List.iter (fun ety -> Typing.(ety <: ty)) (ety @ ety');
-      ( env' @ spread_env @ env,
-        Type.make ?pos Type.(List { t = ty; json_repr = `Tuple }) )
-  | `PMeth (pat, l) ->
-      let env, ty =
-        match pat with
-          | None -> ([], Type.make ?pos (Type.Tuple []))
-          | Some pat -> type_of_pat ~level ~pos pat
-      in
-      Typing.(
-        ty
-        <: List.fold_left
-             (fun ty (label, _) ->
-               Type.meth ~optional:true label ([], Type.make ?pos Type.Never) ty)
-             (Type.var ~level ?pos ()) l);
-      let env, ty =
-        List.fold_left
-          (fun (env, ty) (lbl, p) ->
-            let env', a, optional =
-              match p with
-                | `None -> ([], Type.var ~level ?pos (), false)
-                | `Nullable -> ([], Type.var ~level ?pos (), true)
-                | `Pattern pat ->
-                    let env', a = type_of_pat ~level ~pos pat in
-                    (env', a, false)
-            in
-            let ty =
-              Type.make ?pos
-                Type.(
-                  Meth
-                    ( {
-                        meth = lbl;
-                        optional;
-                        scheme = ([], a);
-                        doc = "";
-                        json_name = None;
-                      },
-                      ty ))
-            in
-            let lbl_ty =
-              if optional then Type.(make ?pos (Nullable a)) else a
-            in
-            (env' @ [([lbl], lbl_ty)] @ env, ty))
-          (env, ty) l
-      in
-      (env, ty)
 
 (* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
@@ -222,6 +158,25 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           check ~level ~env a;
           a.t <: t;
           base_type >: t
+      | `Hide (tm, methods) ->
+          check ~level ~env tm;
+          let ty =
+            List.fold_left
+              (fun ty name ->
+                Type.make ?pos
+                  Type.(
+                    Meth
+                      ( {
+                          meth = name;
+                          optional = true;
+                          scheme = ([], Type.make ?pos Type.Never);
+                          doc = "";
+                          json_name = None;
+                        },
+                        ty )))
+              tm.t methods
+          in
+          base_type >: ty
       | `Invoke { invoked = a; invoke_default; meth = l } ->
           check ~level ~env a;
           let rec aux t =

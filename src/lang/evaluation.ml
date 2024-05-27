@@ -35,84 +35,12 @@ let remove_first filter =
   in
   aux []
 
-let rec eval_pat pat v =
-  let rec aux env pat v =
+let eval_pat pat v =
+  let aux env pat v =
     match (pat, v) with
       | `PVar x, v -> (x, v) :: env
       | `PTuple pl, { Value.value = Value.Tuple l } ->
-          List.fold_left2 aux env pl l
-      (* The parser parses [x,y,z] as PList ([], None, l) *)
-      | ( `PList (([] as l'), (None as spread), l),
-          { Value.value = Value.List lv; pos } )
-      | `PList (l, spread, l'), { Value.value = Value.List lv; pos } ->
-          let ln = List.length l in
-          let ln' = List.length l' in
-          let lvn = List.length lv in
-          if lvn < ln + ln' then
-            Runtime_error.raise
-              ~pos:(match pos with None -> [] | Some p -> [p])
-              ~message:
-                "List value does not have enough elements to fit the \
-                 extraction pattern!"
-              "not_found";
-          let lv =
-            List.mapi
-              (fun pos v ->
-                match pos with
-                  | _ when pos < ln -> (`First, v)
-                  | _ when lvn - ln' <= pos -> (`Second, v)
-                  | _ -> (`Spread, v))
-              lv
-          in
-          let ll =
-            List.map snd (List.filter (fun (lbl, _) -> lbl = `First) lv)
-          in
-          let ls =
-            List.map snd (List.filter (fun (lbl, _) -> lbl = `Spread) lv)
-          in
-          let ll' =
-            List.map snd (List.filter (fun (lbl, _) -> lbl = `Second) lv)
-          in
-          let spread_env =
-            match spread with
-              | None -> []
-              | Some s -> [([s], Value.{ v with value = List ls })]
-          in
-          List.fold_left2 aux [] l' ll'
-          @ spread_env @ env
-          @ List.fold_left2 aux [] l ll
-          @ env
-      | `PMeth (pat, l), _ ->
-          let m, v = Value.split_meths v in
-          let fields = List.map fst l in
-          let v =
-            List.fold_left
-              (fun v (l, m) ->
-                if List.mem l fields then v
-                else Value.{ v with methods = Methods.add l m v.methods })
-              v m
-          in
-          let env = match pat with None -> env | Some pat -> aux env pat v in
-          List.fold_left
-            (fun env (lbl, pat) ->
-              let v =
-                try List.assoc lbl m
-                with Not_found when pat = `Nullable ->
-                  Value.
-                    {
-                      pos = v.Value.pos;
-                      value = Null;
-                      methods = Methods.empty;
-                      flags = 0;
-                      id = Value.id ();
-                    }
-              in
-              (match pat with
-                | `None | `Nullable -> []
-                | `Pattern pat -> eval_pat pat v)
-              @ [([lbl], v)]
-              @ env)
-            env l
+          List.fold_left2 (fun env lbl v -> ([lbl], v) :: env) env pl l
       | _ -> assert false
   in
   aux [] pat v
@@ -269,6 +197,13 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
     | `Null -> mk Value.Null
     | `Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
+    | `Hide (tm, methods) ->
+        let v = eval ~eval_check env tm in
+        {
+          v with
+          methods =
+            Methods.filter (fun n _ -> not (List.mem n methods)) v.methods;
+        }
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
@@ -535,15 +470,21 @@ let rec eval_toplevel ?(interactive = false) t =
                   let old_t = snd (Type.invokes old_t l) in
                   let old = Value.invokes old l in
                   (Type.remeth old_t def.t, Value.remeth old (eval def))
-              | `PMeth _ | `PList _ | `PTuple _ ->
-                  failwith "TODO: cannot replace toplevel patterns for now")
+              | `PTuple _ -> assert false)
         in
         toplevel_add ?doc pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (Type.to_string ~generalized def_t);
         let var = string_of_pat pat in
-        if interactive && var <> "_" then
+        if
+          interactive && var <> "_"
+          &&
+          try
+            ignore (Scanf.sscanf var "_%dpat" (fun v -> v));
+            false
+          with _ -> true
+        then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." var
             (fun f t -> Repr.print_scheme f (generalized, t))
             def_t (Value.to_string def);
