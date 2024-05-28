@@ -23,6 +23,8 @@
 open Term
 open Typing
 
+exception No_method of string * Type.t
+
 let debug = ref false
 
 (** {1 Type checking / inference} *)
@@ -158,8 +160,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           check ~level ~env a;
           a.t <: t;
           base_type >: t
-      | `Hide (tm, methods) ->
-          check ~level ~env tm;
+      | `Hide (a, methods) ->
+          check ~level ~env a;
           let ty =
             List.fold_left
               (fun ty name ->
@@ -174,15 +176,16 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                           json_name = None;
                         },
                         ty )))
-              tm.t methods
+              a.t methods
           in
           base_type >: ty
       | `Invoke { invoked = a; invoke_default; meth = l } ->
           check ~level ~env a;
           let rec aux t =
             match (Type.deref t).Type.descr with
-              | Type.(Meth ({ meth = l'; scheme = s; optional = false }, _))
-                when l = l' ->
+              | Type.(
+                  Meth ({ meth = l'; scheme = (_, { descr }) as s; optional }, _))
+                when l = l' && (optional = false || descr = Never) ->
                   (fst s, Typing.instantiate ~level s)
               | Type.(Meth (_, c)) -> aux c
               | _ ->
@@ -207,18 +210,23 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           in
           let vars, typ = aux a.t in
           let typ =
-            match invoke_default with
-              | None -> typ
-              | Some v ->
+            match (invoke_default, Type.deref typ) with
+              | None, { descr = Never } -> raise (No_method (l, a.t))
+              | None, _ -> typ
+              | Some v, _ -> (
                   check ~level ~env v;
-                  (* We want to make sure that: x?.foo types as: { foo?: 'a } *)
-                  let typ =
-                    match (Type.deref v.t).descr with
-                      | Type.Nullable _ -> mk Type.(Nullable typ)
-                      | _ -> typ
-                  in
-                  Typing.instantiate ~level (vars, v.t) <: typ;
-                  typ
+                  let v_t = Typing.instantiate ~level (vars, v.t) in
+                  match typ.Type.descr with
+                    | Never -> v_t
+                    | _ ->
+                        (* We want to make sure that: x?.foo types as: { foo?: 'a } *)
+                        let typ =
+                          match (Type.deref v.t).descr with
+                            | Type.Nullable _ -> mk Type.(Nullable typ)
+                            | _ -> typ
+                        in
+                        v_t <: typ;
+                        typ)
           in
           base_type >: typ
       | `Open (a, b) ->

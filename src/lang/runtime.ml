@@ -142,6 +142,12 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       flush_all ();
       Repr.print_type_error ~formatter (error_header ~formatter 5) explain;
       raise Error
+  | Typechecking.No_method (name, typ) ->
+      error_header ~formatter 5 typ.Type.pos;
+      Format.fprintf formatter
+        "This value has type %s, it cannot have method %s.@]@."
+        (Repr.string_of_type typ) name;
+      raise Error
   | Term.No_label (f, lbl, first, x) ->
       let pos_f = Pos.Option.to_string f.Term.t.Type.pos in
       flush_all ();
