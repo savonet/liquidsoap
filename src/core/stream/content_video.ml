@@ -84,6 +84,7 @@ module Specs = struct
   type params = { width : int Lazy.t option; height : int Lazy.t option }
   type data = (params, Video.Canvas.image) content
 
+  let name = "canvas"
   let internal_content_type = Some `Video
   let string_of_kind = function `Canvas -> "canvas"
 

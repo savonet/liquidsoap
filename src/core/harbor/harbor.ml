@@ -1131,7 +1131,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let get_handler ~pos ~transport ~icy port =
     try
       let { handler; fds; transport = t } = Hashtbl.find opened_ports port in
-      if transport != t then
+      if transport#name <> t#name then
         Lang.raise_error ~pos
           ~message:"Port is already opened with a different transport" "http";
       (* If we have only one socket and icy=true,

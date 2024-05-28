@@ -54,6 +54,7 @@ module Specs = struct
   type params = params_payload option
   type data = (params, packet_payload) content
 
+  let name = "ffmpeg.copy"
   let kind = `Copy
   let parse_param _ _ = None
   let internal_content_type = None

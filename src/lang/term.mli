@@ -46,7 +46,6 @@ val to_string : t -> string
 val make :
   ?pos:Pos.t -> ?t:Type.t -> ?flags:int -> ?methods:t Methods.t -> ast -> t
 
-val trim_runtime_types : unit -> unit
 val free_vars_pat : pattern -> Vars.t
 val bound_vars_pat : pattern -> Vars.t
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
@@ -72,7 +71,6 @@ module type Custom = sig
   val is_custom : Custom.t -> bool
   val to_term : content -> t
   val of_term : t -> content
-  val is_term : t -> bool
 end
 
 module type CustomDef = sig

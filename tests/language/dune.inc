@@ -489,7 +489,7 @@
   (:stdlib ../../src/libs/stdlib.liq)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq)))
+ (action (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq --top-level)))
 
 (rule
  (alias citest)

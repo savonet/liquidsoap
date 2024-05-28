@@ -81,8 +81,15 @@
  (name liquidsoap_lang)
  (public_name liquidsoap-lang)
  (preprocess
-  (pps sedlex.ppx ppx_string))
- (libraries liquidsoap-lang.console dune-site re saturn_lockfree str unix menhirLib)
+  (pps sedlex.ppx ppx_string ppx_hash))
+ (libraries
+  liquidsoap-lang.console
+  dune-site
+  re
+  saturn_lockfree
+  str
+  unix
+  menhirLib)
  (modules
   active_value
   build_config
@@ -134,8 +141,12 @@
   startup
   term
   term_base
+  term_cache
   term_custom
+  term_hash
+  term_preprocessor
   term_reducer
+  term_trim
   type
   type_base
   type_constraints

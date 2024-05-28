@@ -493,7 +493,9 @@ let print_scheme f (generalized, t) =
   if !debug then
     List.iter
       (fun v ->
-        print f (make ~generalized (Type_base.make (Var (ref (Free v)))));
+        print f
+          (make ~generalized
+             (Type_base.make (Var { id = 0; contents = Free v })));
         Format.fprintf f ".")
       generalized;
   print f (make ~generalized t)

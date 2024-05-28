@@ -129,3 +129,70 @@ let register () =
   Hooks.getpwnam := Unix.getpwnam;
   Hooks.source_methods_t :=
     fun () -> Lang_source.source_t ~methods:true (Lang.univ_t ())
+
+let conf_cache =
+  Dtools.Conf.void ~p:(Configure.conf#plug "cache") "Cache configuration"
+
+let conf_cache_max_days =
+  Dtools.Conf.int
+    ~p:(conf_cache#plug "max_days")
+    ~d:10
+    "Delete cache file that have not been touched after this number of days."
+
+let conf_cache_max_files =
+  Dtools.Conf.int
+    ~p:(conf_cache#plug "max_files")
+    ~d:200 "Keep at most that number of cache files. Delete folder files first."
+
+module Term_cache = Liquidsoap_lang.Term_cache
+
+let cache_log = Log.make ["cache"]
+
+let cache_maintenance () =
+  let max_timestamp =
+    Unix.time () -. (float conf_cache_max_days#get *. 86400.)
+  in
+  try
+    match Term_cache.cache_dir () with
+      | Some dir when Sys.file_exists dir && Sys.is_directory dir ->
+          let files =
+            Array.fold_left
+              (fun files fname ->
+                if String.ends_with ~suffix:".liq-cache" fname then (
+                  let filename = Filename.concat dir fname in
+                  let stats = Unix.stat filename in
+                  match Unix.stat filename with
+                    | { Unix.st_atime } when st_atime < max_timestamp ->
+                        cache_log#info "File %s is too old, deleting.." fname;
+                        Unix.unlink filename;
+                        files
+                    | _ -> (stats, filename) :: files)
+                else files)
+              [] (Sys.readdir dir)
+          in
+          let len = List.length files in
+          let max_files = conf_cache_max_files#get in
+          if max_files < len then (
+            let len = len - max_files in
+            cache_log#info "Too many cached files! Deleting %d oldest ones.."
+              len;
+            let files =
+              List.sort
+                (fun ({ Unix.st_atime = t }, _) ({ Unix.st_atime = t' }, _) ->
+                  Stdlib.compare t t')
+                files
+            in
+            List.iteri
+              (fun pos (_, filename) ->
+                if pos < len then (
+                  cache_log#info "Deleting %s.." (Filename.basename filename);
+                  Unix.unlink filename))
+              files)
+      | _ -> ()
+  with exn ->
+    let bt = Printexc.get_backtrace () in
+    Utils.log_exception ~log:cache_log ~bt
+      (Printf.sprintf "Error while cleaning up cache: %s"
+         (Printexc.to_string exn))
+
+let () = Hooks.cache_maintenance := cache_maintenance

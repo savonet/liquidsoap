@@ -134,6 +134,21 @@ let _ =
 
 let liquidsoap = Modules.liquidsoap
 
+let liquidsoap_cache =
+  Lang.add_builtin ~category:`Configuration ~descr:"Liquidsoap cache directory."
+    ~base:liquidsoap "cache" [] (Lang.nullable_t Lang.string_t) (fun _ ->
+      match Term_cache.cache_dir () with
+        | None -> Lang.null
+        | Some dir -> Lang.string dir)
+
+let _ =
+  Lang.add_builtin ~category:`Configuration
+    ~descr:"Execute cache maintenance routine." ~base:liquidsoap_cache
+    "maintenance" [] Lang.unit_t (fun _ ->
+      let fn = !Hooks.cache_maintenance in
+      fn ();
+      Lang.unit)
+
 let liquidsoap_version =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"Liquidsoap version string." ~base:liquidsoap "version"

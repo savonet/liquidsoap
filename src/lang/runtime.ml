@@ -25,18 +25,47 @@
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
-let type_and_run ~throw ~lib ast =
-  if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
-  (* Type checking *)
-  Startup.time "Typechecking" (fun () ->
-      Typechecking.check ~throw ~ignored:true ast);
+type eval_config = {
+  fetch_cache : bool;
+  save_cache : bool;
+  eval : [ `True | `False | `Toplevel ];
+}
 
-  if Lazy.force Term.debug then
-    Printf.eprintf "Checking for unused variables...\n%!";
-  (* Check for unused variables, relies on types *)
-  Term.check_unused ~throw ~lib ast;
-  if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-  ignore (Startup.time "Evaluation" (fun () -> Evaluation.eval_toplevel ast))
+type eval_mode = [ `Parse_only | `Eval of eval_config ]
+
+let type_and_run ~throw ~config ~lib ~parsed_term term =
+  let toplevel = config.eval = `Toplevel in
+  let ast =
+    let cached_term =
+      if config.fetch_cache then Term_cache.retrieve ~toplevel parsed_term
+      else None
+    in
+    match cached_term with
+      | Some term -> term
+      | None ->
+          if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+          (* Type checking *)
+          Startup.time "Typechecking" (fun () ->
+              Typechecking.check ~throw ~ignored:true term);
+
+          if Lazy.force Term.debug then
+            Printf.eprintf "Checking for unused variables...\n%!";
+          (* Check for unused variables, relies on types *)
+          Term.check_unused ~throw ~lib term;
+          if not toplevel then Term_trim.trim_term term;
+          if config.save_cache then Term_cache.cache ~toplevel ~parsed_term term;
+          term
+  in
+  match config.eval with
+    | `False -> ()
+    | (`True as v) | (`Toplevel as v) ->
+        let eval =
+          match v with
+            | `True -> fun () -> Evaluation.eval ast
+            | `Toplevel -> fun () -> Evaluation.eval_toplevel ast
+        in
+        if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
+        ignore (Startup.time "Evaluation" eval)
 
 (** {1 Error reporting} *)
 
@@ -219,39 +248,15 @@ let mk_expr ?fname processor lexbuf =
   let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
   Term_reducer.to_term parsed_term
 
-let from_lexbuf ?fname ?(parse_only = false) ~ns ~lib lexbuf =
-  begin
-    match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
-  end;
-  report lexbuf (fun ~throw () ->
-      let expr = mk_expr ?fname program lexbuf in
-      if not parse_only then type_and_run ~throw ~lib expr)
-
-let from_in_channel ?fname ?parse_only ~ns ~lib in_chan =
-  let lexbuf = Sedlexing.Utf8.from_channel in_chan in
-  from_lexbuf ?fname ?parse_only ~ns ~lib lexbuf
-
-let from_file ?ns ?parse_only ~lib filename =
-  let ic = open_in filename in
-  let fname = Lang_string.home_unrelate filename in
-  (* Don't show inferred types for standard library *)
-  let display_types = !Typechecking.display_types in
-  if String.ends_with ~suffix:"stdlib.liq" filename then
-    Typechecking.display_types := false;
-  from_in_channel ~fname ?parse_only ~ns ~lib ic;
-  Typechecking.display_types := display_types;
-  close_in ic
-
-let from_string ?parse_only ~lib expr =
-  let gen =
-    let pos = ref (-1) in
-    let len = String.length expr in
-    fun () ->
-      incr pos;
-      if !pos < len then Some expr.[!pos] else None
-  in
-  let lexbuf = Sedlexing.Utf8.from_gen gen in
-  from_lexbuf ?parse_only ~ns:None ~lib lexbuf
+let from_string ~eval_mode expr =
+  let lexbuf = Sedlexing.Utf8.from_string expr in
+  match eval_mode with
+    | `Parse_only -> ()
+    | `Eval config ->
+        report lexbuf (fun ~throw () ->
+            let parsed_term = Term_reducer.mk_expr program lexbuf in
+            let expr = Term_reducer.to_term parsed_term in
+            type_and_run ~config ~throw ~lib:false ~parsed_term expr)
 
 let parse_with_lexbuf s =
   let gen =
@@ -271,9 +276,6 @@ let eval ~ignored ~ty s =
   let expr = Term.(make (`Cast (expr, ty))) in
   report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
   Evaluation.eval expr
-
-let from_in_channel ?parse_only ~lib x =
-  from_in_channel ?parse_only ~ns:None ~lib x
 
 let interactive () =
   Format.printf
@@ -336,8 +338,8 @@ let interactive () =
   in
   loop ()
 
-let libs ?(error_on_no_stdlib = true) ?(deprecated = true)
-    ?(stdlib = "stdlib.liq") () =
+let libs ?(error_on_no_stdlib = true) ?(deprecated = true) () =
+  let stdlib = "stdlib.liq" in
   let dir = !Hooks.liq_libs_dir () in
   let file = Filename.concat dir stdlib in
   let libs =
@@ -350,6 +352,21 @@ let libs ?(error_on_no_stdlib = true) ?(deprecated = true)
   let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
   if deprecated && Sys.file_exists file then libs @ [file] else libs
 
-let load_libs ?error_on_no_stdlib ?parse_only ?deprecated ?stdlib () =
-  let libs = libs ?error_on_no_stdlib ?deprecated ?stdlib () in
-  List.iter (fun lib -> from_file ?parse_only ~ns:lib ~lib:true lib) libs
+let load_libs () =
+  List.iter
+    (fun fname ->
+      let filename = Lang_string.home_unrelate fname in
+      let ic = open_in filename in
+      Fun.protect
+        ~finally:(fun () -> close_in ic)
+        (fun () ->
+          let lexbuf = Sedlexing.Utf8.from_channel ic in
+          Sedlexing.set_filename lexbuf fname;
+          report lexbuf (fun ~throw () ->
+              let parsed_term = Term_reducer.mk_expr ~fname program lexbuf in
+              let expr = Term_reducer.to_term parsed_term in
+              type_and_run ~throw
+                ~config:
+                  { fetch_cache = true; save_cache = true; eval = `Toplevel }
+                ~lib:true ~parsed_term expr)))
+    (libs ())

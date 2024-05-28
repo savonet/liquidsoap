@@ -68,13 +68,7 @@ let () =
   (* term = (1 : int.{opt?: string}).foo *)
   let typ = Type.meth ~optional:true "opt" ([], Lang.string_t) Lang.int_t in
   let term =
-    {
-      Term.t = typ;
-      term = `Int 1;
-      methods = Term.Methods.empty;
-      flags = 0;
-      id = 123;
-    }
+    { Term.t = typ; term = `Int 1; methods = Term.Methods.empty; flags = 0 }
   in
   let invoke =
     {
@@ -83,7 +77,6 @@ let () =
         `Invoke { Term.invoked = term; invoke_default = None; meth = "opt" };
       methods = Term.Methods.empty;
       flags = 0;
-      id = 234;
     }
   in
   try

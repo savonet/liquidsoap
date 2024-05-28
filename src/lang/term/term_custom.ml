@@ -22,25 +22,25 @@
 
 open Runtime_term
 
-type custom = Runtime_term.custom = ..
+type custom = Runtime_term.custom
 type t = Runtime_term.custom_term
 
 let to_string { value; handler } = handler.to_string value
 let to_json ~pos { value; handler } = handler.to_json ~pos value
 
-let to_descr { handler } =
-  let module C = (val handler.typ : Type.Custom.Implementation) in
-  C.descr
+let compare { value = v; handler = h } { value = v'; handler = h' } =
+  if h.name <> h.name then Stdlib.compare h.name h'.name else h.compare v v'
 
-let compare { value = v; handler } { value = v' } = handler.compare v v'
+let custom_terms = ref []
 
 module type Specs = sig
   type content
 
+  val name : string
+  val t : Type.t
   val to_string : content -> string
   val to_json : pos:Pos.t list -> content -> Json.t
   val compare : content -> content -> int
-  val typ : (module Type.Custom.Implementation)
 end
 
 module type Implementation = sig
@@ -49,31 +49,29 @@ module type Implementation = sig
   val to_custom : content -> t
   val of_custom : t -> content
   val is_custom : t -> bool
-  val descr : Type_base.descr
 end
 
 module Make (S : Specs) = struct
-  include S
+  type content = S.content
 
-  type custom += Term of content
+  let () =
+    if List.mem S.name !custom_terms then failwith "custom term exist!";
+    custom_terms := S.name :: !custom_terms
 
-  let of_content = function Term v -> v | _ -> assert false
-  let of_custom = function { value = Term v } -> v | _ -> assert false
-  let is_custom = function { value = Term _ } -> true | _ -> false
-  let to_string = function Term v -> S.to_string v | _ -> assert false
-  let to_json ~pos = function Term v -> S.to_json ~pos v | _ -> assert false
-
-  let descr =
-    let module C = (val S.typ : Type.Custom.Implementation) in
-    C.descr
+  let to_custom : content -> custom = Obj.magic
+  let to_content : custom -> content = Obj.magic
+  let to_string v = S.to_string (to_content v)
+  let to_json ~pos v = S.to_json ~pos (to_content v)
+  let compare v v' = S.compare (to_content v) (to_content v')
 
   let handler =
-    {
-      to_string;
-      to_json;
-      compare = (fun v v' -> S.compare (of_content v) (of_content v'));
-      typ = S.typ;
-    }
+    { Runtime_term.typ = S.t; name = S.name; to_string; to_json; compare }
 
-  let to_custom v = { value = Term v; handler }
+  let to_custom v = { value = to_custom v; handler }
+
+  let of_custom { value; handler = { name } } =
+    assert (S.name = name);
+    to_content value
+
+  let is_custom { handler = { name } } = S.name = name
 end

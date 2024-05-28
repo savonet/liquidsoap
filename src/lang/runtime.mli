@@ -24,25 +24,22 @@
 
 exception Error
 
+type eval_config = {
+  fetch_cache : bool;
+  save_cache : bool;
+  eval : [ `True | `False | `Toplevel ];
+}
+
+type eval_mode = [ `Parse_only | `Eval of eval_config ]
+
 (** Raise errors for warnings. *)
 val strict : bool ref
 
 (** Return the list of external libraries. *)
-val libs :
-  ?error_on_no_stdlib:bool ->
-  ?deprecated:bool ->
-  ?stdlib:string ->
-  unit ->
-  string list
+val libs : ?error_on_no_stdlib:bool -> ?deprecated:bool -> unit -> string list
 
 (** Load the external libraries. *)
-val load_libs :
-  ?error_on_no_stdlib:bool ->
-  ?parse_only:bool ->
-  ?deprecated:bool ->
-  ?stdlib:string ->
-  unit ->
-  unit
+val load_libs : unit -> unit
 
 (* Wrapper for format language errors. Re-raises [Error]
    after printing language errors. *)
@@ -57,14 +54,8 @@ val mk_expr :
   Sedlexing.lexbuf ->
   Term.t
 
-(** Evaluate a script from an [in_channel]. *)
-val from_in_channel : ?parse_only:bool -> lib:bool -> in_channel -> unit
-
-(** Evaluate a script from a file. *)
-val from_file : ?ns:string -> ?parse_only:bool -> lib:bool -> string -> unit
-
 (** Evaluate a script from a string. *)
-val from_string : ?parse_only:bool -> lib:bool -> string -> unit
+val from_string : eval_mode:eval_mode -> string -> unit
 
 (** Interactive loop: read from command line, eval, print and loop. *)
 val interactive : unit -> unit

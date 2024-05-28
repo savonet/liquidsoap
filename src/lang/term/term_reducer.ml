@@ -20,17 +20,12 @@
 
  *****************************************************************************)
 
-type processor =
-  ( Parser.token * Lexing.position * Lexing.position,
-    Parsed_term.t )
-  MenhirLib.Convert.revised
-
+type processor = Term_preprocessor.processor
 type env = (string * Runtime_term.t) list
 
 open Parsed_term
 include Runtime_term
 
-exception No_extra
 exception Float_parsed of float
 
 let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
@@ -41,14 +36,11 @@ let mk_parsed = Parsed_term.make
 let mk_fun ~pos arguments body =
   Term.make ~pos (`Fun Term.{ free_vars = None; name = None; arguments; body })
 
-let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
+let program = Term_preprocessor.program
 
 let mk_expr ?fname processor lexbuf =
-  let tokenizer = Preprocessor.mk_tokenizer ?fname lexbuf in
-  Parser_helper.clear_comments ();
-  let parsed_term = processor tokenizer in
-  Parser_helper.attach_comments parsed_term;
-  parsed_term
+  let parsed_term = Term_preprocessor.mk_expr ?fname processor lexbuf in
+  Term_preprocessor.expand_term parsed_term
 
 let pp_if_reducer ~env ~pos = function
   | `If_def { if_def_negative; if_def_condition; if_def_then; if_def_else } -> (
@@ -99,40 +91,6 @@ let pp_if_reducer ~env ~pos = function
           | true, false | false, true -> if_encoder_then
           | _ -> if_encoder_else
       with _ -> if_encoder_else)
-
-let includer_reducer ~pos = function
-  | `Include { inc_type; inc_name; inc_pos } -> (
-      try
-        let fname =
-          match inc_type with
-            | `Lib -> Filename.concat (!Hooks.liq_libs_dir ()) inc_name
-            | v -> (
-                try
-                  let current_dir =
-                    Filename.dirname (fst inc_pos).Lexing.pos_fname
-                  in
-                  Utils.check_readable ~current_dir ~pos:[inc_pos] inc_name
-                with _ when v = `Extra -> raise No_extra)
-        in
-        let ic = if fname = "-" then stdin else open_in fname in
-        Fun.protect
-          ~finally:(fun () -> if fname <> "-" then close_in ic)
-          (fun () ->
-            let lexbuf = Sedlexing.Utf8.from_channel ic in
-            mk_expr ~fname program lexbuf)
-      with No_extra -> Parsed_term.make ~pos (`Tuple []))
-
-let rec concat_term (t : Parsed_term.t) (t' : Parsed_term.t) =
-  match t with
-    | { term = `Let (def, body) } ->
-        { t with term = `Let (def, concat_term body t') }
-    | { term = `Def (def, body) } ->
-        { t with term = `Def (def, concat_term body t') }
-    | { term = `Binding (def, body) } ->
-        { t with term = `Binding (def, concat_term body t') }
-    | { term = `Seq (t1, t2) } as tm ->
-        { tm with term = `Seq (t1, concat_term t2 t') }
-    | _ -> Parsed_term.make ~pos:t.pos (`Seq (t, t'))
 
 (** Time intervals *)
 
@@ -892,8 +850,7 @@ let rec to_ast ~env ~pos ast =
   let to_term_with_env = to_term in
   let to_term = to_term ~env in
   match ast with
-    | `Methods _ | `Block _ | `Parenthesis _ | `Eof -> assert false
-    | `Include _ as ast -> (to_term (includer_reducer ~pos ast)).term
+    | `Methods _ | `Block _ | `Parenthesis _ | `Eof | `Include _ -> assert false
     | (`If_def _ as ast) | (`If_encoder _ as ast) | (`If_version _ as ast) ->
         (to_term (pp_if_reducer ~pos ~env ast)).term
     | `Get _ as ast -> get_reducer ~pos ~to_term ast
@@ -974,16 +931,13 @@ and to_func ~pos ~env ~to_term ?name arguments body =
     free_vars = None;
   }
 
-and to_term_base ~env (tm : Parsed_term.t) : Term.t =
+and to_term ~env (tm : Parsed_term.t) : Term.t =
   match tm.term with
-    | `Seq ({ pos; term = `Include _ as ast }, t') ->
-        let t = includer_reducer ~pos ast in
-        to_term ~env (concat_term t t')
     | `Seq ({ pos; term = `If_def _ as ast }, t')
     | `Seq ({ pos; term = `If_encoder _ as ast }, t')
     | `Seq ({ pos; term = `If_version _ as ast }, t') ->
         let t = pp_if_reducer ~pos ~env ast in
-        to_term ~env (concat_term t t')
+        to_term ~env (Term_preprocessor.concat_term t t')
     | `Block tm -> to_term ~env tm
     | `Parenthesis tm -> to_term ~env tm
     | `Eof -> to_term ~env { tm with term = `Tuple [] }
@@ -1052,19 +1006,7 @@ and to_term_base ~env (tm : Parsed_term.t) : Term.t =
                   { p with doc = Doc.parse_doc ~pos (String.concat "\n" doc) }
             | ast, _ -> ast
         in
-        {
-          t = Type.var ~pos:tm.pos ();
-          term;
-          methods = Methods.empty;
-          flags;
-          id = Term_base.id ();
-        }
-
-and to_term : env:env -> Parsed_term.t -> Runtime_term.t =
- fun ~env parsed_term ->
-  let term = to_term_base ~env parsed_term in
-  Term_base.ActiveTerm.add Term_base.active_terms term;
-  term
+        { t = Type.var ~pos:tm.pos (); term; methods = Methods.empty; flags }
 
 let to_encoder_params = to_encoder_params ~env:[] ~to_term
 let to_term tm = to_term ~env:[] tm

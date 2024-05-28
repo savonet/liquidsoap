@@ -33,6 +33,7 @@ module Specs = struct
   type data =
     (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t array
 
+  let name = "pcm_f32"
   let string_of_kind = function `Pcm_f32 -> "pcm_f32"
   let copy = copy ~fmt:Bigarray.float32
   let make = make ~fmt:Bigarray.float32

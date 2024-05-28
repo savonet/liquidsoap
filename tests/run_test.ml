@@ -73,6 +73,31 @@ let run () =
   (*
   Unix.putenv "MEMTRACE" (Printf.sprintf "%s.trace" test);
 *)
+  let pid =
+    Unix.create_process cmd
+      (Array.append args [| "--cache-only" |])
+      stdin stdout stdout
+  in
+  pid_ref := Some pid;
+
+  (match Unix.waitpid [] pid with
+    | _, Unix.WEXITED 0 ->
+        let min, sec = runtime () in
+        Printf.eprintf "Cache test %s: %s (Test time: %02dm:%02ds)\n"
+          colorized_test colorized_ok min sec;
+        if Sys.getenv_opt "LIQ_VERBOSE_TEST" <> None then print_log ();
+        cleanup ()
+    | _, Unix.WEXITED 2 ->
+        Printf.eprintf "%sCache test %s: %s\n" warning_prefix colorized_test
+          colorized_skipped;
+        exit 0
+    | _ ->
+        let min, sec = runtime () in
+        Printf.eprintf "%sCache test %s: %s (Test time: %02dm:%02ds)\n"
+          error_prefix colorized_test colorized_failed min sec;
+        print_log ();
+        exit 1);
+
   let pid = Unix.create_process cmd args stdin stdout stdout in
   pid_ref := Some pid;
 

@@ -155,6 +155,7 @@
     (saturn_lockfree (>= 0.4.1))
     (re (>= 1.11.0))
     (ppx_string :build)
+    (ppx_hash :build)
     (sedlex (>= 3.2))
     (menhir (>= 20180703))
   )
