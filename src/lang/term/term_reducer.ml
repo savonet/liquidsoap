@@ -110,8 +110,8 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                 match pat.pat_entry with
                   | `PVar [var] -> (var :: vars, body)
                   (* let (<var>, pattern, ...) = .. in .. becomes:
-                     let (<var>, ___, ...) = .. in
-                     let pattern = ___ in
+                     let (<var>, _1_pat, ...) = .. in
+                     let pattern = _1_pat in
                      .. *)
                   | _ ->
                       let var = pat_var_name () in
@@ -123,13 +123,14 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
           `Let
             { doc; replace; pat = `PTuple (List.rev vars); gen = []; def; body }
     (* let [x, y, ...spread, z, t] = ... in ... becomes:
-       let __ = ... in
-       let ___ = list.length(l) in
-       let x = list.nth(0, __) in
-       let y = list.nth(1, __) in
-       let spread = list.slice(start=2, stop=___-2) in
-       let z = list.nth(___-1, l) in
-       let t = list.nth(___-2, l) in
+       let _1_pat = ... in
+       let _2_pat = list.length(l) in
+       if _2_pat < 4 then error.raise(error.register("not_found", ...)) end
+       let x = list.nth(0, _1_pat) in
+       let y = list.nth(1, _1_pat) in
+       let spread = list.slice(offset=2, length=_2_pat-4) in
+       let z = list.nth(_2_pat-1, l) in
+       let t = list.nth(_2_pat-2, l) in
        ... *)
     | `PList (prefix, spread, suffix) ->
         fun ?doc ?replace ~body def ->
@@ -280,12 +281,12 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
           in
           mk_term ?doc ?replace ~body def
     (* let <pat>.{m = <pat'>; p?; q } = .. in .. becomes:
-       let __ = .. in
-       let ___ = _.m in
-       let <pat'> = ___ in
-       let p = __?.p in
-       let p = __.q in
-       let <pat> = __ in
+       let _1_pat = .. in
+       let _2_pat = _.m in
+       let <pat'> = _2_pat in
+       let p = _1_pat?.p in
+       let p = _1_pat.q in
+       let <pat> = _1_pat in
        ... *)
     | `PMeth (base, meths) ->
         fun ?doc ?replace ~body def ->
