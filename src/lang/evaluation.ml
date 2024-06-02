@@ -86,6 +86,21 @@ end
 let rec prepare_ast ~(env : Value.lazy_env) = function
   | `Var v when List.mem_assoc v env ->
       `Value (v, Value.term_val_of_val (List.assoc v env))
+  | `Hide (tm, l) -> (
+      let tm = prepare_term ~env tm in
+      tm.methods <- Methods.filter (fun m _ -> not (List.mem m l)) tm.methods;
+      match tm with
+        | { term = `Value (var, v) } ->
+            let v = Lazy.force (Value.val_of_term_val v) in
+            let v =
+              {
+                v with
+                Value.methods =
+                  Methods.filter (fun m _ -> not (List.mem m l)) v.Value.methods;
+              }
+            in
+            `Value (var, Value.term_val_of_val (Lazy.from_val v))
+        | _ -> `Hide (tm, l))
   | `Invoke { invoked; meth; invoke_default } -> (
       match prepare_term ~env invoked with
         | { term = `Value (var, v) } -> (
@@ -128,11 +143,17 @@ let rec prepare_ast ~(env : Value.lazy_env) = function
   | ast -> Runtime_term.map_ast (prepare_term ~env) ast
 
 and prepare_term ~env tm =
-  {
-    tm with
-    term = prepare_ast ~env tm.term;
-    methods = Methods.map (prepare_term ~env) tm.methods;
-  }
+  if Term.is_ground tm then
+    {
+      tm with
+      term = `Value ("_", eval ~eval_check:(fun _ -> assert false) ~env tm);
+    }
+  else
+    {
+      tm with
+      term = prepare_ast ~env tm.term;
+      methods = Methods.map (prepare_term ~env) tm.methods;
+    }
 
 and prepare_fun ~eval_check ~arguments ~env body =
   (* Unlike OCaml we always evaluate default values, and we do that early. I

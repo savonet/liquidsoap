@@ -122,6 +122,7 @@ let rec map_ast map_term = function
   | `String _ as ast -> ast
   | `Value _ as ast -> ast
   | `Open (t, t') -> `Open (map_term t, map_term t')
+  | `Hide (t, l) -> `Hide (map_term t, l)
   | `Var _ as ast -> ast
   | `Seq (t, t') -> `Seq (map_term t, map_term t')
   | `Let ({ def; body } as _let) ->
