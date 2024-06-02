@@ -66,6 +66,8 @@ let id =
 
 let has_flag { flags } flag = flags land flag <> 0
 let unit : in_value = Tuple []
+let val_of_term_val : Runtime_term.value -> t Lazy.t = Obj.magic
+let term_val_of_val : t Lazy.t -> Runtime_term.value = Obj.magic
 
 let rec to_string v =
   let base_string v =
@@ -105,6 +107,10 @@ let rec to_string v =
     ^ String.concat ", "
         (List.map (fun (l, meth_term) -> l ^ "=" ^ to_string meth_term) methods)
     ^ "}")
+
+let () =
+  Term_base.string_of_value :=
+    fun v -> to_string (Lazy.force (val_of_term_val v))
 
 (** Find a method in a value. *)
 let invoke x l =

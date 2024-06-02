@@ -91,6 +91,8 @@ let string_of_pat = function
 (** String representation of terms, (almost) assuming they are in normal
     form. *)
 
+let string_of_value = ref (fun _ -> "<value>")
+
 let rec to_string (v : t) =
   let to_base_string (v : t) =
     match v.term with
@@ -102,7 +104,9 @@ let rec to_string (v : t) =
       | `Float f -> Utils.string_of_float f
       | `Bool b -> string_of_bool b
       | `String s -> Lang_string.quote_string s
-      | `Value _ -> "<value>"
+      | `Value (_, v) ->
+          let fn = !string_of_value in
+          fn v
       | `Encoder e ->
           let rec aux (e, p) =
             let p =

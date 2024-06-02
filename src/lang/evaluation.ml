@@ -83,20 +83,17 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let val_of_term_val : Runtime_term.value -> Value.t Lazy.t = Obj.magic
-let term_val_of_val : Value.t Lazy.t -> Runtime_term.value = Obj.magic
-
 let rec prepare_ast ~(env : Value.lazy_env) = function
   | `Var v when List.mem_assoc v env ->
-      `Value (v, term_val_of_val (List.assoc v env))
+      `Value (v, Value.term_val_of_val (List.assoc v env))
   | `Invoke { invoked; meth; invoke_default } -> (
       match prepare_term ~env invoked with
         | { term = `Value (var, v) } -> (
             match
               Methods.find_opt meth
-                (Lazy.force (val_of_term_val v)).Value.methods
+                (Lazy.force (Value.val_of_term_val v)).Value.methods
             with
-              | Some v -> `Value (var, term_val_of_val (Lazy.from_val v))
+              | Some v -> `Value (var, Value.term_val_of_val (Lazy.from_val v))
               | None ->
                   `Invoke
                     {
@@ -217,7 +214,7 @@ and eval_ast ~eval_check ~(env : Env.t) ~flags ~pos ast =
     Value.{ pos; value = v; methods = Methods.empty; flags; id = Value.id () }
   in
   match ast with
-    | `Value (_, v) -> Lazy.force (val_of_term_val v)
+    | `Value (_, v) -> Lazy.force (Value.val_of_term_val v)
     | `Int i -> mk (Value.Int i)
     | `Float f -> mk (Value.Float f)
     | `Bool b -> mk (Value.Bool b)
