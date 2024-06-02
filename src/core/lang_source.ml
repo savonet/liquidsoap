@@ -536,10 +536,9 @@ let check_arguments ~env ~return_t arguments =
           | List l -> List (List.map map l)
           | Tuple l -> Tuple (List.map map l)
           | Null -> Null
-          | Fun ({ fun_args = args; fun_body = ret } as fun_v) ->
+          | Fun { fun_args = args; fun_body = ret } ->
               Fun
                 {
-                  fun_v with
                   fun_args =
                     List.map (fun (l, l', v) -> (l, l', Option.map map v)) args;
                   fun_body = Term.fresh ~handler ret;
@@ -662,47 +661,37 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
 let itered_values = Alive_values_map.create 10
 
 let iter_sources ?(on_imprecise = fun () -> ()) f v =
-  let rec iter_term env v =
-    let iter_base_term env v =
+  let rec iter_term v =
+    let iter_base_term v =
       match v.Term.term with
         | `Int _ | `Float _ | `Bool _ | `String _ | `Custom _ | `Encoder _ -> ()
-        | `List l -> List.iter (iter_term env) l
-        | `Tuple l -> List.iter (iter_term env) l
+        | `List l -> List.iter iter_term l
+        | `Tuple l -> List.iter iter_term l
         | `Null -> ()
-        | `Cast (a, _) -> iter_term env a
-        | `Hide (a, _) -> iter_term env a
-        | `Invoke { Term.invoked = a } -> iter_term env a
+        | `Cast (a, _) -> iter_term a
+        | `Hide (a, _) -> iter_term a
+        | `Invoke { Term.invoked = a } -> iter_term a
         | `Open (a, b) ->
-            iter_term env a;
-            iter_term env b
+            iter_term a;
+            iter_term b
         | `Let { Term.def = a; body = b; _ } | `Seq (a, b) ->
-            iter_term env a;
-            iter_term env b
-        | `Var v -> (
-            try
-              (* If it's locally bound it won't be in [env]. *)
-              (* TODO since inner-bound variables don't mask outer ones in [env],
-               *   we are actually checking values that may be out of reach. *)
-              let v = List.assoc v env in
-              if Stdlib.Lazy.is_val v then (
-                let v = Stdlib.Lazy.force v in
-                iter_value v)
-              else ()
-            with Not_found -> ())
+            iter_term a;
+            iter_term b
+        | `Value (_, v) ->
+            iter_value
+              (Lazy.force (Liquidsoap_lang.Evaluation.val_of_term_val v))
+        | `Var _ -> ()
         | `App (a, l) ->
-            iter_term env a;
-            List.iter (fun (_, v) -> iter_term env v) l
+            iter_term a;
+            List.iter (fun (_, v) -> iter_term v) l
         | `Fun { Term.arguments; body } | `RFun (_, { Term.arguments; body }) ->
-            iter_term env body;
+            iter_term body;
             List.iter
-              (function
-                | { Term.default = Some v } -> iter_term env v | _ -> ())
+              (function { Term.default = Some v } -> iter_term v | _ -> ())
               arguments
     in
-    Term.Methods.iter
-      (fun _ meth_term -> iter_term env meth_term)
-      v.Term.methods;
-    iter_base_term env v
+    Term.Methods.iter (fun _ meth_term -> iter_term meth_term) v.Term.methods;
+    iter_base_term v
   and iter_value v =
     if not (Alive_values_map.mem itered_values v) then (
       (* We need to avoid checking the same value multiple times, otherwise we
@@ -715,10 +704,8 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
         | Null -> ()
-        | Fun { fun_args = proto; fun_env = env; fun_body = body } ->
-            (* The following is necessarily imprecise: we might see sources that
-               will be unused in the execution of the function. *)
-            iter_term env body;
+        | Fun { fun_args = proto; fun_body = body } ->
+            iter_term body;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
         | FFI { ffi_args = proto; _ } ->
             on_imprecise ();

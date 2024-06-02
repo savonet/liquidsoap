@@ -18,6 +18,7 @@ and trim_ast = function
       trim_term t;
       trim_term t'
   | `Var _ -> ()
+  | `Value _ -> ()
   | `Seq (t, t') ->
       trim_term t;
       trim_term t'

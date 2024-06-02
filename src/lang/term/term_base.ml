@@ -102,6 +102,7 @@ let rec to_string (v : t) =
       | `Float f -> Utils.string_of_float f
       | `Bool b -> string_of_bool b
       | `String s -> Lang_string.quote_string s
+      | `Value _ -> "<value>"
       | `Encoder e ->
           let rec aux (e, p) =
             let p =
@@ -197,7 +198,7 @@ let bound_vars_pat = function
 let rec free_term_vars tm =
   let root_free_vars = function
     | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> Vars.empty
-    | `Var x -> Vars.singleton x
+    | `Value (x, _) | `Var x -> Vars.singleton x
     | `Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
     | `Null -> Vars.empty
@@ -305,7 +306,7 @@ let check_unused ~throw ~lib tm =
       Methods.fold (fun _ meth_term e -> check e meth_term) tm.methods v
     in
     match tm.term with
-      | `Var s -> Vars.remove s v
+      | `Value (s, _) | `Var s -> Vars.remove s v
       | `Int _ | `Float _ | `String _ | `Bool _ -> v
       | `Custom _ -> v
       | `Tuple l -> List.fold_left (fun a -> check a) v l
@@ -479,6 +480,7 @@ let rec fresh ~handler { t; term; methods; flags } =
               body = fresh ~handler body;
             }
       | `List l -> `List (List.map (fresh ~handler) l)
+      | `Value _ as ast -> ast
       | `Cast (t, typ) -> `Cast (fresh ~handler t, Type.Fresh.make handler typ)
       | `App (t, l) ->
           `App

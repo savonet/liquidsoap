@@ -83,11 +83,65 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let rec prepare_fun fv ~eval_check p env =
+let val_of_term_val : Runtime_term.value -> Value.t Lazy.t = Obj.magic
+let term_val_of_val : Value.t Lazy.t -> Runtime_term.value = Obj.magic
+
+let rec prepare_ast ~(env : Value.lazy_env) = function
+  | `Var v when List.mem_assoc v env ->
+      `Value (v, term_val_of_val (List.assoc v env))
+  | `Invoke { invoked; meth; invoke_default } -> (
+      match prepare_term ~env invoked with
+        | { term = `Value (var, v) } -> (
+            match
+              Methods.find_opt meth
+                (Lazy.force (val_of_term_val v)).Value.methods
+            with
+              | Some v -> `Value (var, term_val_of_val (Lazy.from_val v))
+              | None ->
+                  `Invoke
+                    {
+                      invoked =
+                        {
+                          invoked with
+                          term = `Tuple [];
+                          methods = Methods.empty;
+                        };
+                      meth;
+                      invoke_default =
+                        Option.map (prepare_term ~env) invoke_default;
+                    })
+        | invoked ->
+            `Invoke
+              {
+                invoked;
+                meth;
+                invoke_default = Option.map (prepare_term ~env) invoke_default;
+              })
+  | `Fun ({ arguments; body } as func) ->
+      let arguments =
+        List.map
+          (fun ({ default } as arg) ->
+            { arg with default = Option.map (prepare_term ~env) default })
+          arguments
+      in
+      let fv = Term.free_fun_vars func in
+      let env = Env.restrict env fv in
+      let body = prepare_term ~env body in
+      `Fun { func with arguments; body }
+  | ast -> Runtime_term.map_ast (prepare_term ~env) ast
+
+and prepare_term ~env tm =
+  {
+    tm with
+    term = prepare_ast ~env tm.term;
+    methods = Methods.map (prepare_term ~env) tm.methods;
+  }
+
+and prepare_fun ~eval_check ~arguments ~env body =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
      values as defaults. *)
-  let p =
+  let arguments =
     List.map
       (function
         | { label; as_variable; default = Some v } ->
@@ -96,23 +150,19 @@ let rec prepare_fun fv ~eval_check p env =
               Some (eval ~eval_check env v) )
         | { label; as_variable; default = None } ->
             (label, Option.value ~default:label as_variable, None))
-      p
+      arguments
   in
-  (* Keep only once the variables we might use in the environment. *)
-  let env = Env.restrict env fv in
-  (p, env)
+  (arguments, prepare_term ~env body)
 
 and apply ?(pos = []) ~eval_check f l =
   let apply_pos = match pos with [] -> None | p :: _ -> Some p in
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match f.Value.value with
-      | Value.Fun { fun_args = p; fun_env = e; fun_body = body } ->
-          ( p,
-            fun pe ->
-              let env = Env.adds e pe in
-              eval ~eval_check env body )
-      | Value.FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
+      | Value.Fun { fun_args = p; fun_body = body } ->
+          (p, fun env -> eval ~eval_check (Env.adds [] env) body)
+      | Value.FFI { ffi_args = p; ffi_fn = f } ->
+          (p, fun env -> f (List.rev env))
       | _ -> assert false
   in
   (* Record error positions. *)
@@ -162,25 +212,18 @@ and apply ?(pos = []) ~eval_check f l =
      FFI-made value and a position is needed. *)
   { v with Value.pos = apply_pos }
 
-and eval_base_term ~eval_check (env : Env.t) tm =
+and eval_ast ~eval_check ~(env : Env.t) ~flags ~pos ast =
   let mk v =
-    Value.
-      {
-        pos = tm.t.Type.pos;
-        value = v;
-        methods = Methods.empty;
-        flags = tm.flags;
-        id = Value.id ();
-      }
+    Value.{ pos; value = v; methods = Methods.empty; flags; id = Value.id () }
   in
-  match tm.term with
+  match ast with
+    | `Value (_, v) -> Lazy.force (val_of_term_val v)
     | `Int i -> mk (Value.Int i)
     | `Float f -> mk (Value.Float f)
     | `Bool b -> mk (Value.Bool b)
     | `String s -> mk (Value.String s)
     | `Custom g -> mk (Value.Custom g)
     | `Encoder (e, p) ->
-        let pos = tm.t.Type.pos in
         let rec eval_param p =
           List.map
             (fun t ->
@@ -196,7 +239,6 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     | `Tuple l ->
         mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
     | `Null -> mk Value.Null
-    | `Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
     | `Hide (tm, methods) ->
         let v = eval ~eval_check env tm in
         {
@@ -204,6 +246,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
           methods =
             Methods.filter (fun n _ -> not (List.mem n methods)) v.methods;
         }
+    | `Cast (e, _) -> { (eval ~eval_check env e) with pos }
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
@@ -216,7 +259,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
           | _ ->
               raise
                 (Internal_error
-                   ( Option.to_list tm.t.Type.pos,
+                   ( Option.to_list pos,
                      "invoked method `" ^ meth ^ "` not found" )))
     | `Open (t, u) ->
         let t = eval ~eval_check env t in
@@ -271,14 +314,15 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         eval ~eval_check env b
     | `Fun ({ name; arguments; body } as p) ->
         let fv = Term.free_fun_vars p in
-        let p, env = prepare_fun ~eval_check fv arguments env in
+        let env = Env.restrict env fv in
         let rec v () =
           let env =
             match name with
               | None -> env
               | Some name -> Env.add_lazy env name (Lazy.from_fun v)
           in
-          mk (Value.Fun { fun_args = p; fun_env = env; fun_body = body })
+          let p, body = prepare_fun ~eval_check ~arguments ~env body in
+          mk (Value.Fun { fun_args = p; fun_body = body })
         in
         v ()
     | `Var var -> Env.lookup env var
@@ -290,7 +334,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
           let pos =
-            match tm.t.Type.pos with
+            match pos with
               | None -> []
               | Some p ->
                   p
@@ -310,7 +354,9 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         else ans ()
 
 and eval_term ~eval_check env tm =
-  let v = eval_base_term ~eval_check env tm in
+  let v =
+    eval_ast ~eval_check ~env ~flags:tm.flags ~pos:tm.t.Type.pos tm.term
+  in
   if Methods.is_empty tm.methods then v
   else
     {

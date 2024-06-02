@@ -127,6 +127,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
       | `String _ -> base_type >: mk String
       | `Bool _ -> base_type >: mk Bool
       | `Custom h -> base_type >: mk h.handler.typ.Type.descr
+      | `Value _ -> ()
       | `Encoder f ->
           (* Ensure that we only use well-formed terms. *)
           let rec check_enc (_, p) =

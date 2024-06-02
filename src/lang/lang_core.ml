@@ -107,13 +107,13 @@ let meth v l =
 
 let record = meth unit
 let val_fun p f = mk (FFI { ffi_args = p; ffi_fn = f })
-let term_fun p tm = mk (Fun { fun_args = p; fun_env = []; fun_body = tm })
+let term_fun p tm = mk (Fun { fun_args = p; fun_body = tm })
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
   let f t tm =
     let tm = Term.make ~t tm in
-    mk (Fun { fun_args = p; fun_env = []; fun_body = tm })
+    mk (Fun { fun_args = p; fun_body = tm })
   in
   let mkg g = Type.make g in
   (* Convert the value into a term if possible, to enable introspection, mostly

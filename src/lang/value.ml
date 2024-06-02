@@ -37,12 +37,7 @@ and env = (string * t) list
 
 (* Some values have to be lazy in the environment because of recursive functions. *)
 and lazy_env = (string * t Lazy.t) list
-
-and fun_v = {
-  fun_args : (string * string * t option) list;
-  fun_env : lazy_env;
-  fun_body : Term.t;
-}
+and fun_v = { fun_args : (string * string * t option) list; fun_body : Term.t }
 
 and ffi = {
   ffi_args : (string * string * t option) list;
