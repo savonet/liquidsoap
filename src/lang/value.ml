@@ -38,6 +38,12 @@ and env = (string * t) list
 (* Some values have to be lazy in the environment because of recursive functions. *)
 and lazy_env = (string * t Lazy.t) list
 
+and fun_v = {
+  fun_args : (string * string * t option) list;
+  fun_env : lazy_env;
+  fun_body : Term.t;
+}
+
 and ffi = {
   ffi_args : (string * string * t option) list;
   mutable ffi_fn : env -> t;
@@ -54,7 +60,7 @@ and in_value =
   | Null
   (* Function with given list of argument name, argument variable and default
      value, the (relevant part of the) closure, and the body. *)
-  | Fun of (string * string * t option) list * lazy_env * Term.t
+  | Fun of fun_v
   (* For a foreign function only the arguments are visible, the closure
      doesn't capture anything in the environment. *)
   | FFI of ffi
@@ -80,8 +86,9 @@ let rec to_string v =
       | List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | Null -> "null"
-      | Fun ([], _, x) when Term.is_ground x -> "{" ^ Term.to_string x ^ "}"
-      | Fun (l, _, x) when Term.is_ground x ->
+      | Fun { fun_args = []; fun_body = x } when Term.is_ground x ->
+          "{" ^ Term.to_string x ^ "}"
+      | Fun { fun_args = l; fun_body = x } when Term.is_ground x ->
           let f (label, _, value) =
             match (label, value) with
               | "", None -> "_"

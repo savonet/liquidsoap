@@ -46,6 +46,12 @@ type value = Liquidsoap_lang.Value.t = {
 and env = (string * value) list
 and lazy_env = (string * value Stdlib.Lazy.t) list
 
+and fun_v = Liquidsoap_lang.Value.fun_v = {
+  fun_args : (string * string * value option) list;
+  fun_env : lazy_env;
+  fun_body : Term.t;
+}
+
 and ffi = Liquidsoap_lang.Value.ffi = {
   ffi_args : (string * string * value option) list;
   mutable ffi_fn : env -> value;
@@ -60,8 +66,7 @@ and in_value = Liquidsoap_lang.Value.in_value =
   | List of value list
   | Tuple of value list
   | Null
-  | Fun of
-      (string * string * value option) list * lazy_env * Liquidsoap_lang.Term.t
+  | Fun of fun_v
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
   | FFI of ffi

@@ -8,7 +8,7 @@ type encoder_params =
 and encoder = string * encoder_params
 
 let make_encoder =
-  ref (fun ~pos:_ _ _ -> failwith "Encoders are not implemented!")
+  ref (fun ~pos:_ _ -> failwith "Encoders are not implemented!")
 
 let has_encoder = ref (fun _ -> false)
 let liq_libs_dir = ref (fun () -> raise Not_found)

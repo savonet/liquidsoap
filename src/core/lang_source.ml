@@ -448,14 +448,15 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        | Fun ([], _, ret), Type.Getter t -> Typing.(ret.Term.t <: t)
+        | Fun { fun_args = []; fun_body = ret }, Type.Getter t ->
+            Typing.(ret.Term.t <: t)
         | FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
             ffi.ffi_fn <-
               (fun env ->
                 let v = ffi_fn env in
                 check_value v t;
                 v)
-        | Fun (args, _, ret), Type.Arrow (args_t, ret_t) ->
+        | Fun { fun_args = args; fun_body = ret }, Type.Arrow (args_t, ret_t) ->
             List.iter
               (fun typ ->
                 match typ with
@@ -535,11 +536,14 @@ let check_arguments ~env ~return_t arguments =
           | List l -> List (List.map map l)
           | Tuple l -> Tuple (List.map map l)
           | Null -> Null
-          | Fun (args, lazy_env, ret) ->
+          | Fun ({ fun_args = args; fun_body = ret } as fun_v) ->
               Fun
-                ( List.map (fun (l, l', v) -> (l, l', Option.map map v)) args,
-                  lazy_env,
-                  Term.fresh ~handler ret )
+                {
+                  fun_v with
+                  fun_args =
+                    List.map (fun (l, l', v) -> (l, l', Option.map map v)) args;
+                  fun_body = Term.fresh ~handler ret;
+                }
           | FFI ffi ->
               FFI
                 {
@@ -710,7 +714,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
         | List l -> List.iter iter_value l
         | Tuple l -> List.iter iter_value l
         | Null -> ()
-        | Fun (proto, env, body) ->
+        | Fun { fun_args = proto; fun_env = env; fun_body = body } ->
             (* The following is necessarily imprecise: we might see sources that
                will be unused in the execution of the function. *)
             iter_term env body;
