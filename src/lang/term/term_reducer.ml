@@ -83,7 +83,7 @@ let pp_if_reducer ~env ~pos = function
       in
       try
         let encoder =
-          !Hooks.make_encoder ~pos:None (mk Term.unit) (if_encoder_condition, [])
+          !Hooks.make_encoder ~pos:None (if_encoder_condition, [])
         in
         match (!Hooks.has_encoder encoder, if_encoder_negative) with
           | true, false | false, true -> if_encoder_then
@@ -458,7 +458,7 @@ and term_of_value_base ~pos t v =
       | Value.Null -> mk_tm `Null
       (* Ignoring env is not correct here but this is an internal operator
          so we have to trust that devs using it via %argsof now that they are doing. *)
-      | Value.Fun (args, _, body) ->
+      | Value.Fun { fun_args = args; fun_body = body } ->
           let body =
             mk
               ~t:(Type.make ~pos body.t.Type.descr)
@@ -496,7 +496,7 @@ and term_of_value ~pos ~name t v =
 
 let builtin_args_of ~only ~except ~pos name =
   match Environment.get_builtin name with
-    | Some ((_, t), Value.{ value = Fun (args, _, _) })
+    | Some ((_, t), Value.{ value = Fun { fun_args = args } })
     | Some ((_, t), Value.{ value = FFI { ffi_args = args; _ } }) ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
         let filtered_args =

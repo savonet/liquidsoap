@@ -25,7 +25,7 @@ type encoder_params =
 
 and encoder = string * encoder_params
 
-val make_encoder : (pos:Pos.Option.t -> Term.t -> encoder -> Value.t) ref
+val make_encoder : (pos:Pos.Option.t -> encoder -> Value.t) ref
 val type_of_encoder : (pos:Pos.Option.t -> Term.encoder -> Type.t) ref
 val has_encoder : (Value.t -> bool) ref
 

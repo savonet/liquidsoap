@@ -45,6 +45,12 @@ type value = Value.t = {
 and env = (string * value) list
 and lazy_env = (string * value Lazy.t) list
 
+and fun_v = Value.fun_v = {
+  fun_args : (string * string * value option) list;
+  fun_env : lazy_env;
+  fun_body : Term.t;
+}
+
 and ffi = Value.ffi = {
   ffi_args : (string * string * value option) list;
   mutable ffi_fn : env -> value;
@@ -59,7 +65,7 @@ and in_value = Value.in_value =
   | List of value list
   | Tuple of value list
   | Null
-  | Fun of (string * string * value option) list * lazy_env * Term.t
+  | Fun of fun_v
   (* A function with given arguments (argument label, argument variable, default
      value), closure and value. *)
   | FFI of ffi
