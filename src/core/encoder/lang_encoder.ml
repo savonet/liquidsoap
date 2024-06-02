@@ -130,11 +130,9 @@ let type_of_encoder ~pos e =
   let frame_t = Frame_type.make Liquidsoap_lang.Lang.unit_t fields in
   L.format_t ?pos frame_t
 
-let make_encoder ~pos t ((e, p) : Hooks.encoder) =
+let make_encoder ~pos ((e, p) : Hooks.encoder) =
   try
     let e = (find_encoder e).make p in
     let (_ : Encoder.factory) = Encoder.get_factory e in
     V.to_value ?pos e
-  with Not_found ->
-    raise_error ~pos
-      (Printf.sprintf "unsupported format: %s" (Term.to_string t))
+  with Not_found -> raise_error ~pos "unsupported format"
