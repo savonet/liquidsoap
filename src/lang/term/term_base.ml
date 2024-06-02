@@ -76,11 +76,15 @@ let ref_t ?pos t =
 module Custom = Term_custom
 
 let unit = `Tuple []
+let is_ground_value = ref (fun _ -> false)
 
 (* Only used for printing very simple functions. *)
 let rec is_ground x =
   match x.term with
     | `List l | `Tuple l -> List.for_all is_ground l
+    | `Value (_, v) ->
+        let fn = !is_ground_value in
+        fn v
     | `Null | `Int _ | `Float _ | `String _ | `Bool _ -> true
     | _ -> false
 
@@ -91,7 +95,7 @@ let string_of_pat = function
 (** String representation of terms, (almost) assuming they are in normal
     form. *)
 
-let string_of_value = ref (fun _ -> "<value>")
+let string_of_value = ref (fun _ -> "_")
 
 let rec to_string (v : t) =
   let to_base_string (v : t) =
@@ -106,7 +110,7 @@ let rec to_string (v : t) =
       | `String s -> Lang_string.quote_string s
       | `Value (_, v) ->
           let fn = !string_of_value in
-          fn v
+          Printf.sprintf "$%s$" (fn v)
       | `Encoder e ->
           let rec aux (e, p) =
             let p =

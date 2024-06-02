@@ -69,6 +69,16 @@ let unit : in_value = Tuple []
 let val_of_term_val : Runtime_term.value -> t Lazy.t = Obj.magic
 let term_val_of_val : t Lazy.t -> Runtime_term.value = Obj.magic
 
+let rec is_ground v =
+  match v.value with
+    | Tuple l | List l -> List.for_all is_ground l
+    | Int _ | Float _ | Bool _ | String _ -> true
+    | _ -> false
+
+let () =
+  Term_base.is_ground_value :=
+    fun v -> is_ground (Lazy.force (val_of_term_val v))
+
 let rec to_string v =
   let base_string v =
     match v.value with
@@ -85,7 +95,7 @@ let rec to_string v =
       | Null -> "null"
       | Fun { fun_args = []; fun_body = x } when Term.is_ground x ->
           "{" ^ Term.to_string x ^ "}"
-      | Fun { fun_args = l; fun_body = x } when Term.is_ground x ->
+      | Fun { fun_args = l; fun_body = x } ->
           let f (label, _, value) =
             match (label, value) with
               | "", None -> "_"
@@ -96,7 +106,7 @@ let rec to_string v =
           let args = List.map f l in
           Printf.sprintf "fun (%s) -> %s" (String.concat "," args)
             (Term.to_string x)
-      | Fun _ | FFI _ -> "<fun>"
+      | FFI _ -> "<fun>"
   in
   let s = base_string v in
   if Methods.is_empty v.methods then s

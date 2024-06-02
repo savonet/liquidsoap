@@ -140,14 +140,88 @@ let rec prepare_ast ~(env : Value.lazy_env) = function
       let env = Env.restrict env fv in
       let body = prepare_term ~env body in
       `Fun { func with arguments; body }
+  | `Let { pat = `PVar [] } -> assert false
+  | `Let ({ pat = `PVar [var]; replace; def; body } as _let) -> (
+      match prepare_term ~env def with
+        | { term = `Value (_, v) } ->
+            let v = Value.val_of_term_val v in
+            let v =
+              match (replace, List.assoc_opt var env) with
+                | true, Some env_v ->
+                    let v = Lazy.force v in
+                    let env_v = Lazy.force (List.assoc var env) in
+                    Lazy.from_val { v with methods = env_v.Value.methods }
+                | _ -> v
+            in
+            let env = (var, v) :: env in
+            let body = prepare_term ~env body in
+            `Seq (Term.make (`Tuple []), body)
+        | def ->
+            `Let
+              {
+                _let with
+                def;
+                body =
+                  prepare_term
+                    ~env:(List.filter (fun (lbl, _) -> lbl <> var) env)
+                    body;
+              })
+  | `Let ({ pat = `PVar (var :: path); replace; def; body } as _let) -> (
+      let def = prepare_term ~env def in
+      match (List.assoc_opt var env, prepare_term ~env def) with
+        | Some v, { term = `Value (_, def) } ->
+            let def = Lazy.force (Value.val_of_term_val def) in
+            let rec pop_path ~v = function
+              | [] -> assert false
+              | meth :: [] ->
+                  Lazy.from_val
+                    {
+                      v with
+                      Value.methods =
+                        Methods.add meth def
+                          (if replace then v.Value.methods else Methods.empty);
+                    }
+              | meth :: path ->
+                  pop_path ~v:(Methods.find meth v.Value.methods) path
+            in
+            let v = pop_path ~v:(Lazy.force v) path in
+            let env = (var, v) :: env in
+            let body = prepare_term ~env body in
+            `Seq (Term.make (`Tuple []), body)
+        | _, def ->
+            `Let
+              {
+                _let with
+                def;
+                body =
+                  prepare_term
+                    ~env:(List.filter (fun (lbl, _) -> lbl <> var) env)
+                    body;
+              })
+  | `Let ({ pat = `PTuple l; def; body } as _let) -> (
+      let def = prepare_term ~env def in
+      match prepare_term ~env def with
+        | { term = `Value (_, v) } ->
+            let t =
+              match Lazy.force (Value.val_of_term_val v) with
+                | { Value.value = Tuple t } -> t
+                | _ -> assert false
+            in
+            let env =
+              List.fold_left2
+                (fun env lbl v -> (lbl, Lazy.from_val v) :: env)
+                env l t
+            in
+            `Seq (Term.make (`Tuple []), prepare_term ~env body)
+        | _ ->
+            let env = List.filter (fun (lbl, _) -> not (List.mem lbl l)) env in
+            Runtime_term.map_ast (prepare_term ~env) (`Let _let))
   | ast -> Runtime_term.map_ast (prepare_term ~env) ast
 
 and prepare_term ~env tm =
-  if Term.is_ground tm then
-    {
-      tm with
-      term = `Value ("_", eval ~eval_check:(fun _ -> assert false) ~env tm);
-    }
+  if Term.is_ground tm then (
+    let v = eval ~eval_check:(fun ~env:_ ~tm:_ _ -> ()) env tm in
+    { tm with term = `Value ("_", Value.term_val_of_val (Lazy.from_val v)) })
   else
     {
       tm with
