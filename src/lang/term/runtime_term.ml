@@ -33,7 +33,7 @@ type 'a term = {
   mutable t : Type.t;
   term : 'a;
   flags : flags;
-  methods : 'a term Methods.t;
+  mutable methods : 'a term Methods.t;
 }
 
 let has_flag { flags } flag = flags land flag <> 0

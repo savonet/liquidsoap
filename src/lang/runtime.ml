@@ -61,7 +61,11 @@ let type_and_run ~throw ~config ~lib ~parsed_term term =
     | (`True as v) | (`Toplevel as v) ->
         let eval =
           match v with
-            | `True -> fun () -> Evaluation.eval ast
+            | `True ->
+                fun () ->
+                  let v = Evaluation.eval ast in
+                  Environment.clear_environments ();
+                  v
             | `Toplevel -> fun () -> Evaluation.eval_toplevel ast
         in
         if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
