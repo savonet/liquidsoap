@@ -268,7 +268,8 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     | `Tuple l ->
         mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
     | `Null -> mk Value.Null
-    | `Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
+    | `Cast { cast = e } ->
+        { (eval ~eval_check env e) with pos = tm.t.Type.pos }
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with

@@ -173,7 +173,6 @@ and parsed_ast =
   | `Def of _let * t
   | `Let of _let * t
   | `Binding of _let * t
-  | `Cast of t * type_annotation
   | `App of t * app_arg list
   | `Invoke of invoke
   | `Fun of fun_arg list * t
@@ -200,7 +199,7 @@ and parsed_ast =
   | `Parenthesis of t
   | `Encoder of encoder
   | `Eof
-  | t common_ast ]
+  | (t, type_annotation) common_ast ]
 
 and t = {
   term : parsed_ast;
@@ -271,7 +270,7 @@ let rec iter_term fn ({ term } as tm) =
           | None -> ());
         iter_term fn _let.def;
         iter_term fn tm
-    | `Cast (tm, _) -> iter_term fn tm
+    | `Cast { cast } -> iter_term fn cast
     | `App (tm, args) ->
         iter_term fn tm;
         List.iter

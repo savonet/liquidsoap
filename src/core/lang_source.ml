@@ -669,7 +669,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
         | `List l -> List.iter (iter_term env) l
         | `Tuple l -> List.iter (iter_term env) l
         | `Null -> ()
-        | `Cast (a, _) -> iter_term env a
+        | `Cast { Term.cast = a } -> iter_term env a
         | `Invoke { Term.invoked = a } -> iter_term env a
         | `Open (a, b) ->
             iter_term env a;

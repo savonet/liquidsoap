@@ -473,7 +473,7 @@ let rec to_ast_json ~to_json = function
         ]
   | `Tuple l -> ast_node ~typ:"tuple" [("value", `Tuple (List.map to_json l))]
   | `Null -> ast_node ~typ:"null" []
-  | `Cast (t, typ) ->
+  | `Cast { cast = t; typ } ->
       ast_node ~typ:"cast"
         [("left", to_json t); ("right", json_of_type_annotation typ)]
   | `Invoke { invoked; optional; meth } ->

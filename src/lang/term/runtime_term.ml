@@ -65,11 +65,13 @@ type ('a, 'b) func = {
 }
 
 type 'a app = 'a * (string * 'a) list
+type ('a, 'b) cast = { cast : 'a; typ : 'b } [@@deriving hash]
 
-type 'a common_ast =
+type ('a, 'b) common_ast =
   [ `Custom of custom_term
   | `Tuple of 'a list
   | `Null
+  | `Cast of ('a, 'b) cast
   | `Open of 'a * 'a
   | `Var of string
   | `Seq of 'a * 'a ]
@@ -99,11 +101,10 @@ type 'a runtime_ast =
   | `Bool of bool
   | `Let of 'a let_t
   | `List of 'a list
-  | `Cast of 'a * Type.t
   | `App of 'a * (string * 'a) list
   | `Invoke of 'a invoke
   | `Encoder of 'a encoder
   | `Fun of ('a, Type.t) func ]
 
 type t = ast term
-and ast = [ t common_ast | t runtime_ast ]
+and ast = [ (t, Type.t) common_ast | t runtime_ast ]

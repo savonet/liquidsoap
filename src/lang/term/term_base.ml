@@ -137,7 +137,8 @@ let rec to_string (v : t) =
       | `List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | `Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | `Null -> "null"
-      | `Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Type.to_string t ^ ")"
+      | `Cast { cast; typ } ->
+          "(" ^ to_string cast ^ " : " ^ Type.to_string typ ^ ")"
       | `Invoke { invoked = e; meth = l; invoke_default } -> (
           match invoke_default with
             | None -> to_string e ^ "." ^ l
@@ -244,7 +245,7 @@ let rec free_term_vars tm =
             Vars.empty p
         in
         enc e
-    | `Cast (e, _) -> free_vars e
+    | `Cast { cast = e } -> free_vars e
     | `Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
     | `Invoke { invoked = e; invoke_default } ->
         Vars.union (free_vars e)
@@ -336,7 +337,7 @@ let check_unused ~throw ~lib tm =
       | `Custom _ -> v
       | `Tuple l -> List.fold_left (fun a -> check a) v l
       | `Null -> v
-      | `Cast (e, _) -> check v e
+      | `Cast { cast = e } -> check v e
       | `Invoke { invoked = e } -> check v e
       | `Open (a, b) -> check (check v a) b
       | `Seq (a, b) -> check ~toplevel (check v a) b
@@ -498,7 +499,8 @@ let rec fresh ~handler { t; term; methods; flags } =
               body = fresh ~handler body;
             }
       | `List l -> `List (List.map (fresh ~handler) l)
-      | `Cast (t, typ) -> `Cast (fresh ~handler t, Type.Fresh.make handler typ)
+      | `Cast { cast = t; typ } ->
+          `Cast { cast = fresh ~handler t; typ = Type.Fresh.make handler typ }
       | `App (t, l) ->
           `App
             ( fresh ~handler t,

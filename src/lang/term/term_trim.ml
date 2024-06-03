@@ -25,7 +25,7 @@ and trim_ast = function
       trim_term def;
       trim_term body
   | `List l -> List.iter trim_term l
-  | `Cast (t, _) -> trim_term t
+  | `Cast { cast = t } -> trim_term t
   | `App (t, l) ->
       trim_term t;
       List.iter (fun (_, t) -> trim_term t) l
