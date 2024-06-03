@@ -84,7 +84,7 @@ type 'a let_t = {
   body : 'a;
 }
 
-type 'a cast = { casted : 'a; mutable typ : Type.t }
+type 'a cast = { cast : 'a; mutable typ : Type.t }
 type value
 
 type 'a runtime_ast =
@@ -129,7 +129,7 @@ let rec map_ast map_term = function
   | `Let ({ def; body } as _let) ->
       `Let { _let with def = map_term def; body = map_term body }
   | `List l -> `List (List.map map_term l)
-  | `Cast ({ casted } as c) -> `Cast { c with casted = map_term casted }
+  | `Cast ({ cast } as c) -> `Cast { c with cast = map_term cast }
   | `App (t, l) ->
       `App (map_term t, List.map (fun (lbl, t) -> (lbl, map_term t)) l)
   | `Invoke ({ invoked; invoke_default } as invoke) ->

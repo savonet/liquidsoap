@@ -30,7 +30,7 @@ and trim_ast = function
       trim_term body
   | `List l -> List.iter trim_term l
   | `Cast c ->
-      trim_term c.casted;
+      trim_term c.cast;
       c.typ <- unit_t
   | `App (t, l) ->
       t.methods <- Methods.empty;
