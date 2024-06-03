@@ -1,6 +1,17 @@
 module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
 
+let unit_t = Type.make Type.unit
+
+let trim_type t =
+  match Type.demeth t with
+    | { descr = Constr { constructor = "source" } } as t -> t
+    | { descr = Custom { custom_name = "format" } } as t -> t
+    | { descr = Custom { custom_name = "kind" } } as t -> t
+    | _ -> unit_t
+
+let () = Hooks.trim_type := trim_type
+
 (* For source eval check there are cases of:
      source('a) <: (source('a).{ source methods })?
    b/c of source.dynamic so we want to dig deeper

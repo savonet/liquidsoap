@@ -1,5 +1,7 @@
 open Runtime_term
 
+let unit_t = Type.make Type.unit
+
 let rec trim_encoder_params params =
   List.iter
     (function
@@ -25,12 +27,15 @@ and trim_ast = function
       trim_term def;
       trim_term body
   | `List l -> List.iter trim_term l
-  | `Cast { cast = t } -> trim_term t
+  | `Cast c ->
+      trim_term c.cast;
+      c.typ := unit_t
   | `App (t, l) ->
       trim_term t;
       List.iter (fun (_, t) -> trim_term t) l
   | `Invoke { invoked; invoke_default } -> (
       trim_term invoked;
+      Methods.iter (fun _ m -> trim_term m) invoked.methods;
       match invoke_default with None -> () | Some t -> trim_term t)
   | `Encoder enc -> trim_encoder enc
   | `Fun { body; arguments } ->
@@ -40,6 +45,7 @@ and trim_ast = function
         arguments
 
 and trim_term ({ term; methods } as tm) =
-  tm.t <- Type.deep_demeth tm.t;
+  let trim_type = !Hooks.trim_type in
+  tm.t <- trim_type tm.t;
   trim_ast term;
   Term.Methods.iter (fun _ t -> trim_term t) methods

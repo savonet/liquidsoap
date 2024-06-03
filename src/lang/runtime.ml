@@ -273,7 +273,7 @@ let parse s = fst (parse_with_lexbuf s)
 
 let eval ~ignored ~ty s =
   let expr, lexbuf = parse_with_lexbuf s in
-  let expr = Term.(make (`Cast { cast = expr; typ = ty })) in
+  let expr = Term.(make (`Cast { cast = expr; typ = ref ty })) in
   report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
   Evaluation.eval expr
 

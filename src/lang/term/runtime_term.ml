@@ -107,4 +107,4 @@ type 'a runtime_ast =
   | `Fun of ('a, Type.t) func ]
 
 type t = ast term
-and ast = [ (t, Type.t) common_ast | t runtime_ast ]
+and ast = [ (t, Type.t ref) common_ast | t runtime_ast ]
