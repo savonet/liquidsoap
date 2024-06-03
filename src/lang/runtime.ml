@@ -65,7 +65,6 @@ let type_and_run ~throw ~config ~lib ~parsed_term term =
                 fun () ->
                   let v = Evaluation.eval ast in
                   Environment.clear_environments ();
-                  Printf.printf "Eval: %s\n%!" (Value.to_string v);
                   v
             | `Toplevel -> fun () -> Evaluation.eval_toplevel ast
         in

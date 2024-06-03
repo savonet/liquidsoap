@@ -29,16 +29,17 @@ let value_environment : Value.t Env.t ref = ref Env.empty
 let default_environment () = Env.bindings !value_environment
 let default_typing_environment () = Env.bindings !type_environment
 
-let clear_environments () =
-  type_environment := Env.empty;
-  value_environment := Env.empty
-
 (* Just like builtins but we register a.b under the name "a.b" (instead of
    adding a field b to a). It is used only for [has_builtins] and
    [get_builtins]. *)
 let flat_enviroment : (string * (Type.scheme * Value.t)) list ref = ref []
 let has_builtin name = List.mem_assoc name !flat_enviroment
 let get_builtin name = List.assoc_opt name !flat_enviroment
+
+let clear_environments () =
+  type_environment := Env.empty;
+  value_environment := Env.empty;
+  flat_enviroment := []
 
 let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
   if register && doc <> None then
