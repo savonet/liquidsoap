@@ -79,7 +79,8 @@ let unit = `Tuple []
 let is_ground_value = ref (fun _ -> false)
 
 (* Only used for printing very simple functions. *)
-let rec is_ground x = is_ground_ast x.term
+let rec is_ground tm =
+  is_ground_ast tm.term && Methods.for_all (fun _ tm -> is_ground tm) tm.methods
 
 and is_ground_ast = function
   | `List l | `Tuple l -> List.for_all is_ground l
