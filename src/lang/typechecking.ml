@@ -39,7 +39,7 @@ let value_restriction t =
       | `List l | `Tuple l -> List.for_all value_restriction l
       | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> true
       | `Let l -> value_restriction l.def && value_restriction l.body
-      | `Cast (t, _) -> value_restriction t
+      | `Cast { casted } -> value_restriction casted
       (* | Invoke (t, _) -> value_restriction t *)
       | _ -> false
   in
@@ -157,7 +157,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           List.iter (fun a -> check ~level ~env a) l;
           base_type >: mk (Type.Tuple (List.map (fun a -> a.t) l))
       | `Null -> base_type >: mk (Type.Nullable (Type.var ~level ?pos ()))
-      | `Cast (a, t) ->
+      | `Cast { casted = a; typ = t } ->
           check ~level ~env a;
           a.t <: t;
           base_type >: t
