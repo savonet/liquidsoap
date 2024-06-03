@@ -193,16 +193,30 @@ let rec prepare_ast ~(env : Value.lazy_env) ~pos ~flags = function
             let env = (var, v) :: env in
             let body = prepare_term ~env body in
             `Seq (Term.make (`Tuple []), body)
-        | _, def ->
-            `Let
-              {
-                _let with
-                def;
-                body =
-                  prepare_term
-                    ~env:(List.filter (fun (lbl, _) -> lbl <> var) env)
-                    body;
-              })
+        | v, def -> (
+            let ast =
+              `Let
+                {
+                  _let with
+                  def;
+                  body =
+                    prepare_term
+                      ~env:(List.filter (fun (lbl, _) -> lbl <> var) env)
+                      body;
+                }
+            in
+            match v with
+              | None -> ast
+              | Some v ->
+                  `Let
+                    {
+                      replace = false;
+                      doc = None;
+                      pat = `PVar [var];
+                      gen = [];
+                      def = Term.make (`Value (Value.term_val_of_val v));
+                      body = Term.make ast;
+                    }))
   | `Let ({ pat = `PTuple l; def; body } as _let) -> (
       let def = prepare_term ~env def in
       match prepare_term ~env def with
