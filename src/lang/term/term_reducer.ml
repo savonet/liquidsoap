@@ -1166,7 +1166,7 @@ let rec to_ast ~env ~pos ast =
         with _ ->
           parse_error ~pos (Printf.sprintf "Invalid float value: %s" f))
     | `Null -> `Null
-    | `Cast (t, typ) ->
+    | `Cast { cast = t; typ } ->
         `Cast { cast = to_term t; typ = Parser_helper.mk_ty ~pos typ }
     | `Invoke { invoked; optional; meth } ->
         let default = if optional then Some (mk_parsed ~pos `Null) else None in

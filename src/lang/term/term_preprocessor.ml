@@ -231,7 +231,7 @@ and expand_term tm =
                 arglist = Option.map expand_arglist arglist;
               },
               expand_term body )
-      | `Cast (t, typ) -> `Cast (expand_term t, typ)
+      | `Cast { cast = t; typ } -> `Cast { cast = expand_term t; typ }
       | `App (t, app_arg) -> `App (expand_term t, expand_app_arg app_arg)
       | `Invoke ({ invoked; meth } as invoke) ->
           `Invoke

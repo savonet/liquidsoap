@@ -494,9 +494,8 @@ let rec fresh ~handler { t; term; methods; flags } =
             }
       | `List l -> `List (List.map (fresh ~handler) l)
       | `Value _ as ast -> ast
-      | `Cast { cast; typ } ->
-          `Cast
-            { cast = fresh ~handler cast; typ = Type.Fresh.make handler typ }
+      | `Cast { cast = t; typ } ->
+          `Cast { cast = fresh ~handler t; typ = Type.Fresh.make handler typ }
       | `App (t, l) ->
           `App
             ( fresh ~handler t,

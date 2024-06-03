@@ -39,9 +39,8 @@ and trim_ast = function
   | `Hide (tm, l) ->
       tm.methods <- Methods.filter (fun m _ -> not (List.mem m l)) tm.methods;
       trim_term tm
-  | `Invoke { invoked; invoke_default; meth } -> (
+  | `Invoke { invoked; invoke_default } -> (
       trim_term invoked;
-      invoked.methods <- Methods.filter (fun n _ -> n = meth) invoked.methods;
       Methods.iter (fun _ tm -> trim_term tm) invoked.methods;
       match invoke_default with None -> () | Some t -> trim_term t)
   | `Encoder enc -> trim_encoder enc
