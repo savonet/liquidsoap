@@ -199,51 +199,6 @@ let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, t) -> demeth t | _ -> t
 
-(* This should preserve pos *)
-let rec deep_demeth t =
-  let t' =
-    match deref t with
-      | { descr = Getter t' } as t -> { t with descr = Getter (deep_demeth t') }
-      | { descr = List repr } as t ->
-          { t with descr = List { repr with t = deep_demeth repr.t } }
-      | { descr = Tuple l } as t ->
-          { t with descr = Tuple (List.map deep_demeth l) }
-      | { descr = Nullable t' } as t ->
-          { t with descr = Nullable (deep_demeth t') }
-      | { descr = Meth (_, t) } -> deep_demeth t
-      | { descr = Arrow (l, t') } as t ->
-          {
-            t with
-            descr =
-              Arrow
-                ( List.map (fun (x, y, t) -> (x, y, deep_demeth t)) l,
-                  deep_demeth t' );
-          }
-      | { descr = Int } as t -> t
-      | { descr = Float } as t -> t
-      | { descr = String } as t -> t
-      | { descr = Bool } as t -> t
-      | { descr = Never } as t -> t
-      | { descr = Var _ } as t -> t
-      | { descr = Custom c } as t ->
-          {
-            t with
-            descr = Custom { c with typ = c.copy_with deep_demeth c.typ };
-          }
-      | { descr = Constr { constructor } } as t when constructor = "source" -> t
-      | { descr = Constr { constructor; params } } as t ->
-          {
-            t with
-            descr =
-              Constr
-                {
-                  constructor;
-                  params = List.map (fun (v, t) -> (v, deep_demeth t)) params;
-                };
-          }
-  in
-  { t' with pos = t.pos }
-
 let rec filter_meths t fn =
   let t = deref t in
   match t.descr with

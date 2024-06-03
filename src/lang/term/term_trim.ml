@@ -1,5 +1,7 @@
 open Runtime_term
 
+let unit_t = Type.make Type.unit
+
 let rec trim_encoder_params params =
   List.iter
     (function
@@ -47,6 +49,7 @@ and trim_ast = function
         arguments
 
 and trim_term ({ term; methods } as tm) =
-  tm.t <- Type.deep_demeth tm.t;
+  let fn = !Hooks.trim_type in
+  tm.t <- fn tm.t;
   trim_ast term;
   Term.Methods.iter (fun _ t -> trim_term t) methods

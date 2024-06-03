@@ -448,15 +448,14 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        | Fun { fun_args = []; fun_body = ret }, Type.Getter t ->
-            Typing.(ret.Term.t <: t)
+        | Fun { fun_args = [] }, Type.Getter _ -> ()
         | FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
             ffi.ffi_fn <-
               (fun env ->
                 let v = ffi_fn env in
                 check_value v t;
                 v)
-        | Fun { fun_args = args; fun_body = ret }, Type.Arrow (args_t, ret_t) ->
+        | Fun { fun_args = args }, Type.Arrow (args_t, _) ->
             List.iter
               (fun typ ->
                 match typ with
@@ -469,8 +468,7 @@ let check_content v t =
                             | _ -> ())
                         args
                   | _ -> ())
-              args_t;
-            Typing.(ret.Term.t <: ret_t)
+              args_t
         | FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
             List.iter
               (fun typ ->
