@@ -83,14 +83,19 @@ module Env = struct
     List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
-let rec prepare_ast ~(env : Value.lazy_env) = function
+let rec prepare_ast ~(env : Value.lazy_env) ~pos ~flags = function
+  | ast when Term_base.is_ground_ast ast ->
+      let v =
+        eval_ast ~eval_check:(fun ~env:_ ~tm:_ _ -> ()) ~env ~pos ~flags ast
+      in
+      `Value (Value.term_val_of_val (Lazy.from_val v))
   | `Var v when List.mem_assoc v env ->
-      `Value (v, Value.term_val_of_val (List.assoc v env))
+      `Value (Value.term_val_of_val (List.assoc v env))
   | `Hide (tm, l) -> (
       let tm = prepare_term ~env tm in
       tm.methods <- Methods.filter (fun m _ -> not (List.mem m l)) tm.methods;
       match tm with
-        | { term = `Value (var, v) } ->
+        | { term = `Value v } ->
             let v = Lazy.force (Value.val_of_term_val v) in
             let v =
               {
@@ -99,16 +104,16 @@ let rec prepare_ast ~(env : Value.lazy_env) = function
                   Methods.filter (fun m _ -> not (List.mem m l)) v.Value.methods;
               }
             in
-            `Value (var, Value.term_val_of_val (Lazy.from_val v))
+            `Value (Value.term_val_of_val (Lazy.from_val v))
         | _ -> `Hide (tm, l))
   | `Invoke { invoked; meth; invoke_default } -> (
       match prepare_term ~env invoked with
-        | { term = `Value (var, v) } -> (
+        | { term = `Value v } -> (
             match
               Methods.find_opt meth
                 (Lazy.force (Value.val_of_term_val v)).Value.methods
             with
-              | Some v -> `Value (var, Value.term_val_of_val (Lazy.from_val v))
+              | Some v -> `Value (Value.term_val_of_val (Lazy.from_val v))
               | None ->
                   `Invoke
                     {
@@ -143,13 +148,13 @@ let rec prepare_ast ~(env : Value.lazy_env) = function
   | `Let { pat = `PVar [] } -> assert false
   | `Let ({ pat = `PVar [var]; replace; def; body } as _let) -> (
       match prepare_term ~env def with
-        | { term = `Value (_, v) } ->
+        | { term = `Value v } ->
             let v = Value.val_of_term_val v in
             let v =
               match (replace, List.assoc_opt var env) with
                 | true, Some env_v ->
                     let v = Lazy.force v in
-                    let env_v = Lazy.force (List.assoc var env) in
+                    let env_v = Lazy.force env_v in
                     Lazy.from_val { v with methods = env_v.Value.methods }
                 | _ -> v
             in
@@ -169,7 +174,7 @@ let rec prepare_ast ~(env : Value.lazy_env) = function
   | `Let ({ pat = `PVar (var :: path); replace; def; body } as _let) -> (
       let def = prepare_term ~env def in
       match (List.assoc_opt var env, prepare_term ~env def) with
-        | Some v, { term = `Value (_, def) } ->
+        | Some v, { term = `Value def } ->
             let def = Lazy.force (Value.val_of_term_val def) in
             let rec pop_path ~v = function
               | [] -> assert false
@@ -201,7 +206,7 @@ let rec prepare_ast ~(env : Value.lazy_env) = function
   | `Let ({ pat = `PTuple l; def; body } as _let) -> (
       let def = prepare_term ~env def in
       match prepare_term ~env def with
-        | { term = `Value (_, v) } ->
+        | { term = `Value v } ->
             let t =
               match Lazy.force (Value.val_of_term_val v) with
                 | { Value.value = Tuple t } -> t
@@ -219,15 +224,11 @@ let rec prepare_ast ~(env : Value.lazy_env) = function
   | ast -> Runtime_term.map_ast (prepare_term ~env) ast
 
 and prepare_term ~env tm =
-  if Term.is_ground tm then (
-    let v = eval ~eval_check:(fun ~env:_ ~tm:_ _ -> ()) env tm in
-    { tm with term = `Value ("_", Value.term_val_of_val (Lazy.from_val v)) })
-  else
-    {
-      tm with
-      term = prepare_ast ~env tm.term;
-      methods = Methods.map (prepare_term ~env) tm.methods;
-    }
+  {
+    tm with
+    term = prepare_ast ~env ~flags:tm.flags ~pos:tm.t.Type.pos tm.term;
+    methods = Methods.map (prepare_term ~env) tm.methods;
+  }
 
 and prepare_fun ~eval_check ~arguments ~env body =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
@@ -309,7 +310,7 @@ and eval_ast ~eval_check ~(env : Env.t) ~flags ~pos ast =
     Value.{ pos; value = v; methods = Methods.empty; flags; id = Value.id () }
   in
   match ast with
-    | `Value (_, v) -> Lazy.force (Value.val_of_term_val v)
+    | `Value v -> Lazy.force (Value.val_of_term_val v)
     | `Int i -> mk (Value.Int i)
     | `Float f -> mk (Value.Float f)
     | `Bool b -> mk (Value.Bool b)

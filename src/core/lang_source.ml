@@ -677,7 +677,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
         | `Let { Term.def = a; body = b; _ } | `Seq (a, b) ->
             iter_term a;
             iter_term b
-        | `Value (_, v) ->
+        | `Value v ->
             iter_value (Lazy.force (Liquidsoap_lang.Value.val_of_term_val v))
         | `Var _ -> ()
         | `App (a, l) ->

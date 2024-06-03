@@ -79,14 +79,15 @@ let unit = `Tuple []
 let is_ground_value = ref (fun _ -> false)
 
 (* Only used for printing very simple functions. *)
-let rec is_ground x =
-  match x.term with
-    | `List l | `Tuple l -> List.for_all is_ground l
-    | `Value (_, v) ->
-        let fn = !is_ground_value in
-        fn v
-    | `Null | `Int _ | `Float _ | `String _ | `Bool _ -> true
-    | _ -> false
+let rec is_ground x = is_ground_ast x.term
+
+and is_ground_ast = function
+  | `List l | `Tuple l -> List.for_all is_ground l
+  | `Value v ->
+      let fn = !is_ground_value in
+      fn v
+  | `Null | `Int _ | `Float _ | `String _ | `Bool _ -> true
+  | _ -> false
 
 let string_of_pat = function
   | `PVar l -> String.concat "." l
@@ -108,7 +109,7 @@ let rec to_string (v : t) =
       | `Float f -> Utils.string_of_float f
       | `Bool b -> string_of_bool b
       | `String s -> Lang_string.quote_string s
-      | `Value (_, v) ->
+      | `Value v ->
           let fn = !string_of_value in
           Printf.sprintf "$%s$" (fn v)
       | `Encoder e ->
@@ -206,7 +207,8 @@ let bound_vars_pat = function
 let rec free_term_vars tm =
   let root_free_vars = function
     | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> Vars.empty
-    | `Value (x, _) | `Var x -> Vars.singleton x
+    | `Value _ -> Vars.empty
+    | `Var x -> Vars.singleton x
     | `Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
     | `Null -> Vars.empty
@@ -314,7 +316,8 @@ let check_unused ~throw ~lib tm =
       Methods.fold (fun _ meth_term e -> check e meth_term) tm.methods v
     in
     match tm.term with
-      | `Value (s, _) | `Var s -> Vars.remove s v
+      | `Value _ -> v
+      | `Var s -> Vars.remove s v
       | `Int _ | `Float _ | `String _ | `Bool _ -> v
       | `Custom _ -> v
       | `Tuple l -> List.fold_left (fun a -> check a) v l

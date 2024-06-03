@@ -93,7 +93,7 @@ type 'a runtime_ast =
   | `Bool of bool
   | `Let of 'a let_t
   | `List of 'a list
-  | `Value of string * value
+  | `Value of value
   | `Cast of 'a * Type.t
   | `App of 'a * (string * 'a) list
   | `Invoke of 'a invoke
