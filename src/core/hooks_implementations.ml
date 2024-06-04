@@ -1,14 +1,57 @@
 module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
 
-let unit_t = Type.make Type.unit
+let trim_type ~trim_type t =
+  let open Type in
+  match t with
+    | { descr = Constr { constructor = "source" } } as t -> t
+    | { descr = Constr ({ params } as c) } ->
+        {
+          t with
+          descr =
+            Constr
+              {
+                c with
+                params = List.map (fun (v, p) -> (v, trim_type p)) params;
+              };
+        }
+    | { descr = Custom c } as t ->
+        { t with descr = Custom { c with typ = c.copy_with trim_type c.typ } }
+    | { descr = Arrow (args, ret_t) } as t ->
+        {
+          t with
+          descr =
+            Arrow
+              ( List.map (fun (b, s, p) -> (b, s, trim_type p)) args,
+                trim_type ret_t );
+        }
+    | { descr = Getter g } as t -> { t with descr = Getter (trim_type g) }
+    | { descr = String } as t -> t
+    | { descr = Int } as t -> t
+    | { descr = Float } as t -> t
+    | { descr = Bool } as t -> t
+    | { descr = Never } as t -> t
+    | { descr = Nullable n } as t -> { t with descr = Nullable (trim_type n) }
+    | { descr = Meth (_, t) } -> trim_type t
+    | { descr = List repr } as t ->
+        { t with descr = List { repr with t = trim_type repr.t } }
+    | { descr = Tuple l } as t ->
+        { t with descr = Tuple (List.map trim_type l) }
+    | { descr = Var { contents = Link (_, t) } } -> trim_type t
+    | { descr = Var { contents = Free _ } } as t -> t
 
 let trim_type t =
-  match Type.demeth t with
-    | { descr = Constr { constructor = "source" } } as t -> t
-    | { descr = Custom { custom_name = "format" } } as t -> t
-    | { descr = Custom { custom_name = "kind" } } as t -> t
-    | _ -> unit_t
+  let cache = Hashtbl.create 10 in
+  let rec fn t =
+    let id = Hashtbl.hash t in
+    match Hashtbl.find_opt cache id with
+      | Some t -> t
+      | None ->
+          let t = trim_type ~trim_type:fn t in
+          Hashtbl.replace cache id t;
+          t
+  in
+  fn t
 
 let () = Hooks.trim_type := trim_type
 
