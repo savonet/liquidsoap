@@ -71,9 +71,9 @@ def f() =
 
   test.equal(
     pos,
-    "At ./error.liq, line 58 char 4 - line 63 char 7, At \
-     /tmp/liquidsoap-full/liquidsoap/_build/install/default/share/liquidsoap-lang/libs/thread.liq, \
-     line 19, char 11-14"
+    "At ./error.liq, line 60, char 6-8, At #{
+      configure.libdir
+    }/libs/thread.liq, line 19, char 11-14"
   )
   e' = error.register("bla")
   test.equal(false, (e == e'))
