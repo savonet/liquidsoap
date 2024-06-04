@@ -1,7 +1,5 @@
 open Runtime_term
 
-let unit_t = Type.make Type.unit
-
 let rec trim_type t =
   let open Type in
   match t with
@@ -58,9 +56,7 @@ and trim_ast = function
       trim_term def;
       trim_term body
   | `List l -> List.iter trim_term l
-  | `Cast c ->
-      trim_term c.cast;
-      c.typ := unit_t
+  | `Cast c -> trim_term c.cast
   | `App (t, l) ->
       trim_term t;
       List.iter (fun (_, t) -> trim_term t) l

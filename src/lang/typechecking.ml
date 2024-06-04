@@ -218,7 +218,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           List.iter (fun a -> check ~level ~env a) l;
           base_type >: mk (Type.Tuple (List.map (fun a -> a.t) l))
       | `Null -> base_type >: mk (Type.Nullable (Type.var ~level ?pos ()))
-      | `Cast { cast = a; typ = { contents = t } } ->
+      | `Cast { cast = a; typ = t } ->
           check ~level ~env a;
           a.t <: t;
           base_type >: t

@@ -137,7 +137,7 @@ let rec to_string (v : t) =
       | `List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | `Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | `Null -> "null"
-      | `Cast { cast; typ = { contents = typ } } ->
+      | `Cast { cast; typ } ->
           "(" ^ to_string cast ^ " : " ^ Type.to_string typ ^ ")"
       | `Invoke { invoked = e; meth = l; invoke_default } -> (
           match invoke_default with
@@ -499,9 +499,8 @@ let rec fresh ~handler { t; term; methods; flags } =
               body = fresh ~handler body;
             }
       | `List l -> `List (List.map (fresh ~handler) l)
-      | `Cast { cast = t; typ = { contents = typ } } ->
-          `Cast
-            { cast = fresh ~handler t; typ = ref (Type.Fresh.make handler typ) }
+      | `Cast { cast = t; typ } ->
+          `Cast { cast = fresh ~handler t; typ = Type.Fresh.make handler typ }
       | `App (t, l) ->
           `App
             ( fresh ~handler t,
