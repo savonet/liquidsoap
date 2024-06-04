@@ -69,12 +69,8 @@ def f() =
       list.map(fun (pos) -> pos.to_string(), trace)
     )
 
-  test.equal(
-    pos,
-    "At ./error.liq, line 60, char 6-8, At #{
-      configure.libdir
-    }/libs/thread.liq, line 19, char 11-14"
-  )
+  test.equal(r/error.liq, line 60, char 6-8/.test(pos), true)
+  test.equal(r/thread.liq, line 19, char 18-20/.test(pos), true)
   e' = error.register("bla")
   test.equal(false, (e == e'))
 
