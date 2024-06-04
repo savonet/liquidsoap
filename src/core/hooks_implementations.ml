@@ -1,6 +1,8 @@
 module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
 
+let unit_t = Type.make Type.unit
+
 let rec trim_type t =
   let open Type in
   match t with
@@ -25,14 +27,14 @@ let rec trim_type t =
               ( List.map (fun (b, s, p) -> (b, s, trim_type p)) args,
                 trim_type ret_t );
         }
-    | { descr = Getter g } as t -> { t with descr = Getter (trim_type g) }
-    | { descr = String } as t -> t
-    | { descr = Int } as t -> t
-    | { descr = Float } as t -> t
-    | { descr = Bool } as t -> t
-    | { descr = Never } as t -> t
-    | { descr = Nullable n } as t -> { t with descr = Nullable (trim_type n) }
-    | { descr = Meth (_, t) } -> trim_type t
+    | { descr = String }
+    | { descr = Int }
+    | { descr = Float }
+    | { descr = Bool }
+    | { descr = Never } ->
+        unit_t
+    | { descr = Getter t } | { descr = Nullable t } | { descr = Meth (_, t) } ->
+        trim_type t
     | { descr = List repr } as t ->
         { t with descr = List { repr with t = trim_type repr.t } }
     | { descr = Tuple l } as t ->
