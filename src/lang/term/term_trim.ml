@@ -2,6 +2,37 @@ open Runtime_term
 
 let unit_t = Type.make Type.unit
 
+let rec trim_type t =
+  let open Type in
+  match t with
+    | { descr = Arrow (args, ret_t) } as t ->
+        {
+          t with
+          descr =
+            Arrow
+              ( List.map (fun (b, s, p) -> (b, s, trim_type p)) args,
+                trim_type ret_t );
+        }
+    | { descr = Getter g } as t -> { t with descr = Getter (trim_type g) }
+    | { descr = Nullable n } as t -> { t with descr = Nullable (trim_type n) }
+    | { descr = Meth (_, t) } -> trim_type t
+    | { descr = List repr } as t ->
+        { t with descr = List { repr with t = trim_type repr.t } }
+    | { descr = Tuple l } as t ->
+        { t with descr = Tuple (List.map trim_type l) }
+    | { descr = Var { contents = Link (_, t) } } -> trim_type t
+    | { descr = Var { contents = Free _ } } as t -> t
+    | ( { descr = Constr _ }
+      | { descr = Custom _ }
+      | { descr = String }
+      | { descr = Int }
+      | { descr = Float }
+      | { descr = Bool }
+      | { descr = Never } ) as t ->
+        t
+
+let trim_type t = { (trim_type t) with pos = t.pos }
+
 let rec trim_encoder_params params =
   List.iter
     (function
@@ -45,7 +76,6 @@ and trim_ast = function
         arguments
 
 and trim_term ({ term; methods } as tm) =
-  let trim_type = !Hooks.trim_type in
   tm.t <- trim_type tm.t;
   trim_ast term;
   Term.Methods.iter (fun _ t -> trim_term t) methods
