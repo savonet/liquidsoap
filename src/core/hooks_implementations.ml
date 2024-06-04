@@ -35,6 +35,7 @@ let rec trim_type t =
     | { descr = Never } ->
         unit_t
 
+let trim_type t = { (trim_type t) with pos = t.pos }
 let () = Hooks.trim_type := trim_type
 
 (* For source eval check there are cases of:

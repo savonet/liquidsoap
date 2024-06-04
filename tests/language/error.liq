@@ -69,8 +69,8 @@ def f() =
       list.map(fun (pos) -> pos.to_string(), trace)
     )
 
-  test.equal(r/error.liq, line 60, char 6-8/.test(pos), true)
-  test.equal(r/thread.liq, line 19, char 18-20/.test(pos), true)
+  test.equal(r/error.liq, line 58 char 4 - line 63 char 7/.test(pos), true)
+  test.equal(r/thread.liq, line 19, char 11-14/.test(pos), true)
   e' = error.register("bla")
   test.equal(false, (e == e'))
 
