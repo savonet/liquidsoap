@@ -1,7 +1,7 @@
 module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
 
-let trim_type ~trim_type t =
+let rec trim_type t =
   let open Type in
   match t with
     | { descr = Constr { constructor = "source" } } as t -> t
@@ -39,19 +39,6 @@ let trim_type ~trim_type t =
         { t with descr = Tuple (List.map trim_type l) }
     | { descr = Var { contents = Link (_, t) } } -> trim_type t
     | { descr = Var { contents = Free _ } } as t -> t
-
-let trim_type t =
-  let cache = Hashtbl.create 10 in
-  let rec fn t =
-    let id = Hashtbl.hash t in
-    match Hashtbl.find_opt cache id with
-      | Some t -> t
-      | None ->
-          let t = trim_type ~trim_type:fn t in
-          Hashtbl.replace cache id t;
-          t
-  in
-  fn t
 
 let () = Hooks.trim_type := trim_type
 
