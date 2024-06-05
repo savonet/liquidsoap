@@ -107,7 +107,7 @@ and apply ?(pos = []) ~eval_check f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match f.Value.value with
-      | Value.Fun (p, e, body) ->
+      | Value.Fun { fun_args = p; fun_env = e; fun_body = body } ->
           ( p,
             fun pe ->
               let env = Env.adds e pe in
@@ -191,12 +191,11 @@ and eval_base_term ~eval_check (env : Env.t) tm =
             p
         in
         let p = eval_param p in
-        !Hooks.make_encoder ~pos tm (e, p)
+        !Hooks.make_encoder ~pos (e, p)
     | `List l -> mk (Value.List (List.map (eval ~eval_check env) l))
     | `Tuple l ->
         mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
     | `Null -> mk Value.Null
-    | `Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
     | `Hide (tm, methods) ->
         let v = eval ~eval_check env tm in
         {
@@ -204,6 +203,8 @@ and eval_base_term ~eval_check (env : Env.t) tm =
           methods =
             Methods.filter (fun n _ -> not (List.mem n methods)) v.methods;
         }
+    | `Cast { cast = e } ->
+        { (eval ~eval_check env e) with pos = tm.t.Type.pos }
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
@@ -278,7 +279,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
               | None -> env
               | Some name -> Env.add_lazy env name (Lazy.from_fun v)
           in
-          mk (Value.Fun (p, env, body))
+          mk (Value.Fun { fun_args = p; fun_env = env; fun_body = body })
         in
         v ()
     | `Var var -> Env.lookup env var
@@ -363,7 +364,8 @@ let toplevel_add ?doc pat ~t v =
               (* Default values for parameters. *)
               let pvalues v =
                 match v.Value.value with
-                  | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+                  | Value.Fun { fun_args = p } ->
+                      List.map (fun (l, _, o) -> (l, o)) p
                   | _ -> []
               in
               let pvalues = ref (pvalues v) in

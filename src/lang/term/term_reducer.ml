@@ -83,7 +83,7 @@ let pp_if_reducer ~env ~pos = function
       in
       try
         let encoder =
-          !Hooks.make_encoder ~pos:None (mk Term.unit) (if_encoder_condition, [])
+          !Hooks.make_encoder ~pos:None (if_encoder_condition, [])
         in
         match (!Hooks.has_encoder encoder, if_encoder_negative) with
           | true, false | false, true -> if_encoder_then
@@ -458,7 +458,7 @@ and term_of_value_base ~pos t v =
       | Value.Null -> mk_tm `Null
       (* Ignoring env is not correct here but this is an internal operator
          so we have to trust that devs using it via %argsof now that they are doing. *)
-      | Value.Fun (args, _, body) ->
+      | Value.Fun { fun_args = args; fun_body = body } ->
           let body =
             mk
               ~t:(Type.make ~pos body.t.Type.descr)
@@ -496,7 +496,7 @@ and term_of_value ~pos ~name t v =
 
 let builtin_args_of ~only ~except ~pos name =
   match Environment.get_builtin name with
-    | Some ((_, t), Value.{ value = Fun (args, _, _) })
+    | Some ((_, t), Value.{ value = Fun { fun_args = args } })
     | Some ((_, t), Value.{ value = FFI { ffi_args = args; _ } }) ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
         let filtered_args =
@@ -732,7 +732,11 @@ let set_reducer ~pos ~to_term = function
           (`Invoke
             { invoked = to_term tm; invoke_default = None; meth = "set" })
       in
-      `Cast (mk ~pos (`App (op, [("", to_term v)])), Type.make ~pos Type.unit)
+      `Cast
+        {
+          cast = mk ~pos (`App (op, [("", to_term v)]));
+          typ = Type.make ~pos Type.unit;
+        }
 
 let if_reducer ~pos ~to_term = function
   | `Inline_if { if_condition; if_then; if_elsif; if_else }
@@ -926,7 +930,7 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
   let def =
     mk ~pos (`App (parser, [("json5", json5); ("type", tty); ("", def)]))
   in
-  let def = mk ~pos (`Cast (def, ty)) in
+  let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
 
 let mk_let_yaml_parse ~pos (pat, def, cast) body =
@@ -934,7 +938,7 @@ let mk_let_yaml_parse ~pos (pat, def, cast) body =
   let tty = Value.RuntimeType.to_term ty in
   let parser = mk ~pos (`Var "_internal_yaml_parser_") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
-  let def = mk ~pos (`Cast (def, ty)) in
+  let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
 
 let mk_let_sqlite_row ~pos (pat, def, cast) body =
@@ -942,7 +946,7 @@ let mk_let_sqlite_row ~pos (pat, def, cast) body =
   let tty = Value.RuntimeType.to_term ty in
   let parser = mk ~pos (`Var "_sqlite_row_parser_") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
-  let def = mk ~pos (`Cast (def, ty)) in
+  let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
 
 let mk_let_sqlite_query ~pos (pat, def, cast) body =
@@ -980,7 +984,7 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
     mk ~pos (`Invoke { invoked = list; invoke_default = None; meth = "map" })
   in
   let def = mk ~pos (`App (map, [("", mapper); ("", def)])) in
-  let def = mk ~pos (`Cast (def, ty)) in
+  let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
 
 let mk_rec_fun ~pos pat arguments body =
@@ -996,7 +1000,7 @@ let mk_eval ~pos (pat, def, body, cast) =
   let tty = Value.RuntimeType.to_term ty in
   let eval = mk ~pos (`Var "_eval_") in
   let def = mk ~pos (`App (eval, [("type", tty); ("", def)])) in
-  let def = mk ~pos (`Cast (def, ty)) in
+  let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
 
 let string_of_let_decoration = function
@@ -1037,21 +1041,27 @@ let mk_let ~env ~pos ~(to_term : env:env -> Parsed_term.t -> Runtime_term.t)
         let replace = decoration = `Replaces in
         let def = mk_fun ~pos arglist def in
         let def =
-          match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
+          match cast with
+            | Some ty -> mk ~pos (`Cast { cast = def; typ = ty })
+            | None -> def
         in
         let body = mk_body def in
         pattern_reducer ~body ~pat ~replace def
     | Some arglist, `Recursive ->
         let def = mk_rec_fun ~pos pat.pat_entry arglist def in
         let def =
-          match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
+          match cast with
+            | Some ty -> mk ~pos (`Cast { cast = def; typ = ty })
+            | None -> def
         in
         let body = mk_body def in
         pattern_reducer ~body ~pat def
     | None, `None | None, `Replaces ->
         let replace = decoration = `Replaces in
         let def =
-          match cast with Some ty -> mk ~pos (`Cast (def, ty)) | None -> def
+          match cast with
+            | Some ty -> mk ~pos (`Cast { cast = def; typ = ty })
+            | None -> def
         in
         let body = mk_body def in
         pattern_reducer ~body ~pat ~replace def
@@ -1156,7 +1166,8 @@ let rec to_ast ~env ~pos ast =
         with _ ->
           parse_error ~pos (Printf.sprintf "Invalid float value: %s" f))
     | `Null -> `Null
-    | `Cast (t, typ) -> `Cast (to_term t, Parser_helper.mk_ty ~pos typ)
+    | `Cast { cast = t; typ } ->
+        `Cast { cast = to_term t; typ = Parser_helper.mk_ty ~pos typ }
     | `Invoke { invoked; optional; meth } ->
         let default = if optional then Some (mk_parsed ~pos `Null) else None in
         mk_invoke ~pos ~env ?default ~to_term invoked meth

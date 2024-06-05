@@ -202,7 +202,7 @@ expr:
   | if_def                           { mk ~pos:$loc (`If_def $1) }
   | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
   | if_version                       { mk ~pos:$loc (`If_version $1) }
-  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
+  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast {cast = $2; typ = $4}) }
   | UMINUS expr                      { mk ~pos:$loc (`Negative $2) }
   | LPAR expr RPAR                   { mk ~pos:$loc (`Parenthesis $2) }
   | INT                              { mk ~pos:$loc (`Int $1) }
