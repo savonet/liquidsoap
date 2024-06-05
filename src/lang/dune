@@ -146,6 +146,7 @@
   term_hash
   term_preprocessor
   term_reducer
+  term_stdlib
   term_trim
   type
   type_base

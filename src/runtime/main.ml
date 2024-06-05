@@ -72,7 +72,15 @@ let root_error () =
     | _ -> None
 
 let eval_mode : Runtime.eval_mode ref =
-  ref (`Eval { fetch_cache = true; save_cache = true; eval = `True })
+  ref
+    (`Eval
+      {
+        fetch_cache = true;
+        save_cache = true;
+        trim = true;
+        typing_env = None;
+        eval = `True;
+      })
 
 (* Should we load the stdlib? *)
 let stdlib = ref true
@@ -88,32 +96,54 @@ let interactive = ref false
 let log = Log.make ["main"]
 let to_load = Queue.create ()
 
+let eval_script ~stdlib ~deprecated ~eval_mode expr =
+  let open Liquidsoap_lang in
+  let lexbuf = Sedlexing.Utf8.from_string expr in
+  match eval_mode with
+    | `Parse_only -> ()
+    | `Eval config ->
+        Runtime.report lexbuf (fun ~throw () ->
+            let parsed_term = Term_reducer.mk_expr program lexbuf in
+            let expr = Term_reducer.to_term parsed_term in
+            let parsed_term, expr, config =
+              if stdlib then (
+                let stdlib_config =
+                  { config with eval = `False; trim = false; typing_env = None }
+                in
+                let { Term_stdlib.append_parsed_term; append_term; env; level }
+                    =
+                  Term_stdlib.stdlib ~config:stdlib_config
+                    ~error_on_no_stdlib:true ~deprecated ()
+                in
+                ( append_parsed_term parsed_term,
+                  append_term expr,
+                  { config with typing_env = Some { term = expr; env; level } }
+                ))
+              else (parsed_term, expr, config)
+            in
+            Runtime.type_and_run ~config ~throw ~lib:false ~parsed_term expr)
+
 (** Evaluate the user script. *)
 let eval () =
   Lifecycle.load ();
   (* Register settings module. Needs to be done last to make sure every
      dependent OCaml module has been linked. *)
   Stdlib.Lazy.force Builtins_settings.settings_module;
-  let scripts =
-    if !stdlib then
-      List.map
-        (fun f -> `Expr_or_file f)
-        (Runtime.libs ~error_on_no_stdlib ~deprecated:!deprecated ())
-    else []
-  in
-  let scripts = scripts @ Queue.flush_elements to_load in
+  let scripts = Queue.flush_elements to_load in
   let script =
-    List.fold_left
-      (fun script -> function
-        | `Stdin -> Printf.sprintf "%s\n%%include \"-\"" script
-        | `Expr_or_file expr when not (Sys.file_exists expr) ->
-            Printf.sprintf "%s\n%s" script expr
-        | `Expr_or_file f -> Printf.sprintf "%s\n%%include %S" script f)
-      "" scripts
+    String.concat "\n"
+      (List.map
+         (function
+           | `Stdin -> "%include \"-\""
+           | `Expr_or_file expr when not (Sys.file_exists expr) ->
+               Printf.sprintf "%s" expr
+           | `Expr_or_file f -> Printf.sprintf "%%include %S" f)
+         scripts)
   in
   let t = Sys.time () in
   try
-    Runtime.from_string ~eval_mode:!eval_mode script;
+    eval_script ~stdlib:!stdlib ~deprecated:!deprecated ~eval_mode:!eval_mode
+      script;
     log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
   with Liquidsoap_lang.Runtime.Error ->
     Dtools.Init.exec Dtools.Log.stop;
@@ -126,7 +156,14 @@ let with_stdlib =
   fun ?(exit = true) ?(run_streams = false) fn ->
     do_run_streams := run_streams;
     eval_mode :=
-      `Eval { fetch_cache = true; save_cache = true; eval = `Toplevel };
+      `Eval
+        {
+          fetch_cache = true;
+          save_cache = true;
+          trim = false;
+          typing_env = None;
+          eval = `Toplevel;
+        };
     eval ();
     fn ();
     if exit then do_exit 0
@@ -215,7 +252,13 @@ let options =
                match !eval_mode with
                  | `Parse_only ->
                      `Eval
-                       { fetch_cache = true; save_cache = true; eval = `False }
+                       {
+                         fetch_cache = true;
+                         save_cache = true;
+                         typing_env = None;
+                         trim = false;
+                         eval = `False;
+                       }
                  | `Eval config -> `Eval { config with eval = `False }),
          "Parse, type-check but do not evaluate the script." );
        ( ["-p"; "--parse-only"],
@@ -226,7 +269,13 @@ let options =
            (fun () ->
              eval_mode :=
                `Eval
-                 { fetch_cache = false; save_cache = false; eval = `Toplevel }),
+                 {
+                   fetch_cache = false;
+                   save_cache = false;
+                   typing_env = None;
+                   trim = false;
+                   eval = `Toplevel;
+                 }),
          "Disqble caching and register script definitions at top-level. Used \
           internally for testing." );
        ( ["--cache-only"],
@@ -234,7 +283,14 @@ let options =
            (fun () ->
              run_streams := false;
              eval_mode :=
-               `Eval { fetch_cache = false; save_cache = true; eval = `False }),
+               `Eval
+                 {
+                   fetch_cache = false;
+                   save_cache = true;
+                   typing_env = None;
+                   trim = false;
+                   eval = `False;
+                 }),
          "Parse, type-check and save script's cache but do no run it." );
        ( ["--no-cache"],
          Arg.Unit
@@ -395,7 +451,13 @@ See <http://liquidsoap.info> for more information.
               interactive := true;
               eval_mode :=
                 `Eval
-                  { fetch_cache = true; save_cache = true; eval = `Toplevel }),
+                  {
+                    fetch_cache = true;
+                    save_cache = true;
+                    typing_env = None;
+                    trim = false;
+                    eval = `Toplevel;
+                  }),
           "Start an interactive interpreter." );
         ( ["--"],
           Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),

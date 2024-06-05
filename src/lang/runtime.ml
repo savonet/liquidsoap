@@ -25,9 +25,13 @@
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
+type typing_env = { term : Term.t; env : Typing.env; level : int }
+
 type eval_config = {
   fetch_cache : bool;
   save_cache : bool;
+  trim : bool;
+  typing_env : typing_env option;
   eval : [ `True | `False | `Toplevel ];
 }
 
@@ -46,13 +50,18 @@ let type_and_run ~throw ~config ~lib ~parsed_term term =
           if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
           (* Type checking *)
           Startup.time "Typechecking" (fun () ->
-              Typechecking.check ~throw ~ignored:true term);
+              let term, env, level =
+                match config.typing_env with
+                  | Some { term; env; level } -> (term, Some env, Some level)
+                  | None -> (term, None, None)
+              in
+              Typechecking.check ?env ?level ~throw ~ignored:true term);
 
           if Lazy.force Term.debug then
             Printf.eprintf "Checking for unused variables...\n%!";
           (* Check for unused variables, relies on types *)
           Term.check_unused ~throw ~lib term;
-          if not toplevel then Term_trim.trim_term term;
+          if config.trim then Term_trim.trim_term term;
           if config.save_cache then Term_cache.cache ~toplevel ~parsed_term term;
           term
   in
@@ -248,31 +257,14 @@ let mk_expr ?fname processor lexbuf =
   let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
   Term_reducer.to_term parsed_term
 
-let from_string ~eval_mode expr =
-  let lexbuf = Sedlexing.Utf8.from_string expr in
-  match eval_mode with
-    | `Parse_only -> ()
-    | `Eval config ->
-        report lexbuf (fun ~throw () ->
-            let parsed_term = Term_reducer.mk_expr program lexbuf in
-            let expr = Term_reducer.to_term parsed_term in
-            type_and_run ~config ~throw ~lib:false ~parsed_term expr)
-
-let parse_with_lexbuf s =
-  let gen =
-    let pos = ref (-1) in
-    let len = String.length s in
-    fun () ->
-      incr pos;
-      if !pos < len then Some s.[!pos] else None
-  in
-  let lexbuf = Sedlexing.Utf8.from_gen gen in
+let parse_string s =
+  let lexbuf = Sedlexing.Utf8.from_string s in
   (mk_expr program lexbuf, lexbuf)
 
-let parse s = fst (parse_with_lexbuf s)
+let parse s = fst (parse_string s)
 
 let eval ~ignored ~ty s =
-  let expr, lexbuf = parse_with_lexbuf s in
+  let expr, lexbuf = parse_string s in
   let expr = Term.(make (`Cast { cast = expr; typ = ty })) in
   report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
   Evaluation.eval expr
@@ -367,6 +359,12 @@ let load_libs () =
               let expr = Term_reducer.to_term parsed_term in
               type_and_run ~throw
                 ~config:
-                  { fetch_cache = true; save_cache = true; eval = `Toplevel }
+                  {
+                    trim = true;
+                    typing_env = None;
+                    fetch_cache = true;
+                    save_cache = true;
+                    eval = `Toplevel;
+                  }
                 ~lib:true ~parsed_term expr)))
     (libs ())

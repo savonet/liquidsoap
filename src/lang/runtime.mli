@@ -24,13 +24,29 @@
 
 exception Error
 
+type typing_env = { term : Term.t; env : Typing.env; level : int }
+
 type eval_config = {
   fetch_cache : bool;
   save_cache : bool;
+  trim : bool;
+  typing_env : typing_env option;
   eval : [ `True | `False | `Toplevel ];
 }
 
 type eval_mode = [ `Parse_only | `Eval of eval_config ]
+
+(** Report lexbuf related errors. *)
+val report : Sedlexing.lexbuf -> (throw:(exn -> unit) -> unit -> unit) -> unit
+
+(** Type and run a term according to the config. *)
+val type_and_run :
+  throw:(exn -> unit) ->
+  config:eval_config ->
+  lib:bool ->
+  parsed_term:Parsed_term.t ->
+  Term.t ->
+  unit
 
 (** Raise errors for warnings. *)
 val strict : bool ref
@@ -53,9 +69,6 @@ val mk_expr :
   ((unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t) ->
   Sedlexing.lexbuf ->
   Term.t
-
-(** Evaluate a script from a string. *)
-val from_string : eval_mode:eval_mode -> string -> unit
 
 (** Interactive loop: read from command line, eval, print and loop. *)
 val interactive : unit -> unit

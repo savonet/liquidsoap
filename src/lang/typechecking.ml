@@ -185,7 +185,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let () =
     match e.term with
       | `Cache_env r ->
-          r := env;
+          r := (env, level);
           base_type >: mk (Tuple [])
       | `Int _ -> base_type >: mk Int
       | `Float _ -> base_type >: mk Float
@@ -425,7 +425,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
 let display_types = ref false
 
 (* The simple definition for external use. *)
-let check ?env ?(ignored = false) ~throw e =
+let check ?env ?(level = 0) ?(ignored = false) ~throw e =
   let print_toplevel = !display_types in
   try
     let env =
@@ -433,7 +433,7 @@ let check ?env ?(ignored = false) ~throw e =
         | Some env -> env
         | None -> Environment.default_typing_environment ()
     in
-    check ~print_toplevel ~throw ~level:0 ~env e;
+    check ~print_toplevel ~throw ~level ~env e;
     if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
       add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." Repr.print_type e.t);
