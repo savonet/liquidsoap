@@ -297,7 +297,7 @@ let options =
              eval_mode :=
                `Eval
                  {
-                   fetch_cache = false;
+                   fetch_cache = true;
                    save_cache = true;
                    typing_env = None;
                    trim = false;
