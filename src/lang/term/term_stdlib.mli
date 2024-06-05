@@ -5,6 +5,7 @@ type stdlib = {
 }
 
 val append :
+  ?libs:string list ->
   config:Runtime.eval_config ->
   error_on_no_stdlib:bool ->
   deprecated:bool ->

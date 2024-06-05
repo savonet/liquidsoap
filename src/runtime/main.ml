@@ -85,6 +85,9 @@ let eval_mode : Runtime.eval_mode ref =
 (* Should we load the stdlib? *)
 let stdlib = ref true
 
+(* Override the standard library. *)
+let stdlib_override = ref None
+
 (* Should we error if stdlib is not found? *)
 let error_on_no_stdlib = not (Filename.is_relative Sys.argv.(0))
 
@@ -109,6 +112,7 @@ let eval_script ~stdlib ~deprecated ~eval_mode expr =
               if stdlib then (
                 let { Term_stdlib.parsed_term; term = expanded_term; env } =
                   Term_stdlib.append
+                    ?libs:(Option.map (fun s -> [s]) !stdlib_override)
                     ~config:
                       {
                         config with
@@ -286,6 +290,20 @@ let options =
                  }),
          "Disqble caching and register script definitions at top-level. Used \
           internally for testing." );
+       ( ["--cache-stdlib"],
+         Arg.Unit
+           (fun () ->
+             run_streams := false;
+             eval_mode :=
+               `Eval
+                 {
+                   fetch_cache = false;
+                   save_cache = true;
+                   typing_env = None;
+                   trim = false;
+                   eval = `False;
+                 }),
+         "Generate the standard library cache." );
        ( ["--cache-only"],
          Arg.Unit
            (fun () ->
@@ -423,6 +441,9 @@ let options =
           Arg.Clear stdlib,
           Printf.sprintf "Do not load stdlib script libraries (i.e., %s/*.liq)."
             (Configure.liq_libs_dir ()) );
+        ( ["--stdlib"],
+          Arg.String (fun s -> stdlib_override := Some s),
+          "Override the location of the standard library." );
         ( ["--no-deprecated"],
           Arg.Clear deprecated,
           "Do not load wrappers for deprecated operators." );
