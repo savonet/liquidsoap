@@ -104,24 +104,32 @@ let eval_script ~stdlib ~deprecated ~eval_mode expr =
     | `Eval config ->
         Runtime.report lexbuf (fun ~throw () ->
             let parsed_term = Term_reducer.mk_expr program lexbuf in
-            let expr = Term_reducer.to_term parsed_term in
-            let parsed_term, expr, config =
+            let term = Term_reducer.to_term parsed_term in
+            let parsed_term, term, typing_env =
               if stdlib then (
-                let stdlib_config =
-                  { config with eval = `False; trim = false; typing_env = None }
+                let { Term_stdlib.parsed_term; term = expanded_term; env } =
+                  Term_stdlib.append
+                    ~config:
+                      {
+                        config with
+                        eval = `False;
+                        trim = false;
+                        typing_env = None;
+                      }
+                    ~error_on_no_stdlib:true ~deprecated ~parsed_term term
                 in
-                let { Term_stdlib.append_parsed_term; append_term; env; level }
-                    =
-                  Term_stdlib.stdlib ~config:stdlib_config
-                    ~error_on_no_stdlib:true ~deprecated ()
-                in
-                ( append_parsed_term parsed_term,
-                  append_term expr,
-                  { config with typing_env = Some { term = expr; env; level } }
-                ))
-              else (parsed_term, expr, config)
+                ( parsed_term,
+                  expanded_term,
+                  Some (fun () -> { Runtime.term; env = env () }) ))
+              else (parsed_term, term, None)
             in
-            Runtime.type_and_run ~config ~throw ~lib:false ~parsed_term expr)
+            let config = { config with typing_env } in
+            let name = "main script" in
+            let term =
+              Runtime.type_term ~name ~config ~throw ~lib:false ~parsed_term
+                term
+            in
+            Runtime.eval_term ~name ~config term)
 
 (** Evaluate the user script. *)
 let eval () =

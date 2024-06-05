@@ -25,46 +25,48 @@
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
-type typing_env = { term : Term.t; env : Typing.env; level : int }
+type typing_env = { term : Term.t; env : Typing.env }
 
 type eval_config = {
   fetch_cache : bool;
   save_cache : bool;
   trim : bool;
-  typing_env : typing_env option;
+  typing_env : (unit -> typing_env) option;
   eval : [ `True | `False | `Toplevel ];
 }
 
 type eval_mode = [ `Parse_only | `Eval of eval_config ]
 
-let type_and_run ~throw ~config ~lib ~parsed_term term =
+let type_term ~name ~throw ~config ~lib ~parsed_term term =
   let toplevel = config.eval = `Toplevel in
-  let ast =
-    let cached_term =
-      if config.fetch_cache then Term_cache.retrieve ~toplevel parsed_term
-      else None
-    in
-    match cached_term with
-      | Some term -> term
-      | None ->
-          if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
-          (* Type checking *)
-          Startup.time "Typechecking" (fun () ->
-              let term, env, level =
-                match config.typing_env with
-                  | Some { term; env; level } -> (term, Some env, Some level)
-                  | None -> (term, None, None)
-              in
-              Typechecking.check ?env ?level ~throw ~ignored:true term);
-
-          if Lazy.force Term.debug then
-            Printf.eprintf "Checking for unused variables...\n%!";
-          (* Check for unused variables, relies on types *)
-          Term.check_unused ~throw ~lib term;
-          if config.trim then Term_trim.trim_term term;
-          if config.save_cache then Term_cache.cache ~toplevel ~parsed_term term;
-          term
+  let cached_term =
+    if config.fetch_cache then Term_cache.retrieve ~name ~toplevel parsed_term
+    else None
   in
+  match cached_term with
+    | Some term -> term
+    | None ->
+        if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+        (* Type checking *)
+        Startup.time (Printf.sprintf "Typechecking %s" name) (fun () ->
+            let term, env =
+              match config.typing_env with
+                | Some fn ->
+                    let { term; env } = fn () in
+                    (term, Some env)
+                | None -> (term, None)
+            in
+            Typechecking.check ?env ~throw ~ignored:true term);
+
+        if Lazy.force Term.debug then
+          Printf.eprintf "Checking for unused variables...\n%!";
+        (* Check for unused variables, relies on types *)
+        Term.check_unused ~throw ~lib term;
+        if config.trim then Term_trim.trim_term term;
+        if config.save_cache then Term_cache.cache ~toplevel ~parsed_term term;
+        term
+
+let eval_term ~name ~config ast =
   match config.eval with
     | `False -> ()
     | (`True as v) | (`Toplevel as v) ->
@@ -74,7 +76,7 @@ let type_and_run ~throw ~config ~lib ~parsed_term term =
             | `Toplevel -> fun () -> Evaluation.eval_toplevel ast
         in
         if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-        ignore (Startup.time "Evaluation" eval)
+        ignore (Startup.time (Printf.sprintf "Evaluating %s" name) eval)
 
 (** {1 Error reporting} *)
 
@@ -357,14 +359,18 @@ let load_libs () =
           report lexbuf (fun ~throw () ->
               let parsed_term = Term_reducer.mk_expr ~fname program lexbuf in
               let expr = Term_reducer.to_term parsed_term in
-              type_and_run ~throw
-                ~config:
-                  {
-                    trim = true;
-                    typing_env = None;
-                    fetch_cache = true;
-                    save_cache = true;
-                    eval = `Toplevel;
-                  }
-                ~lib:true ~parsed_term expr)))
+              let config =
+                {
+                  trim = true;
+                  typing_env = None;
+                  fetch_cache = true;
+                  save_cache = true;
+                  eval = `Toplevel;
+                }
+              in
+              let name = "stdlib" in
+              let expr =
+                type_term ~name ~throw ~config ~lib:true ~parsed_term expr
+              in
+              eval_term ~name ~config expr)))
     (libs ())

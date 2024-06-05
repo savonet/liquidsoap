@@ -1,11 +1,11 @@
 open Runtime_term
 
-let rec append_ref = function
+let rec append_ref ~ref = function
   | { term = `Let ({ body } as _let) } as tm ->
-      { tm with term = `Let { _let with body = append_ref body } }
+      { tm with term = `Let { _let with body = append_ref ~ref body } }
   | { term = `Seq (t1, t2) } as tm ->
-      { tm with term = `Seq (t1, append_ref t2) }
-  | { term = `Tuple [] } as tm -> { tm with term = `Cache_env (ref ([], 0)) }
+      { tm with term = `Seq (t1, append_ref ~ref t2) }
+  | { term = `Tuple [] } as tm -> { tm with term = `Cache_env ref }
   | _ -> assert false
 
 let rec extract_ref = function
@@ -14,48 +14,54 @@ let rec extract_ref = function
   | { term = `Cache_env env } -> !env
   | _ -> assert false
 
-let rec replace_ref ~term = function
+let rec prepend_stdlib ~term = function
   | { term = `Let ({ body } as _let) } as tm ->
-      { tm with term = `Let { _let with body = replace_ref ~term body } }
+      { tm with term = `Let { _let with body = prepend_stdlib ~term body } }
   | { term = `Seq (t1, t2) } as tm ->
-      { tm with term = `Seq (t1, replace_ref ~term t2) }
-  | { term = `Cache_env _ } -> term
+      { tm with term = `Seq (t1, prepend_stdlib ~term t2) }
+  | { term = `Tuple [] } -> term
   | _ -> assert false
 
-let rec concat_parsed_term :
-    term:Parsed_term.t -> Parsed_term.t -> Parsed_term.t =
- fun ~term -> function
+let rec prepend_parsed_stdlib :
+    parsed_term:Parsed_term.t -> Parsed_term.t -> Parsed_term.t =
+ fun ~parsed_term -> function
   | { term = `Let (def, body) } as tm ->
-      { tm with term = `Let (def, concat_parsed_term ~term body) }
+      { tm with term = `Let (def, prepend_parsed_stdlib ~parsed_term body) }
   | { term = `Def (def, body) } as tm ->
-      { tm with term = `Def (def, concat_parsed_term ~term body) }
+      { tm with term = `Def (def, prepend_parsed_stdlib ~parsed_term body) }
   | { term = `Binding (def, body) } as tm ->
-      { tm with term = `Binding (def, concat_parsed_term ~term body) }
+      { tm with term = `Binding (def, prepend_parsed_stdlib ~parsed_term body) }
   | { term = `Seq (t1, t2) } as tm ->
-      { tm with term = `Seq (t1, concat_parsed_term ~term t2) }
-  | { term = `Eof } | { term = `Tuple [] } -> term
+      { tm with term = `Seq (t1, prepend_parsed_stdlib ~parsed_term t2) }
+  | { term = `Eof } | { term = `Tuple [] } -> parsed_term
   | _ -> assert false
 
 type stdlib = {
-  append_parsed_term : Parsed_term.t -> Parsed_term.t;
-  append_term : Term.t -> Term.t;
-  env : Typing.env;
-  level : int;
+  parsed_term : Parsed_term.t;
+  term : Term.t;
+  env : unit -> Typing.env;
 }
 
-let stdlib ~config ~error_on_no_stdlib ~deprecated () =
+let append ~config ~error_on_no_stdlib ~deprecated ~parsed_term term =
   let libs = Runtime.libs ~error_on_no_stdlib ~deprecated () in
   let script = List.fold_left (Printf.sprintf "%s\n%%include %S") "" libs in
   let lexbuf = Sedlexing.Utf8.from_string script in
-  let parsed_term = Term_reducer.mk_expr Term_reducer.program lexbuf in
-  let stdlib = Term_reducer.to_term parsed_term in
-  let stdlib = append_ref stdlib in
-  Runtime.report lexbuf (fun ~throw () ->
-      Runtime.type_and_run ~config ~lib:true ~throw ~parsed_term stdlib);
-  let env, level = extract_ref stdlib in
+  let parsed_stdlib = Term_reducer.mk_expr Term_reducer.program lexbuf in
+  let stdlib = Term_reducer.to_term parsed_stdlib in
+  let env () =
+    let ref = ref [] in
+    let stdlib = append_ref ~ref stdlib in
+    Runtime.(
+      report lexbuf (fun ~throw () ->
+          let stdlib =
+            type_term ~name:"stdlib" ~config ~lib:true ~throw
+              ~parsed_term:parsed_stdlib stdlib
+          in
+          ref := extract_ref stdlib));
+    !ref
+  in
   {
-    append_parsed_term = (fun term -> concat_parsed_term ~term parsed_term);
-    append_term = (fun term -> replace_ref ~term stdlib);
+    parsed_term = prepend_parsed_stdlib ~parsed_term parsed_stdlib;
+    term = prepend_stdlib ~term stdlib;
     env;
-    level;
   }

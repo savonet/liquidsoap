@@ -11,9 +11,4 @@ val type_of_pat :
   (string list * Type.t) list * Type.t
 
 val check :
-  ?env:Typing.env ->
-  ?level:int ->
-  ?ignored:bool ->
-  throw:(exn -> unit) ->
-  Term.t ->
-  unit
+  ?env:Typing.env -> ?ignored:bool -> throw:(exn -> unit) -> Term.t -> unit

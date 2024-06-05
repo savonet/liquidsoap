@@ -1,13 +1,13 @@
 type stdlib = {
-  append_parsed_term : Parsed_term.t -> Parsed_term.t;
-  append_term : Term.t -> Term.t;
-  env : Typing.env;
-  level : int;
+  parsed_term : Parsed_term.t;
+  term : Term.t;
+  env : unit -> Typing.env;
 }
 
-val stdlib :
+val append :
   config:Runtime.eval_config ->
   error_on_no_stdlib:bool ->
   deprecated:bool ->
-  unit ->
+  parsed_term:Parsed_term.t ->
+  Term.t ->
   stdlib

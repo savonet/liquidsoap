@@ -57,8 +57,8 @@ let cache_filename ~toplevel term =
         in
         Some (Filename.concat dir fname)
 
-let retrieve ~toplevel parsed_term : Term.t option =
-  Startup.time "Cache retrieval" (fun () ->
+let retrieve ~name ~toplevel parsed_term : Term.t option =
+  Startup.time (Printf.sprintf "%s cache retrieval" name) (fun () ->
       try
         match cache_filename ~toplevel parsed_term with
           | None -> None
@@ -69,14 +69,15 @@ let retrieve ~toplevel parsed_term : Term.t option =
                   ~finally:(fun () -> close_in ic)
                   (fun () ->
                     let term = Marshal.from_channel ic in
-                    Startup.message "Loading script from cache!";
+                    Startup.message "Loading %s from cache!" name;
                     Some term))
               else None
       with
         | Failure msg
           when String.starts_with ~prefix:"input_value: unknown code module" msg
           ->
-            Startup.message "Liquidsoap binary changed: cache invalidated!";
+            Startup.message "Liquidsoap binary changed: %s cache invalidated!"
+              name;
             None
         | exn ->
             let bt = Printexc.get_backtrace () in

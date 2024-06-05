@@ -24,13 +24,13 @@
 
 exception Error
 
-type typing_env = { term : Term.t; env : Typing.env; level : int }
+type typing_env = { term : Term.t; env : Typing.env }
 
 type eval_config = {
   fetch_cache : bool;
   save_cache : bool;
   trim : bool;
-  typing_env : typing_env option;
+  typing_env : (unit -> typing_env) option;
   eval : [ `True | `False | `Toplevel ];
 }
 
@@ -39,14 +39,18 @@ type eval_mode = [ `Parse_only | `Eval of eval_config ]
 (** Report lexbuf related errors. *)
 val report : Sedlexing.lexbuf -> (throw:(exn -> unit) -> unit -> unit) -> unit
 
-(** Type and run a term according to the config. *)
-val type_and_run :
+(** Typecheck a term and return it. Might return a cached value! *)
+val type_term :
+  name:string ->
   throw:(exn -> unit) ->
   config:eval_config ->
   lib:bool ->
   parsed_term:Parsed_term.t ->
   Term.t ->
-  unit
+  Term.t
+
+(** Evaluate a term. *)
+val eval_term : name:string -> config:eval_config -> Term.t -> unit
 
 (** Raise errors for warnings. *)
 val strict : bool ref
