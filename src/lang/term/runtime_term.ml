@@ -96,6 +96,7 @@ type 'a let_t = {
 
 type 'a runtime_ast =
   [ `Int of int
+  | `Cache_env of Typing.env ref
   | `Float of float
   | `String of string
   | `Bool of bool

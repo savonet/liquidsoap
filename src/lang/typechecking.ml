@@ -184,6 +184,9 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let base_type = Type.var () in
   let () =
     match e.term with
+      | `Cache_env r ->
+          r := env;
+          base_type >: mk (Tuple [])
       | `Int _ -> base_type >: mk Int
       | `Float _ -> base_type >: mk Float
       | `String _ -> base_type >: mk String
