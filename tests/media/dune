@@ -201,7 +201,8 @@
    %{run_test}
    "FFmpeg distributed HLS encoding"
    liquidsoap
-   --stdlib %{stdlib}
+   --stdlib
+   %{stdlib}
    %{test_liq}
    ffmpeg_distributed_hls.liq
    --
