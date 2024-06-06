@@ -22,25 +22,18 @@
 
 (** {1 Running} *)
 
+open Term_cache
+
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
-type typing_env = { term : Term.t; env : Typing.env }
+type eval_mode = [ `Parse_only | `Eval of Term_cache.eval_config ]
 
-type eval_config = {
-  fetch_cache : bool;
-  save_cache : bool;
-  trim : bool;
-  typing_env : (unit -> typing_env) option;
-  eval : [ `True | `False | `Toplevel ];
-}
-
-type eval_mode = [ `Parse_only | `Eval of eval_config ]
-
-let type_term ~name ~throw ~config ~lib ~parsed_term term =
-  let toplevel = config.eval = `Toplevel in
+let type_term ~throw ~config ~lib ~parsed_term term =
+  let name = config.name in
   let cached_term =
-    if config.fetch_cache then Term_cache.retrieve ~name ~toplevel parsed_term
+    if config.fetch_cache then
+      Term_cache.retrieve { term = parsed_term; config }
     else None
   in
   match cached_term with
@@ -63,10 +56,12 @@ let type_term ~name ~throw ~config ~lib ~parsed_term term =
         (* Check for unused variables, relies on types *)
         Term.check_unused ~throw ~lib term;
         if config.trim then Term_trim.trim_term term;
-        if config.save_cache then Term_cache.cache ~toplevel ~parsed_term term;
+        if config.save_cache then
+          Term_cache.cache { config; term = parsed_term } term;
         term
 
-let eval_term ~name ~config ast =
+let eval_term ~config ast =
+  let name = config.name in
   match config.eval with
     | `False -> ()
     | (`True as v) | (`Toplevel as v) ->
@@ -361,6 +356,7 @@ let load_libs () =
               let expr = Term_reducer.to_term parsed_term in
               let config =
                 {
+                  name = fname;
                   trim = true;
                   typing_env = None;
                   fetch_cache = true;
@@ -368,9 +364,6 @@ let load_libs () =
                   eval = `Toplevel;
                 }
               in
-              let name = "stdlib" in
-              let expr =
-                type_term ~name ~throw ~config ~lib:true ~parsed_term expr
-              in
-              eval_term ~name ~config expr)))
+              let expr = type_term ~throw ~config ~lib:true ~parsed_term expr in
+              eval_term ~config expr)))
     (libs ())

@@ -57,8 +57,7 @@ let append ?libs ~config ~error_on_no_stdlib ~deprecated ~parsed_term term =
     Runtime.(
       report lexbuf (fun ~throw () ->
           let stdlib =
-            type_term ~name:"stdlib" ~config ~lib:true ~throw
-              ~parsed_term:parsed_stdlib stdlib
+            type_term ~config ~lib:true ~throw ~parsed_term:parsed_stdlib stdlib
           in
           ref := extract_ref stdlib));
     !ref

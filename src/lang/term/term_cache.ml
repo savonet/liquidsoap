@@ -1,3 +1,19 @@
+open Term_hash
+
+type typing_env = { term : Term.t; env : Typing.env }
+
+type eval_config = {
+  name : string;
+  fetch_cache : bool;
+  save_cache : bool;
+  trim : bool;
+  typing_env : (unit -> typing_env) option; [@hash.ignore]
+  eval : [ `True | `False | `Toplevel ];
+}
+[@@deriving hash]
+
+type t = { config : eval_config; term : Parsed_term.t } [@@deriving hash]
+
 let cache_enabled () =
   try
     let venv = Unix.getenv "LIQ_CACHE" in
@@ -45,22 +61,19 @@ let rec recmkdir dir =
     recmkdir (Filename.dirname dir);
     Sys.mkdir dir 0o755)
 
-let cache_filename ~toplevel term =
+let cache_filename config =
   match cache_dir () with
     | None -> None
     | Some dir ->
         recmkdir dir;
-        let hash = Parsed_term.hash term in
-        let fname =
-          Printf.sprintf "%s%s.liq-cache" hash
-            (if toplevel then "-toplevel" else "")
-        in
+        let hash = hash config in
+        let fname = Printf.sprintf "%s.liq-cache" hash in
         Some (Filename.concat dir fname)
 
-let retrieve ~name ~toplevel parsed_term : Term.t option =
+let retrieve ({ config = { name } } as config) : Term.t option =
   Startup.time (Printf.sprintf "%s cache retrieval" name) (fun () ->
       try
-        match cache_filename ~toplevel parsed_term with
+        match cache_filename config with
           | None -> None
           | Some filename ->
               if Sys.file_exists filename then (
@@ -87,9 +100,9 @@ let retrieve ~name ~toplevel parsed_term : Term.t option =
             else Startup.message "Error while loading cache: %s" exn;
             None)
 
-let cache ~toplevel ~parsed_term term =
+let cache config term =
   try
-    match cache_filename ~toplevel parsed_term with
+    match cache_filename config with
       | None -> ()
       | Some filename ->
           let oc = open_out filename in

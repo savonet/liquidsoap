@@ -24,33 +24,22 @@
 
 exception Error
 
-type typing_env = { term : Term.t; env : Typing.env }
-
-type eval_config = {
-  fetch_cache : bool;
-  save_cache : bool;
-  trim : bool;
-  typing_env : (unit -> typing_env) option;
-  eval : [ `True | `False | `Toplevel ];
-}
-
-type eval_mode = [ `Parse_only | `Eval of eval_config ]
+type eval_mode = [ `Parse_only | `Eval of Term_cache.eval_config ]
 
 (** Report lexbuf related errors. *)
 val report : Sedlexing.lexbuf -> (throw:(exn -> unit) -> unit -> unit) -> unit
 
 (** Typecheck a term and return it. Might return a cached value! *)
 val type_term :
-  name:string ->
   throw:(exn -> unit) ->
-  config:eval_config ->
+  config:Term_cache.eval_config ->
   lib:bool ->
   parsed_term:Parsed_term.t ->
   Term.t ->
   Term.t
 
 (** Evaluate a term. *)
-val eval_term : name:string -> config:eval_config -> Term.t -> unit
+val eval_term : config:Term_cache.eval_config -> Term.t -> unit
 
 (** Raise errors for warnings. *)
 val strict : bool ref

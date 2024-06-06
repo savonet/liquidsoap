@@ -25,7 +25,9 @@ module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
 module Queue = Liquidsoap_lang.Queues.Queue
+module Term_cache = Liquidsoap_lang.Term_cache
 open Runtime
+open Term_cache
 
 let usage =
   {|Usage : liquidsoap [OPTION, SCRIPT or EXPR]...
@@ -75,6 +77,7 @@ let eval_mode : Runtime.eval_mode ref =
   ref
     (`Eval
       {
+        name = "main script";
         fetch_cache = true;
         save_cache = true;
         trim = true;
@@ -116,6 +119,7 @@ let eval_script ~stdlib ~deprecated ~eval_mode expr =
                     ~config:
                       {
                         config with
+                        name = "stdlib";
                         eval = `False;
                         trim = false;
                         typing_env = None;
@@ -124,16 +128,14 @@ let eval_script ~stdlib ~deprecated ~eval_mode expr =
                 in
                 ( parsed_term,
                   expanded_term,
-                  Some (fun () -> { Runtime.term; env = env () }) ))
+                  Some (fun () -> { term; env = env () }) ))
               else (parsed_term, term, None)
             in
             let config = { config with typing_env } in
-            let name = "main script" in
             let term =
-              Runtime.type_term ~name ~config ~throw ~lib:false ~parsed_term
-                term
+              Runtime.type_term ~config ~throw ~lib:false ~parsed_term term
             in
-            Runtime.eval_term ~name ~config term)
+            Runtime.eval_term ~config term)
 
 (** Evaluate the user script. *)
 let eval () =
@@ -170,6 +172,7 @@ let with_stdlib =
     eval_mode :=
       `Eval
         {
+          name = "main script";
           fetch_cache = true;
           save_cache = true;
           trim = false;
@@ -265,6 +268,7 @@ let options =
                  | `Parse_only ->
                      `Eval
                        {
+                         name = "main script";
                          fetch_cache = true;
                          save_cache = true;
                          typing_env = None;
@@ -282,6 +286,7 @@ let options =
              eval_mode :=
                `Eval
                  {
+                   name = "main script";
                    fetch_cache = false;
                    save_cache = false;
                    typing_env = None;
@@ -300,6 +305,7 @@ let options =
              eval_mode :=
                `Eval
                  {
+                   name = "main script";
                    fetch_cache = false;
                    save_cache = true;
                    typing_env = None;
@@ -470,6 +476,7 @@ See <http://liquidsoap.info> for more information.
               eval_mode :=
                 `Eval
                   {
+                    name = "main script";
                     fetch_cache = true;
                     save_cache = true;
                     typing_env = None;
