@@ -10,9 +10,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} 115-1.liq liquidsoap %{test_liq} 115-1.liq)))
+ (action (run %{run_test} 115-1.liq liquidsoap --stdlib %{stdlib} %{test_liq} 115-1.liq)))
 
 (rule
  (alias citest)
@@ -25,9 +26,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} 115-2.liq liquidsoap %{test_liq} 115-2.liq)))
+ (action (run %{run_test} 115-2.liq liquidsoap --stdlib %{stdlib} %{test_liq} 115-2.liq)))
 
 (rule
  (alias citest)
@@ -40,9 +42,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} 3553.liq liquidsoap %{test_liq} 3553.liq)))
+ (action (run %{run_test} 3553.liq liquidsoap --stdlib %{stdlib} %{test_liq} 3553.liq)))
 
 (rule
  (alias citest)
@@ -55,9 +58,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} AC5109.liq liquidsoap %{test_liq} AC5109.liq)))
+ (action (run %{run_test} AC5109.liq liquidsoap --stdlib %{stdlib} %{test_liq} AC5109.liq)))
 
 (rule
  (alias citest)
@@ -70,9 +74,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} BUG403.liq liquidsoap %{test_liq} BUG403.liq)))
+ (action (run %{run_test} BUG403.liq liquidsoap --stdlib %{stdlib} %{test_liq} BUG403.liq)))
 
 (rule
  (alias citest)
@@ -85,9 +90,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH-action-919422659.liq liquidsoap %{test_liq} GH-action-919422659.liq)))
+ (action (run %{run_test} GH-action-919422659.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH-action-919422659.liq)))
 
 (rule
  (alias citest)
@@ -100,9 +106,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH1129.liq liquidsoap %{test_liq} GH1129.liq)))
+ (action (run %{run_test} GH1129.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH1129.liq)))
 
 (rule
  (alias citest)
@@ -115,9 +122,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH1146.liq liquidsoap %{test_liq} GH1146.liq)))
+ (action (run %{run_test} GH1146.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH1146.liq)))
 
 (rule
  (alias citest)
@@ -130,9 +138,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH1151.liq liquidsoap %{test_liq} GH1151.liq)))
+ (action (run %{run_test} GH1151.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH1151.liq)))
 
 (rule
  (alias citest)
@@ -145,9 +154,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH1159.liq liquidsoap %{test_liq} GH1159.liq)))
+ (action (run %{run_test} GH1159.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH1159.liq)))
 
 (rule
  (alias citest)
@@ -160,9 +170,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH1279.liq liquidsoap %{test_liq} GH1279.liq)))
+ (action (run %{run_test} GH1279.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH1279.liq)))
 
 (rule
  (alias citest)
@@ -175,9 +186,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH1327.liq liquidsoap %{test_liq} GH1327.liq)))
+ (action (run %{run_test} GH1327.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH1327.liq)))
 
 (rule
  (alias citest)
@@ -190,9 +202,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2585.liq liquidsoap %{test_liq} GH2585.liq)))
+ (action (run %{run_test} GH2585.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2585.liq)))
 
 (rule
  (alias citest)
@@ -205,9 +218,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2602.liq liquidsoap %{test_liq} GH2602.liq)))
+ (action (run %{run_test} GH2602.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2602.liq)))
 
 (rule
  (alias citest)
@@ -220,9 +234,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2756-2.liq liquidsoap %{test_liq} GH2756-2.liq)))
+ (action (run %{run_test} GH2756-2.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2756-2.liq)))
 
 (rule
  (alias citest)
@@ -235,9 +250,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2756.liq liquidsoap %{test_liq} GH2756.liq)))
+ (action (run %{run_test} GH2756.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2756.liq)))
 
 (rule
  (alias citest)
@@ -250,9 +266,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2758.liq liquidsoap %{test_liq} GH2758.liq)))
+ (action (run %{run_test} GH2758.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2758.liq)))
 
 (rule
  (alias citest)
@@ -265,9 +282,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2842.liq liquidsoap %{test_liq} GH2842.liq)))
+ (action (run %{run_test} GH2842.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2842.liq)))
 
 (rule
  (alias citest)
@@ -280,9 +298,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2850.liq liquidsoap %{test_liq} GH2850.liq)))
+ (action (run %{run_test} GH2850.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2850.liq)))
 
 (rule
  (alias citest)
@@ -295,9 +314,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2867.liq liquidsoap %{test_liq} GH2867.liq)))
+ (action (run %{run_test} GH2867.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2867.liq)))
 
 (rule
  (alias citest)
@@ -310,9 +330,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2871.liq liquidsoap %{test_liq} GH2871.liq)))
+ (action (run %{run_test} GH2871.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2871.liq)))
 
 (rule
  (alias citest)
@@ -325,9 +346,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2872.liq liquidsoap %{test_liq} GH2872.liq)))
+ (action (run %{run_test} GH2872.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2872.liq)))
 
 (rule
  (alias citest)
@@ -340,9 +362,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2897.liq liquidsoap %{test_liq} GH2897.liq)))
+ (action (run %{run_test} GH2897.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2897.liq)))
 
 (rule
  (alias citest)
@@ -355,9 +378,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2902.liq liquidsoap %{test_liq} GH2902.liq)))
+ (action (run %{run_test} GH2902.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2902.liq)))
 
 (rule
  (alias citest)
@@ -370,9 +394,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH2926.liq liquidsoap %{test_liq} GH2926.liq)))
+ (action (run %{run_test} GH2926.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH2926.liq)))
 
 (rule
  (alias citest)
@@ -385,9 +410,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3093.liq liquidsoap %{test_liq} GH3093.liq)))
+ (action (run %{run_test} GH3093.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3093.liq)))
 
 (rule
  (alias citest)
@@ -400,9 +426,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3132.liq liquidsoap %{test_liq} GH3132.liq)))
+ (action (run %{run_test} GH3132.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3132.liq)))
 
 (rule
  (alias citest)
@@ -415,9 +442,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3224.liq liquidsoap %{test_liq} GH3224.liq)))
+ (action (run %{run_test} GH3224.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3224.liq)))
 
 (rule
  (alias citest)
@@ -430,9 +458,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3239-2.liq liquidsoap %{test_liq} GH3239-2.liq)))
+ (action (run %{run_test} GH3239-2.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3239-2.liq)))
 
 (rule
  (alias citest)
@@ -445,9 +474,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3239.liq liquidsoap %{test_liq} GH3239.liq)))
+ (action (run %{run_test} GH3239.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3239.liq)))
 
 (rule
  (alias citest)
@@ -460,9 +490,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3276.liq liquidsoap %{test_liq} GH3276.liq)))
+ (action (run %{run_test} GH3276.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3276.liq)))
 
 (rule
  (alias citest)
@@ -475,9 +506,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3316.liq liquidsoap %{test_liq} GH3316.liq)))
+ (action (run %{run_test} GH3316.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3316.liq)))
 
 (rule
  (alias citest)
@@ -490,9 +522,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3645.liq liquidsoap %{test_liq} GH3645.liq)))
+ (action (run %{run_test} GH3645.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3645.liq)))
 
 (rule
  (alias citest)
@@ -505,9 +538,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3675.liq liquidsoap %{test_liq} GH3675.liq)))
+ (action (run %{run_test} GH3675.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3675.liq)))
 
 (rule
  (alias citest)
@@ -520,9 +554,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3813.liq liquidsoap %{test_liq} GH3813.liq)))
+ (action (run %{run_test} GH3813.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3813.liq)))
 
 (rule
  (alias citest)
@@ -535,9 +570,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3840.liq liquidsoap %{test_liq} GH3840.liq)))
+ (action (run %{run_test} GH3840.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3840.liq)))
 
 (rule
  (alias citest)
@@ -550,9 +586,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} GH3881.liq liquidsoap %{test_liq} GH3881.liq)))
+ (action (run %{run_test} GH3881.liq liquidsoap --stdlib %{stdlib} %{test_liq} GH3881.liq)))
 
 (rule
  (alias citest)
@@ -565,9 +602,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} LS268.liq liquidsoap %{test_liq} LS268.liq)))
+ (action (run %{run_test} LS268.liq liquidsoap --stdlib %{stdlib} %{test_liq} LS268.liq)))
 
 (rule
  (alias citest)
@@ -580,9 +618,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} LS354-1.liq liquidsoap %{test_liq} LS354-1.liq)))
+ (action (run %{run_test} LS354-1.liq liquidsoap --stdlib %{stdlib} %{test_liq} LS354-1.liq)))
 
 (rule
  (alias citest)
@@ -595,9 +634,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} LS354-2.liq liquidsoap %{test_liq} LS354-2.liq)))
+ (action (run %{run_test} LS354-2.liq liquidsoap --stdlib %{stdlib} %{test_liq} LS354-2.liq)))
 
 (rule
  (alias citest)
@@ -610,9 +650,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} LS460.liq liquidsoap %{test_liq} LS460.liq)))
+ (action (run %{run_test} LS460.liq liquidsoap --stdlib %{stdlib} %{test_liq} LS460.liq)))
 
 (rule
  (alias citest)
@@ -625,9 +666,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} LS503.liq liquidsoap %{test_liq} LS503.liq)))
+ (action (run %{run_test} LS503.liq liquidsoap --stdlib %{stdlib} %{test_liq} LS503.liq)))
 
 (rule
  (alias citest)
@@ -640,9 +682,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} default_format.liq liquidsoap %{test_liq} default_format.liq)))
+ (action (run %{run_test} default_format.liq liquidsoap --stdlib %{stdlib} %{test_liq} default_format.liq)))
 
 (rule
  (alias citest)
@@ -655,9 +698,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} external-encoder.liq liquidsoap %{test_liq} external-encoder.liq)))
+ (action (run %{run_test} external-encoder.liq liquidsoap --stdlib %{stdlib} %{test_liq} external-encoder.liq)))
 
 (rule
  (alias citest)
@@ -670,9 +714,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ffmpeg-copy-encode.liq liquidsoap %{test_liq} ffmpeg-copy-encode.liq)))
+ (action (run %{run_test} ffmpeg-copy-encode.liq liquidsoap --stdlib %{stdlib} %{test_liq} ffmpeg-copy-encode.liq)))
 
 (rule
  (alias citest)
@@ -685,9 +730,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ffmpeg-copy-input-http.liq liquidsoap %{test_liq} ffmpeg-copy-input-http.liq)))
+ (action (run %{run_test} ffmpeg-copy-input-http.liq liquidsoap --stdlib %{stdlib} %{test_liq} ffmpeg-copy-input-http.liq)))
 
 (rule
  (alias citest)
@@ -700,9 +746,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ffmpeg-naming-convention.liq liquidsoap %{test_liq} ffmpeg-naming-convention.liq)))
+ (action (run %{run_test} ffmpeg-naming-convention.liq liquidsoap --stdlib %{stdlib} %{test_liq} ffmpeg-naming-convention.liq)))
 
 (rule
  (alias citest)
@@ -715,9 +762,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} infallible-shutdown.liq liquidsoap %{test_liq} infallible-shutdown.liq)))
+ (action (run %{run_test} infallible-shutdown.liq liquidsoap --stdlib %{stdlib} %{test_liq} infallible-shutdown.liq)))
 
 (rule
  (alias citest)
@@ -730,9 +778,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} init-error.liq liquidsoap %{test_liq} init-error.liq)))
+ (action (run %{run_test} init-error.liq liquidsoap --stdlib %{stdlib} %{test_liq} init-error.liq)))
 
 (rule
  (alias citest)
@@ -745,9 +794,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} initial_request_queue.liq liquidsoap %{test_liq} initial_request_queue.liq)))
+ (action (run %{run_test} initial_request_queue.liq liquidsoap --stdlib %{stdlib} %{test_liq} initial_request_queue.liq)))
 
 (rule
  (alias citest)
@@ -760,9 +810,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} input_rtmp.liq liquidsoap %{test_liq} input_rtmp.liq)))
+ (action (run %{run_test} input_rtmp.liq liquidsoap --stdlib %{stdlib} %{test_liq} input_rtmp.liq)))
 
 (rule
  (alias citest)
@@ -775,9 +826,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} metadata-resolvers-metadata.liq liquidsoap %{test_liq} metadata-resolvers-metadata.liq)))
+ (action (run %{run_test} metadata-resolvers-metadata.liq liquidsoap --stdlib %{stdlib} %{test_liq} metadata-resolvers-metadata.liq)))
 
 (rule
  (alias citest)
@@ -790,9 +842,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} metadata_cache.liq liquidsoap %{test_liq} metadata_cache.liq)))
+ (action (run %{run_test} metadata_cache.liq liquidsoap --stdlib %{stdlib} %{test_liq} metadata_cache.liq)))
 
 (rule
  (alias citest)
@@ -805,9 +858,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} playlist-id.liq liquidsoap %{test_liq} playlist-id.liq)))
+ (action (run %{run_test} playlist-id.liq liquidsoap --stdlib %{stdlib} %{test_liq} playlist-id.liq)))
 
 (rule
  (alias citest)
@@ -820,9 +874,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
+ (action (run %{run_test} replaygain.liq liquidsoap --stdlib %{stdlib} %{test_liq} replaygain.liq)))
 
 (rule
  (alias citest)
@@ -835,9 +890,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} seek_track_map.liq liquidsoap %{test_liq} seek_track_map.liq)))
+ (action (run %{run_test} seek_track_map.liq liquidsoap --stdlib %{stdlib} %{test_liq} seek_track_map.liq)))
 
 (rule
  (alias citest)
@@ -850,9 +906,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} shoutcast-args.liq liquidsoap %{test_liq} shoutcast-args.liq)))
+ (action (run %{run_test} shoutcast-args.liq liquidsoap --stdlib %{stdlib} %{test_liq} shoutcast-args.liq)))
 
 (rule
  (alias citest)
@@ -865,9 +922,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} source_dynamic.liq liquidsoap %{test_liq} source_dynamic.liq)))
+ (action (run %{run_test} source_dynamic.liq liquidsoap --stdlib %{stdlib} %{test_liq} source_dynamic.liq)))
 
 (rule
  (alias citest)
@@ -880,9 +938,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} track_sensitive.liq liquidsoap %{test_liq} track_sensitive.liq)))
+ (action (run %{run_test} track_sensitive.liq liquidsoap --stdlib %{stdlib} %{test_liq} track_sensitive.liq)))
 
 (rule
  (alias citest)
@@ -895,9 +954,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} unified-pcm-types.liq liquidsoap %{test_liq} unified-pcm-types.liq)))
+ (action (run %{run_test} unified-pcm-types.liq liquidsoap --stdlib %{stdlib} %{test_liq} unified-pcm-types.liq)))
 
 (rule
  (alias citest)
@@ -910,9 +970,10 @@
   ../streams/file1.mp3
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} video-only.liq liquidsoap %{test_liq} video-only.liq)))
+ (action (run %{run_test} video-only.liq liquidsoap --stdlib %{stdlib} %{test_liq} video-only.liq)))
 
 (rule
  (alias citest)

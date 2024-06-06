@@ -127,6 +127,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -134,7 +135,7 @@
    %{run_test}
    "FFmpeg copy+concat"
    liquidsoap
-   --no-stdlib
+   --stdlib
    %{stdlib}
    %{test_liq}
    ffmpeg_copy_concat.liq)))
@@ -148,6 +149,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -155,7 +157,7 @@
    %{run_test}
    "FFmpeg complex filter"
    liquidsoap
-   --no-stdlib
+   --stdlib
    %{stdlib}
    %{test_liq}
    ffmpeg_complex_filter.liq)))
@@ -191,6 +193,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -198,6 +201,7 @@
    %{run_test}
    "FFmpeg distributed HLS encoding"
    liquidsoap
+   --stdlib %{stdlib}
    %{test_liq}
    ffmpeg_distributed_hls.liq
    --
@@ -214,6 +218,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -221,7 +226,7 @@
    %{run_test}
    "FFmpeg transparency filter"
    liquidsoap
-   --no-stdlib
+   --stdlib
    %{stdlib}
    %{test_liq}
    ffmpeg_transparency_filter.liq)))
@@ -237,6 +242,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -244,7 +250,7 @@
    %{run_test}
    "FFmpeg filter with changing video rate"
    liquidsoap
-   --no-stdlib
+   --stdlib
    %{stdlib}
    %{test_liq}
    ./ffmpeg_filter_changing_rate.liq

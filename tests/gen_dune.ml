@@ -17,9 +17,10 @@ let () =
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
+ (action (run %%{run_test} %s liquidsoap --stdlib %%{stdlib} %%{test_liq} %s)))
   |}
         test test test)
     tests;

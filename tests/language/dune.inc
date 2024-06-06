@@ -7,9 +7,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
+ (action (run %{run_test} argsof.liq liquidsoap --stdlib %{stdlib} %{test_liq} argsof.liq)))
 
 (rule
  (alias citest)
@@ -19,9 +20,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} bool.liq liquidsoap %{test_liq} bool.liq)))
+ (action (run %{run_test} bool.liq liquidsoap --stdlib %{stdlib} %{test_liq} bool.liq)))
 
 (rule
  (alias citest)
@@ -31,9 +33,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} comments.liq liquidsoap %{test_liq} comments.liq)))
+ (action (run %{run_test} comments.liq liquidsoap --stdlib %{stdlib} %{test_liq} comments.liq)))
 
 (rule
  (alias citest)
@@ -43,9 +46,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} conversions.liq liquidsoap %{test_liq} conversions.liq)))
+ (action (run %{run_test} conversions.liq liquidsoap --stdlib %{stdlib} %{test_liq} conversions.liq)))
 
 (rule
  (alias citest)
@@ -55,9 +59,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} doc.liq liquidsoap %{test_liq} doc.liq)))
+ (action (run %{run_test} doc.liq liquidsoap --stdlib %{stdlib} %{test_liq} doc.liq)))
 
 (rule
  (alias citest)
@@ -67,9 +72,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} encoders.liq liquidsoap %{test_liq} encoders.liq)))
+ (action (run %{run_test} encoders.liq liquidsoap --stdlib %{stdlib} %{test_liq} encoders.liq)))
 
 (rule
  (alias citest)
@@ -79,9 +85,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} error.liq liquidsoap %{test_liq} error.liq)))
+ (action (run %{run_test} error.liq liquidsoap --stdlib %{stdlib} %{test_liq} error.liq)))
 
 (rule
  (alias citest)
@@ -91,9 +98,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} eval.liq liquidsoap %{test_liq} eval.liq)))
+ (action (run %{run_test} eval.liq liquidsoap --stdlib %{stdlib} %{test_liq} eval.liq)))
 
 (rule
  (alias citest)
@@ -103,9 +111,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file.liq liquidsoap %{test_liq} file.liq)))
+ (action (run %{run_test} file.liq liquidsoap --stdlib %{stdlib} %{test_liq} file.liq)))
 
 (rule
  (alias citest)
@@ -115,9 +124,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file.watch.liq liquidsoap %{test_liq} file.watch.liq)))
+ (action (run %{run_test} file.watch.liq liquidsoap --stdlib %{stdlib} %{test_liq} file.watch.liq)))
 
 (rule
  (alias citest)
@@ -127,9 +137,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file.watch2.liq liquidsoap %{test_liq} file.watch2.liq)))
+ (action (run %{run_test} file.watch2.liq liquidsoap --stdlib %{stdlib} %{test_liq} file.watch2.liq)))
 
 (rule
  (alias citest)
@@ -139,9 +150,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} file_protocol.liq liquidsoap %{test_liq} file_protocol.liq)))
+ (action (run %{run_test} file_protocol.liq liquidsoap --stdlib %{stdlib} %{test_liq} file_protocol.liq)))
 
 (rule
  (alias citest)
@@ -151,9 +163,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} functions.liq liquidsoap %{test_liq} functions.liq)))
+ (action (run %{run_test} functions.liq liquidsoap --stdlib %{stdlib} %{test_liq} functions.liq)))
 
 (rule
  (alias citest)
@@ -163,9 +176,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
+ (action (run %{run_test} getter.liq liquidsoap --stdlib %{stdlib} %{test_liq} getter.liq)))
 
 (rule
  (alias citest)
@@ -175,9 +189,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} interactive.liq liquidsoap %{test_liq} interactive.liq)))
+ (action (run %{run_test} interactive.liq liquidsoap --stdlib %{stdlib} %{test_liq} interactive.liq)))
 
 (rule
  (alias citest)
@@ -187,9 +202,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} json.liq liquidsoap %{test_liq} json.liq)))
+ (action (run %{run_test} json.liq liquidsoap --stdlib %{stdlib} %{test_liq} json.liq)))
 
 (rule
  (alias citest)
@@ -199,9 +215,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} list.liq liquidsoap %{test_liq} list.liq)))
+ (action (run %{run_test} list.liq liquidsoap --stdlib %{stdlib} %{test_liq} list.liq)))
 
 (rule
  (alias citest)
@@ -211,9 +228,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} loop.liq liquidsoap %{test_liq} loop.liq)))
+ (action (run %{run_test} loop.liq liquidsoap --stdlib %{stdlib} %{test_liq} loop.liq)))
 
 (rule
  (alias citest)
@@ -223,9 +241,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} math.liq liquidsoap %{test_liq} math.liq)))
+ (action (run %{run_test} math.liq liquidsoap --stdlib %{stdlib} %{test_liq} math.liq)))
 
 (rule
  (alias citest)
@@ -235,9 +254,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} mem_usage.liq liquidsoap %{test_liq} mem_usage.liq)))
+ (action (run %{run_test} mem_usage.liq liquidsoap --stdlib %{stdlib} %{test_liq} mem_usage.liq)))
 
 (rule
  (alias citest)
@@ -247,9 +267,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} metadata.liq liquidsoap %{test_liq} metadata.liq)))
+ (action (run %{run_test} metadata.liq liquidsoap --stdlib %{stdlib} %{test_liq} metadata.liq)))
 
 (rule
  (alias citest)
@@ -259,9 +280,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} metrics.liq liquidsoap %{test_liq} metrics.liq)))
+ (action (run %{run_test} metrics.liq liquidsoap --stdlib %{stdlib} %{test_liq} metrics.liq)))
 
 (rule
  (alias citest)
@@ -271,9 +293,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} null.liq liquidsoap %{test_liq} null.liq)))
+ (action (run %{run_test} null.liq liquidsoap --stdlib %{stdlib} %{test_liq} null.liq)))
 
 (rule
  (alias citest)
@@ -283,9 +306,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} number.liq liquidsoap %{test_liq} number.liq)))
+ (action (run %{run_test} number.liq liquidsoap --stdlib %{stdlib} %{test_liq} number.liq)))
 
 (rule
  (alias citest)
@@ -295,9 +319,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} osc.liq liquidsoap %{test_liq} osc.liq)))
+ (action (run %{run_test} osc.liq liquidsoap --stdlib %{stdlib} %{test_liq} osc.liq)))
 
 (rule
  (alias citest)
@@ -307,9 +332,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} pattern.liq liquidsoap %{test_liq} pattern.liq)))
+ (action (run %{run_test} pattern.liq liquidsoap --stdlib %{stdlib} %{test_liq} pattern.liq)))
 
 (rule
  (alias citest)
@@ -319,9 +345,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} pp.liq liquidsoap %{test_liq} pp.liq)))
+ (action (run %{run_test} pp.liq liquidsoap --stdlib %{stdlib} %{test_liq} pp.liq)))
 
 (rule
  (alias citest)
@@ -331,9 +358,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} predicate.liq liquidsoap %{test_liq} predicate.liq)))
+ (action (run %{run_test} predicate.liq liquidsoap --stdlib %{stdlib} %{test_liq} predicate.liq)))
 
 (rule
  (alias citest)
@@ -343,9 +371,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} process.liq liquidsoap %{test_liq} process.liq)))
+ (action (run %{run_test} process.liq liquidsoap --stdlib %{stdlib} %{test_liq} process.liq)))
 
 (rule
  (alias citest)
@@ -355,9 +384,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} rec.liq liquidsoap %{test_liq} rec.liq)))
+ (action (run %{run_test} rec.liq liquidsoap --stdlib %{stdlib} %{test_liq} rec.liq)))
 
 (rule
  (alias citest)
@@ -367,9 +397,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} record.liq liquidsoap %{test_liq} record.liq)))
+ (action (run %{run_test} record.liq liquidsoap --stdlib %{stdlib} %{test_liq} record.liq)))
 
 (rule
  (alias citest)
@@ -379,9 +410,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} ref.liq liquidsoap %{test_liq} ref.liq)))
+ (action (run %{run_test} ref.liq liquidsoap --stdlib %{stdlib} %{test_liq} ref.liq)))
 
 (rule
  (alias citest)
@@ -391,9 +423,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} regexp.liq liquidsoap %{test_liq} regexp.liq)))
+ (action (run %{run_test} regexp.liq liquidsoap --stdlib %{stdlib} %{test_liq} regexp.liq)))
 
 (rule
  (alias citest)
@@ -403,9 +436,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
+ (action (run %{run_test} replaygain.liq liquidsoap --stdlib %{stdlib} %{test_liq} replaygain.liq)))
 
 (rule
  (alias citest)
@@ -415,9 +449,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} socket.liq liquidsoap %{test_liq} socket.liq)))
+ (action (run %{run_test} socket.liq liquidsoap --stdlib %{stdlib} %{test_liq} socket.liq)))
 
 (rule
  (alias citest)
@@ -427,9 +462,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} sqlite.liq liquidsoap %{test_liq} sqlite.liq)))
+ (action (run %{run_test} sqlite.liq liquidsoap --stdlib %{stdlib} %{test_liq} sqlite.liq)))
 
 (rule
  (alias citest)
@@ -439,9 +475,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} stdlib.liq liquidsoap %{test_liq} stdlib.liq)))
+ (action (run %{run_test} stdlib.liq liquidsoap --stdlib %{stdlib} %{test_liq} stdlib.liq)))
 
 (rule
  (alias citest)
@@ -451,9 +488,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} string.liq liquidsoap %{test_liq} string.liq)))
+ (action (run %{run_test} string.liq liquidsoap --stdlib %{stdlib} %{test_liq} string.liq)))
 
 (rule
  (alias citest)
@@ -463,9 +501,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} thread.liq liquidsoap %{test_liq} thread.liq)))
+ (action (run %{run_test} thread.liq liquidsoap --stdlib %{stdlib} %{test_liq} thread.liq)))
 
 (rule
  (alias citest)
@@ -475,9 +514,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} time.liq liquidsoap %{test_liq} time.liq)))
+ (action (run %{run_test} time.liq liquidsoap --stdlib %{stdlib} %{test_liq} time.liq)))
 
 (rule
  (alias citest)
@@ -487,9 +527,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} type_errors.liq liquidsoap %{test_liq} type_errors.liq --top-level)))
+ (action (run %{run_test} type_errors.liq liquidsoap --stdlib %{stdlib} %{test_liq} type_errors.liq --top-level)))
 
 (rule
  (alias citest)
@@ -499,9 +540,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} typing.liq liquidsoap %{test_liq} typing.liq)))
+ (action (run %{run_test} typing.liq liquidsoap --stdlib %{stdlib} %{test_liq} typing.liq)))
 
 (rule
  (alias citest)
@@ -511,9 +553,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} url.liq liquidsoap %{test_liq} url.liq)))
+ (action (run %{run_test} url.liq liquidsoap --stdlib %{stdlib} %{test_liq} url.liq)))
 
 (rule
  (alias citest)
@@ -523,6 +566,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} yaml.liq liquidsoap %{test_liq} yaml.liq)))
+ (action (run %{run_test} yaml.liq liquidsoap --stdlib %{stdlib} %{test_liq} yaml.liq)))

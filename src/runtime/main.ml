@@ -268,7 +268,7 @@ let options =
                          fetch_cache = true;
                          save_cache = true;
                          typing_env = None;
-                         trim = false;
+                         trim = true;
                          eval = `False;
                        }
                  | `Eval config -> `Eval { config with eval = `False }),
@@ -288,21 +288,10 @@ let options =
                    trim = false;
                    eval = `Toplevel;
                  }),
-         "Disqble caching and register script definitions at top-level. Used \
+         "Disable caching and register script definitions at top-level. Used \
           internally for testing." );
        ( ["--cache-stdlib"],
-         Arg.Unit
-           (fun () ->
-             run_streams := false;
-             eval_mode :=
-               `Eval
-                 {
-                   fetch_cache = true;
-                   save_cache = true;
-                   typing_env = None;
-                   trim = false;
-                   eval = `False;
-                 }),
+         Arg.Unit (fun () -> with_stdlib (fun () -> ())),
          "Generate the standard library cache." );
        ( ["--cache-only"],
          Arg.Unit
@@ -314,7 +303,7 @@ let options =
                    fetch_cache = false;
                    save_cache = true;
                    typing_env = None;
-                   trim = false;
+                   trim = true;
                    eval = `False;
                  }),
          "Parse, type-check and save script's cache but do no run it." );

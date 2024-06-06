@@ -24,6 +24,7 @@
  (alias gendune)
  (target dune.inc.gen)
  (deps
+  (source_tree ../src/libs)
   (source_tree .))
  (action
   (with-stdout-to

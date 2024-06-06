@@ -1,3 +1,5 @@
+module Pcre = Re.Pcre
+
 let generated_md =
   [
     ("protocols.md", "--list-protocols-md", None);
@@ -93,12 +95,14 @@ let mk_generated_rule (file, option, header) =
     {|
 (rule
   (alias doc)
-  (deps %s)
+  (deps
+    %s
+    (:stdlib ../src/libs/stdlib.liq))
   (target %s)
   (action
     (with-stdout-to %s%s
       (setenv PAGER none
-        (run %%{bin:liquidsoap} %s)))))%s
+        (run %%{bin:liquidsoap} --stdlib %%{stdlib} %s)))))%s
 |}
     header_deps file file header_action option header_close
 
@@ -114,7 +118,7 @@ let mk_test_rule ~stdlib file =
     (:stdlib ../src/libs/stdlib.liq)
     (:test_liq %s)
   )
-  (action (run %%{bin:liquidsoap} --no-stdlib %%{stdlib} --check --no-fallible-check %s))
+  (action (run %%{bin:liquidsoap} --stdlib %%{stdlib} --check --no-fallible-check %s))
 )
 |}
     stdlib file file
