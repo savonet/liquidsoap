@@ -6,7 +6,7 @@ type stdlib = {
 
 val append :
   ?libs:string list ->
-  config:Term_cache.eval_config ->
+  config:Runtime.eval_config ->
   error_on_no_stdlib:bool ->
   deprecated:bool ->
   parsed_term:Parsed_term.t ->

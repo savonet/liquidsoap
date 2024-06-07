@@ -27,7 +27,6 @@ module Profiler = Liquidsoap_lang.Profiler
 module Queue = Liquidsoap_lang.Queues.Queue
 module Term_cache = Liquidsoap_lang.Term_cache
 open Runtime
-open Term_cache
 
 let usage =
   {|Usage : liquidsoap [OPTION, SCRIPT or EXPR]...

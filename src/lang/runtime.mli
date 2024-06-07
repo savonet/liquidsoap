@@ -24,7 +24,18 @@
 
 exception Error
 
-type eval_mode = [ `Parse_only | `Eval of Term_cache.eval_config ]
+type typing_env = { term : Term.t; env : Typing.env }
+
+type eval_config = {
+  name : string;
+  fetch_cache : bool;
+  save_cache : bool;
+  trim : bool;
+  typing_env : (unit -> typing_env) option;
+  eval : [ `True | `False | `Toplevel ];
+}
+
+type eval_mode = [ `Parse_only | `Eval of eval_config ]
 
 (** Report lexbuf related errors. *)
 val report : Sedlexing.lexbuf -> (throw:(exn -> unit) -> unit -> unit) -> unit
@@ -32,14 +43,14 @@ val report : Sedlexing.lexbuf -> (throw:(exn -> unit) -> unit -> unit) -> unit
 (** Typecheck a term and return it. Might return a cached value! *)
 val type_term :
   throw:(exn -> unit) ->
-  config:Term_cache.eval_config ->
+  config:eval_config ->
   lib:bool ->
   parsed_term:Parsed_term.t ->
   Term.t ->
   Term.t
 
 (** Evaluate a term. *)
-val eval_term : config:Term_cache.eval_config -> Term.t -> unit
+val eval_term : config:eval_config -> Term.t -> unit
 
 (** Raise errors for warnings. *)
 val strict : bool ref

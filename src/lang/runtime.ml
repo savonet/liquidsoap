@@ -22,18 +22,27 @@
 
 (** {1 Running} *)
 
-open Term_cache
-
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
-type eval_mode = [ `Parse_only | `Eval of Term_cache.eval_config ]
+type typing_env = { term : Term.t; env : Typing.env }
+
+type eval_config = {
+  name : string;
+  fetch_cache : bool;
+  save_cache : bool;
+  trim : bool;
+  typing_env : (unit -> typing_env) option;
+  eval : [ `True | `False | `Toplevel ];
+}
+
+type eval_mode = [ `Parse_only | `Eval of eval_config ]
 
 let type_term ~throw ~config ~lib ~parsed_term term =
   let name = config.name in
   let cached_term =
     if config.fetch_cache then
-      Term_cache.retrieve { term = parsed_term; config }
+      Term_cache.retrieve ~name ~trim:config.trim parsed_term
     else None
   in
   match cached_term with
@@ -57,7 +66,7 @@ let type_term ~throw ~config ~lib ~parsed_term term =
         Term.check_unused ~throw ~lib term;
         if config.trim then Term_trim.trim_term term;
         if config.save_cache then
-          Term_cache.cache { config; term = parsed_term } term;
+          Term_cache.cache ~trim:config.trim ~parsed_term term;
         term
 
 let eval_term ~config ast =

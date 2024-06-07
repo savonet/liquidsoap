@@ -1,18 +1,6 @@
 open Term_hash
 
-type typing_env = { term : Term.t; env : Typing.env }
-
-type eval_config = {
-  name : string;
-  fetch_cache : bool;
-  save_cache : bool;
-  trim : bool;
-  typing_env : (unit -> typing_env) option; [@hash.ignore]
-  eval : [ `True | `False | `Toplevel ];
-}
-[@@deriving hash]
-
-type t = { config : eval_config; term : Parsed_term.t } [@@deriving hash]
+type t = { trim : bool; parsed_term : Parsed_term.t } [@@deriving hash]
 
 let cache_enabled () =
   try
@@ -70,10 +58,10 @@ let cache_filename config =
         let fname = Printf.sprintf "%s.liq-cache" hash in
         Some (Filename.concat dir fname)
 
-let retrieve ({ config = { name } } as config) : Term.t option =
+let retrieve ~name ~trim parsed_term : Term.t option =
   Startup.time (Printf.sprintf "%s cache retrieval" name) (fun () ->
       try
-        match cache_filename config with
+        match cache_filename { trim; parsed_term } with
           | None -> None
           | Some filename ->
               if Sys.file_exists filename then (
@@ -100,9 +88,9 @@ let retrieve ({ config = { name } } as config) : Term.t option =
             else Startup.message "Error while loading cache: %s" exn;
             None)
 
-let cache config term =
+let cache ~trim ~parsed_term term =
   try
-    match cache_filename config with
+    match cache_filename { trim; parsed_term } with
       | None -> ()
       | Some filename ->
           let oc = open_out filename in
