@@ -8,11 +8,12 @@
  (target liquidsoap-completions.el)
  (deps
   (source_tree ../src/libs)
+  (:stdlib ../src/libs/stdlib.liq)
   ./gen_emacs_completion.exe)
  (action
   (with-stdout-to
    %{target}
-   (run ./gen_emacs_completion.exe))))
+   (run ./gen_emacs_completion.exe --stdlib %{stdlib}))))
 
 (install
  (section share_root)
