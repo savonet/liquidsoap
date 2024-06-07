@@ -44,14 +44,6 @@ cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
-git clone https://github.com/savonet/ocaml-mem_usage.git
-cd ocaml-mem_usage
-opam install -y .
-cd ..
-
-opam update
-opam install -y tls.0.17.4 saturn_lockfree.0.4.1 ppx_hash
-
 cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
