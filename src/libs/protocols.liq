@@ -140,7 +140,7 @@ protocol.add(temporary=true, "process", protocol.process,
 # @param ~uri Input uri
 def process.uri(~timeout=null(),~extname,~uri="",cmd) =
   timeout = null.case(timeout, {""}, fun(t) -> "timeout=" ^ string(t) ^ ",")
-  cmd = r/:/.replace(fun (_) -> "$(colon)",cmd)
+  cmd = r/:/g.replace(fun (_) -> "$(colon)",cmd)
   uri = if uri != "" then ":#{uri}" else "" end
   "process:#{timeout}#{extname},#{cmd}#{uri}"
 end
