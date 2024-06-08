@@ -85,7 +85,7 @@ fi
 
 echo "::group::Print build config"
 
-dune exec -- liquidsoap --build-config
+./liquidsoap --build-config
 
 echo "::endgroup::"
 
@@ -93,7 +93,7 @@ echo "::group::Basic tests"
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-dune exec -- liquidsoap --version
-dune exec -- liquidsoap --check 'print("hello world")'
+./liquidsoap --version
+./liquidsoap --check 'print("hello world")'
 
 echo "::endgroup::"
