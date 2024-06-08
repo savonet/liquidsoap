@@ -91,7 +91,7 @@ let stdlib = ref true
 let stdlib_override = ref None
 
 (* Should we error if stdlib is not found? *)
-let error_on_no_stdlib = not (Filename.is_relative Sys.argv.(0))
+let is_relative = not (Filename.is_relative Sys.argv.(0))
 
 (* Should we load the deprecated wrapper? *)
 let deprecated = ref true
@@ -113,8 +113,8 @@ let eval_script ~stdlib ~deprecated ~eval_mode expr =
             let parsed_term, term, typing_env =
               if stdlib then (
                 let { Term_stdlib.parsed_term; term = expanded_term; env } =
-                  Term_stdlib.append
-                    ?libs:(Option.map (fun s -> [s]) !stdlib_override)
+                  let libs = Option.map (fun s -> [s]) !stdlib_override in
+                  Term_stdlib.append ?libs
                     ~config:
                       {
                         config with
@@ -123,7 +123,8 @@ let eval_script ~stdlib ~deprecated ~eval_mode expr =
                         trim = false;
                         typing_env = None;
                       }
-                    ~error_on_no_stdlib:true ~deprecated ~parsed_term term
+                    ~error_on_no_stdlib:((not is_relative) || libs <> None)
+                    ~deprecated ~parsed_term term
                 in
                 ( parsed_term,
                   expanded_term,
