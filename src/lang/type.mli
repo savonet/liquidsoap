@@ -168,4 +168,4 @@ val is_source : t -> bool
 module Custom = Type_custom
 
 val register_type : string -> (unit -> t) -> unit
-val find_type_opt : string -> (unit -> t) option
+val find_opt_typ : string -> (unit -> t) option

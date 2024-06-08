@@ -119,6 +119,7 @@
   lang
   lang_core
   lang_error
+  lang_eval
   lang_regexp
   lang_string
   lexer

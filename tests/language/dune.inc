@@ -530,7 +530,7 @@
   (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
- (action (run %{run_test} type_errors.liq liquidsoap --stdlib %{stdlib} %{test_liq} type_errors.liq --top-level)))
+ (action (run %{run_test} type_errors.liq liquidsoap --stdlib %{stdlib} %{test_liq} type_errors.liq)))
 
 (rule
  (alias citest)

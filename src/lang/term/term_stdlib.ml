@@ -1,13 +1,13 @@
 open Runtime_term
 
-let rec append_ref ~ref = function
+let rec append_ref = function
   | { term = `Let ({ body } as _let) } as tm ->
-      { tm with term = `Let { _let with body = append_ref ~ref body } }
+      { tm with term = `Let { _let with body = append_ref body } }
   | { term = `Seq (t1, t2) } as tm ->
-      { tm with term = `Seq (t1, append_ref ~ref t2) }
+      { tm with term = `Seq (t1, append_ref t2) }
   | tm ->
       Term.make ?pos:tm.t.Type.pos
-        (`Seq (tm, Term.make ?pos:tm.t.Type.pos (`Cache_env ref)))
+        (`Seq (tm, Term.make ?pos:tm.t.Type.pos (`Cache_env (ref []))))
 
 let rec extract_ref = function
   | { term = `Let { body } } -> extract_ref body
@@ -41,7 +41,7 @@ type stdlib = {
   env : unit -> Typing.env;
 }
 
-let append ?libs ~config ~error_on_no_stdlib ~deprecated ~parsed_term term =
+let append ?libs ~cache ~error_on_no_stdlib ~deprecated ~parsed_term term =
   let libs =
     match libs with
       | Some libs -> libs
@@ -52,15 +52,12 @@ let append ?libs ~config ~error_on_no_stdlib ~deprecated ~parsed_term term =
   let parsed_stdlib = Term_reducer.mk_expr Term_reducer.program lexbuf in
   let stdlib = Term_reducer.to_term parsed_stdlib in
   let env () =
-    let ref = ref [] in
-    let stdlib = append_ref ~ref stdlib in
-    Runtime.(
-      report lexbuf (fun ~throw () ->
-          let stdlib =
-            type_term ~config ~lib:true ~throw ~parsed_term:parsed_stdlib stdlib
-          in
-          ref := extract_ref stdlib));
-    !ref
+    let stdlib = append_ref stdlib in
+    let stdlib =
+      Runtime.type_term ~name:"stdlib" ~cache ~trim:false ~lib:true
+        ~parsed_term:parsed_stdlib stdlib
+    in
+    extract_ref stdlib
   in
   {
     parsed_term = prepend_parsed_stdlib ~parsed_term parsed_stdlib;

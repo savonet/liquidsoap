@@ -58,8 +58,13 @@ let cache_filename config =
         let fname = Printf.sprintf "%s.liq-cache" hash in
         Some (Filename.concat dir fname)
 
-let retrieve ~name ~trim parsed_term : Term.t option =
-  Startup.time (Printf.sprintf "%s cache retrieval" name) (fun () ->
+let retrieve ?name ~trim parsed_term : Term.t option =
+  let report fn =
+    match name with
+      | None -> fn ()
+      | Some name -> Startup.time (Printf.sprintf "%s cache retrieval" name) fn
+  in
+  report (fun () ->
       try
         match cache_filename { trim; parsed_term } with
           | None -> None
@@ -70,15 +75,21 @@ let retrieve ~name ~trim parsed_term : Term.t option =
                   ~finally:(fun () -> close_in ic)
                   (fun () ->
                     let term = Marshal.from_channel ic in
-                    Startup.message "Loading %s from cache!" name;
+                    (match name with
+                      | Some name ->
+                          Startup.message "Loading %s from cache!" name
+                      | None -> ());
                     Some term))
               else None
       with
         | Failure msg
           when String.starts_with ~prefix:"input_value: unknown code module" msg
           ->
-            Startup.message "Liquidsoap binary changed: %s cache invalidated!"
-              name;
+            (match name with
+              | Some name ->
+                  Startup.message
+                    "Liquidsoap binary changed: %s cache invalidated!" name
+              | None -> ());
             None
         | exn ->
             let bt = Printexc.get_backtrace () in

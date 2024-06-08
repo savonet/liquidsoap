@@ -431,7 +431,7 @@ let register_type name custom =
         in
         Hashtbl.replace custom_types root (fun () -> f (root_mk_typ ()) names)
 
-let find_type_opt = Hashtbl.find_opt custom_types
+let find_opt_typ = Hashtbl.find_opt custom_types
 
 let rec mk_invariant t =
   match t with

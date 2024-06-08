@@ -28,7 +28,7 @@ let default_id3_version = 3
 let log = Log.make ["hls"; "output"]
 
 let default_name =
-  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled
     {|fun (~position, ~extname, base) -> "#{base}_#{position}.#{extname}"|}
 
 let hls_proto frame_t =

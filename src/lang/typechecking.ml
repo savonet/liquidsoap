@@ -425,7 +425,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
 let display_types = ref false
 
 (* The simple definition for external use. *)
-let check ?env ?(ignored = false) ~throw e =
+let check ?env ~throw e =
   let print_toplevel = !display_types in
   try
     let env =
@@ -437,7 +437,6 @@ let check ?env ?(ignored = false) ~throw e =
     if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
       add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." Repr.print_type e.t);
-    if ignored && not (can_ignore e.t) then throw (Ignored e);
     pop_tasks ()
   with e ->
     let bt = Printexc.get_raw_backtrace () in
