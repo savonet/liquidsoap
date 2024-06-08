@@ -72,7 +72,7 @@ let retrieve ?name ~trim parsed_term : Term.t option =
               if Sys.file_exists filename then (
                 let ic = open_in_bin filename in
                 Fun.protect
-                  ~finally:(fun () -> close_in ic)
+                  ~finally:(fun () -> close_in_noerr ic)
                   (fun () ->
                     let term = Marshal.from_channel ic in
                     (match name with
@@ -104,13 +104,20 @@ let cache ~trim ~parsed_term term =
     match cache_filename { trim; parsed_term } with
       | None -> ()
       | Some filename ->
-          let oc = open_out filename in
+          let tmp_file = Filename.temp_file "liq" "tmp" in
+          let oc = open_out tmp_file in
           Fun.protect
-            ~finally:(fun () -> close_out oc)
+            ~finally:(fun () ->
+              close_out_noerr oc;
+              Sys.remove tmp_file)
             (fun () ->
-              let term = Marshal.to_channel oc term [Marshal.Closures] in
+              Marshal.to_channel oc term [Marshal.Closures];
+              (try Sys.rename tmp_file filename
+               with _ ->
+                 Utils.copy
+                   ~mode:[Open_creat; Open_trunc; Open_binary]
+                   tmp_file filename);
               let fn = !Hooks.cache_maintenance in
-              fn ();
-              term)
+              fn ())
   with exn ->
     Startup.message "Error while saving cache: %s" (Printexc.to_string exn)
