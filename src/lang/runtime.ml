@@ -25,7 +25,7 @@
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
-type typing_env = { term : Term.t; env : Typing.env }
+type append_stdlib = Term.t -> Term.t * Typing.env
 
 (** {1 Error reporting} *)
 
@@ -211,7 +211,7 @@ let report :
       throw exn;
       default ())
 
-let type_term ?name ?env ~cache ~trim ~lib ~parsed_term term =
+let type_term ?name ?stdlib ~cache ~trim ~lib ~parsed_term term =
   let cached_term =
     if cache then Term_cache.retrieve ?name ~trim parsed_term else None
   in
@@ -226,12 +226,12 @@ let type_term ?name ?env ~cache ~trim ~lib ~parsed_term term =
             | Some name ->
                 Startup.time (Printf.sprintf "Typechecking %s" name) fn
         in
-        let checked_term, env =
-          match env with
+        let full_term, checked_term, env =
+          match stdlib with
             | Some fn ->
-                let { term; env } = fn () in
-                (term, Some env)
-            | None -> (term, None)
+                let full_term, env = fn term in
+                (full_term, term, Some env)
+            | None -> (term, term, None)
         in
         time (fun () ->
             report
@@ -243,9 +243,9 @@ let type_term ?name ?env ~cache ~trim ~lib ~parsed_term term =
         (* Check for unused variables, relies on types *)
         report
           ~default:(fun () -> ())
-          (fun ~throw () -> Term.check_unused ~throw ~lib term);
-        if trim then Term_trim.trim_term term;
-        if cache then Term_cache.cache ~trim ~parsed_term term;
+          (fun ~throw () -> Term.check_unused ~throw ~lib full_term);
+        if trim then Term_trim.trim_term full_term;
+        if cache then Term_cache.cache ~trim ~parsed_term full_term;
         term
 
 let eval_term ?name ~toplevel ast =

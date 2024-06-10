@@ -24,7 +24,7 @@
 
 exception Error
 
-type typing_env = { term : Term.t; env : Typing.env }
+type append_stdlib = Term.t -> Term.t * Typing.env
 
 (** Report lexbuf related errors. *)
 val report :
@@ -36,7 +36,7 @@ val report :
 (** Typecheck a term and return it. Might return a cached value! *)
 val type_term :
   ?name:string ->
-  ?env:(unit -> typing_env) ->
+  ?stdlib:append_stdlib ->
   cache:bool ->
   trim:bool ->
   lib:bool ->

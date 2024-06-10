@@ -99,21 +99,16 @@ let retrieve ?name ~trim parsed_term : Term.t option =
             else Startup.message "Error while loading cache: %s" exn;
             None)
 
-let tmp_id =
-  let c = Atomic.make (-1) in
-  fun () -> Atomic.fetch_and_add c 1
-
 let cache ~trim ~parsed_term term =
   try
     match cache_filename { trim; parsed_term } with
       | None -> ()
       | Some filename ->
-          let tmp_file =
-            Filename.(
-              concat (dirname filename)
-                (Printf.sprintf "tmp-%d.liq-cache" (tmp_id ())))
+          let tmp_file, oc =
+            Filename.open_temp_file
+              ~temp_dir:(Filename.dirname filename)
+              "tmp" ".liq-cache"
           in
-          let oc = open_out tmp_file in
           Fun.protect
             ~finally:(fun () ->
               close_out_noerr oc;

@@ -1,14 +1,7 @@
-type stdlib = {
-  parsed_term : Parsed_term.t;
-  term : Term.t;
-  env : unit -> Typing.env;
-}
-
-val append :
+val prepare :
   ?libs:string list ->
   cache:bool ->
   error_on_no_stdlib:bool ->
   deprecated:bool ->
-  parsed_term:Parsed_term.t ->
-  Term.t ->
-  stdlib
+  Parsed_term.t ->
+  Parsed_term.t * (Term.t -> Term.t * Typing.env)

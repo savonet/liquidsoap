@@ -109,7 +109,7 @@ and scheme = var list * t
 and meth = {
   meth : string;  (** name of the method *)
   optional : bool;  (** is the method optional? *)
-  scheme : scheme;  (** type scheme *)
+  mutable scheme : scheme;  (** type scheme *)
   doc : string;  (** documentation *)
   json_name : string option;  (** name when represented as JSON *)
 }

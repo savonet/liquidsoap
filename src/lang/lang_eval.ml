@@ -3,25 +3,23 @@ type stdlib = [ `Disabled | check_stdlib ]
 
 let type_term ?name ?(cache = true) ?(trim = true) ?(deprecated = false) ~stdlib
     ~parsed_term term =
-  let parsed_term, term, env =
+  let parsed_term, stdlib =
     match stdlib with
-      | `Disabled -> (parsed_term, term, None)
+      | `Disabled -> (parsed_term, None)
       | #check_stdlib as stdlib ->
-          let { Term_stdlib.parsed_term; term = expanded_term; env } =
+          let parsed_term, env =
             let libs, error_on_no_stdlib =
               match stdlib with
                 | `Override s -> (Some [s], true)
                 | `If_present -> (None, false)
                 | `Force -> (None, true)
             in
-            Term_stdlib.append ?libs ~cache ~error_on_no_stdlib ~deprecated
-              ~parsed_term term
+            Term_stdlib.prepare ?libs ~cache ~error_on_no_stdlib ~deprecated
+              parsed_term
           in
-          ( parsed_term,
-            expanded_term,
-            Some (fun () -> { Runtime.term; env = env () }) )
+          (parsed_term, Some env)
   in
-  Runtime.type_term ?name ~cache ~trim ?env ~lib:false ~parsed_term term
+  Runtime.type_term ?name ~cache ~trim ?stdlib ~lib:false ~parsed_term term
 
 let eval ?(toplevel = false) ?(typecheck = true) ?cache ?deprecated ?ty ?name
     ~stdlib s =

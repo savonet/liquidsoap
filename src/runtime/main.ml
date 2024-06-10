@@ -83,6 +83,9 @@ let stdlib : Liquidsoap_lang.Lang_eval.stdlib ref =
 (* Shall we use the cache *)
 let cache = ref true
 
+(* Display cache key. *)
+let show_cache_key = ref false
+
 (* Should we load the deprecated wrapper? *)
 let deprecated = ref true
 
@@ -99,7 +102,10 @@ let eval_script expr =
         let parsed_term, term = Runtime.parse expr in
         ignore
           (Lang.type_term ~name:"main script" ~parsed_term ~stdlib:!stdlib
-             ~deprecated:!deprecated term)
+             ~trim:true ~deprecated:!deprecated term);
+        if !show_cache_key then
+          Printf.printf "Term cached with key %s\n"
+            (Parsed_term.hash parsed_term)
     | (`Eval as v) | (`Eval_toplevel as v) ->
         ignore
           (Lang.eval ~toplevel:(v = `Eval_toplevel) ~cache:!cache
@@ -234,6 +240,7 @@ let options =
            (fun () ->
              run_streams := false;
              eval_mode := `Parse_and_type;
+             show_cache_key := true;
              cache := true),
          "Parse, type-check and save script's cache but do no run it." );
        (["--no-cache"], Arg.Clear cache, "Disable cache");
