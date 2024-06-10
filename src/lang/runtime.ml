@@ -226,7 +226,7 @@ let type_term ?name ?env ~cache ~trim ~lib ~parsed_term term =
             | Some name ->
                 Startup.time (Printf.sprintf "Typechecking %s" name) fn
         in
-        let term, env =
+        let checked_term, env =
           match env with
             | Some fn ->
                 let { term; env } = fn () in
@@ -236,7 +236,7 @@ let type_term ?name ?env ~cache ~trim ~lib ~parsed_term term =
         time (fun () ->
             report
               ~default:(fun () -> ())
-              (fun ~throw () -> Typechecking.check ?env ~throw term));
+              (fun ~throw () -> Typechecking.check ?env ~throw checked_term));
 
         if Lazy.force Term.debug then
           Printf.eprintf "Checking for unused variables...\n%!";
