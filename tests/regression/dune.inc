@@ -913,12 +913,3 @@
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} video-only.liq liquidsoap %{test_liq} video-only.liq)))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-  GH2573.output
-  (:check_output ../check_output.exe)
-  (:run_test ../run_test.exe))
- (action (run %{run_test} GH2573.output %{check_output})))

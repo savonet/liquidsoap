@@ -30,7 +30,7 @@
   (source_tree ../../src/libs))
  (target cover.png)
  (action
-  (run dune exec ../../src/bin/liquidsoap.exe -- --stdlib %{stdlib} ./write_cover.liq -- %{target})))
+  (run ../../src/bin/liquidsoap.exe ./write_cover.liq -- %{target})))
 
 (rule
  (alias citest)
@@ -60,7 +60,6 @@
 
 (rule
  (alias citest)
- (package liquidsoap)
  (deps
   cover.png
   cover.mp3
