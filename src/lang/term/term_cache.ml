@@ -104,12 +104,11 @@ let cache ~trim ~parsed_term term =
     match cache_filename { trim; parsed_term } with
       | None -> ()
       | Some filename ->
-          let tmp_file = Filename.temp_file "liq" "tmp" in
-          let oc = open_out tmp_file in
+          let tmp_file, oc = Filename.open_temp_file "liq" "tmp" in
           Fun.protect
             ~finally:(fun () ->
               close_out_noerr oc;
-              Sys.remove tmp_file)
+              if Sys.file_exists tmp_file then Sys.remove tmp_file)
             (fun () ->
               Marshal.to_channel oc term [Marshal.Closures];
               (try Sys.rename tmp_file filename
