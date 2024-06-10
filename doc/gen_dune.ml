@@ -97,13 +97,12 @@ let mk_generated_rule (file, option, header) =
   (alias doc)
   (deps
     %s
-    (:stdlib ../src/libs/stdlib.liq)
     (source_tree ../src/libs))
   (target %s)
   (action
     (with-stdout-to %s%s
       (setenv PAGER none
-        (run %%{bin:liquidsoap} --stdlib %%{stdlib} %s)))))%s
+        (run %%{bin:liquidsoap} %s)))))%s
 |}
     header_deps file file header_action option header_close
 
@@ -114,11 +113,10 @@ let mk_test_rule file =
   (alias doctest)
   (package liquidsoap)
   (deps
-    (:stdlib ../src/libs/stdlib.liq)
     (source_tree ../src/libs)
     (:test_liq %s)
   )
-  (action (run %%{bin:liquidsoap} --stdlib %%{stdlib} --check --no-fallible-check %s))
+  (action (run %%{bin:liquidsoap} --check --no-fallible-check %s))
 )
 |}
     file file
