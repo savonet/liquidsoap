@@ -54,8 +54,3 @@ let check_readable ?current_dir ~pos path =
 let string_of_float f =
   let s = string_of_float f in
   if s.[String.length s - 1] = '.' then s ^ "0" else s
-
-let rec recmkdir dir =
-  if not (Sys.file_exists dir) then (
-    recmkdir (Filename.dirname dir);
-    Sys.mkdir dir 0o755)
