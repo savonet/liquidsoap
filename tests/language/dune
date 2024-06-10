@@ -26,11 +26,11 @@
  (deps
   write_cover.liq
   ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq))
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs))
  (target cover.png)
  (action
-  (run dune exec ../../src/bin/liquidsoap.exe ./write_cover.liq -- %{target})))
+  (run dune exec ../../src/bin/liquidsoap.exe -- --stdlib %{stdlib} ./write_cover.liq -- %{target})))
 
 (rule
  (alias citest)
