@@ -246,7 +246,7 @@ let type_term ?name ?stdlib ~cache ~trim ~lib ~parsed_term term =
           (fun ~throw () -> Term.check_unused ~throw ~lib full_term);
         if trim then Term_trim.trim_term full_term;
         if cache then Term_cache.cache ~trim ~parsed_term full_term;
-        term
+        full_term
 
 let eval_term ?name ~toplevel ast =
   let eval () =

@@ -196,20 +196,6 @@
 
 
 (executable
- (name readavi)
- (modules readavi)
- (libraries liquidsoap_core liquidsoap_optionals))
-
-(rule
- (alias citest)
- (package liquidsoap)
- (deps
-
-  (:readavi readavi.exe))
- (action (run %{readavi} )))
-
-
-(executable
  (name start_stop_test)
  (modules start_stop_test)
  (libraries liquidsoap_core liquidsoap_optionals))
