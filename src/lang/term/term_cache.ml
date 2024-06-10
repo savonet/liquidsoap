@@ -1,55 +1,8 @@
-let cache_enabled () =
-  try
-    let venv = Unix.getenv "LIQ_CACHE" in
-    venv = "1" || venv = "true"
-  with Not_found -> true
-
-let default_cache_dir =
-  ref (fun () ->
-      try
-        match Sys.os_type with
-          | "Win32" ->
-              let dir = Filename.dirname Sys.executable_name in
-              let cwd = Sys.getcwd () in
-              Sys.chdir dir;
-              let dir = Sys.getcwd () in
-              Sys.chdir cwd;
-              Some (Filename.concat dir ".cache")
-          | _ ->
-              Some
-                (Filename.concat
-                   (Filename.concat (Unix.getenv "HOME") ".cache")
-                   "liquidsoap")
-      with Not_found -> None)
-
-let cache_dir () =
-  if cache_enabled () then (
-    match
-      try Some (Unix.getenv "LIQ_CACHE_DIR")
-      with Not_found ->
-        let fn = !default_cache_dir in
-        fn ()
-    with
-      | None ->
-          Startup.message
-            "Could not find default cache directory! You can set it using the \
-             `$LIQ_CACHE_DIR` environment variable.";
-          None
-      | Some _ as v -> v)
-  else (
-    Startup.message "Cache disabled!";
-    None)
-
-let rec recmkdir dir =
-  if not (Sys.file_exists dir) then (
-    recmkdir (Filename.dirname dir);
-    Sys.mkdir dir 0o755)
-
 let cache_filename ~toplevel term =
-  match cache_dir () with
+  match Cache.dir () with
     | None -> None
     | Some dir ->
-        recmkdir dir;
+        Utils.recmkdir dir;
         let hash = Parsed_term.hash term in
         let fname =
           Printf.sprintf "%s%s.liq-cache" hash

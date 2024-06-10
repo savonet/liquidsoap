@@ -106,6 +106,7 @@
   builtins_string
   builtins_yaml
   builtins_ref
+  cache
   doc
   environment
   error
