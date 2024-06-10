@@ -99,24 +99,29 @@ let retrieve ?name ~trim parsed_term : Term.t option =
             else Startup.message "Error while loading cache: %s" exn;
             None)
 
+let tmp_id =
+  let c = Atomic.make (-1) in
+  fun () -> Atomic.fetch_and_add c 1
+
 let cache ~trim ~parsed_term term =
   try
     match cache_filename { trim; parsed_term } with
       | None -> ()
       | Some filename ->
-          let tmp_file, oc = Filename.open_temp_file "liq" "tmp" in
+          let tmp_file =
+            Filename.(
+              concat (dirname filename)
+                (Printf.sprintf "tmp-%d.liq-cache" (tmp_id ())))
+          in
+          let oc = open_out tmp_file in
           Fun.protect
             ~finally:(fun () ->
               close_out_noerr oc;
               if Sys.file_exists tmp_file then Sys.remove tmp_file)
             (fun () ->
               Marshal.to_channel oc term [Marshal.Closures];
-              (try Sys.rename tmp_file filename
-               with _ ->
-                 Utils.copy
-                   ~mode:[Open_creat; Open_trunc; Open_binary]
-                   tmp_file filename);
-              let fn = !Hooks.cache_maintenance in
-              fn ())
+              Sys.rename tmp_file filename);
+          let fn = !Hooks.cache_maintenance in
+          fn ()
   with exn ->
     Startup.message "Error while saving cache: %s" (Printexc.to_string exn)

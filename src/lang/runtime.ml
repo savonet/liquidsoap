@@ -226,14 +226,14 @@ let type_term ?name ?env ~cache ~trim ~lib ~parsed_term term =
             | Some name ->
                 Startup.time (Printf.sprintf "Typechecking %s" name) fn
         in
+        let term, env =
+          match env with
+            | Some fn ->
+                let { term; env } = fn () in
+                (term, Some env)
+            | None -> (term, None)
+        in
         time (fun () ->
-            let term, env =
-              match env with
-                | Some fn ->
-                    let { term; env } = fn () in
-                    (term, Some env)
-                | None -> (term, None)
-            in
             report
               ~default:(fun () -> ())
               (fun ~throw () -> Typechecking.check ?env ~throw term));
