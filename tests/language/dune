@@ -30,7 +30,7 @@
   (:stdlib ../../src/libs/stdlib.liq))
  (target cover.png)
  (action
-  (run dune ../../src/bin/liquidsoap.exe ./write_cover.liq -- %{target})))
+  (run dune exec ../../src/bin/liquidsoap.exe ./write_cover.liq -- %{target})))
 
 (rule
  (alias citest)
