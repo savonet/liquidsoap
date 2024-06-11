@@ -6,8 +6,7 @@ module Vars = Set.Make (String)
 module Methods = struct
   include Methods
 
-  type 'a typ = (string, 'a) t
-  type 'a t = 'a typ
+  type nonrec 'a t = (string, 'a) t [@@deriving hash]
 end
 
 type custom [@@deriving hash]

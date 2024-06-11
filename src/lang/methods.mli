@@ -22,7 +22,9 @@
 
 (* Immutable fast hash *)
 
-type ('a, 'b) t
+open Term_hash
+
+type ('a, 'b) t [@@deriving hash]
 
 val from_list : ('a * 'b) list -> ('a, 'b) t
 val is_empty : ('a, 'b) t -> bool
