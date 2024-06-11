@@ -44,7 +44,13 @@ cd /tmp/liquidsoap-full/liquidsoap
 
 ./.github/scripts/checkout-deps.sh
 
-opam install -y osc-unix
+git clone https://github.com/savonet/ocaml-mem_usage.git
+cd ocaml-mem_usage
+opam install -y .
+cd ..
+
+opam update
+opam install -y tls.0.17.4 saturn_lockfree.0.4.1 ppx_hash
 
 cd /tmp/liquidsoap-full
 
@@ -87,7 +93,7 @@ fi
 
 echo "::group::Print build config"
 
-./liquidsoap --build-config
+dune exec -- liquidsoap --build-config
 
 echo "::endgroup::"
 
@@ -95,7 +101,7 @@ echo "::group::Basic tests"
 
 cd /tmp/liquidsoap-full/liquidsoap
 
-./liquidsoap --version
-./liquidsoap --check 'print("hello world")'
+dune exec -- liquidsoap --version
+dune exec -- liquidsoap --check 'print("hello world")'
 
 echo "::endgroup::"
