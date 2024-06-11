@@ -76,7 +76,12 @@ let run () =
   if String.starts_with ~prefix:"liquidsoap" cmd then (
     let pid =
       Unix.create_process cmd
-        (Array.append args [| "--cache-only" |])
+        (Array.concat
+           [
+             [| args.(0) |];
+             [| "--cache-only" |];
+             Array.sub args 1 (Array.length args - 1);
+           ])
         stdin stdout stdout
     in
     pid_ref := Some pid;
