@@ -34,7 +34,7 @@ end
 def request.queue(
   ~id=null(),
   ~interactive=true,
-  ~prefetch=1,
+  ~prefetch=null(),
   ~native=false,
   ~queue=[],
   ~timeout=20.
@@ -247,7 +247,7 @@ end
 # @param uri URI where to find the file
 def single(
   ~id=null("single"),
-  ~prefetch=1,
+  ~prefetch=null(),
   ~timeout=20.,
   ~fallible=false,
   ~cue_in_metadata=null("liq_cue_in"),

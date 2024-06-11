@@ -198,7 +198,7 @@ let stdlib_native = native
 def playlist.list(
   ~id=null(),
   ~check_next=null(),
-  ~prefetch=1,
+  ~prefetch=null(),
   ~loop=true,
   ~mode="normal",
   ~native=false,
@@ -464,7 +464,7 @@ end
 def replaces playlist(
   ~id=null(),
   ~check_next=null(),
-  ~prefetch=1,
+  ~prefetch=null(),
   ~loop=true,
   ~max_fail=10,
   ~mime_type=null(),

@@ -8,7 +8,7 @@ b =
   metadata.map(
     id="b",
     update=false,
-    (fun (_) -> [("source", "b"), ("liq_cross_duration", "1.1")]),
+    (fun (_) -> [("source", "b"), ("liq_cross_end_duration", "1.1")]),
     b
   )
 
@@ -16,7 +16,7 @@ c = sine(duration=5., 440.)
 c = metadata.map(id="c", update=false, (fun (_) -> [("source", "c")]), c)
 
 s = sequence([a, b, c])
-s = crossfade(persist_override=true, duration=5., s)
+s = crossfade(end_duration=5., start_duration=4., s)
 
 track_count = ref(0)
 
@@ -29,7 +29,7 @@ def on_metadata(m) =
     track_count() == 2
   then
     if m["source"] != "b" then test.fail() end
-    if s.start_duration() != 1.1 then test.fail() end
+    if s.start_duration() != 4. then test.fail() end
     if s.end_duration() != 1.1 then test.fail() end
   end
 
@@ -37,8 +37,8 @@ def on_metadata(m) =
     track_count() == 3
   then
     if m["source"] != "c" then test.fail() end
-    if s.start_duration() != 1.1 then test.fail() end
-    if s.end_duration() != 1.1 then test.fail() end
+    if s.start_duration() != 4. then test.fail() end
+    if s.end_duration() != 5. then test.fail() end
     success := true
   end
 end
@@ -47,7 +47,7 @@ s.on_metadata(on_metadata)
 clock.assign_new(sync="none", [s])
 
 def on_stop() =
-  if !success then test.pass() else test.fail() end
+  if success() then test.pass() else test.fail() end
 end
 
 output.dummy(fallible=true, on_stop=on_stop, s)

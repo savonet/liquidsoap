@@ -279,5 +279,6 @@ let _ =
           | Request.Ready -> "ready"
           | Request.Playing -> "playing"
           | Request.Destroyed -> "destroyed"
+          | Request.Failed -> "failed"
       in
       Lang.string s)
