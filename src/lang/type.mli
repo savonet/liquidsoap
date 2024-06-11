@@ -29,7 +29,7 @@ val debug_variance : bool ref
 open Type_base
 
 type variance = [ `Covariant | `Invariant ]
-type t = Type_base.t = private { pos : Pos.Option.t; descr : descr }
+type t = Type_base.t = { pos : Pos.Option.t; descr : descr }
 type custom = Type_base.custom
 
 type custom_handler = Type_base.custom_handler = {
@@ -135,7 +135,6 @@ val fresh : t -> t
 val make : ?pos:Pos.t -> descr -> t
 val deref : t -> t
 val demeth : t -> t
-val deep_demeth : t -> t
 val remeth : t -> t -> t
 val invoke : t -> string -> scheme
 val has_meth : t -> string -> bool
