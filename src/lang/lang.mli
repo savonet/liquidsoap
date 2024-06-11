@@ -251,7 +251,7 @@ val string_of_regexp : regexp -> string
 
 type stdlib = [ `Disabled | `If_present | `Force | `Override of string ]
 
-(** Type a term, possible returning the cached term instead. *)
+(** Type a term, possibly returning the cached term instead. *)
 val type_term :
   ?name:string ->
   ?cache:bool ->
