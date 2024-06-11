@@ -26,13 +26,6 @@ exception Error
 
 type append_stdlib = Term.t -> Term.t * Typing.env
 
-(** Report lexbuf related errors. *)
-val report :
-  ?lexbuf:Sedlexing.lexbuf ->
-  ?default:(unit -> 'a) ->
-  (throw:(exn -> unit) -> unit -> 'a) ->
-  'a
-
 (** Typecheck a term and return it. Might return a cached value! *)
 val type_term :
   ?name:string ->

@@ -32,6 +32,10 @@ let eval ?(toplevel = false) ?(typecheck = true) ?cache ?deprecated ?ty ?name
             (`Cast { cast = term; typ })
   in
   let toplevel, trim =
+    (* Registering defined operators at top-level prevents reclaiming memory from unused operators
+       so we try to avoid it by default. We need it for all documentation. Also, as soon as the user
+       script contains [let eval ...], we have to retain values at top-level as the string being
+       parsed will also expect the standard library to be available. *)
     match (stdlib, Term_reducer.needs_toplevel ()) with
       | `Disabled, _ -> (toplevel, not toplevel)
       | _, true -> (true, false)

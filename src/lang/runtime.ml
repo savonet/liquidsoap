@@ -196,6 +196,11 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
         (Printexc.to_string e) bt;
       raise Error
 
+(* This is not great but it works for now. The problem being that we are relying on exception
+   raising and catching to transmit language error, translate them into human readable errors and
+   optionally ignore them with a warning. But, in some cases, we still want to return afterward
+   so the return value has to be something else than [unit] in those cases. Essentially, this means
+   that [default] becomes [fun () -> raise Error] to keep typechecking consistent.. *)
 let report :
       'a.
       ?lexbuf:Sedlexing.lexbuf ->

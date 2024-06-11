@@ -43,6 +43,11 @@ let rec prepend_parsed_stdlib =
         { tm with term = `Seq (t1, prepend_parsed_stdlib ~parsed_term t2) }
     | tm -> Parsed_term.make ~pos:tm.pos (`Seq (tm, parsed_term))
 
+(** To be cacheable, the standard library is parsed and converted to a term.
+    We add [`Cache_env] to it and type-check it. This results in having the full
+    standard library env stored in it. We can then cache this term and retrieve the full
+    env using it. Next, we append the user script to the resulting term and typecheck
+    the user script only using the standard library environment. *)
 let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
   let libs =
     match libs with
