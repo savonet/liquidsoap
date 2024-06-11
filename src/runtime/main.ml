@@ -102,7 +102,7 @@ let eval_script expr =
         let parsed_term, term = Runtime.parse expr in
         ignore
           (Lang.type_term ~name:"main script" ~parsed_term ~stdlib:!stdlib
-             ~trim:false ~deprecated:!deprecated term);
+             ~trim:true ~deprecated:!deprecated term);
         if !show_cache_key then
           Printf.printf "Term cached with key %s\n"
             (Parsed_term.hash parsed_term)
