@@ -22,9 +22,14 @@
 
 (* Immutable fast hash *)
 
-open Term_hash
+type ('a, 'b) t
 
-type ('a, 'b) t [@@deriving hash]
+val hash_fold_t :
+  (Term_hash.state -> 'a -> Term_hash.state) ->
+  (Term_hash.state -> 'b -> Term_hash.state) ->
+  Term_hash.state ->
+  ('a, 'b) t ->
+  Term_hash.state
 
 val from_list : ('a * 'b) list -> ('a, 'b) t
 val is_empty : ('a, 'b) t -> bool
