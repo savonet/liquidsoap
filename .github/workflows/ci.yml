@@ -309,7 +309,7 @@ jobs:
           sudo apt-get update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
-          sudo apt-get install libpcre3-dev
+          sudo apt-get -y install libpcre3-dev
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
