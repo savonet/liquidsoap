@@ -309,6 +309,7 @@ jobs:
           sudo apt-get update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
+          sudo apt-get install libpcre3-dev
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
@@ -319,7 +320,7 @@ jobs:
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E opam install -y ssl.0.7.0
+          sudo -u opam -E opam install -y ssl.0.7.0 saturn_lockfreet
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}" ${{ matrix.platform }}
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
