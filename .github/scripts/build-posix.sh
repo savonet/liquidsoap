@@ -50,7 +50,7 @@ opam install -y .
 cd ..
 
 opam update
-opam install -y magic-mime saturn_lockfree.0.4.1 dune.3.14.2
+opam install -y magic-mime pcre
 
 cd /tmp/liquidsoap-full
 
