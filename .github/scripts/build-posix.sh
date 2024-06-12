@@ -50,7 +50,7 @@ opam install -y .
 cd ..
 
 opam update
-opam install -y magic-mime pcre
+opam install -y --confirm-level=unsafe-yes magic-mime pcre
 
 cd /tmp/liquidsoap-full
 
