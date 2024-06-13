@@ -70,7 +70,7 @@ opam remove -y --verbose $MINIMAL_EXCLUDE_DEPS
 
 cd /tmp/liquidsoap-full
 make clean
-cp PACKAGES.minimal-build PACKAGES
+cp PACKAGES.minimal PACKAGES
 rm .ocamlpath
 cd liquidsoap
 ./.github/scripts/build-posix.sh 1
