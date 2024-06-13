@@ -633,7 +633,7 @@ class hls_output p =
     method private open_out filename =
       let state = if Sys.file_exists filename then `Updated else `Created in
       let temp_dir =
-        Option.value ~default:(Filename.dirname filename) tmp_dir
+        Option.value ~default:(Filename.dirname filename) temp_dir
       in
       let tmp_file = Filename.temp_file ?temp_dir "liq" "tmp" in
       Unix.chmod tmp_file perms;
