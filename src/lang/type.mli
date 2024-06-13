@@ -87,7 +87,7 @@ type scheme = var list * t
 type meth = Type_base.meth = {
   meth : string;
   optional : bool;
-  mutable scheme : scheme;
+  scheme : scheme;
   doc : string;
   json_name : string option;
 }
