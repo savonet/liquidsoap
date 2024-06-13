@@ -271,6 +271,7 @@ val eval :
   ?deprecated:bool ->
   ?ty:t ->
   ?name:string ->
+  ?trim:bool ->
   stdlib:stdlib ->
   string ->
   value
