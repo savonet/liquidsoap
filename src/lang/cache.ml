@@ -90,3 +90,33 @@ let store fname value =
               fn ())
   with exn ->
     Startup.message "Error while saving cache: %s" (Printexc.to_string exn)
+
+(** A key-value table in cache. *)
+module Table = struct
+  module Map = Map.Make (String)
+
+  type 'a t = {
+    fname : string;
+    mutable table : 'a Map.t;
+    mutable changed : bool;
+  }
+
+  let load fname =
+    {
+      fname;
+      table = Option.value ~default:Map.empty (retrieve fname);
+      changed = false;
+    }
+
+  (* Get an element, and provide a function to compute it if not cached. *)
+  let get t k f =
+    match Map.find_opt k t.table with
+      | Some v -> v
+      | None ->
+          let v = f () in
+          t.table <- Map.add k v t.table;
+          t.changed <- true;
+          v
+
+  let store t = if t.changed then store t.fname t.table
+end

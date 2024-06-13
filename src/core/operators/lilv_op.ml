@@ -290,14 +290,35 @@ let get_audio_ports p =
   done;
   (Array.of_list (List.rev !i), Array.of_list (List.rev !o))
 
-let register_plugin plugin =
+type plugin = {
+  uri : string;
+  name : string;
+  inputs : int array;
+  outputs : int array;
+  maker : string;
+  class_label : string;
+}
+
+let load_plugin plugin =
+  let uri = Plugin.uri plugin in
+  let name = Plugin.name plugin in
   let inputs, outputs = get_audio_ports plugin in
-  let ni = Array.length inputs in
-  let no = Array.length outputs in
+  let maker = Plugin.author_name plugin in
+  let maker_homepage = Plugin.author_homepage plugin in
+  let maker =
+    if maker_homepage = "" then maker
+    else Printf.sprintf "[%s](%s)" maker maker_homepage
+  in
+  let maker = if maker = "" then "" else " by " ^ maker in
+  let class_label = Plugin.Class.label (Plugin.plugin_class plugin) in
+  { uri; name; inputs; outputs; maker; class_label }
+
+let register_plugin p =
+  let ni = Array.length p.inputs in
+  let no = Array.length p.outputs in
   (* Ensure that we support the number of channels. *)
   ignore (Audio_converter.Channel_layout.layout_of_channels ni);
   ignore (Audio_converter.Channel_layout.layout_of_channels no);
-  let liq_params, params = params_of_plugin plugin in
   let mono = ni = 1 && no = 1 in
   let input_t =
     Lang.frame_t Lang.unit_t
@@ -307,29 +328,17 @@ let register_plugin plugin =
     liq_params
     @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
   in
-  let maker = Plugin.author_name plugin in
-  let maker_homepage = Plugin.author_homepage plugin in
-  let maker =
-    if maker_homepage = "" then maker
-    else Printf.sprintf "[%s](%s)" maker maker_homepage
-  in
-  let maker = if maker = "" then "" else " by " ^ maker in
-  let descr = Plugin.name plugin ^ maker ^ "." in
-  let descr =
-    descr ^ " This is in class "
-    ^ Plugin.Class.label (Plugin.plugin_class plugin)
-    ^ "."
-  in
-  let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
+
+  let descr = p.name ^ p.maker ^ "." in
+  let descr = descr ^ " This is in class " ^ p.class_label ^ "." in
+  let descr = descr ^ " See <" ^ p.uri ^ ">." in
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio_n no) ())
   in
   ignore
-    (Lang.add_operator ~base:lv2
-       (Utils.normalize_parameter_string (Plugin.name plugin))
-       liq_params ~return_t ~category:`Audio ~flags:[`Extra] ~descr
-       (fun p ->
+    (Lang.add_operator ~base:lv2 (Utils.normalize_parameter_string p.name)
+       liq_params ~return_t ~category:`Audio ~flags:[`Extra] ~descr (fun p ->
          let f v = List.assoc v p in
          let source =
            try Some (Lang.to_source (f "")) with Not_found -> None
