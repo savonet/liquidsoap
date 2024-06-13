@@ -118,7 +118,12 @@ module Fresh : sig
 
   (* Use [selector] to pick variables to be re-freshed. If [level] is passed,
      all new variables are created with the given level. *)
-  val init : ?selector:(var -> bool) -> ?level:int -> unit -> mapper
+  val init :
+    ?preserve_positions:bool ->
+    ?selector:(var -> bool) ->
+    ?level:int ->
+    unit ->
+    mapper
 
   (* Generate a fresh var using the parameters passed when initializing
      the corresponding handler. Generated variables are memoized. *)

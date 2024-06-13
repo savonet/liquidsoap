@@ -277,14 +277,16 @@ let var ?(constraints = []) ?(level = max_int) ?pos () =
 module Fresh = struct
   type mapper = {
     level : int option;
+    preserve_positions : bool;
     selector : var -> bool;
     var_maps : (var, var) Hashtbl.t;
     link_maps : (int, var_t) Hashtbl.t;
   }
 
-  let init ?(selector = fun _ -> true) ?level () =
+  let init ?(preserve_positions = false) ?(selector = fun _ -> true) ?level () =
     {
       level;
+      preserve_positions;
       selector;
       var_maps = Hashtbl.create 10;
       link_maps = Hashtbl.create 10;
@@ -300,7 +302,7 @@ module Fresh = struct
         Hashtbl.replace var_maps var new_var;
         new_var)
 
-  let make ({ selector; link_maps } as h) t =
+  let make ({ preserve_positions; selector; link_maps } as h) t =
     let map_var = make_var h in
     let map_descr map = function
       | Int -> Int
@@ -352,7 +354,12 @@ module Fresh = struct
                  Hashtbl.replace link_maps id new_link;
                  new_link)
     in
-    let rec map { descr } = { pos = None; descr = map_descr map descr } in
+    let rec map { pos; descr } =
+      {
+        pos = (if preserve_positions then pos else None);
+        descr = map_descr map descr;
+      }
+    in
     map t
 end
 

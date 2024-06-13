@@ -134,12 +134,10 @@ let occur_check (a : var) =
     | { descr = List { t } } -> occur_check t
     | { descr = Nullable t } -> occur_check t
     | { descr = Meth ({ scheme = g, t }, u) } ->
-        let t =
-          if List.exists (Var.eq a) g then (
-            let handler = Type.Fresh.init ~selector:(fun v -> Var.eq a v) () in
-            Type.Fresh.make handler t)
-          else t
-        in
+        (* We assume that a is not a generalized variable of t. *)
+        (* TODO: we should not lower the level of bound variables, but this
+           complicates the code and has little effect. *)
+        assert (not (List.exists (Var.eq a) g));
         occur_check t;
         occur_check u
     | { descr = Arrow (p, t) } ->

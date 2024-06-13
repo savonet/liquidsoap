@@ -70,7 +70,9 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
     let { Runtime_term.var_name; var_id; env } = extract_ref stdlib in
     Atomic.set Type_base.var_name_atom var_name;
     Atomic.set Type_base.var_id_atom var_id;
-    let checked_term = Term.fresh ~handler:(Type.Fresh.init ()) term in
+    let checked_term =
+      Term.fresh ~handler:(Type.Fresh.init ~preserve_positions:true ()) term
+    in
     let full_term = prepend_stdlib ~term:checked_term stdlib in
     { Runtime.checked_term; full_term; env }
   in
