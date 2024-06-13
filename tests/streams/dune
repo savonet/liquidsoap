@@ -221,6 +221,7 @@
   ./ssl.key
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -228,7 +229,7 @@
    %{run_test}
    "Icecast SSL connection"
    liquidsoap
-   --no-stdlib
+   --stdlib
    %{stdlib}
    %{test_liq}
    ./icecast_ssl.liq)))
@@ -243,6 +244,7 @@
   ./ssl.key
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -250,7 +252,7 @@
    %{run_test}
    "Icecast TLS connection"
    liquidsoap
-   --no-stdlib
+   --stdlib
    %{stdlib}
    %{test_liq}
    ./icecast_tls.liq)))
@@ -265,6 +267,7 @@
   ./ssl.key
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -272,7 +275,7 @@
    %{run_test}
    "Icecast SSL+TLS connection"
    liquidsoap
-   --no-stdlib
+   --stdlib
    %{stdlib}
    %{test_liq}
    ./icecast_ssl_tls.liq)))
@@ -287,6 +290,7 @@
   ./ssl.key
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action
@@ -294,7 +298,7 @@
    %{run_test}
    "Icecast TLS+SSL connection"
    liquidsoap
-   --no-stdlib
+   --stdlib
    %{stdlib}
    %{test_liq}
    ./icecast_tls_ssl.liq)))

@@ -1,7 +1,9 @@
 
 (rule
   (alias doc)
-  (deps )
+  (deps
+
+    (source_tree ../src/libs))
   (target protocols.md)
   (action
     (with-stdout-to protocols.md
@@ -10,7 +12,9 @@
 
 (rule
   (alias doc)
-  (deps (:header content/reference-header.md))
+  (deps
+    (:header content/reference-header.md)
+    (source_tree ../src/libs))
   (target reference.md)
   (action
     (with-stdout-to reference.md
@@ -21,7 +25,9 @@
 
 (rule
   (alias doc)
-  (deps (:header content/reference-header.md))
+  (deps
+    (:header content/reference-header.md)
+    (source_tree ../src/libs))
   (target reference-extras.md)
   (action
     (with-stdout-to reference-extras.md
@@ -32,7 +38,9 @@
 
 (rule
   (alias doc)
-  (deps (:header content/reference-header.md))
+  (deps
+    (:header content/reference-header.md)
+    (source_tree ../src/libs))
   (target reference-deprecated.md)
   (action
     (with-stdout-to reference-deprecated.md
@@ -43,7 +51,9 @@
 
 (rule
   (alias doc)
-  (deps )
+  (deps
+
+    (source_tree ../src/libs))
   (target settings.md)
   (action
     (with-stdout-to settings.md
@@ -11758,6375 +11768,1250 @@
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/append-silence.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/append-silence.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/append-silence.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/archive-cleaner.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/archive-cleaner.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/archive-cleaner.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/basic-radio.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/basic-radio.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/basic-radio.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/beets-amplify.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/beets-amplify.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/beets-amplify.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/beets-protocol-short.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/beets-protocol-short.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/beets-protocol-short.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/beets-protocol.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/beets-protocol.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/beets-protocol.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/beets-source.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/beets-source.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/beets-source.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/blank-detect.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/blank-detect.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/blank-detect.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/blank-sorry.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/blank-sorry.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/blank-sorry.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/complete-case.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/complete-case.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/complete-case.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/cross.smart.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/cross.smart.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/cross.smart.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/crossfade.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/crossfade.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/crossfade.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/decoder-faad.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/decoder-faad.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/decoder-faad.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/decoder-flac.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/decoder-flac.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/decoder-flac.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/decoder-metaflac.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/decoder-metaflac.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/decoder-metaflac.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/dump-hourly.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/dump-hourly.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/dump-hourly.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/dump-hourly2.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/dump-hourly2.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/dump-hourly2.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/dynamic-source.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/dynamic-source.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/dynamic-source.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/external-output.file.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/external-output.file.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/external-output.file.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/fallback.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/fallback.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/fallback.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-filter-dynamic-volume.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-filter-dynamic-volume.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-filter-dynamic-volume.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-filter-flanger-highpass.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-filter-flanger-highpass.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-filter-flanger-highpass.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-filter-hflip.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-filter-hflip.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-filter-hflip.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-filter-hflip2.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-filter-hflip2.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-filter-hflip2.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-filter-parallel-flanger-highpass.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-filter-parallel-flanger-highpass.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-filter-parallel-flanger-highpass.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-live-switch.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-live-switch.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-live-switch.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-relay-ondemand.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-relay-ondemand.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-relay-ondemand.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-relay.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-relay.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-relay.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-shared-encoding-rtmp.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-shared-encoding-rtmp.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-shared-encoding-rtmp.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/ffmpeg-shared-encoding.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/ffmpeg-shared-encoding.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/ffmpeg-shared-encoding.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/fixed-time1.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/fixed-time1.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/fixed-time1.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/fixed-time2.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/fixed-time2.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/fixed-time2.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/frame-size.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/frame-size.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/frame-size.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor-auth.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-auth.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor-auth.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor-dynamic.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-dynamic.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor-dynamic.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor-insert-metadata.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-insert-metadata.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor-insert-metadata.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor-metadata.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-metadata.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor-metadata.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor-redirect.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-redirect.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor-redirect.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor-simple.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-simple.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor-simple.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor-usage.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor-usage.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor-usage.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor.http.register.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor.http.register.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor.http.register.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/harbor.http.response.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/harbor.http.response.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/harbor.http.response.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/hls-metadata.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/hls-metadata.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/hls-metadata.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/hls-mp4.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/hls-mp4.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/hls-mp4.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/http-input.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/http-input.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/http-input.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/icy-update.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/icy-update.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/icy-update.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/input.mplayer.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/input.mplayer.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/input.mplayer.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/jingle-hour.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/jingle-hour.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/jingle-hour.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/json-ex.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/json-ex.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/json-ex.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/json-stringify.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/json-stringify.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/json-stringify.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/json1.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/json1.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/json1.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/live-switch.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/live-switch.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/live-switch.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/medialib-predicate.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/medialib-predicate.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/medialib-predicate.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/medialib.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/medialib.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/medialib.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/medialib.sqlite.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/medialib.sqlite.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/medialib.sqlite.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/multitrack-add-video-track.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack-add-video-track.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack-add-video-track.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/multitrack-add-video-track2.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack-add-video-track2.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack-add-video-track2.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/multitrack-default-video-track.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack-default-video-track.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack-default-video-track.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/multitrack.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/multitrack2.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack2.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack2.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/multitrack3.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/multitrack3.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/multitrack3.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-crossfade.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-crossfade.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-crossfade.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-fallible.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-fallible.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-fallible.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-file-output.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-file-output.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-file-output.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-function.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-function.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-function.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-if.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-if.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-if.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-if2.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-if2.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-if2.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-initial.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-initial.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-initial.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-interactive.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-interactive.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-interactive.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-log.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-log.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-log.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-login.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-login.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-login.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-metadata.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-metadata.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-metadata.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-multiple.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-multiple.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-multiple.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-notify.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-notify.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-notify.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-overloaded.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-overloaded.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-overloaded.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-print.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-print.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-print.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-redefine.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-redefine.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-redefine.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-remote.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-remote.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-remote.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-replaygain.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-replaygain.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-replaygain.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-safe.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-safe.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-safe.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-scheduling.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-scheduling.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-scheduling.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-seq.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-seq.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-seq.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-slideshow.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-slideshow.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-slideshow.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-smooth-add.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-smooth-add.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-smooth-add.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-transition.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-transition.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-transition.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-volume.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-volume.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-volume.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/on2-volume2.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/on2-volume2.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-volume2.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/output.file.hls.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/output.file.hls.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/output.file.hls.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/playlists.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/playlists.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/playlists.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/prometheus-callback.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/prometheus-callback.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/prometheus-callback.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/prometheus-settings.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/prometheus-settings.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/prometheus-settings.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/radiopi.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/radiopi.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/radiopi.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/re-encode.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/re-encode.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/re-encode.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/regular.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/regular.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/regular.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/replaygain-metadata.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/replaygain-metadata.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/replaygain-metadata.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/replaygain-playlist.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/replaygain-playlist.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/replaygain-playlist.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/request.dynamic.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/request.dynamic.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/request.dynamic.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/rtmp.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/rtmp.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/rtmp.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/samplerate3.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/samplerate3.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/samplerate3.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/scheduling.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/scheduling.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/scheduling.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/seek-telnet.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/seek-telnet.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/seek-telnet.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/settings.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/settings.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/settings.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/shoutcast.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/shoutcast.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/shoutcast.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/single.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/single.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/single.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/source-cue.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/source-cue.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/source-cue.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/space_overhead.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/space_overhead.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/space_overhead.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/split-cue.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/split-cue.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/split-cue.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/sqlite.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/sqlite.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/sqlite.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/srt-receiver.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/srt-receiver.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/srt-receiver.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/srt-sender.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/srt-sender.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/srt-sender.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/switch-show.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/switch-show.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/switch-show.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/transcoding.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/transcoding.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/transcoding.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-anonymizer.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-anonymizer.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-anonymizer.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-bluescreen.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-bluescreen.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-bluescreen.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-canvas-example.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-canvas-example.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-canvas-example.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-default-canvas.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-default-canvas.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-default-canvas.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-in-video.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-in-video.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-in-video.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-logo.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-logo.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-logo.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-osc.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-osc.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-osc.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-simple.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-simple.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-simple.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-static.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-static.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-static.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-text.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-text.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-text.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-transition.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-transition.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-transition.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-weather.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-weather.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-weather.liq))
 )
 
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-    ../src/libs/audio.liq
-    ../src/libs/clock.liq
-    ../src/libs/error.liq
-    ../src/libs/fades.liq
-    ../src/libs/ffmpeg.liq
-    ../src/libs/file.liq
-    ../src/libs/getter.liq
-    ../src/libs/hls.liq
-    ../src/libs/http.liq
-    ../src/libs/http_codes.liq
-    ../src/libs/icecast.liq
-    ../src/libs/io.liq
-    ../src/libs/liquidsoap.liq
-    ../src/libs/list.liq
-    ../src/libs/log.liq
-    ../src/libs/math.liq
-    ../src/libs/medialib.liq
-    ../src/libs/metadata.liq
-    ../src/libs/null.liq
-    ../src/libs/playlist.liq
-    ../src/libs/predicate.liq
-    ../src/libs/process.liq
-    ../src/libs/profiler.liq
-    ../src/libs/protocols.liq
-    ../src/libs/ref.liq
-    ../src/libs/replaygain.liq
-    ../src/libs/request.liq
-    ../src/libs/resolvers.liq
-    ../src/libs/runtime.liq
-    ../src/libs/server.liq
-    ../src/libs/settings.liq
-    ../src/libs/socket.liq
-    ../src/libs/source.liq
-    ../src/libs/stdlib.liq
-    ../src/libs/string.liq
-    ../src/libs/switches.liq
-    ../src/libs/testing.liq
-    ../src/libs/thread.liq
-    ../src/libs/tracks.liq
-    ../src/libs/utils.liq
-    ../src/libs/video.liq
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq content/liq/video-webcam.liq)
   )
-  (action (run %{bin:liquidsoap} --no-stdlib %{stdlib} --check --no-fallible-check content/liq/video-webcam.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/video-webcam.liq))
 )
 
 (install

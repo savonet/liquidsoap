@@ -665,7 +665,9 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let rec iter_term env v =
     let iter_base_term env v =
       match v.Term.term with
-        | `Int _ | `Float _ | `Bool _ | `String _ | `Custom _ | `Encoder _ -> ()
+        | `Cache_env _ | `Int _ | `Float _ | `Bool _ | `String _ | `Custom _
+        | `Encoder _ ->
+            ()
         | `List l -> List.iter (iter_term env) l
         | `Tuple l -> List.iter (iter_term env) l
         | `Null -> ()

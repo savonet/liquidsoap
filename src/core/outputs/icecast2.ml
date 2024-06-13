@@ -193,8 +193,8 @@ open M
 let user_agent =
   Lang.product (Lang.string "User-Agent") (Lang.string Http.user_agent)
 
-let default_icy_song () =
-  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+let default_icy_song =
+  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled
     {|fun (m) -> begin
   title = m["title"]
   artist = m["artist"]
@@ -293,7 +293,7 @@ let proto frame_t =
         Lang.fun_t
           [(false, "", Lang.metadata_t)]
           (Lang.nullable_t Lang.string_t),
-        Some (default_icy_song ()),
+        Some default_icy_song,
         Some
           "Function used to generate the default icy \"song\" metadata. \
            Metadata is not added when returning `null`. Default: `$(artist) - \

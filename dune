@@ -3,6 +3,9 @@
  (package liquidsoap)
  (alias install)
  (enabled_if %{env:LIQUIDSOAP_ENABLE_BUILD_CONFIG=true})
+ (deps
+  src/libs/stdlib.liq
+  (source_tree src/libs))
  (mode
   (promote
    (only liquidsoap.config)

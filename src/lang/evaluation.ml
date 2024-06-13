@@ -251,6 +251,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     | `Bool b -> mk (Value.Bool b)
     | `String s -> mk (Value.String s)
     | `Custom g -> mk (Value.Custom g)
+    | `Cache_env _ -> assert false
     | `Encoder (e, p) ->
         let pos = tm.t.Type.pos in
         let rec eval_param p =

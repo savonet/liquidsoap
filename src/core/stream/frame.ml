@@ -47,11 +47,30 @@ module S = Set.Make (struct
   let compare = Stdlib.compare
 end)
 
-let compatible c c' =
+let assert_compatible c c' =
   let f = List.map fst (Fields.bindings c) in
   let f' = List.map fst (Fields.bindings c') in
-  S.(equal (of_list f) (of_list f'))
-  && Fields.for_all (fun k v -> Content.compatible v (Fields.find k c')) c
+  if not S.(equal (of_list f) (of_list f')) then
+    failwith
+      (Printf.sprintf
+         "Content_types %s and %s do not have the same set of fields!"
+         (string_of_content_type c)
+         (string_of_content_type c'));
+  Fields.iter
+    (fun k v ->
+      if not (Content.compatible v (Fields.find k c')) then
+        failwith
+          (Printf.sprintf "Content_types %s and %s: incompatible field %s"
+             (string_of_content_type c)
+             (string_of_content_type c')
+             (Fields.string_of_field k)))
+    c
+
+let compatible c c' =
+  try
+    assert_compatible c c';
+    true
+  with _ -> false
 
 (* Frames *)
 

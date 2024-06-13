@@ -43,6 +43,7 @@ and trim_encoder (_, params) = trim_encoder_params params
 
 and trim_ast = function
   | `Custom _ -> ()
+  | `Cache_env _ -> ()
   | `Tuple l -> List.iter trim_term l
   | `Null | `Int _ | `Float _ | `Bool _ | `String _ -> ()
   | `Open (t, t') ->

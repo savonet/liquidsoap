@@ -13,4 +13,6 @@ RUN apk add --allow-untrusted --no-cache \
 
 USER liquidsoap
 
+RUN liquidsoap --cache-stdlib
+
 ENTRYPOINT ["/sbin/tini", "--", "/usr/bin/liquidsoap"]

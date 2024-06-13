@@ -17,6 +17,7 @@
  (alias perftest)
  (deps
   (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../../src/libs)
   (:small_record ./small-record.liq)
   (:big_record ./big-record.liq)
   (:erathostenes ./erathostenes.liq)

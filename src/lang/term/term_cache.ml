@@ -1,3 +1,12 @@
+open Term_hash
+
+type t = {
+  env : (string * Value.t) list;
+  trim : bool;
+  parsed_term : Parsed_term.t;
+}
+[@@deriving hash]
+
 let cache_enabled () =
   try
     let venv = Unix.getenv "LIQ_CACHE" in
@@ -45,38 +54,57 @@ let rec recmkdir dir =
     recmkdir (Filename.dirname dir);
     Sys.mkdir dir 0o755)
 
-let cache_filename ~toplevel term =
+let cache_filename ?name ~trim parsed_term =
   match cache_dir () with
     | None -> None
     | Some dir ->
         recmkdir dir;
-        let hash = Parsed_term.hash term in
-        let fname =
-          Printf.sprintf "%s%s.liq-cache" hash
-            (if toplevel then "-toplevel" else "")
+        let report fn =
+          match name with
+            | None -> fn ()
+            | Some name ->
+                Startup.time (Printf.sprintf "%s hash computation" name) fn
         in
+        let hash =
+          report (fun () ->
+              hash
+                { env = Environment.default_environment (); trim; parsed_term })
+        in
+        let fname = Printf.sprintf "%s.liq-cache" hash in
         Some (Filename.concat dir fname)
 
-let retrieve ~toplevel parsed_term : Term.t option =
-  Startup.time "Cache retrieval" (fun () ->
+let retrieve ?name ~trim parsed_term : Term.t option =
+  let report fn =
+    match name with
+      | None -> fn ()
+      | Some name -> Startup.time (Printf.sprintf "%s cache retrieval" name) fn
+  in
+  report (fun () ->
       try
-        match cache_filename ~toplevel parsed_term with
+        match cache_filename ?name ~trim parsed_term with
           | None -> None
           | Some filename ->
               if Sys.file_exists filename then (
                 let ic = open_in_bin filename in
                 Fun.protect
-                  ~finally:(fun () -> close_in ic)
+                  ~finally:(fun () -> close_in_noerr ic)
                   (fun () ->
                     let term = Marshal.from_channel ic in
-                    Startup.message "Loading script from cache!";
+                    (match name with
+                      | Some name ->
+                          Startup.message "Loading %s from cache!" name
+                      | None -> ());
                     Some term))
               else None
       with
         | Failure msg
           when String.starts_with ~prefix:"input_value: unknown code module" msg
           ->
-            Startup.message "Liquidsoap binary changed: cache invalidated!";
+            (match name with
+              | Some name ->
+                  Startup.message
+                    "Liquidsoap binary changed: %s cache invalidated!" name
+              | None -> ());
             None
         | exn ->
             let bt = Printexc.get_backtrace () in
@@ -86,18 +114,24 @@ let retrieve ~toplevel parsed_term : Term.t option =
             else Startup.message "Error while loading cache: %s" exn;
             None)
 
-let cache ~toplevel ~parsed_term term =
+let cache ~trim ~parsed_term term =
   try
-    match cache_filename ~toplevel parsed_term with
+    match cache_filename ~trim parsed_term with
       | None -> ()
       | Some filename ->
-          let oc = open_out filename in
+          let tmp_file, oc =
+            Filename.open_temp_file
+              ~temp_dir:(Filename.dirname filename)
+              "tmp" ".liq-cache"
+          in
           Fun.protect
-            ~finally:(fun () -> close_out oc)
+            ~finally:(fun () ->
+              close_out_noerr oc;
+              if Sys.file_exists tmp_file then Sys.remove tmp_file)
             (fun () ->
-              let term = Marshal.to_channel oc term [Marshal.Closures] in
-              let fn = !Hooks.cache_maintenance in
-              fn ();
-              term)
+              Marshal.to_channel oc term [Marshal.Closures];
+              Sys.rename tmp_file filename);
+          let fn = !Hooks.cache_maintenance in
+          fn ()
   with exn ->
     Startup.message "Error while saving cache: %s" (Printexc.to_string exn)
