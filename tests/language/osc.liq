@@ -1,4 +1,7 @@
 #!../../liquidsoap ../test.liq
+%ifndef osc.native
+test.skip()
+%else
 success = ref(false)
 settings.oscnative.port.set(7778)
 
@@ -67,3 +70,4 @@ def f() =
 end
 
 test.check(f)
+%endif

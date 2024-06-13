@@ -199,30 +199,6 @@ let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, t) -> demeth t | _ -> t
 
-(* This should preserve pos *)
-let rec deep_demeth t =
-  let t' =
-    match deref t with
-      | { descr = Getter t' } as t -> { t with descr = Getter (deep_demeth t') }
-      | { descr = List repr } as t ->
-          { t with descr = List { repr with t = deep_demeth repr.t } }
-      | { descr = Tuple l } as t ->
-          { t with descr = Tuple (List.map deep_demeth l) }
-      | { descr = Nullable t' } as t ->
-          { t with descr = Nullable (deep_demeth t') }
-      | { descr = Meth (_, t) } -> deep_demeth t
-      | { descr = Arrow (l, t') } as t ->
-          {
-            t with
-            descr =
-              Arrow
-                ( List.map (fun (x, y, t) -> (x, y, deep_demeth t)) l,
-                  deep_demeth t' );
-          }
-      | t -> t
-  in
-  { t' with pos = t.pos }
-
 let rec filter_meths t fn =
   let t = deref t in
   match t.descr with
@@ -286,13 +262,11 @@ let split_meths t =
   aux [] t
 
 (** Create a fresh variable. *)
-let var_name =
-  let c = Atomic.make (-1) in
-  fun () -> Atomic.fetch_and_add c 1
+let var_name_atom = Atomic.make (-1)
 
-let var_id =
-  let c = Atomic.make (-1) in
-  fun () -> Atomic.fetch_and_add c 1
+let var_name () = Atomic.fetch_and_add var_name_atom 1
+let var_id_atom = Atomic.make (-1)
+let var_id () = Atomic.fetch_and_add var_id_atom 1
 
 let var ?(constraints = []) ?(level = max_int) ?pos () =
   let constraints = Constraints.of_list constraints in
@@ -303,14 +277,16 @@ let var ?(constraints = []) ?(level = max_int) ?pos () =
 module Fresh = struct
   type mapper = {
     level : int option;
+    preserve_positions : bool;
     selector : var -> bool;
     var_maps : (var, var) Hashtbl.t;
     link_maps : (int, var_t) Hashtbl.t;
   }
 
-  let init ?(selector = fun _ -> true) ?level () =
+  let init ?(preserve_positions = false) ?(selector = fun _ -> true) ?level () =
     {
       level;
+      preserve_positions;
       selector;
       var_maps = Hashtbl.create 10;
       link_maps = Hashtbl.create 10;
@@ -326,7 +302,7 @@ module Fresh = struct
         Hashtbl.replace var_maps var new_var;
         new_var)
 
-  let make ({ selector; link_maps } as h) t =
+  let make ({ preserve_positions; selector; link_maps } as h) t =
     let map_var = make_var h in
     let map_descr map = function
       | Int -> Int
@@ -378,7 +354,12 @@ module Fresh = struct
                  Hashtbl.replace link_maps id new_link;
                  new_link)
     in
-    let rec map { descr } = { pos = None; descr = map_descr map descr } in
+    let rec map { pos; descr } =
+      {
+        pos = (if preserve_positions then pos else None);
+        descr = map_descr map descr;
+      }
+    in
     map t
 end
 
@@ -431,7 +412,7 @@ let register_type name custom =
         in
         Hashtbl.replace custom_types root (fun () -> f (root_mk_typ ()) names)
 
-let find_type_opt = Hashtbl.find_opt custom_types
+let find_opt_typ = Hashtbl.find_opt custom_types
 
 let rec mk_invariant t =
   match t with

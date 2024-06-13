@@ -25,7 +25,6 @@ module Doc = Liquidsoap_lang.Doc
 module Environment = Liquidsoap_lang.Environment
 module Profiler = Liquidsoap_lang.Profiler
 module Queue = Liquidsoap_lang.Queues.Queue
-open Runtime
 
 let usage =
   {|Usage : liquidsoap [OPTION, SCRIPT or EXPR]...
@@ -71,14 +70,21 @@ let root_error () =
     | false, _, 0 -> Some "root guid (group)"
     | _ -> None
 
-let eval_mode : Runtime.eval_mode ref =
-  ref (`Eval { fetch_cache = true; save_cache = true; eval = `True })
-
-(* Should we load the stdlib? *)
-let stdlib = ref true
+let eval_mode : [ `Parse_only | `Parse_and_type | `Eval | `Eval_toplevel ] ref =
+  ref `Eval
 
 (* Should we error if stdlib is not found? *)
-let error_on_no_stdlib = not (Filename.is_relative Sys.argv.(0))
+let is_relative = Filename.is_relative Sys.argv.(0)
+
+(* Should we load the stdlib? *)
+let stdlib : Liquidsoap_lang.Lang_eval.stdlib ref =
+  ref (if is_relative then `If_present else `Force)
+
+(* Shall we use the cache *)
+let cache = ref true
+
+(* Display cache key. *)
+let show_cache_key = ref false
 
 (* Should we load the deprecated wrapper? *)
 let deprecated = ref true
@@ -88,56 +94,66 @@ let interactive = ref false
 let log = Log.make ["main"]
 let to_load = Queue.create ()
 
+let eval_script expr =
+  let open Liquidsoap_lang in
+  match !eval_mode with
+    | `Parse_only -> ignore (Runtime.parse expr)
+    | `Parse_and_type ->
+        let parsed_term, term = Runtime.parse expr in
+        ignore
+          (Lang.type_term ~name:"main script" ~parsed_term ~stdlib:!stdlib
+             ~trim:true ~deprecated:!deprecated term);
+        if !show_cache_key then
+          Printf.printf "Term cached with key %s\n"
+            (Parsed_term.hash parsed_term)
+    | (`Eval as v) | (`Eval_toplevel as v) ->
+        ignore
+          (Lang.eval ~toplevel:(v = `Eval_toplevel) ~cache:!cache
+             ~stdlib:!stdlib ~deprecated:!deprecated ~name:"main script" expr)
+
 (** Evaluate the user script. *)
 let eval () =
   Lifecycle.load ();
   (* Register settings module. Needs to be done last to make sure every
      dependent OCaml module has been linked. *)
   Stdlib.Lazy.force Builtins_settings.settings_module;
-  let scripts =
-    if !stdlib then
-      List.map
-        (fun f -> `Expr_or_file f)
-        (Runtime.libs ~error_on_no_stdlib ~deprecated:!deprecated ())
-    else []
-  in
-  let scripts = scripts @ Queue.flush_elements to_load in
+  let scripts = Queue.flush_elements to_load in
   let script =
-    List.fold_left
-      (fun script -> function
-        | `Stdin -> Printf.sprintf "%s\n%%include \"-\"" script
-        | `Expr_or_file expr when not (Sys.file_exists expr) ->
-            Printf.sprintf "%s\n%s" script expr
-        | `Expr_or_file f -> Printf.sprintf "%s\n%%include %S" script f)
-      "" scripts
+    String.concat "\n"
+      (List.map
+         (function
+           | `Stdin -> "%include \"-\""
+           | `Expr_or_file expr when not (Sys.file_exists expr) ->
+               Printf.sprintf "%s" expr
+           | `Expr_or_file f -> Printf.sprintf "%%include %S" f)
+         scripts)
   in
   let t = Sys.time () in
   try
-    Runtime.from_string ~eval_mode:!eval_mode script;
+    eval_script script;
     log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
   with Liquidsoap_lang.Runtime.Error ->
     Dtools.Init.exec Dtools.Log.stop;
     flush_all ();
     exit 1
 
-let with_stdlib =
+let with_toplevel =
   let do_run_streams = run_streams in
   let do_exit = exit in
   fun ?(exit = true) ?(run_streams = false) fn ->
     do_run_streams := run_streams;
-    eval_mode :=
-      `Eval { fetch_cache = true; save_cache = true; eval = `Toplevel };
+    eval_mode := `Eval_toplevel;
     eval ();
     fn ();
     if exit then do_exit 0
 
 let lang_doc name =
-  with_stdlib (fun () ->
+  with_toplevel (fun () ->
       try Lang_string.kprint_string ~pager:true (Doc.Value.print name)
       with Not_found -> Printf.printf "Plugin not found!\n%!")
 
 let process_request s =
-  with_stdlib (fun () ->
+  with_toplevel (fun () ->
       let req = Request.create ~cue_in_metadata:None ~cue_out_metadata:None s in
       match Request.resolve ~ctype:None req 20. with
         | Request.Failed ->
@@ -211,41 +227,23 @@ let options =
          Arg.Unit
            (fun () ->
              run_streams := false;
-             eval_mode :=
-               match !eval_mode with
-                 | `Parse_only ->
-                     `Eval
-                       { fetch_cache = true; save_cache = true; eval = `False }
-                 | `Eval config -> `Eval { config with eval = `False }),
+             eval_mode := `Parse_and_type),
          "Parse, type-check but do not evaluate the script." );
        ( ["-p"; "--parse-only"],
          Arg.Unit (fun () -> eval_mode := `Parse_only),
          "Parse script but do not type-check and run them." );
-       ( ["--top-level"],
-         Arg.Unit
-           (fun () ->
-             eval_mode :=
-               `Eval
-                 { fetch_cache = false; save_cache = false; eval = `Toplevel }),
-         "Disqble caching and register script definitions at top-level. Used \
-          internally for testing." );
+       ( ["--cache-stdlib"],
+         Arg.Unit (fun () -> with_toplevel (fun () -> ())),
+         "Generate the standard library cache." );
        ( ["--cache-only"],
          Arg.Unit
            (fun () ->
              run_streams := false;
-             eval_mode :=
-               `Eval { fetch_cache = false; save_cache = true; eval = `False }),
+             eval_mode := `Parse_and_type;
+             show_cache_key := true;
+             cache := true),
          "Parse, type-check and save script's cache but do no run it." );
-       ( ["--no-cache"],
-         Arg.Unit
-           (fun () ->
-             match !eval_mode with
-               | `Parse_only -> ()
-               | `Eval config ->
-                   eval_mode :=
-                     `Eval
-                       { config with fetch_cache = false; save_cache = false }),
-         "Parse, type-check and save script's cache but do no run it." );
+       (["--no-cache"], Arg.Clear cache, "Disable cache");
        ( ["-q"; "--quiet"],
          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
          "Do not print log messages on standard output." );
@@ -300,7 +298,7 @@ let options =
         ( ["--list-plugins"],
           Arg.Unit
             (fun () ->
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.kprint_string ~pager:true Doc.Plug.print_string)),
           Printf.sprintf
             "List all plugins (builtin scripting values, supported formats and \
@@ -308,35 +306,35 @@ let options =
         ( ["--list-functions"],
           Arg.Unit
             (fun () ->
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.kprint_string ~pager:true
                     Doc.Value.print_functions)),
           Printf.sprintf "List all functions." );
         ( ["--list-functions-by-category"],
           Arg.Unit
             (fun () ->
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.kprint_string ~pager:true
                     Doc.Value.print_functions_by_category)),
           Printf.sprintf "List all functions, sorted by category." );
         ( ["--list-functions-md"],
           Arg.Unit
             (fun () ->
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.kprint_string ~pager:true
                     (Doc.Value.print_functions_md ~extra:false))),
           Printf.sprintf "Documentation of all functions in markdown format." );
         ( ["--list-functions-json"],
           Arg.Unit
             (fun () ->
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.print_string ~pager:true
                     (Json.to_string ~compact:false (Doc.Value.to_json ())))),
           Printf.sprintf "Documentation of all functions in JSON format." );
         ( ["--list-extra-functions-md"],
           Arg.Unit
             (fun () ->
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.kprint_string ~pager:true
                     (Doc.Value.print_functions_md ~extra:true))),
           Printf.sprintf "Documentation of all extra functions in markdown." );
@@ -344,7 +342,7 @@ let options =
           Arg.Unit
             (fun () ->
               deprecated := true;
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.kprint_string ~pager:true
                     (Doc.Value.print_functions_md ~deprecated:true))),
           Printf.sprintf
@@ -352,13 +350,16 @@ let options =
         ( ["--list-protocols-md"],
           Arg.Unit
             (fun () ->
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.kprint_string ~pager:true Doc.Protocol.print_md)),
           Printf.sprintf "Documentation of all protocols in markdown." );
         ( ["--no-stdlib"],
-          Arg.Clear stdlib,
+          Arg.Unit (fun () -> stdlib := `Disabled),
           Printf.sprintf "Do not load stdlib script libraries (i.e., %s/*.liq)."
             (Configure.liq_libs_dir ()) );
+        ( ["--stdlib"],
+          Arg.String (fun s -> stdlib := `Override s),
+          "Override the location of the standard library." );
         ( ["--no-deprecated"],
           Arg.Clear deprecated,
           "Do not load wrappers for deprecated operators." );
@@ -393,9 +394,7 @@ See <http://liquidsoap.info> for more information.
           Arg.Unit
             (fun () ->
               interactive := true;
-              eval_mode :=
-                `Eval
-                  { fetch_cache = true; save_cache = true; eval = `Toplevel }),
+              eval_mode := `Eval_toplevel),
           "Start an interactive interpreter." );
         ( ["--"],
           Arg.Unit (fun () -> Arg.current := Array.length Shebang.argv - 1),
@@ -404,7 +403,7 @@ See <http://liquidsoap.info> for more information.
         ( ["--list-settings"],
           Arg.Unit
             (fun () ->
-              with_stdlib (fun () ->
+              with_toplevel (fun () ->
                   Lang_string.print_string ~pager:true
                     (Builtins_settings.print_settings ()))),
           "Display configuration keys in markdown format." );

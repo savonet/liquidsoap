@@ -205,7 +205,6 @@ and t = {
   term : parsed_ast;
   pos : Pos.t; [@hash.ignore]
   mutable comments : (Pos.t * comment) list; [@hash.ignore]
-  mutable hash : string option; [@hash.ignore]
 }
 [@@deriving hash]
 
@@ -221,7 +220,7 @@ and encoder_params =
 and encoder = string * encoder_params
 
 let unit = `Tuple []
-let make ?(comments = []) ~pos term = { pos; term; comments; hash = None }
+let make ?(comments = []) ~pos term = { pos; term; comments }
 
 let rec iter_term fn ({ term } as tm) =
   if term <> `Eof then fn tm;
@@ -344,11 +343,3 @@ and iter_fun_args fn args =
           match tm.default with Some tm -> iter_term fn tm | None -> ())
       | `Argsof _ -> ())
     args
-
-let hash tm =
-  match tm.hash with
-    | Some hash -> hash
-    | None ->
-        let hash = hash tm in
-        tm.hash <- Some hash;
-        hash

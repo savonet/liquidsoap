@@ -120,6 +120,7 @@
   lang
   lang_core
   lang_error
+  lang_eval
   lang_regexp
   lang_string
   lexer
@@ -147,6 +148,7 @@
   term_hash
   term_preprocessor
   term_reducer
+  term_stdlib
   term_trim
   type
   type_base
