@@ -136,9 +136,7 @@ let occur_check (a : var) =
     | { descr = Meth (({ scheme = g, t } as meth), u) } ->
         let t =
           if List.exists (Var.eq a) g then (
-            let handler =
-              Type.Fresh.init ~selector:(fun v -> List.exists (Var.eq v) g) ()
-            in
+            let handler = Type.Fresh.init ~selector:(fun v -> Var.eq a v) () in
             let g = List.map (Type.Fresh.make_var handler) g in
             let t = Type.Fresh.make handler t in
             meth.scheme <- (g, t);
