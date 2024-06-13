@@ -50,7 +50,7 @@ opam install -y .
 cd ..
 
 opam update
-opam install -y --confirm-level=unsafe-yes magic-mime pcre
+opam install -y --confirm-level=unsafe-yes magic-mime pcre tls.0.17.3
 
 cd /tmp/liquidsoap-full
 
