@@ -1,5 +1,6 @@
+val enabled : unit -> bool
 val dir : unit -> string option
-val retrieve : string -> 'a option
+val retrieve : ?name:string -> string -> 'a option
 val store : string -> 'a -> unit
 
 module Table : sig

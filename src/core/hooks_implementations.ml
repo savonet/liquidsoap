@@ -1,5 +1,6 @@
 module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
+module Cache = Liquidsoap_lang.Cache
 
 (* For source eval check there are cases of:
      source('a) <: (source('a).{ source methods })?
@@ -153,7 +154,7 @@ let cache_maintenance () =
     Unix.time () -. (float conf_cache_max_days#get *. 86400.)
   in
   try
-    match Term_cache.cache_dir () with
+    match Cache.dir () with
       | Some dir when Sys.file_exists dir && Sys.is_directory dir ->
           let files =
             Array.fold_left
