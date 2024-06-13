@@ -26,7 +26,7 @@ let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
 type stdlib = { full_term : Term.t; checked_term : Term.t; env : Typing.env }
-type append_stdlib = Term.t -> stdlib
+type append_stdlib = unit -> stdlib
 
 (** {1 Error reporting} *)
 
@@ -217,7 +217,7 @@ let report :
       throw exn;
       default ())
 
-let type_term ?name ?stdlib ~cache ~trim ~lib ~parsed_term term =
+let type_term ?name ?stdlib ?term ?ty ~cache ~trim ~lib parsed_term =
   let cached_term =
     if cache then Term_cache.retrieve ?name ~trim parsed_term else None
   in
@@ -235,9 +235,25 @@ let type_term ?name ?stdlib ~cache ~trim ~lib ~parsed_term term =
         let full_term, checked_term, env =
           match stdlib with
             | Some fn ->
-                let { full_term; checked_term; env } = fn term in
+                let { full_term; checked_term; env } = fn () in
                 (full_term, checked_term, Some env)
-            | None -> (term, term, None)
+            | None ->
+                let term =
+                  match term with
+                    | None ->
+                        report
+                          ~default:(fun () -> raise Error)
+                          (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
+                    | Some tm -> tm
+                in
+                (term, term, None)
+        in
+        let checked_term =
+          match ty with
+            | None -> checked_term
+            | Some typ ->
+                Term.make ~pos:parsed_term.Parsed_term.pos
+                  (`Cast { cast = checked_term; typ })
         in
         time (fun () ->
             report
@@ -372,16 +388,14 @@ let load_libs () =
         (fun () ->
           let lexbuf = Sedlexing.Utf8.from_channel ic in
           Sedlexing.set_filename lexbuf fname;
-          let parsed_term, term =
+          let parsed_term =
             report
               ~default:(fun () -> raise Error)
-              (fun ~throw:_ () ->
-                let parsed_term = Term_reducer.mk_expr ~fname program lexbuf in
-                (parsed_term, Term_reducer.to_term parsed_term))
+              (fun ~throw:_ () -> Term_reducer.mk_expr ~fname program lexbuf)
           in
           let term =
             type_term ~name:"stdlib" ~trim:true ~cache:true ~lib:true
-              ~parsed_term term
+              parsed_term
           in
           ignore (eval_term ~name:"stdlib" ~toplevel:true term)))
     (libs ())

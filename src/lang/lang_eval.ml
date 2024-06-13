@@ -1,8 +1,8 @@
 type check_stdlib = [ `If_present | `Force | `Override of string ]
 type stdlib = [ `Disabled | check_stdlib ]
 
-let type_term ?name ?(cache = true) ?(trim = true) ?(deprecated = false) ~stdlib
-    ~parsed_term term =
+let type_term ?name ?(cache = true) ?(trim = true) ?(deprecated = false) ?ty
+    ~stdlib ~parsed_term term =
   let parsed_term, stdlib =
     match stdlib with
       | `Disabled -> (parsed_term, None)
@@ -19,18 +19,11 @@ let type_term ?name ?(cache = true) ?(trim = true) ?(deprecated = false) ~stdlib
           in
           (parsed_term, Some env)
   in
-  Runtime.type_term ?name ~cache ~trim ?stdlib ~lib:false ~parsed_term term
+  Runtime.type_term ?name ?stdlib ?ty ~term ~cache ~trim ~lib:false parsed_term
 
 let eval ?(toplevel = false) ?(typecheck = true) ?cache ?deprecated ?ty ?name
     ~stdlib s =
   let parsed_term, term = Runtime.parse s in
-  let term =
-    match ty with
-      | None -> term
-      | Some typ ->
-          Term.make ~pos:parsed_term.Parsed_term.pos
-            (`Cast { cast = term; typ })
-  in
   let toplevel, trim =
     (* Registering defined operators at top-level prevents reclaiming memory from unused operators
        so we try to avoid it by default. We need it for all documentation. Also, as soon as the user
@@ -43,7 +36,7 @@ let eval ?(toplevel = false) ?(typecheck = true) ?cache ?deprecated ?ty ?name
   in
   let term =
     if typecheck then
-      type_term ?name ?cache ?deprecated ~trim ~stdlib ~parsed_term term
+      type_term ?name ?cache ?deprecated ?ty ~trim ~stdlib ~parsed_term term
     else term
   in
   Runtime.eval_term ?name ~toplevel term

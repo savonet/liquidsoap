@@ -59,19 +59,26 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
   in
   let script = List.fold_left (Printf.sprintf "%s\n%%include %S") "" libs in
   let lexbuf = Sedlexing.Utf8.from_string script in
-  let parsed_stdlib = Term_reducer.mk_expr Term_reducer.program lexbuf in
-  let stdlib = Term_reducer.to_term parsed_stdlib in
-  let append term =
+  let parsed_stdlib, stdlib =
+    Runtime.report
+      ~default:(fun () -> raise Runtime.Error)
+      (fun ~throw:_ () ->
+        let parsed_stdlib = Term_reducer.mk_expr Term_reducer.program lexbuf in
+        (parsed_stdlib, Term_reducer.to_term parsed_stdlib))
+  in
+  let append () =
     let stdlib = append_ref stdlib in
     let stdlib =
-      Runtime.type_term ~name:"stdlib" ~cache ~trim:false ~lib:true
-        ~parsed_term:parsed_stdlib stdlib
+      Runtime.type_term ~name:"stdlib" ~cache ~trim:false ~lib:true ~term:stdlib
+        parsed_stdlib
     in
     let { Runtime_term.var_name; var_id; env } = extract_ref stdlib in
     Atomic.set Type_base.var_name_atom var_name;
     Atomic.set Type_base.var_id_atom var_id;
     let checked_term =
-      Term.fresh ~handler:(Type.Fresh.init ~preserve_positions:true ()) term
+      Runtime.report
+        ~default:(fun () -> raise Runtime.Error)
+        (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
     in
     let full_term = prepend_stdlib ~term:checked_term stdlib in
     { Runtime.checked_term; full_term; env }

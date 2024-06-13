@@ -25,17 +25,18 @@
 exception Error
 
 type stdlib = { full_term : Term.t; checked_term : Term.t; env : Typing.env }
-type append_stdlib = Term.t -> stdlib
+type append_stdlib = unit -> stdlib
 
 (** Typecheck a term and return it. Might return a cached value! *)
 val type_term :
   ?name:string ->
   ?stdlib:append_stdlib ->
+  ?term:Term.t ->
+  ?ty:Type.t ->
   cache:bool ->
   trim:bool ->
   lib:bool ->
-  parsed_term:Parsed_term.t ->
-  Term.t ->
+  Parsed_term.t ->
   Term.t
 
 (** Evaluate a term. *)
@@ -65,3 +66,10 @@ val interactive : unit -> unit
 val parse : string -> Parsed_term.t * Term.t
 
 val error_header : formatter:Format.formatter -> int -> Pos.Option.t -> unit
+
+(** Report language errors. *)
+val report :
+  ?lexbuf:Sedlexing.lexbuf ->
+  ?default:(unit -> 'a) ->
+  (throw:(exn -> unit) -> unit -> 'a) ->
+  'a

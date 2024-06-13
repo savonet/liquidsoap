@@ -257,6 +257,7 @@ val type_term :
   ?cache:bool ->
   ?trim:bool ->
   ?deprecated:bool ->
+  ?ty:t ->
   stdlib:stdlib ->
   parsed_term:Parsed_term.t ->
   Term.t ->
