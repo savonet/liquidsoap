@@ -262,13 +262,11 @@ let split_meths t =
   aux [] t
 
 (** Create a fresh variable. *)
-let var_name =
-  let c = Atomic.make (-1) in
-  fun () -> Atomic.fetch_and_add c 1
+let var_name_atom = Atomic.make (-1)
 
-let var_id =
-  let c = Atomic.make (-1) in
-  fun () -> Atomic.fetch_and_add c 1
+let var_name () = Atomic.fetch_and_add var_name_atom 1
+let var_id_atom = Atomic.make (-1)
+let var_id () = Atomic.fetch_and_add var_id_atom 1
 
 let var ?(constraints = []) ?(level = max_int) ?pos () =
   let constraints = Constraints.of_list constraints in

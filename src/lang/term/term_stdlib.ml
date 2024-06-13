@@ -7,14 +7,17 @@ let rec append_ref =
       { tm with term = `Seq (t1, append_ref t2) }
   | tm ->
       Term.make ?pos:tm.t.Type.pos
-        (`Seq (tm, Term.make ?pos:tm.t.Type.pos (`Cache_env (ref []))))
+        (`Seq
+          ( tm,
+            Term.make ?pos:tm.t.Type.pos
+              (`Cache_env (ref { var_name = 0; var_id = 0; env = [] })) ))
 
 let rec extract_ref =
   let open Runtime_term in
   function
   | { term = `Let { body } } -> extract_ref body
   | { term = `Seq (_, tm) } -> extract_ref tm
-  | { term = `Cache_env env } -> !env
+  | { term = `Cache_env ref } -> !ref
   | _ -> assert false
 
 let rec prepend_stdlib ~term =
@@ -64,7 +67,11 @@ let prepare ?libs ~cache ~error_on_no_stdlib ~deprecated parsed_term =
       Runtime.type_term ~name:"stdlib" ~cache ~trim:false ~lib:true
         ~parsed_term:parsed_stdlib stdlib
     in
-    let env = extract_ref stdlib in
-    (prepend_stdlib ~term stdlib, env)
+    let { Runtime_term.var_name; var_id; env } = extract_ref stdlib in
+    Atomic.set Type_base.var_name_atom var_name;
+    Atomic.set Type_base.var_id_atom var_id;
+    let checked_term = Term.fresh ~handler:(Type.Fresh.init ()) term in
+    let full_term = prepend_stdlib ~term:checked_term stdlib in
+    { Runtime.checked_term; full_term; env }
   in
   (prepend_parsed_stdlib ~parsed_term parsed_stdlib, append)

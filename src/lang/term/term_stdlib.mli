@@ -4,4 +4,4 @@ val prepare :
   error_on_no_stdlib:bool ->
   deprecated:bool ->
   Parsed_term.t ->
-  Parsed_term.t * (Term.t -> Term.t * Typing.env)
+  Parsed_term.t * Runtime.append_stdlib

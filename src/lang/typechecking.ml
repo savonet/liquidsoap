@@ -185,7 +185,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let () =
     match e.term with
       | `Cache_env r ->
-          r := env;
+          r :=
+            {
+              var_name = Atomic.get Type_base.var_name_atom;
+              var_id = Atomic.get Type_base.var_id_atom;
+              env;
+            };
           base_type >: mk (Tuple [])
       | `Int _ -> base_type >: mk Int
       | `Float _ -> base_type >: mk Float

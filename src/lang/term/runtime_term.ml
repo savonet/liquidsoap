@@ -93,9 +93,11 @@ type 'a let_t = {
   body : 'a;
 }
 
+type cached_env = { var_name : int; var_id : int; env : Typing.env }
+
 type 'a runtime_ast =
   [ `Int of int
-  | `Cache_env of Typing.env ref
+  | `Cache_env of cached_env ref
   | `Float of float
   | `String of string
   | `Bool of bool

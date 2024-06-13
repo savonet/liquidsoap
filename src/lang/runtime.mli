@@ -24,7 +24,8 @@
 
 exception Error
 
-type append_stdlib = Term.t -> Term.t * Typing.env
+type stdlib = { full_term : Term.t; checked_term : Term.t; env : Typing.env }
+type append_stdlib = Term.t -> stdlib
 
 (** Typecheck a term and return it. Might return a cached value! *)
 val type_term :

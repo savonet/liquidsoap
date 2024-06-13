@@ -25,7 +25,8 @@
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
-type append_stdlib = Term.t -> Term.t * Typing.env
+type stdlib = { full_term : Term.t; checked_term : Term.t; env : Typing.env }
+type append_stdlib = Term.t -> stdlib
 
 (** {1 Error reporting} *)
 
@@ -234,8 +235,8 @@ let type_term ?name ?stdlib ~cache ~trim ~lib ~parsed_term term =
         let full_term, checked_term, env =
           match stdlib with
             | Some fn ->
-                let full_term, env = fn term in
-                (full_term, term, Some env)
+                let { full_term; checked_term; env } = fn term in
+                (full_term, checked_term, Some env)
             | None -> (term, term, None)
         in
         time (fun () ->
