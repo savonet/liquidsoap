@@ -400,14 +400,13 @@ let register_plugin plugin p =
              :> Source.source)))
 
 let register_plugin cache plugin =
-  try
-    (* Only the uri computation is fast. Try to retrieve other parameters from the cache. *)
-    let uri = Plugin.uri plugin in
-    let p = Cache.Table.get cache uri (fun () -> load_plugin plugin) in
-    register_plugin plugin p
+  (* Only the uri computation is fast. Try to retrieve other parameters from the cache. *)
+  let uri = Plugin.uri plugin in
+  let p = Cache.Table.get cache uri (fun () -> load_plugin plugin) in
+  try register_plugin plugin p
   with Audio_converter.Channel_layout.Unsupported ->
     log#info "Could not register Lilv plugin %s: unhandled number of channels."
-      (Plugin.name plugin)
+      p.plugin_name
 
 let register_plugins () =
   let cache =
