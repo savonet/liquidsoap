@@ -234,7 +234,7 @@ let get_control_ports d =
     (fun p ->
       {
         port_index = p;
-        port_name = Descriptor.port_name d p;
+        port_name = Utils.normalize_parameter_string (Descriptor.port_name d p);
         port_type = port_t d p;
         port_default =
           Descriptor.port_get_default d ~samplerate:default_samplerate p;
@@ -274,7 +274,7 @@ let load_descriptor fname descr d =
     plugin_outputs;
     plugin_controls = get_control_ports d;
     plugin_name = Descriptor.name d;
-    plugin_label = Descriptor.label d;
+    plugin_label = Utils.normalize_parameter_string (Descriptor.label d);
     plugin_maker = Descriptor.maker d;
   }
 
@@ -284,7 +284,7 @@ let params_of_controls control_ports =
     List.map
       (fun p ->
         let t = p.port_type in
-        ( Utils.normalize_parameter_string p.port_name,
+        ( p.port_name,
           (match t with
             | Float -> Lang.getter_t Lang.float_t
             | Int -> Lang.getter_t Lang.int_t
@@ -316,10 +316,7 @@ let params_of_controls control_ports =
                         | Bool -> ())
                   | None -> ()
               end;
-              bounds :=
-                !bounds ^ "`"
-                ^ Utils.normalize_parameter_string p.port_name
-                ^ "`";
+              bounds := !bounds ^ "`" ^ p.port_name ^ "`";
               begin
                 match max with
                   | Some f -> (
@@ -341,7 +338,7 @@ let params_of_controls control_ports =
     List.map
       (fun p ->
         ( p.port_index,
-          let v = List.assoc (Utils.normalize_parameter_string p.port_name) l in
+          let v = List.assoc p.port_name l in
           match p.port_type with
             | Float -> Lang.to_float_getter v
             | Int ->
@@ -377,7 +374,7 @@ let register_descr d =
     else
       Frame_type.set_field input_t Frame.Fields.audio (Format_type.audio_n no)
   in
-  let label = Utils.normalize_parameter_string d.plugin_label in
+  let label = d.plugin_label in
   let label =
     try "lsp_" ^ String.residual label "http:_lsp_plugin_plugins_ladspa_"
     with Not_found -> label
