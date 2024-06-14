@@ -23,6 +23,7 @@
 open Mm
 open Source
 open Ladspa
+module Cache = Liquidsoap_lang.Cache
 
 module String = struct
   include String
@@ -418,34 +419,42 @@ let register_descr d =
       "Could not register LADSPA plugin %s: unhandled number of channels."
       d.plugin_file
 
-let register_plugin pname =
+let register_plugin cache pname =
   try
     let p = Plugin.load pname in
     let descr = Descriptor.descriptors p in
     Array.iteri
       (fun n d ->
-        let d = load_descriptor pname n d in
+        let key = pname ^ string_of_int n in
+        let d =
+          Cache.Table.get cache key (fun () -> load_descriptor pname n d)
+        in
         register_descr d)
-      descr
-    (* TODO: Unloading plugins makes liq segv. Don't do it for now. *)
-    (* Plugin.unload p *)
+      descr;
+    Plugin.unload p
   with Plugin.Not_a_plugin -> ()
 
 let register_plugins () =
+  let cache =
+    (Cache.Table.load ~name:"LADSPA plugins" "ladspa-plugins"
+      : plugin Cache.Table.t)
+  in
   let add plugins_dir =
     try
       let dir = Unix.opendir plugins_dir in
       try
         while true do
           let f = Unix.readdir dir in
-          if f <> "." && f <> ".." then register_plugin (plugins_dir ^ "/" ^ f)
+          if f <> "." && f <> ".." then
+            register_plugin cache (plugins_dir ^ "/" ^ f)
         done
       with End_of_file -> Unix.closedir dir
     with Unix.Unix_error (e, _, _) ->
       log#info "Error while loading directory %s: %s" plugins_dir
         (Unix.error_message e)
   in
-  List.iter add ladspa_dirs
+  List.iter add ladspa_dirs;
+  Cache.Table.store cache
 
 let () =
   Lifecycle.on_load ~name:"ladspa plugin registration" (fun () ->
