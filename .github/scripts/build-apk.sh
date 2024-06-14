@@ -68,7 +68,7 @@ eval "$(opam config env)"
 
 cd /tmp/liquidsoap-full
 make clean
-cp PACKAGES.minimal-build PACKAGES
+cp PACKAGES.minimal PACKAGES
 
 cd liquidsoap
 ./.github/scripts/build-posix.sh 1
