@@ -421,5 +421,5 @@ let register_plugins () =
 
 let () =
   Lifecycle.on_load ~name:"lilv plugin registration" (fun () ->
-      if lilv_enabled then
+      if !Startup.register_external_plugins && lilv_enabled then
         Startup.time "Lilv plugins registration" register_plugins)

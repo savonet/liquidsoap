@@ -22,9 +22,11 @@
 
 let messages = Atomic.make []
 
+(* Add a startup message. *)
 let message fmt =
   Printf.ksprintf (fun s -> Atomic.set messages (s :: Atomic.get messages)) fmt
 
+(* Time a startup function. *)
 let time name f =
   let t = Sys.time () in
   let ans = f () in
@@ -32,3 +34,6 @@ let time name f =
   ans
 
 let messages () = Atomic.get messages |> List.rev
+
+(* Should we register external plugins? *)
+let register_external_plugins = ref true

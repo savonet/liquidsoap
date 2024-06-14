@@ -455,5 +455,5 @@ let register_plugins () =
 
 let () =
   Lifecycle.on_load ~name:"ladspa plugin registration" (fun () ->
-      if ladspa_enabled then
+      if !Startup.register_external_plugins && ladspa_enabled then
         Startup.time "LADSPA plugins registration" register_plugins)
