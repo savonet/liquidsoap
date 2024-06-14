@@ -113,10 +113,10 @@ module Table = struct
     mutable changed : bool;
   }
 
-  let load fname =
+  let load ?name fname =
     {
       fname;
-      table = Option.value ~default:Map.empty (retrieve fname);
+      table = Option.value ~default:Map.empty (retrieve ?name fname);
       changed = false;
     }
 

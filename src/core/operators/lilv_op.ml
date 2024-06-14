@@ -23,6 +23,7 @@
 open Mm
 open Source
 open Lilv
+module Cache = Liquidsoap_lang.Cache
 
 let lv2 = Lang.add_module "lv2"
 let log = Log.make ["Lilv LV2"]
@@ -398,19 +399,21 @@ let register_plugin plugin p =
               (Option.get source) plugin p.plugin_inputs p.plugin_outputs params
              :> Source.source)))
 
-let register_plugin plugin =
+let register_plugin cache plugin =
   try
-    (* TODO: load from cache *)
-    let p = load_plugin plugin in
+    (* Only the uri computation is fast. Try to retrieve other parameters from the cache. *)
+    let uri = Plugin.uri plugin in
+    let p = Cache.Table.get cache uri (fun () -> load_plugin plugin) in
     register_plugin plugin p
   with Audio_converter.Channel_layout.Unsupported ->
     log#info "Could not register Lilv plugin %s: unhandled number of channels."
       (Plugin.name plugin)
 
 let register_plugins () =
+  let cache = Cache.Table.load ~name:"LV2 plugins" "lv2-plugins" in
   let world = World.create () in
   World.load_all world;
-  Plugins.iter register_plugin (World.plugins world)
+  Plugins.iter (register_plugin cache) (World.plugins world)
 
 let () =
   Lifecycle.on_load ~name:"lilv plugin registration" (fun () ->
