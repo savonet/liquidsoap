@@ -244,6 +244,9 @@ let options =
              cache := true),
          "Parse, type-check and save script's cache but do no run it." );
        (["--no-cache"], Arg.Clear cache, "Disable cache");
+       ( ["--no-external-plugins"],
+         Arg.Clear Startup.register_external_plugins,
+         "Disable external plugins." );
        ( ["-q"; "--quiet"],
          Arg.Unit (fun () -> Dtools.Log.conf_stdout#set false),
          "Do not print log messages on standard output." );
