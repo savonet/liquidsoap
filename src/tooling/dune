@@ -1,10 +1,10 @@
 (env
  (release
   (ocamlopt_flags
-   (:standard -O2)))
- (dev
+   (:standard -w -9 -alert --deprecated -O2 -compact)))
+ (_
   (flags
-   (:standard -w -9))))
+   (:standard -w -9 -alert --deprecated))))
 
 (library
  (name liquidsoap_tooling)
