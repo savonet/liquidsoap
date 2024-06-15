@@ -65,7 +65,7 @@ else
   IS_SNAPSHOT=
 fi
 
-MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages ctypes-foreign dssi faad fdkaac ffmpeg-avutil flac frei0r gd graphics gstreamer imagelib inotify irc-client-unix jemalloc ladspa lame lastfm lilv lo mad memtrace ogg opus osc-unix portaudio posix-time2 pulseaudio prometheus-app samplerate shine soundtouch speex sqlite3 srt ssl taglib tls theora tsdl vorbis yaml xmlplaylist"
+MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages ctypes-foreign dssi faad fdkaac ffmpeg-avutil flac frei0r gd graphics gstreamer imagelib inotify irc-client-unix jemalloc ladspa lame lilv lo mad ogg opus osc-unix portaudio posix-time2 pulseaudio samplerate shine soundtouch speex sqlite3 srt ssl taglib tls theora tsdl vorbis yaml"
 
 {
   echo "branch=${BRANCH}"
