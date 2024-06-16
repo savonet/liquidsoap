@@ -448,14 +448,15 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        | Fun { fun_args = [] }, Type.Getter _ -> ()
+        | Fun { fun_args = []; fun_body = ret }, Type.Getter t ->
+            Typing.(ret.Term.t <: t)
         | FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
             ffi.ffi_fn <-
               (fun env ->
                 let v = ffi_fn env in
                 check_value v t;
                 v)
-        | Fun { fun_args = args }, Type.Arrow (args_t, _) ->
+        | Fun { fun_args = args; fun_body = ret }, Type.Arrow (args_t, ret_t) ->
             List.iter
               (fun typ ->
                 match typ with
@@ -468,7 +469,8 @@ let check_content v t =
                             | _ -> ())
                         args
                   | _ -> ())
-              args_t
+              args_t;
+            Typing.(ret.Term.t <: ret_t)
         | FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
             List.iter
               (fun typ ->
@@ -663,13 +665,15 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
     let iter_base_term v =
       match v.Term.term with
         | `Cache_env _ | `Int _ | `Float _ | `Bool _ | `String _ | `Custom _
-        | `Encoder _ ->
+        | `Var _ | `Encoder _ ->
             ()
+        | `Value v ->
+            iter_value (Lazy.force (Liquidsoap_lang.Value.val_of_term_val v))
         | `List l -> List.iter iter_term l
         | `Tuple l -> List.iter iter_term l
         | `Null -> ()
+        | `Hide (tm, _) -> iter_term tm
         | `Cast { Term.cast = a } -> iter_term a
-        | `Hide (a, _) -> iter_term a
         | `Invoke { Term.invoked = a } -> iter_term a
         | `Open (a, b) ->
             iter_term a;
@@ -677,9 +681,6 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
         | `Let { Term.def = a; body = b; _ } | `Seq (a, b) ->
             iter_term a;
             iter_term b
-        | `Value v ->
-            iter_value (Lazy.force (Liquidsoap_lang.Value.val_of_term_val v))
-        | `Var _ -> ()
         | `App (a, l) ->
             iter_term a;
             List.iter (fun (_, v) -> iter_term v) l
@@ -704,6 +705,8 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
         | Tuple l -> List.iter iter_value l
         | Null -> ()
         | Fun { fun_args = proto; fun_body = body } ->
+            (* The following is necessarily imprecise: we might see sources that
+               will be unused in the execution of the function. *)
             iter_term body;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
         | FFI { ffi_args = proto; _ } ->
