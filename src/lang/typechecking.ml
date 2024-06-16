@@ -122,6 +122,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
   let base_type = Type.var () in
   let () =
     match e.term with
+      | `Cache_env r ->
+          r :=
+            {
+              var_name = Atomic.get Type_base.var_name_atom;
+              var_id = Atomic.get Type_base.var_id_atom;
+              env;
+            };
+          base_type >: mk (Tuple [])
       | `Int _ -> base_type >: mk Int
       | `Float _ -> base_type >: mk Float
       | `String _ -> base_type >: mk String
@@ -385,7 +393,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
 let display_types = ref false
 
 (* The simple definition for external use. *)
-let check ?env ?(ignored = false) ~throw e =
+let check ?env ~throw e =
   let print_toplevel = !display_types in
   try
     let env =
@@ -397,7 +405,6 @@ let check ?env ?(ignored = false) ~throw e =
     if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
       add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." Repr.print_type e.t);
-    if ignored && not (can_ignore e.t) then throw (Ignored e);
     pop_tasks ()
   with e ->
     let bt = Printexc.get_raw_backtrace () in

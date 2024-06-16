@@ -24,6 +24,13 @@
 
 type ('a, 'b) t
 
+val hash_fold_t :
+  (Term_hash.state -> 'a -> Term_hash.state) ->
+  (Term_hash.state -> 'b -> Term_hash.state) ->
+  Term_hash.state ->
+  ('a, 'b) t ->
+  Term_hash.state
+
 val from_list : ('a * 'b) list -> ('a, 'b) t
 val is_empty : ('a, 'b) t -> bool
 val empty : ('a, 'b) t

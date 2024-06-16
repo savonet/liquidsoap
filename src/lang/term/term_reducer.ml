@@ -995,13 +995,18 @@ let mk_rec_fun ~pos pat arguments body =
   in
   mk ~pos (`Fun { name = Some name; arguments; body; free_vars = None })
 
+let needs_toplevel = ref false
+
 let mk_eval ~pos (pat, def, body, cast) =
+  needs_toplevel := true;
   let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let eval = mk ~pos (`Var "_eval_") in
   let def = mk ~pos (`App (eval, [("type", tty); ("", def)])) in
   let def = mk ~pos (`Cast { cast = def; typ = ty }) in
   pattern_reducer ~body ~pat def
+
+let needs_toplevel () = !needs_toplevel
 
 let string_of_let_decoration = function
   | `None -> ""

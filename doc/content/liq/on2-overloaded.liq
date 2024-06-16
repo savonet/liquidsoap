@@ -1,4 +1,9 @@
 mono = "mono.ttf"
+
+%ifndef output.alsa
+let output.alsa = output.dummy
+%endif
+
 # BEGIN
 file = single("bus.ogg")
 

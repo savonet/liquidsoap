@@ -29,7 +29,7 @@ val debug_variance : bool ref
 open Type_base
 
 type variance = [ `Covariant | `Invariant ]
-type t = Type_base.t = private { pos : Pos.Option.t; descr : descr }
+type t = Type_base.t = { pos : Pos.Option.t; descr : descr }
 type custom = Type_base.custom
 
 type custom_handler = Type_base.custom_handler = {
@@ -118,7 +118,12 @@ module Fresh : sig
 
   (* Use [selector] to pick variables to be re-freshed. If [level] is passed,
      all new variables are created with the given level. *)
-  val init : ?selector:(var -> bool) -> ?level:int -> unit -> mapper
+  val init :
+    ?preserve_positions:bool ->
+    ?selector:(var -> bool) ->
+    ?level:int ->
+    unit ->
+    mapper
 
   (* Generate a fresh var using the parameters passed when initializing
      the corresponding handler. Generated variables are memoized. *)
@@ -135,7 +140,6 @@ val fresh : t -> t
 val make : ?pos:Pos.t -> descr -> t
 val deref : t -> t
 val demeth : t -> t
-val deep_demeth : t -> t
 val remeth : t -> t -> t
 val invoke : t -> string -> scheme
 val has_meth : t -> string -> bool
@@ -168,4 +172,4 @@ val is_source : t -> bool
 module Custom = Type_custom
 
 val register_type : string -> (unit -> t) -> unit
-val find_type_opt : string -> (unit -> t) option
+val find_opt_typ : string -> (unit -> t) option

@@ -24,13 +24,23 @@
 
 exception Error
 
-type eval_config = {
-  fetch_cache : bool;
-  save_cache : bool;
-  eval : [ `True | `False | `Toplevel ];
-}
+type stdlib = { full_term : Term.t; checked_term : Term.t; env : Typing.env }
+type append_stdlib = unit -> stdlib
 
-type eval_mode = [ `Parse_only | `Eval of eval_config ]
+(** Typecheck a term and return it. Might return a cached value! *)
+val type_term :
+  ?name:string ->
+  ?stdlib:append_stdlib ->
+  ?term:Term.t ->
+  ?ty:Type.t ->
+  cache:bool ->
+  trim:bool ->
+  lib:bool ->
+  Parsed_term.t ->
+  Term.t
+
+(** Evaluate a term. *)
+val eval_term : ?name:string -> toplevel:bool -> Term.t -> Value.t
 
 (** Raise errors for warnings. *)
 val strict : bool ref
@@ -43,27 +53,23 @@ val load_libs : unit -> unit
 
 (* Wrapper for format language errors. Re-raises [Error]
    after printing language errors. *)
-val throw : ?formatter:Format.formatter -> Sedlexing.lexbuf -> exn -> unit
+val throw :
+  ?formatter:Format.formatter -> ?lexbuf:Sedlexing.lexbuf -> unit -> exn -> unit
 
 val program :
   (unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t
-
-val mk_expr :
-  ?fname:string ->
-  ((unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t) ->
-  Sedlexing.lexbuf ->
-  Term.t
-
-(** Evaluate a script from a string. *)
-val from_string : eval_mode:eval_mode -> string -> unit
 
 (** Interactive loop: read from command line, eval, print and loop. *)
 val interactive : unit -> unit
 
 (** Parse a string. *)
-val parse : string -> Term.t
-
-(** Evaluate a string. The result is checked to have the given type. *)
-val eval : ignored:bool -> ty:Type.t -> string -> Value.t
+val parse : string -> Parsed_term.t * Term.t
 
 val error_header : formatter:Format.formatter -> int -> Pos.Option.t -> unit
+
+(** Report language errors. *)
+val report :
+  ?lexbuf:Sedlexing.lexbuf ->
+  ?default:(unit -> 'a) ->
+  (throw:(exn -> unit) -> unit -> 'a) ->
+  'a

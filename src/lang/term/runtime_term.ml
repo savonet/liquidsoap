@@ -6,8 +6,7 @@ module Vars = Set.Make (String)
 module Methods = struct
   include Methods
 
-  type 'a typ = (string, 'a) t
-  type 'a t = 'a typ
+  type nonrec 'a t = (string, 'a) t [@@deriving hash]
 end
 
 type custom [@@deriving hash]
@@ -30,7 +29,7 @@ let octal_int = 0b1
 let hex_int = 0b10
 
 type 'a term = {
-  mutable t : Type.t;
+  t : Type.t;
   term : 'a;
   flags : flags;
   methods : 'a term Methods.t;
@@ -86,8 +85,11 @@ type 'a let_t = {
   body : 'a;
 }
 
+type cached_env = { var_name : int; var_id : int; env : Typing.env }
+
 type 'a runtime_ast =
   [ `Int of int
+  | `Cache_env of cached_env ref
   | `Float of float
   | `String of string
   | `Bool of bool

@@ -137,9 +137,7 @@ let liquidsoap = Modules.liquidsoap
 let liquidsoap_cache =
   Lang.add_builtin ~category:`Configuration ~descr:"Liquidsoap cache directory."
     ~base:liquidsoap "cache" [] (Lang.nullable_t Lang.string_t) (fun _ ->
-      match Term_cache.cache_dir () with
-        | None -> Lang.null
-        | Some dir -> Lang.string dir)
+      match Cache.dir () with None -> Lang.null | Some dir -> Lang.string dir)
 
 let _ =
   Lang.add_builtin ~category:`Configuration

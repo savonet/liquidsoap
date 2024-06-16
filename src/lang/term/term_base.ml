@@ -94,6 +94,7 @@ let string_of_pat = function
 let rec to_string (v : t) =
   let to_base_string (v : t) =
     match v.term with
+      | `Cache_env _ -> "<cache_env>"
       | `Custom c -> Custom.to_string c
       | `Int i ->
           if has_flag v octal_int then Printf.sprintf "0o%o" i
@@ -197,7 +198,8 @@ let bound_vars_pat = function
 
 let rec free_term_vars tm =
   let root_free_vars = function
-    | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> Vars.empty
+    | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ ->
+        Vars.empty
     | `Var x -> Vars.singleton x
     | `Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
@@ -307,7 +309,7 @@ let check_unused ~throw ~lib tm =
     in
     match tm.term with
       | `Var s -> Vars.remove s v
-      | `Int _ | `Float _ | `String _ | `Bool _ -> v
+      | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ -> v
       | `Custom _ -> v
       | `Tuple l -> List.fold_left (fun a -> check a) v l
       | `Null -> v
@@ -463,7 +465,8 @@ let make ?pos ?t ?flags ?methods e =
 let rec fresh ~handler { t; term; methods; flags } =
   let term =
     match term with
-      | `Int _ | `String _ | `Float _ | `Bool _ | `Custom _ -> term
+      | `Cache_env _ | `Int _ | `String _ | `Float _ | `Bool _ | `Custom _ ->
+          term
       | `Tuple l -> `Tuple (List.map (fresh ~handler) l)
       | `Null -> `Null
       | `Open (t, t') -> `Open (fresh ~handler t, fresh ~handler t')

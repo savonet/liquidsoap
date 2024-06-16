@@ -28,7 +28,7 @@ let default_id3_version = 3
 let log = Log.make ["hls"; "output"]
 
 let default_name =
-  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
+  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled
     {|fun (~position, ~extname, base) -> "#{base}_#{position}.#{extname}"|}
 
 let hls_proto frame_t =
@@ -145,7 +145,8 @@ let hls_proto frame_t =
         Some
           "Temporary directory used for writing files. This should be in the \
            same partition or device as the final directory to guarantee atomic \
-           file operations. Use an system-specific value if `null`." );
+           file operations. Use the same directory as the HLS files if `null`."
+      );
       ( "on_file_change",
         Lang.fun_t
           [(false, "state", Lang.string_t); (false, "", Lang.string_t)]
@@ -631,7 +632,10 @@ class hls_output p =
 
     method private open_out filename =
       let state = if Sys.file_exists filename then `Updated else `Created in
-      let tmp_file = Filename.temp_file ?temp_dir "liq" "tmp" in
+      let temp_dir =
+        Option.value ~default:(Filename.dirname filename) temp_dir
+      in
+      let tmp_file = Filename.temp_file ~temp_dir "liq" "tmp" in
       Unix.chmod tmp_file perms;
       let fd =
         Unix.openfile tmp_file

@@ -726,8 +726,8 @@ let () =
       Atomic.set should_fail true)
 
 let resolve ~ctype t timeout =
-  assert (
-    t.ctype = None || Frame.compatible (Option.get t.ctype) (Option.get ctype));
+  if t.ctype <> None then
+    Frame.assert_compatible (Option.get t.ctype) (Option.get ctype);
   log#debug "Resolving request %s." (string_of_indicators t);
   t.ctype <- ctype;
   t.resolving <- Some (Unix.time ());

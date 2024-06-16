@@ -93,6 +93,10 @@ let _ =
         Some
           "Inherit calling process's environment when `env` parameter is empty."
       );
+      ( "stdin",
+        Lang.string_t,
+        Some (Lang.string ""),
+        Some "Data to write to the process' standard input." );
       ( "rwdirs",
         path_t,
         Some (Lang.list [Lang.string "default"]),
@@ -128,6 +132,7 @@ let _ =
             (Lang.to_string k, Lang.to_string v))
           env
       in
+      let stdin = Lang.to_string (List.assoc "stdin" p) in
       let sandbox_rw =
         List.map Lang.to_string (Lang.to_list (List.assoc "rwdirs" p))
       in
@@ -200,6 +205,7 @@ let _ =
         let ((in_chan, out_ch, err_chan) as p) =
           Unix.open_process_full cmd env
         in
+        if stdin <> "" then output_string out_ch stdin;
         close_out out_ch;
         let pull buf ch =
           let tmp = Bytes.create Utils.pagesize in

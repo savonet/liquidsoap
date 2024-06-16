@@ -37,8 +37,7 @@ module Fields = struct
   include Liquidsoap_lang.Methods
 
   type field = int
-  type 'a typ = (field, 'a) t
-  type 'a t = 'a typ
+  type nonrec 'a t = (field, 'a) t
 
   let field_names = FieldNames.create 0
   let name_fields = Hashtbl.create 0

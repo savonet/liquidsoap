@@ -4,11 +4,6 @@
  (modules gen_dune))
 
 (executable
- (name check_output)
- (modules check_output)
- (libraries unix liquidsoap_stdlib liquidsoap-lang))
-
-(executable
  (name run_test)
  (modules run_test)
  (libraries liquidsoap-lang.console unix threads))
