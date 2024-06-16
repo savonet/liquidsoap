@@ -1,4 +1,4 @@
-type t = ..
+type t
 
 module type T = sig
   val implementation : string
@@ -14,21 +14,20 @@ module type T = sig
 end
 
 module Unix = struct
-  type t += Unix of float
-
   let implementation = "builtin (low-precision)"
-  let time () = Unix (Unix.gettimeofday ())
-  let unix_time = function Unix f -> f | _ -> assert false
-  let of_float x = Unix x
-  let to_float x = unix_time x
-  let ( |+| ) x y = Unix (unix_time x +. unix_time y)
-  let ( |-| ) x y = Unix (unix_time x -. unix_time y)
-  let ( |*| ) x y = Unix (unix_time x *. unix_time y)
-  let ( |<| ) x y = unix_time x < unix_time y
-  let ( |<=| ) x y = unix_time x <= unix_time y
+  let of_time : t -> float = Obj.magic
+  let to_time : float -> t = Obj.magic
+  let time () = to_time (Unix.gettimeofday ())
+  let of_float x = to_time x
+  let to_float = of_time
+  let ( |+| ) x y = to_time (of_time x +. of_time y)
+  let ( |-| ) x y = to_time (of_time x -. of_time y)
+  let ( |*| ) x y = to_time (of_time x *. of_time y)
+  let ( |<| ) x y = of_time x < of_time y
+  let ( |<=| ) x y = of_time x <= of_time y
 
   let rec sleep_until t =
-    let delay = unix_time t -. Unix.gettimeofday () in
+    let delay = of_time t -. Unix.gettimeofday () in
     if 0. < delay then (
       try Thread.delay delay
       with Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t)
