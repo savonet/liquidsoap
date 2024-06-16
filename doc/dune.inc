@@ -33,7 +33,7 @@
     (with-stdout-to reference-extras.md
       (progn (cat %{header}) (echo "\n")
       (setenv PAGER none
-        (run %{bin:liquidsoap} --list-extra-functions-md)))))
+        (run %{bin:liquidsoap} --no-external-plugins --list-extra-functions-md)))))
       )
 
 (rule

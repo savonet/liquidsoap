@@ -5,7 +5,7 @@ let generated_md =
     ("protocols.md", "--list-protocols-md", None);
     ("reference.md", "--list-functions-md", Some "content/reference-header.md");
     ( "reference-extras.md",
-      "--list-extra-functions-md",
+      "--no-external-plugins --list-extra-functions-md",
       Some "content/reference-header.md" );
     ( "reference-deprecated.md",
       "--list-deprecated-functions-md",
