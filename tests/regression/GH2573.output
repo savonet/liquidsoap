@@ -1,7 +1,0 @@
-{
-  "cmd": "liquidsoap",
-  "args": [
-    "x = \"\"/2"
-  ],
-  "expected": "At line 0, char 4-6:\n\nError 5: this value has type\n  string\nbut it should be a subtype of\n  something that is a number type"
-}

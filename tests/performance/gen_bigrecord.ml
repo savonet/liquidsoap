@@ -2,7 +2,7 @@ let parse_memory_consumption script =
   Gc.full_major ();
   Gc.full_major ();
   let mem_before = Mem_usage.info () in
-  let tm = Liquidsoap_lang.Runtime.parse script in
+  let _, tm = Liquidsoap_lang.Runtime.parse script in
 
   Gc.full_major ();
   Gc.full_major ();
@@ -25,7 +25,8 @@ let term_memory_consumption script =
   Gc.full_major ();
   Gc.full_major ();
   let mem_before = Mem_usage.info () in
-  let terms = strip (Liquidsoap_lang.Runtime.parse script) in
+  let _, terms = Liquidsoap_lang.Runtime.parse script in
+  let terms = strip terms in
 
   Gc.full_major ();
   Gc.full_major ();

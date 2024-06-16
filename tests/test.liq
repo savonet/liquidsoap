@@ -41,7 +41,7 @@ def test.skip() =
   print(
     "Test skipped.."
   )
-  exit(2)
+  exit(123)
 end
 
 # Check that files are never repeated in source s, possibly by rounds. The

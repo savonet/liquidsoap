@@ -360,8 +360,7 @@ let register_input is_http =
     else ("ffmpeg", "Create a stream using ffmpeg")
   in
   let on_error =
-    Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
-      "fun (_) -> ()"
+    Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> ()"
   in
   ignore
     (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input

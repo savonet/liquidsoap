@@ -1,4 +1,4 @@
-type t = ..
+type t
 
 module type T = sig
   val implementation : string

@@ -22,7 +22,9 @@
 
 (* Immutable fast hash *)
 
-type ('a, 'b) t = ('a * 'b) list
+open Term_hash
+
+type ('a, 'b) t = ('a * 'b) list [@@deriving hash]
 
 let is_empty h = h = []
 let bindings h = h

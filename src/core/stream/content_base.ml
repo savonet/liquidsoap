@@ -29,7 +29,7 @@ module Contents = struct
   type kind_content
   type kind = string * kind_content
   type _type = int
-  type content = ..
+  type content
   type data = _type * content
 
   let _type = ref 0
@@ -233,14 +233,20 @@ module MkContentBase (C : ContentSpecs) :
      and type data = C.data = struct
   include C
 
-  type Contents.content += Content of (C.params, C.data) chunks
-
   let () =
-    if List.mem C.name !content_names then failwith "custom term exist!";
+    if List.mem C.name !content_names then
+      failwith "content name already registered!";
     content_names := C.name :: !content_names
 
+  type chunked_data = (C.params, C.data) chunks
+
   let _type = Contents.register_type ()
-  let content = function _, Content d -> d | _ -> raise Invalid
+
+  let of_content : Contents.data -> chunked_data = function
+    | t, d when t = _type -> Obj.magic d
+    | _ -> raise Invalid
+
+  let to_content : chunked_data -> Contents.data = fun d -> (_type, Obj.magic d)
   let params { params } = params
 
   let chunk_length { data; offset; length } =
@@ -307,13 +313,13 @@ module MkContentBase (C : ContentSpecs) :
     { data with chunks = f len data.chunks }
 
   let append d d' =
-    let d = content d in
-    let d' = content d' in
-    (_type, Content { d with chunks = d.chunks @ d'.chunks })
+    let d = of_content d in
+    let d' = of_content d' in
+    to_content { d with chunks = d.chunks @ d'.chunks }
 
   let fill src src_pos dst dst_pos len =
-    let src = content src in
-    let dst = content dst in
+    let src = of_content src in
+    let dst = of_content dst in
     dst.params <- src.params;
     let dst_len = length dst in
     dst.chunks <-
@@ -387,7 +393,7 @@ module MkContentBase (C : ContentSpecs) :
     | n, p when n = C.name -> deref p
     | _ -> raise Invalid
 
-  let is_data = function _, Content _ -> true | _ -> false
+  let is_data = function t, _ -> t = _type
   let kind_of_string s = Option.map lift_kind (C.kind_of_string s)
 
   let format_of_string kind label value =
@@ -411,7 +417,7 @@ module MkContentBase (C : ContentSpecs) :
           Some
             {
               kind = (fun () -> lift_kind C.kind);
-              make = (fun length -> (_type, Content (make ?length (deref p))));
+              make = (fun length -> to_content (make ?length (deref p)));
               merge = (fun p' -> merge p p');
               duplicate = (fun () -> (C.name, Unifier.(make (deref p))));
               compatible = (fun p' -> compatible p p');
@@ -429,23 +435,21 @@ module MkContentBase (C : ContentSpecs) :
     let data_handler =
       {
         fill;
-        sub = (fun d ofs len -> (_type, Content (sub (content d) ofs len)));
-        truncate = (fun d len -> (_type, Content (truncate (content d) len)));
-        is_empty = (fun d -> is_empty (content d));
-        copy = (fun d -> (_type, Content (copy (content d))));
-        format = (fun d -> lift_params (params (content d)));
-        _length = (fun d -> length (content d));
+        sub = (fun d ofs len -> to_content (sub (of_content d) ofs len));
+        truncate = (fun d len -> to_content (truncate (of_content d) len));
+        is_empty = (fun d -> is_empty (of_content d));
+        copy = (fun d -> to_content (copy (of_content d)));
+        format = (fun d -> lift_params (params (of_content d)));
+        _length = (fun d -> length (of_content d));
         append;
       }
     in
     register_data_handler _type data_handler
 
   let lift_data ?(offset = 0) ?length d =
-    ( _type,
-      Content { params = C.params d; chunks = [{ offset; length; data = d }] }
-    )
+    to_content { params = C.params d; chunks = [{ offset; length; data = d }] }
 
-  let get_chunked_data = function _, Content d -> d | _ -> raise Invalid
+  let get_chunked_data = of_content
 
   let get_data d =
     let d = get_chunked_data d in

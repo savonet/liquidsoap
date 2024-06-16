@@ -22,26 +22,33 @@
 
 (** Values are untyped normal forms of terms. *)
 
+open Term_hash
 module Custom = Term.Custom
-module Methods = Term.Methods
+module Methods = Runtime_term.Methods
 
 type t = {
-  pos : Pos.Option.t;
+  pos : Pos.Option.t; [@hash.ignore]
   value : in_value;
   methods : t Methods.t;
-  flags : Term.flags;
-  id : int;
+  flags : Term.flags; [@hash.ignore]
+  id : int; [@hash.ignore]
 }
 
-and env = (string * t) list
+(** We derive a hash of the environment to invalidate the cache
+    when the builtin env change. We mostly keep name and methods. *)
+and env = (string * t) list [@@deriving hash]
 
 (* Some values have to be lazy in the environment because of recursive functions. *)
-and lazy_env = (string * t Lazy.t) list
-and fun_v = { fun_args : (string * string * t option) list; fun_body : Term.t }
+and lazy_env = ((string * t Lazy.t) list[@hash.ignore])
+
+and fun_v = {
+  fun_args : (string * string * t option) list;
+  fun_body : Term.t; [@hash.ignore]
+}
 
 and ffi = {
   ffi_args : (string * string * t option) list;
-  mutable ffi_fn : env -> t;
+  mutable ffi_fn : env -> t; [@hash.ignore]
 }
 
 and in_value =
@@ -49,7 +56,7 @@ and in_value =
   | Float of float
   | String of string
   | Bool of bool
-  | Custom of Custom.t
+  | Custom of (Custom.t[@hash.ignore])
   | List of t list
   | Tuple of t list
   | Null

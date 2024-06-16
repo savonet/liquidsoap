@@ -300,6 +300,11 @@ let _target_time { time_implementation; t0; frame_duration; ticks } =
   let module Time = (val time_implementation : Liq_time.T) in
   Time.(t0 |+| (frame_duration |*| of_float (float_of_int (Atomic.get ticks))))
 
+let _set_time { time_implementation; t0; frame_duration; ticks } t =
+  let module Time = (val time_implementation : Liq_time.T) in
+  let delta = Time.(to_float (t |-| t0)) in
+  Atomic.set ticks (int_of_float (delta /. Time.to_float frame_duration))
+
 let _after_tick ~clock x =
   Queue.flush x.after_tick (fun fn ->
       check_stopped ();
@@ -314,6 +319,7 @@ let _after_tick ~clock x =
     | _ ->
         if Time.(x.max_latency |<=| (end_time |-| target_time)) then (
           x.log#severe "Too much latency! Resetting active sources...";
+          _set_time x target_time;
           List.iter
             (fun s ->
               match s#source_type with

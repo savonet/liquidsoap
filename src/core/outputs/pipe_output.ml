@@ -226,16 +226,13 @@ let _ =
     takes care of the various reload mechanisms. *)
 
 let default_reopen_on_error =
-  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
-    "fun (_) -> null()"
+  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> null()"
 
 let default_reopen_on_metadata =
-  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
-    "fun (_) -> false"
+  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> false"
 
 let default_reopen_when =
-  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
-    "fun () -> false"
+  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun () -> false"
 
 let pipe_proto frame_t arg_doc =
   base_proto

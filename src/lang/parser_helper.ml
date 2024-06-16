@@ -123,7 +123,7 @@ let mk_named_ty ?pos = function
   | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
   | "source_methods" -> !Hooks.source_methods_t ()
   | name -> (
-      match Type.find_type_opt name with
+      match Type.find_opt_typ name with
         | Some c -> c ()
         | None ->
             let pos =

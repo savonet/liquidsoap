@@ -1,9 +1,11 @@
+module Pcre = Re.Pcre
+
 let generated_md =
   [
     ("protocols.md", "--list-protocols-md", None);
     ("reference.md", "--list-functions-md", Some "content/reference-header.md");
     ( "reference-extras.md",
-      "--list-extra-functions-md",
+      "--no-external-plugins --list-extra-functions-md",
       Some "content/reference-header.md" );
     ( "reference-deprecated.md",
       "--list-deprecated-functions-md",
@@ -93,7 +95,9 @@ let mk_generated_rule (file, option, header) =
     {|
 (rule
   (alias doc)
-  (deps %s)
+  (deps
+    %s
+    (source_tree ../src/libs))
   (target %s)
   (action
     (with-stdout-to %s%s
@@ -102,22 +106,20 @@ let mk_generated_rule (file, option, header) =
 |}
     header_deps file file header_action option header_close
 
-let mk_test_rule ~stdlib file =
-  let stdlib = stdlib |> List.map (fun f -> "    " ^ f) |> String.concat "\n" in
+let mk_test_rule file =
   Printf.printf
     {|
 (rule
   (alias doctest)
   (package liquidsoap)
   (deps
-%s
-    (:stdlib ../src/libs/stdlib.liq)
+    (source_tree ../src/libs)
     (:test_liq %s)
   )
-  (action (run %%{bin:liquidsoap} --no-stdlib %%{stdlib} --check --no-fallible-check %s))
+  (action (run %%{bin:liquidsoap} --check --no-fallible-check %s))
 )
 |}
-    stdlib file file
+    file file
 
 let mk_html_install f =
   Printf.sprintf {|    (%s as html/%s)|} (mk_html f) (mk_html f)
@@ -148,20 +150,13 @@ let () =
     |> List.sort compare
     |> List.map (fun f -> "content/liq/" ^ f)
   in
-  let stdlib =
-    Sys.readdir (Filename.concat location "../src/libs")
-    |> Array.to_list
-    |> List.filter (fun f -> Filename.extension f = ".liq")
-    |> List.sort compare
-    |> List.map (fun f -> "../src/libs/" ^ f)
-  in
   List.iter mk_generated_rule generated_md;
   List.iter mk_subst_rule md;
   List.iter
     (fun (file, _, _) -> mk_html_rule ~liq ~content:false file)
     generated_md;
   List.iter (mk_html_rule ~liq ~content:true) md;
-  List.iter (mk_test_rule ~stdlib) liq;
+  List.iter mk_test_rule liq;
   let files =
     List.map
       (fun f -> Printf.sprintf {|    (orig/%s as html/%s)|} f f)

@@ -89,6 +89,7 @@ let rec prepare_ast ~(env : Value.lazy_env) ~pos ~flags = function
         eval_ast ~eval_check:(fun ~env:_ ~tm:_ _ -> ()) ~env ~pos ~flags ast
       in
       `Value (Value.term_val_of_val (Lazy.from_val v))
+  | `Cache_env _ as v -> v
   | `Var v when List.mem_assoc v env ->
       `Value (Value.term_val_of_val (List.assoc v env))
   | `Hide (tm, l) -> (
@@ -330,6 +331,7 @@ and eval_ast ~eval_check ~(env : Env.t) ~flags ~pos ast =
     | `Bool b -> mk (Value.Bool b)
     | `String s -> mk (Value.String s)
     | `Custom g -> mk (Value.Custom g)
+    | `Cache_env _ -> assert false
     | `Encoder (e, p) ->
         let rec eval_param p =
           List.map

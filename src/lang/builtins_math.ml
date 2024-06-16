@@ -151,7 +151,7 @@ let _ =
                   "invalid";
               log#important "At %s: floating point number is infinite!"
                 (Pos.Option.to_string
-                   (try Some (List.hd pos) with Not_found -> None));
+                   (match pos with p :: _ -> Some p | [] -> None));
               if x < 0. then min_int else max_int
           | `Float x when Float.is_nan x ->
               if raise then
