@@ -266,7 +266,9 @@ let type_term ?name ?stdlib ?term ?ty ~cache ~trim ~lib parsed_term =
         report
           ~default:(fun () -> ())
           (fun ~throw () -> Term.check_unused ~throw ~lib full_term);
-        if trim then Term_trim.trim_term full_term;
+        let full_term =
+          if trim then Term_trim.trim_term full_term else full_term
+        in
         if cache then Term_cache.cache ~trim ~parsed_term full_term;
         full_term
 
