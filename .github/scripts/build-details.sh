@@ -17,7 +17,7 @@ if [ "${IS_FORK}" == "true" ]; then
   IS_FORK=true
 fi
 
-if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\.x || "${BRANCH}" =~ ^v[0-9]\.[0-9]\.[0-9]) ]]; then
+if [[ "${IS_FORK}" != "true" && ("${BRANCH}" == "main" || "${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\.x || "${BRANCH}" =~ ^v[0-9]\.[0-9]\.[0-9]) ]]; then
   echo "Branch is release branch"
   IS_RELEASE=true
 
