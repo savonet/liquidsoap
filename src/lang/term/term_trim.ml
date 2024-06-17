@@ -44,7 +44,7 @@ and trim_encoder (name, params) = (name, trim_encoder_params params)
 and trim_ast tm =
   match tm with
     | `Custom _ | `Var _ | `Null | `Int _ | `Float _ | `Bool _ | `String _
-    | `Cache_env _ ->
+    | `Value _ | `Cache_env _ ->
         tm
     | `Tuple l -> `Tuple (List.map trim_term l)
     | `Open (t, t') -> `Open (trim_term t, trim_term t')

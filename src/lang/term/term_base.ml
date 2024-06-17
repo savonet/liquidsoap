@@ -76,13 +76,19 @@ let ref_t ?pos t =
 module Custom = Term_custom
 
 let unit = `Tuple []
+let is_ground_value = ref (fun _ -> false)
 
 (* Only used for printing very simple functions. *)
-let rec is_ground x =
-  match x.term with
-    | `List l | `Tuple l -> List.for_all is_ground l
-    | `Null | `Int _ | `Float _ | `String _ | `Bool _ -> true
-    | _ -> false
+let rec is_ground tm =
+  is_ground_ast tm.term && Methods.for_all (fun _ tm -> is_ground tm) tm.methods
+
+and is_ground_ast = function
+  | `List l | `Tuple l -> List.for_all is_ground l
+  | `Value v ->
+      let fn = !is_ground_value in
+      fn v
+  | `Null | `Int _ | `Float _ | `String _ | `Bool _ -> true
+  | _ -> false
 
 let string_of_pat = function
   | `PVar l -> String.concat "." l
@@ -90,6 +96,8 @@ let string_of_pat = function
 
 (** String representation of terms, (almost) assuming they are in normal
     form. *)
+
+let string_of_value = ref (fun _ -> "_")
 
 let rec to_string (v : t) =
   let to_base_string (v : t) =
@@ -103,6 +111,9 @@ let rec to_string (v : t) =
       | `Float f -> Utils.string_of_float f
       | `Bool b -> string_of_bool b
       | `String s -> Lang_string.quote_string s
+      | `Value v ->
+          let fn = !string_of_value in
+          Printf.sprintf "$%s$" (fn v)
       | `Encoder e ->
           let rec aux (e, p) =
             let p =
@@ -198,7 +209,8 @@ let bound_vars_pat = function
 
 let rec free_term_vars tm =
   let root_free_vars = function
-    | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ ->
+    | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _
+    | `Value _ ->
         Vars.empty
     | `Var x -> Vars.singleton x
     | `Tuple l ->
@@ -308,6 +320,7 @@ let check_unused ~throw ~lib tm =
       Methods.fold (fun _ meth_term e -> check e meth_term) tm.methods v
     in
     match tm.term with
+      | `Value _ -> v
       | `Var s -> Vars.remove s v
       | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ -> v
       | `Custom _ -> v
@@ -483,6 +496,7 @@ let rec fresh ~handler { t; term; methods; flags } =
               body = fresh ~handler body;
             }
       | `List l -> `List (List.map (fresh ~handler) l)
+      | `Value _ as ast -> ast
       | `Cast { cast = t; typ } ->
           `Cast { cast = fresh ~handler t; typ = Type.Fresh.make handler typ }
       | `App (t, l) ->

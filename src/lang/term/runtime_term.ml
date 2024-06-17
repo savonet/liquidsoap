@@ -32,7 +32,7 @@ type 'a term = {
   t : Type.t;
   term : 'a;
   flags : flags;
-  methods : 'a term Methods.t;
+  mutable methods : 'a term Methods.t;
 }
 
 let has_flag { flags } flag = flags land flag <> 0
@@ -54,7 +54,9 @@ type ('a, 'b) func = {
 }
 
 type 'a app = 'a * (string * 'a) list
-type ('a, 'b) cast = { cast : 'a; typ : 'b } [@@deriving hash]
+
+type ('a, 'b) cast = { cast : 'a; mutable typ : 'b [@compare.ignore] }
+[@@deriving hash]
 
 type ('a, 'b) common_ast =
   [ `Custom of custom_term
@@ -85,6 +87,7 @@ type 'a let_t = {
   body : 'a;
 }
 
+type value
 type cached_env = { var_name : int; var_id : int; env : Typing.env }
 
 type 'a runtime_ast =
@@ -95,6 +98,7 @@ type 'a runtime_ast =
   | `Bool of bool
   | `Let of 'a let_t
   | `List of 'a list
+  | `Value of value
   | `App of 'a * (string * 'a) list
   | `Invoke of 'a invoke
   | `Hide of 'a * string list
@@ -103,3 +107,58 @@ type 'a runtime_ast =
 
 type t = ast term
 and ast = [ (t, Type.t) common_ast | t runtime_ast ]
+
+let rec map_encoder fn (lbl, params) = (lbl, map_encoder_params fn params)
+
+and map_encoder_params fn =
+  List.map (function
+    | `Anonymous _ as v -> v
+    | `Encoder enc -> `Encoder (map_encoder fn enc)
+    | `Labelled (lbl, arg) -> `Labelled (lbl, fn arg))
+
+let rec map_ast map_term = function
+  | `Custom _ as ast -> ast
+  | `Tuple l -> `Tuple (List.map map_term l)
+  | `Null -> `Null
+  | `Cache_env _ as ast -> ast
+  | `Int _ as ast -> ast
+  | `Float _ as ast -> ast
+  | `Bool _ as ast -> ast
+  | `String _ as ast -> ast
+  | `Value _ as ast -> ast
+  | `Open (t, t') -> `Open (map_term t, map_term t')
+  | `Hide (t, l) -> `Hide (map_term t, l)
+  | `Var _ as ast -> ast
+  | `Seq (t, t') -> `Seq (map_term t, map_term t')
+  | `Let ({ def; body } as _let) ->
+      `Let { _let with def = map_term def; body = map_term body }
+  | `List l -> `List (List.map map_term l)
+  | `Cast ({ cast } as c) -> `Cast { c with cast = map_term cast }
+  | `App (t, l) ->
+      `App (map_term t, List.map (fun (lbl, t) -> (lbl, map_term t)) l)
+  | `Invoke ({ invoked; invoke_default } as invoke) ->
+      `Invoke
+        {
+          invoke with
+          invoked = map_term invoked;
+          invoke_default = Option.map map_term invoke_default;
+        }
+  | `Encoder enc -> `Encoder (map_encoder map_term enc)
+  | `Fun ({ body; arguments } as func) ->
+      `Fun
+        {
+          func with
+          body = map_term body;
+          arguments =
+            List.map
+              (fun ({ default } as arg) ->
+                { arg with default = Option.map map_term default })
+              arguments;
+        }
+
+and map_term fn tm =
+  {
+    tm with
+    term = map_ast (map_term fn) tm.term;
+    methods = Methods.map (map_term fn) tm.methods;
+  }

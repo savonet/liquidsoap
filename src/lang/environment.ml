@@ -42,6 +42,11 @@ let clear_environments () =
 let has_builtin name = List.mem_assoc name !flat_enviroment
 let get_builtin name = List.assoc_opt name !flat_enviroment
 
+let clear_environments () =
+  type_environment := Env.empty;
+  value_environment := Env.empty;
+  flat_enviroment := []
+
 let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
   if register && doc <> None then
     Doc.Value.add (String.concat "." name) (Option.get doc);

@@ -48,7 +48,6 @@ and lazy_env = (string * value Stdlib.Lazy.t) list
 
 and fun_v = Liquidsoap_lang.Value.fun_v = {
   fun_args : (string * string * value option) list;
-  fun_env : lazy_env;
   fun_body : Term.t;
 }
 

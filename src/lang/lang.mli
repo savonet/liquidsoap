@@ -47,7 +47,6 @@ and lazy_env = (string * value Lazy.t) list
 
 and fun_v = Value.fun_v = {
   fun_args : (string * string * value option) list;
-  fun_env : lazy_env;
   fun_body : Term.t;
 }
 
