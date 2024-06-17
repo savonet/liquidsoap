@@ -47,3 +47,6 @@ val default_typing_environment : unit -> (string * Type.scheme) list
 
 (** Initial environment (with builtins). *)
 val default_environment : unit -> (string * Value.t) list
+
+(** Clear all environments. *)
+val clear_environments : unit -> unit

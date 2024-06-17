@@ -107,9 +107,13 @@ let eval_script expr =
           Printf.printf "Term cached with key %s\n"
             (Parsed_term.hash parsed_term)
     | (`Eval as v) | (`Eval_toplevel as v) ->
+        let toplevel = v = `Eval_toplevel in
+        let stdlib = !stdlib in
         ignore
-          (Lang.eval ~toplevel:(v = `Eval_toplevel) ~cache:!cache
-             ~stdlib:!stdlib ~deprecated:!deprecated ~name:"main script" expr)
+          (Lang.eval ~toplevel ~cache:!cache ~stdlib ~deprecated:!deprecated
+             ~name:"main script" expr);
+        if not (Lang_eval.effective_toplevel ~stdlib toplevel) then
+          Environment.clear_environments ()
 
 (** Evaluate the user script. *)
 let eval () =
