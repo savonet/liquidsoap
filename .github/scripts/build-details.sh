@@ -41,11 +41,6 @@ else
   DOCKER_RELEASE=
 fi
 
-echo "Building on all architectures"
-BUILD_OS='["debian_trixie", "debian_bookworm", "debian_bullseye", "ubuntu_jammy", "ubuntu_noble", "alpine"]'
-BUILD_PLATFORM='["amd64", "arm64", "armhf"]'
-BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "trixie"}, {"platform": "armhf", "runs-on": ["self-hosted", "build"], "alpine-arch": "armv7", "docker-platform": "linux/arm/v7", "docker-debian-os": "bullseye"}]'
-
 SHA=$(git rev-parse --short HEAD)
 
 if [[ "${BRANCH}" =~ "rolling-release-" ]]; then
