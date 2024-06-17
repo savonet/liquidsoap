@@ -211,7 +211,7 @@ let rec base_json_of_pat = function
       ast_node ~typ:"plist"
         [
           ("left", `Tuple (List.map json_of_pat l));
-          ("middle", match v with None -> `Null | Some s -> `String s);
+          ("middle", match v with None -> `Null | Some (_, s) -> `String s);
           ("right", `Tuple (List.map json_of_pat l'));
         ]
   | `PMeth (ellipsis, methods) ->
@@ -248,7 +248,7 @@ let rec base_json_of_pat = function
                     ]) );
         ]
 
-and json_of_pat p = `Assoc (base_json_of_pat p)
+and json_of_pat p = `Assoc (base_json_of_pat p.pat_entry)
 
 let json_of_of { only; except; source } =
   [

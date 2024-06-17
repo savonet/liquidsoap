@@ -84,28 +84,9 @@ let rec is_ground x =
     | `Null | `Int _ | `Float _ | `String _ | `Bool _ -> true
     | _ -> false
 
-let rec string_of_pat = function
+let string_of_pat = function
   | `PVar l -> String.concat "." l
-  | `PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
-  | `PList (l, spread, l') ->
-      "["
-      ^ String.concat ", "
-          (List.map string_of_pat l
-          @ (match spread with None -> [] | Some v -> ["..." ^ v])
-          @ List.map string_of_pat l')
-      ^ "]"
-  | `PMeth (pat, l) ->
-      (match pat with None -> "" | Some pat -> string_of_pat pat ^ ".")
-      ^ "{"
-      ^ String.concat ", "
-          (List.map
-             (fun (lbl, pat) ->
-               match pat with
-                 | `None -> lbl
-                 | `Nullable -> lbl ^ "?"
-                 | `Pattern pat -> lbl ^ ": " ^ string_of_pat pat)
-             l)
-      ^ "}"
+  | `PTuple l -> "(" ^ String.concat ", " l ^ ")"
 
 (** String representation of terms, (almost) assuming they are in normal
     form. *)
@@ -138,6 +119,10 @@ let rec to_string (v : t) =
       | `List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | `Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | `Null -> "null"
+      | `Hide (tm, l) ->
+          "{"
+          ^ String.concat ", " (List.map (Printf.sprintf "%s = _") l)
+          ^ ", ..." ^ to_string tm ^ "}"
       | `Cast { cast; typ } ->
           "(" ^ to_string cast ^ " : " ^ Type.to_string typ ^ ")"
       | `Invoke { invoked = e; meth = l; invoke_default } -> (
@@ -205,28 +190,11 @@ let rec free_vars_pat = function
                 @ cur)
               [] l))
 
-let rec bound_vars_pat = function
+let bound_vars_pat = function
   | `PVar [] -> assert false
   | `PVar [x] -> Vars.singleton x
   | `PVar _ -> Vars.empty
-  | `PTuple l ->
-      List.fold_left Vars.union Vars.empty (List.map bound_vars_pat l)
-  | `PList (l, spread, l') ->
-      List.fold_left Vars.union Vars.empty
-        (List.map bound_vars_pat
-           (l @ (match spread with None -> [] | Some v -> [`PVar [v]]) @ l'))
-  | `PMeth (pat, l) ->
-      List.fold_left Vars.union
-        (match pat with None -> Vars.empty | Some pat -> bound_vars_pat pat)
-        (List.map bound_vars_pat
-           (List.fold_left
-              (fun cur (lbl, pat) ->
-                [`PVar [lbl]]
-                @ (match pat with
-                    | `None | `Nullable -> []
-                    | `Pattern pat -> [pat])
-                @ cur)
-              [] l))
+  | `PTuple l -> Vars.of_list l
 
 let rec free_term_vars tm =
   let root_free_vars = function
@@ -249,6 +217,12 @@ let rec free_term_vars tm =
         enc e
     | `Cast { cast = e } -> free_vars e
     | `Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | `Hide (tm, l) ->
+        free_vars
+          {
+            tm with
+            methods = Methods.filter (fun n _ -> not (List.mem n l)) tm.methods;
+          }
     | `Invoke { invoked = e; invoke_default } ->
         Vars.union (free_vars e)
           (match invoke_default with
@@ -339,6 +313,13 @@ let check_unused ~throw ~lib tm =
       | `Custom _ -> v
       | `Tuple l -> List.fold_left (fun a -> check a) v l
       | `Null -> v
+      | `Hide (tm, l) ->
+          check v
+            {
+              tm with
+              methods =
+                Methods.filter (fun n _ -> not (List.mem n l)) tm.methods;
+            }
       | `Cast { cast = e } -> check v e
       | `Invoke { invoked = e } -> check v e
       | `Open (a, b) -> check (check v a) b
@@ -508,6 +489,7 @@ let rec fresh ~handler { t; term; methods; flags } =
           `App
             ( fresh ~handler t,
               List.map (fun (lbl, t) -> (lbl, fresh ~handler t)) l )
+      | `Hide (tm, l) -> `Hide (fresh ~handler tm, l)
       | `Invoke { invoked; invoke_default; meth } ->
           `Invoke
             {

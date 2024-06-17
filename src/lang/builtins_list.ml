@@ -105,6 +105,35 @@ let _ =
 
 let _ =
   let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "slice" ~category:`List
+    ~descr:
+      "Return the sublist of length `length` starting with the element at \
+       index `offset`."
+    [
+      ( "offset",
+        Lang.int_t,
+        Some (Lang.int 0),
+        Some "Index of the first element." );
+      ( "length",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some
+          "Length of the returned list. Include all elements from `offset` if \
+           `null`." );
+      ("", Lang.list_t a, None, None);
+    ]
+    (Lang.list_t a)
+    (fun p ->
+      let start = Lang.to_int (List.assoc "offset" p) in
+      let length = Lang.to_valued_option Lang.to_int (List.assoc "length" p) in
+      let l = Lang.to_list (List.assoc "" p) in
+      let stop =
+        match length with Some l -> start + l | None -> List.length l
+      in
+      Lang.list (List.filteri (fun pos _ -> start <= pos && pos < stop) l))
+
+let _ =
+  let a = Lang.univ_t () in
   let b = Lang.univ_t () in
   Lang.add_builtin ~base:list "ind" ~category:`List
     ~descr:

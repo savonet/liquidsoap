@@ -539,6 +539,8 @@ and ( <: ) a b =
       | Arrow ([], t1), Getter t2 -> (
           try t1 <: t2
           with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
+      | Never, Var { contents = Free _ } | Var { contents = Free _ }, Never ->
+          raise (Error (Repr.make a, Repr.make b))
       | Var { contents = Free _ }, _ -> (
           try bind a b
           with Occur_check _ | Unsatisfied_constraint ->
