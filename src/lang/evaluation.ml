@@ -355,7 +355,7 @@ and eval_ast ~eval_check ~(env : Env.t) ~flags ~pos ast =
           methods =
             Methods.filter (fun n _ -> not (List.mem n methods)) v.methods;
         }
-    | `Cast { cast } -> { (eval ~eval_check env cast) with pos }
+    | `Cast { cast = e } -> { (eval ~eval_check env e) with pos }
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with

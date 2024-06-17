@@ -130,12 +130,12 @@ let rec to_string (v : t) =
       | `List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | `Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | `Null -> "null"
-      | `Cast { cast = e; typ = t } ->
-          "(" ^ to_string e ^ " : " ^ Type.to_string t ^ ")"
       | `Hide (tm, l) ->
           "{"
           ^ String.concat ", " (List.map (Printf.sprintf "%s = _") l)
           ^ ", ..." ^ to_string tm ^ "}"
+      | `Cast { cast; typ } ->
+          "(" ^ to_string cast ^ " : " ^ Type.to_string typ ^ ")"
       | `Invoke { invoked = e; meth = l; invoke_default } -> (
           match invoke_default with
             | None -> to_string e ^ "." ^ l
@@ -326,7 +326,6 @@ let check_unused ~throw ~lib tm =
       | `Custom _ -> v
       | `Tuple l -> List.fold_left (fun a -> check a) v l
       | `Null -> v
-      | `Cast { cast = e } -> check v e
       | `Hide (tm, l) ->
           check v
             {
@@ -334,6 +333,7 @@ let check_unused ~throw ~lib tm =
               methods =
                 Methods.filter (fun n _ -> not (List.mem n l)) tm.methods;
             }
+      | `Cast { cast = e } -> check v e
       | `Invoke { invoked = e } -> check v e
       | `Open (a, b) -> check (check v a) b
       | `Seq (a, b) -> check ~toplevel (check v a) b
