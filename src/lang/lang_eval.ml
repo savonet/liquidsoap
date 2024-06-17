@@ -21,12 +21,23 @@ let type_term ?name ?(cache = true) ?(trim = true) ?(deprecated = false) ?ty
   in
   Runtime.type_term ?name ?stdlib ?ty ~term ~cache ~trim ~lib:false parsed_term
 
+let effective_config ~toplevel stdlib =
+  (* Registering defined operators at top-level prevents reclaiming memory from unused operators
+     so we try to avoid it by default. We need it for all documentation. Also, as soon as the user
+     script contains [let eval ...], we have to retain values at top-level as the string being
+     parsed will also expect the standard library to be available. *)
+  match (stdlib, Term_reducer.needs_toplevel ()) with
+    | `Disabled, _ -> (toplevel, not toplevel)
+    | _, true -> (true, false)
+    | _ -> (toplevel, not toplevel)
+
 let eval ?(toplevel = false) ?(typecheck = true) ?cache ?deprecated ?ty ?name
-    ?trim ~stdlib s =
+    ~stdlib s =
   let parsed_term, term = Runtime.parse s in
+  let toplevel, trim = effective_config ~toplevel stdlib in
   let term =
     if typecheck then
-      type_term ?name ?cache ?deprecated ?ty ?trim ~stdlib ~parsed_term term
+      type_term ?name ?cache ?deprecated ?ty ~trim ~stdlib ~parsed_term term
     else term
   in
   Runtime.eval_term ?name ~toplevel term

@@ -73,13 +73,6 @@ let root_error () =
 let eval_mode : [ `Parse_only | `Parse_and_type | `Eval | `Eval_toplevel ] ref =
   ref `Eval
 
-let string_of_eval_mode () =
-  match !eval_mode with
-    | `Parse_only -> "parse only"
-    | `Parse_and_type -> "parse and type"
-    | `Eval -> "eval"
-    | `Eval_toplevel -> "eval toplevel"
-
 (* Should we error if stdlib is not found? *)
 let is_relative = Filename.is_relative Sys.argv.(0)
 
@@ -113,22 +106,15 @@ let eval_script expr =
         if !show_cache_key then
           Printf.printf "Term cached with key %s\n"
             (Parsed_term.hash parsed_term)
-    | (`Eval as v) | (`Eval_toplevel as v) ->
+    | (`Eval as v) | (`Eval_toplevel as v) -> (
         let toplevel = v = `Eval_toplevel in
-        let toplevel, trim =
-          (* Registering defined operators at top-level prevents reclaiming memory from unused operators
-             so we try to avoid it by default. We need it for all documentation. Also, as soon as the user
-             script contains [let eval ...], we have to retain values at top-level as the string being
-             parsed will also expect the standard library to be available. *)
-          match (!stdlib, Term_reducer.needs_toplevel ()) with
-            | `Disabled, _ -> (toplevel, not toplevel)
-            | _, true -> (true, false)
-            | _ -> (toplevel, not toplevel)
-        in
+        let stdlib = !stdlib in
         ignore
-          (Lang.eval ~toplevel ~cache:!cache ~stdlib:!stdlib ~trim
-             ~deprecated:!deprecated ~name:"main script" expr);
-        if not toplevel then Environment.clear_environments ()
+          (Lang.eval ~toplevel ~cache:!cache ~stdlib ~deprecated:!deprecated
+             ~name:"main script" expr);
+        match Lang_eval.effective_config ~toplevel stdlib with
+          | false, _ -> Environment.clear_environments ()
+          | _ -> ())
 
 (** Evaluate the user script. *)
 let eval () =
@@ -150,9 +136,7 @@ let eval () =
   let t = Sys.time () in
   try
     eval_script script;
-    log#important "User script loaded in %.02f seconds (eval mode: %s)"
-      (Sys.time () -. t)
-      (string_of_eval_mode ())
+    log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
   with Liquidsoap_lang.Runtime.Error ->
     Dtools.Init.exec Dtools.Log.stop;
     flush_all ();
