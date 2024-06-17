@@ -39,7 +39,7 @@ let octal_int = 0b1
 let hex_int = 0b10
 
 type 'a term = {
-  mutable t : Type.t;
+  t : Type.t;
   term : 'a;
   flags : flags;
   methods : 'a term Methods.t;
