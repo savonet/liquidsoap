@@ -1,3 +1,5 @@
+exception No_method of string * Type.t
+
 val debug : bool ref
 val display_types : bool ref
 val value_restriction : Term.t -> bool

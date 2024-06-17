@@ -327,6 +327,14 @@ def f() =
   end
   test.equal(f({foo=fun () -> null()}), 123)
 
+  def f(x) =
+    x = (x : {foo: int})
+    let {foo, ...x} = x
+    ignore(foo)
+    (x.foo ?? "aabb")
+  end
+  test.equal(f({foo=123}), "aabb")
+
   test.pass()
 end
 

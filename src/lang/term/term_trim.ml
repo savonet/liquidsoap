@@ -70,6 +70,15 @@ and trim_ast tm =
             invoke_default = Option.map trim_term invoke_default;
             meth;
           }
+    | `Hide (tm, l) ->
+        let tm = trim_term tm in
+        `Hide
+          ( {
+              tm with
+              methods =
+                Methods.filter (fun lbl _ -> not (List.mem lbl l)) tm.methods;
+            },
+            l )
     | `Encoder enc -> `Encoder (trim_encoder enc)
     | `Fun ({ body; arguments } as _fun) ->
         `Fun
