@@ -441,24 +441,24 @@ and term_of_value_base ~pos t v =
       mk ~flags ~t:(Type.make ~pos t.Type.descr) term
     in
     match v.Value.value with
-      | Value.Int i -> mk_tm ~flags:v.Value.flags (`Int i)
-      | Value.Float f -> mk_tm (`Float f)
-      | Value.Bool b -> mk_tm (`Bool b)
-      | Value.String s -> mk_tm (`String s)
-      | Value.Custom g -> mk_tm (`Custom g)
-      | Value.List l ->
+      | `Int i -> mk_tm ~flags:v.Value.flags (`Int i)
+      | `Float f -> mk_tm (`Float f)
+      | `Bool b -> mk_tm (`Bool b)
+      | `String s -> mk_tm (`String s)
+      | `Custom g -> mk_tm (`Custom g)
+      | `List l ->
           mk_tm
             (`List (List.map (term_of_value_base ~pos (get_list_type ())) l))
-      | Value.Tuple l ->
+      | `Tuple l ->
           mk_tm
             (`Tuple
               (List.mapi
                  (fun idx v -> term_of_value_base ~pos (get_tuple_type idx) v)
                  l))
-      | Value.Null -> mk_tm `Null
+      | `Null -> mk_tm `Null
       (* Ignoring env is not correct here but this is an internal operator
          so we have to trust that devs using it via %argsof now that they are doing. *)
-      | Value.Fun { fun_args = args; fun_body = body } ->
+      | `Fun { fun_args = args; fun_body = body } ->
           let body =
             mk
               ~t:(Type.make ~pos body.t.Type.descr)
@@ -496,8 +496,8 @@ and term_of_value ~pos ~name t v =
 
 let builtin_args_of ~only ~except ~pos name =
   match Environment.get_builtin name with
-    | Some ((_, t), Value.{ value = Fun { fun_args = args } })
-    | Some ((_, t), Value.{ value = FFI { ffi_args = args; _ } }) ->
+    | Some ((_, t), Value.{ value = `Fun { fun_args = args } })
+    | Some ((_, t), Value.{ value = `FFI { ffi_args = args; _ } }) ->
         let filtered_args = List.filter (fun (n, _, _) -> n <> "") args in
         let filtered_args =
           if only <> [] then

@@ -207,8 +207,9 @@ let print_settings () =
         not (List.mem description filtered_settings))
   in
   let print_set ~path = function
-    | Value.Tuple [] -> []
-    | (Value.Fun { fun_args = [] } | Value.FFI { ffi_args = []; _ }) as value ->
+    | `Tuple [] -> []
+    | Liquidsoap_lang.Value.(`Fun { fun_args = [] } | `FFI { ffi_args = []; _ })
+      as value ->
         let value =
           Lang.apply
             {
@@ -226,7 +227,7 @@ let print_settings () =
 %s := %s
 ```
 |} path
-            (if value.Value.value = Value.Null then "<value>"
+            (if value.Value.value = `Null then "<value>"
              else Value.to_string value);
         ]
     | value ->
@@ -316,15 +317,15 @@ let _ =
         let get = grab path !settings in
         let v = Lang.apply get [] in
         match (default.Lang.value, v.Lang.value) with
-          | Lang.(Bool _), Lang.(Bool _)
-          | Lang.(Int _), Lang.(Int _)
-          | Lang.(Float _), Lang.(Float _)
-          | Lang.(String _), Lang.(String _)
-          | Lang.(List []), Lang.(List [])
-          | Lang.(List ({ pos = _; value = String _ } :: _)), Lang.(List [])
-          | Lang.(List []), Lang.(List ({ pos = _; value = String _ } :: _))
-          | ( Lang.(List ({ pos = _; value = String _ } :: _)),
-              Lang.(List ({ pos = _; value = String _ } :: _)) ) ->
+          | `Bool _, `Bool _
+          | `Int _, `Int _
+          | `Float _, `Float _
+          | `String _, `String _
+          | `List [], `List []
+          | `List ({ pos = _; value = `String _ } :: _), `List []
+          | `List [], `List ({ pos = _; value = `String _ } :: _)
+          | ( `List ({ pos = _; value = `String _ } :: _),
+              `List ({ pos = _; value = `String _ } :: _) ) ->
               v
           | _ ->
               log#severe

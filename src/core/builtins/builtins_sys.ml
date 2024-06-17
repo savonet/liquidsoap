@@ -30,9 +30,7 @@ let () =
       ignore
         (Lang.add_builtin_base ~category:`Configuration
            ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
-           ~base:configure name
-           Lang.(String str)
-           Lang.string_t))
+           ~base:configure name (`String str) Lang.string_t))
     [
       ("libdir", "library directory", Configure.liq_libs_dir ());
       ("bindir", "Internal script directory", Configure.bin_dir ());

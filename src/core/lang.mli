@@ -34,41 +34,18 @@ type regexp = Liquidsoap_lang.Lang.regexp
 (** {2 Values} *)
 
 module Custom = Value.Custom
+module Methods = Term.Methods
+
+type in_value = Liquidsoap_lang.Value.in_value
+type env = Liquidsoap_lang.Value.env
 
 type value = Liquidsoap_lang.Value.t = {
-  pos : Liquidsoap_lang.Pos.Option.t;
+  pos : Pos.Option.t;
   value : in_value;
-  methods : value Liquidsoap_lang.Value.Methods.t;
-  flags : Liquidsoap_lang.Term.flags;
+  methods : value Methods.t;
+  flags : Term.flags;
   id : int;
 }
-
-and env = (string * value) list
-
-and fun_v = Liquidsoap_lang.Value.fun_v = {
-  fun_args : (string * string * value option) list;
-  fun_env : env;
-  fun_body : Term.t;
-}
-
-and ffi = Liquidsoap_lang.Value.ffi = {
-  ffi_args : (string * string * value option) list;
-  mutable ffi_fn : env -> value;
-}
-
-and in_value = Liquidsoap_lang.Value.in_value =
-  | Int of int
-  | Float of float
-  | String of string
-  | Bool of bool
-  | Custom of Custom.t
-  | List of value list
-  | Tuple of value list
-  | Null
-  | Fun of fun_v
-  (* A function with given arguments (argument label, argument variable, default
-     value), closure and value. *)
-  | FFI of ffi
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
@@ -134,7 +111,7 @@ val add_builtin_base :
   ?flags:Doc.Value.flag list ->
   ?base:module_name ->
   string ->
-  in_value ->
+  Liquidsoap_lang.Value.in_value ->
   t ->
   module_name
 

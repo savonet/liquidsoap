@@ -420,16 +420,12 @@ let check_content v t =
             let frame_t = Frame_type.make unit_t content_t in
             let encoder_t = Lang_encoder.L.format_t frame_t in
             check encoder_t t
-        | Value.Int _, _
-        | Value.Float _, _
-        | Value.String _, _
-        | Value.Bool _, _
-        | Value.Custom _, _ ->
+        | `Int _, _ | `Float _, _ | `String _, _ | `Bool _, _ | `Custom _, _ ->
             ()
-        | Value.List l, Type.List { Type.t } ->
+        | `List l, Type.List { Type.t } ->
             List.iter (fun v -> check_value v t) l
-        | Value.Tuple l, Type.Tuple t -> List.iter2 check_value l t
-        | Value.Null, _ -> ()
+        | `Tuple l, Type.Tuple t -> List.iter2 check_value l t
+        | `Null, _ -> ()
         | _, Type.Nullable t -> check_value v t
         (* Value can have more methods than the type requires so check from the type here. *)
         | _, Type.Meth _ ->
@@ -448,15 +444,16 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        | Fun { fun_args = []; fun_body = ret }, Type.Getter t ->
+        | `Fun { fun_args = []; fun_body = ret }, Type.Getter t ->
             Typing.(ret.Term.t <: t)
-        | FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
+        | `FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
             ffi.ffi_fn <-
               (fun env ->
                 let v = ffi_fn env in
                 check_value v t;
                 v)
-        | Fun { fun_args = args; fun_body = ret }, Type.Arrow (args_t, ret_t) ->
+        | `Fun { fun_args = args; fun_body = ret }, Type.Arrow (args_t, ret_t)
+          ->
             List.iter
               (fun typ ->
                 match typ with
@@ -471,7 +468,7 @@ let check_content v t =
                   | _ -> ())
               args_t;
             Typing.(ret.Term.t <: ret_t)
-        | FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
+        | `FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
             List.iter
               (fun typ ->
                 match typ with
@@ -527,25 +524,25 @@ let check_arguments ~env ~return_t arguments =
     let rec map { pos; value; flags; methods } =
       let value =
         match value with
-          | (Int _ as ast)
-          | (Float _ as ast)
-          | (String _ as ast)
-          | (Bool _ as ast)
-          | (Custom _ as ast) ->
+          | (`Int _ as ast)
+          | (`Float _ as ast)
+          | (`String _ as ast)
+          | (`Bool _ as ast)
+          | (`Custom _ as ast) ->
               ast
-          | List l -> List (List.map map l)
-          | Tuple l -> Tuple (List.map map l)
-          | Null -> Null
-          | Fun ({ fun_args = args; fun_body = ret } as fun_v) ->
-              Fun
+          | `List l -> `List (List.map map l)
+          | `Tuple l -> `Tuple (List.map map l)
+          | `Null -> `Null
+          | `Fun ({ fun_args = args; fun_body = ret } as fun_v) ->
+              `Fun
                 {
                   fun_v with
                   fun_args =
                     List.map (fun (l, l', v) -> (l, l', Option.map map v)) args;
                   fun_body = Term.fresh ~handler ret;
                 }
-          | FFI ffi ->
-              FFI
+          | `FFI ffi ->
+              `FFI
                 {
                   ffi_args =
                     List.map
@@ -710,16 +707,16 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
       Value.Methods.iter (fun _ v -> iter_value v) v.Value.methods;
       match v.value with
         | _ when Source_val.is_value v -> f (Source_val.of_value v)
-        | Int _ | String _ | Float _ | Bool _ | Custom _ -> ()
-        | List l -> List.iter iter_value l
-        | Tuple l -> List.iter iter_value l
-        | Null -> ()
-        | Fun { fun_args = proto; fun_env = env; fun_body = body } ->
+        | `Int _ | `String _ | `Float _ | `Bool _ | `Custom _ -> ()
+        | `List l -> List.iter iter_value l
+        | `Tuple l -> List.iter iter_value l
+        | `Null -> ()
+        | `Fun { fun_args = proto; fun_env = env; fun_body = body } ->
             (* The following is necessarily imprecise: we might see sources that
                will be unused in the execution of the function. *)
             iter_term env body;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-        | FFI { ffi_args = proto; _ } ->
+        | `FFI { ffi_args = proto; _ } ->
             on_imprecise ();
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto)
   in

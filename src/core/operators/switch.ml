@@ -44,7 +44,7 @@ type selection = {
 let satisfied f = Lang.to_bool (Lang.apply f [])
 
 let trivially_true = function
-  | { Lang.value = Lang.Fun { fun_body = { Term.term = `Bool true } } } -> true
+  | { Lang.value = `Fun { fun_body = { Term.term = `Bool true } } } -> true
   | _ -> false
 
 let pick_selection (p, _, s) = (p, s)
