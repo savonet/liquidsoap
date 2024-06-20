@@ -82,12 +82,56 @@ end
 type ground =
   [ `Int of int | `Float of float | `String of string | `Bool of bool | `Null ]
 
+let rec is_ground { Value.value; methods } =
+  Methods.for_all (fun _ m -> is_ground m) methods
+  &&
+  match value with
+    | #ground -> true
+    | `List l | `Tuple l -> List.for_all is_ground l
+    | `Fun _ | `FFI _ -> false
+
+let rec term_of_value ~t { Value.methods; value; flags } =
+  let t = Type.deref t in
+  let meth_types, _ = Type.split_meths t in
+  let methods =
+    Methods.mapi
+      (fun lbl m ->
+        let t =
+          try
+            let { Type.scheme = _, t } =
+              List.find (fun { Type.meth } -> meth = lbl) meth_types
+            in
+            t
+          with Not_found -> Type.var ?pos:t.Type.pos ()
+        in
+        term_of_value ~t m)
+      methods
+  in
+  let map term = { t; term; methods; flags } in
+  match value with
+    | #ground as tm -> map tm
+    | `List l ->
+        let t =
+          match t.Type.descr with
+            | List { Type.t } -> t
+            | _ -> Type.var ?pos:t.Type.pos ()
+        in
+        map (`List (List.map (term_of_value ~t) l))
+    | `Tuple l ->
+        let t =
+          match t.Type.descr with
+            | Type.Tuple l -> l
+            | _ ->
+                List.init (List.length l) (fun _ -> Type.var ?pos:t.Type.pos ())
+        in
+        map
+          (`Tuple
+            (List.mapi (fun idx tm -> term_of_value ~t:(List.nth t idx) tm) l))
+    | `Fun _ | `FFI _ -> assert false
+
 let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
     (tm : Runtime_term.t) =
   let propagate_constants = propagate_constants ~eval_check in
-  let tm =
-    { tm with methods = Methods.map (propagate_constants ~env) tm.methods }
-  in
   match tm.term with
     | #ground | `Custom _ | `Cache_env _ | `Encoder _ -> tm
     | `List l ->
@@ -128,7 +172,7 @@ let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
         }
     | `Var v -> (
         match List.assoc_opt v env with
-          | Some { value = #ground as term } -> { tm with term }
+          | Some value when is_ground value -> term_of_value ~t:tm.t value
           | _ -> tm)
     | `Invoke { invoked; meth; invoke_default } -> (
         let invoked = propagate_constants ~env invoked in
