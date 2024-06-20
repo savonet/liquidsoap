@@ -39,7 +39,7 @@ let eval_pat pat v =
   let aux env pat v =
     match (pat, v) with
       | `PVar x, v -> (x, v) :: env
-      | `PTuple pl, { Value.value = Value.Tuple l } ->
+      | `PTuple pl, { Value.value = `Tuple l } ->
           List.fold_left2 (fun env lbl v -> ([lbl], v) :: env) env pl l
       | _ -> assert false
   in
@@ -100,12 +100,12 @@ and apply ?(pos = []) ~eval_check f l =
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
     match f.Value.value with
-      | Value.Fun { fun_args = p; fun_env = e; fun_body = body } ->
+      | `Fun { fun_args = p; fun_env = e; fun_body = body } ->
           ( p,
             fun pe ->
               let env = Env.adds e pe in
               eval ~eval_check env body )
-      | Value.FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
+      | `FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
   in
   (* Record error positions. *)
@@ -167,11 +167,11 @@ and eval_base_term ~eval_check (env : Env.t) tm =
       }
   in
   match tm.term with
-    | `Int i -> mk (Value.Int i)
-    | `Float f -> mk (Value.Float f)
-    | `Bool b -> mk (Value.Bool b)
-    | `String s -> mk (Value.String s)
-    | `Custom g -> mk (Value.Custom g)
+    | `Int i -> mk (`Int i)
+    | `Float f -> mk (`Float f)
+    | `Bool b -> mk (`Bool b)
+    | `String s -> mk (`String s)
+    | `Custom g -> mk (`Custom g)
     | `Cache_env _ -> assert false
     | `Encoder (e, p) ->
         let pos = tm.t.Type.pos in
@@ -186,10 +186,9 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         in
         let p = eval_param p in
         !Hooks.make_encoder ~pos (e, p)
-    | `List l -> mk (Value.List (List.map (eval ~eval_check env) l))
-    | `Tuple l ->
-        mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
-    | `Null -> mk Value.Null
+    | `List l -> mk (`List (List.map (eval ~eval_check env) l))
+    | `Tuple l -> mk (`Tuple (List.map (fun a -> eval ~eval_check env a) l))
+    | `Null -> mk `Null
     | `Hide (tm, methods) ->
         let v = eval ~eval_check env tm in
         {
@@ -203,7 +202,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
           (* If method returns `null` and a default is provided, pick default. *)
-          | Some Value.{ value = Null; methods }, Some default
+          | Some Value.{ value = `Null; methods }, Some default
             when Methods.is_empty methods ->
               eval ~eval_check env default
           | Some v, _ -> v
@@ -268,8 +267,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let fv = Term.free_fun_vars p in
         let p, env = prepare_fun ~eval_check fv arguments env in
         match name with
-          | None ->
-              mk (Value.Fun { fun_args = p; fun_env = env; fun_body = body })
+          | None -> mk (`Fun { fun_args = p; fun_env = env; fun_body = body })
           | Some name ->
               let rec ffi_fn env =
                 let args =
@@ -285,9 +283,9 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                 in
                 apply ~eval_check (mk_fun ()) args
               and mk_fun () =
-                let ffi = mk (Value.FFI { ffi_args = p; ffi_fn }) in
+                let ffi = mk (`FFI { ffi_args = p; ffi_fn }) in
                 let env = Env.add env name ffi in
-                mk (Value.Fun { fun_args = p; fun_env = env; fun_body = body })
+                mk (`Fun { fun_args = p; fun_env = env; fun_body = body })
               in
               mk_fun ())
     | `Var var -> Env.lookup env var
@@ -371,7 +369,7 @@ let toplevel_add ?doc pat ~t v =
               (* Default values for parameters. *)
               let pvalues v =
                 match v.Value.value with
-                  | Value.Fun { fun_args = p } ->
+                  | `Fun { fun_args = p } ->
                       List.map (fun (l, _, o) -> (l, o)) p
                   | _ -> []
               in

@@ -41,25 +41,25 @@ let make params =
   let wav =
     List.fold_left
       (fun f -> function
-        | `Labelled ("stereo", { value = Bool b; _ }) ->
+        | `Labelled ("stereo", { value = `Bool b; _ }) ->
             { f with Wav_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = Bool b; _ }) ->
+        | `Labelled ("mono", { value = `Bool b; _ }) ->
             { f with Wav_format.channels = (if b then 1 else 2) }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Wav_format.channels = 2 }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Wav_format.channels = 1 }
-        | `Labelled ("channels", { value = Int c; _ }) ->
+        | `Labelled ("channels", { value = `Int c; _ }) ->
             { f with Wav_format.channels = c }
-        | `Labelled ("duration", { value = Float d; _ }) ->
+        | `Labelled ("duration", { value = `Float d; _ }) ->
             { f with Wav_format.duration = Some d }
-        | `Labelled ("samplerate", { value = Int i; _ }) ->
+        | `Labelled ("samplerate", { value = `Int i; _ }) ->
             { f with Wav_format.samplerate = Lazy.from_val i }
-        | `Labelled ("samplesize", { value = Int i; pos }) ->
+        | `Labelled ("samplesize", { value = `Int i; pos }) ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
               Lang_encoder.raise_error ~pos "invalid sample size";
             { f with Wav_format.samplesize = i }
-        | `Labelled ("header", { value = Bool b; _ }) ->
+        | `Labelled ("header", { value = `Bool b; _ }) ->
             { f with Wav_format.header = b }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params

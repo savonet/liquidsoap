@@ -235,6 +235,4 @@ let _ =
     ~descr:
       "Size of one word on the machine currently executing the program, in \
        bits. Either `32` or `64`."
-    ~base:runtime_sys "word_size"
-    Lang.(Int Sys.word_size)
-    Lang.int_t
+    ~base:runtime_sys "word_size" (`Int Sys.word_size) Lang.int_t

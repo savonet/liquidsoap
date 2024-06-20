@@ -47,19 +47,10 @@ module L = struct
   let format = V.to_value
 end
 
-let has_started = ref false
-
-let () =
-  Lifecycle.before_start ~name:"lang_encoder initialization" (fun () ->
-      has_started := true)
-
 let raise_error ~pos message =
-  match !has_started with
-    | false -> raise (Lang_error.Encoder_error (pos, message))
-    | true ->
-        Runtime_error.raise ~message
-          ~pos:(match pos with None -> [] | Some pos -> [pos])
-          "encoder"
+  Runtime_error.raise ~message
+    ~pos:(match pos with None -> [] | Some pos -> [pos])
+    "encoder"
 
 let raise_generic_error = function
   | `Anonymous s -> raise_error ~pos:None ("Unknown encoder parameter: " ^ s)

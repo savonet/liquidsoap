@@ -34,6 +34,9 @@ type regexp = Builtins_regexp.regexp
 module Custom = Value.Custom
 module Methods = Term.Methods
 
+type in_value = Value.in_value
+type env = Value.env
+
 type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
@@ -41,33 +44,6 @@ type value = Value.t = {
   flags : Term.flags;
   id : int;
 }
-
-and env = (string * value) list
-
-and fun_v = Value.fun_v = {
-  fun_args : (string * string * value option) list;
-  fun_env : env;
-  fun_body : Term.t;
-}
-
-and ffi = Value.ffi = {
-  ffi_args : (string * string * value option) list;
-  mutable ffi_fn : env -> value;
-}
-
-and in_value = Value.in_value =
-  | Int of int
-  | Float of float
-  | String of string
-  | Bool of bool
-  | Custom of Custom.t
-  | List of value list
-  | Tuple of value list
-  | Null
-  | Fun of fun_v
-  (* A function with given arguments (argument label, argument variable, default
-     value), closure and value. *)
-  | FFI of ffi
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
@@ -116,7 +92,7 @@ val add_builtin_base :
   ?flags:Doc.Value.flag list ->
   ?base:module_name ->
   string ->
-  in_value ->
+  Value.in_value ->
   t ->
   module_name
 

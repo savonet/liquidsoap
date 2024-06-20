@@ -88,16 +88,16 @@ let mk ?pos ?(flags = 0) value =
   { pos; value; flags; methods = Methods.empty; id = id () }
 
 let unit = mk unit
-let int i = mk (Int i)
-let octal_int i = mk ~flags:Term.octal_int (Int i)
-let hex_int i = mk ~flags:Term.hex_int (Int i)
-let bool i = mk (Bool i)
-let float i = mk (Float i)
-let string i = mk (String i)
-let tuple l = mk (Tuple l)
+let int i = mk (`Int i)
+let octal_int i = mk ~flags:Term.octal_int (`Int i)
+let hex_int i = mk ~flags:Term.hex_int (`Int i)
+let bool i = mk (`Bool i)
+let float i = mk (`Float i)
+let string i = mk (`String i)
+let tuple l = mk (`Tuple l)
 let product a b = tuple [a; b]
-let list l = mk (List l)
-let null = mk Null
+let list l = mk (`List l)
+let null = mk `Null
 
 let meth v l =
   {
@@ -106,26 +106,26 @@ let meth v l =
   }
 
 let record = meth unit
-let val_fun p f = mk (FFI { ffi_args = p; ffi_fn = f })
-let term_fun p tm = mk (Fun { fun_args = p; fun_env = []; fun_body = tm })
+let val_fun p f = mk (`FFI { ffi_args = p; ffi_fn = f })
+let term_fun p tm = mk (`Fun { fun_args = p; fun_env = []; fun_body = tm })
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
   let f t tm =
     let tm = Term.make ~t tm in
-    mk (Fun { fun_args = p; fun_env = []; fun_body = tm })
+    mk (`Fun { fun_args = p; fun_env = []; fun_body = tm })
   in
   let mkg g = Type.make g in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
   match c.value with
-    | Null -> f (Type.var ()) `Null
-    | Tuple [] -> f (Type.make Type.unit) Term.unit
-    | Int i -> f (mkg Type.Int) (`Int i)
-    | Bool i -> f (mkg Type.Bool) (`Bool i)
-    | Float i -> f (mkg Type.Float) (`Float i)
-    | String i -> f (mkg Type.String) (`String i)
-    | _ -> mk (FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
+    | `Null -> f (Type.var ()) `Null
+    | `Tuple [] -> f (Type.make Type.unit) Term.unit
+    | `Int i -> f (mkg Type.Int) (`Int i)
+    | `Bool i -> f (mkg Type.Bool) (`Bool i)
+    | `Float i -> f (mkg Type.Float) (`Float i)
+    | `String i -> f (mkg Type.String) (`String i)
+    | _ -> mk (`FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
 let reference get set =
   let get = val_fun [] (fun _ -> get ()) in
@@ -171,7 +171,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
     {
       pos = None;
       value =
-        FFI
+        `FFI
           {
             ffi_args = List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto;
             ffi_fn = f;
@@ -284,71 +284,75 @@ let apply f p = !apply_fun f p
 
 (** {1 High-level manipulation of values} *)
 
-let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
-let to_bool t = match t.value with Bool b -> b | _ -> assert false
+let to_unit t = match t.value with `Tuple [] -> () | _ -> assert false
+let to_bool t = match t.value with `Bool b -> b | _ -> assert false
 
 let to_bool_getter t =
   match t.value with
-    | Bool b -> fun () -> b
-    | Fun _ | FFI _ -> (
+    | `Bool b -> fun () -> b
+    | `Fun _ | `FFI _ -> (
         fun () ->
-          match (apply t []).value with Bool b -> b | _ -> assert false)
+          match (apply t []).value with `Bool b -> b | _ -> assert false)
     | _ -> assert false
 
 let to_fun f =
   match f.value with
-    | Fun _ | FFI _ -> fun args -> apply f args
+    | `Fun _ | `FFI _ -> fun args -> apply f args
     | _ -> assert false
 
-let to_string t = match t.value with String s -> s | _ -> assert false
+let to_string t = match t.value with `String s -> s | _ -> assert false
 
 let to_string_getter t =
   match t.value with
-    | String s -> fun () -> s
-    | Fun _ | FFI _ -> (
+    | `String s -> fun () -> s
+    | `Fun _ | `FFI _ -> (
         fun () ->
-          match (apply t []).value with String s -> s | _ -> assert false)
+          match (apply t []).value with `String s -> s | _ -> assert false)
     | _ -> assert false
 
-let to_float t = match t.value with Float s -> s | _ -> assert false
+let to_float t = match t.value with `Float s -> s | _ -> assert false
 
 let to_float_getter t =
   match t.value with
-    | Float s -> fun () -> s
-    | Fun _ | FFI _ -> (
+    | `Float s -> fun () -> s
+    | `Fun _ | `FFI _ -> (
         fun () ->
-          match (apply t []).value with Float s -> s | _ -> assert false)
+          match (apply t []).value with `Float s -> s | _ -> assert false)
     | _ -> assert false
 
-let to_int t = match t.value with Int s -> s | _ -> assert false
+let to_int t = match t.value with `Int s -> s | _ -> assert false
 
 let to_int_getter t =
   match t.value with
-    | Int n -> fun () -> n
-    | Fun _ | FFI _ -> (
-        fun () -> match (apply t []).value with Int n -> n | _ -> assert false)
+    | `Int n -> fun () -> n
+    | `Fun _ | `FFI _ -> (
+        fun () ->
+          match (apply t []).value with `Int n -> n | _ -> assert false)
     | _ -> assert false
 
 let to_num t =
-  match t.value with Int n -> `Int n | Float x -> `Float x | _ -> assert false
+  match t.value with
+    | `Int n -> `Int n
+    | `Float x -> `Float x
+    | _ -> assert false
 
-let to_list t = match t.value with List l -> l | _ -> assert false
-let to_tuple t = match t.value with Tuple l -> l | _ -> assert false
-let to_option t = match t.value with Null -> None | _ -> Some t
+let to_list t = match t.value with `List l -> l | _ -> assert false
+let to_tuple t = match t.value with `Tuple l -> l | _ -> assert false
+let to_option t = match t.value with `Null -> None | _ -> Some t
 let to_valued_option convert v = Option.map convert (to_option v)
 
 let to_default_option ~default convert v =
   Option.value ~default (to_valued_option convert v)
 
 let to_product t =
-  match t.value with Tuple [a; b] -> (a, b) | _ -> assert false
+  match t.value with `Tuple [a; b] -> (a, b) | _ -> assert false
 
 let to_string_list l = List.map to_string (to_list l)
 let to_int_list l = List.map to_int (to_list l)
 
 let to_getter t =
   match t.value with
-    | Fun { fun_args = [] } | FFI { ffi_args = []; _ } -> fun () -> apply t []
+    | `Fun { fun_args = [] } | `FFI { ffi_args = []; _ } -> fun () -> apply t []
     | _ -> fun () -> t
 
 let to_ref t =

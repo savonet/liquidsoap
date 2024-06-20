@@ -201,20 +201,15 @@ let _ =
 
 let _ =
   Lang.add_builtin_base ~category:`Math ~descr:"Maximal representable integer."
-    "max_int"
-    Lang.(Int max_int)
-    Lang.int_t
+    "max_int" (`Int max_int) Lang.int_t
 
 let _ =
   Lang.add_builtin_base ~category:`Math ~descr:"Minimal representable integer."
-    "min_int"
-    Lang.(Int min_int)
-    Lang.int_t
+    "min_int" (`Int min_int) Lang.int_t
 
 let _ =
   Lang.add_builtin_base ~category:`Math
-    ~descr:"Float representation of infinity." "infinity"
-    Lang.(Float infinity)
+    ~descr:"Float representation of infinity." "infinity" (`Float infinity)
     Lang.float_t
 
 let _ =
@@ -226,9 +221,7 @@ let _ =
        for floating-point comparisons, `==`, `<`, `<=`, `>` and `>=` return \
        `false` and `!=` returns `true` if one or both of their arguments is \
        `nan`."
-    "nan"
-    Lang.(Float nan)
-    Lang.float_t
+    "nan" (`Float nan) Lang.float_t
 
 let _ =
   Lang.add_builtin "lsl" ~category:`Math ~descr:"Logical shift left."

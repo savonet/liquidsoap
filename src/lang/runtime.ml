@@ -280,7 +280,10 @@ let type_term ?name ?stdlib ?term ?ty ~cache ~trim ~lib parsed_term =
 
 let eval_term ?name ~toplevel ast =
   let eval () =
-    if toplevel then Evaluation.eval_toplevel ast else Evaluation.eval ast
+    report
+      ~default:(fun () -> assert false)
+      (fun ~throw:_ () ->
+        if toplevel then Evaluation.eval_toplevel ast else Evaluation.eval ast)
   in
   if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
   match name with
