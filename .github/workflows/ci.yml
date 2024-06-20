@@ -160,7 +160,7 @@ jobs:
           sudo apt-get update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
-          sudo apt-get -y install libpcre3-dev
+          sudo apt-get -y install libpcre3-dev libtag1-dev zlib1g-dev
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
@@ -275,7 +275,7 @@ jobs:
           sudo apt-get update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
-          sudo apt-get -y install libpcre3-dev
+          sudo apt-get -y install libpcre3-dev libtag1-dev zlib1g-dev
       - name: Update alpine packages
         if: matrix.os == 'alpine'
         run: |
