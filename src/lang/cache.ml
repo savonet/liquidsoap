@@ -4,11 +4,14 @@ let enabled () =
     venv = "1" || venv = "true"
   with Not_found -> true
 
+let dir_override = ref None
+
 let default_dir =
   ref (fun () ->
       try
-        match Sys.os_type with
-          | "Win32" ->
+        match (!dir_override, Sys.os_type) with
+          | Some d, _ -> Some d
+          | _, "Win32" ->
               let dir = Filename.dirname Sys.executable_name in
               let cwd = Sys.getcwd () in
               Sys.chdir dir;

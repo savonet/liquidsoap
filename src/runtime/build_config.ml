@@ -44,6 +44,7 @@ let build_config =
    - scripted binaries : %{Liquidsoap_paths.bin_dir_descr}
    - rundir            : %{Liquidsoap_paths.rundir_descr}
    - logdir            : %{Liquidsoap_paths.logdir_descr}
+   - cache             : %{Liquidsoap_paths.cache_override_descr} (override with $LIQ_CACHE)
    - camomile files    : %{Liquidsoap_paths.camomile_dir_descr}
 
  * Supported input formats

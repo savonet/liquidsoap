@@ -1,4 +1,5 @@
 val enabled : unit -> bool
+val dir_override : string option ref
 val dir : unit -> string option
 val retrieve : ?name:string -> string -> 'a option
 val store : string -> 'a -> unit

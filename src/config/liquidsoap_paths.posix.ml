@@ -11,3 +11,5 @@ let bin_dir () = "/usr/share/liquidsoap/bin"
 let bin_dir_descr = bin_dir ()
 let camomile_dir () = "/usr/share/liquidsoap/camomile"
 let camomile_dir_descr = camomile_dir ()
+let cache_override = Some "/var/cache/liquidsoap"
+let cache_override_descr = "/var/cache/liquidsoap"
