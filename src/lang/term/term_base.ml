@@ -237,8 +237,12 @@ let rec free_term_vars tm =
           (free_vars hd) l
     | `Fun p -> free_fun_vars p
     | `Let l ->
-        Vars.union (free_vars l.def)
-          (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
+        Vars.union
+          (match l.pat with
+            | `PVar (x :: _ :: _) -> Vars.singleton x
+            | _ -> Vars.empty)
+          (Vars.union (free_vars l.def)
+             (Vars.diff (free_vars l.body) (bound_vars_pat l.pat)))
   in
   Methods.fold
     (fun _ meth_term fv -> Vars.union fv (free_vars meth_term))
