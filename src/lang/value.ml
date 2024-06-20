@@ -38,12 +38,9 @@ type t = {
     when the builtin env change. We mostly keep name and methods. *)
 and env = (string * t) list [@@deriving hash]
 
-(* Some values have to be lazy in the environment because of recursive functions. *)
-and lazy_env = ((string * t Lazy.t) list[@hash.ignore])
-
 and fun_v = {
   fun_args : (string * string * t option) list;
-  fun_env : lazy_env; [@hash.ignore]
+  fun_env : env; [@hash.ignore]
   fun_body : Term.t; [@hash.ignore]
 }
 

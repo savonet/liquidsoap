@@ -44,11 +44,10 @@ type value = Liquidsoap_lang.Value.t = {
 }
 
 and env = (string * value) list
-and lazy_env = (string * value Stdlib.Lazy.t) list
 
 and fun_v = Liquidsoap_lang.Value.fun_v = {
   fun_args : (string * string * value option) list;
-  fun_env : lazy_env;
+  fun_env : env;
   fun_body : Term.t;
 }
 
