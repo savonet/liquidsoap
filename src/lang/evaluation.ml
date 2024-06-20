@@ -271,7 +271,19 @@ and eval_base_term ~eval_check (env : Env.t) tm =
           | None ->
               mk (Value.Fun { fun_args = p; fun_env = env; fun_body = body })
           | Some name ->
-              let rec ffi_fn env = apply ~eval_check (mk_fun ()) env
+              let rec ffi_fn env =
+                let args =
+                  List.map
+                    (fun (n, n', default) ->
+                      let v =
+                        match List.assoc_opt n' env with
+                          | Some v -> v
+                          | None -> Option.get default
+                      in
+                      (n, v))
+                    p
+                in
+                apply ~eval_check (mk_fun ()) args
               and mk_fun () =
                 let ffi = mk (Value.FFI { ffi_args = p; ffi_fn }) in
                 let env = Env.add env name ffi in
