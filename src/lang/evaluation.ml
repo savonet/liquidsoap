@@ -82,13 +82,25 @@ end
 type ground =
   [ `Int of int | `Float of float | `String of string | `Bool of bool | `Null ]
 
-let rec is_ground { Value.value; methods } =
-  Methods.for_all (fun _ m -> is_ground m) methods
+let rec is_ground_value { Value.value; methods } =
+  Methods.for_all (fun _ m -> is_ground_value m) methods
   &&
   match value with
     | #ground -> true
-    | `List l | `Tuple l -> List.for_all is_ground l
+    | `List l | `Tuple l -> List.for_all is_ground_value l
     | `Fun _ | `FFI _ -> false
+
+let rec is_ground_term { Term.term } =
+  match term with
+    | #ground -> true
+    | `Tuple l | `List l -> List.for_all is_ground_term l
+    | `Hide (t, _) -> is_ground_term t
+    | `Seq (t, t') -> is_ground_term t && is_ground_term t'
+    | `Cast { cast } -> is_ground_term cast
+    | `Invoke { invoked; invoke_default } -> (
+        is_ground_term invoked
+        && match invoke_default with None -> true | Some t -> is_ground_term t)
+    | _ -> false
 
 let rec term_of_value ~t { Value.methods; value; flags } =
   let t = Type.deref t in
@@ -172,7 +184,7 @@ let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
         }
     | `Var v -> (
         match List.assoc_opt v env with
-          | Some value when is_ground value -> term_of_value ~t:tm.t value
+          | Some value when is_ground_value value -> term_of_value ~t:tm.t value
           | _ -> tm)
     | `Invoke { invoked; meth; invoke_default } -> (
         let invoked = propagate_constants ~env invoked in
@@ -182,10 +194,10 @@ let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
         match
           (invoked, Methods.find_opt meth invoked.methods, invoke_default)
         with
-          | { term = #ground }, Some v, _ -> v
-          | { term = #ground }, None, Some ({ term = #ground } as v) -> v
+          | tm, Some v, _ when is_ground_term tm -> v
+          | tm, None, Some v when is_ground_term tm -> v
           | _ -> { tm with term = `Invoke { invoked; meth; invoke_default } })
-    | `Let ({ pat; def; body } as _let) -> (
+    | `Let ({ pat; def; body; replace } as _let) -> (
         let def = propagate_constants ~env def in
         let bound_vars = Term_base.bound_vars_pat pat in
         let env = Env.exclude env bound_vars in
@@ -197,7 +209,7 @@ let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
                   env l l'
               in
               propagate_constants ~env body
-          | `PVar [v], ({ term = #ground } as tm) ->
+          | `PVar [v], ({ term = #ground } as tm) when not replace ->
               let env = (v, eval ~eval_check [] tm) :: env in
               propagate_constants ~env body
           | _ ->
