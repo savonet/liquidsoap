@@ -46,11 +46,11 @@ let eval_pat pat v =
   aux [] pat v
 
 module Env = struct
-  type t = Value.lazy_env
+  type t = Value.env
 
   (** Find the value of a variable in the environment. *)
   let lookup (env : t) var =
-    try Lazy.force (List.assoc var env)
+    try List.assoc var env
     with Not_found ->
       let bt = Printexc.get_raw_backtrace () in
       Printexc.raise_with_backtrace
@@ -70,17 +70,10 @@ module Env = struct
     List.filter (fun (x, _) -> mem x) env
 
   (** Bind a variable to a lazy value in an environment. *)
-  let add_lazy (env : t) x v : t = (x, v) :: env
-
-  (** Bind a variable to a value in an environment. *)
-  let add env x v = add_lazy env x (Lazy.from_val v)
+  let add (env : t) x v : t = (x, v) :: env
 
   (** Bind multiple variables in an environment. *)
   let adds env binds = List.fold_right (fun (x, v) env -> add env x v) binds env
-
-  (** Bind multiple variables to lazy values in an environment. *)
-  let adds_lazy env bind =
-    List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
 let rec prepare_fun fv ~eval_check p env =
@@ -236,10 +229,10 @@ and eval_base_term ~eval_check (env : Env.t) tm =
               match ll with
                 | [] -> assert false
                 | [x] ->
-                    let v () =
+                    let v =
                       if replace then Value.remeth (Env.lookup env x) v else v
                     in
-                    (x, Lazy.from_fun v)
+                    (x, v)
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
@@ -257,7 +250,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                                     t.methods;
                               }
                     in
-                    let v () =
+                    let v =
                       let t = Env.lookup env l in
                       let v =
                         (* When replacing, keep previous methods. *)
@@ -266,23 +259,37 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                       in
                       meths ll v t
                     in
-                    (l, Lazy.from_fun v))
+                    (l, v))
             (eval_pat pat v)
         in
-        let env = Env.adds_lazy env penv in
+        let env = Env.adds env penv in
         eval ~eval_check env b
-    | `Fun ({ name; arguments; body } as p) ->
+    | `Fun ({ name; arguments; body } as p) -> (
         let fv = Term.free_fun_vars p in
         let p, env = prepare_fun ~eval_check fv arguments env in
-        let rec v () =
-          let env =
-            match name with
-              | None -> env
-              | Some name -> Env.add_lazy env name (Lazy.from_fun v)
-          in
-          mk (Value.Fun { fun_args = p; fun_env = env; fun_body = body })
-        in
-        v ()
+        match name with
+          | None ->
+              mk (Value.Fun { fun_args = p; fun_env = env; fun_body = body })
+          | Some name ->
+              let rec ffi_fn env =
+                let args =
+                  List.map
+                    (fun (n, n', default) ->
+                      let v =
+                        match List.assoc_opt n' env with
+                          | Some v -> v
+                          | None -> Option.get default
+                      in
+                      (n, v))
+                    p
+                in
+                apply ~eval_check (mk_fun ()) args
+              and mk_fun () =
+                let ffi = mk (Value.FFI { ffi_args = p; ffi_fn }) in
+                let env = Env.add env name ffi in
+                mk (Value.Fun { fun_args = p; fun_env = env; fun_body = body })
+              in
+              mk_fun ())
     | `Var var -> Env.lookup env var
     | `Seq (a, b) ->
         ignore (eval ~eval_check env a);
@@ -299,8 +306,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                   ::
                   (try
                      List.map Lang_core.Position.of_value
-                       (Lang_core.to_list
-                          (Lazy.force (List.assoc Lang_core.pos_var env)))
+                       (Lang_core.to_list (List.assoc Lang_core.pos_var env))
                    with _ -> [])
           in
           apply ~pos ~eval_check f l
@@ -338,7 +344,7 @@ let eval ?env tm =
       | Some env -> env
       | None -> Environment.default_environment ()
   in
-  let env = List.map (fun (x, v) -> (x, Lazy.from_val v)) env in
+  let env = List.map (fun (x, v) -> (x, v)) env in
   let eval_check = !Hooks.eval_check in
   eval ~eval_check env tm
 

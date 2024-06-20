@@ -17,7 +17,7 @@ val cache_maintenance : (unit -> unit) ref
 (* Media-specific dependencies. *)
 
 val eval_check :
-  (env:(string * Value.t lazy_t) list -> tm:Term.t -> Value.t -> unit) ref
+  (env:(string * Value.t) list -> tm:Term.t -> Value.t -> unit) ref
 
 type encoder_params =
   [ `Anonymous of string | `Encoder of encoder | `Labelled of string * Value.t ]

@@ -686,10 +686,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
               (* TODO since inner-bound variables don't mask outer ones in [env],
                *   we are actually checking values that may be out of reach. *)
               let v = List.assoc v env in
-              if Stdlib.Lazy.is_val v then (
-                let v = Stdlib.Lazy.force v in
-                iter_value v)
-              else ()
+              iter_value v
             with Not_found -> ())
         | `App (a, l) ->
             iter_term env a;
