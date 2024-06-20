@@ -69,9 +69,6 @@ module Env = struct
     in
     List.filter (fun (x, _) -> mem x) env
 
-  let exclude (env : t) vars =
-    List.filter (fun (x, _) -> not (Vars.mem x vars)) env
-
   (** Bind a variable to a lazy value in an environment. *)
   let add (env : t) x v : t = (x, v) :: env
 
@@ -79,109 +76,7 @@ module Env = struct
   let adds env binds = List.fold_right (fun (x, v) env -> add env x v) binds env
 end
 
-type ground =
-  [ `Int of int | `Float of float | `String of string | `Bool of bool | `Null ]
-
-let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
-    (tm : Runtime_term.t) =
-  let propagate_constants = propagate_constants ~eval_check in
-  let tm =
-    { tm with methods = Methods.map (propagate_constants ~env) tm.methods }
-  in
-  match tm.term with
-    | #ground | `Custom _ | `Cache_env _ | `Encoder _ -> tm
-    | `List l ->
-        { tm with term = `List (List.map (propagate_constants ~env) l) }
-    | `Tuple l ->
-        { tm with term = `Tuple (List.map (propagate_constants ~env) l) }
-    | `App (fn, args) ->
-        let fn = propagate_constants ~env fn in
-        {
-          tm with
-          term =
-            `App
-              ( { fn with methods = Methods.empty },
-                List.map
-                  (fun (lbl, t) -> (lbl, propagate_constants ~env t))
-                  args );
-        }
-    | `Hide (tm, l) -> (
-        match propagate_constants ~env tm with
-          | { term = #ground } as tm ->
-              {
-                tm with
-                methods =
-                  Methods.filter (fun lbl _ -> not (List.mem lbl l)) tm.methods;
-              }
-          | tm -> { tm with term = `Hide (tm, l) })
-    | `Cast ({ cast } as c) ->
-        { tm with term = `Cast { c with cast = propagate_constants ~env cast } }
-    | `Open (t, t') ->
-        {
-          tm with
-          term = `Open (propagate_constants ~env t, propagate_constants ~env t');
-        }
-    | `Seq (t, t') ->
-        {
-          tm with
-          term = `Seq (propagate_constants ~env t, propagate_constants ~env t');
-        }
-    | `Var v -> (
-        match List.assoc_opt v env with
-          | Some { value = #ground as term } -> { tm with term }
-          | _ -> tm)
-    | `Invoke { invoked; meth; invoke_default } -> (
-        let invoked = propagate_constants ~env invoked in
-        let invoke_default =
-          Option.map (propagate_constants ~env) invoke_default
-        in
-        match
-          (invoked, Methods.find_opt meth invoked.methods, invoke_default)
-        with
-          | { term = #ground }, Some v, _ -> v
-          | { term = #ground }, None, Some ({ term = #ground } as v) -> v
-          | _ -> { tm with term = `Invoke { invoked; meth; invoke_default } })
-    | `Let ({ pat; def; body } as _let) -> (
-        let def = propagate_constants ~env def in
-        let bound_vars = Term_base.bound_vars_pat pat in
-        let env = Env.exclude env bound_vars in
-        match (pat, def) with
-          | `PTuple l, { term = `Tuple l' } ->
-              let env =
-                List.fold_left2
-                  (fun env lbl v -> (lbl, eval ~eval_check [] v) :: env)
-                  env l l'
-              in
-              propagate_constants ~env body
-          | `PVar [v], ({ term = #ground } as tm) ->
-              let env = (v, eval ~eval_check [] tm) :: env in
-              propagate_constants ~env body
-          | _ ->
-              {
-                tm with
-                term =
-                  `Let { _let with def; body = propagate_constants ~env body };
-              })
-    | `Fun ({ arguments; body } as func) ->
-        {
-          tm with
-          term =
-            `Fun
-              {
-                func with
-                body = propagate_constants ~env body;
-                arguments =
-                  List.map
-                    (fun ({ default } as arg) ->
-                      {
-                        arg with
-                        default = Option.map (propagate_constants ~env) default;
-                      })
-                    arguments;
-              };
-        }
-
-and prepare_fun fv ~eval_check p env =
+let rec prepare_fun fv ~eval_check p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
      values as defaults. *)
@@ -449,7 +344,6 @@ let eval ?env tm =
   in
   let env = List.map (fun (x, v) -> (x, v)) env in
   let eval_check = !Hooks.eval_check in
-  let tm = propagate_constants ~eval_check ~env tm in
   eval ~eval_check env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
