@@ -69,9 +69,6 @@ module Env = struct
     in
     List.filter (fun (x, _) -> mem x) env
 
-  let exclude (env : t) vars =
-    List.filter (fun (x, _) -> not (Vars.mem x vars)) env
-
   (** Bind a variable to a lazy value in an environment. *)
   let add (env : t) x v : t = (x, v) :: env
 
@@ -88,13 +85,18 @@ let rec is_ground_value { Value.value; methods } =
   match value with
     | #ground -> true
     | `List l | `Tuple l -> List.for_all is_ground_value l
-    | `Fun _ | `FFI _ -> false
+    | `Fun { fun_args; fun_env } ->
+        List.for_all
+          (function _, _, Some v -> is_ground_value v | _ -> true)
+          fun_args
+        && List.for_all (fun (_, v) -> is_ground_value v) fun_env
+    | `FFI _ -> false
 
 let rec is_evaluated_term ({ Term.term; methods } : Term.t) : bool =
   Methods.for_all (fun _ m -> is_evaluated_term m) methods
   &&
   match term with
-    | #ground | `Fun _ -> true
+    | #ground -> true
     | `Tuple l | `List l -> List.for_all is_evaluated_term l
     | `Hide (t, _) -> is_evaluated_term t
     | `Seq (t, t') -> is_evaluated_term t && is_evaluated_term t'
@@ -105,7 +107,12 @@ let rec is_evaluated_term ({ Term.term; methods } : Term.t) : bool =
         match invoke_default with None -> true | Some t -> is_evaluated_term t)
     | `Encoder e -> is_evaluated_encoder e
     | `Open (t, t') -> is_evaluated_term t && is_evaluated_term t'
-    | `Var _ | `Let _ | `Cache_env _ | `App _ -> false
+    | `Let { def; body } -> is_evaluated_term def && is_evaluated_term body
+    | `Fun { arguments } ->
+        List.for_all
+          (function { default = Some tm } -> is_evaluated_term tm | _ -> true)
+          arguments
+    | `Var _ | `Cache_env _ | `App _ -> false
 
 and is_evaluated_encoder (_, p) = is_evaluated_encoder_params p
 
@@ -117,46 +124,30 @@ and is_evaluated_encoder_params p =
       | `Labelled (_, p) -> is_evaluated_term p)
     p
 
-let rec term_of_value ~t { Value.methods; value; flags } =
-  let t = Type.deref t in
-  let meth_types, _ = Type.split_meths t in
-  let methods =
-    Methods.mapi
-      (fun lbl m ->
-        let t =
-          try
-            let { Type.scheme = _, t } =
-              List.find (fun { Type.meth } -> meth = lbl) meth_types
-            in
-            t
-          with Not_found -> Type.var ?pos:t.Type.pos ()
-        in
-        term_of_value ~t m)
-      methods
-  in
-  let map term = { t; term; methods; flags } in
+let rec term_of_ground_value ~eval_check { Value.methods; value; flags } =
+  let term_of_ground_value = term_of_ground_value ~eval_check in
+  let methods = Methods.mapi (fun _ m -> term_of_ground_value m) methods in
+  let map term = { t = Type.var (); term; methods; flags } in
   match value with
     | #ground as tm -> map tm
-    | `List l ->
-        let t =
-          match t.Type.descr with
-            | List { Type.t } -> t
-            | _ -> Type.var ?pos:t.Type.pos ()
+    | `List l -> map (`List (List.map term_of_ground_value l))
+    | `Tuple l -> map (`Tuple (List.map (fun tm -> term_of_ground_value tm) l))
+    | `Fun { fun_args; fun_env; fun_body } ->
+        let arguments =
+          List.map
+            (fun (label, as_variable, default) ->
+              let default = Option.map term_of_ground_value default in
+              let as_variable =
+                if label = as_variable then None else Some as_variable
+              in
+              { label; as_variable; default; typ = Type.var () })
+            fun_args
         in
-        map (`List (List.map (term_of_value ~t) l))
-    | `Tuple l ->
-        let t =
-          match t.Type.descr with
-            | Type.Tuple l -> l
-            | _ ->
-                List.init (List.length l) (fun _ -> Type.var ?pos:t.Type.pos ())
-        in
-        map
-          (`Tuple
-            (List.mapi (fun idx tm -> term_of_value ~t:(List.nth t idx) tm) l))
-    | `Fun _ | `FFI _ -> assert false
+        let body = propagate_constants ~eval_check ~env:fun_env fun_body in
+        map (`Fun { free_vars = None; name = None; arguments; body })
+    | `FFI _ -> assert false
 
-let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
+and propagate_constants ~eval_check ~(env : (string * Value.t) list)
     (tm : Runtime_term.t) =
   let propagate_constants = propagate_constants ~eval_check in
   match tm.term with
@@ -178,28 +169,27 @@ let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
         }
     | `Hide (tm, l) -> (
         match propagate_constants ~env tm with
-          | { term = #ground } as tm ->
+          | tm when is_evaluated_term tm ->
               {
                 tm with
                 methods =
                   Methods.filter (fun lbl _ -> not (List.mem lbl l)) tm.methods;
               }
           | tm -> { tm with term = `Hide (tm, l) })
-    | `Cast ({ cast } as c) ->
-        { tm with term = `Cast { c with cast = propagate_constants ~env cast } }
+    | `Cast { cast } -> propagate_constants ~env cast
     | `Open (t, t') ->
         {
           tm with
           term = `Open (propagate_constants ~env t, propagate_constants ~env t');
         }
     | `Seq (t, t') ->
-        {
-          tm with
-          term = `Seq (propagate_constants ~env t, propagate_constants ~env t');
-        }
+        let t = propagate_constants ~env t in
+        let t' = propagate_constants ~env t' in
+        if is_evaluated_term t then t' else { tm with term = `Seq (t, t') }
     | `Var v -> (
         match List.assoc_opt v env with
-          | Some value when is_ground_value value -> term_of_value ~t:tm.t value
+          | Some value when is_ground_value value ->
+              term_of_ground_value ~eval_check value
           | _ -> tm)
     | `Invoke { invoked; meth; invoke_default } -> (
         let invoked = propagate_constants ~env invoked in
@@ -214,33 +204,102 @@ let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
           | _ -> { tm with term = `Invoke { invoked; meth; invoke_default } })
     | `Let ({ pat; def; body; replace } as _let) -> (
         let def = propagate_constants ~env def in
-        let bound_vars = Term_base.bound_vars_pat pat in
-        let env = Env.exclude env bound_vars in
-        match (pat, def) with
-          | `PTuple l, { term = `Tuple l' } ->
-              let env =
-                List.fold_left2
-                  (fun env lbl v -> (lbl, eval ~eval_check [] v) :: env)
-                  env l l'
-              in
-              propagate_constants ~env body
-          | `PVar [v], ({ term = #ground } as tm) when not replace ->
-              let env = (v, eval ~eval_check [] tm) :: env in
-              propagate_constants ~env body
-          | _ ->
-              {
-                tm with
-                term =
-                  `Let { _let with def; body = propagate_constants ~env body };
-              })
+        let map ?(exclude = []) ?(env = env) () =
+          let env =
+            List.filter (fun (lbl, _) -> not (List.mem lbl exclude)) env
+          in
+          {
+            tm with
+            term = `Let { _let with def; body = propagate_constants ~env body };
+          }
+        in
+        match pat with
+          | `PTuple l ->
+              if is_evaluated_term def then (
+                let l' =
+                  match def.term with `Tuple l' -> l' | _ -> assert false
+                in
+                let env =
+                  List.fold_left2
+                    (fun env lbl v -> (lbl, eval ~eval_check [] v) :: env)
+                    env l l'
+                in
+                map ~env ())
+              else map ~exclude:l ()
+          | `PVar [] -> assert false
+          | `PVar [var] ->
+              if
+                is_evaluated_term def
+                && ((not replace) || List.mem_assoc var env)
+              then (
+                let def = eval ~eval_check [] def in
+                let def =
+                  match (replace, List.assoc_opt var env) with
+                    | true, Some v ->
+                        {
+                          def with
+                          methods = Methods.append def.methods v.methods;
+                        }
+                    | _ -> def
+                in
+                let env = (var, def) :: env in
+                map ~env ())
+              else map ~exclude:[var] ()
+          | `PVar (var :: path) ->
+              if is_evaluated_term def && List.mem_assoc var env then (
+                let var_def = List.assoc var env in
+                let def = eval ~eval_check [] def in
+                let rec push ~path (base : Value.t) =
+                  match path with
+                    | [] -> assert false
+                    | meth :: [] ->
+                        let def =
+                          match
+                            (replace, Methods.find_opt meth base.methods)
+                          with
+                            | true, Some v ->
+                                {
+                                  def with
+                                  methods = Methods.append def.methods v.methods;
+                                }
+                            | _ -> def
+                        in
+                        {
+                          base with
+                          methods = Methods.add meth def base.methods;
+                        }
+                    | meth :: path ->
+                        let methods = base.methods in
+                        {
+                          base with
+                          methods =
+                            Methods.add meth
+                              (push ~path (Methods.find meth methods))
+                              methods;
+                        }
+                in
+                let def = push ~path var_def in
+                let env = (var, def) :: env in
+                map ~env ())
+              else map ~exclude:[var] ())
     | `Fun ({ arguments; body } as func) ->
+        let arg_vars =
+          List.map
+            (fun { label; as_variable } ->
+              Option.value ~default:label as_variable)
+            arguments
+        in
+        let body_env =
+          List.filter (fun (lbl, _) -> not (List.mem lbl arg_vars)) env
+        in
+        let body = propagate_constants ~env:body_env body in
         {
           tm with
           term =
             `Fun
               {
                 func with
-                body = propagate_constants ~env body;
+                body;
                 arguments =
                   List.map
                     (fun ({ default } as arg) ->
