@@ -90,17 +90,32 @@ let rec is_ground_value { Value.value; methods } =
     | `List l | `Tuple l -> List.for_all is_ground_value l
     | `Fun _ | `FFI _ -> false
 
-let rec is_ground_term { Term.term } =
+let rec is_evaluated_term ({ Term.term; methods } : Term.t) : bool =
+  Methods.for_all (fun _ m -> is_evaluated_term m) methods
+  &&
   match term with
-    | #ground -> true
-    | `Tuple l | `List l -> List.for_all is_ground_term l
-    | `Hide (t, _) -> is_ground_term t
-    | `Seq (t, t') -> is_ground_term t && is_ground_term t'
-    | `Cast { cast } -> is_ground_term cast
+    | #ground | `Fun _ -> true
+    | `Tuple l | `List l -> List.for_all is_evaluated_term l
+    | `Hide (t, _) -> is_evaluated_term t
+    | `Seq (t, t') -> is_evaluated_term t && is_evaluated_term t'
+    | `Cast { cast } -> is_evaluated_term cast
     | `Invoke { invoked; invoke_default } -> (
-        is_ground_term invoked
-        && match invoke_default with None -> true | Some t -> is_ground_term t)
-    | _ -> false
+        is_evaluated_term invoked
+        &&
+        match invoke_default with None -> true | Some t -> is_evaluated_term t)
+    | `Encoder e -> is_evaluated_encoder e
+    | `Open (t, t') -> is_evaluated_term t && is_evaluated_term t'
+    | `Var _ | `Let _ | `Cache_env _ | `App _ -> false
+
+and is_evaluated_encoder (_, p) = is_evaluated_encoder_params p
+
+and is_evaluated_encoder_params p =
+  List.for_all
+    (function
+      | `Anonymous _ -> true
+      | `Encoder e -> is_evaluated_encoder e
+      | `Labelled (_, p) -> is_evaluated_term p)
+    p
 
 let rec term_of_value ~t { Value.methods; value; flags } =
   let t = Type.deref t in
@@ -194,8 +209,8 @@ let rec propagate_constants ~eval_check ~(env : (string * Value.t) list)
         match
           (invoked, Methods.find_opt meth invoked.methods, invoke_default)
         with
-          | tm, Some v, _ when is_ground_term tm -> v
-          | tm, None, Some v when is_ground_term tm -> v
+          | tm, Some v, _ when is_evaluated_term tm -> v
+          | tm, None, Some v when is_evaluated_term tm -> v
           | _ -> { tm with term = `Invoke { invoked; meth; invoke_default } })
     | `Let ({ pat; def; body; replace } as _let) -> (
         let def = propagate_constants ~env def in
