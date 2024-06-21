@@ -301,6 +301,16 @@ and propagate_constants ~(env : (string * Term.t) list) (tm : Runtime_term.t) =
         }
     | `FFI _ -> tm
 
+let propagate_constants ?env tm =
+  let env =
+    match env with
+      | Some env -> env
+      | None -> Environment.default_environment ()
+  in
+  propagate_constants
+    ~env:(List.map (fun (lbl, v) -> (lbl, term_of_value v)) env)
+    tm
+
 let rec prepare_fun fv ~eval_check p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
@@ -567,10 +577,7 @@ let eval ?env tm =
       | Some env -> env
       | None -> Environment.default_environment ()
   in
-  let env = List.map (fun (x, v) -> (x, v)) env in
   let eval_check = !Hooks.eval_check in
-  let tm_env = List.map (fun (lbl, v) -> (lbl, term_of_value v)) env in
-  let tm = propagate_constants ~env:tm_env tm in
   eval ~eval_check env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the

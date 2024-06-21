@@ -226,13 +226,16 @@ let _ =
     takes care of the various reload mechanisms. *)
 
 let default_reopen_on_error =
-  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> null()"
+  Lang.eval ~cache:false ~propagate_constants:false ~stdlib:`Disabled
+    ~typecheck:false "fun (_) -> null()"
 
 let default_reopen_on_metadata =
-  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> false"
+  Lang.eval ~cache:false ~propagate_constants:false ~stdlib:`Disabled
+    ~typecheck:false "fun (_) -> false"
 
 let default_reopen_when =
-  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun () -> false"
+  Lang.eval ~cache:false ~propagate_constants:false ~stdlib:`Disabled
+    ~typecheck:false "fun () -> false"
 
 let pipe_proto frame_t arg_doc =
   base_proto

@@ -360,7 +360,8 @@ let register_input is_http =
     else ("ffmpeg", "Create a stream using ffmpeg")
   in
   let on_error =
-    Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_) -> ()"
+    Lang.eval ~cache:false ~propagate_constants:false ~stdlib:`Disabled
+      ~typecheck:false "fun (_) -> ()"
   in
   ignore
     (Lang.add_operator ~base:Modules.input name ~descr ~category:`Input

@@ -32,7 +32,7 @@ let effective_toplevel ~stdlib toplevel =
     | _ -> toplevel
 
 let eval ?(toplevel = false) ?(typecheck = true) ?cache ?deprecated ?ty ?name
-    ~stdlib s =
+    ?propagate_constants ~stdlib s =
   let parsed_term, term = Runtime.parse s in
   let toplevel = effective_toplevel ~stdlib toplevel in
   let term =
@@ -40,5 +40,11 @@ let eval ?(toplevel = false) ?(typecheck = true) ?cache ?deprecated ?ty ?name
       type_term ?name ?cache ?deprecated ?ty ~trim:(not toplevel) ~stdlib
         ~parsed_term term
     else term
+  in
+  let propagate_constants =
+    Option.value ~default:(not toplevel) propagate_constants
+  in
+  let term =
+    if propagate_constants then Evaluation.propagate_constants term else term
   in
   Runtime.eval_term ?name ~toplevel term
