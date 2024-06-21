@@ -186,7 +186,7 @@ def request.queue(
     s.set_queue([])
   end
 
-  def queue() =
+  def get_queue() =
     [...s.queue(), ...(queue())]
   end
 
@@ -195,7 +195,7 @@ def request.queue(
     push=push.{uri=push_uri},
     length={list.length(queue()) + list.length(s.queue())},
     set_queue=set_queue,
-    queue=queue
+    queue=get_queue
   }
 end
 
