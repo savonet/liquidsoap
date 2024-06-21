@@ -203,9 +203,10 @@ and propagate_constants ~(env : (string * Term.t) list) (tm : Runtime_term.t) =
             term = `Let { _let with def; body = propagate_constants ~env body };
           }
         in
+        let is_evaluated_def = is_evaluated_term ~include_methods:true def in
         match pat with
           | `PTuple l ->
-              if is_evaluated_term ~include_methods:true def then (
+              if is_evaluated_def then (
                 let l' =
                   match def.term with `Tuple l' -> l' | _ -> assert false
                 in
@@ -216,9 +217,7 @@ and propagate_constants ~(env : (string * Term.t) list) (tm : Runtime_term.t) =
               else map ~exclude:l ()
           | `PVar [] -> assert false
           | `PVar [var] ->
-              if
-                is_evaluated_term ~include_methods:true def
-                && ((not replace) || List.mem_assoc var env)
+              if is_evaluated_def && ((not replace) || List.mem_assoc var env)
               then (
                 let def =
                   match (replace, List.assoc_opt var env) with
@@ -232,45 +231,64 @@ and propagate_constants ~(env : (string * Term.t) list) (tm : Runtime_term.t) =
                 let env = (var, def) :: env in
                 map ~env ())
               else map ~exclude:[var] ()
-          | `PVar (var :: path) ->
-              if
-                is_evaluated_term ~include_methods:true def
-                && List.mem_assoc var env
-              then (
-                let var_def = List.assoc var env in
-                let rec push ~path base =
-                  match path with
-                    | [] -> assert false
-                    | meth :: [] ->
-                        let def =
-                          match
-                            (replace, Methods.find_opt meth base.methods)
-                          with
-                            | true, Some v ->
-                                {
-                                  def with
-                                  methods = Methods.append def.methods v.methods;
-                                }
-                            | _ -> def
-                        in
-                        {
-                          base with
-                          methods = Methods.add meth def base.methods;
-                        }
-                    | meth :: path ->
-                        let methods = base.methods in
-                        {
-                          base with
-                          methods =
-                            Methods.add meth
-                              (push ~path (Methods.find meth methods))
-                              methods;
-                        }
-                in
-                let def = push ~path var_def in
-                let env = (var, def) :: env in
-                map ~env ())
-              else map ~exclude:[var] ())
+          | `PVar (var :: path) -> (
+              let var_def = List.assoc_opt var env in
+              match (is_evaluated_def, var_def) with
+                | false, Some var_def ->
+                    (* We need a recall in case of situations like:
+                         let foo = ()
+                         let foo.bar = fn()
+                    *)
+                    {
+                      t = tm.t;
+                      term =
+                        `Let
+                          {
+                            doc = None;
+                            pat = `PVar [var];
+                            gen = [];
+                            replace = false;
+                            def = var_def;
+                            body = map ~exclude:[var] ();
+                          };
+                      methods = Methods.empty;
+                      flags = 0;
+                    }
+                | true, Some var_def ->
+                    let rec push ~path base =
+                      match path with
+                        | [] -> assert false
+                        | meth :: [] ->
+                            let def =
+                              match
+                                (replace, Methods.find_opt meth base.methods)
+                              with
+                                | true, Some v ->
+                                    {
+                                      def with
+                                      methods =
+                                        Methods.append def.methods v.methods;
+                                    }
+                                | _ -> def
+                            in
+                            {
+                              base with
+                              methods = Methods.add meth def base.methods;
+                            }
+                        | meth :: path ->
+                            let methods = base.methods in
+                            {
+                              base with
+                              methods =
+                                Methods.add meth
+                                  (push ~path (Methods.find meth methods))
+                                  methods;
+                            }
+                    in
+                    let def = push ~path var_def in
+                    let env = (var, def) :: env in
+                    map ~env ()
+                | _ -> map ~exclude:[var] ()))
     | `Fun ({ arguments; body } as func) ->
         let arg_vars =
           List.map
