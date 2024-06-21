@@ -158,12 +158,7 @@ let _ =
           | "repair_no_pnr" -> `Repair_no_pnr
           | "sublevel_pnr" -> `Sublevel_pnr
           | s ->
-              let pos =
-                match load_type_val.Liquidsoap_lang.Value.pos with
-                  | None -> Lang.pos p
-                  | Some p -> [p]
-              in
-              Runtime_error.raise ~pos
+              Runtime_error.raise ~pos:(Lang.pos p)
                 ~message:(Printf.sprintf "Invalid load type: %S" s)
                 "invalid"
       in
@@ -179,13 +174,8 @@ let _ =
       (match preset with
         | None -> ()
         | Some filename ->
-            let pos =
-              match preset_val.Liquidsoap_lang.Value.pos with
-                | None -> Lang.pos p
-                | Some p -> [p]
-            in
             if not (Stereotool.load_preset ~load_type ~filename handler) then
-              Runtime_error.raise ~pos
+              Runtime_error.raise ~pos:(Lang.pos p)
                 ~message:
                   (Printf.sprintf "Preset loading of file %S failed!" filename)
                 "eval");

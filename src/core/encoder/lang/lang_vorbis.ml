@@ -120,13 +120,15 @@ let make params =
       (fun f -> function
         | `Labelled ("samplerate", { value = `Int i; _ }) ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | `Labelled ("quality", { value = `Float q; pos }) ->
+        | `Labelled ("quality", { value = `Float q }) ->
             if q < -0.2 || q > 1. then
-              Lang_encoder.raise_error ~pos "quality should be in [(-0.2)..1]";
+              Lang_encoder.raise_error ~pos:None
+                "quality should be in [(-0.2)..1]";
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
-        | `Labelled ("quality", { value = `Int i; pos }) ->
+        | `Labelled ("quality", { value = `Int i }) ->
             if i <> 0 && i <> 1 then
-              Lang_encoder.raise_error ~pos "quality should be in [-(0.2)..1]";
+              Lang_encoder.raise_error ~pos:None
+                "quality should be in [-(0.2)..1]";
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | `Labelled ("stereo", { value = `Bool b; _ }) ->

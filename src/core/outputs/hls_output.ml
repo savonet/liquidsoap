@@ -470,8 +470,7 @@ class hls_output p =
           raise (Error.Invalid_value (fmt_val, "Unsupported format"))
       in
       let encoder =
-        encoder_factory ~hls:true ~pos:fmt_val.Value.pos name
-          Frame.Metadata.Export.empty
+        encoder_factory ~hls:true name Frame.Metadata.Export.empty
       in
       let bandwidth =
         Lazy.from_fun (fun () ->

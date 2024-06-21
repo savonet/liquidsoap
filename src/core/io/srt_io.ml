@@ -1115,7 +1115,7 @@ let _ =
       let format_val = Lang.assoc "" 1 p in
       let format = Lang.to_format format_val in
       let encoder_factory =
-        try (Encoder.get_factory format) ~pos:format_val.Value.pos
+        try Encoder.get_factory format
         with Not_found ->
           raise
             (Error.Invalid_value

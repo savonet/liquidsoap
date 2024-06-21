@@ -121,5 +121,5 @@ let encoder avi =
 
 let () =
   Plug.register Encoder.plug "avi" ~doc:"Native avi encoder." (function
-    | Encoder.AVI avi -> Some (fun ?hls:_ ~pos:_ _ _ -> encoder avi)
+    | Encoder.AVI avi -> Some (fun ?hls:_ _ _ -> encoder avi)
     | _ -> None)

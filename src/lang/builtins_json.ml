@@ -22,13 +22,7 @@
 
 let log = Hooks.log ["json"; "parse"]
 
-let rec json_of_value ?pos v : Json.t =
-  let pos =
-    match (pos, v.Value.pos) with
-      | Some p, _ -> p
-      | None, Some p -> [p]
-      | None, None -> []
-  in
+let rec json_of_value ?(pos = []) v : Json.t =
   let m, v = Value.split_meths v in
   match v.Value.value with
     | `Null -> `Null

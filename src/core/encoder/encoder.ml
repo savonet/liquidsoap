@@ -326,8 +326,7 @@ type encoder = {
   stop : unit -> Strings.t;
 }
 
-type factory =
-  ?hls:bool -> pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
+type factory = ?hls:bool -> string -> Frame.Metadata.Export.t -> encoder
 
 (** A plugin might or might not accept a given format.
     If it accepts it, it gives a function creating suitable encoders. *)
@@ -345,9 +344,9 @@ let get_factory fmt =
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
   with Found factory ->
-    fun ?hls ~pos name m ->
+    fun ?hls name m ->
       let { insert_metadata; hls; encode; stop; header } =
-        factory ?hls ~pos name m
+        factory ?hls name m
       in
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in

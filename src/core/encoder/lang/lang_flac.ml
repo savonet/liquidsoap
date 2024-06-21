@@ -50,13 +50,13 @@ let flac_gen params =
           { f with Flac_format.channels = i }
       | `Labelled ("samplerate", { value = `Int i; _ }) ->
           { f with Flac_format.samplerate = Lazy.from_val i }
-      | `Labelled ("compression", { value = `Int i; pos }) ->
+      | `Labelled ("compression", { value = `Int i }) ->
           if i < 0 || i > 8 then
-            Lang_encoder.raise_error ~pos "invalid compression value";
+            Lang_encoder.raise_error ~pos:None "invalid compression value";
           { f with Flac_format.compression = i }
-      | `Labelled ("bits_per_sample", { value = `Int i; pos }) ->
+      | `Labelled ("bits_per_sample", { value = `Int i }) ->
           if not (List.mem i accepted_bits_per_sample) then
-            Lang_encoder.raise_error ~pos "invalid bits_per_sample value";
+            Lang_encoder.raise_error ~pos:None "invalid bits_per_sample value";
           { f with Flac_format.bits_per_sample = i }
       | `Labelled ("bytes_per_page", { value = `Int i; _ }) ->
           { f with Flac_format.fill = Some i }

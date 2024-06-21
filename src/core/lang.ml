@@ -69,4 +69,4 @@ let http_transport_t = HttpTransport.t
 let http_transport_base_t = HttpTransport.base_t
 let to_http_transport = HttpTransport.of_value
 let http_transport = HttpTransport.to_value
-let base_http_transport = HttpTransport.to_base_value ?pos:None
+let base_http_transport = HttpTransport.to_base_value

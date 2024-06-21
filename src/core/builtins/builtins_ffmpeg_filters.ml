@@ -394,14 +394,9 @@ let apply_filter ~args_parser ~filter ~sources_t p =
           Lang.val_fun
             (List.map (fun (_, lbl, _) -> (lbl, lbl, None)) sources_t)
             (fun p ->
-              if !input_set then (
-                let pos =
-                  match (List.assoc "" p).Value.pos with
-                    | (exception Not_found) | None -> []
-                    | Some p -> [p]
-                in
-                Lang.raise_error ~pos ~message:"Filter input already set!"
-                  "ffmpeg.filter");
+              if !input_set then
+                Lang.raise_error ~pos:[] ~message:"Filter input already set!"
+                  "ffmpeg.filter";
               let audio_inputs_c = List.length filter.io.inputs.audio in
               let get_input ~mode ~ofs idx =
                 if List.mem `Dynamic_inputs flags then (

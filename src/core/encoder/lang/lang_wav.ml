@@ -55,9 +55,9 @@ let make params =
             { f with Wav_format.duration = Some d }
         | `Labelled ("samplerate", { value = `Int i; _ }) ->
             { f with Wav_format.samplerate = Lazy.from_val i }
-        | `Labelled ("samplesize", { value = `Int i; pos }) ->
+        | `Labelled ("samplesize", { value = `Int i }) ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
-              Lang_encoder.raise_error ~pos "invalid sample size";
+              Lang_encoder.raise_error ~pos:None "invalid sample size";
             { f with Wav_format.samplesize = i }
         | `Labelled ("header", { value = `Bool b; _ }) ->
             { f with Wav_format.header = b }

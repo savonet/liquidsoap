@@ -71,28 +71,28 @@ let to_int t =
     | `Int i -> i
     | `String s -> int_of_string s
     | `Float f -> int_of_float f
-    | _ -> Lang_encoder.raise_error ~pos:t.pos "integer expected"
+    | _ -> Lang_encoder.raise_error ~pos:None "integer expected"
 
 let to_string t =
   match t.value with
     | `Int i -> Printf.sprintf "%i" i
     | `String s -> s
     | `Float f -> Printf.sprintf "%f" f
-    | _ -> Lang_encoder.raise_error ~pos:t.pos "string expected"
+    | _ -> Lang_encoder.raise_error ~pos:None "string expected"
 
 let to_float t =
   match t.value with
     | `Int i -> float i
     | `String s -> float_of_string s
     | `Float f -> f
-    | _ -> Lang_encoder.raise_error ~pos:t.pos "float expected"
+    | _ -> Lang_encoder.raise_error ~pos:None "float expected"
 
 let to_copy_opt t =
   match t.value with
     | `String "wait_for_keyframe" -> `Wait_for_keyframe
     | `String "ignore_keyframe" -> `Ignore_keyframe
     | _ ->
-        Lang_encoder.raise_error ~pos:t.pos
+        Lang_encoder.raise_error ~pos:None
           ("Invalid value for copy encoder parameter: " ^ Value.to_string t)
 
 let has_content ~to_static_string name p =
@@ -321,7 +321,7 @@ let ffmpeg_gen params =
     | k, { value = `String s; _ } -> Hashtbl.replace opts k (`String s)
     | k, { value = `Int i; _ } -> Hashtbl.replace opts k (`Int i)
     | k, { value = `Float fl; _ } -> Hashtbl.replace opts k (`Float fl)
-    | _, t -> Lang_encoder.raise_error ~pos:t.pos "unexpected option"
+    | _ -> Lang_encoder.raise_error ~pos:None "unexpected option"
   in
 
   let rec parse_audio_args ~opts options = function
@@ -525,8 +525,7 @@ let make params =
                   | `Encoder _ -> None)
                 args
             in
-            `Encoder
-              (parse_encoder_params ~to_pos:(fun t -> t.pos) (name, args))
+            `Encoder (parse_encoder_params ~to_pos:(fun _ -> None) (name, args))
         | `Anonymous s -> `Option ("", Lang.string s)
         | `Labelled (l, v) -> `Option (l, v))
       params

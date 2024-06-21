@@ -38,7 +38,6 @@ type in_value = Value.in_value
 type env = Value.env
 
 type value = Value.t = {
-  pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
   mutable flags : Flags.flags;

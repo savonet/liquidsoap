@@ -75,20 +75,20 @@ let make params =
       (fun f -> function
         | `Labelled ("afterburner", { value = `Bool b; _ }) ->
             { f with Fdkaac_format.afterburner = b }
-        | `Labelled ("aot", { value = `String s; pos }) ->
+        | `Labelled ("aot", { value = `String s }) ->
             let aot =
               try Fdkaac_format.aot_of_string s
               with Not_found ->
-                Lang_encoder.raise_error ~pos "invalid aot value"
+                Lang_encoder.raise_error ~pos:None "invalid aot value"
             in
             { f with Fdkaac_format.aot }
-        | `Labelled ("vbr", { value = `Int i; pos }) ->
+        | `Labelled ("vbr", { value = `Int i }) ->
             if not (List.mem i valid_vbr) then (
               let err =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
                   (String.concat ", " (List.map string_of_int valid_vbr))
               in
-              Lang_encoder.raise_error ~pos err);
+              Lang_encoder.raise_error ~pos:None err);
             { f with Fdkaac_format.bitrate_mode = `Variable i }
         | `Labelled ("bandwidth", { value = `Int i; _ }) ->
             { f with Fdkaac_format.bandwidth = `Fixed i }
@@ -103,18 +103,19 @@ let make params =
             { f with Fdkaac_format.channels = (if b then 1 else 2) }
         | `Labelled ("channels", { value = `Int i; _ }) ->
             { f with Fdkaac_format.channels = i }
-        | `Labelled ("samplerate", { value = `Int i; pos }) ->
+        | `Labelled ("samplerate", { value = `Int i }) ->
             {
               f with
-              Fdkaac_format.samplerate = check_samplerate ~pos (Lazy.from_val i);
+              Fdkaac_format.samplerate =
+                check_samplerate ~pos:None (Lazy.from_val i);
             }
         | `Labelled ("sbr_mode", { value = `Bool b; _ }) ->
             { f with Fdkaac_format.sbr_mode = b }
-        | `Labelled ("transmux", { value = `String s; pos }) ->
+        | `Labelled ("transmux", { value = `String s }) ->
             let transmux =
               try Fdkaac_format.transmux_of_string s
               with Not_found ->
-                Lang_encoder.raise_error ~pos "invalid transmux value"
+                Lang_encoder.raise_error ~pos:None "invalid transmux value"
             in
             { f with Fdkaac_format.transmux }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->

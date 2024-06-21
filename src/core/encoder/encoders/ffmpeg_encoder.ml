@@ -28,7 +28,7 @@ let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"" (function
     | Encoder.Ffmpeg ffmpeg ->
         Some
-          (fun ?(hls = false) ~pos _ ->
+          (fun ?(hls = false) _ ->
             (* Inject hls params. *)
             let ffmpeg =
               if hls then (
@@ -107,7 +107,7 @@ let () =
                              ~remove_stream ~keyframe_opt ~field output)
                           streams
                     | `Encode Ffmpeg_format.{ codec = None } ->
-                        Lang_encoder.raise_error ~pos
+                        Lang_encoder.raise_error ~pos:None
                           (Printf.sprintf
                              "Codec unspecified for %%ffmpeg stream %%%s!"
                              (Frame.Fields.string_of_field field))
@@ -120,7 +120,7 @@ let () =
                             opts = options;
                           } ->
                         Frame.Fields.add field
-                          (Ffmpeg_internal_encoder.mk_audio ~pos
+                          (Ffmpeg_internal_encoder.mk_audio ~pos:None
                              ~on_keyframe:(on_stream_keyframe field) ~mode
                              ~params ~options ~codec ~field output)
                           streams
@@ -133,11 +133,11 @@ let () =
                             opts = options;
                           } ->
                         Frame.Fields.add field
-                          (Ffmpeg_internal_encoder.mk_video ~pos
+                          (Ffmpeg_internal_encoder.mk_video ~pos:None
                              ~on_keyframe:(on_stream_keyframe field) ~mode
                              ~params ~options ~codec ~field output)
                           streams)
                 Frame.Fields.empty ffmpeg.streams
             in
-            encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg)
+            encoder ~pos:None ~on_keyframe ~keyframes ~mk_streams ffmpeg)
     | _ -> None)

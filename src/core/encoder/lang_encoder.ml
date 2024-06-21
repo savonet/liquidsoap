@@ -55,7 +55,7 @@ let raise_error ~pos message =
 let raise_generic_error = function
   | `Anonymous s -> raise_error ~pos:None ("Unknown encoder parameter: " ^ s)
   | `Labelled (l, v) ->
-      raise_error ~pos:v.Value.pos
+      raise_error ~pos:None
         (Printf.sprintf
            "unknown parameter name (%s) or invalid parameter value (%s)" l
            (Value.to_string v))
@@ -125,5 +125,5 @@ let make_encoder ~pos ((e, p) : Hooks.encoder) =
   try
     let e = (find_encoder e).make p in
     let (_ : Encoder.factory) = Encoder.get_factory e in
-    V.to_value ?pos e
+    V.to_value e
   with Not_found -> raise_error ~pos "unsupported format"

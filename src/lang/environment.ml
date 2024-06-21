@@ -128,10 +128,4 @@ let add_module name =
         with _ -> ()));
   add_builtin ~register:false name
     ( ([], Type.make Type.unit),
-      Value.
-        {
-          pos = None;
-          value = unit;
-          methods = Methods.empty;
-          flags = Flags.empty;
-        } )
+      Value.{ value = unit; methods = Methods.empty; flags = Flags.empty } )

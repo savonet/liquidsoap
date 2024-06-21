@@ -53,10 +53,11 @@ let make params =
         | `Labelled ("application", { value = `String "restricted_lowdelay"; _ })
           ->
             { f with Opus_format.application = Some `Restricted_lowdelay }
-        | `Labelled ("complexity", { value = `Int c; pos }) ->
+        | `Labelled ("complexity", { value = `Int c }) ->
             (* Doc say this should be from 0 to 10. *)
             if c < 0 || c > 10 then
-              Lang_encoder.raise_error ~pos "Opus complexity should be in 0..10";
+              Lang_encoder.raise_error ~pos:None
+                "Opus complexity should be in 0..10";
             { f with Opus_format.complexity = Some c }
         | `Labelled ("max_bandwidth", { value = `String "narrow_band"; _ }) ->
             { f with Opus_format.max_bandwidth = Some `Narrow_band }
@@ -69,24 +70,25 @@ let make params =
             { f with Opus_format.max_bandwidth = Some `Super_wide_band }
         | `Labelled ("max_bandwidth", { value = `String "full_band"; _ }) ->
             { f with Opus_format.max_bandwidth = Some `Full_band }
-        | `Labelled ("frame_size", { value = `Float size; pos }) ->
+        | `Labelled ("frame_size", { value = `Float size }) ->
             let frame_sizes = [2.5; 5.; 10.; 20.; 40.; 60.] in
             if not (List.mem size frame_sizes) then
-              Lang_encoder.raise_error ~pos
+              Lang_encoder.raise_error ~pos:None
                 "Opus frame size should be one of 2.5, 5., 10., 20., 40. or 60.";
             { f with Opus_format.frame_size = size }
-        | `Labelled ("samplerate", { value = `Int i; pos }) ->
+        | `Labelled ("samplerate", { value = `Int i }) ->
             let samplerates = [8000; 12000; 16000; 24000; 48000] in
             if not (List.mem i samplerates) then
-              Lang_encoder.raise_error ~pos
+              Lang_encoder.raise_error ~pos:None
                 "Opus samplerate should be one of 8000, 12000, 16000, 24000 or \
                  48000";
             { f with Opus_format.samplerate = i }
-        | `Labelled ("bitrate", { value = `Int i; pos }) ->
+        | `Labelled ("bitrate", { value = `Int i }) ->
             let i = i * 1000 in
             (* Doc say this should be from 500 to 512000. *)
             if i < 500 || i > 512000 then
-              Lang_encoder.raise_error ~pos "Opus bitrate should be in 5..512";
+              Lang_encoder.raise_error ~pos:None
+                "Opus bitrate should be in 5..512";
             { f with Opus_format.bitrate = `Bitrate i }
         | `Labelled ("bitrate", { value = `String "auto"; _ }) ->
             { f with Opus_format.bitrate = `Auto }
@@ -100,9 +102,9 @@ let make params =
             { f with Opus_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Opus_format.channels = 2 }
-        | `Labelled ("channels", { value = `Int i; pos }) ->
+        | `Labelled ("channels", { value = `Int i }) ->
             if i < 1 || i > 2 then
-              Lang_encoder.raise_error ~pos
+              Lang_encoder.raise_error ~pos:None
                 "only mono and stereo streams are supported for now";
             { f with Opus_format.channels = i }
         | `Labelled ("vbr", { value = `String "none"; _ }) ->

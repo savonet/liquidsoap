@@ -63,7 +63,6 @@ type 'a value =
 [@@deriving hash]
 
 type t = {
-  pos : Pos.Option.t; [@hash.ignore]
   value : in_value;
   methods : t Methods.t;
   mutable flags : Flags.flags; [@hash.ignore]
@@ -181,12 +180,10 @@ let compare a b =
           (List.map
              (fun (lbl, v) ->
                {
-                 pos = None;
                  value =
                    `Tuple
                      [
                        {
-                         pos = None;
                          value = `String lbl;
                          methods = Methods.empty;
                          flags = Flags.empty;
@@ -203,12 +200,10 @@ let compare a b =
           (List.map
              (fun (lbl, v) ->
                {
-                 pos = None;
                  value =
                    `Tuple
                      [
                        {
-                         pos = None;
                          value = `String lbl;
                          methods = Methods.empty;
                          flags = Flags.empty;
@@ -230,7 +225,7 @@ let compare a b =
 module type Custom = sig
   include Term.Custom
 
-  val to_value : ?pos:Pos.t -> content -> t
+  val to_value : content -> t
   val of_value : t -> content
 end
 
@@ -239,9 +234,8 @@ module type CustomDef = Term.CustomDef
 module MkCustomFromTerm (Term : Term.Custom) = struct
   include Term
 
-  let to_value ?pos c =
+  let to_value c =
     {
-      pos;
       value = `Custom (to_custom c);
       methods = Methods.empty;
       flags = Flags.empty;

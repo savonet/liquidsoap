@@ -29,7 +29,6 @@ type module_name = string
 type scheme = Type.scheme
 
 type value = Value.t = {
-  pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
   mutable flags : Flags.flags;
@@ -83,9 +82,7 @@ let ref_t a = Type.reference a
 
 (** Value construction *)
 
-let mk ?pos ?(flags = Flags.empty) value =
-  { pos; value; flags; methods = Methods.empty }
-
+let mk ?(flags = Flags.empty) value = { value; flags; methods = Methods.empty }
 let unit = mk unit
 let int i = mk (`Int i)
 let octal_int i = mk ~flags:Flags.(add empty octal_int) (`Int i)
@@ -168,7 +165,6 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
   let t = builtin_type proto return_t in
   let value =
     {
-      pos = None;
       value =
         `FFI
           {
@@ -264,7 +260,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
 
 let add_builtin_base ~category ~descr ?flags ?base name value t =
   add_builtin_value ~category ~descr ?flags ?base name
-    { pos = t.Type.pos; value; methods = Methods.empty; flags = Flags.empty }
+    { value; methods = Methods.empty; flags = Flags.empty }
     t
 
 let add_module ?base name =

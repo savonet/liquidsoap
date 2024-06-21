@@ -27,7 +27,7 @@ open Shine_format
 let create_encoder ~samplerate ~bitrate ~channels =
   Shine.create { Shine.channels; samplerate; bitrate }
 
-let encoder ~pos shine =
+let encoder shine =
   let channels = shine.channels in
   let samplerate = Lazy.force shine.samplerate in
   let enc = create_encoder ~samplerate ~bitrate:shine.bitrate ~channels in
@@ -66,7 +66,7 @@ let encoder ~pos shine =
   {
     Encoder.insert_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);
-    hls = Encoder_utils.mk_id3_hls ~pos encode;
+    hls = Encoder_utils.mk_id3_hls ~pos:None encode;
     encode;
     stop;
   }
@@ -74,5 +74,5 @@ let encoder ~pos shine =
 let () =
   Plug.register Encoder.plug "shine" ~doc:"SHINE fixed-point mp3 encoder."
     (function
-    | Encoder.Shine m -> Some (fun ?hls:_ ~pos _ _ -> encoder ~pos m)
+    | Encoder.Shine m -> Some (fun ?hls:_ _ _ -> encoder m)
     | _ -> None)

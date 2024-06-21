@@ -28,7 +28,7 @@ let encoder_factory ?format format_val =
   let format =
     match format with Some f -> f | None -> Lang.to_format format_val
   in
-  try (Encoder.get_factory format) ~hls:false ~pos:format_val.Value.pos
+  try (Encoder.get_factory format) ~hls:false
   with Not_found ->
     raise (Error.Invalid_value (format_val, "Unsupported encoding format"))
 

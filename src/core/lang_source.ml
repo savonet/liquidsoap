@@ -372,7 +372,7 @@ let source_methods ~base s =
   meth base (List.map (fun (name, _, _, fn) -> (name, fn s)) source_methods)
 
 let source s = source_methods ~base:(Source_val.to_value s) s
-let track = Track.to_value ?pos:None
+let track = Track.to_value
 let to_source = Source_val.of_value
 let to_source_list l = List.map to_source (to_list l)
 let to_track = Track.of_value
@@ -511,7 +511,7 @@ let check_arguments ~env ~return_t arguments =
   (* Generalize all terms inside the arguments *)
   let map =
     let open Liquidsoap_lang.Value in
-    let rec map { pos; value; flags; methods } =
+    let rec map { value; flags; methods } =
       let value =
         match value with
           | (`Int _ as ast)
@@ -544,7 +544,7 @@ let check_arguments ~env ~return_t arguments =
                       map v);
                 }
       in
-      { pos; value; methods = Liquidsoap_lang.Methods.map map methods; flags }
+      { value; methods = Liquidsoap_lang.Methods.map map methods; flags }
     in
     map
   in

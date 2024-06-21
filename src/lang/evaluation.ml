@@ -136,35 +136,15 @@ and apply ?(pos = []) ~eval_check f l =
       (fun pe (_, var, v) ->
         (* Typing should ensure that there are no mandatory arguments remaining. *)
         assert (v <> None);
-        ( var,
-          (* Set the position information on FFI's default values. Cf. r5008:
-             if an Invalid_value is raised on a default value, which happens
-             with the mount/name params of output.icecast.*, the printing of
-             the error should succeed at getting a position information. *)
-          let v = Option.get v in
-          { v with Value.pos = apply_pos } )
-        :: pe)
+        (var, Option.get v) :: pe)
       pe p
   in
   (* Add position *)
   let pe = pe @ [(Lang_core.pos_var, Lang_core.Stacktrace.to_value pos)] in
-  let v = f pe in
-  (* Similarly here, the result of an FFI call should have some position
-     information. For example, if we build a fallible source and pass it to an
-     operator that expects an infallible one, an error is issued about that
-     FFI-made value and a position is needed. *)
-  { v with Value.pos = apply_pos }
+  f pe
 
-and eval_base_term ~eval_check (env : Env.t) tm =
-  let mk v =
-    Value.
-      {
-        pos = tm.t.Type.pos;
-        value = v;
-        methods = Methods.empty;
-        flags = tm.flags;
-      }
-  in
+and eval_base_term ~eval_check (env : Env.t) (tm : Term.t) =
+  let mk v = Value.{ value = v; methods = Methods.empty; flags = tm.flags } in
   match tm.term with
     | `Int i -> mk (`Int i)
     | `Float f -> mk (`Float f)
@@ -195,8 +175,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
           methods =
             Methods.filter (fun n _ -> not (List.mem n methods)) v.methods;
         }
-    | `Cast { cast = e } ->
-        { (eval ~eval_check env e) with pos = tm.t.Type.pos }
+    | `Cast { cast = e } -> eval ~eval_check env e
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
         match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
@@ -496,9 +475,7 @@ let rec eval_toplevel ?(interactive = false) t =
             def_t (Value.to_string def);
         eval_toplevel ~interactive body
     | `Seq (a, b) ->
-        ignore
-          (let v = eval_toplevel a in
-           if v.Value.pos = None then { v with Value.pos = a.t.Type.pos } else v);
+        ignore (eval_toplevel a);
         eval_toplevel ~interactive b
     | _ ->
         let v = eval t in

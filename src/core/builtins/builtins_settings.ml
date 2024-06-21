@@ -213,8 +213,7 @@ let print_settings () =
         let value =
           Lang.apply
             {
-              Value.pos = None;
-              value;
+              Value.value;
               methods = Value.Methods.empty;
               flags = Liquidsoap_lang.Flags.empty;
             }
@@ -238,8 +237,7 @@ let print_settings () =
 |} path
             (Value.to_string
                {
-                 Value.pos = None;
-                 value;
+                 Value.value;
                  methods = Value.Methods.empty;
                  flags = Liquidsoap_lang.Flags.empty;
                });
@@ -320,10 +318,10 @@ let _ =
           | `Float _, `Float _
           | `String _, `String _
           | `List [], `List []
-          | `List ({ pos = _; value = `String _ } :: _), `List []
-          | `List [], `List ({ pos = _; value = `String _ } :: _)
-          | ( `List ({ pos = _; value = `String _ } :: _),
-              `List ({ pos = _; value = `String _ } :: _) ) ->
+          | `List ({ value = `String _ } :: _), `List []
+          | `List [], `List ({ value = `String _ } :: _)
+          | ( `List ({ value = `String _ } :: _),
+              `List ({ value = `String _ } :: _) ) ->
               v
           | _ ->
               log#severe
