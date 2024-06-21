@@ -76,6 +76,259 @@ module Env = struct
   let adds env binds = List.fold_right (fun (x, v) env -> add env x v) binds env
 end
 
+type ground =
+  [ `Int of int | `Float of float | `String of string | `Bool of bool | `Null ]
+
+let rec is_evaluated_term ~include_methods ({ Term.term; methods } : Term.t) :
+    bool =
+  let is_evaluated_term = is_evaluated_term ~include_methods in
+  (include_methods || Methods.for_all (fun _ m -> is_evaluated_term m) methods)
+  &&
+  match term with
+    | #ground | `Fun _ | `FFI _ -> true
+    | `Tuple l | `List l -> List.for_all is_evaluated_term l
+    | `Hide (t, _) -> is_evaluated_term t
+    | `Seq (t, t') -> is_evaluated_term t && is_evaluated_term t'
+    | `Cast { cast } -> is_evaluated_term cast
+    | `Invoke { invoked; invoke_default } -> (
+        is_evaluated_term invoked
+        &&
+        match invoke_default with None -> true | Some t -> is_evaluated_term t)
+    | `Encoder e -> is_evaluated_encoder ~include_methods e
+    | `Open (t, t') -> is_evaluated_term t && is_evaluated_term t'
+    | `Let { def; body } -> is_evaluated_term def && is_evaluated_term body
+    | `Var _ | `Cache_env _ | `App _ -> false
+
+and is_evaluated_encoder ~include_methods (_, p) =
+  is_evaluated_encoder_params ~include_methods p
+
+and is_evaluated_encoder_params ~include_methods p =
+  List.for_all
+    (function
+      | `Anonymous _ -> true
+      | `Encoder e -> is_evaluated_encoder ~include_methods e
+      | `Labelled (_, p) -> is_evaluated_term ~include_methods p)
+    p
+
+let ffi_of_value : Value.t -> Term.ffi = Obj.magic
+let value_of_ffi : Term.ffi -> Value.t = Obj.magic
+
+let rec term_of_value ({ Value.methods; value; flags } as v) =
+  let methods = Methods.mapi (fun _ m -> term_of_value m) methods in
+  let map term = { t = Type.var (); term; methods; flags } in
+  match value with
+    | #ground as tm -> map tm
+    | `List l -> map (`List (List.map term_of_value l))
+    | `Tuple l -> map (`Tuple (List.map (fun tm -> term_of_value tm) l))
+    | `Fun { fun_args; fun_env; fun_body } ->
+        let arguments =
+          List.map
+            (fun (label, as_variable, default) ->
+              let default = Option.map term_of_value default in
+              let as_variable =
+                if label = as_variable then None else Some as_variable
+              in
+              { label; as_variable; default; typ = Type.var () })
+            fun_args
+        in
+        let env = List.map (fun (lbl, v) -> (lbl, term_of_value v)) fun_env in
+        let body = propagate_constants ~env fun_body in
+        map (`Fun { free_vars = None; name = None; arguments; body })
+    | `FFI _ -> map (`FFI (ffi_of_value v))
+
+and propagate_constants ~(env : (string * Term.t) list) (tm : Runtime_term.t) =
+  match tm.term with
+    | #ground | `Custom _ | `Cache_env _ | `Encoder _ -> tm
+    | `List l ->
+        { tm with term = `List (List.map (propagate_constants ~env) l) }
+    | `Tuple l ->
+        { tm with term = `Tuple (List.map (propagate_constants ~env) l) }
+    | `App (fn, args) ->
+        let fn = propagate_constants ~env fn in
+        {
+          tm with
+          term =
+            `App
+              ( { fn with methods = Methods.empty },
+                List.map
+                  (fun (lbl, t) -> (lbl, propagate_constants ~env t))
+                  args );
+        }
+    | `Hide (tm, l) -> (
+        match propagate_constants ~env tm with
+          | tm when is_evaluated_term ~include_methods:true tm ->
+              {
+                tm with
+                methods =
+                  Methods.filter (fun lbl _ -> not (List.mem lbl l)) tm.methods;
+              }
+          | tm -> { tm with term = `Hide (tm, l) })
+    | `Cast { cast } -> propagate_constants ~env cast
+    | `Open (t, t') ->
+        {
+          tm with
+          term = `Open (propagate_constants ~env t, propagate_constants ~env t');
+        }
+    | `Seq (t, t') ->
+        let t = propagate_constants ~env t in
+        let t' = propagate_constants ~env t' in
+        if is_evaluated_term ~include_methods:false t then t'
+        else { tm with term = `Seq (t, t') }
+    | `Var v -> ( match List.assoc_opt v env with Some tm -> tm | _ -> tm)
+    | `Invoke { invoked; meth; invoke_default } -> (
+        let invoked = propagate_constants ~env invoked in
+        let is_invoked_evaluated =
+          is_evaluated_term ~include_methods:false invoked
+        in
+        let invoke_default =
+          Option.map (propagate_constants ~env) invoke_default
+        in
+        match
+          ( is_invoked_evaluated,
+            Methods.find_opt meth invoked.methods,
+            invoke_default )
+        with
+          | true, Some v, _ when is_evaluated_term ~include_methods:true v -> v
+          | true, None, Some v when is_evaluated_term ~include_methods:true v ->
+              v
+          | _ -> { tm with term = `Invoke { invoked; meth; invoke_default } })
+    | `Let ({ pat; def; body; replace } as _let) -> (
+        let def = propagate_constants ~env def in
+        let map ?(exclude = []) ?(env = env) () =
+          let env =
+            List.filter (fun (lbl, _) -> not (List.mem lbl exclude)) env
+          in
+          {
+            tm with
+            term = `Let { _let with def; body = propagate_constants ~env body };
+          }
+        in
+        let is_evaluated_def = is_evaluated_term ~include_methods:true def in
+        match pat with
+          | `PTuple l ->
+              if is_evaluated_def then (
+                let l' =
+                  match def.term with `Tuple l' -> l' | _ -> assert false
+                in
+                let env =
+                  List.fold_left2 (fun env lbl v -> (lbl, v) :: env) env l l'
+                in
+                map ~env ())
+              else map ~exclude:l ()
+          | `PVar [] -> assert false
+          | `PVar [var] ->
+              if is_evaluated_def && ((not replace) || List.mem_assoc var env)
+              then (
+                let def =
+                  match (replace, List.assoc_opt var env) with
+                    | true, Some v ->
+                        {
+                          def with
+                          methods = Methods.append def.methods v.methods;
+                        }
+                    | _ -> def
+                in
+                let env = (var, def) :: env in
+                map ~env ())
+              else map ~exclude:[var] ()
+          | `PVar (var :: path) -> (
+              let var_def = List.assoc_opt var env in
+              match (is_evaluated_def, var_def) with
+                | false, Some var_def ->
+                    (* We need a recall in case of situations like:
+                         let foo = ()
+                         let foo.bar = fn()
+                    *)
+                    {
+                      t = tm.t;
+                      term =
+                        `Let
+                          {
+                            doc = None;
+                            pat = `PVar [var];
+                            gen = [];
+                            replace = false;
+                            def = var_def;
+                            body = map ~exclude:[var] ();
+                          };
+                      methods = Methods.empty;
+                      flags = 0;
+                    }
+                | true, Some var_def ->
+                    let rec push ~path base =
+                      match path with
+                        | [] -> assert false
+                        | meth :: [] ->
+                            let def =
+                              match
+                                (replace, Methods.find_opt meth base.methods)
+                              with
+                                | true, Some v ->
+                                    {
+                                      def with
+                                      methods =
+                                        Methods.append def.methods v.methods;
+                                    }
+                                | _ -> def
+                            in
+                            {
+                              base with
+                              methods = Methods.add meth def base.methods;
+                            }
+                        | meth :: path ->
+                            let methods = base.methods in
+                            {
+                              base with
+                              methods =
+                                Methods.add meth
+                                  (push ~path (Methods.find meth methods))
+                                  methods;
+                            }
+                    in
+                    let def = push ~path var_def in
+                    let env = (var, def) :: env in
+                    map ~env ()
+                | _ -> map ~exclude:[var] ()))
+    | `Fun ({ arguments; body } as func) ->
+        let arg_vars =
+          List.map
+            (fun { label; as_variable } ->
+              Option.value ~default:label as_variable)
+            arguments
+        in
+        let body_env =
+          List.filter (fun (lbl, _) -> not (List.mem lbl arg_vars)) env
+        in
+        let body = propagate_constants ~env:body_env body in
+        {
+          tm with
+          term =
+            `Fun
+              {
+                func with
+                body;
+                arguments =
+                  List.map
+                    (fun ({ default } as arg) ->
+                      {
+                        arg with
+                        default = Option.map (propagate_constants ~env) default;
+                      })
+                    arguments;
+              };
+        }
+    | `FFI _ -> tm
+
+let propagate_constants ?env tm =
+  let env =
+    match env with
+      | Some env -> env
+      | None -> Environment.default_environment ()
+  in
+  propagate_constants
+    ~env:(List.map (fun (lbl, v) -> (lbl, term_of_value v)) env)
+    tm
+
 let rec prepare_fun fv ~eval_check p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
@@ -287,6 +540,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                 mk (`Fun { fun_args = p; fun_env = env; fun_body = body })
               in
               mk_fun ())
+    | `FFI ffi -> value_of_ffi ffi
     | `Var var -> Env.lookup env var
     | `Seq (a, b) ->
         ignore (eval ~eval_check env a);
@@ -341,7 +595,6 @@ let eval ?env tm =
       | Some env -> env
       | None -> Environment.default_environment ()
   in
-  let env = List.map (fun (x, v) -> (x, v)) env in
   let eval_check = !Hooks.eval_check in
   eval ~eval_check env tm
 

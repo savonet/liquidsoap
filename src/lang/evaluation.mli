@@ -28,3 +28,5 @@ val eval_toplevel : ?interactive:bool -> Term.t -> Value.t
 
 (** Apply a function to arguments. *)
 val apply : ?pos:Pos.t list -> Value.t -> (string * Value.t) list -> Value.t
+
+val propagate_constants : ?env:(string * Value.t) list -> Term.t -> Term.t

@@ -134,6 +134,7 @@ let rec to_string (v : t) =
       | `Fun { name = None; arguments = []; body = v } when is_ground v ->
           "{" ^ to_string v ^ "}"
       | `Fun _ -> "<fun>"
+      | `FFI _ -> "<ffi>"
       | `Var s -> s
       | `App (hd, tl) ->
           let tl =
@@ -236,6 +237,7 @@ let rec free_term_vars tm =
           (fun v (_, t) -> Vars.union v (free_vars t))
           (free_vars hd) l
     | `Fun p -> free_fun_vars p
+    | `FFI _ -> Vars.empty
     | `Let l ->
         Vars.union
           (match l.pat with
@@ -313,10 +315,10 @@ let check_unused ~throw ~lib tm =
     in
     match tm.term with
       | `Var s -> Vars.remove s v
-      | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ -> v
-      | `Custom _ -> v
+      | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ | `FFI _ | `Null
+      | `Custom _ ->
+          v
       | `Tuple l -> List.fold_left (fun a -> check a) v l
-      | `Null -> v
       | `Hide (tm, l) ->
           check v
             {
@@ -361,7 +363,9 @@ let check_unused ~throw ~lib tm =
           Vars.iter
             (fun x ->
               if Vars.mem x v && x <> "_" then
-                throw (Unused_variable (x, Option.get tm.t.Type.pos)))
+                throw
+                  (Unused_variable (x, Option.get tm.t.Type.pos))
+                  (Printexc.get_callstack 0))
             bound;
           (* Restore masked variables. The masking variables have been used but
              it does not count for the ones they masked. Bound variables have
@@ -386,7 +390,10 @@ let check_unused ~throw ~lib tm =
                   if
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && Type.is_fun def.t))
-                  then throw (Unused_variable (s, Option.get tm.t.Type.pos)))
+                  then
+                    throw
+                      (Unused_variable (s, Option.get tm.t.Type.pos))
+                      (Printexc.get_callstack 0))
               bvpat;
           Vars.union v mask
   in
@@ -469,10 +476,10 @@ let make ?pos ?t ?flags ?methods e =
 let rec fresh ~handler { t; term; methods; flags } =
   let term =
     match term with
-      | `Cache_env _ | `Int _ | `String _ | `Float _ | `Bool _ | `Custom _ ->
+      | `Cache_env _ | `Int _ | `String _ | `Float _ | `Bool _ | `Custom _
+      | `FFI _ | `Null ->
           term
       | `Tuple l -> `Tuple (List.map (fresh ~handler) l)
-      | `Null -> `Null
       | `Open (t, t') -> `Open (fresh ~handler t, fresh ~handler t')
       | `Var s -> `Var s
       | `Seq (t, t') -> `Seq (fresh ~handler t, fresh ~handler t')

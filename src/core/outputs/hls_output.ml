@@ -28,7 +28,7 @@ let default_id3_version = 3
 let log = Log.make ["hls"; "output"]
 
 let default_name =
-  Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled
+  Lang.eval
     {|fun (~position, ~extname, base) -> "#{base}_#{position}.#{extname}"|}
 
 let hls_proto frame_t =

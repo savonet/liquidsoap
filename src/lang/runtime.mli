@@ -54,7 +54,12 @@ val load_libs : unit -> unit
 (* Wrapper for format language errors. Re-raises [Error]
    after printing language errors. *)
 val throw :
-  ?formatter:Format.formatter -> ?lexbuf:Sedlexing.lexbuf -> unit -> exn -> unit
+  ?formatter:Format.formatter ->
+  ?lexbuf:Sedlexing.lexbuf ->
+  unit ->
+  exn ->
+  Printexc.raw_backtrace ->
+  unit
 
 val program :
   (unit -> Parser.token * Lexing.position * Lexing.position) -> Parsed_term.t
@@ -71,5 +76,5 @@ val error_header : formatter:Format.formatter -> int -> Pos.Option.t -> unit
 val report :
   ?lexbuf:Sedlexing.lexbuf ->
   ?default:(unit -> 'a) ->
-  (throw:(exn -> unit) -> unit -> 'a) ->
+  (throw:(exn -> Printexc.raw_backtrace -> unit) -> unit -> 'a) ->
   'a

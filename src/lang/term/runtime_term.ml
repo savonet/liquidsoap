@@ -82,6 +82,9 @@ type 'a let_t = {
 
 type cached_env = { var_name : int; var_id : int; env : Typing.env }
 
+(* ffi is an opaque type used to propagate constants. *)
+type ffi
+
 type 'a runtime_ast =
   [ `Int of int
   | `Cache_env of cached_env ref
@@ -94,7 +97,8 @@ type 'a runtime_ast =
   | `Invoke of 'a invoke
   | `Hide of 'a * string list
   | `Encoder of 'a encoder
-  | `Fun of ('a, Type.t) func ]
+  | `Fun of ('a, Type.t) func
+  | `FFI of ffi ]
 
 type t = ast term
 and ast = [ (t, Type.t) common_ast | t runtime_ast ]

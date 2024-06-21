@@ -63,7 +63,8 @@ exception Duplicate_label of Pos.Option.t * string
 exception Missing_arguments of Pos.Option.t * (string * Type.t) list
 exception Unused_variable of (string * Pos.t)
 
-val check_unused : throw:(exn -> unit) -> lib:bool -> t -> unit
+val check_unused :
+  throw:(exn -> Printexc.raw_backtrace -> unit) -> lib:bool -> t -> unit
 
 module type Custom = sig
   type content

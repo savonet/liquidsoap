@@ -245,6 +245,7 @@ val eval :
   ?deprecated:bool ->
   ?ty:t ->
   ?name:string ->
+  ?propagate_constants:bool ->
   stdlib:stdlib ->
   string ->
   value

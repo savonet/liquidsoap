@@ -91,6 +91,7 @@ and trim_ast tm =
                   { arg with default = Option.map trim_term arg.default })
                 arguments;
           }
+    | `FFI _ as v -> v
 
 and trim_term ({ t; term; methods } as tm) =
   {
