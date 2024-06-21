@@ -194,8 +194,7 @@ let user_agent =
   Lang.product (Lang.string "User-Agent") (Lang.string Http.user_agent)
 
 let default_icy_song =
-  Lang.eval ~cache:false ~propagate_constants:false ~typecheck:false
-    ~stdlib:`Disabled
+  Lang.eval
     {|fun (m) -> begin
   title = m["title"]
   artist = m["artist"]

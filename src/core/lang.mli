@@ -316,27 +316,5 @@ val string_of_regexp : regexp -> string
 
 type stdlib = [ `Disabled | `If_present | `Force | `Override of string ]
 
-(** Type a term, possibly returning the cached term instead. *)
-val type_term :
-  ?name:string ->
-  ?cache:bool ->
-  ?trim:bool ->
-  ?deprecated:bool ->
-  ?ty:t ->
-  stdlib:stdlib ->
-  parsed_term:Liquidsoap_lang.Parsed_term.t ->
-  Term.t ->
-  Term.t
-
 (** Evaluate a term. *)
-val eval :
-  ?toplevel:bool ->
-  ?typecheck:bool ->
-  ?cache:bool ->
-  ?deprecated:bool ->
-  ?ty:t ->
-  ?name:string ->
-  ?propagate_constants:bool ->
-  stdlib:stdlib ->
-  string ->
-  value
+val eval : string -> value
