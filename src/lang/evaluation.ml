@@ -92,8 +92,10 @@ let rec is_ground_value { Value.value; methods } =
         && List.for_all (fun (_, v) -> is_ground_value v) fun_env
     | `FFI _ -> false
 
-let rec is_evaluated_term ({ Term.term; methods } : Term.t) : bool =
-  Methods.for_all (fun _ m -> is_evaluated_term m) methods
+let rec is_evaluated_term ~include_methods ({ Term.term; methods } : Term.t) :
+    bool =
+  let is_evaluated_term = is_evaluated_term ~include_methods in
+  (include_methods || Methods.for_all (fun _ m -> is_evaluated_term m) methods)
   &&
   match term with
     | #ground -> true
@@ -105,7 +107,7 @@ let rec is_evaluated_term ({ Term.term; methods } : Term.t) : bool =
         is_evaluated_term invoked
         &&
         match invoke_default with None -> true | Some t -> is_evaluated_term t)
-    | `Encoder e -> is_evaluated_encoder e
+    | `Encoder e -> is_evaluated_encoder ~include_methods e
     | `Open (t, t') -> is_evaluated_term t && is_evaluated_term t'
     | `Let { def; body } -> is_evaluated_term def && is_evaluated_term body
     | `Fun { arguments } ->
@@ -114,14 +116,15 @@ let rec is_evaluated_term ({ Term.term; methods } : Term.t) : bool =
           arguments
     | `Var _ | `Cache_env _ | `App _ -> false
 
-and is_evaluated_encoder (_, p) = is_evaluated_encoder_params p
+and is_evaluated_encoder ~include_methods (_, p) =
+  is_evaluated_encoder_params ~include_methods p
 
-and is_evaluated_encoder_params p =
+and is_evaluated_encoder_params ~include_methods p =
   List.for_all
     (function
       | `Anonymous _ -> true
-      | `Encoder e -> is_evaluated_encoder e
-      | `Labelled (_, p) -> is_evaluated_term p)
+      | `Encoder e -> is_evaluated_encoder ~include_methods e
+      | `Labelled (_, p) -> is_evaluated_term ~include_methods p)
     p
 
 let rec term_of_ground_value ~eval_check { Value.methods; value; flags } =
@@ -169,7 +172,7 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
         }
     | `Hide (tm, l) -> (
         match propagate_constants ~env tm with
-          | tm when is_evaluated_term tm ->
+          | tm when is_evaluated_term ~include_methods:true tm ->
               {
                 tm with
                 methods =
@@ -185,7 +188,8 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
     | `Seq (t, t') ->
         let t = propagate_constants ~env t in
         let t' = propagate_constants ~env t' in
-        if is_evaluated_term t then t' else { tm with term = `Seq (t, t') }
+        if is_evaluated_term ~include_methods:false t then t'
+        else { tm with term = `Seq (t, t') }
     | `Var v -> (
         match List.assoc_opt v env with
           | Some value when is_ground_value value ->
@@ -193,14 +197,20 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
           | _ -> tm)
     | `Invoke { invoked; meth; invoke_default } -> (
         let invoked = propagate_constants ~env invoked in
+        let is_invoked_evaluated =
+          is_evaluated_term ~include_methods:false invoked
+        in
         let invoke_default =
           Option.map (propagate_constants ~env) invoke_default
         in
         match
-          (invoked, Methods.find_opt meth invoked.methods, invoke_default)
+          ( is_invoked_evaluated,
+            Methods.find_opt meth invoked.methods,
+            invoke_default )
         with
-          | tm, Some v, _ when is_evaluated_term tm -> v
-          | tm, None, Some v when is_evaluated_term tm -> v
+          | true, Some v, _ when is_evaluated_term ~include_methods:true v -> v
+          | true, None, Some v when is_evaluated_term ~include_methods:true v ->
+              v
           | _ -> { tm with term = `Invoke { invoked; meth; invoke_default } })
     | `Let ({ pat; def; body; replace } as _let) -> (
         let def = propagate_constants ~env def in
@@ -215,7 +225,7 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
         in
         match pat with
           | `PTuple l ->
-              if is_evaluated_term def then (
+              if is_evaluated_term ~include_methods:true def then (
                 let l' =
                   match def.term with `Tuple l' -> l' | _ -> assert false
                 in
@@ -229,7 +239,7 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
           | `PVar [] -> assert false
           | `PVar [var] ->
               if
-                is_evaluated_term def
+                is_evaluated_term ~include_methods:true def
                 && ((not replace) || List.mem_assoc var env)
               then (
                 let def = eval ~eval_check [] def in
@@ -246,7 +256,10 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
                 map ~env ())
               else map ~exclude:[var] ()
           | `PVar (var :: path) ->
-              if is_evaluated_term def && List.mem_assoc var env then (
+              if
+                is_evaluated_term ~include_methods:true def
+                && List.mem_assoc var env
+              then (
                 let var_def = List.assoc var env in
                 let def = eval ~eval_check [] def in
                 let rec push ~path (base : Value.t) =
