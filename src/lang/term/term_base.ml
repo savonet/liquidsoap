@@ -97,8 +97,8 @@ let rec to_string (v : t) =
       | `Cache_env _ -> "<cache_env>"
       | `Custom c -> Custom.to_string c
       | `Int i ->
-          if has_flag v octal_int then Printf.sprintf "0o%o" i
-          else if has_flag v hex_int then Printf.sprintf "0x%x" i
+          if has_flag v Flags.octal_int then Printf.sprintf "0o%o" i
+          else if has_flag v Flags.hex_int then Printf.sprintf "0x%x" i
           else string_of_int i
       | `Float f -> Utils.string_of_float f
       | `Bool b -> string_of_bool b
@@ -164,7 +164,7 @@ let id =
   let counter = Atomic.make 0 in
   fun () -> Atomic.fetch_and_add counter 1
 
-let make ?pos ?t ?(flags = 0) ?(methods = Methods.empty) e =
+let make ?pos ?t ?(flags = Flags.empty) ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
   { t; term = e; methods; flags }
 
@@ -451,7 +451,7 @@ module MkCustom (Def : CustomDef) = struct
       t = Type.make descr;
       term = `Custom (to_custom c);
       methods = Methods.empty;
-      flags = 0;
+      flags = Flags.empty;
     }
 end
 

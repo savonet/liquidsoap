@@ -23,12 +23,6 @@
 module Lang = Liquidsoap_lang.Lang
 open Lang
 
-module Alive_values_map = Liquidsoap_lang.Active_value.Make (struct
-  type t = Value.t
-
-  let id v = v.Value.id
-end)
-
 module ClockValue = struct
   include Value.MkCustom (struct
     type content = Clock.t
@@ -387,16 +381,12 @@ let to_track = Track.of_value
     the currently defined source as argument). *)
 type 'a operator_method = string * scheme * string * ('a -> value)
 
-let checked_values = Alive_values_map.create 10
-
 (** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
 let check_content v t =
   let check t t' = Typing.(t <: t') in
   let rec check_value v t =
-    if not (Alive_values_map.mem checked_values v) then (
-      (* We need to avoid checking the same value multiple times, otherwise we
-         get an exponential blowup, see #1247. *)
-      Alive_values_map.add checked_values v;
+    if not Liquidsoap_lang.Flags.(has v.flags checked_value) then (
+      v.flags <- Liquidsoap_lang.Flags.(add v.flags checked_value);
       match (v.Value.value, (Type.deref t).Type.descr) with
         | _, Type.Var _ -> ()
         | _ when Source_val.is_value v ->
@@ -554,13 +544,7 @@ let check_arguments ~env ~return_t arguments =
                       map v);
                 }
       in
-      {
-        pos;
-        value;
-        methods = Liquidsoap_lang.Methods.map map methods;
-        flags;
-        id = Value.id ();
-      }
+      { pos; value; methods = Liquidsoap_lang.Methods.map map methods; flags }
     in
     map
   in
@@ -656,8 +640,6 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
   let category = `Track category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
-let itered_values = Alive_values_map.create 10
-
 let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let rec iter_term env v =
     let iter_base_term env v =
@@ -700,10 +682,8 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
       v.Term.methods;
     iter_base_term env v
   and iter_value v =
-    if not (Alive_values_map.mem itered_values v) then (
-      (* We need to avoid checking the same value multiple times, otherwise we
-         get an exponential blowup, see #1247. *)
-      Alive_values_map.add itered_values v;
+    if not Liquidsoap_lang.Flags.(has v.flags itered_value) then (
+      v.flags <- Liquidsoap_lang.Flags.(add v.flags itered_value);
       Value.Methods.iter (fun _ v -> iter_value v) v.Value.methods;
       match v.value with
         | _ when Source_val.is_value v -> f (Source_val.of_value v)

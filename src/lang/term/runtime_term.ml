@@ -23,19 +23,14 @@ type custom_handler = {
 type custom_term = { value : custom; handler : custom_handler }
 [@@deriving hash]
 
-type flags = int
-
-let octal_int = 0b1
-let hex_int = 0b10
-
 type 'a term = {
   t : Type.t;
   term : 'a;
-  flags : flags;
+  flags : Flags.flags;
   methods : 'a term Methods.t;
 }
 
-let has_flag { flags } flag = flags land flag <> 0
+let has_flag { flags } flag = Flags.has flags flag
 
 (* ~l1:x1 .. ?li:(xi=defi) .. *)
 type ('a, 'b) func_argument = {

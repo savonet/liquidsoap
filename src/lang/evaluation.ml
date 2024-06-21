@@ -163,7 +163,6 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         value = v;
         methods = Methods.empty;
         flags = tm.flags;
-        id = Value.id ();
       }
   in
   match tm.term with

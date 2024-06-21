@@ -66,8 +66,7 @@ type t = {
   pos : Pos.Option.t; [@hash.ignore]
   value : in_value;
   methods : t Methods.t;
-  flags : Term.flags; [@hash.ignore]
-  id : int; [@hash.ignore]
+  mutable flags : Flags.flags; [@hash.ignore]
 }
 [@@deriving hash]
 
@@ -76,19 +75,15 @@ and in_value = t value
 type env = t _env
 type fun_v = t _fun_v
 
-let id =
-  let counter = Atomic.make 0 in
-  fun () -> Atomic.fetch_and_add counter 1
-
-let has_flag { flags } flag = flags land flag <> 0
+let has_flag { flags } flag = Flags.has flags flag
 let unit : in_value = `Tuple []
 
 let rec to_string v =
   let base_string v =
     match v.value with
       | `Int i ->
-          if has_flag v Term.octal_int then Printf.sprintf "0o%o" i
-          else if has_flag v Term.hex_int then Printf.sprintf "0x%x" i
+          if has_flag v Flags.octal_int then Printf.sprintf "0o%o" i
+          else if has_flag v Flags.hex_int then Printf.sprintf "0x%x" i
           else string_of_int i
       | `Float f -> Utils.string_of_float f
       | `Bool b -> string_of_bool b
@@ -194,14 +189,12 @@ let compare a b =
                          pos = None;
                          value = `String lbl;
                          methods = Methods.empty;
-                         flags = 0;
-                         id = id ();
+                         flags = Flags.empty;
                        };
                        v;
                      ];
                  methods = Methods.empty;
-                 flags = 0;
-                 id = id ();
+                 flags = Flags.empty;
                })
              a)
       in
@@ -218,14 +211,12 @@ let compare a b =
                          pos = None;
                          value = `String lbl;
                          methods = Methods.empty;
-                         flags = 0;
-                         id = id ();
+                         flags = Flags.empty;
                        };
                        v;
                      ];
                  methods = Methods.empty;
-                 flags = 0;
-                 id = id ();
+                 flags = Flags.empty;
                })
              b)
       in
@@ -253,8 +244,7 @@ module MkCustomFromTerm (Term : Term.Custom) = struct
       pos;
       value = `Custom (to_custom c);
       methods = Methods.empty;
-      flags = 0;
-      id = id ();
+      flags = Flags.empty;
     }
 
   let of_value t =

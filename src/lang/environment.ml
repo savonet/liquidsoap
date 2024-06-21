@@ -133,6 +133,5 @@ let add_module name =
           pos = None;
           value = unit;
           methods = Methods.empty;
-          id = Value.id ();
-          flags = 0;
+          flags = Flags.empty;
         } )

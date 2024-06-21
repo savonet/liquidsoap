@@ -35,6 +35,7 @@ type regexp = Liquidsoap_lang.Lang.regexp
 
 module Custom = Value.Custom
 module Methods = Term.Methods
+module Flags = Liquidsoap_lang.Flags
 
 type in_value = Liquidsoap_lang.Value.in_value
 type env = Liquidsoap_lang.Value.env
@@ -43,8 +44,7 @@ type value = Liquidsoap_lang.Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
-  flags : Term.flags;
-  id : int;
+  mutable flags : Flags.flags;
 }
 
 val demeth : value -> value
