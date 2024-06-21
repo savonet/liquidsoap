@@ -2,6 +2,7 @@ include Liquidsoap_lang.Lang
 include Lang_source
 include Lang_encoder.L
 module Doc = Liquidsoap_lang.Doc
+module Flags = Liquidsoap_lang.Flags
 
 let () = Hooks_implementations.register ()
 

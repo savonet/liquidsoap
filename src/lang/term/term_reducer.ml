@@ -437,7 +437,7 @@ and term_of_value_base ~pos t v =
       | _ -> assert false
   in
   let process_value ~t v =
-    let mk_tm ?(flags = 0) term =
+    let mk_tm ?(flags = Flags.empty) term =
       mk ~flags ~t:(Type.make ~pos t.Type.descr) term
     in
     match v.Value.value with
@@ -1255,12 +1255,12 @@ and to_term ~env (tm : Parsed_term.t) : Term.t =
             | `Int i
               when String.length i >= 2
                    && String.(lowercase_ascii (sub i 0 2)) = "0x" ->
-                Term.hex_int
+                Flags.(add empty hex_int)
             | `Int i
               when String.length i >= 2
                    && String.(lowercase_ascii (sub i 0 2)) = "0o" ->
-                Term.octal_int
-            | _ -> 0
+                Flags.(add empty octal_int)
+            | _ -> Flags.empty
         in
         let term =
           match (to_ast ~env ~pos:tm.pos term, List.rev comments) with

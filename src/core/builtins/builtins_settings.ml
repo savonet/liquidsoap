@@ -216,8 +216,7 @@ let print_settings () =
               Value.pos = None;
               value;
               methods = Value.Methods.empty;
-              flags = 0;
-              id = Value.id ();
+              flags = Liquidsoap_lang.Flags.empty;
             }
             []
         in
@@ -242,8 +241,7 @@ let print_settings () =
                  Value.pos = None;
                  value;
                  methods = Value.Methods.empty;
-                 flags = 0;
-                 id = Value.id ();
+                 flags = Liquidsoap_lang.Flags.empty;
                });
         ]
   in

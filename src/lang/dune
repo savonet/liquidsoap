@@ -112,6 +112,7 @@
   error
   evaluation
   extralib
+  flags
   hooks
   json_base
   json_lexer

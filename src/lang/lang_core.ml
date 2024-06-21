@@ -32,8 +32,7 @@ type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
-  flags : Term.flags;
-  id : int;
+  mutable flags : Flags.flags;
 }
 
 (** Type construction *)
@@ -84,13 +83,13 @@ let ref_t a = Type.reference a
 
 (** Value construction *)
 
-let mk ?pos ?(flags = 0) value =
-  { pos; value; flags; methods = Methods.empty; id = id () }
+let mk ?pos ?(flags = Flags.empty) value =
+  { pos; value; flags; methods = Methods.empty }
 
 let unit = mk unit
 let int i = mk (`Int i)
-let octal_int i = mk ~flags:Term.octal_int (`Int i)
-let hex_int i = mk ~flags:Term.hex_int (`Int i)
+let octal_int i = mk ~flags:Flags.(add empty octal_int) (`Int i)
+let hex_int i = mk ~flags:Flags.(add empty hex_int) (`Int i)
 let bool i = mk (`Bool i)
 let float i = mk (`Float i)
 let string i = mk (`String i)
@@ -177,8 +176,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
             ffi_fn = f;
           };
       methods = Methods.empty;
-      flags = 0;
-      id = id ();
+      flags = Flags.empty;
     }
   in
   let doc () =
@@ -266,7 +264,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
 
 let add_builtin_base ~category ~descr ?flags ?base name value t =
   add_builtin_value ~category ~descr ?flags ?base name
-    { pos = t.Type.pos; value; methods = Methods.empty; flags = 0; id = id () }
+    { pos = t.Type.pos; value; methods = Methods.empty; flags = Flags.empty }
     t
 
 let add_module ?base name =

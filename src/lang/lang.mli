@@ -41,8 +41,7 @@ type value = Value.t = {
   pos : Pos.Option.t;
   value : in_value;
   methods : value Methods.t;
-  flags : Term.flags;
-  id : int;
+  mutable flags : Flags.flags;
 }
 
 val demeth : value -> value

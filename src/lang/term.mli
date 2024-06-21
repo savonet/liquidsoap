@@ -44,7 +44,12 @@ val string_of_pat : pattern -> string
 val to_string : t -> string
 
 val make :
-  ?pos:Pos.t -> ?t:Type.t -> ?flags:int -> ?methods:t Methods.t -> ast -> t
+  ?pos:Pos.t ->
+  ?t:Type.t ->
+  ?flags:Flags.flags ->
+  ?methods:t Methods.t ->
+  ast ->
+  t
 
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
 val free_fun_vars : (t, Type.t) func -> Vars.t
