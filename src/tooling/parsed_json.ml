@@ -597,5 +597,5 @@ let parse_string ?(formatter = Format.err_formatter) content =
     Parser_helper.attach_comments term;
     to_json term
   with exn ->
-    throw exn;
+    throw exn (Printexc.get_callstack 0);
     exit 1

@@ -33,11 +33,10 @@ let debug = ref false
 let value_restriction t =
   let rec value_restriction t =
     match t.term with
-      | `Var _ -> true
-      | `Fun _ -> true
-      | `Null -> true
+      | `Var _ | `Fun _ | `Null | `FFI _ | `Int _ | `Float _ | `String _
+      | `Bool _ | `Custom _ ->
+          true
       | `List l | `Tuple l -> List.for_all value_restriction l
-      | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> true
       | `Let l -> value_restriction l.def && value_restriction l.body
       | `Cast { cast = t } -> value_restriction t
       (* | Invoke (t, _) -> value_restriction t *)
@@ -251,7 +250,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           base_type >: b.t
       | `Seq (a, b) ->
           check ~env ~level a;
-          if not (can_ignore a.t) then throw (Ignored a);
+          if not (can_ignore a.t) then
+            throw (Ignored a) (Printexc.get_callstack 0);
           check ~print_toplevel ~level ~env b;
           base_type >: b.t
       | `App (a, l) -> (
@@ -317,6 +317,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
               | Some name -> (name, ([], base_type)) :: env
           in
           check_fun ~env e p
+      | `FFI _ -> ()
       | `Var var ->
           let s =
             try List.assoc var env

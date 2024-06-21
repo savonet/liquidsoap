@@ -676,6 +676,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
               (function
                 | { Term.default = Some v } -> iter_term env v | _ -> ())
               arguments
+        | `FFI _ -> ()
     in
     Term.Methods.iter
       (fun _ meth_term -> iter_term env meth_term)

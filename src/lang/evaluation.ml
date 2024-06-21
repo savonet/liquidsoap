@@ -79,26 +79,13 @@ end
 type ground =
   [ `Int of int | `Float of float | `String of string | `Bool of bool | `Null ]
 
-let rec is_ground_value { Value.value; methods } =
-  Methods.for_all (fun _ m -> is_ground_value m) methods
-  &&
-  match value with
-    | #ground -> true
-    | `List l | `Tuple l -> List.for_all is_ground_value l
-    | `Fun { fun_args; fun_env } ->
-        List.for_all
-          (function _, _, Some v -> is_ground_value v | _ -> true)
-          fun_args
-        && List.for_all (fun (_, v) -> is_ground_value v) fun_env
-    | `FFI _ -> false
-
 let rec is_evaluated_term ~include_methods ({ Term.term; methods } : Term.t) :
     bool =
   let is_evaluated_term = is_evaluated_term ~include_methods in
   (include_methods || Methods.for_all (fun _ m -> is_evaluated_term m) methods)
   &&
   match term with
-    | #ground -> true
+    | #ground | `Fun _ | `FFI _ -> true
     | `Tuple l | `List l -> List.for_all is_evaluated_term l
     | `Hide (t, _) -> is_evaluated_term t
     | `Seq (t, t') -> is_evaluated_term t && is_evaluated_term t'
@@ -110,10 +97,6 @@ let rec is_evaluated_term ~include_methods ({ Term.term; methods } : Term.t) :
     | `Encoder e -> is_evaluated_encoder ~include_methods e
     | `Open (t, t') -> is_evaluated_term t && is_evaluated_term t'
     | `Let { def; body } -> is_evaluated_term def && is_evaluated_term body
-    | `Fun { arguments } ->
-        List.for_all
-          (function { default = Some tm } -> is_evaluated_term tm | _ -> true)
-          arguments
     | `Var _ | `Cache_env _ | `App _ -> false
 
 and is_evaluated_encoder ~include_methods (_, p) =
@@ -127,32 +110,33 @@ and is_evaluated_encoder_params ~include_methods p =
       | `Labelled (_, p) -> is_evaluated_term ~include_methods p)
     p
 
-let rec term_of_ground_value ~eval_check { Value.methods; value; flags } =
-  let term_of_ground_value = term_of_ground_value ~eval_check in
-  let methods = Methods.mapi (fun _ m -> term_of_ground_value m) methods in
+let ffi_of_value : Value.t -> Term.ffi = Obj.magic
+let value_of_ffi : Term.ffi -> Value.t = Obj.magic
+
+let rec term_of_value ({ Value.methods; value; flags } as v) =
+  let methods = Methods.mapi (fun _ m -> term_of_value m) methods in
   let map term = { t = Type.var (); term; methods; flags } in
   match value with
     | #ground as tm -> map tm
-    | `List l -> map (`List (List.map term_of_ground_value l))
-    | `Tuple l -> map (`Tuple (List.map (fun tm -> term_of_ground_value tm) l))
+    | `List l -> map (`List (List.map term_of_value l))
+    | `Tuple l -> map (`Tuple (List.map (fun tm -> term_of_value tm) l))
     | `Fun { fun_args; fun_env; fun_body } ->
         let arguments =
           List.map
             (fun (label, as_variable, default) ->
-              let default = Option.map term_of_ground_value default in
+              let default = Option.map term_of_value default in
               let as_variable =
                 if label = as_variable then None else Some as_variable
               in
               { label; as_variable; default; typ = Type.var () })
             fun_args
         in
-        let body = propagate_constants ~eval_check ~env:fun_env fun_body in
+        let env = List.map (fun (lbl, v) -> (lbl, term_of_value v)) fun_env in
+        let body = propagate_constants ~env fun_body in
         map (`Fun { free_vars = None; name = None; arguments; body })
-    | `FFI _ -> assert false
+    | `FFI _ -> map (`FFI (ffi_of_value v))
 
-and propagate_constants ~eval_check ~(env : (string * Value.t) list)
-    (tm : Runtime_term.t) =
-  let propagate_constants = propagate_constants ~eval_check in
+and propagate_constants ~(env : (string * Term.t) list) (tm : Runtime_term.t) =
   match tm.term with
     | #ground | `Custom _ | `Cache_env _ | `Encoder _ -> tm
     | `List l ->
@@ -190,11 +174,7 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
         let t' = propagate_constants ~env t' in
         if is_evaluated_term ~include_methods:false t then t'
         else { tm with term = `Seq (t, t') }
-    | `Var v -> (
-        match List.assoc_opt v env with
-          | Some value when is_ground_value value ->
-              term_of_ground_value ~eval_check value
-          | _ -> tm)
+    | `Var v -> ( match List.assoc_opt v env with Some tm -> tm | _ -> tm)
     | `Invoke { invoked; meth; invoke_default } -> (
         let invoked = propagate_constants ~env invoked in
         let is_invoked_evaluated =
@@ -230,9 +210,7 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
                   match def.term with `Tuple l' -> l' | _ -> assert false
                 in
                 let env =
-                  List.fold_left2
-                    (fun env lbl v -> (lbl, eval ~eval_check [] v) :: env)
-                    env l l'
+                  List.fold_left2 (fun env lbl v -> (lbl, v) :: env) env l l'
                 in
                 map ~env ())
               else map ~exclude:l ()
@@ -242,7 +220,6 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
                 is_evaluated_term ~include_methods:true def
                 && ((not replace) || List.mem_assoc var env)
               then (
-                let def = eval ~eval_check [] def in
                 let def =
                   match (replace, List.assoc_opt var env) with
                     | true, Some v ->
@@ -261,8 +238,7 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
                 && List.mem_assoc var env
               then (
                 let var_def = List.assoc var env in
-                let def = eval ~eval_check [] def in
-                let rec push ~path (base : Value.t) =
+                let rec push ~path base =
                   match path with
                     | [] -> assert false
                     | meth :: [] ->
@@ -323,8 +299,9 @@ and propagate_constants ~eval_check ~(env : (string * Value.t) list)
                     arguments;
               };
         }
+    | `FFI _ -> tm
 
-and prepare_fun fv ~eval_check p env =
+let rec prepare_fun fv ~eval_check p env =
   (* Unlike OCaml we always evaluate default values, and we do that early. I
      think the only reason is homogeneity with FFI, which are declared with
      values as defaults. *)
@@ -535,6 +512,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                 mk (`Fun { fun_args = p; fun_env = env; fun_body = body })
               in
               mk_fun ())
+    | `FFI ffi -> value_of_ffi ffi
     | `Var var -> Env.lookup env var
     | `Seq (a, b) ->
         ignore (eval ~eval_check env a);
@@ -591,7 +569,8 @@ let eval ?env tm =
   in
   let env = List.map (fun (x, v) -> (x, v)) env in
   let eval_check = !Hooks.eval_check in
-  let tm = propagate_constants ~eval_check ~env tm in
+  let tm_env = List.map (fun (lbl, v) -> (lbl, term_of_value v)) env in
+  let tm = propagate_constants ~env:tm_env tm in
   eval ~eval_check env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the
