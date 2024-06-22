@@ -1,10 +1,9 @@
 include Json_base
 
-(** A position. *)
-type pos = Lexing.position * Lexing.position
-
 let sedlexing_error ~pos ~message lexbuf =
-  let lexbuf_position = Sedlexing.lexing_bytes_positions lexbuf in
+  let lexbuf_position =
+    Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf)
+  in
   let message =
     Printf.sprintf "In json data %s: %s" (Pos.to_string lexbuf_position) message
   in

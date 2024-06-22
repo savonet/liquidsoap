@@ -25,9 +25,10 @@ include Runtime_term
 module Custom = Term_base.Custom
 
 type comment = [ `Before of string list | `After of string list ]
+type pos = Term_base.parsed_pos
 
 type string_param =
-  [ `Verbatim of string | `String of (Pos.t[@hash.ignore]) * (char * string) ]
+  [ `Verbatim of string | `String of (pos[@hash.ignore]) * (char * string) ]
 [@@deriving hash]
 
 type track_annotation = string * string_param [@@deriving hash]
@@ -36,18 +37,18 @@ type inc_type = [ `Lib | `Extra | `Default ] [@@deriving hash]
 type inc = {
   inc_type : inc_type;
   inc_name : string;
-  inc_pos : Lexing.position * Lexing.position; [@hash.ignore]
+  inc_pos : pos; [@hash.ignore]
 }
 [@@deriving hash]
 
-type pattern = { pat_pos : Pos.t; [@hash.ignore] pat_entry : pattern_entry }
+type pattern = { pat_pos : pos; [@hash.ignore] pat_entry : pattern_entry }
 [@@deriving hash]
 
 and pattern_entry =
   [ `PVar of string list  (** a field *)
   | `PTuple of pattern list  (** a tuple *)
   | `PList of
-    pattern list * ((Pos.t[@hash.ignore]) * string) option * pattern list
+    pattern list * ((pos[@hash.ignore]) * string) option * pattern list
     (** a list *)
   | `PMeth of pattern option * (string * meth_term_default) list
     (** a value with methods *) ]
@@ -217,8 +218,8 @@ and parsed_ast =
 
 and t = {
   term : parsed_ast;
-  pos : Pos.t; [@hash.ignore]
-  mutable comments : (Pos.t * comment) list; [@hash.ignore]
+  pos : pos; [@hash.ignore]
+  mutable comments : (pos * comment) list; [@hash.ignore]
 }
 [@@deriving hash]
 

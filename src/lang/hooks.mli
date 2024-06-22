@@ -30,8 +30,12 @@ val type_of_encoder : (pos:Pos.Option.t -> Term.encoder -> Type.t) ref
 val has_encoder : (Value.t -> bool) ref
 
 val mk_source_ty :
-  (?pos:Pos.t -> string -> Parsed_term.source_annotation -> Type.t) ref
+  (?pos:Term_base.parsed_pos ->
+  string ->
+  Parsed_term.source_annotation ->
+  Type.t)
+  ref
 
-val mk_clock_ty : (?pos:Pos.t -> unit -> Type.t) ref
+val mk_clock_ty : (?pos:Term_base.parsed_pos -> unit -> Type.t) ref
 val source_methods_t : (unit -> Type.t) ref
 val getpwnam : (string -> Unix.passwd_entry) ref

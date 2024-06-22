@@ -55,7 +55,8 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
     flush_all ();
     let pos =
       match lexbuf with
-        | Some lexbuf -> Some (Sedlexing.lexing_bytes_positions lexbuf)
+        | Some lexbuf ->
+            Some (Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf))
         | None -> None
     in
     error_header ~formatter idx pos;
@@ -96,7 +97,7 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
       print_error ~formatter 2 "Parse error";
       raise Error
   | Term_base.Parse_error (pos, s) ->
-      error_header ~formatter 3 (Some pos);
+      error_header ~formatter 3 (Some (Pos.of_lexing_pos pos));
       Format.fprintf formatter "%s@]@." s;
       raise Error
   | Term.Unbound (pos, s) ->
@@ -258,7 +259,8 @@ let type_term ?name ?stdlib ?term ?ty ~cache ~trim ~lib parsed_term =
           match ty with
             | None -> checked_term
             | Some typ ->
-                Term.make ~pos:parsed_term.Parsed_term.pos
+                Term.make
+                  ~pos:(Pos.of_lexing_pos parsed_term.Parsed_term.pos)
                   (`Cast { cast = checked_term; typ })
         in
         time (fun () ->

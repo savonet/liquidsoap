@@ -394,7 +394,7 @@ let runtime_error_of_exception ~bt ~kind exn =
                           let p =
                             { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum }
                           in
-                          (p, p) :: pos)
+                          Pos.of_lexing_pos (p, p) :: pos)
                   []
                   (List.rev (Array.to_list entries))
         in
@@ -422,60 +422,44 @@ let environment () =
   let l = Array.to_list l in
   List.map split l
 
-(* This is used to pass position in application environment. *)
-module Single_position = struct
-  let t =
-    method_t unit_t
-      [
-        ("filename", ([], string_t), "filename");
-        ("line_number", ([], int_t), "line number");
-        ("character_offset", ([], int_t), "character offset");
-      ]
-
-  let to_value { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } =
-    meth unit
-      [
-        ("filename", string pos_fname);
-        ("line_number", int pos_lnum);
-        ("character_offset", int (pos_cnum - pos_bol));
-      ]
-
-  let of_value v =
-    {
-      Lexing.pos_fname = to_string (invoke v "filename");
-      pos_lnum = to_int (invoke v "line_number");
-      pos_bol = 0;
-      pos_cnum = to_int (invoke v "character_offset");
-    }
-end
-
 module Position = struct
   let t =
     method_t unit_t
       [
-        ("position_start", ([], Single_position.t), "Starting position");
-        ("position_end", ([], Single_position.t), "Ending position");
+        ("filename", ([], string_t), "Filename");
+        ("lstart", ([], int_t), "Starting line");
+        ("lstop", ([], int_t), "Stopping line");
+        ("cstart", ([], int_t), "Starting character");
+        ("cstop", ([], int_t), "Stopping character");
         ( "to_string",
           ([], fun_t [(true, "prefix", string_t)] string_t),
           "Render as string" );
       ]
 
-  let to_value (start, _end) =
+  let to_value pos =
+    let { Pos.fname; lstart; lstop; cstart; cstop } = Pos.unpack pos in
     meth unit
       [
-        ("position_start", Single_position.to_value start);
-        ("position_end", Single_position.to_value _end);
+        ("filename", string fname);
+        ("lstart", int lstart);
+        ("lstop", int lstop);
+        ("cstart", int cstart);
+        ("cstop", int cstop);
         ( "to_string",
           val_fun
             [("prefix", "prefix", Some (string "At "))]
             (fun p ->
               let prefix = to_string (List.assoc "prefix" p) in
-              string (Pos.to_string ~prefix (start, _end))) );
+              string (Pos.to_string ~prefix pos)) );
       ]
 
   let of_value v =
-    ( Single_position.of_value (invoke v "position_start"),
-      Single_position.of_value (invoke v "position_end") )
+    let fname = to_string (invoke v "filename") in
+    let lstart = to_int (invoke v "lstart") in
+    let lstop = to_int (invoke v "lstop") in
+    let cstart = to_int (invoke v "cstart") in
+    let cstop = to_int (invoke v "cstop") in
+    Pos.pack { fname; lstart; lstop; cstart; cstop }
 end
 
 module Stacktrace = struct

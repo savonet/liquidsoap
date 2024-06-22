@@ -501,7 +501,7 @@ let render_string ~pos ~sep s =
       | '\\', '\n', Star skipped -> render_string ()
       | '\\', any ->
           if sep <> '/' then (
-            let pos = Pos.to_string pos in
+            let pos = Pos.(to_string (of_lexing_pos pos)) in
             Printf.printf
               "Warning at position %s: illegal backslash escape in string.\n"
               pos);

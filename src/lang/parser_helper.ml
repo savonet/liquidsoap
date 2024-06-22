@@ -27,6 +27,7 @@ module Term = Parsed_term
 module Vars = Term_base.Vars
 
 type arglist = Parsed_term.fun_arg list
+type pos = Parsed_term.pos
 
 type lexer_let_decoration =
   [ `None
@@ -111,7 +112,7 @@ let mk_clock_ty ?pos () =
   fn ?pos ()
 
 let mk_named_ty ?pos = function
-  | "_" -> Type.var ?pos ()
+  | "_" -> Type.var ?pos:(Option.map Pos.of_lexing_pos pos) ()
   | "unit" -> Type.make Type.unit
   | "never" -> Type.make Type.Never
   | "bool" -> Type.make Type.Bool

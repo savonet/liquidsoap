@@ -38,7 +38,7 @@ let render_string = function
 
 let mk_field_t ~pos kind params =
   match kind with
-    | "any" -> Type.var ~pos ()
+    | "any" -> Type.var ~pos:(Pos.of_lexing_pos pos) ()
     | "none" | "never" -> Type.make Type.Never
     | _ -> (
         try
@@ -72,7 +72,10 @@ let mk_field_t ~pos kind params =
 
 let () =
   Hooks.mk_clock_ty :=
-    fun ?pos () -> Type.make ?pos Lang_source.ClockValue.base_t.Type.descr
+    fun ?pos () ->
+      Type.make
+        ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
+        Lang_source.ClockValue.base_t.Type.descr
 
 let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
   let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in

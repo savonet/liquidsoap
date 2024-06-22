@@ -28,11 +28,13 @@ include Runtime_term
 
 let parse_error ~pos msg = raise (Term_base.Parse_error (pos, msg))
 let render_string ~pos ~sep s = Lexer.render_string ~pos ~sep s
-let mk = Term.make
+let mk ?pos = Term.make ?pos:(Option.map Pos.of_lexing_pos pos)
+let mk_ty ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
+let mk_var ?pos = Type.var ?pos:(Option.map Pos.of_lexing_pos pos)
 let mk_parsed = Parsed_term.make
 
 let mk_fun ~pos arguments body =
-  Term.make ~pos (`Fun Term.{ free_vars = None; name = None; arguments; body })
+  mk ~pos (`Fun Term.{ free_vars = None; name = None; arguments; body })
 
 let program = Term_preprocessor.program
 
@@ -415,7 +417,7 @@ let rec get_env_args ~pos t args =
   in
   List.map
     (fun (n, n', v) ->
-      let t = Type.make ~pos (get_arg_type t n).Type.descr in
+      let t = mk_ty ~pos (get_arg_type t n).Type.descr in
       let as_variable = if n = n' then None else Some n' in
       {
         label = n;
@@ -438,7 +440,7 @@ and term_of_value_base ~pos t v =
   in
   let process_value ~t v =
     let mk_tm ?(flags = Flags.empty) term =
-      mk ~flags ~t:(Type.make ~pos t.Type.descr) term
+      mk ~flags ~t:(mk_ty ~pos t.Type.descr) term
     in
     match v with
       | Value.Int { value = i; flags } -> mk_tm ~flags (`Int i)
@@ -461,7 +463,7 @@ and term_of_value_base ~pos t v =
       | Value.Fun { fun_args = args; fun_body = body } ->
           let body =
             mk
-              ~t:(Type.make ~pos body.t.Type.descr)
+              ~t:(mk_ty ~pos body.t.Type.descr)
               ~methods:body.Term.methods body.Term.term
           in
           mk_tm
@@ -573,7 +575,7 @@ let expand_argsof ~pos ~env ~to_term args =
                arg with
                typ =
                  (match arg.typ with
-                   | None -> Type.var ()
+                   | None -> mk_var ()
                    | Some typ -> Parser_helper.mk_ty typ);
                default = Option.map to_term arg.default;
              }
@@ -582,9 +584,7 @@ let expand_argsof ~pos ~env ~to_term args =
 
 let app_of ~pos ~only ~except ~env source =
   let args = args_of ~pos ~only ~except ~env source in
-  List.map
-    (fun { label } -> (label, mk ~t:(Type.var ~pos ()) (`Var label)))
-    args
+  List.map (fun { label } -> (label, mk ~t:(mk_var ~pos ()) (`Var label))) args
 
 let expand_appof ~pos ~env ~to_term args =
   List.rev
@@ -606,12 +606,7 @@ let mk_app_invoke_default ~pos ~args body =
   let app_args =
     List.map
       (fun (label, _) ->
-        {
-          Term_base.label;
-          as_variable = None;
-          typ = Type.var ();
-          default = None;
-        })
+        { Term_base.label; as_variable = None; typ = mk_var (); default = None })
       args
   in
   mk_fun ~pos app_args body
@@ -623,7 +618,9 @@ let mk_any ~pos () =
 let rec mk_invoke_default ~pos ~optional ~name value
     { invoked; meth; invoke_default } =
   let t =
-    Type.meth ~pos ~optional name ([], Type.var ~pos ()) (Type.var ~pos ())
+    Type.meth ~pos:(Pos.of_lexing_pos pos) ~optional name
+      ([], mk_var ~pos ())
+      (mk_var ~pos ())
   in
   let tm = mk_any ~pos () in
   let value =
@@ -722,7 +719,7 @@ let get_reducer ~pos ~to_term = function
         "Warning, %s: the notation !x for references is deprecated, please use \
          x() instead.\n\
          %!"
-        (Pos.to_string pos);
+        Pos.(to_string (of_lexing_pos pos));
       `App (to_term tm, [])
 
 let set_reducer ~pos ~to_term = function
@@ -735,7 +732,7 @@ let set_reducer ~pos ~to_term = function
       `Cast
         {
           cast = mk ~pos (`App (op, [("", to_term v)]));
-          typ = Type.make ~pos Type.unit;
+          typ = mk_ty ~pos Type.unit;
         }
 
 let if_reducer ~pos ~to_term = function
@@ -776,7 +773,7 @@ let base_for_reducer ~pos for_variable for_iterator for_loop =
         {
           label = "";
           as_variable = Some for_variable;
-          typ = Type.var ();
+          typ = mk_var ();
           default = None;
         };
       ]
@@ -881,7 +878,7 @@ let try_reducer ~pos ~to_term = function
           {
             label = "";
             as_variable = Some try_variable;
-            typ = Type.var ();
+            typ = mk_var ();
             default = None;
           };
         ]
@@ -919,7 +916,7 @@ let try_reducer ~pos ~to_term = function
           ] )
 
 let mk_let_json_parse ~pos (args, pat, def, cast) body =
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
+  let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let json5 =
     match List.assoc_opt "json5" args with
@@ -934,7 +931,7 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
   pattern_reducer ~body ~pat def
 
 let mk_let_yaml_parse ~pos (pat, def, cast) body =
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
+  let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let parser = mk ~pos (`Var "_internal_yaml_parser_") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
@@ -942,7 +939,7 @@ let mk_let_yaml_parse ~pos (pat, def, cast) body =
   pattern_reducer ~body ~pat def
 
 let mk_let_sqlite_row ~pos (pat, def, cast) body =
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
+  let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let parser = mk ~pos (`Var "_sqlite_row_parser_") in
   let def = mk ~pos (`App (parser, [("type", tty); ("", def)])) in
@@ -950,11 +947,10 @@ let mk_let_sqlite_row ~pos (pat, def, cast) body =
   pattern_reducer ~body ~pat def
 
 let mk_let_sqlite_query ~pos (pat, def, cast) body =
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
-  let inner_list_ty = Type.var ~pos () in
+  let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
+  let inner_list_ty = mk_var ~pos () in
   Typing.(
-    ty
-    <: Type.make ~pos (Type.List { Type.t = inner_list_ty; json_repr = `Tuple }));
+    ty <: mk_ty ~pos (Type.List { Type.t = inner_list_ty; json_repr = `Tuple }));
   let tty = Value.RuntimeType.to_term inner_list_ty in
   let parser = mk ~pos (`Var "_sqlite_row_parser_") in
   let mapper =
@@ -973,7 +969,7 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
                 label = "";
                 as_variable = Some "query";
                 default = None;
-                typ = Type.var ~pos ();
+                typ = mk_var ~pos ();
               };
             ];
           body = mapper;
@@ -999,7 +995,7 @@ let needs_toplevel = ref false
 
 let mk_eval ~pos (pat, def, body, cast) =
   needs_toplevel := true;
-  let ty = match cast with Some ty -> ty | None -> Type.var ~pos () in
+  let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let eval = mk ~pos (`Var "_eval_") in
   let def = mk ~pos (`App (eval, [("type", tty); ("", def)])) in
@@ -1266,10 +1262,15 @@ and to_term ~env (tm : Parsed_term.t) : Term.t =
           match (to_ast ~env ~pos:tm.pos term, List.rev comments) with
             | `Let p, (pos, doc) :: _ ->
                 `Let
-                  { p with doc = Doc.parse_doc ~pos (String.concat "\n" doc) }
+                  {
+                    p with
+                    doc =
+                      Doc.parse_doc ~pos:(Pos.of_lexing_pos pos)
+                        (String.concat "\n" doc);
+                  }
             | ast, _ -> ast
         in
-        { t = Type.var ~pos:tm.pos (); term; methods = Methods.empty; flags }
+        { t = mk_var ~pos:tm.pos (); term; methods = Methods.empty; flags }
 
 let to_encoder_params = to_encoder_params ~env:[] ~to_term
 let to_term tm = to_term ~env:[] tm

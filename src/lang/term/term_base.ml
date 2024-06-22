@@ -26,12 +26,13 @@ include Runtime_term
 
 type encoder = t Runtime_term.encoder
 type encoder_params = t Runtime_term.encoder_params
+type parsed_pos = Lexing.position * Lexing.position
 
 (** An internal error. Those should not happen in theory... *)
 exception Internal_error of (Pos.t list * string)
 
 (** A parsing error. *)
-exception Parse_error of (Pos.t * string)
+exception Parse_error of (parsed_pos * string)
 
 (** Unsupported encoder *)
 exception Unsupported_encoder of (Pos.t option * string)
@@ -44,7 +45,9 @@ let () =
              (Pos.List.to_string pos) e)
     | Parse_error (pos, e) ->
         Some
-          (Printf.sprintf "Term_base.Parse_error %s: %s" (Pos.to_string pos) e)
+          (Printf.sprintf "Term_base.Parse_error %s: %s"
+             Pos.(to_string (of_lexing_pos pos))
+             e)
     | Unsupported_encoder (pos, e) ->
         Some
           (Printf.sprintf "Lang_values.Unsupported_encoder at %s: %s"

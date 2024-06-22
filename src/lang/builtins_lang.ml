@@ -8,10 +8,10 @@ let _ =
 
 let _ =
   Lang.add_builtin "position" ~descr:"Return the current position in the script"
-    ~category:`Programming [] Lang_core.Single_position.t (fun p ->
+    ~category:`Programming [] Lang_core.Position.t (fun p ->
       match Lang.pos p with
         | [] -> Lang.raise_error ~pos:[] ~message:"Unknown position" "eval"
-        | (p, _) :: _ -> Lang_core.Single_position.to_value p)
+        | p :: _ -> Lang_core.Position.to_value p)
 
 let _ =
   let t = Lang.univ_t () in

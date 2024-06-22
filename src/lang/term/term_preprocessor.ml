@@ -61,7 +61,9 @@ let includer_reducer ~pos = function
                   let current_dir =
                     Filename.dirname (fst inc_pos).Lexing.pos_fname
                   in
-                  Utils.check_readable ~current_dir ~pos:[inc_pos] inc_name
+                  Utils.check_readable ~current_dir
+                    ~pos:[Pos.of_lexing_pos inc_pos]
+                    inc_name
                 with _ when v = `Extra -> raise No_extra)
         in
         let ic = if fname = "-" then stdin else open_in fname in
