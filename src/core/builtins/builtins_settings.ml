@@ -186,10 +186,10 @@ let print_settings () =
   let rec grab_descr v =
     {
       description =
-        (try Lang.to_string (Value.Methods.find "description" v.Value.methods)
+        (try Lang.to_string (Value.Methods.find "description" (Value.methods v))
          with _ -> "");
       comments =
-        (try Lang.to_string (Value.Methods.find "comments" v.Value.methods)
+        (try Lang.to_string (Value.Methods.find "comments" (Value.methods v))
          with _ -> "");
       children =
         Value.Methods.fold
@@ -197,8 +197,8 @@ let print_settings () =
             if key <> "comments" && key <> "description" && key <> "set" then
               (key, grab_descr meth) :: children
             else children)
-          v.Value.methods [];
-      value = v.Value.value;
+          (Value.methods v) [];
+      value = Lang.value v;
     }
   in
   let descr = grab_descr !settings in
@@ -210,23 +210,14 @@ let print_settings () =
     | `Tuple [] -> []
     | Liquidsoap_lang.Value.(`Fun { fun_args = [] } | `FFI { ffi_args = []; _ })
       as value ->
-        let value =
-          Lang.apply
-            {
-              Value.pos = None;
-              value;
-              methods = Value.Methods.empty;
-              flags = Liquidsoap_lang.Flags.empty;
-            }
-            []
-        in
+        let value = Lang.apply (Value.make value) [] in
         [
           Printf.sprintf {|
 ```liquidsoap
 %s := %s
 ```
 |} path
-            (if value.Value.value = `Null then "<value>"
+            (if Lang.value value = `Null then "<value>"
              else Value.to_string value);
         ]
     | value ->
@@ -236,13 +227,7 @@ let print_settings () =
 %s := %s
 ```
 |} path
-            (Value.to_string
-               {
-                 Value.pos = None;
-                 value;
-                 methods = Value.Methods.empty;
-                 flags = Liquidsoap_lang.Flags.empty;
-               });
+            (Value.to_string (Value.make value));
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -268,7 +253,7 @@ let _ =
   let grab path value =
     let path = String.split_on_char '.' path in
     List.fold_left
-      (fun cur link -> Value.Methods.find link cur.Value.methods)
+      (fun cur link -> Value.Methods.find link (Value.methods cur))
       value path
   in
   ignore
@@ -314,16 +299,15 @@ let _ =
       try
         let get = grab path !settings in
         let v = Lang.apply get [] in
-        match (default.Lang.value, v.Lang.value) with
+        match (Lang.value default, Lang.value v) with
           | `Bool _, `Bool _
           | `Int _, `Int _
           | `Float _, `Float _
           | `String _, `String _
           | `List [], `List []
-          | `List ({ pos = _; value = `String _ } :: _), `List []
-          | `List [], `List ({ pos = _; value = `String _ } :: _)
-          | ( `List ({ pos = _; value = `String _ } :: _),
-              `List ({ pos = _; value = `String _ } :: _) ) ->
+          | `List (Value.String _ :: _), `List []
+          | `List [], `List (Value.String _ :: _)
+          | `List (Value.String _ :: _), `List (Value.String _ :: _) ->
               v
           | _ ->
               log#severe

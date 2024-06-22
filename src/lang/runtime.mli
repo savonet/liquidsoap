@@ -27,7 +27,7 @@ exception Error
 type stdlib = { full_term : Term.t; checked_term : Term.t; env : Typing.env }
 type append_stdlib = unit -> stdlib
 
-(** Typecheck a term and return it. Might return a cached value! *)
+(** Typecheck a term and return it. Might return a cache(Lang.value d)! *)
 val type_term :
   ?name:string ->
   ?stdlib:append_stdlib ->

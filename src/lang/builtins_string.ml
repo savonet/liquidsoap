@@ -15,11 +15,11 @@ let string =
       let dv = Lang.demeth v in
       (* Always show fields for records. *)
       let show_fields =
-        if dv.Lang.value = Value.unit then true else show_fields
+        if Lang.value dv = Value.unit then true else show_fields
       in
       let v = if show_fields then v else dv in
       match v with
-        | { Lang.value = `String s; _ } -> Lang.string s
+        | String { value = s } -> Lang.string s
         | v -> Lang.string (Value.to_string v))
 
 let _ =

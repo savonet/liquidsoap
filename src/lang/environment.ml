@@ -79,7 +79,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                         },
                         t0 ))
               in
-              ((g0, t), Value.{ v0 with methods = Methods.add l v v0.methods })
+              ((g0, t), Value.map_methods v0 (Methods.add l v))
           | l :: ll ->
               let (vg, vt), v = aux (Type.invoke t0 l) (Value.invoke v0 l) ll in
               let t =
@@ -95,7 +95,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                         },
                         t0 ))
               in
-              ((g0, t), Value.{ v0 with methods = Methods.add l v v0.methods })
+              ((g0, t), Value.map_methods v0 (Methods.add l v))
           | [] -> ((g, t), v)
         in
         let (g, t), v = aux (g0, t0) v0 ll in
@@ -126,12 +126,4 @@ let add_module name =
           ignore (Value.invoke e l);
           failwith ("Module " ^ String.concat "." name ^ " already exists")
         with _ -> ()));
-  add_builtin ~register:false name
-    ( ([], Type.make Type.unit),
-      Value.
-        {
-          pos = None;
-          value = unit;
-          methods = Methods.empty;
-          flags = Flags.empty;
-        } )
+  add_builtin ~register:false name (([], Type.make Type.unit), Value.(make unit))

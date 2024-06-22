@@ -24,13 +24,13 @@ let log = Hooks.log ["json"; "parse"]
 
 let rec json_of_value ?pos v : Json.t =
   let pos =
-    match (pos, v.Value.pos) with
+    match (pos, Value.pos v) with
       | Some p, _ -> p
       | None, Some p -> [p]
       | None, None -> []
   in
   let m, v = Value.split_meths v in
-  match v.Value.value with
+  match Value.value v with
     | `Null -> `Null
     | `Int i -> `Int i
     | `Float f -> `Float f
@@ -363,7 +363,7 @@ let () =
 let rec deprecated_of_json d j =
   let m, d = Value.split_meths d in
   Lang.(
-    match (d.value, j) with
+    match (Lang.value d, j) with
       | `Tuple [], `Null -> unit
       | `Bool _, `Bool b -> bool b
       (* JSON specs do not differentiate between ints and floats. Therefore, we
@@ -383,7 +383,7 @@ let rec deprecated_of_json d j =
           list l
       | `Tuple dd, `Tuple jj when List.length dd = List.length jj ->
           tuple (List.map2 deprecated_of_json dd jj)
-      | `List ({ value = `Tuple [{ value = `String _ }; d] } :: _), `Assoc l ->
+      | `List (Tuple { value = [String { value = _ }; d] } :: _), `Assoc l ->
           (* Try to convert the object to a list of pairs, dropping fields that
              cannot be parsed.  This requires the target type to be [(string*'a)],
              currently it won't work if it is [?T] which would be obtained with
@@ -403,10 +403,7 @@ let rec deprecated_of_json d j =
               (fun parsed (key, meth) ->
                 let json_meth = List.assoc key a in
                 let parsed_meth = deprecated_of_json meth json_meth in
-                {
-                  parsed with
-                  methods = Methods.add key parsed_meth parsed.methods;
-                })
+                Value.map_methods parsed (Methods.add key parsed_meth))
               unit m
           with Not_found -> raise DeprecatedFailed)
       | `Tuple [], `Assoc _ -> unit

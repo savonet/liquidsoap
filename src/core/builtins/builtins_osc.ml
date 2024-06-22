@@ -184,7 +184,7 @@ let register name osc_t liq_t =
            Unix.ADDR_INET ((Unix.gethostbyname host).h_addr_list.(0), port)
          in
          let osc_val v =
-           match v.Lang.value with
+           match Lang.value v with
              | `String s -> [Osc.Types.String s]
              | `Float x -> [Osc.Types.Float32 x]
              | _ -> failwith "Unhandled value."

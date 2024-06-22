@@ -396,7 +396,7 @@ let apply_filter ~args_parser ~filter ~sources_t p =
             (fun p ->
               if !input_set then (
                 let pos =
-                  match (List.assoc "" p).Value.pos with
+                  match Value.pos (List.assoc "" p) with
                     | (exception Not_found) | None -> []
                     | Some p -> [p]
                 in

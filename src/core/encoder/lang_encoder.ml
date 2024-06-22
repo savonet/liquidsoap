@@ -55,7 +55,7 @@ let raise_error ~pos message =
 let raise_generic_error = function
   | `Anonymous s -> raise_error ~pos:None ("Unknown encoder parameter: " ^ s)
   | `Labelled (l, v) ->
-      raise_error ~pos:v.Value.pos
+      raise_error ~pos:(Value.pos v)
         (Printf.sprintf
            "unknown parameter name (%s) or invalid parameter value (%s)" l
            (Value.to_string v))

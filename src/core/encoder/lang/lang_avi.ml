@@ -36,13 +36,13 @@ let make params =
   let avi =
     List.fold_left
       (fun f -> function
-        | `Labelled ("channels", { value = `Int c; _ }) ->
+        | `Labelled ("channels", Int { value = c }) ->
             { f with Avi_format.channels = c }
-        | `Labelled ("samplerate", { value = `Int i; _ }) ->
+        | `Labelled ("samplerate", Int { value = i; _ }) ->
             { f with Avi_format.samplerate = Lazy.from_val i }
-        | `Labelled ("width", { value = `Int i; _ }) ->
+        | `Labelled ("width", Int { value = i; _ }) ->
             { f with Avi_format.width = Lazy.from_val i }
-        | `Labelled ("height", { value = `Int i; _ }) ->
+        | `Labelled ("height", Int { value = i; _ }) ->
             { f with Avi_format.height = Lazy.from_val i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
