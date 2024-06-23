@@ -130,7 +130,7 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
         "Function has multiple arguments with the same label: %s@]@." lbl;
       raise Error
   | Error.Invalid_value (v, msg) ->
-      error_header ~formatter 7 v.Value.pos;
+      error_header ~formatter 7 (Value.pos v);
       Format.fprintf formatter "Invalid value:@ %s@]@." msg;
       raise Error
   | Lang_error.Encoder_error (pos, s) ->

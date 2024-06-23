@@ -14,12 +14,10 @@ let string =
       let v = List.assoc "" p in
       let dv = Lang.demeth v in
       (* Always show fields for records. *)
-      let show_fields =
-        if dv.Lang.value = Value.unit then true else show_fields
-      in
+      let show_fields = if Value.is_unit dv then true else show_fields in
       let v = if show_fields then v else dv in
       match v with
-        | { Lang.value = `String s; _ } -> Lang.string s
+        | String { value = s } -> Lang.string s
         | v -> Lang.string (Value.to_string v))
 
 let _ =

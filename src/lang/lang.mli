@@ -36,13 +36,7 @@ module Methods = Term.Methods
 
 type in_value = Value.in_value
 type env = Value.env
-
-type value = Value.t = {
-  pos : Pos.Option.t;
-  value : in_value;
-  methods : value Methods.t;
-  mutable flags : Flags.flags;
-}
+type value = Value.t
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value

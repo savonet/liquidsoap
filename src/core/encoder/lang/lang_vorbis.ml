@@ -40,21 +40,21 @@ let make_cbr params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | `Labelled ("samplerate", { value = `Int i; _ }) ->
+        | `Labelled ("samplerate", Int { value = i; _ }) ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | `Labelled ("bitrate", { value = `Int i; _ }) ->
+        | `Labelled ("bitrate", Int { value = i; _ }) ->
             { f with Vorbis_format.mode = Vorbis_format.CBR i }
-        | `Labelled ("stereo", { value = `Bool b; _ }) ->
+        | `Labelled ("stereo", Bool { value = b; _ }) ->
             { f with Vorbis_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = `Bool b; _ }) ->
+        | `Labelled ("mono", Bool { value = b; _ }) ->
             { f with Vorbis_format.channels = (if b then 1 else 2) }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | `Labelled ("channels", { value = `Int i; _ }) ->
+        | `Labelled ("channels", Int { value = i; _ }) ->
             { f with Vorbis_format.channels = i }
-        | `Labelled ("bytes_per_page", { value = `Int i; _ }) ->
+        | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
             { f with Vorbis_format.fill = Some i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
@@ -78,28 +78,28 @@ let make_abr params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | `Labelled ("samplerate", { value = `Int i; _ }) ->
+        | `Labelled ("samplerate", Int { value = i; _ }) ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | `Labelled ("bitrate", { value = `Int i; _ }) ->
+        | `Labelled ("bitrate", Int { value = i; _ }) ->
             let x, _, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, Some i, y) }
-        | `Labelled ("max_bitrate", { value = `Int i; _ }) ->
+        | `Labelled ("max_bitrate", Int { value = i; _ }) ->
             let x, y, _ = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, y, Some i) }
-        | `Labelled ("min_bitrate", { value = `Int i; _ }) ->
+        | `Labelled ("min_bitrate", Int { value = i; _ }) ->
             let _, x, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (Some i, x, y) }
-        | `Labelled ("stereo", { value = `Bool b; _ }) ->
+        | `Labelled ("stereo", Bool { value = b; _ }) ->
             { f with Vorbis_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = `Bool b; _ }) ->
+        | `Labelled ("mono", Bool { value = b; _ }) ->
             { f with Vorbis_format.channels = (if b then 1 else 2) }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | `Labelled ("channels", { value = `Int i; _ }) ->
+        | `Labelled ("channels", Int { value = i; _ }) ->
             { f with Vorbis_format.channels = i }
-        | `Labelled ("bytes_per_page", { value = `Int i; _ }) ->
+        | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
             { f with Vorbis_format.fill = Some i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
@@ -118,28 +118,28 @@ let make params =
   let vorbis =
     List.fold_left
       (fun f -> function
-        | `Labelled ("samplerate", { value = `Int i; _ }) ->
+        | `Labelled ("samplerate", Int { value = i; _ }) ->
             { f with Vorbis_format.samplerate = Lazy.from_val i }
-        | `Labelled ("quality", { value = `Float q; pos }) ->
+        | `Labelled ("quality", Float { value = q; pos }) ->
             if q < -0.2 || q > 1. then
               Lang_encoder.raise_error ~pos "quality should be in [(-0.2)..1]";
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
-        | `Labelled ("quality", { value = `Int i; pos }) ->
+        | `Labelled ("quality", Int { value = i; pos }) ->
             if i <> 0 && i <> 1 then
               Lang_encoder.raise_error ~pos "quality should be in [-(0.2)..1]";
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
-        | `Labelled ("stereo", { value = `Bool b; _ }) ->
+        | `Labelled ("stereo", Bool { value = b; _ }) ->
             { f with Vorbis_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = `Bool b; _ }) ->
+        | `Labelled ("mono", Bool { value = b; _ }) ->
             { f with Vorbis_format.channels = (if b then 1 else 2) }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Vorbis_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Vorbis_format.channels = 2 }
-        | `Labelled ("channels", { value = `Int i; _ }) ->
+        | `Labelled ("channels", Int { value = i; _ }) ->
             { f with Vorbis_format.channels = i }
-        | `Labelled ("bytes_per_page", { value = `Int i; _ }) ->
+        | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
             { f with Vorbis_format.fill = Some i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params

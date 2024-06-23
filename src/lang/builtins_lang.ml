@@ -65,7 +65,7 @@ let _ =
       let nl = Lang.to_bool (List.assoc "newline" p) in
       let v = List.assoc "" p in
       let v =
-        match v.Lang.value with `String s -> s | _ -> Value.to_string v
+        match v with String { value = s } -> s | _ -> Value.to_string v
       in
       print_string v;
       if nl then print_string "\n";

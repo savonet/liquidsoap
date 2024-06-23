@@ -39,13 +39,7 @@ module Flags = Liquidsoap_lang.Flags
 
 type in_value = Liquidsoap_lang.Value.in_value
 type env = Liquidsoap_lang.Value.env
-
-type value = Liquidsoap_lang.Value.t = {
-  pos : Pos.Option.t;
-  value : in_value;
-  methods : value Methods.t;
-  mutable flags : Flags.flags;
-}
+type value = Liquidsoap_lang.Value.t
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value

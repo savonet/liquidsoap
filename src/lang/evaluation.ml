@@ -39,7 +39,7 @@ let eval_pat pat v =
   let aux env pat v =
     match (pat, v) with
       | `PVar x, v -> (x, v) :: env
-      | `PTuple pl, { Value.value = `Tuple l } ->
+      | `PTuple pl, Value.Tuple { value = l } ->
           List.fold_left2 (fun env lbl v -> ([lbl], v) :: env) env pl l
       | _ -> assert false
   in
@@ -99,13 +99,13 @@ and apply ?(pos = []) ~eval_check f l =
   let apply_pos = match pos with [] -> None | p :: _ -> Some p in
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
-    match f.Value.value with
-      | `Fun { fun_args = p; fun_env = e; fun_body = body } ->
+    match f with
+      | Value.Fun { fun_args = p; fun_env = e; fun_body = body } ->
           ( p,
             fun pe ->
               let env = Env.adds e pe in
               eval ~eval_check env body )
-      | `FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
+      | Value.FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
       | _ -> assert false
   in
   (* Record error positions. *)
@@ -138,11 +138,11 @@ and apply ?(pos = []) ~eval_check f l =
         assert (v <> None);
         ( var,
           (* Set the position information on FFI's default values. Cf. r5008:
-             if an Invalid_value is raised on a default value, which happens
+             if an Invalid value is raised on a default value, which happens
              with the mount/name params of output.icecast.*, the printing of
              the error should succeed at getting a position information. *)
           let v = Option.get v in
-          { v with Value.pos = apply_pos } )
+          Value.set_pos v apply_pos )
         :: pe)
       pe p
   in
@@ -153,18 +153,10 @@ and apply ?(pos = []) ~eval_check f l =
      information. For example, if we build a fallible source and pass it to an
      operator that expects an infallible one, an error is issued about that
      FFI-made value and a position is needed. *)
-  { v with Value.pos = apply_pos }
+  Value.set_pos v apply_pos
 
 and eval_base_term ~eval_check (env : Env.t) tm =
-  let mk v =
-    Value.
-      {
-        pos = tm.t.Type.pos;
-        value = v;
-        methods = Methods.empty;
-        flags = tm.flags;
-      }
-  in
+  let mk v = Value.make ?pos:tm.t.Type.pos ~flags:tm.flags v in
   match tm.term with
     | `Int i -> mk (`Int i)
     | `Float f -> mk (`Float f)
@@ -190,18 +182,16 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     | `Null -> mk `Null
     | `Hide (tm, methods) ->
         let v = eval ~eval_check env tm in
-        {
-          v with
-          methods =
-            Methods.filter (fun n _ -> not (List.mem n methods)) v.methods;
-        }
-    | `Cast { cast = e } ->
-        { (eval ~eval_check env e) with pos = tm.t.Type.pos }
+        Value.map_methods v
+          (Methods.filter (fun n _ -> not (List.mem n methods)))
+    | `Cast { cast = e } -> Value.set_pos (eval ~eval_check env e) tm.t.Type.pos
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
-        match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
+        match
+          (Value.Methods.find_opt meth (Value.methods v), invoke_default)
+        with
           (* If method returns `null` and a default is provided, pick default. *)
-          | Some Value.{ value = `Null; methods }, Some default
+          | Some (Value.Null { methods }), Some default
             when Methods.is_empty methods ->
               eval ~eval_check env default
           | Some v, _ -> v
@@ -216,7 +206,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let env =
           Methods.fold
             (fun key meth env -> Env.add env key meth)
-            t.Value.methods env
+            (Value.methods t) env
         in
         eval ~eval_check env u
     | `Let { pat; replace; def = v; body = b; _ } ->
@@ -236,17 +226,10 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                     let rec meths ll v t =
                       match ll with
                         | [] -> assert false
-                        | [l] ->
-                            Value.{ t with methods = Methods.add l v t.methods }
+                        | [l] -> Value.map_methods t (Methods.add l v)
                         | l :: ll ->
-                            Value.
-                              {
-                                t with
-                                methods =
-                                  Methods.add l
-                                    (meths ll v (Value.invoke t l))
-                                    t.methods;
-                              }
+                            Value.map_methods t
+                              (Methods.add l (meths ll v (Value.invoke t l)))
                     in
                     let v =
                       let t = Env.lookup env l in
@@ -266,7 +249,8 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let fv = Term.free_fun_vars p in
         let p, env = prepare_fun ~eval_check fv arguments env in
         match name with
-          | None -> mk (`Fun { fun_args = p; fun_env = env; fun_body = body })
+          | None ->
+              mk (`Fun { Value.fun_args = p; fun_env = env; fun_body = body })
           | Some name ->
               let rec ffi_fn env =
                 let args =
@@ -282,9 +266,9 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                 in
                 apply ~eval_check (mk_fun ()) args
               and mk_fun () =
-                let ffi = mk (`FFI { ffi_args = p; ffi_fn }) in
+                let ffi = mk (`FFI { Value.ffi_args = p; ffi_fn }) in
                 let env = Env.add env name ffi in
-                mk (`Fun { fun_args = p; fun_env = env; fun_body = body })
+                mk (`Fun { Value.fun_args = p; fun_env = env; fun_body = body })
               in
               mk_fun ())
     | `Var var -> Env.lookup env var
@@ -318,13 +302,10 @@ and eval_term ~eval_check env tm =
   let v = eval_base_term ~eval_check env tm in
   if Methods.is_empty tm.methods then v
   else
-    {
-      v with
-      methods =
-        Methods.fold
-          (fun k tm m -> Methods.add k (eval ~eval_check env tm) m)
-          tm.methods v.Value.methods;
-    }
+    Value.map_methods v
+      (Methods.fold
+         (fun k tm m -> Methods.add k (eval ~eval_check env tm) m)
+         tm.methods)
 
 and eval ~eval_check env tm =
   let v = eval_term ~eval_check env tm in
@@ -367,8 +348,8 @@ let toplevel_add ?doc pat ~t v =
               let ptypes = ref (ptypes t) in
               (* Default values for parameters. *)
               let pvalues v =
-                match v.Value.value with
-                  | `Fun { fun_args = p } ->
+                match v with
+                  | Value.Fun { fun_args = p } ->
                       List.map (fun (l, _, o) -> (l, o)) p
                   | _ -> []
               in
@@ -411,7 +392,7 @@ let toplevel_add ?doc pat ~t v =
             (fun (s, _) ->
                Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
                  (string_of_pat pat)
-                 (Pos.Option.to_string v.Value.pos))
+                 (Pos.Option.to_string (Value.pos v)))
             !doc_arguments;
           *)
               List.rev !arguments
@@ -498,7 +479,7 @@ let rec eval_toplevel ?(interactive = false) t =
     | `Seq (a, b) ->
         ignore
           (let v = eval_toplevel a in
-           if v.Value.pos = None then { v with Value.pos = a.t.Type.pos } else v);
+           if Value.pos v = None then Value.set_pos v a.t.Type.pos else v);
         eval_toplevel ~interactive b
     | _ ->
         let v = eval t in

@@ -184,9 +184,9 @@ let register name osc_t liq_t =
            Unix.ADDR_INET ((Unix.gethostbyname host).h_addr_list.(0), port)
          in
          let osc_val v =
-           match v.Lang.value with
-             | `String s -> [Osc.Types.String s]
-             | `Float x -> [Osc.Types.Float32 x]
+           match v with
+             | Value.String { value = s } -> [Osc.Types.String s]
+             | Value.Float { value = x } -> [Osc.Types.Float32 x]
              | _ -> failwith "Unhandled value."
          in
          let packet =
