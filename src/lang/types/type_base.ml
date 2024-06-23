@@ -269,7 +269,7 @@ let make ?pos : descr -> t = function
   | `Meth ({ meth; optional; scheme; doc; json_name }, t) ->
       Meth { meth; optional; scheme; doc; json_name; t; pos }
   | `Arrow (args, t) -> Arrow { args; t; pos }
-  | `Var { id; contents } -> Var { id; contents }
+  | `Var v -> Var v
 
 let descr : t -> descr = function
   | String _ -> `String
