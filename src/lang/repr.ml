@@ -163,18 +163,18 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
   let rec repr g t =
     if filter_out t then `Ellipsis
     else (
-      match t.descr with
-        | Int -> `Constr ("int", [])
-        | Float -> `Constr ("float", [])
-        | String -> `Constr ("string", [])
-        | Bool -> `Constr ("bool", [])
-        | Never -> `Constr ("never", [])
+      match t with
+        | Int _ -> `Constr ("int", [])
+        | Float _ -> `Constr ("float", [])
+        | String _ -> `Constr ("string", [])
+        | Bool _ -> `Constr ("bool", [])
+        | Never _ -> `Constr ("never", [])
         | Custom c -> c.repr repr g c.typ
-        | Getter t -> `Getter (repr g t)
+        | Getter { t } -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
-        | Tuple l -> `Tuple (List.map (repr g) l)
-        | Nullable t -> `Nullable (repr g t)
-        | Meth ({ meth = l; optional; scheme = g', u; json_name }, v) ->
+        | Tuple { t = l } -> `Tuple (List.map (repr g) l)
+        | Nullable { t } -> `Nullable (repr g t)
+        | Meth { meth = l; optional; scheme = g', u; json_name; t = v } ->
             let gen =
               List.map
                 (fun v -> match uvar (g' @ g) v with `UVar v -> v)
@@ -191,7 +191,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
                 repr g v )
         | Constr { constructor; params } ->
             `Constr (constructor, List.map (fun (l, t) -> (l, repr g t)) params)
-        | Arrow (args, t) ->
+        | Arrow { args; t } ->
             `Arrow
               ( List.map (fun (opt, lbl, t) -> (opt, lbl, repr g t)) args,
                 repr g t )
@@ -491,7 +491,7 @@ let print_scheme f (generalized, t) =
       (fun v ->
         print f
           (make ~generalized
-             (Type_base.make (Var { id = 0; contents = Free v })));
+             (Type_base.make (`Var { id = 0; contents = Free v })));
         Format.fprintf f ".")
       generalized;
   print f (make ~generalized t)
@@ -511,7 +511,7 @@ exception Type_error of explanation
 
 let print_type_error ~formatter error_header
     ((flipped, ta, tb, a, b) : explanation) =
-  error_header ta.pos;
+  error_header (Type_base.pos ta);
   match b with
     | `Meth (R.{ name = l; scheme = [], `Ellipsis }, `Ellipsis) when not flipped
       ->
@@ -520,8 +520,8 @@ let print_type_error ~formatter error_header
           (string_of_type ta)
     | _ ->
         let inferred_pos a =
-          let dpos = (deref a).pos in
-          if a.pos = dpos then ""
+          let dpos = Type_base.pos (deref a) in
+          if Type_base.pos a = dpos then ""
           else (
             match dpos with
               | None -> ""
@@ -533,7 +533,7 @@ let print_type_error ~formatter error_header
         Format.fprintf formatter
           "but it should be a %stype of%s@.@[<2>  %a@]%s@]@."
           (if flipped then "super" else "sub")
-          (match tb.pos with
+          (match Type_base.pos tb with
             | None -> ""
             | Some p ->
                 Printf.sprintf " the type of the value at %s"

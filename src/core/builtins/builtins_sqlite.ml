@@ -37,10 +37,10 @@ let insert_value_constr =
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let rec check typ =
-          match (deref typ).descr with
+          match deref typ with
             | Var _ -> satisfies typ
-            | Nullable typ -> check typ
-            | Float | Int | String -> ()
+            | Nullable { t } -> check t
+            | Float _ | Int _ | String _ -> ()
             | _ -> raise Unsatisfied_constraint
         in
         check b);
@@ -54,10 +54,10 @@ let insert_record_constr =
     satisfied =
       (fun ~subtype ~satisfies b ->
         let m, b = split_meths b in
-        match b.descr with
+        match b with
           | Var _ -> satisfies b
-          | Tuple [] when m = [] -> raise Unsatisfied_constraint
-          | Tuple [] ->
+          | Tuple { t = [] } when m = [] -> raise Unsatisfied_constraint
+          | Tuple { t = [] } ->
               List.iter
                 (fun { scheme = _, typ } ->
                   subtype typ (var ~constraints:[insert_value_constr] ()))
@@ -112,13 +112,13 @@ let header_types ty =
   let open Type in
   let headers, _ = split_meths ty in
   let rec to_type ~nullable ty =
-    match (deref ty).descr with
-      | Nullable typ ->
-          let typ = to_type ~nullable:false typ in
-          if nullable then `Nullable typ else typ
-      | Float -> `Float
-      | Int -> `Int
-      | String -> `String
+    match deref ty with
+      | Nullable { t } ->
+          let t = to_type ~nullable:false t in
+          if nullable then `Nullable t else t
+      | Float _ -> `Float
+      | Int _ -> `Int
+      | String _ -> `String
       | Var _ -> raise Not_found
       | _ -> assert false
   in

@@ -114,11 +114,11 @@ let mk_clock_ty ?pos () =
 let mk_named_ty ?pos = function
   | "_" -> Type.var ?pos:(Option.map Pos.of_lexing_pos pos) ()
   | "unit" -> Type.make Type.unit
-  | "never" -> Type.make Type.Never
-  | "bool" -> Type.make Type.Bool
-  | "int" -> Type.make Type.Int
-  | "float" -> Type.make Type.Float
-  | "string" -> Type.make Type.String
+  | "never" -> Type.make `Never
+  | "bool" -> Type.make `Bool
+  | "int" -> Type.make `Int
+  | "float" -> Type.make `Float
+  | "string" -> Type.make `String
   | "ref" -> Type.reference (Type.var ())
   | "clock" -> mk_clock_ty ?pos ()
   | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
@@ -136,42 +136,36 @@ let mk_named_ty ?pos = function
 
 let rec mk_ty ?pos = function
   | `Named s -> mk_named_ty ?pos s
-  | `Nullable t -> Type.(make (Nullable (mk_ty ?pos t)))
-  | `List t -> Type.(make (List { t = mk_ty ?pos t; json_repr = `Tuple }))
+  | `Nullable t -> Type.make (`Nullable (mk_ty ?pos t))
+  | `List t -> Type.make (`List { t = mk_ty ?pos t; json_repr = `Tuple })
   | `Json_object t ->
-      Type.(
-        make
-          (List
-             {
-               t = mk_ty ?pos (`Tuple [`Named "string"; t]);
-               json_repr = `Object;
-             }))
-  | `Tuple l -> Type.(make (Tuple (List.map (mk_ty ?pos) l)))
+      Type.make
+        (`List
+          { t = mk_ty ?pos (`Tuple [`Named "string"; t]); json_repr = `Object })
+  | `Tuple l -> Type.make (`Tuple (List.map (mk_ty ?pos) l))
   | `Arrow (args, t) ->
-      Type.(
-        make
-          (Arrow
-             ( List.map
-                 (fun (optional, name, t) -> (optional, name, mk_ty ?pos t))
-                 args,
-               mk_ty ?pos t )))
-  | `Record l -> List.fold_left (mk_meth_ty ?pos) Type.(make (Tuple [])) l
+      Type.make
+        (`Arrow
+          ( List.map
+              (fun (optional, name, t) -> (optional, name, mk_ty ?pos t))
+              args,
+            mk_ty ?pos t ))
+  | `Record l -> List.fold_left (mk_meth_ty ?pos) (Type.make (`Tuple [])) l
   | `Method (t, l) -> List.fold_left (mk_meth_ty ?pos) (mk_ty ?pos t) l
   | `Invoke (t, s) -> snd (Type.invoke (mk_ty ?pos t) s)
   | `Source (s, p) -> mk_source_ty ?pos s p
 
 and mk_meth_ty ?pos base { Term.name; optional; typ; json_name } =
-  Type.(
-    make
-      (Meth
-         ( {
-             meth = name;
-             optional;
-             scheme = ([], mk_ty ?pos typ);
-             doc = "";
-             json_name;
-           },
-           base )))
+  Type.make
+    (`Meth
+      ( {
+          meth = name;
+          optional;
+          scheme = ([], mk_ty ?pos typ);
+          doc = "";
+          json_name;
+        },
+        base ))
 
 let let_args ~decoration ~pat ?arglist ~def ?cast () =
   { decoration; pat; arglist; def; cast }

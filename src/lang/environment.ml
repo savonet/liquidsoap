@@ -67,33 +67,31 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
         let rec aux (g0, t0) v0 = function
           | l :: [] ->
               let t =
-                Type.make ?pos:t.Type.pos
-                  Type.(
-                    Meth
-                      ( {
-                          meth = l;
-                          optional = false;
-                          scheme = (g, t);
-                          doc = "";
-                          json_name = None;
-                        },
-                        t0 ))
+                Type.make ?pos:(Type.pos t)
+                  (`Meth
+                    ( {
+                        meth = l;
+                        optional = false;
+                        scheme = (g, t);
+                        doc = "";
+                        json_name = None;
+                      },
+                      t0 ))
               in
               ((g0, t), Value.map_methods v0 (Methods.add l v))
           | l :: ll ->
               let (vg, vt), v = aux (Type.invoke t0 l) (Value.invoke v0 l) ll in
               let t =
-                Type.make ?pos:t.Type.pos
-                  Type.(
-                    Meth
-                      ( {
-                          meth = l;
-                          optional = false;
-                          scheme = (vg, vt);
-                          doc = "";
-                          json_name = None;
-                        },
-                        t0 ))
+                Type.make ?pos:(Type.pos t)
+                  (`Meth
+                    ( {
+                        meth = l;
+                        optional = false;
+                        scheme = (vg, vt);
+                        doc = "";
+                        json_name = None;
+                      },
+                      t0 ))
               in
               ((g0, t), Value.map_methods v0 (Methods.add l v))
           | [] -> ((g, t), v)

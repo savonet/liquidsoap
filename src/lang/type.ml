@@ -31,10 +31,10 @@ let record_constr =
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let m, b = split_meths b in
-        match b.descr with
+        match b with
           | Var _ -> satisfies b
-          | Tuple [] when m = [] -> raise Unsatisfied_constraint
-          | Tuple [] -> ()
+          | Tuple { t = [] } when m = [] -> raise Unsatisfied_constraint
+          | Tuple { t = [] } -> ()
           | _ -> raise Unsatisfied_constraint);
   }
 
@@ -45,9 +45,9 @@ let num_constr =
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let b = demeth b in
-        match b.descr with
+        match b with
           | Var _ -> satisfies b
-          | Never | Int | Float -> ()
+          | Never _ | Int _ | Float _ -> ()
           | _ -> raise Unsatisfied_constraint);
   }
 
@@ -58,18 +58,17 @@ let ord_constr =
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let m, b = split_meths b in
-        match b.descr with
+        match b with
           | Var _ -> satisfies b
-          | Custom _ | Int | Float | String | Bool | Never -> ()
-          | Tuple [] ->
+          | Custom _ | Int _ | Float _ | String _ | Bool _ | Never _ -> ()
+          | Tuple { t = [] } ->
               (* For records, we want to ensure that all fields are ordered. *)
               List.iter
                 (fun { scheme = v, a } ->
                   if v <> [] then raise Unsatisfied_constraint;
                   satisfies a)
                 m
-          | Tuple l -> List.iter satisfies l
-          | List { t = b } -> satisfies b
-          | Nullable b -> satisfies b
+          | Tuple { t } -> List.iter satisfies t
+          | List { t } | Nullable { t } -> satisfies t
           | _ -> raise Unsatisfied_constraint);
   }

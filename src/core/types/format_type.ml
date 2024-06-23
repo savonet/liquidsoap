@@ -66,11 +66,11 @@ module FormatType = struct
 end
 
 let format_handler = FormatType.handler
-let format_descr f = Type.Custom (format_handler f)
+let format_descr f = `Custom (format_handler f)
 
 let string_of_kind (k, ty) =
-  match (Type.deref ty).Type.descr with
-    | Type.(Custom { custom_name = "format"; typ }) ->
+  match Type.deref ty with
+    | Type.Custom { custom_name = "format"; typ } ->
         Content_base.string_of_format
           (denormalize_format k (FormatType.to_content typ))
     | _ ->
@@ -79,8 +79,8 @@ let string_of_kind (k, ty) =
           (Type.to_string ty)
 
 let repr_of_kind repr l (k, ty) =
-  match (Type.deref ty).Type.descr with
-    | Type.(Custom { custom_name = "format"; typ }) ->
+  match Type.deref ty with
+    | Type.Custom { custom_name = "format"; typ } ->
         `Constr
           ( Content_base.string_of_format
               (denormalize_format k (FormatType.to_content typ)),
@@ -119,23 +119,23 @@ let descr descr =
           (kind, Type.make (format_descr f))
       | `Kind k -> (k, Type.var ())
   in
-  Type.Custom (kind_handler k)
+  `Custom (kind_handler k)
 
 exception Never_type
 
 let rec content_type ?kind ty =
-  match ((Type.demeth ty).Type.descr, kind) with
-    | Type.Never, None -> raise Never_type
-    | Type.Custom { Type.custom_name = "kind"; typ }, None ->
+  match (Type.demeth ty, kind) with
+    | Type.Never _, None -> raise Never_type
+    | Type.Custom { custom_name = "kind"; typ }, None ->
         let kind, ty = KindType.to_content typ in
         content_type ~kind ty
-    | Type.Custom { Type.custom_name = "format"; typ }, Some k ->
+    | Type.Custom { custom_name = "format"; typ }, Some k ->
         let f = FormatType.to_content typ in
         denormalize_format k f
     | Type.Var _, Some kind -> Content_base.default_format kind
     | Type.Var _, None ->
         Runtime_error.raise
-          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~pos:(match Type.pos ty with Some p -> [p] | None -> [])
           ~message:
             "Untyped track value! Tracks must have a type to drive decoders \
              and encoders. Either use it in a track-specific operator, add a \
@@ -143,7 +143,7 @@ let rec content_type ?kind ty =
           "eval"
     | _ ->
         Runtime_error.raise
-          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~pos:(match Type.pos ty with Some p -> [p] | None -> [])
           ~message:(Printf.sprintf "Invalid track type: %s" (Type.to_string ty))
           "eval"
 
@@ -202,14 +202,14 @@ let check_track ?univ_descr modules =
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let b = Type.demeth b in
-        match b.Type.descr with
+        match b with
           | Type.Var _ -> satisfies b
-          | Type.Never -> ()
-          | Type.Custom { Type.custom_name = "kind"; typ } ->
+          | Type.Never _ -> ()
+          | Type.Custom { custom_name = "kind"; typ } ->
               let k, _ = KindType.to_content typ in
               if not (List.exists (is_kind k) modules) then
                 raise Type.Unsatisfied_constraint
-          | Type.Custom { Type.custom_name = "format"; typ } ->
+          | Type.Custom { custom_name = "format"; typ } ->
               let f = FormatType.to_content typ in
               if not (List.exists (is_kind (Content_base.kind f)) modules) then
                 raise Type.Unsatisfied_constraint
@@ -226,19 +226,19 @@ let internal_tracks =
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let meths, base_type = Type.split_meths b in
-        (match base_type.Type.descr with
+        (match base_type with
           | Type.Var _ -> satisfies base_type
-          | Type.Tuple [] -> ()
+          | Type.Tuple { t = [] } -> ()
           | _ -> raise Type.Unsatisfied_constraint);
         List.iter
           (fun { Type.scheme = _, typ } ->
-            match (Type.demeth typ).Type.descr with
-              | Type.Never -> ()
-              | Type.Custom { Type.custom_name = "kind"; typ } ->
+            match Type.demeth typ with
+              | Type.Never _ -> ()
+              | Type.Custom { custom_name = "kind"; typ } ->
                   let k, _ = KindType.to_content typ in
                   if not (List.exists (is_kind k) internal_modules) then
                     raise Type.Unsatisfied_constraint
-              | Type.Custom { Type.custom_name = "format"; typ } ->
+              | Type.Custom { custom_name = "format"; typ } ->
                   let f = FormatType.to_content typ in
                   if not (List.exists (is_format f) internal_modules) then
                     raise Type.Unsatisfied_constraint
@@ -255,12 +255,11 @@ let track =
     univ_descr = None;
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
-        let b = Type.demeth b in
-        match b.Type.descr with
+        match Type.demeth b with
           | Type.Var _ -> satisfies b
-          | Type.Never
-          | Type.Custom { Type.custom_name = "kind" }
-          | Type.Custom { Type.custom_name = "format" } ->
+          | Type.Never _
+          | Type.Custom { custom_name = "kind" }
+          | Type.Custom { custom_name = "format" } ->
               ()
           | _ -> raise Type.Unsatisfied_constraint);
   }
@@ -272,16 +271,16 @@ let muxed_tracks =
     satisfied =
       (fun ~subtype:_ ~satisfies b ->
         let meths, base_type = Type.split_meths b in
-        (match (Type.demeth base_type).Type.descr with
+        (match Type.demeth base_type with
           | Type.Var _ -> satisfies base_type
-          | Type.Tuple [] -> ()
+          | Type.Tuple { t = [] } -> ()
           | _ -> raise Type.Unsatisfied_constraint);
         List.iter
           (fun { Type.scheme = _, typ } ->
-            match (Type.demeth typ).Type.descr with
-              | Type.Never -> ()
-              | Type.Custom { Type.custom_name = "kind" }
-              | Type.Custom { Type.custom_name = "format" } ->
+            match Type.demeth typ with
+              | Type.Never _ -> ()
+              | Type.Custom { custom_name = "kind" }
+              | Type.Custom { custom_name = "format" } ->
                   ()
               | Type.Var { contents = Free v } ->
                   v.constraints <- Type.Constraints.add track v.constraints
@@ -296,7 +295,7 @@ let audio ?(pcm_kind = Content_audio.kind) () =
 
 let () =
   Type.register_type (Content_base.string_of_kind Content_audio.kind) (fun () ->
-      Type.make (Type.Custom (kind_handler (Content_audio.kind, Type.var ()))))
+      Type.make (`Custom (kind_handler (Content_audio.kind, Type.var ()))))
 
 let audio_n ?(pcm_kind = Content_audio.kind) n =
   Type.make
@@ -315,13 +314,13 @@ let video () = Type.make (descr (`Kind Content_video.kind))
 
 let () =
   Type.register_type (Content_base.string_of_kind Content_video.kind) (fun () ->
-      Type.make (Type.Custom (kind_handler (Content_video.kind, Type.var ()))))
+      Type.make (`Custom (kind_handler (Content_video.kind, Type.var ()))))
 
 let midi () = Type.make (descr (`Kind Content_midi.kind))
 
 let () =
   Type.register_type (Content_base.string_of_kind Content_midi.kind) (fun () ->
-      Type.make (Type.Custom (kind_handler (Content_midi.kind, Type.var ()))))
+      Type.make (`Custom (kind_handler (Content_midi.kind, Type.var ()))))
 
 let midi_n n =
   Type.make (descr (`Format Content_midi.(lift_params { channels = n })))

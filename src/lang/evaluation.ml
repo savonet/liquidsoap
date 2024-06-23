@@ -156,7 +156,7 @@ and apply ?(pos = []) ~eval_check f l =
   Value.set_pos v apply_pos
 
 and eval_base_term ~eval_check (env : Env.t) tm =
-  let mk v = Value.make ?pos:tm.t.Type.pos ~flags:tm.flags v in
+  let mk v = Value.make ?pos:(Type.pos tm.t) ~flags:tm.flags v in
   match tm.term with
     | `Int i -> mk (`Int i)
     | `Float f -> mk (`Float f)
@@ -165,7 +165,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
     | `Custom g -> mk (`Custom g)
     | `Cache_env _ -> assert false
     | `Encoder (e, p) ->
-        let pos = tm.t.Type.pos in
+        let pos = Type.pos tm.t in
         let rec eval_param p =
           List.map
             (fun t ->
@@ -184,7 +184,8 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let v = eval ~eval_check env tm in
         Value.map_methods v
           (Methods.filter (fun n _ -> not (List.mem n methods)))
-    | `Cast { cast = e } -> Value.set_pos (eval ~eval_check env e) tm.t.Type.pos
+    | `Cast { cast = e } ->
+        Value.set_pos (eval ~eval_check env e) (Type.pos tm.t)
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
         match
@@ -199,7 +200,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
           | _ ->
               raise
                 (Internal_error
-                   ( Option.to_list tm.t.Type.pos,
+                   ( Option.to_list (Type.pos tm.t),
                      "invoked method `" ^ meth ^ "` not found" )))
     | `Open (t, u) ->
         let t = eval ~eval_check env t in
@@ -280,7 +281,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
           let f = eval ~eval_check env f in
           let l = List.map (fun (l, t) -> (l, eval ~eval_check env t)) l in
           let pos =
-            match tm.t.Type.pos with
+            match Type.pos tm.t with
               | None -> []
               | Some p ->
                   p
@@ -340,9 +341,9 @@ let toplevel_add ?doc pat ~t v =
             let arguments =
               (* Type for parameters. *)
               let rec ptypes t =
-                match (Type.deref t).Type.descr with
-                  | Type.Arrow (p, _) -> p
-                  | Type.Meth (_, t) -> ptypes t
+                match Type.deref t with
+                  | Type.Arrow { args } -> args
+                  | Type.Meth { t } -> ptypes t
                   | _ -> []
               in
               let ptypes = ref (ptypes t) in
@@ -400,15 +401,15 @@ let toplevel_add ?doc pat ~t v =
             let methods, t =
               let methods, t =
                 let methods, t = Type.split_meths t in
-                match (Type.deref t).Type.descr with
-                  | Type.Arrow (p, a) ->
+                match Type.deref t with
+                  | Type.Arrow { args = p; t = a } ->
                       let methods, a = Type.split_meths a in
                       (* Note that in case we have a function, we drop the methods around,
                          the reason being that we expect that they are registered on their
                          own in the documentation. For instance, we don't want the field
                          recurrent to appear in the doc of thread.run: it is registered as
                          thread.run.recurrent anyways. *)
-                      (methods, Type.make ?pos:t.Type.pos (Type.Arrow (p, a)))
+                      (methods, Type.make ?pos:(Type.pos t) (`Arrow (p, a)))
                   | _ -> (methods, t)
               in
               let methods =
@@ -479,7 +480,7 @@ let rec eval_toplevel ?(interactive = false) t =
     | `Seq (a, b) ->
         ignore
           (let v = eval_toplevel a in
-           if Value.pos v = None then Value.set_pos v a.t.Type.pos else v);
+           if Value.pos v = None then Value.set_pos v (Type.pos a.t) else v);
         eval_toplevel ~interactive b
     | _ ->
         let v = eval t in

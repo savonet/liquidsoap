@@ -404,8 +404,8 @@ let mk_time_pred ~pos (a, b, c) =
 
 let rec get_env_args ~pos t args =
   let get_arg_type t name =
-    match (Type.deref t).Type.descr with
-      | Type.Arrow (l, _) ->
+    match Type.deref t with
+      | Type.Arrow { args = l; _ } ->
           let _, _, t = List.find (fun (_, n, _) -> n = name) l in
           t
       | _ ->
@@ -417,7 +417,7 @@ let rec get_env_args ~pos t args =
   in
   List.map
     (fun (n, n', v) ->
-      let t = mk_ty ~pos (get_arg_type t n).Type.descr in
+      let t = mk_ty ~pos (Type.descr (get_arg_type t n)) in
       let as_variable = if n = n' then None else Some n' in
       {
         label = n;
@@ -429,18 +429,16 @@ let rec get_env_args ~pos t args =
 
 and term_of_value_base ~pos t v =
   let get_list_type () =
-    match (Type.deref t).Type.descr with
-      | Type.(List { t }) -> t
-      | _ -> assert false
+    match Type.deref t with Type.List { t } -> t | _ -> assert false
   in
   let get_tuple_type pos =
-    match (Type.deref t).Type.descr with
-      | Type.Tuple t -> List.nth t pos
+    match Type.deref t with
+      | Type.Tuple { t } -> List.nth t pos
       | _ -> assert false
   in
   let process_value ~t v =
     let mk_tm ?(flags = Flags.empty) term =
-      mk ~flags ~t:(mk_ty ~pos t.Type.descr) term
+      mk ~flags ~t:(mk_ty ~pos (Type.descr t)) term
     in
     match v with
       | Value.Int { value = i; flags } -> mk_tm ~flags (`Int i)
@@ -463,7 +461,7 @@ and term_of_value_base ~pos t v =
       | Value.Fun { fun_args = args; fun_body = body } ->
           let body =
             mk
-              ~t:(mk_ty ~pos body.t.Type.descr)
+              ~t:(mk_ty ~pos (Type.descr body.t))
               ~methods:body.Term.methods body.Term.term
           in
           mk_tm
@@ -950,7 +948,7 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let inner_list_ty = mk_var ~pos () in
   Typing.(
-    ty <: mk_ty ~pos (Type.List { Type.t = inner_list_ty; json_repr = `Tuple }));
+    ty <: mk_ty ~pos (`List { Type.t = inner_list_ty; json_repr = `Tuple }));
   let tty = Value.RuntimeType.to_term inner_list_ty in
   let parser = mk ~pos (`Var "_sqlite_row_parser_") in
   let mapper =

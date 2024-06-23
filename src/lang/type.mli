@@ -29,7 +29,50 @@ val debug_variance : bool ref
 open Type_base
 
 type variance = [ `Covariant | `Invariant ]
-type t = Type_base.t = { pos : Pos.Option.t; descr : descr }
+
+type t = Type_base.t =
+  | String of Pos.Option.t
+  | Int of Pos.Option.t
+  | Float of Pos.Option.t
+  | Bool of Pos.Option.t
+  | Never of Pos.Option.t
+  | Custom of {
+      typ : custom;
+      custom_name : string;
+      copy_with : (t -> t) -> custom -> custom;
+      occur_check : (t -> unit) -> custom -> unit;
+      filter_vars :
+        (var list -> t -> var list) -> var list -> custom -> var list;
+      repr : (var list -> t -> constr R.t) -> var list -> custom -> constr R.t;
+      subtype : (t -> t -> unit) -> custom -> custom -> unit;
+      sup : (t -> t -> t) -> custom -> custom -> custom;
+      to_string : custom -> string;
+      pos : Pos.Option.t;
+    }
+  | Constr of {
+      constructor : string;
+      params : (variance * t) list;
+      pos : Pos.Option.t;
+    }
+  | Getter of { t : t; pos : Pos.Option.t }
+      (** a getter: something that is either a t or () -> t *)
+  | List of { t : t; json_repr : [ `Tuple | `Object ]; pos : Pos.Option.t }
+  | Tuple of { t : t list; pos : Pos.Option.t }
+  | Nullable of { t : t; pos : Pos.Option.t }
+      (** something that is either t or null *)
+  | Meth of {
+      meth : string;  (** name of the method *)
+      optional : bool;  (** is the method optional? *)
+      scheme : scheme;  (** type scheme *)
+      doc : string;  (** documentation *)
+      json_name : string option;  (** name when represented as JSON *)
+      t : t;
+      pos : Pos.Option.t;
+    }
+  | Arrow of { args : t argument list; t : t; pos : Pos.Option.t }
+      (** a function *)
+  | Var of Type_base.var_t  (** a type variable *)
+
 type custom = Type_base.custom
 
 type custom_handler = Type_base.custom_handler = {
@@ -47,27 +90,13 @@ type custom_handler = Type_base.custom_handler = {
 type invar = Type_base.invar = Free of var | Link of variance * t
 type var_t = Type_base.var_t = { id : int; mutable contents : invar }
 
-type descr = Type_base.descr =
-  | String
-  | Int
-  | Float
-  | Bool
-  | Never
-  | Custom of custom_handler
-  | Constr of constructed
-  | Getter of t  (** a getter: something that is either a t or () -> t *)
-  | List of repr_t
-  | Tuple of t list
-  | Nullable of t  (** something that is either t or null *)
-  | Meth of meth * t  (** t with a method added *)
-  | Arrow of t argument list * t  (** a function *)
-  | Var of var_t  (** a type variable *)
-
 type constr = Type_base.constr = {
   constr_descr : string;
   univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
+
+type descr = Type_base.descr
 
 module Constraints = Type_base.Constraints
 
@@ -78,6 +107,7 @@ type constructed = Type_base.constructed = {
 
 type var = Type_base.var = {
   name : int;
+  mutable pos : Pos.Option.t;
   mutable level : int;
   mutable constraints : Constraints.t;
 }
@@ -108,6 +138,8 @@ exception Exists of Pos.Option.t * string
 exception Unsatisfied_constraint
 
 val unit : descr
+val is_unit : t -> bool
+val pos : t -> Pos.Option.t
 
 module Var = Type_base.Var
 module Vars = Type_base.Vars
@@ -138,6 +170,7 @@ end
    to shared fresh variables. *)
 val fresh : t -> t
 val make : ?pos:Pos.t -> descr -> t
+val descr : t -> descr
 val deref : t -> t
 val demeth : t -> t
 val remeth : t -> t -> t

@@ -6,10 +6,10 @@ let rec append_ref =
   | { term = `Seq (t1, t2) } as tm ->
       { tm with term = `Seq (t1, append_ref t2) }
   | tm ->
-      Term.make ?pos:tm.t.Type.pos
+      Term.make ?pos:(Type.pos tm.t)
         (`Seq
           ( tm,
-            Term.make ?pos:tm.t.Type.pos
+            Term.make ?pos:(Type.pos tm.t)
               (`Cache_env (ref { var_name = 0; var_id = 0; env = [] })) ))
 
 let rec extract_ref =

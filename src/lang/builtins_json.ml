@@ -59,8 +59,9 @@ let rec type_of_json = function
   | `Null -> Lang.(nullable_t (univ_t ()))
 
 let nullable_deref ty =
-  let ty = Type.deref ty in
-  match ty.Type.descr with Type.Nullable ty -> (true, ty) | _ -> (false, ty)
+  match Type.deref ty with
+    | Type.Nullable { t = ty } -> (true, ty)
+    | _ -> (false, ty)
 
 type json_ellipsis_base =
   [ `Assoc of (string * string option * json_ellipsis) list
@@ -109,7 +110,7 @@ let rec value_of_typed_json ~ty json =
   try
     let tm, ty = Type.split_meths _ty in
     let () =
-      match ty.Type.descr with
+      match ty with
         | Type.Var _ ->
             log#important
               "You are parsing a JSON value without type annotation. This has \
@@ -117,8 +118,8 @@ let rec value_of_typed_json ~ty json =
                json.parse (x : ...) = ...`"
         | _ -> ()
     in
-    match (json, ty.Type.descr) with
-      | `Assoc l, Type.Var _ | `Assoc l, Type.Tuple [] ->
+    match (json, Type.descr ty) with
+      | `Assoc l, `Var _ | `Assoc l, `Tuple [] ->
           Typing.(ty <: Lang.unit_t);
           let meth =
             List.map
@@ -149,12 +150,7 @@ let rec value_of_typed_json ~ty json =
           in
           Lang.record meth
       | ( `Assoc l,
-          Type.(
-            List
-              {
-                t = { descr = Tuple [{ descr = String }; ty] };
-                json_repr = `Object;
-              }) ) ->
+          `List { t = Tuple { t = [String _; ty] }; json_repr = `Object } ) ->
           Lang.list
             (List.map
                (fun (lbl, v) ->
@@ -162,14 +158,14 @@ let rec value_of_typed_json ~ty json =
                  with Failed v ->
                    raise (Failed (nullable, `Assoc [(lbl, None, v)])))
                l)
-      | `Tuple l, Type.(List { t = ty; json_repr = `Tuple }) ->
+      | `Tuple l, `List { t = ty; json_repr = `Tuple } ->
           Lang.list
             (List.map
                (fun v ->
                  try value_of_typed_json ~ty v
                  with Failed v -> raise (Failed (nullable, `List v)))
                l)
-      | `Tuple l, Type.Tuple t when tm = [] ->
+      | `Tuple l, `Tuple t when tm = [] ->
           Lang.tuple
             (List.mapi
                (fun idx ty ->
@@ -183,18 +179,18 @@ let rec value_of_typed_json ~ty json =
                    in
                    raise (Failed (nullable, `Tuple l)))
                t)
-      | `String s, Type.String -> Lang.string s
-      | `Bool b, Type.Bool -> Lang.bool b
-      | `Float f, Type.Float -> Lang.float f
-      | `Int i, Type.Float -> Lang.float (float i)
-      | `Int i, Type.Int -> Lang.int i
-      | _, Type.Var _ ->
+      | `String s, `String -> Lang.string s
+      | `Bool b, `Bool -> Lang.bool b
+      | `Float f, `Float -> Lang.float f
+      | `Int i, `Float -> Lang.float (float i)
+      | `Int i, `Int -> Lang.int i
+      | _, `Var _ ->
           Typing.(ty <: type_of_json json);
           Lang.null
-      | _, Type.String -> raise (Failed (nullable, `String))
-      | _, Type.Bool -> raise (Failed (nullable, `Bool))
-      | _, Type.Float -> raise (Failed (nullable, `Float))
-      | _, Type.Int -> raise (Failed (nullable, `Int))
+      | _, `String -> raise (Failed (nullable, `String))
+      | _, `Bool -> raise (Failed (nullable, `Bool))
+      | _, `Float -> raise (Failed (nullable, `Float))
+      | _, `Int -> raise (Failed (nullable, `Int))
       | _ -> assert false
   with _ when nullable -> Lang.null
 
@@ -207,7 +203,7 @@ let value_of_typed_json ~ty json =
             (Printf.sprintf
                "Parsing error: json value cannot be parsed as type %s"
                (string_of_json_ellipsis v))
-          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~pos:(match Type.pos ty with Some p -> [p] | None -> [])
           "json"
     | _ ->
         Runtime_error.raise
@@ -215,7 +211,7 @@ let value_of_typed_json ~ty json =
             (Printf.sprintf
                "Parsing error: json value cannot be parsed as type %s"
                (Type.to_string ty))
-          ~pos:(match ty.Type.pos with Some p -> [p] | None -> [])
+          ~pos:(match Type.pos ty with Some p -> [p] | None -> [])
           "json"
 
 module JsonSpecs = struct
@@ -235,9 +231,7 @@ module JsonValue = Value.MkCustom (JsonSpecs)
 let json =
   let val_t = Lang.univ_t () in
   let var =
-    match val_t.Type.descr with
-      | Type.Var { contents = Type.Free v } -> v
-      | _ -> assert false
+    match val_t with Type.Var { contents = Free v } -> v | _ -> assert false
   in
   let meth =
     [

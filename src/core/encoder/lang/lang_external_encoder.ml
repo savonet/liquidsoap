@@ -29,8 +29,8 @@ let type_of_encoder p =
   with
     | Some { Term.term = `Bool true } ->
         Encoder.audio_video_type ~pcm_kind:Content.Audio.kind channels
-    | Some ({ t = { Type.pos } } as tm) ->
-        Lang_encoder.raise_error ~pos
+    | Some tm ->
+        Lang_encoder.raise_error ~pos:(Type.pos tm.t)
           (Printf.sprintf
              "Invalid value %s for value mode. Only `true` or `false is \
               allowed."

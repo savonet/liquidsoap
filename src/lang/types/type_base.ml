@@ -80,7 +80,19 @@ end
 
 type custom
 
-type t = { pos : Pos.Option.t; descr : descr }
+(** Contents of a variable. *)
+type var = {
+  name : int;
+  mutable pos : Pos.Option.t;
+  mutable level : int;
+  mutable constraints : constr Type_constraints.t;
+}
+
+and invar =
+  | Free of var
+  | Link of variance * t  (** the variable has bee substituted *)
+
+and var_t = { id : int; mutable contents : invar }
 
 and constr = {
   constr_descr : string;
@@ -88,35 +100,53 @@ and constr = {
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
 
-(** A type constructor applied to arguments (e.g. source). *)
-and constructed = { constructor : string; params : (variance * t) list }
-
-(** Contents of a variable. *)
-and var = {
-  name : int;
-  mutable level : int;
-  mutable constraints : constr Type_constraints.t;
-}
-
-and invar =
-  | Free of var  (** the variable is free *)
-  | Link of variance * t  (** the variable has bee substituted *)
-
 (** A type scheme (i.e. a type with universally quantified variables). *)
 and scheme = var list * t
 
-(** A method. *)
-and meth = {
-  meth : string;  (** name of the method *)
-  optional : bool;  (** is the method optional? *)
-  scheme : scheme;  (** type scheme *)
-  doc : string;  (** documentation *)
-  json_name : string option;  (** name when represented as JSON *)
-}
+and t =
+  | String of Pos.Option.t
+  | Int of Pos.Option.t
+  | Float of Pos.Option.t
+  | Bool of Pos.Option.t
+  | Never of Pos.Option.t
+  | Custom of {
+      typ : custom;
+      custom_name : string;
+      copy_with : (t -> t) -> custom -> custom;
+      occur_check : (t -> unit) -> custom -> unit;
+      filter_vars :
+        (var list -> t -> var list) -> var list -> custom -> var list;
+      repr : (var list -> t -> constr R.t) -> var list -> custom -> constr R.t;
+      subtype : (t -> t -> unit) -> custom -> custom -> unit;
+      sup : (t -> t -> t) -> custom -> custom -> custom;
+      to_string : custom -> string;
+      pos : Pos.Option.t;
+    }
+  | Constr of {
+      constructor : string;
+      params : (variance * t) list;
+      pos : Pos.Option.t;
+    }
+  | Getter of { t : t; pos : Pos.Option.t }
+      (** a getter: something that is either a t or () -> t *)
+  | List of { t : t; json_repr : [ `Tuple | `Object ]; pos : Pos.Option.t }
+  | Tuple of { t : t list; pos : Pos.Option.t }
+  | Nullable of { t : t; pos : Pos.Option.t }
+      (** something that is either t or null *)
+  | Meth of {
+      meth : string;  (** name of the method *)
+      optional : bool;  (** is the method optional? *)
+      scheme : scheme;  (** type scheme *)
+      doc : string;  (** documentation *)
+      json_name : string option;  (** name when represented as JSON *)
+      t : t;
+      pos : Pos.Option.t;
+    }
+  | Arrow of { args : t argument list; t : t; pos : Pos.Option.t }
+      (** a function *)
+  | Var of var_t  (** a type variable *)
 
-and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
-
-and custom_handler = {
+type custom_handler = {
   typ : custom;
   custom_name : string;
   copy_with : (t -> t) -> custom -> custom;
@@ -128,23 +158,32 @@ and custom_handler = {
   to_string : custom -> string;
 }
 
-and var_t = { id : int; mutable contents : invar }
+type constructed = { constructor : string; params : (variance * t) list }
+type repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
-and descr =
-  | String
-  | Int
-  | Float
-  | Bool
-  | Never
-  | Custom of custom_handler
-  | Constr of constructed
-  | Getter of t  (** a getter: something that is either a t or () -> t *)
-  | List of repr_t
-  | Tuple of t list
-  | Nullable of t  (** something that is either t or null *)
-  | Meth of meth * t  (** t with a method added *)
-  | Arrow of t argument list * t  (** a function *)
-  | Var of var_t  (** a type variable *)
+type meth = {
+  meth : string;  (** name of the method *)
+  optional : bool;  (** is the method optional? *)
+  scheme : scheme;  (** type scheme *)
+  doc : string;  (** documentation *)
+  json_name : string option;  (** name when represented as JSON *)
+}
+
+type descr =
+  [ `String
+  | `Int
+  | `Float
+  | `Bool
+  | `Never
+  | `Custom of custom_handler
+  | `Constr of constructed
+  | `Getter of t
+  | `List of repr_t
+  | `Tuple of t list
+  | `Nullable of t
+  | `Meth of meth * t
+  | `Arrow of t argument list * t
+  | `Var of var_t ]
 
 module Constraints = struct
   include Type_constraints
@@ -165,7 +204,12 @@ exception NotImplemented
 exception Exists of Pos.Option.t * string
 exception Unsatisfied_constraint
 
-let unit = Tuple []
+let unit = `Tuple []
+
+let rec is_unit = function
+  | Tuple { t = [] } -> true
+  | Var { contents = Link (_, t) } -> is_unit t
+  | _ -> false
 
 (** Operations on variables. *)
 module Var = struct
@@ -186,38 +230,140 @@ module Vars = struct
 end
 
 (** Create a type from its value. *)
-let make ?pos d = { pos; descr = d }
+let make ?pos : descr -> t = function
+  | `String -> String pos
+  | `Int -> Int pos
+  | `Float -> Float pos
+  | `Bool -> Bool pos
+  | `Never -> Never pos
+  | `Custom
+      {
+        typ;
+        custom_name;
+        copy_with;
+        occur_check;
+        filter_vars;
+        repr;
+        subtype;
+        sup;
+        to_string;
+      } ->
+      Custom
+        {
+          typ;
+          custom_name;
+          copy_with;
+          occur_check;
+          filter_vars;
+          repr;
+          subtype;
+          sup;
+          to_string;
+          pos;
+        }
+  | `Constr { constructor; params } -> Constr { constructor; params; pos }
+  | `Getter t -> Getter { t; pos }
+  | `List { t; json_repr } -> List { t; json_repr; pos }
+  | `Tuple t -> Tuple { t; pos }
+  | `Nullable t -> Nullable { t; pos }
+  | `Meth ({ meth; optional; scheme; doc; json_name }, t) ->
+      Meth { meth; optional; scheme; doc; json_name; t; pos }
+  | `Arrow (args, t) -> Arrow { args; t; pos }
+  | `Var { id; contents } -> Var { id; contents }
+
+let descr : t -> descr = function
+  | String _ -> `String
+  | Int _ -> `Int
+  | Float _ -> `Float
+  | Bool _ -> `Bool
+  | Never _ -> `Never
+  | Custom
+      {
+        typ;
+        custom_name;
+        copy_with;
+        occur_check;
+        filter_vars;
+        repr;
+        subtype;
+        sup;
+        to_string;
+      } ->
+      `Custom
+        {
+          typ;
+          custom_name;
+          copy_with;
+          occur_check;
+          filter_vars;
+          repr;
+          subtype;
+          sup;
+          to_string;
+        }
+  | Constr { constructor; params } -> `Constr { constructor; params }
+  | Getter { t } -> `Getter t
+  | List { t; json_repr } -> `List { t; json_repr }
+  | Tuple { t } -> `Tuple t
+  | Nullable { t } -> `Nullable t
+  | Meth { meth; optional; scheme; doc; json_name; t } ->
+      `Meth ({ meth; optional; scheme; doc; json_name }, t)
+  | Arrow { args; t } -> `Arrow (args, t)
+  | Var c -> `Var c
+
+let get_meth = function
+  | Meth { meth; optional; scheme; doc; json_name } ->
+      { meth; optional; scheme; doc; json_name }
+  | _ -> assert false
+
+let rec pos = function
+  | String pos
+  | Int pos
+  | Float pos
+  | Bool pos
+  | Never pos
+  | Custom { pos }
+  | Constr { pos }
+  | Getter { pos }
+  | List { pos }
+  | Tuple { pos }
+  | Nullable { pos }
+  | Meth { pos }
+  | Arrow { pos }
+  | Var { contents = Free { pos } } ->
+      pos
+  | Var { contents = Link (_, t) } -> pos t
 
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
     type. *)
 let rec deref t =
-  match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
+  match t with Var { contents = Link (_, t) } -> deref t | _ -> t
 
 (** Remove methods. This function also removes links. *)
 let rec demeth t =
   let t = deref t in
-  match t.descr with Meth (_, t) -> demeth t | _ -> t
+  match t with Meth { t } -> demeth t | _ -> t
 
 let rec filter_meths t fn =
   let t = deref t in
-  match t.descr with
-    | Meth (m, t) when not (fn m) -> filter_meths t fn
-    | Meth (m, t) -> { t with descr = Meth (m, filter_meths t fn) }
+  match t with
+    | Meth { meth; optional; scheme; doc; json_name; t }
+      when not (fn { meth; optional; scheme; doc; json_name }) ->
+        filter_meths t fn
+    | Meth ({ t } as m) -> Meth { m with t = filter_meths t fn }
     | _ -> t
 
 (** Put the methods of the first type around the second type. *)
 let rec remeth t u =
   let t = deref t in
-  match t.descr with
-    | Meth (m, t) -> { t with descr = Meth (m, remeth t u) }
-    | _ -> u
+  match t with Meth ({ t } as m) -> Meth { m with t = remeth t u } | _ -> u
 
 (** Type of a method in a type. *)
 let rec invoke t l =
-  match (deref t).descr with
-    | Meth (m, _) when m.meth = l -> m.scheme
-    | Meth (_, t) -> invoke t l
+  match deref t with
+    | Meth { meth; scheme } when meth = l -> scheme
+    | Meth { t } -> invoke t l
     | _ -> raise Not_found
 
 (** Do we have a method with given label? *)
@@ -236,7 +382,7 @@ let rec invokes t = function
 
 (** Add a method to a type. *)
 let meth ?pos ?json_name ?(optional = false) meth scheme ?(doc = "") t =
-  make ?pos (Meth ({ meth; optional; scheme; doc; json_name }, t))
+  Meth { meth; optional; scheme; doc; json_name; t; pos }
 
 (** Add a submethod to a type. *)
 let rec meths ?pos l v t =
@@ -252,11 +398,14 @@ let rec meths ?pos l v t =
 let split_meths t =
   let rec aux hide t =
     let t = deref t in
-    match t.descr with
-      | Meth (m, t) ->
-          let meth, t = aux (m.meth :: hide) t in
-          let meth = if List.mem m.meth hide then meth else m :: meth in
-          (meth, t)
+    match t with
+      | Meth { meth; optional; scheme; doc; json_name; t } ->
+          let l, t = aux (meth :: hide) t in
+          let l =
+            if List.mem meth hide then l
+            else { meth; optional; scheme; doc; json_name } :: l
+          in
+          (l, t)
       | _ -> ([], t)
   in
   aux [] t
@@ -271,8 +420,8 @@ let var_id () = Atomic.fetch_and_add var_id_atom 1
 let var ?(constraints = []) ?(level = max_int) ?pos () =
   let constraints = Constraints.of_list constraints in
   let name = var_name () in
-  make ?pos
-    (Var { id = var_id (); contents = Free { name; level; constraints } })
+  make
+    (`Var { id = var_id (); contents = Free { pos; name; level; constraints } })
 
 module Fresh = struct
   type mapper = {
@@ -303,33 +452,43 @@ module Fresh = struct
         new_var)
 
   let make ({ preserve_positions; selector; link_maps } as h) t =
-    let map_var = make_var h in
-    let map_descr map = function
-      | Int -> Int
-      | Float -> Float
-      | String -> String
-      | Bool -> Bool
-      | Never -> Never
-      | Custom c -> Custom { c with typ = c.copy_with map c.typ }
-      | Constr { constructor; params } ->
+    let map_pos pos = if preserve_positions then pos else None in
+    let map_var var = make_var h { var with pos = map_pos var.pos } in
+    let rec map = function
+      | Int pos -> Int (map_pos pos)
+      | Float pos -> Float (map_pos pos)
+      | String pos -> String (map_pos pos)
+      | Bool pos -> Bool (map_pos pos)
+      | Never pos -> Never (map_pos pos)
+      | Custom c ->
+          Custom { c with typ = c.copy_with map c.typ; pos = map_pos c.pos }
+      | Constr { constructor; params; pos } ->
           Constr
-            { constructor; params = List.map (fun (v, t) -> (v, map t)) params }
-      | Getter t -> Getter (map t)
-      | List { t; json_repr } -> List { t = map t; json_repr }
-      | Tuple l -> Tuple (List.map map l)
-      | Nullable t -> Nullable (map t)
-      | Meth ({ meth; optional; scheme = vars, t; doc; json_name }, t') ->
+            {
+              constructor;
+              params = List.map (fun (v, t) -> (v, map t)) params;
+              pos = map_pos pos;
+            }
+      | Getter { t; pos } -> Getter { t = map t; pos = map_pos pos }
+      | List { t; json_repr; pos } ->
+          List { t = map t; json_repr; pos = map_pos pos }
+      | Tuple { t; pos } -> Tuple { t = List.map map t; pos = map_pos pos }
+      | Nullable { t; pos } -> Nullable { t = map t; pos = map_pos pos }
+      | Meth ({ scheme = vars, t'; t; pos } as m) ->
           Meth
-            ( {
-                meth;
-                optional;
-                scheme = (List.map map_var vars, map t);
-                doc;
-                json_name;
-              },
-              map t' )
-      | Arrow (args, t) ->
-          Arrow (List.map (fun (b, s, t) -> (b, s, map t)) args, map t)
+            {
+              m with
+              scheme = (List.map map_var vars, map t');
+              t = map t;
+              pos = map_pos pos;
+            }
+      | Arrow { args; t; pos } ->
+          Arrow
+            {
+              args = List.map (fun (b, s, t) -> (b, s, map t)) args;
+              t = map t;
+              pos = map_pos pos;
+            }
       (* Here we keep all links. While it could be tempting to deref,
          we are using links to compute type supremum in type unification
          so we are better off keeping them. Also, we need to create fresh
@@ -354,12 +513,6 @@ module Fresh = struct
                  Hashtbl.replace link_maps id new_link;
                  new_link)
     in
-    let rec map { pos; descr } =
-      {
-        pos = (if preserve_positions then pos else None);
-        descr = map_descr map descr;
-      }
-    in
     map t
 end
 
@@ -374,10 +527,10 @@ let to_string_fun =
 let to_string ?generalized (t : t) : string = !to_string_fun ?generalized t
 
 let string_of_scheme (g, t) = to_string ~generalized:g t
-let is_fun t = match (demeth t).descr with Arrow _ -> true | _ -> false
+let is_fun t = match demeth t with Arrow _ -> true | _ -> false
 
 let is_source t =
-  match (demeth t).descr with
+  match demeth t with
     | Constr { constructor = "source"; _ } -> true
     | _ -> false
 
@@ -416,7 +569,7 @@ let find_opt_typ = Hashtbl.find_opt custom_types
 
 let rec mk_invariant t =
   match t with
-    | { descr = Var ({ contents = Link (_, t) } as c) } ->
+    | Var ({ contents = Link (_, t) } as c) ->
         c.contents <- Link (`Invariant, t);
         mk_invariant t
     | _ -> ()

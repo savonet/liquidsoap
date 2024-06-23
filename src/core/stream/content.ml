@@ -29,9 +29,9 @@ module MkContent (C : ContentSpecs) = struct
   let () =
     Type.register_type (C.string_of_kind C.kind) (fun () ->
         Type.make
-          (Type.Custom
-             (Format_type.kind_handler
-                (lift_kind C.kind, Liquidsoap_lang.Lang.univ_t ()))))
+          (`Custom
+            (Format_type.kind_handler
+               (lift_kind C.kind, Liquidsoap_lang.Lang.univ_t ()))))
 end
 
 include Content_timed

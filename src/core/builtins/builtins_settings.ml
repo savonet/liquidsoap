@@ -33,10 +33,10 @@ let dtools_constr =
     satisfied =
       (fun ~subtype ~satisfies:_ b ->
         let b = demeth b in
-        match b.descr with
-          | Bool | Int | Float | String -> ()
-          | Tuple [] -> ()
-          | List { t = b } -> subtype b (make String)
+        match b with
+          | Bool _ | Int _ | Float _ | String _ -> ()
+          | Tuple { t = [] } -> ()
+          | List { t = b } -> subtype b (make `String)
           | _ -> raise Unsatisfied_constraint);
   }
 

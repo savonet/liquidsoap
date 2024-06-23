@@ -66,7 +66,7 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
   (* Warnings *)
   | Term.Ignored tm when Type.is_fun tm.Term.t ->
       flush_all ();
-      warning_header ~formatter 1 tm.Term.t.Type.pos;
+      warning_header ~formatter 1 (Type.pos tm.Term.t);
       Format.fprintf formatter
         "Trying to ignore a function,@ which is of type %s.@ Did you forget to \
          apply it to arguments?@]@."
@@ -74,14 +74,14 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
       if !strict then raise Error
   | Term.Ignored tm when Type.is_source tm.Term.t ->
       flush_all ();
-      warning_header ~formatter 2 tm.Term.t.Type.pos;
+      warning_header ~formatter 2 (Type.pos tm.Term.t);
       Format.fprintf formatter
         "This source is unused, maybe it needs to@ be connected to an \
          output.@]@.";
       if !strict then raise Error
   | Term.Ignored tm ->
       flush_all ();
-      warning_header ~formatter 3 tm.Term.t.Type.pos;
+      warning_header ~formatter 3 (Type.pos tm.Term.t);
       Format.fprintf formatter "This expression should have type unit.@]@.";
       if !strict then raise Error
   | Term.Unused_variable (s, pos) ->
@@ -109,15 +109,15 @@ let throw ?(formatter = Format.std_formatter) ?lexbuf () =
       Repr.print_type_error ~formatter (error_header ~formatter 5) explain;
       raise Error
   | Typechecking.No_method (name, typ) ->
-      error_header ~formatter 5 typ.Type.pos;
+      error_header ~formatter 5 (Type.pos typ);
       Format.fprintf formatter
         "This value has type %s, it cannot have method %s.@]@."
         (Repr.string_of_type typ) name;
       raise Error
   | Term.No_label (f, lbl, first, x) ->
-      let pos_f = Pos.Option.to_string f.Term.t.Type.pos in
+      let pos_f = Pos.Option.to_string (Type.pos f.Term.t) in
       flush_all ();
-      error_header ~formatter 6 x.Term.t.Type.pos;
+      error_header ~formatter 6 (Type.pos x.Term.t);
       Format.fprintf formatter
         "Cannot apply that parameter because the function %s@ has %s@ %s!@]@."
         pos_f

@@ -342,15 +342,15 @@ let source_methods_t t =
 let source_t ?(methods = false) frame_t =
   let t =
     Type.make
-      (Type.Constr
-         (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
-         { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
+      (`Constr
+        (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
+        { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
   in
   if methods then source_methods_t t else t
 
 let of_source_t t =
-  match (Type.demeth t).Type.descr with
-    | Type.Constr { Type.constructor = "source"; params = [(_, t)] } -> t
+  match Type.demeth t with
+    | Type.Constr { constructor = "source"; params = [(_, t)] } -> t
     | _ -> assert false
 
 let source_tracks_t frame_t =
@@ -398,7 +398,7 @@ let check_content v t =
   let rec check_value v t =
     if not (has_value_flag v Flags.checked_value) then (
       add_value_flag v Flags.checked_value;
-      match (v, (Type.deref t).Type.descr) with
+      match (v, Type.deref t) with
         | _, Type.Var _ -> ()
         | _ when Source_val.is_value v ->
             let source_t = source_t (Source_val.of_value v)#frame_type in
@@ -427,11 +427,12 @@ let check_content v t =
         | Value.Bool _, _
         | Value.Custom _, _ ->
             ()
-        | Value.List { value = l }, Type.List { Type.t } ->
+        | Value.List { value = l }, Type.List { t } ->
             List.iter (fun v -> check_value v t) l
-        | Value.Tuple { value = l }, Type.Tuple t -> List.iter2 check_value l t
+        | Value.Tuple { value = l }, Type.Tuple { t } ->
+            List.iter2 check_value l t
         | Value.Null _, _ -> ()
-        | _, Type.Nullable t -> check_value v t
+        | _, Type.Nullable { t } -> check_value v t
         (* Value can have more methods than the type requires so check from the type here. *)
         | _, Type.Meth _ ->
             let meths, v = Value.split_meths v in
@@ -449,16 +450,16 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        | Value.Fun { fun_args = []; fun_body = ret }, Type.Getter t ->
+        | Value.Fun { fun_args = []; fun_body = ret }, Type.Getter { t } ->
             Typing.(ret.Term.t <: t)
-        | Value.FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
+        | Value.FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter { t } ->
             ffi.ffi_fn <-
               (fun env ->
                 let v = ffi_fn env in
                 check_value v t;
                 v)
         | ( Value.Fun { fun_args = args; fun_body = ret },
-            Type.Arrow (args_t, ret_t) ) ->
+            Type.Arrow { args = args_t; t = ret_t } ) ->
             List.iter
               (fun typ ->
                 match typ with
@@ -473,7 +474,8 @@ let check_content v t =
                   | _ -> ())
               args_t;
             Typing.(ret.Term.t <: ret_t)
-        | Value.FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
+        | ( Value.FFI ({ ffi_args; ffi_fn } as ffi),
+            Type.Arrow { args = args_t; t = ret_t } ) ->
             List.iter
               (fun typ ->
                 match typ with

@@ -41,8 +41,8 @@ let channels_of_channel_layout args =
         Avutil.Channel_layout.(get_nb_channels (find layout))
     | { Term.term = `String layout } ->
         Avutil.Channel_layout.(get_nb_channels (find layout))
-    | { t = { Type.pos } } as tm ->
-        Lang_encoder.raise_error ~pos
+    | tm ->
+        Lang_encoder.raise_error ~pos:(Type.pos tm.t)
           (Printf.sprintf
              "Invalid value %s for channel_layout parameter. Only static \
               numbers are allowed."
@@ -58,8 +58,8 @@ let channels args =
       in
       match channels with
         | { Term.term = `Int n } -> n
-        | { t = { Type.pos } } as tm ->
-            Lang_encoder.raise_error ~pos
+        | tm ->
+            Lang_encoder.raise_error ~pos:(Type.pos tm.t)
               (Printf.sprintf
                  "Invalid value %s for %s parameter. Only static numbers are \
                   allowed."
@@ -189,7 +189,7 @@ let to_static_string_term = function
   | Term.{ term = `String s } -> Some s
   | _ -> None
 
-let term_pos { Term.t = { Type.pos } } = pos
+let term_pos tm = Type.pos tm.Term.t
 
 let type_of_encoder =
   List.fold_left

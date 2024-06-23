@@ -31,12 +31,12 @@ type value = Value.t
 
 (** Type construction *)
 
-let int_t = Type.make Type.Int
+let int_t = Type.make `Int
 let unit_t = Type.make Type.unit
-let float_t = Type.make Type.Float
-let bool_t = Type.make Type.Bool
-let string_t = Type.make Type.String
-let tuple_t l = Type.make (Type.Tuple l)
+let float_t = Type.make `Float
+let bool_t = Type.make `Bool
+let string_t = Type.make `String
+let tuple_t l = Type.make (`Tuple l)
 let product_t a b = tuple_t [a; b]
 
 let rec record_t = function
@@ -57,22 +57,20 @@ let rec optional_method_t t0 = function
       Type.meth l t ~doc ~optional:true (optional_method_t t0 r)
 
 let of_tuple_t t =
-  match (Type.deref t).Type.descr with Type.Tuple l -> l | _ -> assert false
+  match Type.deref t with Type.Tuple { t = l } -> l | _ -> assert false
 
 let of_product_t t =
   match of_tuple_t t with [a; b] -> (a, b) | _ -> assert false
 
-let fun_t p b = Type.make (Type.Arrow (p, b))
-let list_t t = Type.make Type.(List { t; json_repr = `Tuple })
+let fun_t p b = Type.make (`Arrow (p, b))
+let list_t t = Type.make (`List { t; json_repr = `Tuple })
 
 let of_list_t t =
-  match (Type.deref t).Type.descr with
-    | Type.(List { t }) -> t
-    | _ -> assert false
+  match Type.deref t with Type.List { t } -> t | _ -> assert false
 
-let nullable_t t = Type.make (Type.Nullable t)
+let nullable_t t = Type.make (`Nullable t)
 let univ_t ?(constraints = []) () = Type.var ~constraints ()
-let getter_t a = Type.make (Type.Getter a)
+let getter_t a = Type.make (`Getter a)
 let ref_t a = Type.reference a
 
 (** Value construction *)
@@ -110,10 +108,10 @@ let val_cst_fun p c =
   match c with
     | Null _ -> f (Type.var ()) `Null
     | Tuple { value = [] } -> f (Type.make Type.unit) Term.unit
-    | Int { value = i } -> f (mkg Type.Int) (`Int i)
-    | Bool { value = i } -> f (mkg Type.Bool) (`Bool i)
-    | Float { value = i } -> f (mkg Type.Float) (`Float i)
-    | String { value = i } -> f (mkg Type.String) (`String i)
+    | Int { value = i } -> f (mkg `Int) (`Int i)
+    | Bool { value = i } -> f (mkg `Bool) (`Bool i)
+    | Float { value = i } -> f (mkg `Float) (`Float i)
+    | String { value = i } -> f (mkg `String) (`String i)
     | _ -> mk (`FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
 let reference get set =
@@ -133,7 +131,7 @@ type proto = (string * t * value option * string option) list
 
 let builtin_type p t =
   Type.make
-    (Type.Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
+    (`Arrow (List.map (fun (lbl, t, opt, _) -> (opt <> None, lbl, t)) p, t))
 
 let meth_fun = meth
 

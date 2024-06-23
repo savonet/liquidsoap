@@ -7,9 +7,7 @@ module Cache = Liquidsoap_lang.Cache
    b/c of source.dynamic so we want to dig deeper
    than the regular demeth. *)
 let rec deep_demeth t =
-  match Type.demeth t with
-    | Type.{ descr = Nullable t } -> deep_demeth t
-    | t -> t
+  match Type.demeth t with Nullable { t } -> deep_demeth t | t -> t
 
 let eval_check ~env:_ ~tm v =
   if Lang_source.Source_val.is_value v then (
@@ -39,7 +37,7 @@ let render_string = function
 let mk_field_t ~pos kind params =
   match kind with
     | "any" -> Type.var ~pos:(Pos.of_lexing_pos pos) ()
-    | "none" | "never" -> Type.make Type.Never
+    | "none" | "never" -> Type.make `Never
     | _ -> (
         try
           let k = Content.kind_of_string kind in
@@ -75,7 +73,7 @@ let () =
     fun ?pos () ->
       Type.make
         ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
-        Lang_source.ClockValue.base_t.Type.descr
+        (Type.descr Lang_source.ClockValue.base_t)
 
 let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
   let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in

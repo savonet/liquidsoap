@@ -43,12 +43,12 @@ let to_pcm_s16 c =
 let _ =
   let content_t = Lang.univ_t () in
   let input_t =
-    Type.(
-      make (Custom (Format_type.kind_handler (Content_audio.kind, content_t))))
+    Type.make
+      (`Custom (Format_type.kind_handler (Content_audio.kind, content_t)))
   in
   let output_t =
-    Type.(
-      make (Custom (Format_type.kind_handler (Content_pcm_s16.kind, content_t))))
+    Type.make
+      (`Custom (Format_type.kind_handler (Content_pcm_s16.kind, content_t)))
   in
   Lang.add_track_operator ~base:Modules.track_encode_audio "pcm_s16"
     [("", input_t, None, None)]
@@ -67,12 +67,12 @@ let from_pcm_s16 c =
 let _ =
   let content_t = Lang.univ_t () in
   let input_t =
-    Type.(
-      make (Custom (Format_type.kind_handler (Content_pcm_s16.kind, content_t))))
+    Type.make
+      (`Custom (Format_type.kind_handler (Content_pcm_s16.kind, content_t)))
   in
   let output_t =
-    Type.(
-      make (Custom (Format_type.kind_handler (Content_audio.kind, content_t))))
+    Type.make
+      (`Custom (Format_type.kind_handler (Content_audio.kind, content_t)))
   in
   Lang.add_track_operator ~base:Modules.track_decode_audio "pcm_s16"
     [("", input_t, None, None)]
@@ -91,12 +91,12 @@ let to_pcm_f32 c =
 let _ =
   let content_t = Lang.univ_t () in
   let input_t =
-    Type.(
-      make (Custom (Format_type.kind_handler (Content_audio.kind, content_t))))
+    Type.make
+      (`Custom (Format_type.kind_handler (Content_audio.kind, content_t)))
   in
   let output_t =
-    Type.(
-      make (Custom (Format_type.kind_handler (Content_pcm_f32.kind, content_t))))
+    Type.make
+      (`Custom (Format_type.kind_handler (Content_pcm_f32.kind, content_t)))
   in
   Lang.add_track_operator ~base:Modules.track_encode_audio "pcm_f32"
     [("", input_t, None, None)]
@@ -115,12 +115,12 @@ let from_pcm_f32 c =
 let _ =
   let content_t = Lang.univ_t () in
   let input_t =
-    Type.(
-      make (Custom (Format_type.kind_handler (Content_pcm_f32.kind, content_t))))
+    Type.make
+      (`Custom (Format_type.kind_handler (Content_pcm_f32.kind, content_t)))
   in
   let output_t =
-    Type.(
-      make (Custom (Format_type.kind_handler (Content_audio.kind, content_t))))
+    Type.make
+      (`Custom (Format_type.kind_handler (Content_audio.kind, content_t)))
   in
   Lang.add_track_operator ~base:Modules.track_decode_audio "pcm_f32"
     [("", input_t, None, None)]

@@ -72,7 +72,7 @@ let type_of_pat ~level ~pos = function
           ([], []) l
       in
       let l = List.rev l in
-      (env, Type.make ?pos (Type.Tuple l))
+      (env, Type.make ?pos (`Tuple l))
 
 (* Type-check an expression. *)
 let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
@@ -87,7 +87,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
      position of the value. When we synthesize a type against which the type of
      the term is unified, we have to set the position information in order not
      to loose it. *)
-  let pos = e.t.Type.pos in
+  let pos = Type.pos e.t in
   let mk t = Type.make ?pos t in
   let check_fun ~env e { arguments; body } =
     let base_check = check ~level ~env in
@@ -112,12 +112,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
       (fun labels (_, l, _) ->
         if l = "" then labels
         else (
-          if List.mem l labels then raise (Duplicate_label (e.t.Type.pos, l));
+          if List.mem l labels then raise (Duplicate_label (Type.pos e.t, l));
           l :: labels))
       [] proto_t
     |> ignore;
     check ~level ~env body;
-    e.t >: mk (Type.Arrow (proto_t, body.t))
+    e.t >: mk (`Arrow (proto_t, body.t))
   in
   let base_type = Type.var () in
   let () =
@@ -129,12 +129,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
               var_id = Atomic.get Type_base.var_id_atom;
               env;
             };
-          base_type >: mk (Tuple [])
-      | `Int _ -> base_type >: mk Int
-      | `Float _ -> base_type >: mk Float
-      | `String _ -> base_type >: mk String
-      | `Bool _ -> base_type >: mk Bool
-      | `Custom h -> base_type >: mk h.handler.typ.Type.descr
+          base_type >: mk (`Tuple [])
+      | `Int _ -> base_type >: mk `Int
+      | `Float _ -> base_type >: mk `Float
+      | `String _ -> base_type >: mk `String
+      | `Bool _ -> base_type >: mk `Bool
+      | `Custom h -> base_type >: mk (Type.descr h.handler.typ)
       | `Encoder f ->
           (* Ensure that we only use well-formed terms. *)
           let rec check_enc (_, p) =
@@ -159,11 +159,11 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           List.iter (fun x -> check ~level ~env x) l;
           let t = Type.var ~level ?pos () in
           List.iter (fun e -> e.t <: t) l;
-          base_type >: mk Type.(List { t; json_repr = `Tuple })
+          base_type >: mk (`List { t; json_repr = `Tuple })
       | `Tuple l ->
           List.iter (fun a -> check ~level ~env a) l;
-          base_type >: mk (Type.Tuple (List.map (fun a -> a.t) l))
-      | `Null -> base_type >: mk (Type.Nullable (Type.var ~level ?pos ()))
+          base_type >: mk (`Tuple (List.map (fun a -> a.t) l))
+      | `Null -> base_type >: mk (`Nullable (Type.var ~level ?pos ()))
       | `Cast { cast = a; typ = t } ->
           check ~level ~env a;
           a.t <: t;
@@ -174,28 +174,28 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
             List.fold_left
               (fun ty name ->
                 Type.make ?pos
-                  Type.(
-                    Meth
-                      ( {
-                          meth = name;
-                          optional = true;
-                          scheme = ([], Type.make ?pos Type.Never);
-                          doc = "";
-                          json_name = None;
-                        },
-                        ty )))
+                  (`Meth
+                    ( {
+                        meth = name;
+                        optional = true;
+                        scheme = ([], Type.make ?pos `Never);
+                        doc = "";
+                        json_name = None;
+                      },
+                      ty )))
               a.t methods
           in
           base_type >: ty
       | `Invoke { invoked = a; invoke_default; meth = l } ->
           check ~level ~env a;
           let rec aux t =
-            match (Type.deref t).Type.descr with
-              | Type.(
-                  Meth ({ meth = l'; scheme = (_, { descr }) as s; optional }, _))
-                when l = l' && (optional = false || descr = Never) ->
+            match Type.deref t with
+              | Type.(Meth { meth = l'; scheme = (_, t) as s; optional })
+                when l = l'
+                     && (optional = false
+                        || match t with Never _ -> true | _ -> false) ->
                   (fst s, Typing.instantiate ~level s)
-              | Type.(Meth (_, c)) -> aux c
+              | Type.(Meth { t }) -> aux t
               | _ ->
                   (* We did not find the method, the type we will infer is not the
                      most general one (no generalization), but this is safe and
@@ -204,33 +204,32 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                   let y = Type.var ~level ?pos () in
                   a.t
                   <: mk
-                       Type.(
-                         Meth
-                           ( {
-                               meth = l;
-                               optional = invoke_default <> None;
-                               scheme = ([], x);
-                               doc = "";
-                               json_name = None;
-                             },
-                             y ));
+                       (`Meth
+                         ( {
+                             meth = l;
+                             optional = invoke_default <> None;
+                             scheme = ([], x);
+                             doc = "";
+                             json_name = None;
+                           },
+                           y ));
                   ([], x)
           in
           let vars, typ = aux a.t in
           let typ =
             match (invoke_default, Type.deref typ) with
-              | None, { descr = Never } -> raise (No_method (l, a.t))
+              | None, Never _ -> raise (No_method (l, a.t))
               | None, _ -> typ
               | Some v, _ -> (
                   check ~level ~env v;
                   let v_t = Typing.instantiate ~level (vars, v.t) in
-                  match typ.Type.descr with
-                    | Never -> v_t
+                  match typ with
+                    | Never _ -> v_t
                     | _ ->
                         (* We want to make sure that: x?.foo types as: { foo?: 'a } *)
                         let typ =
-                          match (Type.deref v.t).descr with
-                            | Type.Nullable _ -> mk Type.(Nullable typ)
+                          match Type.deref v.t with
+                            | Type.Nullable _ -> mk (`Nullable typ)
                             | _ -> typ
                         in
                         v_t <: typ;
@@ -241,8 +240,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
           check ~level ~env a;
           a.t <: mk Type.unit;
           let rec aux env t =
-            match (Type.deref t).Type.descr with
-              | Type.(Meth ({ meth = l; scheme = g, u }, t)) ->
+            match Type.deref t with
+              | Type.(Meth { meth = l; scheme = g, u; t }) ->
                   aux ((l, (g, u)) :: env) t
               | _ -> env
           in
@@ -262,8 +261,8 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
              better error messages. Otherwise generate its type and unify -- in
              that case the optionality can't be guessed and mandatory is the
              default. *)
-          match (Type.demeth a.t).Type.descr with
-            | Type.Arrow (ap, t) ->
+          match Type.demeth a.t with
+            | Type.Arrow { args = ap; t } ->
                 (* Find in l the first arg labeled lbl, return it together with the
                    remaining of the list. *)
                 let get_arg lbl l =
@@ -287,11 +286,9 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                         | Some (_, t, ap') ->
                             (match (a.term, lbl) with
                               | `Var "if", "then" | `Var "if", "else" -> (
-                                  match
-                                    ( (Type.deref v.t).descr,
-                                      (Type.deref t).descr )
-                                  with
-                                    | Type.Arrow ([], vt), Type.Arrow ([], t) ->
+                                  match (Type.deref v.t, Type.deref t) with
+                                    | ( Type.Arrow { args = []; t = vt },
+                                        Type.Arrow { args = []; t } ) ->
                                         vt <: t
                                     | _ -> assert false)
                               | _ -> v.t <: t);
@@ -309,7 +306,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
                 base_type >: t
             | _ ->
                 let p = List.map (fun (lbl, b) -> (false, lbl, b.t)) l in
-                a.t <: Type.make (Type.Arrow (p, base_type)))
+                a.t <: Type.make (`Arrow (p, base_type)))
       | `Fun p ->
           let env =
             match p.name with
@@ -379,15 +376,15 @@ let rec check ?(print_toplevel = false) ~throw ~level ~(env : Typing.env) e =
        (fun meth meth_term t ->
          check ~level ~env meth_term;
          Type.make ?pos
-           (Type.Meth
-              ( {
-                  Type.meth;
-                  optional = false;
-                  scheme = Typing.generalize ~level meth_term.t;
-                  doc = "";
-                  json_name = None;
-                },
-                t )))
+           (`Meth
+             ( {
+                 Type.meth;
+                 optional = false;
+                 scheme = Typing.generalize ~level meth_term.t;
+                 doc = "";
+                 json_name = None;
+               },
+               t )))
        e.methods base_type
 
 let display_types = ref false
@@ -402,7 +399,7 @@ let check ?env ~throw e =
         | None -> Environment.default_typing_environment ()
     in
     check ~print_toplevel ~throw ~level:0 ~env e;
-    if print_toplevel && (Type.deref e.t).Type.descr <> Type.unit then
+    if print_toplevel && Type.is_unit e.t then
       add_task (fun () ->
           Format.printf "@[<2>-     :@ %a@]@." Repr.print_type e.t);
     pop_tasks ()

@@ -72,7 +72,7 @@ let profile = ref false
 let ref_t ?pos t =
   Type.make ?pos
     (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
-    (Type.Constr { Type.constructor = "ref"; params = [(`Invariant, t)] })
+    (`Constr { Type.constructor = "ref"; params = [(`Invariant, t)] })
 
 (** {2 Terms} *)
 
@@ -277,8 +277,8 @@ and free_vars ?(bound = []) body : Vars.t =
 (** Values which can be ignored (and will thus not raise a warning if
    ignored). *)
 let can_ignore t =
-  match (Type.demeth t).Type.descr with
-    | Type.Tuple [] | Type.Var _ -> true
+  match Type.demeth t with
+    | Type.Tuple { t = [] } | Type.Var _ -> true
     | _ -> false
 
 (** {1 Basic checks and errors} *)
@@ -364,7 +364,7 @@ let check_unused ~throw ~lib tm =
           Vars.iter
             (fun x ->
               if Vars.mem x v && x <> "_" then
-                throw (Unused_variable (x, Option.get tm.t.Type.pos)))
+                throw (Unused_variable (x, Option.get (Type.pos tm.t))))
             bound;
           (* Restore masked variables. The masking variables have been used but
              it does not count for the ones they masked. Bound variables have
@@ -389,7 +389,7 @@ let check_unused ~throw ~lib tm =
                   if
                     s <> "_"
                     && not (can_ignore def.t || (toplevel && Type.is_fun def.t))
-                  then throw (Unused_variable (s, Option.get tm.t.Type.pos)))
+                  then throw (Unused_variable (s, Option.get (Type.pos tm.t))))
               bvpat;
           Vars.union v mask
   in
@@ -436,7 +436,7 @@ module MkCustom (Def : CustomDef) = struct
     let to_string _ = name
   end)
 
-  let descr = Type.Custom (T.handler ())
+  let descr = `Custom (T.handler ())
   let t = Type.make descr
   let () = Type.register_type Def.name (fun () -> Type.make descr)
 
@@ -464,7 +464,7 @@ let make ?pos ?t ?flags ?methods e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
   if Lazy.force debug then
     Printf.eprintf "%s (%s): assigned type var %s\n"
-      (Pos.Option.to_string t.Type.pos)
+      (Pos.Option.to_string (Type.pos t))
       (try to_string term with _ -> "<?>")
       (Repr.string_of_type t);
   term
