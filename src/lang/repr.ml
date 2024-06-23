@@ -34,24 +34,26 @@ include R
 type t = Type_base.constr R.t
 
 (** Given a position, find the relevant excerpt. *)
-let excerpt (start, stop) =
+let excerpt pos =
+  let { Pos.fname; lstart; lstop; cstart; cstop } = Pos.unpack pos in
   try
-    if start.Lexing.pos_fname <> stop.Lexing.pos_fname then raise Exit;
-    let fname = start.Lexing.pos_fname in
-    let l1 = start.Lexing.pos_lnum in
-    let l2 = stop.Lexing.pos_lnum in
-    let ic = open_in fname in
-    let n = ref 1 in
-    while !n < l1 do
-      ignore (input_line ic);
-      incr n
-    done;
-    let lines = ref [] in
-    while !n <= l2 do
-      lines := input_line ic :: !lines;
-      incr n
-    done;
-    close_in ic;
+    let lines =
+      let ic = open_in fname in
+      Fun.protect
+        ~finally:(fun () -> close_in ic)
+        (fun () ->
+          let n = ref 1 in
+          while !n < lstart do
+            ignore (input_line ic);
+            incr n
+          done;
+          let lines = ref [] in
+          while !n <= lstop do
+            lines := input_line ic :: !lines;
+            incr n
+          done;
+          lines)
+    in
     let lines = Array.of_list (List.rev !lines) in
     let lines =
       let n = Array.length lines in
@@ -66,14 +68,8 @@ let excerpt (start, stop) =
     in
     (* The order is important here because both lines might be the same. *)
     lines.(Array.length lines - 1) <-
-      insert_at (Console.stop_color ())
-        (stop.Lexing.pos_cnum - stop.Lexing.pos_bol)
-        lines.(Array.length lines - 1);
-    lines.(0) <-
-      insert_at
-        (Console.start_color [`red])
-        (start.Lexing.pos_cnum - start.Lexing.pos_bol)
-        lines.(0);
+      insert_at (Console.stop_color ()) cstop lines.(Array.length lines - 1);
+    lines.(0) <- insert_at (Console.start_color [`red]) cstart lines.(0);
     let lines = Array.to_list lines in
     let s = String.concat "\n" lines ^ "\n" in
     Some s

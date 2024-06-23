@@ -30,8 +30,8 @@ open Parser_helper
 %token <string> VARLPAR
 %token <string> VARLBRA
 %token <Lang_string.Version.t> VERSION
-%token <char * string * Pos.t> PP_STRING
-%token <string * char list * Pos.t> PP_REGEXP
+%token <char * string * Parsed_term.pos> PP_STRING
+%token <string * char list * Parsed_term.pos> PP_REGEXP
 %token <char * string > STRING
 %token <string * char list > REGEXP
 %token <string> INT PP_INT_DOT_LCUR

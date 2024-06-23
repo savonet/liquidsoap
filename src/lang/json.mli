@@ -7,12 +7,9 @@ type t =
   | `Int of int
   | `Null ]
 
-(** A position. *)
-type pos = Lexing.position * Lexing.position
-
-type parse_error = { pos : pos; message : string }
+type parse_error = { pos : Pos.t; message : string }
 
 exception Parse_error of parse_error
 
-val from_string : ?pos:pos list -> ?json5:bool -> string -> t
+val from_string : ?pos:Pos.t list -> ?json5:bool -> string -> t
 val to_string : ?compact:bool -> ?json5:bool -> t -> string
