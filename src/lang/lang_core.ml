@@ -261,12 +261,15 @@ let module_name name = name
 let apply_fun : (?pos:Pos.t list -> value -> env -> value) ref =
   ref (fun ?pos:_ _ -> assert false)
 
-let apply f p = !apply_fun f p
+let apply f p = !apply_fun f p [@@inline always]
 
 (** {1 High-level manipulation of values} *)
 
 let to_unit = function Tuple { value = [] } -> () | _ -> assert false
+  [@@inline always]
+
 let to_bool = function Bool { value = b } -> b | _ -> assert false
+  [@@inline always]
 
 let to_bool_getter = function
   | Bool { value = b } -> fun () -> b
@@ -274,9 +277,12 @@ let to_bool_getter = function
       fun () ->
         match apply v [] with Bool { value = b } -> b | _ -> assert false)
   | _ -> assert false
+  [@@inline always]
 
-let to_fun v = apply v
+let to_fun v = apply v [@@inline always]
+
 let to_string = function String { value = s } -> s | _ -> assert false
+  [@@inline always]
 
 let to_string_getter = function
   | String { value = s } -> fun () -> s
@@ -284,8 +290,10 @@ let to_string_getter = function
       fun () ->
         match apply v [] with String { value = s } -> s | _ -> assert false)
   | _ -> assert false
+  [@@inline always]
 
 let to_float = function Float { value = f } -> f | _ -> assert false
+  [@@inline always]
 
 let to_float_getter = function
   | Float { value = f } -> fun () -> f
@@ -293,8 +301,10 @@ let to_float_getter = function
       fun () ->
         match apply v [] with Float { value = f } -> f | _ -> assert false)
   | _ -> assert false
+  [@@inline always]
 
 let to_int = function Int { value = i } -> i | _ -> assert false
+  [@@inline always]
 
 let to_int_getter = function
   | Int { value = i } -> fun () -> i
@@ -302,31 +312,42 @@ let to_int_getter = function
       fun () ->
         match apply v [] with Int { value = i } -> i | _ -> assert false)
   | _ -> assert false
+  [@@inline always]
 
 let to_num = function
   | Int { value = i } -> `Int i
   | Float { value = f } -> `Float f
   | _ -> assert false
+  [@@inline always]
 
 let to_list = function List { value = l } -> l | _ -> assert false
+  [@@inline always]
+
 let to_tuple = function Tuple { value = l } -> l | _ -> assert false
-let to_option = function Null _ -> None | v -> Some v
+  [@@inline always]
+
+let to_option = function Null _ -> None | v -> Some v [@@inline always]
+
 let to_valued_option convert v = Option.map convert (to_option v)
+  [@@inline always]
 
 let to_default_option ~default convert v =
   Option.value ~default (to_valued_option convert v)
+  [@@inline always]
 
 let to_product = function
   | Tuple { value = [a; b] } -> (a, b)
   | _ -> assert false
+  [@@inline always]
 
-let to_string_list l = List.map to_string (to_list l)
-let to_int_list l = List.map to_int (to_list l)
+let to_string_list l = List.map to_string (to_list l) [@@inline always]
+let to_int_list l = List.map to_int (to_list l) [@@inline always]
 
 let to_getter = function
   | (Fun { fun_args = [] } as v) | (FFI { ffi_args = []; _ } as v) ->
       fun () -> apply v []
   | v -> fun () -> v
+  [@@inline always]
 
 let to_ref t =
   let m, t = split_meths t in

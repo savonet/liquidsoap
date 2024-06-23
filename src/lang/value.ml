@@ -124,6 +124,7 @@ let methods = function
   | Fun { methods }
   | FFI { methods } ->
       methods
+  [@@inline always]
 
 let map_methods v fn =
   match v with
@@ -137,6 +138,7 @@ let map_methods v fn =
     | List ({ methods } as p) -> List { p with methods = fn methods }
     | Fun ({ methods } as p) -> Fun { p with methods = fn methods }
     | FFI ({ methods } as p) -> FFI { p with methods = fn methods }
+  [@@inline always]
 
 let pos = function
   | Int { pos }
@@ -150,6 +152,7 @@ let pos = function
   | Fun { pos }
   | FFI { pos } ->
       pos
+  [@@inline always]
 
 let set_pos v pos =
   match v with
@@ -163,6 +166,7 @@ let set_pos v pos =
     | List p -> List { p with pos }
     | Fun p -> Fun { p with pos }
     | FFI p -> FFI { p with pos }
+  [@@inline always]
 
 let has_flag v flag =
   match v with
@@ -174,6 +178,7 @@ let has_flag v flag =
     | Fun { flags }
     | FFI { flags } ->
         Flags.has flags flag
+  [@@inline always]
 
 let add_flag v flag =
   match v with
@@ -184,6 +189,7 @@ let add_flag v flag =
     | List p -> p.flags <- Flags.add p.flags flag
     | Fun p -> p.flags <- Flags.add p.flags flag
     | FFI p -> p.flags <- Flags.add p.flags flag
+  [@@inline always]
 
 let unit = `Tuple []
 let is_unit = function Tuple { value = [] } -> true | _ -> false
