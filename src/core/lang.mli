@@ -260,7 +260,6 @@ val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
 val reference : (unit -> value) -> (value -> unit) -> value
-val value : value -> in_value
 val http_transport : Http.transport -> value
 val base_http_transport : Http.transport -> value
 

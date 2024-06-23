@@ -67,30 +67,30 @@ let channels args =
     with Not_found -> 2)
 
 let to_int t =
-  match Lang.value t with
-    | `Int i -> i
-    | `String s -> int_of_string s
-    | `Float f -> int_of_float f
+  match t with
+    | Value.Int { value = i } -> i
+    | Value.String { value = s } -> int_of_string s
+    | Value.Float { value = f } -> int_of_float f
     | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "integer expected"
 
 let to_string t =
-  match Lang.value t with
-    | `Int i -> Printf.sprintf "%i" i
-    | `String s -> s
-    | `Float f -> Printf.sprintf "%f" f
+  match t with
+    | Value.Int { value = i } -> Printf.sprintf "%i" i
+    | Value.String { value = s } -> s
+    | Value.Float { value = f } -> Printf.sprintf "%f" f
     | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "string expected"
 
 let to_float t =
-  match Lang.value t with
-    | `Int i -> float i
-    | `String s -> float_of_string s
-    | `Float f -> f
+  match t with
+    | Value.Int { value = i } -> float i
+    | Value.String { value = s } -> float_of_string s
+    | Value.Float { value = f } -> f
     | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "float expected"
 
 let to_copy_opt t =
-  match Lang.value t with
-    | `String "wait_for_keyframe" -> `Wait_for_keyframe
-    | `String "ignore_keyframe" -> `Ignore_keyframe
+  match t with
+    | Value.String { value = "wait_for_keyframe" } -> `Wait_for_keyframe
+    | Value.String { value = "ignore_keyframe" } -> `Ignore_keyframe
     | _ ->
         Lang_encoder.raise_error ~pos:(Value.pos t)
           ("Invalid value for copy encoder parameter: " ^ Value.to_string t)
@@ -343,8 +343,8 @@ let ffmpeg_gen params =
     | (("channel_layout", t) as arg) :: args ->
         (* Handle 5.1 as float *)
         let layout =
-          match Lang.value t with
-            | `Float f -> Printf.sprintf "%.1f" f
+          match t with
+            | Value.Float { value = f } -> Printf.sprintf "%.1f" f
             | _ -> to_string t
         in
         parse_opts opts arg;

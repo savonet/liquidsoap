@@ -112,18 +112,6 @@ type in_value =
   | `Fun of fun_v
   | `FFI of ffi ]
 
-let value : t -> in_value = function
-  | Int { value = i } -> `Int i
-  | Float { value = f } -> `Float f
-  | String { value = s } -> `String s
-  | Bool { value = b } -> `Bool b
-  | Null _ -> `Null
-  | Custom { value = c } -> `Custom c
-  | List { value = l } -> `List l
-  | Tuple { value = l } -> `Tuple l
-  | Fun { fun_args; fun_env; fun_body } -> `Fun { fun_args; fun_env; fun_body }
-  | FFI { ffi_args; ffi_fn } -> `FFI { ffi_args; ffi_fn }
-
 let methods = function
   | Int { methods }
   | Float { methods }

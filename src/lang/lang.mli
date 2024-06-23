@@ -176,7 +176,6 @@ val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
 val reference : (unit -> value) -> (value -> unit) -> value
-val value : value -> in_value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
     the label and optional values. Second string value is used when renaming

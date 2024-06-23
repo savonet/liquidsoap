@@ -177,7 +177,7 @@ type descr = {
   description : string;
   comments : string;
   children : (string * descr) list;
-  value : Lang.in_value;
+  value : Lang.value;
 }
 
 let filtered_settings = ["subordinate log level"]
@@ -198,7 +198,7 @@ let print_settings () =
               (key, grab_descr meth) :: children
             else children)
           (Value.methods v) [];
-      value = Lang.value v;
+      value = v;
     }
   in
   let descr = grab_descr !settings in
@@ -207,17 +207,17 @@ let print_settings () =
         not (List.mem description filtered_settings))
   in
   let print_set ~path = function
-    | `Tuple [] -> []
-    | Liquidsoap_lang.Value.(`Fun { fun_args = [] } | `FFI { ffi_args = []; _ })
+    | Liquidsoap_lang.Value.Tuple { value = [] } -> []
+    | Liquidsoap_lang.Value.(Fun { fun_args = [] } | FFI { ffi_args = []; _ })
       as value ->
-        let value = Lang.apply (Value.make value) [] in
+        let value = Lang.apply value [] in
         [
           Printf.sprintf {|
 ```liquidsoap
 %s := %s
 ```
 |} path
-            (if Lang.value value = `Null then "<value>"
+            (if match value with Null _ -> true | _ -> false then "<value>"
              else Value.to_string value);
         ]
     | value ->
@@ -227,7 +227,7 @@ let print_settings () =
 %s := %s
 ```
 |} path
-            (Value.to_string (Value.make value));
+            (Value.to_string value);
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -299,15 +299,17 @@ let _ =
       try
         let get = grab path !settings in
         let v = Lang.apply get [] in
-        match (Lang.value default, Lang.value v) with
-          | `Bool _, `Bool _
-          | `Int _, `Int _
-          | `Float _, `Float _
-          | `String _, `String _
-          | `List [], `List []
-          | `List (Value.String _ :: _), `List []
-          | `List [], `List (Value.String _ :: _)
-          | `List (Value.String _ :: _), `List (Value.String _ :: _) ->
+        let open Liquidsoap_lang.Value in
+        match (default, v) with
+          | Bool _, Bool _
+          | Int _, Int _
+          | Float _, Float _
+          | String _, String _
+          | List { value = [] }, List { value = [] }
+          | List { value = Value.String _ :: _ }, List { value = [] }
+          | List { value = [] }, List { value = Value.String _ :: _ }
+          | ( List { value = Value.String _ :: _ },
+              List { value = Value.String _ :: _ } ) ->
               v
           | _ ->
               log#severe

@@ -30,17 +30,17 @@ let rec json_of_value ?pos v : Json.t =
       | None, None -> []
   in
   let m, v = Value.split_meths v in
-  match Value.value v with
-    | `Null -> `Null
-    | `Int i -> `Int i
-    | `Float f -> `Float f
-    | `Bool b -> `Bool b
-    | `String s -> `String s
-    | `Custom g -> Term.Custom.to_json ~pos g
-    | `List l -> `Tuple (List.map (json_of_value ~pos) l)
-    | `Tuple [] when m <> [] ->
+  match v with
+    | Null _ -> `Null
+    | Int { value = i } -> `Int i
+    | Float { value = f } -> `Float f
+    | Bool { value = b } -> `Bool b
+    | String { value = s } -> `String s
+    | Custom { value = g } -> Term.Custom.to_json ~pos g
+    | List { value = l } -> `Tuple (List.map (json_of_value ~pos) l)
+    | Tuple { value = [] } when m <> [] ->
         `Assoc (List.map (fun (l, v) -> (l, json_of_value ~pos v)) m)
-    | `Tuple l -> `Tuple (List.map (json_of_value ~pos) l)
+    | Tuple { value = l } -> `Tuple (List.map (json_of_value ~pos) l)
     | _ ->
         Runtime_error.raise
           ~message:
@@ -363,27 +363,28 @@ let () =
 let rec deprecated_of_json d j =
   let m, d = Value.split_meths d in
   Lang.(
-    match (Lang.value d, j) with
-      | `Tuple [], `Null -> unit
-      | `Bool _, `Bool b -> bool b
+    match (d, j) with
+      | Tuple { value = [] }, `Null -> unit
+      | Bool _, `Bool b -> bool b
       (* JSON specs do not differentiate between ints and floats. Therefore, we
          should parse int as floats when required. *)
-      | `Int _, `Int i -> int i
-      | `Float _, `Int i -> float (float_of_int i)
-      | `Float _, `Float x -> float x
-      | `String _, `String s -> string s
+      | Int _, `Int i -> int i
+      | Float _, `Int i -> float (float_of_int i)
+      | Float _, `Float x -> float x
+      | String _, `String s -> string s
       (* Be liberal and allow casting basic types to string. *)
-      | `String _, `Int i -> string (string_of_int i)
-      | `String _, `Float x -> string (Utils.string_of_float x)
-      | `String _, `Bool b -> string (string_of_bool b)
-      | `List [], `Tuple [] -> list []
-      | `List (d :: _), `Tuple l ->
+      | String _, `Int i -> string (string_of_int i)
+      | String _, `Float x -> string (Utils.string_of_float x)
+      | String _, `Bool b -> string (string_of_bool b)
+      | List { value = [] }, `Tuple [] -> list []
+      | List { value = d :: _ }, `Tuple l ->
           (* TODO: we could also try with other elements of the default list... *)
           let l = List.map (deprecated_of_json d) l in
           list l
-      | `Tuple dd, `Tuple jj when List.length dd = List.length jj ->
+      | Tuple { value = dd }, `Tuple jj when List.length dd = List.length jj ->
           tuple (List.map2 deprecated_of_json dd jj)
-      | `List (Tuple { value = [String { value = _ }; d] } :: _), `Assoc l ->
+      | ( List { value = Tuple { value = [String { value = _ }; d] } :: _ },
+          `Assoc l ) ->
           (* Try to convert the object to a list of pairs, dropping fields that
              cannot be parsed.  This requires the target type to be [(string*'a)],
              currently it won't work if it is [?T] which would be obtained with
@@ -397,7 +398,7 @@ let rec deprecated_of_json d j =
           in
           list l
       (* Parse records. *)
-      | `Tuple [], `Assoc a when m <> [] -> (
+      | Tuple { value = [] }, `Assoc a when m <> [] -> (
           try
             List.fold_left
               (fun parsed (key, meth) ->
@@ -406,7 +407,7 @@ let rec deprecated_of_json d j =
                 Value.map_methods parsed (Methods.add key parsed_meth))
               unit m
           with Not_found -> raise DeprecatedFailed)
-      | `Tuple [], `Assoc _ -> unit
+      | Tuple { value = [] }, `Assoc _ -> unit
       | _ -> raise DeprecatedFailed)
 
 let _ =
