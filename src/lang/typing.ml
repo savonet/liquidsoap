@@ -197,12 +197,7 @@ let rec sup ~pos a b =
   if a == b then a
   else (
     match (Type.descr a, Type.descr b) with
-      | `Int, `Int
-      | `Float, `Float
-      | `String, `String
-      | `Bool, `Bool
-      | `Never, `Never ->
-          a
+      | v, v' when v == v' -> a
       | `Custom c, `Custom c' when c.typ == c'.typ -> a
       | `Getter t, `Getter t' when t == t' -> a
       | `List { t }, `List { t = t' } when t == t' -> a
@@ -394,12 +389,7 @@ and ( <: ) a b =
     Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
   if a != b then (
     match (Type.descr a, Type.descr b) with
-      | `Int, `Int
-      | `Float, `Float
-      | `String, `String
-      | `Bool, `Bool
-      | `Never, `Never ->
-          ()
+      | v, v' when v == v' -> ()
       | `Custom c, `Custom c' when c.typ == c'.typ -> ()
       | `Getter t, `Getter t' when t == t' -> ()
       | `List { t }, `List { t = t' } when t == t' -> ()
