@@ -54,8 +54,8 @@ let () =
         })
   in
   Typechecking.check ~throw:(fun exn -> raise exn) f;
-  match (Type.deref f.Term.t).Type.descr with
-    | Type.Arrow ([(false, "x", _)], t) -> (
+  match Type.deref f.Term.t with
+    | Type.Arrow { args = [(false, "x", _)]; t } -> (
         let meths, _ = Type.split_meths t in
         match meths with
           | [{ Type.meth = "foo"; optional = true; _ }] -> ()

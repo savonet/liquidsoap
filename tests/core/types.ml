@@ -22,16 +22,16 @@ let should_fail t t' =
   with _ -> ()
 
 let () =
-  should_work (var ()).descr Bool Bool;
-  should_work Bool (var ()).descr Bool;
+  should_work Type.(descr (var ())) `Bool `Bool;
+  should_work `Bool Type.(descr (var ())) `Bool;
 
-  should_fail Bool Int;
+  should_fail `Bool `Int;
   should_fail
-    (List { t = make Bool; json_repr = `Tuple })
-    (List { t = make Int; json_repr = `Tuple });
+    (`List { t = make `Bool; json_repr = `Tuple })
+    (`List { t = make `Int; json_repr = `Tuple });
 
   let mk_meth meth ty t =
-    Meth
+    `Meth
       ( {
           meth;
           optional = false;
@@ -42,19 +42,19 @@ let () =
         make t )
   in
 
-  let m = mk_meth "aa" Int Bool in
+  let m = mk_meth "aa" `Int `Bool in
 
-  should_work m Bool Bool;
+  should_work m `Bool `Bool;
 
-  let n = mk_meth "b" Bool m in
+  let n = mk_meth "b" `Bool m in
 
   should_work m n m;
 
-  let n = mk_meth "aa" Int Int in
+  let n = mk_meth "aa" `Int `Int in
 
   should_fail m n;
 
-  let n = mk_meth "aa" Bool Bool in
+  let n = mk_meth "aa" `Bool `Bool in
 
   should_fail m n;
 
@@ -69,8 +69,8 @@ let () =
 
   Typing.(a <: b);
 
-  match (snd (Type.split_meths a)).Type.descr with
-    | Tuple [] -> ()
+  match snd (Type.split_meths a) with
+    | Tuple { t = [] } -> ()
     | _ -> assert false
 
 let () =
@@ -104,9 +104,8 @@ let () =
 
   assert (
     Type.Constraints.mem Type.ord_constr
-      (match (demeth b).Type.descr with
-        | List { Type.t = { Type.descr = Var { contents = Free v }; _ }; _ } ->
-            v.Type.constraints
+      (match demeth b with
+        | List { t = Var { contents = Free v } } -> v.Type.constraints
         | _ -> assert false))
 
 let () =
@@ -127,13 +126,13 @@ let () =
 
   assert (
     Type.Constraints.mem Type.ord_constr
-      (match (demeth b).Type.descr with
+      (match demeth b with
         | Var { contents = Free v } -> v.Type.constraints
         | _ -> assert false));
 
   assert (
     Type.Constraints.mem Type.ord_constr
-      (match (demeth a).Type.descr with
+      (match demeth a with
         | Var { contents = Free v } -> v.Type.constraints
         | _ -> assert false))
 
@@ -190,7 +189,7 @@ let () =
 
   (* b_meth becomes {gni:int, foo?:int} *)
   let meths, u = Type.split_meths b_meth in
-  assert (u.Type.descr = Type.Tuple []);
+  assert (Type.descr u = `Tuple []);
   assert (List.length meths = 2);
   let foo = List.find (fun Type.{ meth; _ } -> meth = "foo") meths in
   assert (foo.Type.optional = true);
@@ -271,7 +270,7 @@ let () =
   in
   let covariant_t = Lang.univ_t () in
   Typing.bind ~variance:`Covariant covariant_t record_t;
-  (match covariant_t.Type.descr with
+  (match covariant_t with
     | Type.Var { contents = Type.Link (`Covariant, _) } -> ()
     | _ -> assert false);
 
@@ -281,7 +280,7 @@ let () =
   Typing.(a <: optional);
   Typing.(b <: optional);
 
-  match optional.Type.descr with
+  match optional with
     | Type.Constr { constructor = "source"; params = [(`Invariant, t)] } -> (
         let meths, t = Type.split_meths t in
         Typing.(t <: Lang.unit_t);
