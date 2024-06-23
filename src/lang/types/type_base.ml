@@ -344,6 +344,7 @@ let rec deref t =
 let rec demeth t =
   let t = deref t in
   match t with Meth { t } -> demeth t | _ -> t
+  [@@inline always]
 
 let rec filter_meths t fn =
   let t = deref t in
@@ -353,11 +354,13 @@ let rec filter_meths t fn =
         filter_meths t fn
     | Meth ({ t } as m) -> Meth { m with t = filter_meths t fn }
     | _ -> t
+  [@@inline always]
 
 (** Put the methods of the first type around the second type. *)
 let rec remeth t u =
   let t = deref t in
   match t with Meth ({ t } as m) -> Meth { m with t = remeth t u } | _ -> u
+  [@@inline always]
 
 (** Type of a method in a type. *)
 let rec invoke t l =
@@ -365,6 +368,7 @@ let rec invoke t l =
     | Meth { meth; scheme } when meth = l -> scheme
     | Meth { t } -> invoke t l
     | _ -> raise Not_found
+  [@@inline always]
 
 (** Do we have a method with given label? *)
 let has_meth t l =
@@ -426,16 +430,14 @@ let var ?(constraints = []) ?(level = max_int) ?pos () =
 module Fresh = struct
   type mapper = {
     level : int option;
-    preserve_positions : bool;
     selector : var -> bool;
     var_maps : (var, var) Hashtbl.t;
     link_maps : (int, var_t) Hashtbl.t;
   }
 
-  let init ?(preserve_positions = false) ?(selector = fun _ -> true) ?level () =
+  let init ?(selector = fun _ -> true) ?level () =
     {
       level;
-      preserve_positions;
       selector;
       var_maps = Hashtbl.create 10;
       link_maps = Hashtbl.create 10;
@@ -451,67 +453,63 @@ module Fresh = struct
         Hashtbl.replace var_maps var new_var;
         new_var)
 
-  let make ({ preserve_positions; selector; link_maps } as h) t =
-    let map_pos pos = if preserve_positions then pos else None in
-    let map_var var = make_var h { var with pos = map_pos var.pos } in
-    let rec map = function
-      | Int pos -> Int (map_pos pos)
-      | Float pos -> Float (map_pos pos)
-      | String pos -> String (map_pos pos)
-      | Bool pos -> Bool (map_pos pos)
-      | Never pos -> Never (map_pos pos)
-      | Custom c ->
-          Custom { c with typ = c.copy_with map c.typ; pos = map_pos c.pos }
-      | Constr { constructor; params; pos } ->
-          Constr
-            {
-              constructor;
-              params = List.map (fun (v, t) -> (v, map t)) params;
-              pos = map_pos pos;
-            }
-      | Getter { t; pos } -> Getter { t = map t; pos = map_pos pos }
-      | List { t; json_repr; pos } ->
-          List { t = map t; json_repr; pos = map_pos pos }
-      | Tuple { t; pos } -> Tuple { t = List.map map t; pos = map_pos pos }
-      | Nullable { t; pos } -> Nullable { t = map t; pos = map_pos pos }
-      | Meth ({ scheme = vars, t'; t; pos } as m) ->
-          Meth
-            {
-              m with
-              scheme = (List.map map_var vars, map t');
-              t = map t;
-              pos = map_pos pos;
-            }
-      | Arrow { args; t; pos } ->
-          Arrow
-            {
-              args = List.map (fun (b, s, t) -> (b, s, map t)) args;
-              t = map t;
-              pos = map_pos pos;
-            }
-      (* Here we keep all links. While it could be tempting to deref,
-         we are using links to compute type supremum in type unification
-         so we are better off keeping them. Also, we need to create fresh
-         links to make sure that a suppremum computation in the refreshed
-         type does not impact the original type. *)
-      | Var { id; contents = Link (v, t) } ->
-          Var
-            (try Hashtbl.find link_maps id
-             with Not_found ->
-               let new_link = { id = var_id (); contents = Link (v, map t) } in
-               Hashtbl.replace link_maps id new_link;
-               new_link)
-      | Var { id; contents = Free var } as descr ->
-          if not (selector var) then descr
-          else
+  let make ({ selector; link_maps } as h) t =
+    let map_var = make_var h in
+    let rec map v =
+      match v with
+        | Int _ | Float _ | String _ | Bool _ | Never _ -> v
+        | Custom c -> Custom { c with typ = c.copy_with map c.typ }
+        | Constr { constructor; params; pos } ->
+            Constr
+              {
+                constructor;
+                params = List.map (fun (v, t) -> (v, map t)) params;
+                pos;
+              }
+        | Getter { t; pos } -> Getter { t = map t; pos }
+        | List { t; json_repr; pos } -> List { t = map t; json_repr; pos }
+        | Tuple { t; pos } -> Tuple { t = List.map map t; pos }
+        | Nullable { t; pos } -> Nullable { t = map t; pos }
+        | Meth ({ scheme = vars, t'; t; pos } as m) ->
+            Meth
+              {
+                m with
+                scheme = (List.map map_var vars, map t');
+                t = map t;
+                pos;
+              }
+        | Arrow { args; t; pos } ->
+            Arrow
+              {
+                args = List.map (fun (b, s, t) -> (b, s, map t)) args;
+                t = map t;
+                pos;
+              }
+        (* Here we keep all links. While it could be tempting to deref,
+           we are using links to compute type supremum in type unification
+           so we are better off keeping them. Also, we need to create fresh
+           links to make sure that a suppremum computation in the refreshed
+           type does not impact the original type. *)
+        | Var { id; contents = Link (v, t) } ->
             Var
               (try Hashtbl.find link_maps id
                with Not_found ->
                  let new_link =
-                   { id = var_id (); contents = Free (map_var var) }
+                   { id = var_id (); contents = Link (v, map t) }
                  in
                  Hashtbl.replace link_maps id new_link;
                  new_link)
+        | Var { id; contents = Free var } as descr ->
+            if not (selector var) then descr
+            else
+              Var
+                (try Hashtbl.find link_maps id
+                 with Not_found ->
+                   let new_link =
+                     { id = var_id (); contents = Free (map_var var) }
+                   in
+                   Hashtbl.replace link_maps id new_link;
+                   new_link)
     in
     map t
 end

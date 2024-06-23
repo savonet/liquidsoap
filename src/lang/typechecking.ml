@@ -33,11 +33,10 @@ let debug = ref false
 let value_restriction t =
   let rec value_restriction t =
     match t.term with
-      | `Var _ -> true
-      | `Fun _ -> true
-      | `Null -> true
+      | `Var _ | `Fun _ | `Null | `Int _ | `Float _ | `String _ | `Bool _
+      | `Custom _ ->
+          true
       | `List l | `Tuple l -> List.for_all value_restriction l
-      | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> true
       | `Let l -> value_restriction l.def && value_restriction l.body
       | `Cast { cast = t } -> value_restriction t
       (* | Invoke (t, _) -> value_restriction t *)
