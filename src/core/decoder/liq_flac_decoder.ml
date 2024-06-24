@@ -89,6 +89,7 @@ let create_decoder input =
               Flac.Decoder.process decoder c
           | _ -> raise End_of_stream);
     eof = (fun _ -> ());
+    close = (fun _ -> ());
   }
 
 (** Configuration keys for flac. *)

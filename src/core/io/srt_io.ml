@@ -685,6 +685,9 @@ class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
       let on_disconnect_cur = !on_disconnect in
       on_disconnect :=
         fun () ->
+          (match decoder_data with
+            | Some (d, _) -> d.Decoder.close ()
+            | None -> ());
           decoder_data <- None;
           (match dump_chan with
             | Some chan ->

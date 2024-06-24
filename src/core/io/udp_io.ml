@@ -171,14 +171,15 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
         n
       in
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
+      let decoder, buffer = self#decoder_factory input in
       try
         (* Feeding loop. *)
-        let decoder, buffer = self#decoder_factory input in
         while true do
           if should_stop () then failwith "stop";
           decoder.Decoder.decode buffer
         done
       with e ->
+        decoder.Decoder.close ();
         Generator.add_track_mark self#buffer;
 
         (* Closing the socket is slightly overkill but

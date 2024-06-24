@@ -95,6 +95,11 @@ let () =
               frame
             in
             Decoder.
-              { fread; remaining; fseek = (fun _ -> 0); close = (fun () -> ()) });
+              {
+                fread;
+                remaining;
+                fseek = (fun _ -> 0);
+                fclose = (fun () -> ());
+              });
       stream_decoder = None;
     }

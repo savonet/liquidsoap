@@ -115,7 +115,7 @@ let create_decoder ~ctype ~width ~height ~metadata img =
     with Not_found -> -1
   in
   let duration = ref duration in
-  let close () = () in
+  let fclose () = () in
   let remaining () =
     if !duration = -1 then -1 else Frame.main_of_video !duration
   in
@@ -140,7 +140,7 @@ let create_decoder ~ctype ~width ~height ~metadata img =
           Audio.clear pcm 0 (Frame.audio_of_main length);
           Frame.set_data frame Frame.Fields.audio Content.Audio.lift_data pcm
   in
-  { Decoder.fread; remaining; fseek = (fun len -> len); close }
+  { Decoder.fread; remaining; fseek = (fun len -> len); fclose }
 
 let is_audio_compatible ctype =
   match Frame.Fields.find_opt Frame.Fields.audio ctype with
