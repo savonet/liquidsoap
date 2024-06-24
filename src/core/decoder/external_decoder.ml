@@ -79,8 +79,8 @@ let create process ctype filename =
   let dec = Decoder.opaque_file_decoder ~filename ~ctype create in
   {
     dec with
-    Decoder.close =
-      (fun () -> Fun.protect ~finally:(fun () -> dec.Decoder.close ()) !close);
+    Decoder.fclose =
+      (fun () -> Fun.protect ~finally:(fun () -> dec.Decoder.fclose ()) !close);
   }
 
 let create_stream process input =
@@ -146,7 +146,7 @@ let external_input_oblivious process filename prebuf =
     try Process_handler.on_stdout process (fun reader -> reader buf ofs len)
     with Process_handler.Finished -> 0
   in
-  let close () =
+  let fclose () =
     try Process_handler.kill process with Process_handler.Finished -> ()
   in
   let input = { Decoder.read; tell = None; length = None; lseek = None } in
@@ -168,7 +168,7 @@ let external_input_oblivious process filename prebuf =
         done
       with e ->
         log#info "Decoding %s ended: %s." command (Printexc.to_string e);
-        close ()
+        fclose ()
     end;
     Generator.fill gen frame;
 
@@ -176,7 +176,7 @@ let external_input_oblivious process filename prebuf =
      * finished. *)
     if Process_handler.stopped process then Generator.length gen else -1
   in
-  { Decoder.fill; fseek = decoder.Decoder.seek; close }
+  { Decoder.fill; fseek = decoder.Decoder.seek; fclose }
 
 let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
     ~process prebuf =

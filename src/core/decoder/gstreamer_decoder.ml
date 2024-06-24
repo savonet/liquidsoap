@@ -170,7 +170,9 @@ let create_decoder ?(merge_tracks = false) _ ~width ~height ~channels ~mode
     ignore (Gstreamer.Element.set_state gst.bin Gstreamer.Element.State_null);
     GU.flush ~log gst.bin
   in
-  ({ Decoder.decode; seek; eof = (fun _ -> ()) }, close, gst.bin)
+  ( { Decoder.decode; seek; eof = (fun _ -> ()); close = (fun _ -> ()) },
+    close,
+    gst.bin )
 
 let mime_types =
   Dtools.Conf.list

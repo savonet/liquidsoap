@@ -87,6 +87,6 @@ let () =
               t := !t + frame_size;
               -1
             in
-            Decoder.{ fill; fseek = (fun _ -> 0); close = (fun () -> ()) });
+            Decoder.{ fill; fseek = (fun _ -> 0); fclose = (fun () -> ()) });
       stream_decoder = None;
     }

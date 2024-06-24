@@ -280,6 +280,7 @@ jobs:
         if: matrix.os == 'alpine'
         run: |
           apk -U --force-overwrite upgrade
+          sudo -u opam -E opam remove -y conf-dssi
       - name: Build
         run: |
           cd /tmp/liquidsoap-full/liquidsoap

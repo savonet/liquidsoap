@@ -20,6 +20,4 @@
 
  *****************************************************************************)
 
-let () =
-  Lifecycle.on_load ~name:"memtrace init" (fun () ->
-      Memtrace.trace_if_requested ())
+let () = Memtrace.trace_if_requested ()

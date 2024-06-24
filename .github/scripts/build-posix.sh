@@ -47,6 +47,7 @@ cd /tmp/liquidsoap-full/liquidsoap
 git clone https://github.com/savonet/ocaml-mem_usage.git
 cd ocaml-mem_usage
 opam install -y .
+opam remove -y jemalloc
 cd ..
 
 opam update

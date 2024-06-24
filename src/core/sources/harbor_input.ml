@@ -140,13 +140,15 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
       try
         let decoder, buffer = create_decoder input in
-        while true do
-          Tutils.mutexify relay_m
-            (fun () -> if relay_socket = None then failwith "relaying stopped")
-            ();
-          if Atomic.get should_shutdown then failwith "shutdown called";
-          decoder.Decoder.decode buffer
-        done
+        Fun.protect ~finally:decoder.Decoder.close (fun () ->
+            while true do
+              Tutils.mutexify relay_m
+                (fun () ->
+                  if relay_socket = None then failwith "relaying stopped")
+                ();
+              if Atomic.get should_shutdown then failwith "shutdown called";
+              decoder.Decoder.decode buffer
+            done)
       with e ->
         (* Feeding has stopped: adding a break here. *)
         Generator.add_track_mark self#buffer;

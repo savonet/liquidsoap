@@ -59,12 +59,13 @@ type decoder = {
   (* [seek x]: Skip [x] main ticks.
    * Returns the number of ticks atcually skipped. *)
   seek : int -> int;
+  close : unit -> unit;
 }
 
 type file_decoder_ops = {
   fill : Frame.t -> int;
   fseek : int -> int;
-  close : unit -> unit;
+  fclose : unit -> unit;
 }
 
 type stream_decoder = input -> decoder
@@ -136,7 +137,6 @@ val mk_buffer : ctype:Frame.content_type -> Generator.t -> buffer
 (* Create a file decoder when remaining time is known. *)
 val file_decoder :
   filename:string ->
-  close:(unit -> unit) ->
   remaining:(unit -> int) ->
   ctype:Frame.content_type ->
   decoder ->

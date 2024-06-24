@@ -116,6 +116,7 @@ let create ?header input =
     Decoder.decode = (fun buffer -> !decoder ~buffer);
     seek;
     eof = (fun _ -> ());
+    close = (fun _ -> ());
   }
 
 (* File decoding *)

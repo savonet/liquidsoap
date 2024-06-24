@@ -100,7 +100,7 @@ class once ~name ~timeout request =
                  avoid it!"
           | Some f -> self#log#info "Finished with %S." f);
         let decoder = Option.get decoder in
-        decoder.Decoder.close ();
+        decoder.Decoder.fclose ();
         Request.destroy request;
         remaining <- 0;
         if forced then must_fail <- true else over <- true)
@@ -212,7 +212,7 @@ class virtual unqueued ~name =
                         remaining <- decoder.Decoder.fill buf);
                   seek =
                     Tutils.mutexify m (fun len -> decoder.Decoder.fseek len);
-                  close = decoder.Decoder.close;
+                  close = decoder.Decoder.fclose;
                 };
             remaining <- -1;
             send_metadata <- true;

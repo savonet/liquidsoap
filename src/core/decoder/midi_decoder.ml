@@ -34,7 +34,7 @@ let decoder file =
   log#info "Decoding %s..." (Lang_string.quote_string file);
   let fd = new MIDI.IO.Reader.of_file file in
   let closed = ref false in
-  let close () =
+  let fclose () =
     assert (not !closed);
     closed := true;
     fd#close
@@ -43,7 +43,7 @@ let decoder file =
     try f x
     with e ->
       log#info "Closing on error: %s." (Printexc.to_string e);
-      close ();
+      fclose ();
       raise e
   in
   let fill buf =
@@ -57,7 +57,7 @@ let decoder file =
     MFrame.add_break buf r;
     0
   in
-  { Decoder.fill; fseek = (fun _ -> 0); close }
+  { Decoder.fill; fseek = (fun _ -> 0); fclose }
 
 let () =
   Plug.register Decoder.decoders "midi" ~doc:"Decode midi files."
