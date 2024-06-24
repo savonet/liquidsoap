@@ -113,7 +113,7 @@ let create_decoder ~audio ~width ~height ~metadata img =
     with Not_found -> -1
   in
   let duration = ref duration in
-  let close () = () in
+  let fclose () = () in
   let fill frame =
     let a0 = AFrame.position frame in
     (* Fill in video. *)
@@ -134,7 +134,7 @@ let create_decoder ~audio ~width ~height ~metadata img =
       duration := !duration - (stop - start);
       Frame.main_of_video !duration)
   in
-  { Decoder.fill; fseek = (fun _ -> 0); close }
+  { Decoder.fill; fseek = (fun _ -> 0); fclose }
 
 let is_audio_compatible ctype =
   match Frame.Fields.find_opt Frame.Fields.audio ctype with
