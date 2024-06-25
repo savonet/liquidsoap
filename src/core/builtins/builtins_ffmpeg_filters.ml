@@ -540,7 +540,10 @@ let register_filters () =
               in
               let args = named_args @ unnamed_args in
               let filter = apply_filter ~args_parser ~filter ~sources_t args in
-              ignore (Lang.apply (Value.invoke filter "set_input") inputs);
+              ignore
+                (Lang.apply ~pos:(Lang.pos p)
+                   (Value.invoke filter "set_input")
+                   inputs);
               Value.invoke filter "output")
         in
         ignore
@@ -873,7 +876,7 @@ let _ =
               };
           }
       in
-      let ret = Lang.apply fn [("", Graph.to_value graph)] in
+      let ret = Lang.apply ~pos:(Lang.pos p) fn [("", Graph.to_value graph)] in
       let id = Lang_string.generate_id "ffmpeg.filter" in
       let output_clock = Clock.create ~id () in
       let input_clock =

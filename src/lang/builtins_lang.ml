@@ -28,7 +28,7 @@ let _ =
       let fy = List.assoc "then" p in
       let fn = List.assoc "else" p in
       let c = Lang.to_bool c in
-      Lang.apply (if c then fy else fn) [])
+      Lang.apply ~pos:(Lang.pos p) (if c then fy else fn) [])
 
 (** Operations on products. *)
 
