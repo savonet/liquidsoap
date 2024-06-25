@@ -137,7 +137,7 @@ let string_escape =
             | Some f, _ ->
                 fun s ofs len ->
                   Lang.to_bool
-                    (Lang.apply f
+                    (Lang.apply ~pos:(Lang.pos p) f
                        [
                          ("encoding", Lang.string encoding_string);
                          ("", Lang.string (String.sub s ofs len));
@@ -150,7 +150,7 @@ let string_escape =
             | Some f, _ ->
                 fun s ofs len ->
                   Lang.to_string
-                    (Lang.apply f
+                    (Lang.apply ~pos:(Lang.pos p) f
                        [
                          ("encoding", Lang.string encoding_string);
                          ("", Lang.string (String.sub s ofs len));

@@ -259,7 +259,7 @@ let module_name name = name
 let apply_fun : (?pos:Pos.t list -> value -> env -> value) ref =
   ref (fun ?pos:_ _ -> assert false)
 
-let apply f p = !apply_fun f p [@@inline always]
+let apply ?pos f p = !apply_fun ?pos f p [@@inline always]
 
 (** {1 High-level manipulation of values} *)
 
