@@ -298,7 +298,7 @@ let _ =
       let default = List.assoc "default" p in
       try
         let get = grab path !settings in
-        let v = Lang.apply get [] in
+        let v = Lang.apply ~pos:(Lang.pos p) get [] in
         let open Liquidsoap_lang.Value in
         match (default, v) with
           | Bool _, Bool _

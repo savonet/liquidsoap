@@ -49,8 +49,8 @@ let _ =
       let g = Lang.assoc "" 3 p in
       match x with
         | Fun { fun_args = [] } | FFI { ffi_args = []; _ } ->
-            Lang.apply g [("", x)]
-        | _ -> Lang.apply f [("", x)])
+            Lang.apply ~pos:(Lang.pos p) g [("", x)]
+        | _ -> Lang.apply ~pos:(Lang.pos p) f [("", x)])
 
 let _ =
   let a = Lang.univ_t () in
@@ -77,8 +77,10 @@ let getter_map =
       let x = Lang.assoc "" 2 p in
       match x with
         | Fun { fun_args = [] } | FFI { ffi_args = []; _ } ->
-            Lang.val_fun [] (fun _ -> Lang.apply f [("", Lang.apply x [])])
-        | _ -> Lang.apply f [("", x)])
+            Lang.val_fun [] (fun p' ->
+                Lang.apply ~pos:(Lang.pos p') f
+                  [("", Lang.apply ~pos:(Lang.pos p') x [])])
+        | _ -> Lang.apply ~pos:(Lang.pos p) f [("", x)])
 
 let _ =
   let a = Lang.univ_t ~constraints:[Type.ord_constr] () in
@@ -98,13 +100,13 @@ let _ =
       let x = Lang.assoc "" 2 p in
       match x with
         | Fun { fun_args = [] } | FFI { ffi_args = []; _ } ->
-            let last_x = ref (Lang.apply x []) in
-            let last_y = ref (Lang.apply f [("", !last_x)]) in
-            Lang.val_fun [] (fun _ ->
-                let x = Lang.apply x [] in
+            let last_x = ref (Lang.apply ~pos:(Lang.pos p) x []) in
+            let last_y = ref (Lang.apply ~pos:(Lang.pos p) f [("", !last_x)]) in
+            Lang.val_fun [] (fun p' ->
+                let x = Lang.apply ~pos:(Lang.pos p') x [] in
                 if Value.compare x !last_x = 0 then !last_y
                 else (
-                  let y = Lang.apply f [("", x)] in
+                  let y = Lang.apply ~pos:(Lang.pos p') f [("", x)] in
                   last_y := y;
                   y))
-        | _ -> Lang.apply f [("", x)])
+        | _ -> Lang.apply ~pos:(Lang.pos p) f [("", x)])
