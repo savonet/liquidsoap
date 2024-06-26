@@ -113,7 +113,7 @@ def request.queue(
     [...s.queue(), ...(queue())]
   end
 
-  s.{
+  s = s.{
     add=add,
     push=push.{uri=push_uri},
     length={list.length(queue()) + list.length(s.queue())},
