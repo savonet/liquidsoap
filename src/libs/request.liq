@@ -64,6 +64,29 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=null(), ~native=false
 %endif
       request.dynamic(id=id, prefetch=prefetch, timeout=timeout, available={not list.is_empty(queue())}, next)
     end
+
+  def add(r) =
+    log.severe(label=s.id(), "Please use #{s.id()}.push instead of #{s.id()}.add()")
+    s.add(r)
+  end
+
+  def set_queue(q)
+    queue := q
+    s.set_queue([])
+  end
+
+  def get_queue() =
+    [...s.queue(), ...(queue())]
+  end
+
+  s = s.{
+    add=add,
+    push=push.{uri=push_uri},
+    length={list.length(queue()) + list.length(s.queue())},
+    set_queue=set_queue,
+    queue=get_queue
+  }
+
   source.set_name(s, "request.queue")
   fetch := s.fetch
   if interactive then
@@ -94,27 +117,7 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=null(), ~native=false
     }))
   end
 
-  def add(r) =
-    log.severe(label=s.id(), "Please use #{s.id()}.push instead of #{s.id()}.add()")
-    s.add(r)
-  end
-
-  def set_queue(q)
-    queue := q
-    s.set_queue([])
-  end
-
-  def get_queue() =
-    [...s.queue(), ...(queue())]
-  end
-
-  s.{
-    add=add,
-    push=push.{uri=push_uri},
-    length={list.length(queue()) + list.length(s.queue())},
-    set_queue=set_queue,
-    queue=get_queue
-  }
+  s
 end
 
 # Create a source on which plays immediately requests given with the `play`
