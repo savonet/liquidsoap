@@ -1,3 +1,14 @@
+# 2.2.6 (unreleased)
+
+Changed:
+
+- Show full queue in `request.queue` (#3982, @austin0209)
+- Disable jemalloc.
+
+Fixed:
+
+- Replace `:` everywhere when processing `$(colon)` in protocols (#3952, @gAlleb)
+
 # 2.2.5 (2024-05-01) (Mayday!)
 
 New:
