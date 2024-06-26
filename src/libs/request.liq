@@ -104,11 +104,16 @@ def request.queue(~id=null(), ~interactive=true, ~prefetch=null(), ~native=false
     s.set_queue([])
   end
 
+  def get_queue() =
+    [...s.queue(), ...(queue())]
+  end
+
   s.{
     add=add,
     push=push.{uri=push_uri},
-    length={list.length(queue())+list.length(s.queue())},
-    set_queue=set_queue
+    length={list.length(queue()) + list.length(s.queue())},
+    set_queue=set_queue,
+    queue=get_queue
   }
 end
 
