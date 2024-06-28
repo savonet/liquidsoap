@@ -19,6 +19,18 @@ server.register(
 )
 
 server.register(
+  namespace="runtime.gc",
+  description=
+    "Compact OCaml memory",
+  "compact",
+  fun (_) ->
+    begin
+      runtime.gc.compact()
+      "Done!"
+    end
+)
+
+server.register(
   namespace="runtime",
   description=
     "Return a description of the memory used by the process",
