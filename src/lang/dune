@@ -89,9 +89,13 @@
   saturn_lockfree
   str
   unix
-  menhirLib)
+  menhirLib
+  (select
+    liqmemtrace.ml
+   from
+   (memtrace -> liqmemtrace.memtrace.ml)
+   (-> liqmemtrace.disabled.ml)))
  (modules
-  active_value
   build_config
   builtins_bool
   builtins_eval
@@ -125,6 +129,7 @@
   lang_regexp
   lang_string
   lexer
+  liqmemtrace
   methods
   modules
   parsed_term
