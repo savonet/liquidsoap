@@ -46,10 +46,15 @@ val eval_term : ?name:string -> toplevel:bool -> Term.t -> Value.t
 val strict : bool ref
 
 (** Return the list of external libraries. *)
-val libs : ?error_on_no_stdlib:bool -> ?deprecated:bool -> unit -> string list
+val libs :
+  ?stdlib:string ->
+  ?error_on_no_stdlib:bool ->
+  ?deprecated:bool ->
+  unit ->
+  string list
 
 (** Load the external libraries. *)
-val load_libs : unit -> unit
+val load_libs : ?stdlib:string -> unit -> unit
 
 (* Wrapper for format language errors. Re-raises [Error]
    after printing language errors. *)

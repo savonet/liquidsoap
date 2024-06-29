@@ -377,21 +377,21 @@ let interactive () =
   in
   loop ()
 
-let libs ?(error_on_no_stdlib = true) ?(deprecated = true) () =
-  let stdlib = "stdlib.liq" in
+let libs ?(stdlib = "stdlib.liq") ?(error_on_no_stdlib = true)
+    ?(deprecated = true) () =
   let dir = !Hooks.liq_libs_dir () in
   let file = Filename.concat dir stdlib in
   let libs =
     if not (Sys.file_exists file) then
       if error_on_no_stdlib then
-        failwith "Could not find default stdlib.liq library!"
+        failwith (Printf.sprintf "Could not find default %s library!" stdlib)
       else []
     else [file]
   in
   let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
   if deprecated && Sys.file_exists file then libs @ [file] else libs
 
-let load_libs () =
+let load_libs ?stdlib () =
   List.iter
     (fun fname ->
       let filename = Lang_string.home_unrelate fname in
@@ -411,4 +411,4 @@ let load_libs () =
               parsed_term
           in
           ignore (eval_term ~name:"stdlib" ~toplevel:true term)))
-    (libs ())
+    (libs ?stdlib ())
