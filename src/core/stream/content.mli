@@ -220,5 +220,10 @@ module Track_marks : sig
 end
 
 (* Some tools *)
-val merge_param : name:string -> 'a option * 'a option -> 'a option
+val merge_param :
+  ?compare:('a -> 'a -> bool) ->
+  name:string ->
+  'a option * 'a option ->
+  'a option
+
 val print_optional : (string * string option) list -> string

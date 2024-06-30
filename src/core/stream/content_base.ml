@@ -39,10 +39,10 @@ module Contents = struct
     !_type
 end
 
-let merge_param ~name = function
+let merge_param ?(compare = fun x x' -> x = x') ~name = function
   | None, None -> None
   | None, Some p | Some p, None -> Some p
-  | Some p, Some p' when p = p' -> Some p
+  | Some p, Some p' when compare p p' -> Some p
   | _ -> failwith ("Incompatible " ^ name)
 
 let print_optional l =

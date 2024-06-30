@@ -81,9 +81,7 @@ module AudioSpecs = struct
     Content.print_optional
       [
         ( "channel_layout",
-          Option.map
-            (Channel_layout.get_description ?channels:None)
-            channel_layout );
+          Option.map Channel_layout.get_description channel_layout );
         ( "sample_format",
           Option.map
             (fun p ->
@@ -118,15 +116,20 @@ module AudioSpecs = struct
       | _ -> None
 
   let compatible p p' =
-    let c = function None, _ | _, None -> true | Some p, Some p' -> p = p' in
-    c (p.channel_layout, p'.channel_layout)
+    let c ?(compare = fun x x' -> x = x') = function
+      | None, _ | _, None -> true
+      | Some p, Some p' -> compare p p'
+    in
+    c ~compare:Avutil.Channel_layout.compare
+      (p.channel_layout, p'.channel_layout)
     && c (p.sample_format, p'.sample_format)
     && c (p.sample_rate, p'.sample_rate)
 
   let merge p p' =
     {
       channel_layout =
-        Content.merge_param ~name:"channel_layout"
+        Content.merge_param ~compare:Avutil.Channel_layout.compare
+          ~name:"channel_layout"
           (p.channel_layout, p'.channel_layout);
       sample_format =
         Content.merge_param ~name:"sample_format"

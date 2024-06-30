@@ -115,7 +115,8 @@ let convert_options opts =
     | `String fmt -> `Int Avutil.Sample_format.(get_id (find fmt))
     | _ -> assert false);
   convert "channel_layout" (function
-    | `String layout -> `Int64 Avutil.Channel_layout.(get_id (find layout))
+    | `String layout ->
+        `String Avutil.Channel_layout.(get_description (find layout))
     | _ -> assert false)
 
 let encoder ~pos ~on_keyframe ~keyframes ~mk_streams ffmpeg meta =

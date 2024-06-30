@@ -35,10 +35,10 @@ module type InternalResampler_type = sig
 
   val create :
     ?options:Swresample.options list ->
-    Avutil__Channel_layout.t ->
+    Avutil.Channel_layout.t ->
     ?in_sample_format:Avutil__Sample_format.t ->
     int ->
-    Avutil__Channel_layout.t ->
+    Avutil.Channel_layout.t ->
     ?out_sample_format:Avutil__Sample_format.t ->
     int ->
     t

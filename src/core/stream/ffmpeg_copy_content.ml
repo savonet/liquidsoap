@@ -120,7 +120,9 @@ module Specs = struct
       | Some (`Audio p), Some (`Audio p') ->
           Audio.get_params_id p = Audio.get_params_id p'
           && (conf_ffmpeg_copy_relaxed#get
-             || Audio.get_channel_layout p = Audio.get_channel_layout p'
+             || Avutil.Channel_layout.compare
+                  (Audio.get_channel_layout p)
+                  (Audio.get_channel_layout p')
                 && Audio.get_sample_format p = Audio.get_sample_format p'
                 && Audio.get_sample_rate p = Audio.get_sample_rate p')
       | Some (`Video p), Some (`Video p') ->
