@@ -12,3 +12,5 @@ let bin_dir () = path "bin"
 let bin_dir_descr = "./bin"
 let camomile_dir () = path "camomile"
 let camomile_dir_descr = "./camomile"
+let cache_override = None
+let cache_override_descr = "./cache"
