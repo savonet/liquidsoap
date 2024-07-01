@@ -1,0 +1,19 @@
+ARG BASE_IMAGE
+
+FROM $BASE_IMAGE
+
+USER root
+
+RUN apt update && apt install -y libpcre3-dev libtag1-dev
+
+USER opam
+
+COPY . /tmp/code
+
+WORKDIR /tmp/code
+
+ARG CPU_CORES
+ARG EXCLUDE_DEPS
+ARG GITHUB_SHA
+
+RUN /tmp/code/.github/scripts/build-no-deps.sh "$CPU_CORES" "$EXCLUDE_DEPS" "$GITHUB_SHA"

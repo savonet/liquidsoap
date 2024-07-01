@@ -44,6 +44,8 @@ jobs:
       docker_release: ${{ steps.build_details.outputs.docker_release }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
+      internal_test_resource_deps: ${{ steps.build_details.outputs.internal_test_resource_deps }}
+      external_test_resource_deps: ${{ steps.build_details.outputs.external_test_resource_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
     steps:
@@ -54,6 +56,100 @@ jobs:
           IS_FORK: ${{ github.event.pull_request.head.repo.fork == true }}
         run: .github/scripts/build-details.sh
         id: build_details
+
+  build_no_depopts:
+    runs-on: ubuntu-latest
+    needs: build_details
+    steps:
+      - name: Get number of CPU cores
+        uses: savonet/github-actions-cpu-cores-docker@v1
+        id: cpu_cores
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
+          file: .github/docker/Dockerfile.no-deps
+          build-args: |
+            BASE_IMAGE=savonet/liquidsoap-ci:debian_bookworm_amd64
+            CPU_CORES=${{ steps.cpu_cores.outputs.count }}
+            EXCLUDE_DEPS=${{ needs.build_details.outputs.minimal_exclude_deps }}
+            GITHUB_SHA=${{ github.sha }}
+
+  check_base_resource:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_no_depopts]
+    container:
+      image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    steps:
+      - name: Print base memory consumption
+        run: |
+          mkdir -p "/tmp/${{ github.run_number }}/resources"
+          chown opam:opam "/tmp/${{ github.run_number }}/resources"
+          sudo -u opam -E /tmp/liquidsoap-full/liquidsoap/.github/scripts/check-dep-memory.sh "/tmp/${{ github.run_number }}/resources/base-memory-usage.json"
+      - name: Upload memory consumption artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-memory-usage
+          path: ${{ github.workspace }}/${{ github.run_number }}/resources/base-memory-usage.json
+
+  check_external_resource:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_no_depopts]
+    container:
+      image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    strategy:
+      fail-fast: false
+      matrix:
+        external_dep: ${{ fromJson(needs.build_details.outputs.external_test_resource_deps) }}
+    steps:
+      - name: Print external dependency memory consumption
+        run: |
+          mkdir -p "/tmp/${{ github.run_number }}/resources"
+          chown -R opam "/tmp/${{ github.run_number }}/resources"
+          sudo -u opam -E /tmp/liquidsoap-full/liquidsoap/.github/scripts/check-dep-memory.sh "/tmp/${{ github.run_number }}/resources/${{ matrix.external_dep }}-memory-usage.json" "${{ matrix.external_dep }}" 1
+      - name: Upload memory consumption artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.external_dep }}-memory-usage
+          path: ${{ github.workspace }}/${{ github.run_number }}/resources/${{ matrix.external_dep }}-memory-usage.json
+
+  check_internal_resource:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_no_depopts]
+    container:
+      image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+    strategy:
+      fail-fast: false
+      matrix:
+        internal_dep: ${{ fromJson(needs.build_details.outputs.internal_test_resource_deps) }}
+    steps:
+      - name: Print internal dependency memory consumption
+        run: |
+          mkdir -p "/tmp/${{ github.run_number }}/resources"
+          chown -R opam "/tmp/${{ github.run_number }}/resources"
+          sudo -u opam -E /tmp/liquidsoap-full/liquidsoap/.github/scripts/check-dep-memory.sh "/tmp/${{ github.run_number }}/resources/${{ matrix.internal_dep }}-memory-usage.json" "${{ matrix.internal_dep }}"
+      - name: Upload memory consumption artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.internal_dep }}-memory-usage
+          path: ${{ github.workspace }}/${{ github.run_number }}/resources/${{ matrix.internal_dep }}-memory-usage.json
 
   build_js:
     runs-on: ubuntu-latest
@@ -288,7 +384,19 @@ jobs:
           # TMP
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0 saturn_lockfree
-          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}" ${{ matrix.platform }}
+          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+      - name: Print memory consumption
+        if: matrix.os == 'debian_bookworm' && matrix.platform == 'amd64'
+        run: |
+          mkdir -p "/tmp/${{ github.run_number }}/resources"
+          chown -R opam "/tmp/${{ github.run_number }}/resources"
+          sudo -u opam -E /tmp/liquidsoap-full/liquidsoap/.github/scripts/check-dep-memory.sh "/tmp/${{ github.run_number }}/resources/full-memory-usage.json"
+      - name: Upload metrics artifact
+        if: matrix.os == 'debian_bookworm' && matrix.platform == 'amd64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-memory-usage
+          path: ${{ github.workspace }}/${{ github.run_number }}/resources/full-memory-usage.json
       - name: Build doc
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         run: |
@@ -504,6 +612,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
+          pattern: "*${{ matrix.docker-debian-os }}*"
       - name: Get debian package
         run: |
           echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep -v minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
@@ -535,6 +644,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
+          pattern: "*${{ matrix.matrix.alpine-arch }}*"
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep -v minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
@@ -562,6 +672,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
+          pattern: "*${{ matrix.docker-debian-os }}*"
       - name: Get debian package
         run: |
           echo "deb-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep ${{ matrix.docker-debian-os }} | grep minimal | grep '${{ matrix.platform }}\.deb$' | grep -v dbgsym | grep deb)" >> "${GITHUB_OUTPUT}"
@@ -593,6 +704,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts/${{ needs.build_details.outputs.sha }}
+          pattern: "*${{ matrix.alpine-arch }}*"
       - name: Get alpine package
         run: |
           echo "apk-file=$(find artifacts/${{ needs.build_details.outputs.sha }} -type f | grep minimal | grep 'apk$' | grep -v dbg | grep ${{ matrix.alpine-arch }})" >> "${GITHUB_OUTPUT}"
@@ -625,3 +737,37 @@ jobs:
         uses: actions/checkout@v3
       - name: Push consolidated manifest
         run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}-minimal
+
+  resource_usage_chart:
+    runs-on: ubuntu-latest
+    needs:
+      [check_base_resource, check_external_resource, check_internal_resource]
+    if: needs.build_details.outputs.is_release != 'true' && github.event_name != 'merge_group'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Download all artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: "*memory-usage"
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate graph
+        run: |
+          npm install -g highcharts-export-server
+          node ./.github/scripts/plot-memory.mjs ${{ github.sha }} > config.json
+          highcharts-export-server --infile config.json --outfile chart.png
+      - name: Upload memory consumption chart
+        uses: actions/upload-artifact@v4
+        with:
+          name: memory-usage-chart
+          path: chart.png
+      - name: Delete remaining artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: "*-memory-usage"

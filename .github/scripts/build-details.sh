@@ -69,6 +69,11 @@ fi
 
 MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd graphics gstreamer imagelib irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt taglib tls theora tsdl vorbis"
 
+INTERNAL_TEST_RESOURCE_DEPS='["ffmpeg", "alsa", "ao", "bjack", "dssi", "faad", "fdkaac", "flac", "frei0r", "ladspa", "lame", "lastfm", "lilv", "lo", "mad", "ogg", "opus", "portaudio", "pulseaudio", "samplerate", "shine", "soundtouch", "speex", "srt", "vorbis"]'
+
+# Add back: tsdl sqlite3 camlimages
+EXTERNAL_TEST_RESOURCE_DEPS='["inotify", "prometheus-liquidsoap", "gd", "graphics", "imagelib", "irc-client-unix", "osc-unix", "tls-liquidsoap"]'
+
 {
   echo "branch=${BRANCH}"
   echo "is_release=${IS_RELEASE}"
@@ -81,6 +86,8 @@ MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd g
   echo "s3-artifact-basepath=s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
   echo "is_fork=${IS_FORK}"
   echo "minimal_exclude_deps=${MINIMAL_EXCLUDE_DEPS}"
+  echo "internal_test_resource_deps=${INTERNAL_TEST_RESOURCE_DEPS}"
+  echo "external_test_resource_deps=${EXTERNAL_TEST_RESOURCE_DEPS}"
   echo "save_traces=${SAVE_TRACES}"
   echo "is_snapshot=${IS_SNAPSHOT}"
 } >> "${GITHUB_OUTPUT}"
