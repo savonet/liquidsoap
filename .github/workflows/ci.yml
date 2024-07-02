@@ -109,6 +109,8 @@ jobs:
           OCAMLPATH="$(cat .ocamlpath)"
           export export OCAMLPATH
           cd /tmp/liquidsoap-full/liquidsoap
+          ./liquidsoap --build-config
+          ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
           ./liquidsoap ./.github/scripts/test_resources.liq
 
   check_internal_resource:
@@ -132,6 +134,8 @@ jobs:
           cd /tmp/liquidsoap-full/ocaml-${{ matrix.internal_dep }}
           opam install -y .
           cd /tmp/liquidsoap-full/liquidsoap
+          ./liquidsoap --build-config
+          ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
           ./liquidsoap ./.github/scripts/test_resources.liq
 
   build_js:
