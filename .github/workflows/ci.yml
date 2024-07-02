@@ -112,7 +112,7 @@ jobs:
     needs: [build_details, build_no_depopts]
     container:
       image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
-      options: --user opam -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
       matrix:
@@ -134,7 +134,7 @@ jobs:
     needs: [build_details, build_no_depopts]
     container:
       image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
-      options: --user opam -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
       matrix:
