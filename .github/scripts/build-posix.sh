@@ -3,7 +3,6 @@
 set -e
 
 CPU_CORES="$1"
-PLATFORM="$2"
 
 export CPU_CORES
 
@@ -51,7 +50,7 @@ cd ..
 
 opam update
 opam remove -y jemalloc
-opam install -y tls.0.17.4 saturn_lockfree.0.4.1 ppx_hash
+opam install -y saturn_lockfree.0.4.1 ppx_hash
 
 cd /tmp/liquidsoap-full
 
@@ -87,10 +86,6 @@ cd /tmp/liquidsoap-full/liquidsoap
 dune build --profile=release
 
 echo "::endgroup::"
-
-if [ "${PLATFORM}" = "armhf" ]; then
-  exit 0
-fi
 
 echo "::group::Print build config"
 

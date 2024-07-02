@@ -1,0 +1,9 @@
+name: Debug
+runs:
+  using: composite
+  steps:
+    - name: Debug
+      shell: bash
+      run: |
+        env
+        docker ps
