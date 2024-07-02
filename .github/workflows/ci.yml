@@ -44,6 +44,8 @@ jobs:
       docker_release: ${{ steps.build_details.outputs.docker_release }}
       s3-artifact-basepath: ${{ steps.build_details.outputs.s3-artifact-basepath }}
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
+      internal_test_resource_deps: ${{ steps.build_details.outputs.internal_test_resource_deps }}
+      external_test_resource_deps: ${{ steps.build_details.outputs.external_test_resource_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
     steps:
@@ -64,19 +66,73 @@ jobs:
         id: cpu_cores
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
+          push: true
+          tags: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
           file: .github/docker/Dockerfile.no-deps
           build-args: |
             BASE_IMAGE=savonet/liquidsoap-ci:debian_bookworm_amd64
             CPU_CORES=${{ steps.cpu_cores.outputs.count }}
             EXCLUDE_DEPS=${{ needs.build_details.outputs.minimal_exclude_deps }}
             GITHUB_SHA=${{ github.sha }}
+
+  check_external_resource:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_no_depopts]
+    container:
+      image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
+      options: --user opam
+    strategy:
+      fail-fast: false
+      matrix:
+        external_dep: ${{ fromJson(needs.build_details.outputs.external_test_resource_deps) }}
+    steps:
+      - name: Print external dependency memory consumption
+        run: |
+          export HOME=/home/opam
+          eval "$(opam config env)"
+          opam install -y ${{ matrix.external_dep }}
+          cd /tmp/liquidsoap-full
+          OCAMLPATH="$(cat .ocamlpath)"
+          export export OCAMLPATH
+          cd /tmp/liquidsoap-full/liquidsoap
+          ./liquidsoap ./.github/scripts/test_resources.liq
+
+  check_internal_resource:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_no_depopts]
+    container:
+      image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
+      options: --user opam
+    strategy:
+      fail-fast: false
+      matrix:
+        internal_dep: ${{ fromJson(needs.build_details.outputs.internal_test_resource_deps) }}
+    steps:
+      - name: Print internal dependency memory consumption
+        run: |
+          export HOME=/home/opam
+          eval "$(opam config env)"
+          cd /tmp/liquidsoap-full
+          OCAMLPATH="$(cat .ocamlpath)"
+          export export OCAMLPATH
+          cd /tmp/liquidsoap-full/ocaml-${{ matrix.internal_dep }}
+          opam install -y .
+          cd /tmp/liquidsoap-full/liquidsoap
+          ./liquidsoap ./.github/scripts/test_resources.liq
 
   build_js:
     runs-on: ubuntu-latest

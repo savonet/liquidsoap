@@ -67,8 +67,8 @@ fi
 
 MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd graphics gstreamer imagelib irc-client-unix ladspa lame lastfm lilv lo mad ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt tls theora tsdl sqlite3 vorbis"
 
-INTERNAL_TEST_RESOURCE_DEPS="ffmpeg alsa ao bjack dssi faad fdkaac flac frei0r ladspa lame lastfm lilv lo mad ogg opus portaudio pulseaudio samplerate shine soundtouch speex srt vorbis"
-EXTERNAL_TEST_RESOURCE_DEPS="inotify prometheus-liquidsoap camlimages gd graphics imagelib irc-client-unix osc-unix tls-liquidsoap tsdl-liquidsoap sqlite3"
+INTERNAL_TEST_RESOURCE_DEPS='["ffmpeg", "alsa", "ao", "bjack", "dssi", "faad", "fdkaac", "flac", "frei0r", "ladspa", "lame", "lastfm", "lilv", "lo", "mad", "ogg", "opus", "portaudio", "pulseaudio", "samplerate", "shine", "soundtouch", "speex", "srt", "vorbis"]'
+EXTERNAL_TEST_RESOURCE_DEPS='["inotify", "prometheus-liquidsoap", "camlimages", "gd", "graphics", "imagelib", "irc-client-unix", "osc-unix", "tls-liquidsoap", "tsdl-liquidsoap", "sqlite3"]'
 
 {
   echo "branch=${BRANCH}"
