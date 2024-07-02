@@ -1,3 +1,4 @@
+settings.init.allow_root := true
 log.stdout := false
 
 def f() =

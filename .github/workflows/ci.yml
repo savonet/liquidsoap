@@ -94,22 +94,13 @@ jobs:
     needs: [build_details, build_no_depopts]
     container:
       image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
-      options: --user opam -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
+      options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     steps:
       - name: Print base memory consumption
         run: |
-          export HOME=/home/opam
-          eval "$(opam config env)"
-          cd /tmp/liquidsoap-full
-          OCAMLPATH="$(cat .ocamlpath)"
-          export export OCAMLPATH
-          cd /tmp/liquidsoap-full/liquidsoap
-          ./liquidsoap --build-config
-          ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
-          ./liquidsoap ./.github/scripts/test_resources.liq
-            mkdir -p "/tmp/${{ github.run_number }}/resources"
-          chown -R opam "/tmp/${{ github.run_number }}/resources"
-          ./liquidsoap ./.github/scripts/test_resources.liq > "/tmp/${{ github.run_number }}/resources/base-memory-usage.txt"
+          mkdir -p "/tmp/${{ github.run_number }}/resources"
+          chown opam:opam "/tmp/${{ github.run_number }}/resources"
+          sudo -u opam -E /tmp/liquidsoap-full/liquidsoap/.github/scripts/check-dep-memory.sh "/tmp/${{ github.run_number }}/resources/base-memory-usage.txt"
       - name: Upload memory consumption artifact
         uses: actions/upload-artifact@v4
         with:
@@ -129,19 +120,9 @@ jobs:
     steps:
       - name: Print external dependency memory consumption
         run: |
-          export HOME=/home/opam
-          eval "$(opam config env)"
-          opam install -y ${{ matrix.external_dep }}
-          cd /tmp/liquidsoap-full
-          OCAMLPATH="$(cat .ocamlpath)"
-          export export OCAMLPATH
-          cd /tmp/liquidsoap-full/liquidsoap
-          ./liquidsoap --build-config
-          ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
-          ./liquidsoap ./.github/scripts/test_resources.liq
           mkdir -p "/tmp/${{ github.run_number }}/resources"
           chown -R opam "/tmp/${{ github.run_number }}/resources"
-          ./liquidsoap ./.github/scripts/test_resources.liq > "/tmp/${{ github.run_number }}/resources/${{ matrix.external_dep }}-memory-usage.txt"
+          sudo -u opam -E /tmp/liquidsoap-full/liquidsoap/.github/scripts/check-dep-memory.sh "/tmp/${{ github.run_number }}/resources/${{ matrix.external_dep }}-memory-usage.txt" "${{ matrix.external_dep }}" 1
       - name: Upload memory consumption artifact
         uses: actions/upload-artifact@v4
         with:
@@ -161,20 +142,9 @@ jobs:
     steps:
       - name: Print internal dependency memory consumption
         run: |
-          export HOME=/home/opam
-          eval "$(opam config env)"
-          cd /tmp/liquidsoap-full
-          OCAMLPATH="$(cat .ocamlpath)"
-          export export OCAMLPATH
-          cd /tmp/liquidsoap-full/ocaml-${{ matrix.internal_dep }}
-          opam install -y .
-          cd /tmp/liquidsoap-full/liquidsoap
-          ./liquidsoap --build-config
-          ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
-          ./liquidsoap ./.github/scripts/test_resources.liq
           mkdir -p "/tmp/${{ github.run_number }}/resources"
           chown -R opam "/tmp/${{ github.run_number }}/resources"
-          ./liquidsoap ./.github/scripts/test_resources.liq > "/tmp/${{ github.run_number }}/resources/${{ matrix.internal_dep }}-memory-usage.txt"
+          sudo -u opam -E /tmp/liquidsoap-full/liquidsoap/.github/scripts/check-dep-memory.sh "/tmp/${{ github.run_number }}/resources/${{ matrix.internal_dep }}-memory-usage.txt" "${{ matrix.internal_dep }}"
       - name: Upload memory consumption artifact
         uses: actions/upload-artifact@v4
         with:
@@ -506,17 +476,9 @@ jobs:
       - name: Print memory consumption
         if: matrix.os == 'debian_bookworm' && matrix.platform == 'amd64'
         run: |
-          eval "$(opam config env)"
-          eval "$(opam config env)"
-          cd /tmp/liquidsoap-full
-          OCAMLPATH="$(cat .ocamlpath)"
-          export export OCAMLPATH
-          cd /tmp/liquidsoap-full/liquidsoap
-          ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
-          ./liquidsoap ./.github/scripts/test_resources.liq
-            mkdir -p "/tmp/${{ github.run_number }}/resources"
+          mkdir -p "/tmp/${{ github.run_number }}/resources"
           chown -R opam "/tmp/${{ github.run_number }}/resources"
-          ./liquidsoap ./.github/scripts/test_resources.liq > "/tmp/${{ github.run_number }}/resources/full-memory-usage.txt"
+          sudo -u opam -E /tmp/liquidsoap-full/liquidsoap/.github/scripts/check-dep-memory.sh "/tmp/${{ github.run_number }}/resources/full-memory-usage.txt"
       - name: Upload metrics artifact
         if: matrix.os == 'debian_bookworm' && matrix.platform == 'amd64'
         uses: actions/upload-artifact@v4
