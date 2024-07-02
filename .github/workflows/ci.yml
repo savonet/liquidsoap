@@ -89,6 +89,33 @@ jobs:
             EXCLUDE_DEPS=${{ needs.build_details.outputs.minimal_exclude_deps }}
             GITHUB_SHA=${{ github.sha }}
 
+  check_base_resource:
+    runs-on: ubuntu-latest
+    needs: [build_details, build_no_depopts]
+    container:
+      image: savonet/liquidsoap-ci-no-deps:${{ github.sha }}
+      options: --user opam
+    steps:
+      - name: Print base memory consumption
+        run: |
+          export HOME=/home/opam
+          eval "$(opam config env)"
+          cd /tmp/liquidsoap-full
+          OCAMLPATH="$(cat .ocamlpath)"
+          export export OCAMLPATH
+          cd /tmp/liquidsoap-full/liquidsoap
+          ./liquidsoap --build-config
+          ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
+          ./liquidsoap ./.github/scripts/test_resources.liq
+            mkdir -p "/tmp/${{ github.run_number }}/resources"
+          chown -R opam "/tmp/${{ github.run_number }}/resources"
+          ./liquidsoap ./.github/scripts/test_resources.liq > "/tmp/${{ github.run_number }}/resources/base.txt"
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-memory-usage
+          path: ${{ github.workspace }}/${{ github.run_number }}/resources/base.txt
+
   check_external_resource:
     runs-on: ubuntu-latest
     needs: [build_details, build_no_depopts]
@@ -112,6 +139,14 @@ jobs:
           ./liquidsoap --build-config
           ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
           ./liquidsoap ./.github/scripts/test_resources.liq
+          mkdir -p "/tmp/${{ github.run_number }}/resources"
+          chown -R opam "/tmp/${{ github.run_number }}/resources"
+          ./liquidsoap ./.github/scripts/test_resources.liq > "/tmp/${{ github.run_number }}/resources/${{ matrix.external_dep }}.txt"
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.external_dep }}-memory-usage
+          path: ${{ github.workspace }}/${{ github.run_number }}/resources/${{ matrix.external_dep }}.txt
 
   check_internal_resource:
     runs-on: ubuntu-latest
@@ -137,6 +172,14 @@ jobs:
           ./liquidsoap --build-config
           ./liquidsoap --cache-only ./.github/scripts/test_resources.liq
           ./liquidsoap ./.github/scripts/test_resources.liq
+          mkdir -p "/tmp/${{ github.run_number }}/resources"
+          chown -R opam "/tmp/${{ github.run_number }}/resources"
+          ./liquidsoap ./.github/scripts/test_resources.liq > "/tmp/${{ github.run_number }}/resources/${{ matrix.internal_dep }}.txt"
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.internal_dep }}-memory-usage
+          path: ${{ github.workspace }}/${{ github.run_number }}/resources/${{ matrix.internal_dep }}.txt
 
   build_js:
     runs-on: ubuntu-latest
