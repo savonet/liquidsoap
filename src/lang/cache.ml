@@ -4,39 +4,45 @@ let enabled () =
     venv = "1" || venv = "true"
   with Not_found -> true
 
-let dir_override = ref None
+let system_dir_override = ref (fun () -> None)
+let user_dir_override = ref (fun () -> None)
 
-let default_dir =
-  ref (fun () ->
-      try
-        match (!dir_override, Sys.os_type) with
-          | Some d, _ -> Some d
-          | _, "Win32" ->
-              let dir = Filename.dirname Sys.executable_name in
-              let cwd = Sys.getcwd () in
-              Sys.chdir dir;
-              let dir = Sys.getcwd () in
-              Sys.chdir cwd;
-              Some (Filename.concat dir ".cache")
-          | _ ->
-              Some
-                (Filename.concat
-                   (Filename.concat (Unix.getenv "HOME") ".cache")
-                   "liquidsoap")
-      with Not_found -> None)
+let default_user_dir () =
+  try Some (Unix.getenv "LIQ_CACHE_USER_DIR")
+  with Not_found -> (
+    let fn = !user_dir_override in
+    match fn () with
+      | Some d -> Some d
+      | _ ->
+          Some
+            (Filename.concat
+               (Filename.concat (Unix.getenv "HOME") ".cache")
+               "liquidsoap"))
+
+let default_system_dir () =
+  try Some (Unix.getenv "LIQ_CACHE_SYSTEM_DIR")
+  with Not_found -> (
+    let fn = !system_dir_override in
+    match (fn (), Sites.Sites.cache) with
+      | Some d, _ | _, d :: _ -> Some d
+      | _ -> None)
 
 let rec recmkdir dir =
   if not (Sys.file_exists dir) then (
     recmkdir (Filename.dirname dir);
     Sys.mkdir dir 0o755)
 
-let dir () =
+type dirtype = [ `System | `User ]
+
+let dir dirtype =
   if enabled () then (
     match
-      try Some (Unix.getenv "LIQ_CACHE_DIR")
-      with Not_found ->
-        let fn = !default_dir in
-        fn ()
+      let fn =
+        match dirtype with
+          | `User -> default_user_dir
+          | `System -> default_system_dir
+      in
+      fn ()
     with
       | None ->
           Startup.message
@@ -48,9 +54,9 @@ let dir () =
     Startup.message "Cache disabled!";
     None)
 
-let retrieve ?name filename =
+let retrieve ?name ~dirtype filename =
   try
-    match dir () with
+    match dir dirtype with
       | None -> None
       | Some dir ->
           let filename = Filename.concat dir filename in
@@ -82,9 +88,9 @@ let retrieve ?name filename =
         else Startup.message "Error while loading cache: %s" exn;
         None
 
-let store filename value =
+let store ~dirtype filename value =
   try
-    match dir () with
+    match dir dirtype with
       | None -> ()
       | Some dir ->
           recmkdir dir;
@@ -102,7 +108,7 @@ let store filename value =
               Marshal.to_channel oc value [Marshal.Closures];
               Sys.rename tmp_file filename);
           let fn = !Hooks.cache_maintenance in
-          fn ()
+          fn dirtype
   with exn ->
     Startup.message "Error while saving cache: %s" (Printexc.to_string exn)
 
@@ -116,10 +122,10 @@ module Table = struct
     mutable changed : bool;
   }
 
-  let load ?name fname =
+  let load ?name ~dirtype fname =
     {
       fname;
-      table = Option.value ~default:Map.empty (retrieve ?name fname);
+      table = Option.value ~default:Map.empty (retrieve ?name ~dirtype fname);
       changed = false;
     }
 
@@ -133,5 +139,5 @@ module Table = struct
           t.changed <- true;
           v
 
-  let store t = if t.changed then store t.fname t.table
+  let store ~dirtype t = if t.changed then store ~dirtype t.fname t.table
 end

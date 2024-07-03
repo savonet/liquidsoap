@@ -12,5 +12,15 @@ let bin_dir () = path "bin"
 let bin_dir_descr = "./bin"
 let camomile_dir () = path "camomile"
 let camomile_dir_descr = "./camomile"
-let cache_override = None
-let cache_override_descr = "./cache"
+
+let user_cache_override () =
+  let dir = Filename.dirname Sys.executable_name in
+  let cwd = Sys.getcwd () in
+  Sys.chdir dir;
+  let dir = Sys.getcwd () in
+  Sys.chdir cwd;
+  Some (Filename.concat dir ".cache")
+
+let user_cache_override_descr = "./cache"
+let system_cache_override () = Some "./cache"
+let system_cache_override_descr = "./cache"

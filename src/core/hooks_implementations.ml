@@ -149,12 +149,12 @@ module Term_cache = Liquidsoap_lang.Term_cache
 
 let cache_log = Log.make ["cache"]
 
-let cache_maintenance () =
+let cache_maintenance dirtype =
   let max_timestamp =
     Unix.time () -. (float conf_cache_max_days#get *. 86400.)
   in
   try
-    match Cache.dir () with
+    match Cache.dir dirtype with
       | Some dir when Sys.file_exists dir && Sys.is_directory dir ->
           let files =
             Array.fold_left

@@ -136,15 +136,55 @@ let liquidsoap = Modules.liquidsoap
 
 let liquidsoap_cache =
   Lang.add_builtin ~category:`Configuration ~descr:"Liquidsoap cache directory."
-    ~base:liquidsoap "cache" [] (Lang.nullable_t Lang.string_t) (fun _ ->
-      match Cache.dir () with None -> Lang.null | Some dir -> Lang.string dir)
+    ~base:liquidsoap "cache"
+    [
+      ( "mode",
+        Lang.string_t,
+        None,
+        Some "Cache mode, one of: \"user\" or \"system\"" );
+    ]
+    (Lang.nullable_t Lang.string_t)
+    (fun p ->
+      let mode = List.assoc "mode" p in
+      let dirtype =
+        match Lang.to_string mode with
+          | "system" -> `System
+          | "user" -> `User
+          | _ ->
+              raise
+                (Error.Invalid_value
+                   ( mode,
+                     "Invalid mode. Should be one of: \"user\" or \"system\"" ))
+      in
+      match Cache.dir dirtype with
+        | None -> Lang.null
+        | Some dir -> Lang.string dir)
 
 let _ =
   Lang.add_builtin ~category:`Configuration
     ~descr:"Execute cache maintenance routine." ~base:liquidsoap_cache
-    "maintenance" [] Lang.unit_t (fun _ ->
+    "maintenance"
+    [
+      ( "mode",
+        Lang.string_t,
+        None,
+        Some "Cache mode, one of: \"user\" or \"system\"" );
+    ]
+    Lang.unit_t
+    (fun p ->
+      let mode = List.assoc "mode" p in
+      let dirtype =
+        match Lang.to_string mode with
+          | "system" -> `System
+          | "user" -> `User
+          | _ ->
+              raise
+                (Error.Invalid_value
+                   ( mode,
+                     "Invalid mode. Should be one of: \"user\" or \"system\"" ))
+      in
       let fn = !Hooks.cache_maintenance in
-      fn ();
+      fn dirtype;
       Lang.unit)
 
 let liquidsoap_version =

@@ -1,13 +1,16 @@
+type dirtype = [ `System | `User ]
+
 val enabled : unit -> bool
-val dir_override : string option ref
-val dir : unit -> string option
-val retrieve : ?name:string -> string -> 'a option
-val store : string -> 'a -> unit
+val user_dir_override : (unit -> string option) ref
+val system_dir_override : (unit -> string option) ref
+val dir : dirtype -> string option
+val retrieve : ?name:string -> dirtype:dirtype -> string -> 'a option
+val store : dirtype:dirtype -> string -> 'a -> unit
 
 module Table : sig
   type 'a t
 
-  val load : ?name:string -> string -> 'a t
+  val load : ?name:string -> dirtype:dirtype -> string -> 'a t
   val get : 'a t -> string -> (unit -> 'a) -> 'a
-  val store : 'a t -> unit
+  val store : dirtype:dirtype -> 'a t -> unit
 end

@@ -223,9 +223,12 @@ let report :
       throw exn;
       default ())
 
-let type_term ?name ?stdlib ?term ?ty ~cache ~trim ~lib parsed_term =
+let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
+    parsed_term =
   let cached_term =
-    if cache then Term_cache.retrieve ?name ~trim parsed_term else None
+    if cache then
+      Term_cache.retrieve ?name ?dirtype:cache_dirtype ~trim parsed_term
+    else None
   in
   match cached_term with
     | Some term -> term
@@ -275,7 +278,8 @@ let type_term ?name ?stdlib ?term ?ty ~cache ~trim ~lib parsed_term =
         let full_term =
           if trim then Term_trim.trim_term full_term else full_term
         in
-        if cache then Term_cache.cache ~trim ~parsed_term full_term;
+        if cache then
+          Term_cache.cache ?dirtype:cache_dirtype ~trim ~parsed_term full_term;
         full_term
 
 let eval_term ?name ~toplevel ast =

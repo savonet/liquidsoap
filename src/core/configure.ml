@@ -5,7 +5,12 @@ include Liquidsoap_paths
 let git_snapshot = git_sha <> None
 let requests_max_id = 50
 let requests_table_size = 50
-let () = Liquidsoap_lang.Cache.dir_override := Liquidsoap_paths.cache_override
+
+let () =
+  Liquidsoap_lang.Cache.user_dir_override :=
+    Liquidsoap_paths.user_cache_override;
+  Liquidsoap_lang.Cache.system_dir_override :=
+    Liquidsoap_paths.system_cache_override
 
 (** General configuration *)
 let conf = Dtools.Conf.void "Liquidsoap configuration"
