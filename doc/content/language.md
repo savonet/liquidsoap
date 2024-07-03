@@ -1434,34 +1434,60 @@ During the first execution, the script is parsed, type checked and evaluated. On
 Here's a log without caching on a M3 macbook pro:
 
 ```
-2024/05/25 18:38:00 [startup:3] Cache retrieval: 0.01s
-2024/05/25 18:38:00 [startup:3] Typechecking: 2.58s
-2024/05/25 18:38:00 [startup:3] Evaluation: 0.01s
+2024/07/03 14:31:41 [startup:3] main script hash computation: 0.03s
+2024/07/03 14:31:41 [startup:3] main script cache retrieval: 0.03s
+2024/07/03 14:31:41 [startup:3] stdlib hash computation: 0.03s
+2024/07/03 14:31:41 [startup:3] stdlib cache retrieval: 0.03s
+2024/07/03 14:31:41 [startup:3] Typechecking stdlib: 3.37s
+2024/07/03 14:31:41 [startup:3] Typechecking main script: 0.00s
 ```
 
 And the same log after caching:
 
 ```
-2024/05/25 18:38:27 [startup:3] Loading script from cache!
-2024/05/25 18:38:27 [startup:3] Cache retrieval: 0.03s
-2024/05/25 18:38:27 [startup:3] Evaluation: 0.02s
+2024/07/03 14:32:59 [startup:3] main script hash computation: 0.02s
+2024/07/03 14:32:59 [startup:3] Loading main script from cache!
+2024/07/03 14:32:59 [startup:3] main script cache retrieval: 0.05s
 ```
 
 Scripts can be cached ahead of time without executing them, for instance while compiling a docker image, using `--cache-only`. Caching can also be disabled using `--no-cache`.
 
-On windows, the default cache directory is located in the same directory as the binary. On unix systems, it is located at: `$HOME/.cache/liquidsoap`
+Caching happens at two different time:
 
-For obvious reasons, cache parameters have to be set before parsing and executing scripts so:
+- First the standard library is cached
+- Then the script itself is cached
 
-- cache directory can be changed using the `LIQ_CACHE_DIR` environments
-- cache can be disabled by setting `LIQ_CACHE` to anything else than `"true"`
+Caching the standard library makes it possible to run the type-checker faster on new scripts. Here's an example of a log from running a new script with
+a cached standard library:
 
-At runtime, `liquidsoap.config()` returns the cache directory.
+```
+2024/07/03 14:33:27 [startup:3] main script hash computation: 0.02s
+2024/07/03 14:33:27 [startup:3] main script cache retrieval: 0.02s
+2024/07/03 14:33:27 [startup:3] stdlib hash computation: 0.03s
+2024/07/03 14:33:27 [startup:3] Loading stdlib from cache!
+2024/07/03 14:33:27 [startup:3] stdlib cache retrieval: 0.10s
+2024/07/03 14:33:27 [startup:3] Typechecking main script: 0.00s
+```
+
+Caching can be disabled by setting `LIQ_CACHE` to anything else than `"true"`.
+
+### Cache locations
+
+Cache files can accumulate and also take up disk space so it is important to know where they are located!
+
+There are two type of cache locations:
+
+- System cache for cached files that should be shared with all liquidsoap scripts. This is where the standard library cache is located. This location is a system-wide path on unix system such as `/var/cache/liquidsoap`. This location can be overridden by setting the `LIQ_CACHE_SYSTEM_DIR` environment variable.
+- User cache for cached files that are specific to the user running liquidsoap scripts. On unix systems, this location is at `$HOME/.cache/liquidsoap` and can be override using the `LIQ_CACHE_USER_DIR`.
+
+On windows, the default cache directory for both type of cache locations is in the same directory as the binary.
+
+At runtime, `liquidsoap.cache(mode=<mode>)` returns the cache directory. `mode` should be one of: `"user"` or `"system"`.
 
 There is a cache maintenance routine which deletes unused cache files after `10` days and keeps the cache to a maximum of `200` files. This can be configured
 via `settings.cache.max_day` and `settings.cache.max_files`.
 
-However, also for obvious reasons, these values can only be changed _after_ executing the script so setting a values in your script will not affect the initial maintenance done
-during the script's loading.
+These values can only be changed _after_ executing the script so setting a values in your script will not affect the initial maintenance done
+when the script is loaded.
 
-Thus, if you need to change the defaults and run the cache maintenance, you can configure the values in your script and run `liquidsoap.cache.maintenance()` manually.
+Thus, if you change the defaults, you should also run the cache maintenance by calling `liquidsoap.cache.maintenance(mode=<mode>)` manually. Here, too, `mode` should be one of: `"user"` or `"system"`.
