@@ -433,7 +433,7 @@ let register_plugin cache pname =
 
 let register_plugins () =
   let cache =
-    (Cache.Table.load ~name:"LADSPA plugins" "ladspa-plugins"
+    (Cache.Table.load ~dirtype:`System ~name:"LADSPA plugins" "ladspa-plugins"
       : plugin Cache.Table.t)
   in
   let add plugins_dir =
@@ -451,7 +451,7 @@ let register_plugins () =
         (Unix.error_message e)
   in
   List.iter add ladspa_dirs;
-  Cache.Table.store cache
+  Cache.Table.store ~dirtype:`System cache
 
 let () =
   Lifecycle.on_load ~name:"ladspa plugin registration" (fun () ->

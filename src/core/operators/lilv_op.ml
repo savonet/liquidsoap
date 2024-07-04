@@ -410,13 +410,13 @@ let register_plugin cache plugin =
 
 let register_plugins () =
   let cache =
-    (Cache.Table.load ~name:"lilv plugins" "lilv-plugins"
+    (Cache.Table.load ~dirtype:`System ~name:"lilv plugins" "lilv-plugins"
       : plugin Cache.Table.t)
   in
   let world = World.create () in
   World.load_all world;
   Plugins.iter (register_plugin cache) (World.plugins world);
-  Cache.Table.store cache
+  Cache.Table.store ~dirtype:`System cache
 
 let () =
   Lifecycle.on_load ~name:"lilv plugin registration" (fun () ->

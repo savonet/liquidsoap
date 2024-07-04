@@ -33,6 +33,7 @@ val type_term :
   ?stdlib:append_stdlib ->
   ?term:Term.t ->
   ?ty:Type.t ->
+  ?cache_dirtype:Cache.dirtype ->
   cache:bool ->
   trim:bool ->
   lib:bool ->

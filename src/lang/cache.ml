@@ -1,39 +1,55 @@
+type dirtype = [ `System | `User ]
+
 let enabled () =
   try
     let venv = Unix.getenv "LIQ_CACHE" in
     venv = "1" || venv = "true"
   with Not_found -> true
 
-let default_dir =
-  ref (fun () ->
-      try
-        match Sys.os_type with
-          | "Win32" ->
-              let dir = Filename.dirname Sys.executable_name in
-              let cwd = Sys.getcwd () in
-              Sys.chdir dir;
-              let dir = Sys.getcwd () in
-              Sys.chdir cwd;
-              Some (Filename.concat dir ".cache")
-          | _ ->
-              Some
-                (Filename.concat
-                   (Filename.concat (Unix.getenv "HOME") ".cache")
-                   "liquidsoap")
-      with Not_found -> None)
+let system_dir_override = ref (fun () -> None)
+let user_dir_override = ref (fun () -> None)
+let system_dir_perms = ref 0o755
+let system_file_perms = ref 0o644
+let user_dir_perms = ref 0o700
+let user_file_perms = ref 0o600
 
-let rec recmkdir dir =
+let default_user_dir () =
+  try Some (Unix.getenv "LIQ_CACHE_USER_DIR")
+  with Not_found -> (
+    let fn = !user_dir_override in
+    match fn () with
+      | Some d -> Some d
+      | _ ->
+          Some
+            (Filename.concat
+               (Filename.concat (Unix.getenv "HOME") ".cache")
+               "liquidsoap"))
+
+let default_system_dir () =
+  try Some (Unix.getenv "LIQ_CACHE_SYSTEM_DIR")
+  with Not_found -> (
+    let fn = !system_dir_override in
+    match (fn (), Sites.Sites.cache) with
+      | Some d, _ | _, d :: _ -> Some d
+      | _ -> None)
+
+let rec recmkdir ~dirtype dir =
+  let perms =
+    match dirtype with `System -> !system_dir_perms | `User -> !user_dir_perms
+  in
   if not (Sys.file_exists dir) then (
-    recmkdir (Filename.dirname dir);
-    Sys.mkdir dir 0o755)
+    recmkdir ~dirtype (Filename.dirname dir);
+    Sys.mkdir dir perms)
 
-let dir () =
+let dir dirtype =
   if enabled () then (
     match
-      try Some (Unix.getenv "LIQ_CACHE_DIR")
-      with Not_found ->
-        let fn = !default_dir in
-        fn ()
+      let fn =
+        match dirtype with
+          | `User -> default_user_dir
+          | `System -> default_system_dir
+      in
+      fn ()
     with
       | None ->
           Startup.message
@@ -45,9 +61,9 @@ let dir () =
     Startup.message "Cache disabled!";
     None)
 
-let retrieve ?name filename =
+let retrieve ?name ~dirtype filename =
   try
-    match dir () with
+    match dir dirtype with
       | None -> None
       | Some dir ->
           let filename = Filename.concat dir filename in
@@ -79,17 +95,22 @@ let retrieve ?name filename =
         else Startup.message "Error while loading cache: %s" exn;
         None
 
-let store filename value =
+let store ~dirtype filename value =
   try
-    match dir () with
+    match dir dirtype with
       | None -> ()
       | Some dir ->
-          recmkdir dir;
+          recmkdir ~dirtype dir;
           let filename = Filename.concat dir filename in
+          let perms =
+            match dirtype with
+              | `User -> !user_file_perms
+              | `System -> !system_file_perms
+          in
           let tmp_file, oc =
             Filename.open_temp_file
               ~temp_dir:(Filename.dirname filename)
-              "tmp" ".liq-cache"
+              ~perms "tmp" ".liq-cache"
           in
           Fun.protect
             ~finally:(fun () ->
@@ -99,7 +120,7 @@ let store filename value =
               Marshal.to_channel oc value [Marshal.Closures];
               Sys.rename tmp_file filename);
           let fn = !Hooks.cache_maintenance in
-          fn ()
+          fn dirtype
   with exn ->
     Startup.message "Error while saving cache: %s" (Printexc.to_string exn)
 
@@ -113,10 +134,10 @@ module Table = struct
     mutable changed : bool;
   }
 
-  let load ?name fname =
+  let load ?name ~dirtype fname =
     {
       fname;
-      table = Option.value ~default:Map.empty (retrieve ?name fname);
+      table = Option.value ~default:Map.empty (retrieve ?name ~dirtype fname);
       changed = false;
     }
 
@@ -130,5 +151,5 @@ module Table = struct
           t.changed <- true;
           v
 
-  let store t = if t.changed then store t.fname t.table
+  let store ~dirtype t = if t.changed then store ~dirtype t.fname t.table
 end
