@@ -1477,17 +1477,39 @@ Cache files can accumulate and also take up disk space so it is important to kno
 
 There are two type of cache locations:
 
-- System cache for cached files that should be shared with all liquidsoap scripts. This is where the standard library cache is located. This location is a system-wide path on unix system such as `/var/cache/liquidsoap`. This location can be overridden by setting the `LIQ_CACHE_SYSTEM_DIR` environment variable.
-- User cache for cached files that are specific to the user running liquidsoap scripts. On unix systems, this location is at `$HOME/.cache/liquidsoap` and can be override using the `LIQ_CACHE_USER_DIR`.
+- System cache for cached files that should be shared with all liquidsoap scripts. This is where the standard library cache is located. This location is a system-wide path on unix system such as `/var/cache/liquidsoap`.
+- User cache for cached files that are specific to the user running liquidsoap scripts. On unix systems, this location is at `$HOME/.cache/liquidsoap`.
 
 On windows, the default cache directory for both type of cache locations is in the same directory as the binary.
 
 At runtime, `liquidsoap.cache(mode=<mode>)` returns the cache directory. `mode` should be one of: `"user"` or `"system"`.
 
-There is a cache maintenance routine which deletes unused cache files after `10` days and keeps the cache to a maximum of `200` files. This can be configured
-via `settings.cache.max_day` and `settings.cache.max_files`.
+### Cache maintenance
 
-These values can only be changed _after_ executing the script so setting a values in your script will not affect the initial maintenance done
-when the script is loaded.
+There is a cache maintenance routine which deletes unused cache files after `10` days and keeps the cache to a maximum of `200` files.
 
-Thus, if you change the defaults, you should also run the cache maintenance by calling `liquidsoap.cache.maintenance(mode=<mode>)` manually. Here, too, `mode` should be one of: `"user"` or `"system"`.
+You can run the cache maintenance routing by calling `liquidsoap.cache.maintenance(mode=<mode>)` manually. Here, too, `mode` should be one of: `"user"` or `"system"`.
+
+### Cache security
+
+Please be aware that the cache does _not_ encrypt its values. As such, user cache files should be considered sensitive as they may contain password and other runtime secrets
+that are available through your scripts. We recommend to:
+
+- Use environment variables as much as possible when passing secrets
+- Secure your user script and cache files.
+
+The default creation permissions for user cache files is: `0o600` so only the user creating them should be able to read them. You should make sure that your script permissions are also similarly restricted.
+
+### Cache environment variables
+
+The following environment variables control the cache behavior:
+
+- `LIQ_CACHE`: disable the cache when set to anything else than `1` or `true`
+- `LIQ_CACHE_SYSTEM_DIR`: set the cache system directory
+- `LIQ_CACHE_SYSTEM_DIR_PERMS`: set the permission used when creating cache system directory (and its parents when needed). Default: `0o755`
+- `LIQ_CACHE_SYSTEM_FILE_PERMS`: set the permissions used when creating a system cache file. Default: `0o644`
+- `LIQ_CACHE_USER_DIR`: set the cache user directory
+- `LIQ_CACHE_USER_DIR_PERMS`: set the permission used when creating cache user directory (and its parents when needed). Default: `0o700`.
+- `LIQ_CACHE_USER_FILE_PERMS`: set the permissions used when creating a user cache file. Default: `0o644`
+- `LIQ_CACHE_MAX_DAYS`: set the maximum days a cache file can be stored before it is eligible to be deleted during the next cache maintenance pass.
+- `LIQ_CACHE_MAX_FILES`: set the maximum number of files in each cache directory. Older files are removed first.

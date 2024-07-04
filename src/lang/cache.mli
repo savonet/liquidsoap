@@ -1,5 +1,9 @@
 type dirtype = [ `System | `User ]
 
+val user_file_perms : int ref
+val user_dir_perms : int ref
+val system_file_perms : int ref
+val system_dir_perms : int ref
 val enabled : unit -> bool
 val user_dir_override : (unit -> string option) ref
 val system_dir_override : (unit -> string option) ref

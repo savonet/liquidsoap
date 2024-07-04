@@ -131,28 +131,36 @@ let register () =
   Hooks.source_methods_t :=
     fun () -> Lang_source.source_t ~methods:true (Lang.univ_t ())
 
-let conf_cache =
-  Dtools.Conf.void ~p:(Configure.conf#plug "cache") "Cache configuration"
+let cache_max_days =
+  try int_of_string (Sys.getenv "LIQ_CACHE_MAX_DAYS") with _ -> 10
 
-let conf_cache_max_days =
-  Dtools.Conf.int
-    ~p:(conf_cache#plug "max_days")
-    ~d:10
-    "Delete cache file that have not been touched after this number of days."
+let cache_max_files =
+  try int_of_string (Sys.getenv "LIQ_CACHE_MAX_FILES") with _ -> 20
 
-let conf_cache_max_files =
-  Dtools.Conf.int
-    ~p:(conf_cache#plug "max_files")
-    ~d:200 "Keep at most that number of cache files. Delete folder files first."
+let () =
+  (try
+     Liquidsoap_lang.Cache.system_dir_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_DIR_PERMS")
+   with _ -> ());
+  (try
+     Liquidsoap_lang.Cache.system_file_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_FILE_PERMS")
+   with _ -> ());
+  (try
+     Liquidsoap_lang.Cache.user_dir_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_USER_DIR_PERMS")
+   with _ -> ());
+  try
+    Liquidsoap_lang.Cache.user_file_perms :=
+      int_of_string (Sys.getenv "LIQ_CACHE_USER_FILE_PERMS")
+  with _ -> ()
 
 module Term_cache = Liquidsoap_lang.Term_cache
 
 let cache_log = Log.make ["cache"]
 
 let cache_maintenance dirtype =
-  let max_timestamp =
-    Unix.time () -. (float conf_cache_max_days#get *. 86400.)
-  in
+  let max_timestamp = Unix.time () -. (float cache_max_days *. 86400.) in
   try
     match Cache.dir dirtype with
       | Some dir when Sys.file_exists dir && Sys.is_directory dir ->
@@ -172,9 +180,8 @@ let cache_maintenance dirtype =
               [] (Sys.readdir dir)
           in
           let len = List.length files in
-          let max_files = conf_cache_max_files#get in
-          if max_files < len then (
-            let len = len - max_files in
+          if cache_max_files < len then (
+            let len = len - cache_max_files in
             cache_log#info "Too many cached files! Deleting %d oldest ones.."
               len;
             let files =

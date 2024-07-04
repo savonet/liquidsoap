@@ -1,3 +1,5 @@
+type dirtype = [ `System | `User ]
+
 let enabled () =
   try
     let venv = Unix.getenv "LIQ_CACHE" in
@@ -6,6 +8,10 @@ let enabled () =
 
 let system_dir_override = ref (fun () -> None)
 let user_dir_override = ref (fun () -> None)
+let system_dir_perms = ref 0o755
+let system_file_perms = ref 0o644
+let user_dir_perms = ref 0o700
+let user_file_perms = ref 0o600
 
 let default_user_dir () =
   try Some (Unix.getenv "LIQ_CACHE_USER_DIR")
@@ -27,12 +33,13 @@ let default_system_dir () =
       | Some d, _ | _, d :: _ -> Some d
       | _ -> None)
 
-let rec recmkdir dir =
+let rec recmkdir ~dirtype dir =
+  let perms =
+    match dirtype with `System -> !system_dir_perms | `User -> !user_dir_perms
+  in
   if not (Sys.file_exists dir) then (
-    recmkdir (Filename.dirname dir);
-    Sys.mkdir dir 0o755)
-
-type dirtype = [ `System | `User ]
+    recmkdir ~dirtype (Filename.dirname dir);
+    Sys.mkdir dir perms)
 
 let dir dirtype =
   if enabled () then (
@@ -93,12 +100,17 @@ let store ~dirtype filename value =
     match dir dirtype with
       | None -> ()
       | Some dir ->
-          recmkdir dir;
+          recmkdir ~dirtype dir;
           let filename = Filename.concat dir filename in
+          let perms =
+            match dirtype with
+              | `User -> !user_file_perms
+              | `System -> !system_file_perms
+          in
           let tmp_file, oc =
             Filename.open_temp_file
               ~temp_dir:(Filename.dirname filename)
-              "tmp" ".liq-cache"
+              ~perms "tmp" ".liq-cache"
           in
           Fun.protect
             ~finally:(fun () ->
