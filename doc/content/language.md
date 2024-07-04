@@ -1510,6 +1510,6 @@ The following environment variables control the cache behavior:
 - `LIQ_CACHE_SYSTEM_FILE_PERMS`: set the permissions used when creating a system cache file. Default: `0o644`
 - `LIQ_CACHE_USER_DIR`: set the cache user directory
 - `LIQ_CACHE_USER_DIR_PERMS`: set the permission used when creating cache user directory (and its parents when needed). Default: `0o700`.
-- `LIQ_CACHE_USER_FILE_PERMS`: set the permissions used when creating a user cache file. Default: `0o644`
+- `LIQ_CACHE_USER_FILE_PERMS`: set the permissions used when creating a user cache file. Default: `0o600`
 - `LIQ_CACHE_MAX_DAYS`: set the maximum days a cache file can be stored before it is eligible to be deleted during the next cache maintenance pass.
 - `LIQ_CACHE_MAX_FILES`: set the maximum number of files in each cache directory. Older files are removed first.
