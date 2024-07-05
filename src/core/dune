@@ -3,6 +3,7 @@
   (ocamlopt_flags
    (:standard -w -9 -alert --deprecated -O2)))
  (_
+  (link_flags -static-libasan)
   (flags
    (:standard -w -9 -alert --deprecated))))
 
