@@ -49,8 +49,7 @@ opam install -y .
 cd ..
 
 opam update
-opam remove -y jemalloc
-opam install -y saturn_lockfree.0.4.1 ppx_hash
+opam install -y saturn_lockfree.0.4.1 ppx_hash jemalloc
 
 cd /tmp/liquidsoap-full
 
