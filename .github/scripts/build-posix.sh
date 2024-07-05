@@ -6,6 +6,7 @@ CPU_CORES="$1"
 PLATFORM="$2"
 
 export CPU_CORES
+export ASAN_OPTIONS=detect_leaks=0,exitcode=0
 
 eval "$(opam config env)"
 

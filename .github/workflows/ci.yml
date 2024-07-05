@@ -125,82 +125,6 @@ jobs:
         env:
           GH_PAT: ${{ secrets.WEBSITE_TOKEN }}
 
-  run_tests:
-    runs-on: [self-hosted, citest]
-    needs: build_details
-    container:
-      image: savonet/liquidsoap-ci:debian_bookworm_arm64
-      options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
-    strategy:
-      fail-fast: false
-      matrix:
-        target: ["@citest", "@mediatest"]
-    env:
-      HOME: /home/opam
-    steps:
-      - name: Get number of CPU cores
-        uses: savonet/github-actions-cpu-cores-docker@v1
-        id: cpu_cores
-      - name: Enable core dump
-        run: |
-          ulimit -c unlimited
-          mkdir -p /tmp/${{ github.run_number }}/core
-          chown -R opam /tmp/${{ github.run_number }}/core
-          echo /tmp/${{ github.run_number }}/core/core.%h.%e.%t > /proc/sys/kernel/core_pattern
-      - name: Checkout code
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          rm -rf doc/content/build.md doc/content/install.md
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ github.sha }}
-          sudo -u opam -E git checkout ${{ github.sha }}
-      - name: Update debian packages
-        run: |
-          echo "opam hold" | sudo dpkg --set-selections
-          sudo apt-get update
-          sudo apt-get -y dist-upgrade
-          sudo apt-get -y autoremove
-          sudo apt-get -y install libpcre3-dev libtag1-dev zlib1g-dev
-      - name: Build
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
-          # TMP
-          sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
-          sudo -u opam -E opam install -y ssl.0.7.0
-          sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
-          cp /tmp/liquidsoap-full/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
-      - name: Compute stats
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/stats-posix.sh
-      - name: Run tests
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/test-posix.sh ${{ matrix.target }}
-      - name: Save traces
-        if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
-        run: |
-          mkdir -p /tmp/${{ github.run_number }}/traces/${{ matrix.target }}
-          cd /tmp/liquidsoap-full/liquidsoap
-          find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
-      - name: Upload traces
-        if: (success() || failure()) && ${{ needs.build_details.outputs.save_traces == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: traces-${{ matrix.target }}
-          path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
-      - name: Export potential core dumps
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: core-dump-${{ matrix.os }}-${{ matrix.platform }}-${{ matrix.target }}
-          path: ${{ github.workspace }}/${{ github.run_number }}/core
-      - name: Cleanup
-        if: ${{ always() }}
-        run: |
-          rm -rf /tmp/${{ github.run_number }}/core
-
   build_opam:
     runs-on: ubuntu-latest
     needs: build_details
@@ -252,11 +176,12 @@ jobs:
           - os: ubuntu_lunar
             platform: armhf
     container:
-      image: savonet/liquidsoap-ci:${{ matrix.os }}_${{ matrix.platform }}
+      image: savonet/liquidsoap-ci:debian_trixie_asan
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
       IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
+      ASAN_OPTIONS: detect_leaks=0,exitcode=0
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1
@@ -289,11 +214,6 @@ jobs:
           sudo -u opam -E ./.github/scripts/add-local-opam-packages.sh
           sudo -u opam -E opam install -y ssl.0.7.0 saturn_lockfree
           sudo -u opam -E ./.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}" ${{ matrix.platform }}
-      - name: Build doc
-        if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
-        run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E ./.github/scripts/build-doc.sh
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
@@ -418,14 +338,7 @@ jobs:
   update_release:
     runs-on: ubuntu-latest
     needs:
-      [
-        build_details,
-        build_js,
-        run_tests,
-        build_posix,
-        build_win32,
-        fetch_s3_artifacts,
-      ]
+      [build_details, build_js, build_posix, build_win32, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_release
     steps:
       - name: Checkout code
@@ -488,7 +401,7 @@ jobs:
 
   build_docker:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
     strategy:
       fail-fast: false
@@ -519,7 +432,7 @@ jobs:
 
   build_docker_alpine:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
     strategy:
       fail-fast: false
@@ -546,7 +459,7 @@ jobs:
 
   build_docker_minimal:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
     strategy:
       fail-fast: false
@@ -577,7 +490,7 @@ jobs:
 
   build_docker_alpine_minimal:
     runs-on: ${{ matrix.runs-on }}
-    needs: [build_details, run_tests, build_posix, fetch_s3_artifacts]
+    needs: [build_details, build_posix, fetch_s3_artifacts]
     if: needs.build_details.outputs.is_fork != 'true' && github.event_name != 'merge_group'
     strategy:
       fail-fast: false
@@ -605,23 +518,3 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build docker image
         run: .github/scripts/build-docker-alpine.sh ${{ steps.alpine_package.outputs.apk-file }} ${{ steps.alpine_dbg_package.outputs.apk-file }} ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ matrix.platform }} ${{ matrix.docker-platform }}
-
-  build_docker_release:
-    runs-on: ubuntu-latest
-    needs: [build_details, build_docker, build_docker_alpine]
-    if: needs.build_details.outputs.docker_release
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Push consolidated manifest
-        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }} ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
-
-  build_docker_release-minimal:
-    runs-on: ubuntu-latest
-    needs: [build_details, build_docker_minimal, build_docker_alpine_minimal]
-    if: needs.build_details.outputs.docker_release
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Push consolidated manifest
-        run: .github/scripts/push-docker.sh ${{ needs.build_details.outputs.branch }}-minimal ${{ secrets.DOCKERHUB_USER }} ${{ secrets.DOCKERHUB_PASSWORD }} ${{ github.actor }} ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}-minimal

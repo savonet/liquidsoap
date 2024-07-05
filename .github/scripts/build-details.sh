@@ -17,31 +17,10 @@ if [ "${IS_FORK}" == "true" ]; then
   IS_FORK=true
 fi
 
-if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\.x || "${BRANCH}" =~ ^v[0-9]\.[0-9]\.[0-9]) ]]; then
-  echo "Branch is release branch"
-  IS_RELEASE=true
-
-  echo "Building on all architectures"
-  BUILD_OS='["debian_trixie", "debian_bookworm", "debian_bullseye", "ubuntu_jammy", "ubuntu_lunar", "alpine"]'
-  BUILD_PLATFORM='["amd64", "arm64"]'
-  #BUILD_PLATFORM='["amd64", "arm64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "trixie"}]'
-  #BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64"}]'
-
-  echo "Branch has a docker release"
-  DOCKER_RELEASE=true
-else
-  echo "Branch is not release branch"
-  IS_RELEASE=
-
-  echo "Building on amd64 only"
-  BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_jammy", "ubuntu_lunar", "alpine"]'
-  BUILD_PLATFORM='["amd64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}]'
-
-  echo "Branch does not have a docker release"
-  DOCKER_RELEASE=
-fi
+echo "Building on trixie with asan"
+BUILD_OS='["debian_trixie"]'
+BUILD_PLATFORM='["amd64"]'
+BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}]'
 
 SHA=$(git rev-parse --short HEAD)
 
