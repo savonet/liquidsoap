@@ -49,7 +49,7 @@ sed -e "s#@LIQ_PACKAGE@#${LIQ_PACKAGE}#g" -i debian/control
 
 dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
 
-fakeroot debian/rules binary
+debian/rules binary
 
 echo "::endgroup::"
 
@@ -91,7 +91,7 @@ cp -rf debian/rules-minimal debian/rules
 
 dch --create --distribution unstable --package "${LIQ_PACKAGE}-minimal" --newversion "1:${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}" "Build ${COMMIT_SHORT}"
 
-fakeroot debian/rules binary
+debian/rules binary
 
 echo "::endgroup::"
 
