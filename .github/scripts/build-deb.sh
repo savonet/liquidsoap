@@ -50,10 +50,12 @@ dch --create --distribution unstable --package "${LIQ_PACKAGE}" --newversion "1:
 
 export LIQUIDSOAP_BUILD_TARGET=posix
 
-DESTDIR=debian/tmp
+DESTDIR=/tmp/debian
 
-dune build @install --release --verbose
-dune install --prefix "$DESTDIR" --verbose
+mkdir -p "${DESTDIR}"
+
+dune build @install --release
+dune install --prefix "$DESTDIR"
 mkdir -p "${DESTDIR}/share/liquidsoap"
 cp -rf "$(opam var share)/camomile" "${DESTDIR}/share/liquidsoap"
 
