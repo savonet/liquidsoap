@@ -18,6 +18,8 @@ override_dh_auto_test:
 	/bin/true
 
 override_dh_auto_install:
+	ls -lh /tmp/debian
+	mkdir -p $(DESTDIR)
 	cp -rf /tmp/debian/* $(DESTDIR)
 	dh_install
 
