@@ -19,8 +19,9 @@ override_dh_auto_test:
 
 override_dh_auto_install:
 	export LIQUIDSOAP_BUILD_TARGET=posix
-	dune build @install --release --verbose
-	dune install --prefix $(DESTDIR) --verbose
+	export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.8.0.0
+	dune build @install --release
+	dune install --prefix $(DESTDIR)
 	rm -rf $(DESTDIR)/share/liquidsoap-lang/libs/extra
 	mkdir -p $(DESTDIR)/share/liquidsoap
 	cp -rf `opam var share`/camomile $(DESTDIR)/share/liquidsoap
