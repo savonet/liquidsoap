@@ -1,7 +1,5 @@
 #!/usr/bin/make -f
 
-DESTDIR := debian/tmp
-
 %:
 	dh $@
 
@@ -18,12 +16,6 @@ override_dh_auto_test:
 	/bin/true
 
 override_dh_auto_install:
-	export LIQUIDSOAP_BUILD_TARGET=posix
-	export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.8.0.0
-	dune build @install --release --verbose
-	dune install --prefix $(DESTDIR) --verbose
-	mkdir -p $(DESTDIR)/share/liquidsoap
-	cp -rf `opam var share`/camomile $(DESTDIR)/share/liquidsoap
 	dh_install
 
 override_dh_auto_clean:
