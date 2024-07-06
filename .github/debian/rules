@@ -19,8 +19,8 @@ override_dh_auto_test:
 
 override_dh_auto_install:
 	export LIQUIDSOAP_BUILD_TARGET=posix
-	dune build @install --release
-	dune install --prefix $(DESTDIR)
+	dune build @install --release --verbose
+	dune install --prefix $(DESTDIR) --verbose
 	mkdir -p $(DESTDIR)/share/liquidsoap
 	cp -rf `opam var share`/camomile $(DESTDIR)/share/liquidsoap
 	dh_install
