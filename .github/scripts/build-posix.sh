@@ -57,6 +57,7 @@ opam install -y --confirm-level=unsafe-yes magic-mime pcre tls.0.17.3 taglib
 cd /tmp/liquidsoap-full
 
 sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
+sed -e 's@ocaml-fdkaac@#ocaml-fdkaac@' -i PACKAGES
 
 export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
