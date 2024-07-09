@@ -8,11 +8,15 @@ type encoder_params =
 and encoder = string * encoder_params
 
 let make_encoder =
-  ref (fun ~pos:_ _ _ -> failwith "Encoders are not implemented!")
+  ref (fun ~pos:_ _ -> failwith "Encoders are not implemented!")
 
 let has_encoder = ref (fun _ -> false)
 let liq_libs_dir = ref (fun () -> raise Not_found)
 let log_path = ref None
+
+type dirtype = [ `User | `System ]
+
+let cache_maintenance = ref (fun _ -> ())
 
 type log =
   < f : 'a. int -> ('a, unit, string, unit) format4 -> 'a

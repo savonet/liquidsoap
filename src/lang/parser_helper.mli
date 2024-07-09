@@ -26,6 +26,7 @@ module Term = Parsed_term
 module Vars = Term_base.Vars
 
 type arglist = Term.fun_arg list
+type pos = Parsed_term.pos
 
 type lexer_let_decoration =
   [ `Eval
@@ -40,16 +41,14 @@ type lexer_let_decoration =
 type explicit_binding = [ `Def of Term._let | `Let of Term._let ]
 type binding = [ explicit_binding | `Binding of Term._let ]
 type let_opt_el = string * Term.t
-type meth_term_default = [ `Nullable | `Pattern of Term.pattern | `None ]
-type meth_pattern_el = string * meth_term_default
 
 val clear_comments : unit -> unit
-val append_comment : pos:Pos.t -> string -> unit
+val append_comment : pos:pos -> string -> unit
 val attach_comments : Term.t -> unit
-val mk_ty : ?pos:Pos.t -> Parsed_term.type_annotation -> Type.t
+val mk_ty : ?pos:pos -> Parsed_term.type_annotation -> Type.t
 
 val mk_let :
-  pos:Pos.t ->
+  pos:pos ->
   [< `Binding of Term._let | `Def of Term._let | `Let of Term._let ] ->
   Term.t ->
   Term.t
@@ -67,13 +66,13 @@ val let_decoration_of_lexer_let_decoration :
   lexer_let_decoration -> Term.let_decoration
 
 val mk_json_assoc_object_ty :
-  pos:Pos.t ->
+  pos:pos ->
   Parsed_term.type_annotation * string * string * string ->
   Term.type_annotation
 
 val mk :
-  ?comments:(Pos.t * Parsed_term.comment) list ->
-  pos:Pos.t ->
+  ?comments:(pos * Parsed_term.comment) list ->
+  pos:pos ->
   Term.parsed_ast ->
   Term.t
 
@@ -83,12 +82,12 @@ val mk_try :
   ?errors_list:Term.t ->
   variable:string ->
   body:Term.t ->
-  pos:Pos.t ->
+  pos:pos ->
   unit ->
   Term.t
 
-val mk_fun : pos:Pos.t -> arglist -> Term.t -> Term.t
-val mk_encoder : pos:Pos.t -> string -> Term.encoder_params -> Term.t
-val args_of_json_parse : pos:Pos.t -> (string * 'a) list -> (string * 'a) list
-val render_string_ref : (pos:Pos.t -> char * string -> string) ref
-val render_string : pos:Pos.t -> char * string -> string
+val mk_fun : pos:pos -> arglist -> Term.t -> Term.t
+val mk_encoder : pos:pos -> string -> Term.encoder_params -> Term.t
+val args_of_json_parse : pos:pos -> (string * 'a) list -> (string * 'a) list
+val render_string_ref : (pos:pos -> char * string -> string) ref
+val render_string : pos:pos -> char * string -> string

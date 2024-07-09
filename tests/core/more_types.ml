@@ -72,8 +72,7 @@ let () =
       Term.t = typ;
       term = `Int 1;
       methods = Term.Methods.empty;
-      flags = 0;
-      id = 123;
+      flags = Flags.empty;
     }
   in
   let invoke =
@@ -82,8 +81,7 @@ let () =
       term =
         `Invoke { Term.invoked = term; invoke_default = None; meth = "opt" };
       methods = Term.Methods.empty;
-      flags = 0;
-      id = 234;
+      flags = Flags.empty;
     }
   in
   try

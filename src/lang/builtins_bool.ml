@@ -73,13 +73,13 @@ let () =
              let v = Lang.assoc "" 1 p in
              let v' = Lang.assoc "" 2 p in
              Lang.bool
-               (match (v.Value.value, v'.Value.value) with
-                 | Value.Custom g, Value.Custom g' ->
+               (match (v, v') with
+                 | Custom { value = g }, Custom { value = g' } ->
                      value_op (Term.Custom.compare g g')
-                 | Value.Int v, Value.Int v' -> ground_op v v'
-                 | Value.Float v, Value.Float v' -> ground_op v v'
-                 | Value.String v, Value.String v' -> ground_op v v'
-                 | Value.Bool v, Value.Bool v' -> ground_op v v'
+                 | Int { value = v }, Int { value = v' } -> ground_op v v'
+                 | Float { value = v }, Float { value = v' } -> ground_op v v'
+                 | String { value = v }, String { value = v' } -> ground_op v v'
+                 | Bool { value = v }, Bool { value = v' } -> ground_op v v'
                  | _ -> value_op (Value.compare v v')))))
     operators
 

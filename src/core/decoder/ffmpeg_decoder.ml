@@ -1174,13 +1174,13 @@ let create_decoder ~ctype ~metadata fname =
                   | _ -> ticks));
       decode = mk_decoder ~streams ~target_position container;
       eof = mk_eof streams;
+      close;
     },
-    close,
     get_remaining )
 
 let create_file_decoder ~metadata ~ctype filename =
-  let decoder, close, remaining = create_decoder ~ctype ~metadata filename in
-  Decoder.file_decoder ~filename ~close ~remaining ~ctype decoder
+  let decoder, remaining = create_decoder ~ctype ~metadata filename in
+  Decoder.file_decoder ~filename ~remaining ~ctype decoder
 
 let create_stream_decoder ~ctype mime input =
   let seek_input =
@@ -1210,10 +1210,12 @@ let create_stream_decoder ~ctype mime input =
       "ffmpeg_decoder";
   let streams = mk_streams ~ctype ~decode_first_metadata:true container in
   let target_position = ref None in
+  let close () = Av.close container in
   {
     Decoder.seek = seek ~target_position ~container;
     decode = mk_decoder ~streams ~target_position container;
     eof = mk_eof streams;
+    close;
   }
 
 let get_file_type ~metadata ~ctype filename =

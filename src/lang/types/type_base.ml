@@ -78,7 +78,7 @@ module R = struct
   and 'a var = string * 'a Type_constraints.t
 end
 
-type custom = ..
+type custom
 
 type t = { pos : Pos.Option.t; descr : descr }
 
@@ -118,6 +118,7 @@ and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 and custom_handler = {
   typ : custom;
+  custom_name : string;
   copy_with : (t -> t) -> custom -> custom;
   occur_check : (t -> unit) -> custom -> unit;
   filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
@@ -126,6 +127,8 @@ and custom_handler = {
   sup : (t -> t -> t) -> custom -> custom -> custom;
   to_string : custom -> string;
 }
+
+and var_t = { id : int; mutable contents : invar }
 
 and descr =
   | String
@@ -141,7 +144,7 @@ and descr =
   | Nullable of t  (** something that is either t or null *)
   | Meth of meth * t  (** t with a method added *)
   | Arrow of t argument list * t  (** a function *)
-  | Var of invar ref  (** a type variable *)
+  | Var of var_t  (** a type variable *)
 
 module Constraints = struct
   include Type_constraints
@@ -195,30 +198,6 @@ let rec deref t =
 let rec demeth t =
   let t = deref t in
   match t.descr with Meth (_, t) -> demeth t | _ -> t
-
-(* This should preserve pos *)
-let rec deep_demeth t =
-  let t' =
-    match deref t with
-      | { descr = Getter t' } as t -> { t with descr = Getter (deep_demeth t') }
-      | { descr = List repr } as t ->
-          { t with descr = List { repr with t = deep_demeth repr.t } }
-      | { descr = Tuple l } as t ->
-          { t with descr = Tuple (List.map deep_demeth l) }
-      | { descr = Nullable t' } as t ->
-          { t with descr = Nullable (deep_demeth t') }
-      | { descr = Meth (_, t) } -> deep_demeth t
-      | { descr = Arrow (l, t') } as t ->
-          {
-            t with
-            descr =
-              Arrow
-                ( List.map (fun (x, y, t) -> (x, y, deep_demeth t)) l,
-                  deep_demeth t' );
-          }
-      | t -> t
-  in
-  { t' with pos = t.pos }
 
 let rec filter_meths t fn =
   let t = deref t in
@@ -283,31 +262,31 @@ let split_meths t =
   aux [] t
 
 (** Create a fresh variable. *)
-let var_name =
-  let c = ref (-1) in
-  fun () ->
-    incr c;
-    !c
+let var_name_atom = Atomic.make (-1)
 
-let var =
-  let f ?(constraints = []) ?(level = max_int) ?pos () =
-    let constraints = Constraints.of_list constraints in
-    let name = var_name () in
-    make ?pos (Var (ref (Free { name; level; constraints })))
-  in
-  f
+let var_name () = Atomic.fetch_and_add var_name_atom 1
+let var_id_atom = Atomic.make (-1)
+let var_id () = Atomic.fetch_and_add var_id_atom 1
+
+let var ?(constraints = []) ?(level = max_int) ?pos () =
+  let constraints = Constraints.of_list constraints in
+  let name = var_name () in
+  make ?pos
+    (Var { id = var_id (); contents = Free { name; level; constraints } })
 
 module Fresh = struct
   type mapper = {
     level : int option;
+    preserve_positions : bool;
     selector : var -> bool;
     var_maps : (var, var) Hashtbl.t;
-    link_maps : (invar ref, invar ref) Hashtbl.t;
+    link_maps : (int, var_t) Hashtbl.t;
   }
 
-  let init ?(selector = fun _ -> true) ?level () =
+  let init ?(preserve_positions = false) ?(selector = fun _ -> true) ?level () =
     {
       level;
+      preserve_positions;
       selector;
       var_maps = Hashtbl.create 10;
       link_maps = Hashtbl.create 10;
@@ -323,7 +302,7 @@ module Fresh = struct
         Hashtbl.replace var_maps var new_var;
         new_var)
 
-  let make ({ selector; link_maps } as h) t =
+  let make ({ preserve_positions; selector; link_maps } as h) t =
     let map_var = make_var h in
     let map_descr map = function
       | Int -> Int
@@ -356,24 +335,31 @@ module Fresh = struct
          so we are better off keeping them. Also, we need to create fresh
          links to make sure that a suppremum computation in the refreshed
          type does not impact the original type. *)
-      | Var ({ contents = Link (v, t) } as link) ->
+      | Var { id; contents = Link (v, t) } ->
           Var
-            (try Hashtbl.find link_maps link
+            (try Hashtbl.find link_maps id
              with Not_found ->
-               let new_link = { contents = Link (v, map t) } in
-               Hashtbl.replace link_maps link new_link;
+               let new_link = { id = var_id (); contents = Link (v, map t) } in
+               Hashtbl.replace link_maps id new_link;
                new_link)
-      | Var ({ contents = Free var } as link) as descr ->
+      | Var { id; contents = Free var } as descr ->
           if not (selector var) then descr
           else
             Var
-              (try Hashtbl.find link_maps link
+              (try Hashtbl.find link_maps id
                with Not_found ->
-                 let new_link = { contents = Free (map_var var) } in
-                 Hashtbl.replace link_maps link new_link;
+                 let new_link =
+                   { id = var_id (); contents = Free (map_var var) }
+                 in
+                 Hashtbl.replace link_maps id new_link;
                  new_link)
     in
-    let rec map { descr } = { pos = None; descr = map_descr map descr } in
+    let rec map { pos; descr } =
+      {
+        pos = (if preserve_positions then pos else None);
+        descr = map_descr map descr;
+      }
+    in
     map t
 end
 
@@ -426,11 +412,11 @@ let register_type name custom =
         in
         Hashtbl.replace custom_types root (fun () -> f (root_mk_typ ()) names)
 
-let find_type_opt = Hashtbl.find_opt custom_types
+let find_opt_typ = Hashtbl.find_opt custom_types
 
 let rec mk_invariant t =
   match t with
     | { descr = Var ({ contents = Link (_, t) } as c) } ->
-        c := Link (`Invariant, t);
+        c.contents <- Link (`Invariant, t);
         mk_invariant t
     | _ -> ()

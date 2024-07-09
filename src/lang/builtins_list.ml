@@ -64,7 +64,7 @@ let _ =
       let l, e, f = (Lang.assoc "" 1 p, Lang.assoc "" 2 p, Lang.assoc "" 3 p) in
       match Lang.to_list l with
         | [] -> e
-        | x :: l -> Lang.apply f [("", x); ("", Lang.list l)])
+        | x :: l -> Lang.apply ~pos:(Lang.pos p) f [("", x); ("", Lang.list l)])
 
 let _ =
   let a = Lang.univ_t () in
@@ -105,6 +105,35 @@ let _ =
 
 let _ =
   let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "slice" ~category:`List
+    ~descr:
+      "Return the sublist of length `length` starting with the element at \
+       index `offset`."
+    [
+      ( "offset",
+        Lang.int_t,
+        Some (Lang.int 0),
+        Some "Index of the first element." );
+      ( "length",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some
+          "Length of the returned list. Include all elements from `offset` if \
+           `null`." );
+      ("", Lang.list_t a, None, None);
+    ]
+    (Lang.list_t a)
+    (fun p ->
+      let start = Lang.to_int (List.assoc "offset" p) in
+      let length = Lang.to_valued_option Lang.to_int (List.assoc "length" p) in
+      let l = Lang.to_list (List.assoc "" p) in
+      let stop =
+        match length with Some l -> start + l | None -> List.length l
+      in
+      Lang.list (List.filteri (fun pos _ -> start <= pos && pos < stop) l))
+
+let _ =
+  let a = Lang.univ_t () in
   let b = Lang.univ_t () in
   Lang.add_builtin ~base:list "ind" ~category:`List
     ~descr:
@@ -130,7 +159,10 @@ let _ =
         | [] -> k e
         | x :: l ->
             aux
-              (fun r -> k (Lang.apply f [("", x); ("", Lang.list l); ("", r)]))
+              (fun r ->
+                k
+                  (Lang.apply ~pos:(Lang.pos p) f
+                     [("", x); ("", Lang.list l); ("", r)]))
               l
       in
       aux (fun r -> r) (Lang.to_list l))
@@ -166,7 +198,9 @@ let _ =
     (Lang.list_t a)
     (fun p ->
       let f = Lang.assoc "" 1 p in
-      let sort x y = Lang.to_int (Lang.apply f [("", x); ("", y)]) in
+      let sort x y =
+        Lang.to_int (Lang.apply ~pos:(Lang.pos p) f [("", x); ("", y)])
+      in
       let l = Lang.assoc "" 2 p in
       Lang.list (List.sort sort (Lang.to_list l)))
 
@@ -184,7 +218,7 @@ let _ =
     (fun p ->
       let n = Lang.to_int (Lang.assoc "" 1 p) in
       let fn = Lang.assoc "" 2 p in
-      let apply n = Lang.apply fn [("", Lang.int n)] in
+      let apply n = Lang.apply ~pos:(Lang.pos p) fn [("", Lang.int n)] in
       Lang.list (List.init n apply))
 
 let _ =
@@ -203,7 +237,8 @@ let _ =
       let fn = Lang.assoc "" 1 p in
       let l = Lang.to_list (Lang.assoc "" 2 p) in
       List.iteri
-        (fun pos v -> ignore (Lang.apply fn [("", Lang.int pos); ("", v)]))
+        (fun pos v ->
+          ignore (Lang.apply ~pos:(Lang.pos p) fn [("", Lang.int pos); ("", v)]))
         l;
       Lang.unit)
 
@@ -239,7 +274,8 @@ let _ =
     (fun p ->
       let fn = Lang.assoc "" 1 p in
       let l = Lang.to_list (Lang.assoc "" 2 p) in
-      Lang.list (List.map (fun v -> Lang.apply fn [("", v)]) l))
+      Lang.list
+        (List.map (fun v -> Lang.apply ~pos:(Lang.pos p) fn [("", v)]) l))
 
 let _ =
   let a = Lang.univ_t () in

@@ -20,19 +20,40 @@
 
  *****************************************************************************)
 
+open Term_hash
 include Runtime_term
 module Custom = Term_base.Custom
 
 type comment = [ `Before of string list | `After of string list ]
-type string_param = [ `Verbatim of string | `String of Pos.t * (char * string) ]
-type track_annotation = string * string_param
-type inc_type = [ `Lib | `Extra | `Default ]
+type pos = Term_base.parsed_pos
+
+type string_param =
+  [ `Verbatim of string | `String of (pos[@hash.ignore]) * (char * string) ]
+[@@deriving hash]
+
+type track_annotation = string * string_param [@@deriving hash]
+type inc_type = [ `Lib | `Extra | `Default ] [@@deriving hash]
 
 type inc = {
   inc_type : inc_type;
   inc_name : string;
-  inc_pos : Lexing.position * Lexing.position;
+  inc_pos : pos; [@hash.ignore]
 }
+[@@deriving hash]
+
+type pattern = { pat_pos : pos; [@hash.ignore] pat_entry : pattern_entry }
+[@@deriving hash]
+
+and pattern_entry =
+  [ `PVar of string list  (** a field *)
+  | `PTuple of pattern list  (** a tuple *)
+  | `PList of
+    pattern list * ((pos[@hash.ignore]) * string) option * pattern list
+    (** a list *)
+  | `PMeth of pattern option * (string * meth_term_default) list
+    (** a value with methods *) ]
+
+and meth_term_default = [ `Nullable | `Pattern of pattern | `None ]
 
 type meth_annotation = {
   optional : bool;
@@ -52,19 +73,23 @@ and source_annotation = {
   tracks : source_track_annotation list;
 }
 
+and argument = bool * string * type_annotation
+
 and type_annotation =
   [ `Named of string
   | `Nullable of type_annotation
   | `List of type_annotation
   | `Json_object of type_annotation
   | `Tuple of type_annotation list
-  | `Arrow of type_annotation Type.argument list * type_annotation
+  | `Arrow of argument list * type_annotation
   | `Record of meth_annotation list
   | `Method of type_annotation * meth_annotation list
   | `Invoke of type_annotation * string
   | `Source of string * source_annotation ]
+[@@deriving hash]
 
 type _of = { only : string list; except : string list; source : string }
+[@@deriving hash]
 
 type _if = {
   if_condition : t;
@@ -163,7 +188,6 @@ and parsed_ast =
   | `Def of _let * t
   | `Let of _let * t
   | `Binding of _let * t
-  | `Cast of t * type_annotation
   | `App of t * app_arg list
   | `Invoke of invoke
   | `Fun of fun_arg list * t
@@ -190,13 +214,14 @@ and parsed_ast =
   | `Parenthesis of t
   | `Encoder of encoder
   | `Eof
-  | t common_ast ]
+  | (t, type_annotation) common_ast ]
 
 and t = {
   term : parsed_ast;
-  pos : Pos.t;
-  mutable comments : (Pos.t * comment) list;
+  pos : pos; [@hash.ignore]
+  mutable comments : (pos * comment) list; [@hash.ignore]
 }
+[@@deriving hash]
 
 and methods = [ `Ellipsis of t | `Method of string * t ]
 and string_interpolation = [ `String of string | `Term of t ]
@@ -259,7 +284,7 @@ let rec iter_term fn ({ term } as tm) =
           | None -> ());
         iter_term fn _let.def;
         iter_term fn tm
-    | `Cast (tm, _) -> iter_term fn tm
+    | `Cast { cast } -> iter_term fn cast
     | `App (tm, args) ->
         iter_term fn tm;
         List.iter

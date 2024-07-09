@@ -27,14 +27,7 @@ module Methods = Term.Methods
 type t = Type.t
 type module_name = string
 type scheme = Type.scheme
-
-type value = Value.t = {
-  pos : Pos.Option.t;
-  value : in_value;
-  methods : value Methods.t;
-  flags : Term.flags;
-  id : int;
-}
+type value = Value.t
 
 (** Type construction *)
 
@@ -84,48 +77,44 @@ let ref_t a = Type.reference a
 
 (** Value construction *)
 
-let mk ?pos ?(flags = 0) value =
-  { pos; value; flags; methods = Methods.empty; id = id () }
-
-let unit = mk unit
-let int i = mk (Int i)
-let octal_int i = mk ~flags:Term.octal_int (Int i)
-let hex_int i = mk ~flags:Term.hex_int (Int i)
-let bool i = mk (Bool i)
-let float i = mk (Float i)
-let string i = mk (String i)
-let tuple l = mk (Tuple l)
+let mk = Value.make
+let unit = mk Value.unit
+let int i = mk (`Int i)
+let octal_int i = mk ~flags:Flags.(add empty octal_int) (`Int i)
+let hex_int i = mk ~flags:Flags.(add empty hex_int) (`Int i)
+let bool i = mk (`Bool i)
+let float i = mk (`Float i)
+let string i = mk (`String i)
+let tuple l = mk (`Tuple l)
 let product a b = tuple [a; b]
-let list l = mk (List l)
-let null = mk Null
+let list l = mk (`List l)
+let null = mk `Null
 
 let meth v l =
-  {
-    v with
-    methods = List.fold_left (fun v (k, m) -> Methods.add k m v) v.methods l;
-  }
+  Value.map_methods v (fun methods ->
+      List.fold_left (fun v (k, m) -> Methods.add k m v) methods l)
 
-let record = meth unit
-let val_fun p f = mk (FFI { ffi_args = p; ffi_fn = f })
-let term_fun p tm = mk (Fun (p, [], tm))
+let record = meth (mk (`Tuple []))
+let val_fun p f = mk (`FFI { ffi_args = p; ffi_fn = f })
+let term_fun p tm = mk (`Fun { fun_args = p; fun_env = []; fun_body = tm })
 
 let val_cst_fun p c =
   let p = List.map (fun (l, d) -> (l, "_", d)) p in
   let f t tm =
     let tm = Term.make ~t tm in
-    mk (Fun (p, [], tm))
+    mk (`Fun { fun_args = p; fun_env = []; fun_body = tm })
   in
   let mkg g = Type.make g in
   (* Convert the value into a term if possible, to enable introspection, mostly
      for printing. *)
-  match c.value with
-    | Null -> f (Type.var ()) `Null
-    | Tuple [] -> f (Type.make Type.unit) Term.unit
-    | Int i -> f (mkg Type.Int) (`Int i)
-    | Bool i -> f (mkg Type.Bool) (`Bool i)
-    | Float i -> f (mkg Type.Float) (`Float i)
-    | String i -> f (mkg Type.String) (`String i)
-    | _ -> mk (FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
+  match c with
+    | Null _ -> f (Type.var ()) `Null
+    | Tuple { value = [] } -> f (Type.make Type.unit) Term.unit
+    | Int { value = i } -> f (mkg Type.Int) (`Int i)
+    | Bool { value = i } -> f (mkg Type.Bool) (`Bool i)
+    | Float { value = i } -> f (mkg Type.Float) (`Float i)
+    | String { value = i } -> f (mkg Type.String) (`String i)
+    | _ -> mk (`FFI { ffi_args = p; ffi_fn = (fun _ -> c) })
 
 let reference get set =
   let get = val_fun [] (fun _ -> get ()) in
@@ -168,18 +157,12 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
   in
   let t = builtin_type proto return_t in
   let value =
-    {
-      pos = None;
-      value =
-        FFI
-          {
-            ffi_args = List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto;
-            ffi_fn = f;
-          };
-      methods = Methods.empty;
-      flags = 0;
-      id = id ();
-    }
+    mk
+      (`FFI
+        {
+          ffi_args = List.map (fun (lbl, _, opt, _) -> (lbl, lbl, opt)) proto;
+          ffi_fn = f;
+        })
   in
   let doc () =
     let meth, return_t = Type.split_meths return_t in
@@ -265,9 +248,7 @@ let add_builtin_value ~category ~descr ?(flags = []) ?base name value t =
   name
 
 let add_builtin_base ~category ~descr ?flags ?base name value t =
-  add_builtin_value ~category ~descr ?flags ?base name
-    { pos = t.Type.pos; value; methods = Methods.empty; flags = 0; id = id () }
-    t
+  add_builtin_value ~category ~descr ?flags ?base name (make value) t
 
 let add_module ?base name =
   let name = mk_module_name ?base name in
@@ -280,76 +261,93 @@ let module_name name = name
 let apply_fun : (?pos:Pos.t list -> value -> env -> value) ref =
   ref (fun ?pos:_ _ -> assert false)
 
-let apply f p = !apply_fun f p
+let apply ?pos f p = !apply_fun ?pos f p [@@inline always]
 
 (** {1 High-level manipulation of values} *)
 
-let to_unit t = match t.value with Tuple [] -> () | _ -> assert false
-let to_bool t = match t.value with Bool b -> b | _ -> assert false
+let to_unit = function Tuple { value = [] } -> () | _ -> assert false
+  [@@inline always]
 
-let to_bool_getter t =
-  match t.value with
-    | Bool b -> fun () -> b
-    | Fun _ | FFI _ -> (
-        fun () ->
-          match (apply t []).value with Bool b -> b | _ -> assert false)
-    | _ -> assert false
+let to_bool = function Bool { value = b } -> b | _ -> assert false
+  [@@inline always]
 
-let to_fun f =
-  match f.value with
-    | Fun _ | FFI _ -> fun args -> apply f args
-    | _ -> assert false
+let to_bool_getter = function
+  | Bool { value = b } -> fun () -> b
+  | (Fun _ as v) | (FFI _ as v) -> (
+      fun () ->
+        match apply v [] with Bool { value = b } -> b | _ -> assert false)
+  | _ -> assert false
+  [@@inline always]
 
-let to_string t = match t.value with String s -> s | _ -> assert false
+let to_fun v = apply v [@@inline always]
 
-let to_string_getter t =
-  match t.value with
-    | String s -> fun () -> s
-    | Fun _ | FFI _ -> (
-        fun () ->
-          match (apply t []).value with String s -> s | _ -> assert false)
-    | _ -> assert false
+let to_string = function String { value = s } -> s | _ -> assert false
+  [@@inline always]
 
-let to_float t = match t.value with Float s -> s | _ -> assert false
+let to_string_getter = function
+  | String { value = s } -> fun () -> s
+  | (Fun _ as v) | (FFI _ as v) -> (
+      fun () ->
+        match apply v [] with String { value = s } -> s | _ -> assert false)
+  | _ -> assert false
+  [@@inline always]
 
-let to_float_getter t =
-  match t.value with
-    | Float s -> fun () -> s
-    | Fun _ | FFI _ -> (
-        fun () ->
-          match (apply t []).value with Float s -> s | _ -> assert false)
-    | _ -> assert false
+let to_float = function Float { value = f } -> f | _ -> assert false
+  [@@inline always]
 
-let to_int t = match t.value with Int s -> s | _ -> assert false
+let to_float_getter = function
+  | Float { value = f } -> fun () -> f
+  | (Fun _ as v) | (FFI _ as v) -> (
+      fun () ->
+        match apply v [] with Float { value = f } -> f | _ -> assert false)
+  | _ -> assert false
+  [@@inline always]
 
-let to_int_getter t =
-  match t.value with
-    | Int n -> fun () -> n
-    | Fun _ | FFI _ -> (
-        fun () -> match (apply t []).value with Int n -> n | _ -> assert false)
-    | _ -> assert false
+let to_int = function Int { value = i } -> i | _ -> assert false
+  [@@inline always]
 
-let to_num t =
-  match t.value with Int n -> `Int n | Float x -> `Float x | _ -> assert false
+let to_int_getter = function
+  | Int { value = i } -> fun () -> i
+  | (Fun _ as v) | (FFI _ as v) -> (
+      fun () ->
+        match apply v [] with Int { value = i } -> i | _ -> assert false)
+  | _ -> assert false
+  [@@inline always]
 
-let to_list t = match t.value with List l -> l | _ -> assert false
-let to_tuple t = match t.value with Tuple l -> l | _ -> assert false
-let to_option t = match t.value with Null -> None | _ -> Some t
+let to_num = function
+  | Int { value = i } -> `Int i
+  | Float { value = f } -> `Float f
+  | _ -> assert false
+  [@@inline always]
+
+let to_list = function List { value = l } -> l | _ -> assert false
+  [@@inline always]
+
+let to_tuple = function Tuple { value = l } -> l | _ -> assert false
+  [@@inline always]
+
+let to_option = function Null _ -> None | v -> Some v [@@inline always]
+
 let to_valued_option convert v = Option.map convert (to_option v)
+  [@@inline always]
 
 let to_default_option ~default convert v =
   Option.value ~default (to_valued_option convert v)
+  [@@inline always]
 
-let to_product t =
-  match t.value with Tuple [a; b] -> (a, b) | _ -> assert false
+let to_product = function
+  | Tuple { value = [a; b] } -> (a, b)
+  | _ -> assert false
+  [@@inline always]
 
-let to_string_list l = List.map to_string (to_list l)
-let to_int_list l = List.map to_int (to_list l)
+let to_string_list l = List.map to_string (to_list l) [@@inline always]
+let to_int_list l = List.map to_int (to_list l) [@@inline always]
 
-let to_getter t =
-  match t.value with
-    | Fun ([], _, _) | FFI { ffi_args = []; _ } -> fun () -> apply t []
-    | _ -> fun () -> t
+let to_getter = function
+  | (Fun { fun_args = [] } as v) | (FFI { ffi_args = []; _ } as v) ->
+      fun () -> apply v []
+  | v -> fun () -> v
+  [@@inline always]
 
 let to_ref t =
   let m, t = split_meths t in
@@ -396,7 +394,7 @@ let runtime_error_of_exception ~bt ~kind exn =
                           let p =
                             { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum }
                           in
-                          (p, p) :: pos)
+                          Pos.of_lexing_pos (p, p) :: pos)
                   []
                   (List.rev (Array.to_list entries))
         in
@@ -424,60 +422,44 @@ let environment () =
   let l = Array.to_list l in
   List.map split l
 
-(* This is used to pass position in application environment. *)
-module Single_position = struct
-  let t =
-    method_t unit_t
-      [
-        ("filename", ([], string_t), "filename");
-        ("line_number", ([], int_t), "line number");
-        ("character_offset", ([], int_t), "character offset");
-      ]
-
-  let to_value { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } =
-    meth unit
-      [
-        ("filename", string pos_fname);
-        ("line_number", int pos_lnum);
-        ("character_offset", int (pos_cnum - pos_bol));
-      ]
-
-  let of_value v =
-    {
-      Lexing.pos_fname = to_string (invoke v "filename");
-      pos_lnum = to_int (invoke v "line_number");
-      pos_bol = 0;
-      pos_cnum = to_int (invoke v "character_offset");
-    }
-end
-
 module Position = struct
   let t =
     method_t unit_t
       [
-        ("position_start", ([], Single_position.t), "Starting position");
-        ("position_end", ([], Single_position.t), "Ending position");
+        ("filename", ([], string_t), "Filename");
+        ("lstart", ([], int_t), "Starting line");
+        ("lstop", ([], int_t), "Stopping line");
+        ("cstart", ([], int_t), "Starting character");
+        ("cstop", ([], int_t), "Stopping character");
         ( "to_string",
           ([], fun_t [(true, "prefix", string_t)] string_t),
           "Render as string" );
       ]
 
-  let to_value (start, _end) =
+  let to_value pos =
+    let { Pos.fname; lstart; lstop; cstart; cstop } = Pos.unpack pos in
     meth unit
       [
-        ("position_start", Single_position.to_value start);
-        ("position_end", Single_position.to_value _end);
+        ("filename", string fname);
+        ("lstart", int lstart);
+        ("lstop", int lstop);
+        ("cstart", int cstart);
+        ("cstop", int cstop);
         ( "to_string",
           val_fun
             [("prefix", "prefix", Some (string "At "))]
             (fun p ->
               let prefix = to_string (List.assoc "prefix" p) in
-              string (Pos.to_string ~prefix (start, _end))) );
+              string (Pos.to_string ~prefix pos)) );
       ]
 
   let of_value v =
-    ( Single_position.of_value (invoke v "position_start"),
-      Single_position.of_value (invoke v "position_end") )
+    let fname = to_string (invoke v "filename") in
+    let lstart = to_int (invoke v "lstart") in
+    let lstop = to_int (invoke v "lstop") in
+    let cstart = to_int (invoke v "cstart") in
+    let cstop = to_int (invoke v "cstop") in
+    Pos.pack { fname; lstart; lstop; cstart; cstop }
 end
 
 module Stacktrace = struct

@@ -1424,3 +1424,92 @@ def f(x) = # This is a single line comment.
   123
 end
 ```
+
+## Caching
+
+Type-checking scripts can take a lot of time and consume memory. To optimize things, this step can be cached.
+
+During the first execution, the script is parsed, type checked and evaluated. On second and any following execution, a cache of the script is used, reducing the typechecking phase, sometimes by a `100x` factor!
+
+Here's a log without caching on a M3 macbook pro:
+
+```
+2024/07/03 14:31:41 [startup:3] main script hash computation: 0.03s
+2024/07/03 14:31:41 [startup:3] main script cache retrieval: 0.03s
+2024/07/03 14:31:41 [startup:3] stdlib hash computation: 0.03s
+2024/07/03 14:31:41 [startup:3] stdlib cache retrieval: 0.03s
+2024/07/03 14:31:41 [startup:3] Typechecking stdlib: 3.37s
+2024/07/03 14:31:41 [startup:3] Typechecking main script: 0.00s
+```
+
+And the same log after caching:
+
+```
+2024/07/03 14:32:59 [startup:3] main script hash computation: 0.02s
+2024/07/03 14:32:59 [startup:3] Loading main script from cache!
+2024/07/03 14:32:59 [startup:3] main script cache retrieval: 0.05s
+```
+
+Scripts can be cached ahead of time without executing them, for instance while compiling a docker image, using `--cache-only`. Caching can also be disabled using `--no-cache`.
+
+Caching happens at two different time:
+
+- First the standard library is cached
+- Then the script itself is cached
+
+Caching the standard library makes it possible to run the type-checker faster on new scripts. Here's an example of a log from running a new script with
+a cached standard library:
+
+```
+2024/07/03 14:33:27 [startup:3] main script hash computation: 0.02s
+2024/07/03 14:33:27 [startup:3] main script cache retrieval: 0.02s
+2024/07/03 14:33:27 [startup:3] stdlib hash computation: 0.03s
+2024/07/03 14:33:27 [startup:3] Loading stdlib from cache!
+2024/07/03 14:33:27 [startup:3] stdlib cache retrieval: 0.10s
+2024/07/03 14:33:27 [startup:3] Typechecking main script: 0.00s
+```
+
+Caching can be disabled by setting `LIQ_CACHE` to anything else than `"true"`.
+
+### Cache locations
+
+Cache files can accumulate and also take up disk space so it is important to know where they are located!
+
+There are two type of cache locations:
+
+- System cache for cached files that should be shared with all liquidsoap scripts. This is where the standard library cache is located. This location is a system-wide path on unix system such as `/var/cache/liquidsoap`.
+- User cache for cached files that are specific to the user running liquidsoap scripts. On unix systems, this location is at `$HOME/.cache/liquidsoap`.
+
+On windows, the default cache directory for both type of cache locations is in the same directory as the binary.
+
+At runtime, `liquidsoap.cache(mode=<mode>)` returns the cache directory. `mode` should be one of: `"user"` or `"system"`.
+
+### Cache maintenance
+
+There is a cache maintenance routine which deletes unused cache files after `10` days and keeps the cache to a maximum of `200` files.
+
+You can run the cache maintenance routing by calling `liquidsoap.cache.maintenance(mode=<mode>)` manually. Here, too, `mode` should be one of: `"user"` or `"system"`.
+
+### Cache security
+
+Please be aware that the cache does _not_ encrypt its values. As such, user cache files should be considered sensitive as they may contain password and other runtime secrets
+that are available through your scripts. We recommend to:
+
+- Use environment variables as much as possible when passing secrets
+- Secure your user script and cache files.
+
+The default creation permissions for user cache files is: `0o600` so only the user creating them should be able to read them. You should make sure that your script permissions are also similarly restricted.
+
+### Cache environment variables
+
+The following environment variables control the cache behavior:
+
+- `LIQ_CACHE`: disable the cache when set to anything else than `1` or `true`
+- `LIQ_CACHE_SYSTEM_DIR`: set the cache system directory
+- `LIQ_CACHE_SYSTEM_DIR_PERMS`: set the permission used when creating cache system directory (and its parents when needed). Default: `0o755`
+- `LIQ_CACHE_SYSTEM_FILE_PERMS`: set the permissions used when creating a system cache file. Default: `0o644`
+- `LIQ_CACHE_USER_DIR`: set the cache user directory
+- `LIQ_CACHE_USER_DIR_PERMS`: set the permission used when creating cache user directory (and its parents when needed). Default: `0o700`.
+- `LIQ_CACHE_USER_FILE_PERMS`: set the permissions used when creating a user cache file. Default: `0o600`
+- `LIQ_CACHE_MAX_DAYS`: set the maximum days a cache file can be stored before it is eligible to be deleted during the next cache maintenance pass.
+- `LIQ_CACHE_MAX_FILES`: set the maximum number of files in each cache directory. Older files are removed first.

@@ -325,14 +325,6 @@
  (modules camlimages_decoder))
 
 (library
- (name liquidsoap_memtrace)
- (libraries memtrace liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules liqmemtrace))
-
-(library
  (name liquidsoap_dssi)
  (libraries dssi liquidsoap_ladspa liquidsoap_core)
  (library_flags -linkall)

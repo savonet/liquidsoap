@@ -25,18 +25,8 @@
 let () = Printexc.record_backtrace true
 let () = Lang_core.apply_fun := Evaluation.apply
 
-let type_and_run ~throw ~lib ast =
-  if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
-  (* Type checking *)
-  Startup.time "Typechecking" (fun () ->
-      Typechecking.check ~throw ~ignored:true ast);
-
-  if Lazy.force Term.debug then
-    Printf.eprintf "Checking for unused variables...\n%!";
-  (* Check for unused variables, relies on types *)
-  Term.check_unused ~throw ~lib ast;
-  if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
-  ignore (Startup.time "Evaluation" (fun () -> Evaluation.eval_toplevel ast))
+type stdlib = { full_term : Term.t; checked_term : Term.t; env : Typing.env }
+type append_stdlib = unit -> stdlib
 
 (** {1 Error reporting} *)
 
@@ -60,11 +50,16 @@ exception Error
 
 let strict = ref false
 
-let throw ?(formatter = Format.std_formatter) lexbuf =
+let throw ?(formatter = Format.std_formatter) ?lexbuf () =
   let print_error ~formatter idx error =
     flush_all ();
-    let pos = Sedlexing.lexing_bytes_positions lexbuf in
-    error_header ~formatter idx (Some pos);
+    let pos =
+      match lexbuf with
+        | Some lexbuf ->
+            Some (Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf))
+        | None -> None
+    in
+    error_header ~formatter idx pos;
     Format.fprintf formatter "%s\n@]@." error
   in
   function
@@ -102,7 +97,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
       print_error ~formatter 2 "Parse error";
       raise Error
   | Term_base.Parse_error (pos, s) ->
-      error_header ~formatter 3 (Some pos);
+      error_header ~formatter 3 (Some (Pos.of_lexing_pos pos));
       Format.fprintf formatter "%s@]@." s;
       raise Error
   | Term.Unbound (pos, s) ->
@@ -112,6 +107,12 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
   | Repr.Type_error explain ->
       flush_all ();
       Repr.print_type_error ~formatter (error_header ~formatter 5) explain;
+      raise Error
+  | Typechecking.No_method (name, typ) ->
+      error_header ~formatter 5 typ.Type.pos;
+      Format.fprintf formatter
+        "This value has type %s, it cannot have method %s.@]@."
+        (Repr.string_of_type typ) name;
       raise Error
   | Term.No_label (f, lbl, first, x) ->
       let pos_f = Pos.Option.to_string f.Term.t.Type.pos in
@@ -130,7 +131,7 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
         "Function has multiple arguments with the same label: %s@]@." lbl;
       raise Error
   | Error.Invalid_value (v, msg) ->
-      error_header ~formatter 7 v.Value.pos;
+      error_header ~formatter 7 (Value.pos v);
       Format.fprintf formatter "Invalid value:@ %s@]@." msg;
       raise Error
   | Lang_error.Encoder_error (pos, s) ->
@@ -203,10 +204,101 @@ let throw ?(formatter = Format.std_formatter) lexbuf =
         (Printexc.to_string e) bt;
       raise Error
 
-let report lexbuf f =
-  let throw = throw lexbuf in
+(* This is not great but it works for now. The problem being that we are relying on exception
+   raising and catching to transmit language error, translate them into human readable errors and
+   optionally ignore them with a warning. But, in some cases, we still want to return afterward
+   so the return value has to be something else than [unit] in those cases. Essentially, this means
+   that [default] becomes [fun () -> raise Error] to keep typechecking consistent.. *)
+let report :
+      'a.
+      ?lexbuf:Sedlexing.lexbuf ->
+      ?default:(unit -> 'a) ->
+      (throw:(exn -> unit) -> unit -> 'a) ->
+      'a =
+ fun ?lexbuf ?(default = fun () -> raise Error) f ->
+  let throw = throw ?lexbuf () in
   if !Term.conf_debug_errors then f ~throw ()
-  else (try f ~throw () with exn -> throw exn)
+  else (
+    try f ~throw ()
+    with exn ->
+      throw exn;
+      default ())
+
+let type_term ?name ?stdlib ?term ?ty ?cache_dirtype ~cache ~trim ~lib
+    parsed_term =
+  let cached_term =
+    if cache then
+      Term_cache.retrieve ?name ?dirtype:cache_dirtype ~trim parsed_term
+    else None
+  in
+  match cached_term with
+    | Some term -> term
+    | None ->
+        if Lazy.force Term.debug then Printf.eprintf "Type checking...\n%!";
+        (* Type checking *)
+        let time fn =
+          match name with
+            | None -> fn ()
+            | Some name ->
+                Startup.time (Printf.sprintf "Typechecking %s" name) fn
+        in
+        let full_term, checked_term, env =
+          match stdlib with
+            | Some fn ->
+                let { full_term; checked_term; env } = fn () in
+                (full_term, checked_term, Some env)
+            | None ->
+                let term =
+                  match term with
+                    | None ->
+                        report
+                          ~default:(fun () -> raise Error)
+                          (fun ~throw:_ () -> Term_reducer.to_term parsed_term)
+                    | Some tm -> tm
+                in
+                (term, term, None)
+        in
+        let checked_term =
+          match ty with
+            | None -> checked_term
+            | Some typ ->
+                Term.make
+                  ~pos:(Pos.of_lexing_pos parsed_term.Parsed_term.pos)
+                  (`Cast { cast = checked_term; typ })
+        in
+        time (fun () ->
+            report
+              ~default:(fun () -> ())
+              (fun ~throw () -> Typechecking.check ?env ~throw checked_term));
+
+        if Lazy.force Term.debug then
+          Printf.eprintf "Checking for unused variables...\n%!";
+        (* Check for unused variables, relies on types *)
+        report
+          ~default:(fun () -> ())
+          (fun ~throw () -> Term.check_unused ~throw ~lib full_term);
+        let full_term =
+          if trim then Term_trim.trim_term full_term else full_term
+        in
+        if cache then
+          Term_cache.cache ?dirtype:cache_dirtype ~trim ~parsed_term full_term;
+        full_term
+
+let eval_term ?name ~toplevel ast =
+  let eval () =
+    report
+      ~default:(fun () -> assert false)
+      (fun ~throw:_ () ->
+        if toplevel then Evaluation.eval_toplevel ast else Evaluation.eval ast)
+  in
+  if Lazy.force Term.debug then Printf.eprintf "Evaluating...\n%!";
+  match name with
+    | None -> eval ()
+    | Some name ->
+        Startup.time
+          (Printf.sprintf "Evaluating %s%s" name
+             (if toplevel then " at toplevel" else ""))
+          eval
 
 (** {1 Parsing} *)
 
@@ -216,78 +308,15 @@ let interactive =
   MenhirLib.Convert.Simplified.traditional2revised Parser.interactive
 
 let mk_expr ?fname processor lexbuf =
-  let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
-  Term_reducer.to_term parsed_term
+  report
+    ~default:(fun () -> raise Error)
+    (fun ~throw:_ () ->
+      let parsed_term = Term_reducer.mk_expr ?fname processor lexbuf in
+      (parsed_term, Term_reducer.to_term parsed_term))
 
-let from_lexbuf ?fname ?(parse_only = false) ~ns ~lib lexbuf =
-  begin
-    match ns with Some ns -> Sedlexing.set_filename lexbuf ns | None -> ()
-  end;
-  report lexbuf (fun ~throw () ->
-      let expr = mk_expr ?fname program lexbuf in
-      if not parse_only then type_and_run ~throw ~lib expr)
-
-let from_in_channel ?fname ?parse_only ~ns ~lib in_chan =
-  let lexbuf = Sedlexing.Utf8.from_channel in_chan in
-  from_lexbuf ?fname ?parse_only ~ns ~lib lexbuf
-
-let from_file ?parse_only ~ns ~lib filename =
-  let ic = open_in filename in
-  let fname = Lang_string.home_unrelate filename in
-  (* Don't show inferred types for standard library *)
-  let display_types = !Typechecking.display_types in
-  if String.ends_with ~suffix:"stdlib.liq" filename then
-    Typechecking.display_types := false;
-  from_in_channel ~fname ?parse_only ~ns ~lib ic;
-  Typechecking.display_types := display_types;
-  close_in ic
-
-let load_libs ?(error_on_no_stdlib = true) ?parse_only ?(deprecated = true)
-    ?(stdlib = "stdlib.liq") () =
-  let dir = !Hooks.liq_libs_dir () in
-  let file = Filename.concat dir stdlib in
-  if not (Sys.file_exists file) then (
-    if error_on_no_stdlib then
-      failwith "Could not find default stdlib.liq library!")
-  else from_file ?parse_only ~ns:(Some file) ~lib:true file;
-  let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
-  if deprecated && Sys.file_exists file then
-    from_file ?parse_only ~ns:(Some file) ~lib:true file
-
-let from_file = from_file ~ns:None
-
-let from_string ?parse_only ~lib expr =
-  let gen =
-    let pos = ref (-1) in
-    let len = String.length expr in
-    fun () ->
-      incr pos;
-      if !pos < len then Some expr.[!pos] else None
-  in
-  let lexbuf = Sedlexing.Utf8.from_gen gen in
-  from_lexbuf ?parse_only ~ns:None ~lib lexbuf
-
-let parse_with_lexbuf s =
-  let gen =
-    let pos = ref (-1) in
-    let len = String.length s in
-    fun () ->
-      incr pos;
-      if !pos < len then Some s.[!pos] else None
-  in
-  let lexbuf = Sedlexing.Utf8.from_gen gen in
-  (mk_expr program lexbuf, lexbuf)
-
-let parse s = fst (parse_with_lexbuf s)
-
-let eval ~ignored ~ty s =
-  let expr, lexbuf = parse_with_lexbuf s in
-  let expr = Term.(make (`Cast (expr, ty))) in
-  report lexbuf (fun ~throw () -> Typechecking.check ~throw ~ignored expr);
-  Evaluation.eval expr
-
-let from_in_channel ?parse_only ~lib x =
-  from_in_channel ?parse_only ~ns:None ~lib x
+let parse s =
+  let lexbuf = Sedlexing.Utf8.from_string s in
+  mk_expr program lexbuf
 
 let interactive () =
   Format.printf
@@ -331,9 +360,11 @@ let interactive () =
     Format.printf "# %!";
     if
       try
-        report lexbuf (fun ~throw () ->
-            let expr = mk_expr interactive lexbuf in
-            Typechecking.check ~throw ~ignored:false expr;
+        report ~lexbuf
+          ~default:(fun () -> ())
+          (fun ~throw () ->
+            let _, expr = mk_expr interactive lexbuf in
+            Typechecking.check ~throw expr;
             Term.check_unused ~throw ~lib:true expr;
             ignore (Evaluation.eval_toplevel ~interactive:true expr));
         true
@@ -349,3 +380,39 @@ let interactive () =
     then loop ()
   in
   loop ()
+
+let libs ?(stdlib = "stdlib.liq") ?(error_on_no_stdlib = true)
+    ?(deprecated = true) () =
+  let dir = !Hooks.liq_libs_dir () in
+  let file = Filename.concat dir stdlib in
+  let libs =
+    if not (Sys.file_exists file) then
+      if error_on_no_stdlib then
+        failwith (Printf.sprintf "Could not find default %s library!" stdlib)
+      else []
+    else [file]
+  in
+  let file = Filename.concat (Filename.concat dir "extra") "deprecations.liq" in
+  if deprecated && Sys.file_exists file then libs @ [file] else libs
+
+let load_libs ?stdlib () =
+  List.iter
+    (fun fname ->
+      let filename = Lang_string.home_unrelate fname in
+      let ic = open_in filename in
+      Fun.protect
+        ~finally:(fun () -> close_in ic)
+        (fun () ->
+          let lexbuf = Sedlexing.Utf8.from_channel ic in
+          Sedlexing.set_filename lexbuf fname;
+          let parsed_term =
+            report
+              ~default:(fun () -> raise Error)
+              (fun ~throw:_ () -> Term_reducer.mk_expr ~fname program lexbuf)
+          in
+          let term =
+            type_term ~name:"stdlib" ~trim:true ~cache:true ~lib:true
+              parsed_term
+          in
+          ignore (eval_term ~name:"stdlib" ~toplevel:true term)))
+    (libs ?stdlib ())

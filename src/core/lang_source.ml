@@ -21,13 +21,8 @@
  *****************************************************************************)
 
 module Lang = Liquidsoap_lang.Lang
+module Flags = Liquidsoap_lang.Flags
 open Lang
-
-module Alive_values_map = Liquidsoap_lang.Active_value.Make (struct
-  type t = Value.t
-
-  let id v = v.Value.id
-end)
 
 module ClockValue = struct
   include Value.MkCustom (struct
@@ -387,17 +382,23 @@ let to_track = Track.of_value
     the currently defined source as argument). *)
 type 'a operator_method = string * scheme * string * ('a -> value)
 
-let checked_values = Alive_values_map.create 10
+let has_value_flag v flag =
+  match v with
+    | Value.Float _ | Value.String _ | Value.Bool _ | Value.Null _ -> true
+    | v -> Value.has_flag v flag
+
+let add_value_flag v flag =
+  match v with
+    | Value.Float _ | Value.String _ | Value.Bool _ | Value.Null _ -> ()
+    | v -> Value.add_flag v flag
 
 (** Ensure that the frame contents of all the sources occurring in the value agree with [t]. *)
 let check_content v t =
   let check t t' = Typing.(t <: t') in
   let rec check_value v t =
-    if not (Alive_values_map.mem checked_values v) then (
-      (* We need to avoid checking the same value multiple times, otherwise we
-         get an exponential blowup, see #1247. *)
-      Alive_values_map.add checked_values v;
-      match (v.Value.value, (Type.deref t).Type.descr) with
+    if not (has_value_flag v Flags.checked_value) then (
+      add_value_flag v Flags.checked_value;
+      match (v, (Type.deref t).Type.descr) with
         | _, Type.Var _ -> ()
         | _ when Source_val.is_value v ->
             let source_t = source_t (Source_val.of_value v)#frame_type in
@@ -426,10 +427,10 @@ let check_content v t =
         | Value.Bool _, _
         | Value.Custom _, _ ->
             ()
-        | Value.List l, Type.List { Type.t } ->
+        | Value.List { value = l }, Type.List { Type.t } ->
             List.iter (fun v -> check_value v t) l
-        | Value.Tuple l, Type.Tuple t -> List.iter2 check_value l t
-        | Value.Null, _ -> ()
+        | Value.Tuple { value = l }, Type.Tuple t -> List.iter2 check_value l t
+        | Value.Null _, _ -> ()
         | _, Type.Nullable t -> check_value v t
         (* Value can have more methods than the type requires so check from the type here. *)
         | _, Type.Meth _ ->
@@ -448,14 +449,16 @@ let check_content v t =
                 with Not_found when optional -> ())
               meths_t;
             check_value v t
-        | Fun ([], _, ret), Type.Getter t -> Typing.(ret.Term.t <: t)
-        | FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
+        | Value.Fun { fun_args = []; fun_body = ret }, Type.Getter t ->
+            Typing.(ret.Term.t <: t)
+        | Value.FFI ({ ffi_args = []; ffi_fn } as ffi), Type.Getter t ->
             ffi.ffi_fn <-
               (fun env ->
                 let v = ffi_fn env in
                 check_value v t;
                 v)
-        | Fun (args, _, ret), Type.Arrow (args_t, ret_t) ->
+        | ( Value.Fun { fun_args = args; fun_body = ret },
+            Type.Arrow (args_t, ret_t) ) ->
             List.iter
               (fun typ ->
                 match typ with
@@ -470,7 +473,7 @@ let check_content v t =
                   | _ -> ())
               args_t;
             Typing.(ret.Term.t <: ret_t)
-        | FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
+        | Value.FFI ({ ffi_args; ffi_fn } as ffi), Type.Arrow (args_t, ret_t) ->
             List.iter
               (fun typ ->
                 match typ with
@@ -523,26 +526,25 @@ let check_arguments ~env ~return_t arguments =
   (* Generalize all terms inside the arguments *)
   let map =
     let open Liquidsoap_lang.Value in
-    let rec map { pos; value; flags; methods } =
-      let value =
-        match value with
-          | (Int _ as ast)
-          | (Float _ as ast)
-          | (String _ as ast)
-          | (Bool _ as ast)
-          | (Custom _ as ast) ->
-              ast
-          | List l -> List (List.map map l)
-          | Tuple l -> Tuple (List.map map l)
-          | Null -> Null
-          | Fun (args, lazy_env, ret) ->
+    let rec map v =
+      let v =
+        match v with
+          | Int _ | Float _ | String _ | Bool _ | Custom _ | Null _ -> v
+          | List ({ value = l } as v) -> List { v with value = List.map map l }
+          | Tuple ({ value = l } as v) ->
+              Tuple { v with value = List.map map l }
+          | Fun ({ fun_args = args; fun_body = ret } as fun_v) ->
               Fun
-                ( List.map (fun (l, l', v) -> (l, l', Option.map map v)) args,
-                  lazy_env,
-                  Term.fresh ~handler ret )
+                {
+                  fun_v with
+                  fun_args =
+                    List.map (fun (l, l', v) -> (l, l', Option.map map v)) args;
+                  fun_body = Term.fresh ~handler ret;
+                }
           | FFI ffi ->
               FFI
                 {
+                  ffi with
                   ffi_args =
                     List.map
                       (fun (l, l', v) -> (l, l', Option.map map v))
@@ -553,13 +555,7 @@ let check_arguments ~env ~return_t arguments =
                       map v);
                 }
       in
-      {
-        pos;
-        value;
-        methods = Liquidsoap_lang.Methods.map map methods;
-        flags;
-        id = Value.id ();
-      }
+      map_methods v (Methods.map map)
     in
     map
   in
@@ -655,17 +651,18 @@ let add_track_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
   let category = `Track category in
   add_builtin ~category ~descr ~flags ?base name arguments return_t f
 
-let itered_values = Alive_values_map.create 10
-
 let iter_sources ?(on_imprecise = fun () -> ()) f v =
   let rec iter_term env v =
     let iter_base_term env v =
       match v.Term.term with
-        | `Int _ | `Float _ | `Bool _ | `String _ | `Custom _ | `Encoder _ -> ()
+        | `Cache_env _ | `Int _ | `Float _ | `Bool _ | `String _ | `Custom _
+        | `Encoder _ ->
+            ()
         | `List l -> List.iter (iter_term env) l
         | `Tuple l -> List.iter (iter_term env) l
         | `Null -> ()
-        | `Cast (a, _) -> iter_term env a
+        | `Hide (a, _) -> iter_term env a
+        | `Cast { Term.cast = a } -> iter_term env a
         | `Invoke { Term.invoked = a } -> iter_term env a
         | `Open (a, b) ->
             iter_term env a;
@@ -679,10 +676,7 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
               (* TODO since inner-bound variables don't mask outer ones in [env],
                *   we are actually checking values that may be out of reach. *)
               let v = List.assoc v env in
-              if Stdlib.Lazy.is_val v then (
-                let v = Stdlib.Lazy.force v in
-                iter_value v)
-              else ()
+              iter_value v
             with Not_found -> ())
         | `App (a, l) ->
             iter_term env a;
@@ -699,23 +693,23 @@ let iter_sources ?(on_imprecise = fun () -> ()) f v =
       v.Term.methods;
     iter_base_term env v
   and iter_value v =
-    if not (Alive_values_map.mem itered_values v) then (
-      (* We need to avoid checking the same value multiple times, otherwise we
-         get an exponential blowup, see #1247. *)
-      Alive_values_map.add itered_values v;
-      Value.Methods.iter (fun _ v -> iter_value v) v.Value.methods;
-      match v.value with
+    if not (has_value_flag v Flags.itered_value) then (
+      add_value_flag v Flags.itered_value;
+      Value.Methods.iter (fun _ v -> iter_value v) (Value.methods v);
+      match v with
         | _ when Source_val.is_value v -> f (Source_val.of_value v)
-        | Int _ | String _ | Float _ | Bool _ | Custom _ -> ()
-        | List l -> List.iter iter_value l
-        | Tuple l -> List.iter iter_value l
-        | Null -> ()
-        | Fun (proto, env, body) ->
+        | Value.Int _ | Value.String _ | Value.Float _ | Value.Bool _
+        | Value.Custom _ ->
+            ()
+        | Value.List { value = l } -> List.iter iter_value l
+        | Value.Tuple { value = l } -> List.iter iter_value l
+        | Value.Null _ -> ()
+        | Value.Fun { fun_args = proto; fun_env = env; fun_body = body } ->
             (* The following is necessarily imprecise: we might see sources that
                will be unused in the execution of the function. *)
             iter_term env body;
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto
-        | FFI { ffi_args = proto; _ } ->
+        | Value.FFI { ffi_args = proto; _ } ->
             on_imprecise ();
             List.iter (function _, _, Some v -> iter_value v | _ -> ()) proto)
   in

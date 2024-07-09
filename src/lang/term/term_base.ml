@@ -26,12 +26,13 @@ include Runtime_term
 
 type encoder = t Runtime_term.encoder
 type encoder_params = t Runtime_term.encoder_params
+type parsed_pos = Lexing.position * Lexing.position
 
 (** An internal error. Those should not happen in theory... *)
 exception Internal_error of (Pos.t list * string)
 
 (** A parsing error. *)
-exception Parse_error of (Pos.t * string)
+exception Parse_error of (parsed_pos * string)
 
 (** Unsupported encoder *)
 exception Unsupported_encoder of (Pos.t option * string)
@@ -44,7 +45,9 @@ let () =
              (Pos.List.to_string pos) e)
     | Parse_error (pos, e) ->
         Some
-          (Printf.sprintf "Term_base.Parse_error %s: %s" (Pos.to_string pos) e)
+          (Printf.sprintf "Term_base.Parse_error %s: %s"
+             Pos.(to_string (of_lexing_pos pos))
+             e)
     | Unsupported_encoder (pos, e) ->
         Some
           (Printf.sprintf "Lang_values.Unsupported_encoder at %s: %s"
@@ -84,28 +87,9 @@ let rec is_ground x =
     | `Null | `Int _ | `Float _ | `String _ | `Bool _ -> true
     | _ -> false
 
-let rec string_of_pat = function
+let string_of_pat = function
   | `PVar l -> String.concat "." l
-  | `PTuple l -> "(" ^ String.concat ", " (List.map string_of_pat l) ^ ")"
-  | `PList (l, spread, l') ->
-      "["
-      ^ String.concat ", "
-          (List.map string_of_pat l
-          @ (match spread with None -> [] | Some v -> ["..." ^ v])
-          @ List.map string_of_pat l')
-      ^ "]"
-  | `PMeth (pat, l) ->
-      (match pat with None -> "" | Some pat -> string_of_pat pat ^ ".")
-      ^ "{"
-      ^ String.concat ", "
-          (List.map
-             (fun (lbl, pat) ->
-               match pat with
-                 | `None -> lbl
-                 | `Nullable -> lbl ^ "?"
-                 | `Pattern pat -> lbl ^ ": " ^ string_of_pat pat)
-             l)
-      ^ "}"
+  | `PTuple l -> "(" ^ String.concat ", " l ^ ")"
 
 (** String representation of terms, (almost) assuming they are in normal
     form. *)
@@ -113,10 +97,11 @@ let rec string_of_pat = function
 let rec to_string (v : t) =
   let to_base_string (v : t) =
     match v.term with
+      | `Cache_env _ -> "<cache_env>"
       | `Custom c -> Custom.to_string c
       | `Int i ->
-          if has_flag v octal_int then Printf.sprintf "0o%o" i
-          else if has_flag v hex_int then Printf.sprintf "0x%x" i
+          if has_flag v Flags.octal_int then Printf.sprintf "0o%o" i
+          else if has_flag v Flags.hex_int then Printf.sprintf "0x%x" i
           else string_of_int i
       | `Float f -> Utils.string_of_float f
       | `Bool b -> string_of_bool b
@@ -137,7 +122,12 @@ let rec to_string (v : t) =
       | `List l -> "[" ^ String.concat ", " (List.map to_string l) ^ "]"
       | `Tuple l -> "(" ^ String.concat ", " (List.map to_string l) ^ ")"
       | `Null -> "null"
-      | `Cast (e, t) -> "(" ^ to_string e ^ " : " ^ Type.to_string t ^ ")"
+      | `Hide (tm, l) ->
+          "{"
+          ^ String.concat ", " (List.map (Printf.sprintf "%s = _") l)
+          ^ ", ..." ^ to_string tm ^ "}"
+      | `Cast { cast; typ } ->
+          "(" ^ to_string cast ^ " : " ^ Type.to_string typ ^ ")"
       | `Invoke { invoked = e; meth = l; invoke_default } -> (
           match invoke_default with
             | None -> to_string e ^ "." ^ l
@@ -177,9 +167,9 @@ let id =
   let counter = Atomic.make 0 in
   fun () -> Atomic.fetch_and_add counter 1
 
-let make ?pos ?t ?(flags = 0) ?(methods = Methods.empty) e =
+let make ?pos ?t ?(flags = Flags.empty) ?(methods = Methods.empty) e =
   let t = match t with Some t -> t | None -> Type.var ?pos () in
-  { t; term = e; methods; flags; id = id () }
+  { t; term = e; methods; flags }
 
 let rec free_vars_pat = function
   | `PVar [] -> assert false
@@ -203,32 +193,16 @@ let rec free_vars_pat = function
                 @ cur)
               [] l))
 
-let rec bound_vars_pat = function
+let bound_vars_pat = function
   | `PVar [] -> assert false
   | `PVar [x] -> Vars.singleton x
   | `PVar _ -> Vars.empty
-  | `PTuple l ->
-      List.fold_left Vars.union Vars.empty (List.map bound_vars_pat l)
-  | `PList (l, spread, l') ->
-      List.fold_left Vars.union Vars.empty
-        (List.map bound_vars_pat
-           (l @ (match spread with None -> [] | Some v -> [`PVar [v]]) @ l'))
-  | `PMeth (pat, l) ->
-      List.fold_left Vars.union
-        (match pat with None -> Vars.empty | Some pat -> bound_vars_pat pat)
-        (List.map bound_vars_pat
-           (List.fold_left
-              (fun cur (lbl, pat) ->
-                [`PVar [lbl]]
-                @ (match pat with
-                    | `None | `Nullable -> []
-                    | `Pattern pat -> [pat])
-                @ cur)
-              [] l))
+  | `PTuple l -> Vars.of_list l
 
 let rec free_term_vars tm =
   let root_free_vars = function
-    | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> Vars.empty
+    | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ ->
+        Vars.empty
     | `Var x -> Vars.singleton x
     | `Tuple l ->
         List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
@@ -244,8 +218,14 @@ let rec free_term_vars tm =
             Vars.empty p
         in
         enc e
-    | `Cast (e, _) -> free_vars e
+    | `Cast { cast = e } -> free_vars e
     | `Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | `Hide (tm, l) ->
+        free_vars
+          {
+            tm with
+            methods = Methods.filter (fun n _ -> not (List.mem n l)) tm.methods;
+          }
     | `Invoke { invoked = e; invoke_default } ->
         Vars.union (free_vars e)
           (match invoke_default with
@@ -260,8 +240,12 @@ let rec free_term_vars tm =
           (free_vars hd) l
     | `Fun p -> free_fun_vars p
     | `Let l ->
-        Vars.union (free_vars l.def)
-          (Vars.diff (free_vars l.body) (bound_vars_pat l.pat))
+        Vars.union
+          (match l.pat with
+            | `PVar (x :: _ :: _) -> Vars.singleton x
+            | _ -> Vars.empty)
+          (Vars.union (free_vars l.def)
+             (Vars.diff (free_vars l.body) (bound_vars_pat l.pat)))
   in
   Methods.fold
     (fun _ meth_term fv -> Vars.union fv (free_vars meth_term))
@@ -332,11 +316,18 @@ let check_unused ~throw ~lib tm =
     in
     match tm.term with
       | `Var s -> Vars.remove s v
-      | `Int _ | `Float _ | `String _ | `Bool _ -> v
+      | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ -> v
       | `Custom _ -> v
       | `Tuple l -> List.fold_left (fun a -> check a) v l
       | `Null -> v
-      | `Cast (e, _) -> check v e
+      | `Hide (tm, l) ->
+          check v
+            {
+              tm with
+              methods =
+                Methods.filter (fun n _ -> not (List.mem n l)) tm.methods;
+            }
+      | `Cast { cast = e } -> check v e
       | `Invoke { invoked = e } -> check v e
       | `Open (a, b) -> check (check v a) b
       | `Seq (a, b) -> check ~toplevel (check v a) b
@@ -416,7 +407,6 @@ module type Custom = sig
   val is_custom : Custom.t -> bool
   val to_term : content -> t
   val of_term : t -> content
-  val is_term : t -> bool
 end
 
 module type CustomDef = sig
@@ -429,46 +419,44 @@ module type CustomDef = sig
 end
 
 module MkCustom (Def : CustomDef) = struct
-  type custom += Term of Def.content
-
   module T = Type.Custom.Make (struct
+    type content = unit
+
     let name = Def.name
+    let copy_with _ _ = ()
+    let occur_check _ _ = ()
+    let filter_vars _ l _ = l
+    let subtype _ c c' = assert (c = c')
+
+    let sup _ c c' =
+      assert (c = c');
+      c
+
+    let repr _ _ _ = `Constr (name, [])
+    let to_string _ = name
   end)
+
+  let descr = Type.Custom (T.handler ())
+  let t = Type.make descr
+  let () = Type.register_type Def.name (fun () -> Type.make descr)
 
   include Custom.Make (struct
     include Def
 
-    let typ = (module T : Type.Custom.Implementation)
+    let t = t
   end)
-
-  let t = Type.make descr
 
   let of_term t =
     match t.term with `Custom c -> of_custom c | _ -> assert false
 
   let to_term c =
     {
-      t = Type.make T.descr;
+      t = Type.make descr;
       term = `Custom (to_custom c);
       methods = Methods.empty;
-      flags = 0;
-      id = id ();
+      flags = Flags.empty;
     }
-
-  let is_term t = match t.term with `Custom c -> is_custom c | _ -> false
 end
-
-module ActiveTerm = Active_value.Make (struct
-  type typ = t
-  type t = typ
-
-  let id { id } = id
-end)
-
-let active_terms = ActiveTerm.create 1024
-
-let trim_runtime_types () =
-  ActiveTerm.iter (fun term -> term.t <- Type.deep_demeth term.t) active_terms
 
 (** Create a new value. *)
 let make ?pos ?t ?flags ?methods e =
@@ -479,13 +467,13 @@ let make ?pos ?t ?flags ?methods e =
       (Pos.Option.to_string t.Type.pos)
       (try to_string term with _ -> "<?>")
       (Repr.string_of_type t);
-  ActiveTerm.add active_terms term;
   term
 
 let rec fresh ~handler { t; term; methods; flags } =
   let term =
     match term with
-      | `Int _ | `String _ | `Float _ | `Bool _ | `Custom _ -> term
+      | `Cache_env _ | `Int _ | `String _ | `Float _ | `Bool _ | `Custom _ ->
+          term
       | `Tuple l -> `Tuple (List.map (fresh ~handler) l)
       | `Null -> `Null
       | `Open (t, t') -> `Open (fresh ~handler t, fresh ~handler t')
@@ -502,11 +490,13 @@ let rec fresh ~handler { t; term; methods; flags } =
               body = fresh ~handler body;
             }
       | `List l -> `List (List.map (fresh ~handler) l)
-      | `Cast (t, typ) -> `Cast (fresh ~handler t, Type.Fresh.make handler typ)
+      | `Cast { cast = t; typ } ->
+          `Cast { cast = fresh ~handler t; typ = Type.Fresh.make handler typ }
       | `App (t, l) ->
           `App
             ( fresh ~handler t,
               List.map (fun (lbl, t) -> (lbl, fresh ~handler t)) l )
+      | `Hide (tm, l) -> `Hide (fresh ~handler tm, l)
       | `Invoke { invoked; invoke_default; meth } ->
           `Invoke
             {
@@ -543,14 +533,9 @@ let rec fresh ~handler { t; term; methods; flags } =
               body = fresh ~handler body;
             }
   in
-  let term =
-    {
-      t = Type.Fresh.make handler t;
-      term;
-      methods = Methods.map (fresh ~handler) methods;
-      flags;
-      id = id ();
-    }
-  in
-  ActiveTerm.add active_terms term;
-  term
+  {
+    t = Type.Fresh.make handler t;
+    term;
+    methods = Methods.map (fresh ~handler) methods;
+    flags;
+  }

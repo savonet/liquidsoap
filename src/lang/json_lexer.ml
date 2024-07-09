@@ -77,7 +77,7 @@ let rec json_token lexbuf =
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message = "Parse error";
              })
 
@@ -115,14 +115,14 @@ and read_string pos buf lexbuf =
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message = "String is not terminated";
              })
     | _ ->
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message =
                  Printf.sprintf "Illegal string character: %S"
                    (Sedlexing.Utf8.lexeme lexbuf);
@@ -222,7 +222,7 @@ let rec json5_token lexbuf =
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message = "Parse error";
              })
 
@@ -234,7 +234,7 @@ and read_single_line_comment pos lexbuf =
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message = "Parse error";
              })
 
@@ -246,14 +246,14 @@ and read_multiline_comment pos lexbuf =
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message = "Comment is not terminated";
              })
     | _ ->
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message = "Parse error";
              })
 
@@ -310,13 +310,13 @@ and read_json5_string sep pos buf lexbuf =
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message = "String is not terminated";
              })
     | _ ->
         raise
           (Parse_error
              {
-               pos = Sedlexing.lexing_bytes_positions lexbuf;
+               pos = Pos.of_lexing_pos (Sedlexing.lexing_bytes_positions lexbuf);
                message = "Parse error";
              })

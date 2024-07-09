@@ -98,7 +98,7 @@ let create ~format input =
   in
   (* TODO *)
   let seek _ = 0 in
-  { Decoder.decode = decoder; seek; eof = (fun _ -> ()) }
+  { Decoder.decode = decoder; seek; eof = (fun _ -> ()); close = (fun _ -> ()) }
 
 (* The mime types are inspired of GStreamer's convention. See
    http://gstreamer.freedesktop.org/data/doc/gstreamer/head/pwg/html/section-types-definitions.html

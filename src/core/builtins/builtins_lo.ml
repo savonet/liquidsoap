@@ -172,10 +172,10 @@ let register name osc_t liq_t =
          let v = Lang.assoc "" 2 p in
          let address = Lo.Address.create host port in
          let osc_val v =
-           match v.Lang.value with
-             | Lang.(Bool b) -> if b then [`True] else [`False]
-             | Lang.(String s) -> [`String s]
-             | Lang.(Float x) -> [`Float x]
+           match v with
+             | Value.Bool { value = b } -> if b then [`True] else [`False]
+             | Value.String { value = s } -> [`String s]
+             | Value.Float { value = x } -> [`Float x]
              | _ -> failwith "Unhandled value."
          in
          (* There was a bug in early versions of lo bindings and anyway we don't

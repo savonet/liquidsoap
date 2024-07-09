@@ -54,19 +54,19 @@ let make params =
   let ext =
     List.fold_left
       (fun f -> function
-        | `Labelled ("stereo", { value = Bool b; _ }) ->
+        | `Labelled ("stereo", Value.Bool { value = b; _ }) ->
             { f with External_encoder_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = Bool b; _ }) ->
+        | `Labelled ("mono", Value.Bool { value = b; _ }) ->
             { f with External_encoder_format.channels = (if b then 1 else 2) }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with External_encoder_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with External_encoder_format.channels = 2 }
-        | `Labelled ("channels", { value = Int c; _ }) ->
+        | `Labelled ("channels", Value.Int { value = c }) ->
             { f with External_encoder_format.channels = c }
-        | `Labelled ("samplerate", { value = Int i; _ }) ->
+        | `Labelled ("samplerate", Value.Int { value = i; _ }) ->
             { f with External_encoder_format.samplerate = Lazy.from_val i }
-        | `Labelled ("video", { value = Bool b; _ }) ->
+        | `Labelled ("video", Value.Bool { value = b; _ }) ->
             let w, h =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -76,7 +76,7 @@ let make params =
               f with
               External_encoder_format.video = (if b then Some (w, h) else None);
             }
-        | `Labelled ("width", { value = Int w; _ }) ->
+        | `Labelled ("width", Int { value = w; _ }) ->
             let _, h =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -84,7 +84,7 @@ let make params =
             in
             let w = Lazy.from_val w in
             { f with External_encoder_format.video = Some (w, h) }
-        | `Labelled ("height", { value = Int h; _ }) ->
+        | `Labelled ("height", Int { value = h }) ->
             let w, _ =
               match f.External_encoder_format.video with
                 | None -> (Frame.video_width, Frame.video_height)
@@ -92,21 +92,21 @@ let make params =
             in
             let h = Lazy.from_val h in
             { f with External_encoder_format.video = Some (w, h) }
-        | `Labelled ("header", { value = Bool h; _ }) ->
+        | `Labelled ("header", Bool { value = h }) ->
             { f with External_encoder_format.header = h }
-        | `Labelled ("restart_on_crash", { value = Bool h; _ }) ->
+        | `Labelled ("restart_on_crash", Bool { value = h }) ->
             { f with External_encoder_format.restart_on_crash = h }
         | `Anonymous s when String.lowercase_ascii s = "restart_on_metadata" ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Metadata;
             }
-        | `Labelled ("restart_after_delay", { value = Int i; _ }) ->
+        | `Labelled ("restart_after_delay", Value.Int { value = i; _ }) ->
             {
               f with
               External_encoder_format.restart = External_encoder_format.Delay i;
             }
-        | `Labelled ("process", { value = String s; _ }) ->
+        | `Labelled ("process", String { value = s; _ }) ->
             { f with External_encoder_format.process = s }
         | `Anonymous s -> { f with External_encoder_format.process = s }
         | t -> Lang_encoder.raise_generic_error t)

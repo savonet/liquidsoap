@@ -126,7 +126,9 @@ let synth_all_dssi = Lang.add_module ~base:Modules.synth_all "dssi"
 
 let register_descr plugin_name descr_n descr outputs =
   let ladspa_descr = Descriptor.ladspa descr in
-  let liq_params, params = Ladspa_op.params_of_descr ladspa_descr in
+  let liq_params, params =
+    Ladspa_op.params_of_controls (Ladspa_op.get_control_ports ladspa_descr)
+  in
   let chans = Array.length outputs in
   let frame_t =
     Lang.frame_t (Lang.univ_t ())
@@ -192,9 +194,8 @@ let register_plugin ?(log_errors = false) pname =
           log#important
             "Plugin %s has inputs, don't know how to handle them for now."
             (Ladspa.Descriptor.label ladspa_descr))
-      descr
-    (* TODO: Unloading plugins makes liq segv. Don't do it for now. *)
-    (* Plugin.unload p *)
+      descr;
+    Plugin.unload p
   with Plugin.Not_a_plugin ->
     if log_errors then log#important "File \"%s\" is not a plugin!" pname
 

@@ -115,6 +115,7 @@ let create_decoder input =
   {
     Decoder.seek;
     eof = (fun _ -> ());
+    close = (fun _ -> ());
     decode =
       (fun buffer ->
         let len = input.Decoder.read aacbuf 0 aacbuflen in
@@ -220,7 +221,7 @@ let create_decoder input =
       ended := true;
       0
   in
-  { Decoder.decode; seek; eof = (fun _ -> ()) }
+  { Decoder.decode; seek; eof = (fun _ -> ()); close = (fun _ -> ()) }
 
 (* Get the number of channels of audio in an MP4 file. *)
 let file_type ~metadata:_ ~ctype:_ filename =

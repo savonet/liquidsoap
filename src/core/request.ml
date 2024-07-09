@@ -729,9 +729,7 @@ let resolve ~ctype t timeout =
     | Ready when Frame.compatible (Option.get t.ctype) (Option.get ctype) ->
         Resolved
     | Idle | Ready ->
-        assert (
-          t.ctype = None
-          || Frame.compatible (Option.get t.ctype) (Option.get ctype));
+        Frame.assert_compatible (Option.get t.ctype) (Option.get ctype);
         log#debug "Resolving request %s." (string_of_indicators t);
         t.ctype <- ctype;
         t.resolving <- Some (Unix.time ());

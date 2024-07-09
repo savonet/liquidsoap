@@ -11,3 +11,7 @@ val bin_dir : unit -> string
 val bin_dir_descr : string
 val camomile_dir : unit -> string
 val camomile_dir_descr : string
+val user_cache_override : unit -> string option
+val user_cache_override_descr : string
+val system_cache_override : unit -> string option
+val system_cache_override_descr : string

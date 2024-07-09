@@ -92,7 +92,7 @@ jobs:
           cp PACKAGES.minimal PACKAGES
           opam update
           opam pin -yn .
-          opam install -y saturn_lockfree.0.4.1
+          opam install -y saturn_lockfree.0.4.1 ppx_hash
           opam info -f "depopts:" liquidsoap-core | grep -v osx-secure-transport | xargs opam remove -y inotify ffmpeg-avutil cohttp-lwt-unix prometheus-app ${{ needs.build_details.outputs.minimal_exclude_deps }}
           opam install -y mem_usage
           echo "::endgroup::"
@@ -516,6 +516,7 @@ jobs:
     env:
       OPAM_DEPS: ao-windows,lastfm-windows,camomile-windows,cry-windows,dtools-windows,duppy-windows,ffmpeg-windows,ffmpeg-avutil-windows,mm-windows,re-windows,portaudio-windows,samplerate-windows,sedlex-windows,ssl-windows,srt-windows,winsvc-windows,mem_usage-windows
       IS_SNAPSHOT: ${{ needs.build_details.outputs.is_snapshot == 'true' }}
+      TOOLPREF64: /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-
     steps:
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@v1

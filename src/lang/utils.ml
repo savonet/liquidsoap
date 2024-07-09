@@ -20,6 +20,8 @@
 
  *****************************************************************************)
 
+let () = Liqmemtrace.install ()
+
 (* Resolve a path. *)
 let resolve_path ?current_dir path =
   let path = Lang_string.home_unrelate path in

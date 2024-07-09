@@ -20,40 +20,62 @@
 
  *****************************************************************************)
 
-module type Spec = sig
+open Type_base
+
+type custom = Type_base.custom
+
+module type Specs = sig
+  type content
+
   val name : string
+  val copy_with : (t -> t) -> content -> content
+  val occur_check : (t -> unit) -> content -> unit
+
+  val filter_vars :
+    (var list -> t -> var list) -> var list -> content -> var list
+
+  val repr : (var list -> t -> Repr.t) -> var list -> content -> Repr.t
+  val subtype : (t -> t -> unit) -> content -> content -> unit
+  val sup : (t -> t -> t) -> content -> content -> content
+  val to_string : content -> string
 end
 
 module type Implementation = sig
-  val descr : Type_base.descr
-  val is_descr : Type_base.descr -> bool
+  type content
+
+  val handler : content -> Type_base.custom_handler
+  val to_content : custom -> content
 end
 
-module Make (S : Spec) = struct
-  type Type_base.custom += Type
+let custom_types = ref []
 
-  let is_descr = function
-    | Type_base.Custom { Type_base.typ = Type } -> true
-    | _ -> false
-
-  let handler =
-    {
-      Type_base.typ = Type;
-      copy_with = (fun _ c -> c);
-      occur_check = (fun _ _ -> ());
-      filter_vars = (fun _ l _ -> l);
-      repr = (fun _ _ _ -> `Constr (S.name, []));
-      subtype = (fun _ c c' -> assert (c = c'));
-      sup =
-        (fun _ c c' ->
-          assert (c = c');
-          c);
-      to_string = (fun _ -> S.name);
-    }
-
-  let descr = Type_base.Custom handler
+module Make (S : Specs) = struct
+  type content = S.content
 
   let () =
-    Type_base.register_type S.name (fun () ->
-        Type_base.make (Type_base.Custom handler))
+    if List.mem S.name !custom_types then failwith "custom type exist!";
+    custom_types := S.name :: !custom_types
+
+  let to_custom : content -> custom = Obj.magic
+  let to_content : custom -> content = Obj.magic
+  let copy_with fn v = to_custom (S.copy_with fn (to_content v))
+  let occur_check fn v = S.occur_check fn (to_content v)
+  let filter_vars fn vars v = S.filter_vars fn vars (to_content v)
+  let repr fn vars v = S.repr fn vars (to_content v)
+  let subtype fn v v' = S.subtype fn (to_content v) (to_content v')
+  let sup fn v v' = to_custom (S.sup fn (to_content v) (to_content v'))
+  let to_string v = S.to_string (to_content v)
+
+  let handler v =
+    {
+      typ = to_custom v;
+      custom_name = S.name;
+      copy_with;
+      occur_check;
+      filter_vars;
+      repr;
+      subtype;
+      sup;
+      to_string;
+    }
 end

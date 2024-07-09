@@ -71,6 +71,7 @@ type decoder = {
   (* [seek x]: Skip [x] main ticks. Returns the number of ticks actually
      skipped. *)
   seek : int -> int;
+  close : unit -> unit;
 }
 
 type input = {
@@ -86,7 +87,7 @@ type file_decoder_ops = {
   fread : int -> Frame.t;
   remaining : unit -> int;
   fseek : int -> int;
-  close : unit -> unit;
+  fclose : unit -> unit;
 }
 
 type file_decoder =
@@ -490,7 +491,7 @@ let mk_buffer ~ctype generator =
 
   { generator; put_pcm; put_yuva420p }
 
-let mk_decoder ~filename ~close ~remaining ~buffer decoder =
+let mk_decoder ~filename ~remaining ~buffer decoder =
   let decoding_done = ref false in
 
   let remaining () =
@@ -502,9 +503,9 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
       0
   in
 
-  let close () =
+  let fclose () =
     decoder.eof buffer;
-    close ()
+    decoder.close ()
   in
 
   let fread size =
@@ -535,12 +536,12 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
       Generator.truncate buffer.generator len;
       len)
   in
-  { fread; remaining; fseek; close }
+  { fread; remaining; fseek; fclose }
 
-let file_decoder ~filename ~close ~remaining ~ctype decoder =
+let file_decoder ~filename ~remaining ~ctype decoder =
   let generator = Generator.create ~log:(log#info "%s") ctype in
   let buffer = mk_buffer ~ctype generator in
-  mk_decoder ~filename ~close ~remaining ~buffer decoder
+  mk_decoder ~filename ~remaining ~buffer decoder
 
 let opaque_file_decoder ~filename ~ctype create_decoder =
   let extra_flags = if Sys.win32 then [Unix.O_SHARE_DELETE] else [] in
@@ -578,7 +579,7 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
     out_ticks := !out_ticks + stop - start
   in
 
-  let decoder = { decoder with decode } in
+  let decoder = { decoder with decode; close = (fun () -> Unix.close fd) } in
 
   let remaining () =
     let in_bytes = tell () in
@@ -591,6 +592,4 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
       int_of_float remaining_ticks)
   in
 
-  let close () = Unix.close fd in
-
-  mk_decoder ~filename ~close ~remaining ~buffer decoder
+  mk_decoder ~filename ~remaining ~buffer decoder

@@ -43,49 +43,60 @@ class blank duration =
     method! seek x = x
     method seek_source = (self :> Source.source)
     method abort_track = Atomic.set position `New_track
+    val mutable frame = None
 
-    method generate_frame =
+    method private make_frame =
       let length = Lazy.force Frame.size in
       let audio_len = Frame.audio_of_main length in
-      let frame =
-        Frame.Fields.fold
-          (fun field format frame ->
-            match format with
-              | _ when Content.Audio.is_format format ->
-                  let data =
-                    Content.Audio.get_data (Content.make ~length format)
-                  in
-                  Audio.clear data 0 audio_len;
-                  Frame.set_data frame field Content.Audio.lift_data data
-              | _ when Content_pcm_s16.is_format format ->
-                  let data =
-                    Content_pcm_s16.get_data (Content.make ~length format)
-                  in
-                  Content_pcm_s16.clear data 0 audio_len;
-                  Frame.set_data frame field Content_pcm_s16.lift_data data
-              | _ when Content_pcm_f32.is_format format ->
-                  let data =
-                    Content_pcm_f32.get_data (Content.make ~length format)
-                  in
-                  Content_pcm_f32.clear data 0 audio_len;
-                  Frame.set_data frame field Content_pcm_f32.lift_data data
-              | _ when Content.Video.is_format format ->
-                  let data =
-                    self#generate_video ~field
-                      ~create:(fun ~pos:_ ~width ~height () ->
-                        let img = Video.Canvas.Image.create width height in
-                        Video.Canvas.Image.iter Video.Image.blank img)
-                      length
-                  in
-                  Frame.set_data frame field Content.Video.lift_data data
-              | _
-                when Content.Metadata.is_format format
-                     || Content.Track_marks.is_format format ->
-                  frame
-              | _ -> failwith "Invalid content type!")
-          self#content_type
-          (Frame.create ~length Frame.Fields.empty)
-      in
+      Frame.Fields.fold
+        (fun field format frame ->
+          match format with
+            | _ when Content.Audio.is_format format ->
+                let data =
+                  Content.Audio.get_data (Content.make ~length format)
+                in
+                Audio.clear data 0 audio_len;
+                Frame.set_data frame field Content.Audio.lift_data data
+            | _ when Content_pcm_s16.is_format format ->
+                let data =
+                  Content_pcm_s16.get_data (Content.make ~length format)
+                in
+                Content_pcm_s16.clear data 0 audio_len;
+                Frame.set_data frame field Content_pcm_s16.lift_data data
+            | _ when Content_pcm_f32.is_format format ->
+                let data =
+                  Content_pcm_f32.get_data (Content.make ~length format)
+                in
+                Content_pcm_f32.clear data 0 audio_len;
+                Frame.set_data frame field Content_pcm_f32.lift_data data
+            | _ when Content.Video.is_format format ->
+                let data =
+                  self#generate_video ~field
+                    ~create:(fun ~pos:_ ~width ~height () ->
+                      let img = Video.Canvas.Image.create width height in
+                      Video.Canvas.Image.iter Video.Image.blank img)
+                    length
+                in
+                Frame.set_data frame field Content.Video.lift_data data
+            | _
+              when Content.Metadata.is_format format
+                   || Content.Track_marks.is_format format ->
+                frame
+            | _ -> failwith "Invalid content type!")
+        self#content_type
+        (Frame.create ~length Frame.Fields.empty)
+
+    method private blank_frame =
+      match frame with
+        | Some f -> f
+        | None ->
+            let f = self#make_frame in
+            frame <- Some f;
+            f
+
+    method generate_frame =
+      let frame = self#blank_frame in
+      let length = Lazy.force Frame.size in
       match (Atomic.get position, self#remaining) with
         | `New_track, _ ->
             Atomic.set position (`Elapsed length);

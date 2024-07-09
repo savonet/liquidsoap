@@ -47,24 +47,15 @@ module L = struct
   let format = V.to_value
 end
 
-let has_started = ref false
-
-let () =
-  Lifecycle.before_start ~name:"lang_encoder initialization" (fun () ->
-      has_started := true)
-
 let raise_error ~pos message =
-  match !has_started with
-    | false -> raise (Lang_error.Encoder_error (pos, message))
-    | true ->
-        Runtime_error.raise ~message
-          ~pos:(match pos with None -> [] | Some pos -> [pos])
-          "encoder"
+  Runtime_error.raise ~message
+    ~pos:(match pos with None -> [] | Some pos -> [pos])
+    "encoder"
 
 let raise_generic_error = function
   | `Anonymous s -> raise_error ~pos:None ("Unknown encoder parameter: " ^ s)
   | `Labelled (l, v) ->
-      raise_error ~pos:v.Value.pos
+      raise_error ~pos:(Value.pos v)
         (Printf.sprintf
            "unknown parameter name (%s) or invalid parameter value (%s)" l
            (Value.to_string v))
@@ -130,11 +121,9 @@ let type_of_encoder ~pos e =
   let frame_t = Frame_type.make Liquidsoap_lang.Lang.unit_t fields in
   L.format_t ?pos frame_t
 
-let make_encoder ~pos t ((e, p) : Hooks.encoder) =
+let make_encoder ~pos ((e, p) : Hooks.encoder) =
   try
     let e = (find_encoder e).make p in
     let (_ : Encoder.factory) = Encoder.get_factory e in
     V.to_value ?pos e
-  with Not_found ->
-    raise_error ~pos
-      (Printf.sprintf "unsupported format: %s" (Term.to_string t))
+  with Not_found -> raise_error ~pos "unsupported format"

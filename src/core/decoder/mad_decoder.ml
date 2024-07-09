@@ -103,6 +103,7 @@ let create_decoder input =
         let { Mad.samplerate } = get_info () in
         buffer.Decoder.put_pcm ~samplerate data);
     eof = (fun _ -> ());
+    close = (fun _ -> ());
   }
 
 (** Configuration keys for mad. *)

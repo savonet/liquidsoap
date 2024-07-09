@@ -50,7 +50,8 @@ opam install -y .
 cd ..
 
 opam update
-opam install -y tls.0.17.4 saturn_lockfree.0.4.1
+opam remove -y jemalloc
+opam install -y tls.0.17.4 saturn_lockfree.0.4.1 ppx_hash
 
 cd /tmp/liquidsoap-full
 

@@ -13,10 +13,14 @@ val log : string list -> log
 val liq_libs_dir : (unit -> string) ref
 val log_path : string option ref
 
+type dirtype = [ `User | `System ]
+
+val cache_maintenance : (dirtype -> unit) ref
+
 (* Media-specific dependencies. *)
 
 val eval_check :
-  (env:(string * Value.t lazy_t) list -> tm:Term.t -> Value.t -> unit) ref
+  (env:(string * Value.t) list -> tm:Term.t -> Value.t -> unit) ref
 
 type encoder_params =
   [ `Anonymous of string | `Encoder of encoder | `Labelled of string * Value.t ]
@@ -24,13 +28,17 @@ type encoder_params =
 
 and encoder = string * encoder_params
 
-val make_encoder : (pos:Pos.Option.t -> Term.t -> encoder -> Value.t) ref
+val make_encoder : (pos:Pos.Option.t -> encoder -> Value.t) ref
 val type_of_encoder : (pos:Pos.Option.t -> Term.encoder -> Type.t) ref
 val has_encoder : (Value.t -> bool) ref
 
 val mk_source_ty :
-  (?pos:Pos.t -> string -> Parsed_term.source_annotation -> Type.t) ref
+  (?pos:Term_base.parsed_pos ->
+  string ->
+  Parsed_term.source_annotation ->
+  Type.t)
+  ref
 
-val mk_clock_ty : (?pos:Pos.t -> unit -> Type.t) ref
+val mk_clock_ty : (?pos:Term_base.parsed_pos -> unit -> Type.t) ref
 val source_methods_t : (unit -> Type.t) ref
 val getpwnam : (string -> Unix.passwd_entry) ref

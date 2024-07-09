@@ -81,10 +81,21 @@
  (name liquidsoap_lang)
  (public_name liquidsoap-lang)
  (preprocess
-  (pps sedlex.ppx ppx_string))
- (libraries liquidsoap-lang.console dune-site re saturn_lockfree str unix menhirLib)
+  (pps sedlex.ppx ppx_string ppx_hash))
+ (libraries
+  liquidsoap-lang.console
+  dune-site
+  re
+  saturn_lockfree
+  str
+  unix
+  menhirLib
+  (select
+    liqmemtrace.ml
+   from
+   (memtrace -> liqmemtrace.memtrace.ml)
+   (-> liqmemtrace.disabled.ml)))
  (modules
-  active_value
   build_config
   builtins_bool
   builtins_eval
@@ -99,11 +110,13 @@
   builtins_string
   builtins_yaml
   builtins_ref
+  cache
   doc
   environment
   error
   evaluation
   extralib
+  flags
   hooks
   json_base
   json_lexer
@@ -112,9 +125,11 @@
   lang
   lang_core
   lang_error
+  lang_eval
   lang_regexp
   lang_string
   lexer
+  liqmemtrace
   methods
   modules
   parsed_term
@@ -134,8 +149,13 @@
   startup
   term
   term_base
+  term_cache
   term_custom
+  term_hash
+  term_preprocessor
   term_reducer
+  term_stdlib
+  term_trim
   type
   type_base
   type_constraints

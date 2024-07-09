@@ -155,10 +155,11 @@
     (saturn_lockfree (>= 0.4.1))
     (re (>= 1.11.0))
     (ppx_string :build)
+    (ppx_hash :build)
     (sedlex (>= 3.2))
     (menhir (>= 20180703))
   )
-  (sites (share libs) (share bin) (lib_root lib_root))
+  (sites (share libs) (share bin) (share cache) (lib_root lib_root))
   (synopsis "Liquidsoap language library"))
 
 (package

@@ -249,6 +249,4 @@ let () =
 
 let _ =
   Lang.add_builtin_base ~category:`Internet ~descr:"Default user-agent"
-    ~base:http "user_agent"
-    Lang.(String Http.user_agent)
-    Lang.string_t
+    ~base:http "user_agent" (`String Http.user_agent) Lang.string_t

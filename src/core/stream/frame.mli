@@ -28,8 +28,7 @@ module Fields : sig
   include module type of Liquidsoap_lang.Methods
 
   type field = Frame_base.Fields.field
-  type 'a typ = (field, 'a) t
-  type 'a t = 'a typ
+  type nonrec 'a t = (field, 'a) t
 
   val metadata : field
   val track_marks : field
@@ -188,6 +187,7 @@ val add_all_metadata : t -> (int * metadata) list -> t
 (** {2 Content operations} *)
 
 val string_of_content_type : content_type -> string
+val assert_compatible : content_type -> content_type -> unit
 val compatible : content_type -> content_type -> bool
 
 (** {2 Format settings} *)

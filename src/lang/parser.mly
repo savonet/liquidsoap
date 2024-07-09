@@ -30,8 +30,8 @@ open Parser_helper
 %token <string> VARLPAR
 %token <string> VARLBRA
 %token <Lang_string.Version.t> VERSION
-%token <char * string * Pos.t> PP_STRING
-%token <string * char list * Pos.t> PP_REGEXP
+%token <char * string * Parsed_term.pos> PP_STRING
+%token <string * char list * Parsed_term.pos> PP_REGEXP
 %token <char * string > STRING
 %token <string * char list > REGEXP
 %token <string> INT PP_INT_DOT_LCUR
@@ -145,31 +145,23 @@ open Parser_helper
 %type <Term.t list> inner_tuple
 %type <Parser_helper.let_opt_el list> let_opt
 %type <Parser_helper.let_opt_el> let_opt_el
-%type <Term.pattern> list_pattern
-%type <Term.pattern> meth_pattern
-%type <Parser_helper.meth_pattern_el> meth_pattern_el
-%type <Parser_helper.meth_pattern_el list> meth_pattern_list
 %type <Term.meth_annotation> meth_ty
 %type <Term.t option> opt
 %type <string> optvar
 %type <Term.pattern> pattern
 %type <Term.pattern list> pattern_list
-%type <Term.pattern list * string option * Term.pattern list> pattern_list_with_spread
 %type <Parsed_term.methods list> record
-%type <Parser_helper.meth_pattern_el list> record_pattern
 %type <Term.meth_annotation list> record_ty
 %type <unit> s
 %type <string> spread
 %type <string list> subfield
 %type <string list> subfield_lbra
-%type <Term.pattern> tuple_pattern
 %type <Term.type_annotation> ty
 %type <string * Term.track_annotation list> ty_content
 %type <Term.track_annotation> ty_content_arg
 %type <string * Term.source_annotation> ty_source
 %type <Term.source_annotation> ty_source_tracks
 %type <Term.type_annotation list> ty_tuple
-%type <Term.pattern> var_pattern
 %type <Parsed_term.list_el list> varlist
 %type <string list> subfield_lpar
 
@@ -210,7 +202,7 @@ expr:
   | if_def                           { mk ~pos:$loc (`If_def $1) }
   | if_encoder                       { mk ~pos:$loc (`If_encoder $1) }
   | if_version                       { mk ~pos:$loc (`If_version $1) }
-  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast ($2, $4)) }
+  | LPAR expr COLON ty RPAR          { mk ~pos:$loc (`Cast {cast = $2; typ = $4}) }
   | UMINUS expr                      { mk ~pos:$loc (`Negative $2) }
   | LPAR expr RPAR                   { mk ~pos:$loc (`Parenthesis $2) }
   | INT                              { mk ~pos:$loc (`Int $1) }
@@ -417,11 +409,11 @@ spread:
   | DOTDOTDOT optvar { $2 }
 
 pattern_list_with_spread:
-  | spread                                       { [], Some $1, [] }
-  | pattern_list                                 { [], None,    $1 }
-  | spread COMMA pattern_list                    { [], Some $1, $3 }
-  | pattern_list COMMA spread                    { $1, Some $3, [] }
-  | pattern_list COMMA spread COMMA pattern_list { $1, Some $3, $5 }
+  | spread                                       { [], Some ($loc, $1),    [] }
+  | pattern_list                                 { $1, None,               [] }
+  | spread COMMA pattern_list                    { [], Some ($loc($1), $1), $3 }
+  | pattern_list COMMA spread                    { $1, Some ($loc($3), $3), [] }
+  | pattern_list COMMA spread COMMA pattern_list { $1, Some ($loc($3), $3), $5 }
 
 tuple_pattern:
   | LPAR pattern_list RPAR             { `PTuple $2 }
@@ -443,29 +435,33 @@ record_pattern:
   | LCUR meth_pattern_list RCUR { $2 }
 
 meth_spread_list:
-  | DOTDOTDOT                              { Some (`PVar ["_"]), [] }
-  | DOTDOTDOT optvar                       { Some (`PVar [$2]), [] }
+  | DOTDOTDOT                              { Some ({ pat_pos = $loc; pat_entry = `PVar ["_"] }), [] }
+  | DOTDOTDOT optvar                       { Some ({ pat_pos = $loc($2); pat_entry = `PVar [$2] }), [] }
   | meth_pattern_el COMMA meth_spread_list { fst $3, $1::(snd $3) }
 
 record_spread_pattern:
   | LCUR meth_spread_list RCUR { $2 }
 
 meth_pattern:
-  | record_spread_pattern            { `PMeth $1                       }
-  | record_pattern                   { `PMeth (None,               $1) }
-  | VAR DOT record_pattern           { `PMeth (Some (`PVar [$1]),  $3) }
-  | UNDERSCORE DOT record_pattern    { `PMeth (Some (`PVar ["_"]), $3) }
-  | tuple_pattern DOT record_pattern { `PMeth (Some $1,            $3) }
-  | list_pattern DOT record_pattern  { `PMeth (Some $1,            $3) }
+  | record_spread_pattern            { `PMeth $1             }
+  | record_pattern                   { `PMeth (None,     $1) }
+  | VAR DOT record_pattern           { let pat = { pat_pos = $loc($1); pat_entry = `PVar [$1] } in
+                                       `PMeth (Some pat, $3) }
+  | UNDERSCORE DOT record_pattern    { let pat = { pat_pos = $loc; pat_entry = `PVar ["_"] } in
+                                       `PMeth (Some pat, $3) }
+  | tuple_pattern DOT record_pattern { let pat = { pat_pos = $loc($1); pat_entry = $1 } in
+                                       `PMeth (Some pat,  $3) }
+  | list_pattern DOT record_pattern  { let pat = { pat_pos = $loc($1); pat_entry = $1 } in
+                                       `PMeth (Some pat,  $3) }
 
 var_pattern:
   | optvar { `PVar [$1] }
 
 pattern:
-  | var_pattern   { $1 }
-  | tuple_pattern { $1 }
-  | list_pattern  { $1 }
-  | meth_pattern  { $1 }
+  | var_pattern   { { pat_pos = $loc; pat_entry = $1 } }
+  | tuple_pattern { { pat_pos = $loc; pat_entry = $1 } }
+  | list_pattern  { { pat_pos = $loc; pat_entry = $1 } }
+  | meth_pattern  { { pat_pos = $loc; pat_entry = $1 } }
 
 subfield:
   | VAR DOT in_subfield { $1::$3 }
@@ -496,16 +492,16 @@ explicit_binding:
   | _let pattern GETS expr   { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$2 ~def:$4 ()) }
   | _let LPAR pattern COLON ty RPAR GETS expr
                              { `Let Parser_helper.(let_args ~decoration:$1 ~pat:$3 ~def:$8 ~cast:$5 ()) }
-  | _let subfield GETS expr  { `Let Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~def:$4 ()) }
-  | def optvar g exprs END   { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar [$2]) ~def:$4 ()) }
+  | _let subfield GETS expr  { `Let Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~def:$4 ()) }
+  | def optvar g exprs END   { `Def Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar [$2] }) ~def:$4 ()) }
   | def LPAR optvar COLON ty RPAR g exprs END
-                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar [$3]) ~def:$8 ~cast:$5 ()) }
-  | def subfield g exprs END { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~def:$4 ()) }
+                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($3); pat_entry =`PVar [$3] }) ~def:$8 ~cast:$5 ()) }
+  | def subfield g exprs END { `Def Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~def:$4 ()) }
   | def subfield_lpar arglist RPAR g exprs END
-                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:(`PVar $2) ~arglist:$3 ~def:$6 ()) }
+                             { `Def Parser_helper.(let_args ~decoration:$1 ~pat:({ pat_pos = $loc($2); pat_entry = `PVar $2 }) ~arglist:$3 ~def:$6 ()) }
 
 binding:
-  | optvar GETS expr         { `Binding Parser_helper.(let_args ~decoration:`None ~pat:(`PVar [$1]) ~def:$3 ()) }
+  | optvar GETS expr         { `Binding Parser_helper.(let_args ~decoration:`None ~pat:({ pat_pos = $loc($1); pat_entry = `PVar [$1] }) ~def:$3 ()) }
   | explicit_binding         { ($1 :> binding) }
 
 subfield_lpar:

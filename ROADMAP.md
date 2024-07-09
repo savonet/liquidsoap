@@ -24,23 +24,36 @@
 
 ## For 2.3
 
-~~- Rewrite streaming loop~~
+### Done:
 
-- rewrite the clock system
-  - the code is unreadable and overengineered ⇒ simplify it
+- ~~Rewrite streaming loop~~
+- ~~rewrite the clock system~~
+  - ~~the code is unreadable and overengineered ⇒ simplify it~~
   - we want to get rid of the assumption clock = thread
-- use OCaml 5 threads (#2879)
-- update the Liquidsoap book
 
-## For 2.4
+### In progress
 
 - Optimize runtime: start time, typing and memory usage
-- Add support for modules, load minimal API by default
+
+### TODO
+
 - remove requests and use sources instead everywhere (a request is a source with
   one track [or more])
   - Precise scheduling with queue.push, etc.: we could make the track available
     at some precise time if requests were sources...
   - this may allow stuff like `append` more easily
+
+### Maybe
+
+- Update the book
+
+## For 2.4
+
+### Maybe
+
+- support for ffmpeg subtitles
+- use OCaml 5 threads (#2879)
+- Add support for modules, load minimal API by default
 
 ## FOSDEM 2023 TODO
 
@@ -57,7 +70,6 @@
 - Simple mechanism to tell source how much data will be expected in advance (e.g. 10s with cross) to allow automatic buffer management.
 - Redefine switch-based transitions.
 - javascrtipt/browser support using [WebCodecs](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API)!
-- support for subtitles
 - refine video support in order to have next liquidshop running on Liquidsoap
   (dogfooding)
 - native RTMP support (and ensure that HLS output is easy to use)

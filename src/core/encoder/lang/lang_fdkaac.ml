@@ -73,16 +73,16 @@ let make params =
   let fdkaac =
     List.fold_left
       (fun f -> function
-        | `Labelled ("afterburner", { value = Bool b; _ }) ->
+        | `Labelled ("afterburner", Value.Bool { value = b; _ }) ->
             { f with Fdkaac_format.afterburner = b }
-        | `Labelled ("aot", { value = String s; pos }) ->
+        | `Labelled ("aot", Value.String { value = s; pos }) ->
             let aot =
               try Fdkaac_format.aot_of_string s
               with Not_found ->
                 Lang_encoder.raise_error ~pos "invalid aot value"
             in
             { f with Fdkaac_format.aot }
-        | `Labelled ("vbr", { value = Int i; pos }) ->
+        | `Labelled ("vbr", Value.Int { value = i; pos }) ->
             if not (List.mem i valid_vbr) then (
               let err =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
@@ -90,27 +90,27 @@ let make params =
               in
               Lang_encoder.raise_error ~pos err);
             { f with Fdkaac_format.bitrate_mode = `Variable i }
-        | `Labelled ("bandwidth", { value = Int i; _ }) ->
+        | `Labelled ("bandwidth", Value.Int { value = i; _ }) ->
             { f with Fdkaac_format.bandwidth = `Fixed i }
-        | `Labelled ("bandwidth", { value = String s; _ })
+        | `Labelled ("bandwidth", String { value = s; _ })
           when String.lowercase_ascii s = "auto" ->
             { f with Fdkaac_format.bandwidth = `Auto }
-        | `Labelled ("bitrate", { value = Int i; _ }) ->
+        | `Labelled ("bitrate", Value.Int { value = i; _ }) ->
             { f with Fdkaac_format.bitrate = i }
-        | `Labelled ("stereo", { value = Bool b; _ }) ->
+        | `Labelled ("stereo", Value.Bool { value = b; _ }) ->
             { f with Fdkaac_format.channels = (if b then 2 else 1) }
-        | `Labelled ("mono", { value = Bool b; _ }) ->
+        | `Labelled ("mono", Value.Bool { value = b; _ }) ->
             { f with Fdkaac_format.channels = (if b then 1 else 2) }
-        | `Labelled ("channels", { value = Int i; _ }) ->
+        | `Labelled ("channels", Value.Int { value = i; _ }) ->
             { f with Fdkaac_format.channels = i }
-        | `Labelled ("samplerate", { value = Int i; pos }) ->
+        | `Labelled ("samplerate", Value.Int { value = i; pos }) ->
             {
               f with
               Fdkaac_format.samplerate = check_samplerate ~pos (Lazy.from_val i);
             }
-        | `Labelled ("sbr_mode", { value = Bool b; _ }) ->
+        | `Labelled ("sbr_mode", Value.Bool { value = b; _ }) ->
             { f with Fdkaac_format.sbr_mode = b }
-        | `Labelled ("transmux", { value = String s; pos }) ->
+        | `Labelled ("transmux", Value.String { value = s; pos }) ->
             let transmux =
               try Fdkaac_format.transmux_of_string s
               with Not_found ->

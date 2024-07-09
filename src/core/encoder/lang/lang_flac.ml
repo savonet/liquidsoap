@@ -42,23 +42,23 @@ let flac_gen params =
   in
   List.fold_left
     (fun f -> function
-      | `Labelled ("stereo", { value = Bool b; _ }) ->
+      | `Labelled ("stereo", Bool { value = b; _ }) ->
           { f with Flac_format.channels = (if b then 2 else 1) }
-      | `Labelled ("mono", { value = Bool b; _ }) ->
+      | `Labelled ("mono", Bool { value = b; _ }) ->
           { f with Flac_format.channels = (if b then 1 else 2) }
-      | `Labelled ("channels", { value = Int i; _ }) ->
+      | `Labelled ("channels", Int { value = i; _ }) ->
           { f with Flac_format.channels = i }
-      | `Labelled ("samplerate", { value = Int i; _ }) ->
+      | `Labelled ("samplerate", Int { value = i; _ }) ->
           { f with Flac_format.samplerate = Lazy.from_val i }
-      | `Labelled ("compression", { value = Int i; pos }) ->
+      | `Labelled ("compression", Int { value = i; pos }) ->
           if i < 0 || i > 8 then
             Lang_encoder.raise_error ~pos "invalid compression value";
           { f with Flac_format.compression = i }
-      | `Labelled ("bits_per_sample", { value = Int i; pos }) ->
+      | `Labelled ("bits_per_sample", Int { value = i; pos }) ->
           if not (List.mem i accepted_bits_per_sample) then
             Lang_encoder.raise_error ~pos "invalid bits_per_sample value";
           { f with Flac_format.bits_per_sample = i }
-      | `Labelled ("bytes_per_page", { value = Int i; _ }) ->
+      | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
           { f with Flac_format.fill = Some i }
       | `Anonymous s when String.lowercase_ascii s = "mono" ->
           { f with Flac_format.channels = 1 }

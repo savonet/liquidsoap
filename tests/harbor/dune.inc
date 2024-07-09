@@ -6,7 +6,7 @@
   http.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} http.liq liquidsoap %{test_liq} http.liq)))
@@ -18,7 +18,7 @@
   http2.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} http2.liq liquidsoap %{test_liq} http2.liq)))
@@ -30,7 +30,7 @@
   http3.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} http3.liq liquidsoap %{test_liq} http3.liq)))
@@ -42,7 +42,7 @@
   post.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} post.liq liquidsoap %{test_liq} post.liq)))
@@ -54,7 +54,7 @@
   put.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %{run_test} put.liq liquidsoap %{test_liq} put.liq)))

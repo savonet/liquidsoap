@@ -1,5 +1,6 @@
 module Hooks = Liquidsoap_lang.Hooks
 module Lang = Liquidsoap_lang.Lang
+module Cache = Liquidsoap_lang.Cache
 
 (* For source eval check there are cases of:
      source('a) <: (source('a).{ source methods })?
@@ -37,7 +38,7 @@ let render_string = function
 
 let mk_field_t ~pos kind params =
   match kind with
-    | "any" -> Type.var ~pos ()
+    | "any" -> Type.var ~pos:(Pos.of_lexing_pos pos) ()
     | "none" | "never" -> Type.make Type.Never
     | _ -> (
         try
@@ -71,7 +72,10 @@ let mk_field_t ~pos kind params =
 
 let () =
   Hooks.mk_clock_ty :=
-    fun ?pos () -> Type.make ?pos Lang_source.ClockValue.base_t.Type.descr
+    fun ?pos () ->
+      Type.make
+        ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
+        Lang_source.ClockValue.base_t.Type.descr
 
 let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
   let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
@@ -129,3 +133,77 @@ let register () =
   Hooks.getpwnam := Unix.getpwnam;
   Hooks.source_methods_t :=
     fun () -> Lang_source.source_t ~methods:true (Lang.univ_t ())
+
+let cache_max_days =
+  try int_of_string (Sys.getenv "LIQ_CACHE_MAX_DAYS") with _ -> 10
+
+let cache_max_files =
+  try int_of_string (Sys.getenv "LIQ_CACHE_MAX_FILES") with _ -> 20
+
+let () =
+  (try
+     Liquidsoap_lang.Cache.system_dir_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_DIR_PERMS")
+   with _ -> ());
+  (try
+     Liquidsoap_lang.Cache.system_file_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_FILE_PERMS")
+   with _ -> ());
+  (try
+     Liquidsoap_lang.Cache.user_dir_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_USER_DIR_PERMS")
+   with _ -> ());
+  try
+    Liquidsoap_lang.Cache.user_file_perms :=
+      int_of_string (Sys.getenv "LIQ_CACHE_USER_FILE_PERMS")
+  with _ -> ()
+
+module Term_cache = Liquidsoap_lang.Term_cache
+
+let cache_log = Log.make ["cache"]
+
+let cache_maintenance dirtype =
+  let max_timestamp = Unix.time () -. (float cache_max_days *. 86400.) in
+  try
+    match Cache.dir dirtype with
+      | Some dir when Sys.file_exists dir && Sys.is_directory dir ->
+          let files =
+            Array.fold_left
+              (fun files fname ->
+                if String.ends_with ~suffix:".liq-cache" fname then (
+                  let filename = Filename.concat dir fname in
+                  let stats = Unix.stat filename in
+                  match Unix.stat filename with
+                    | { Unix.st_atime } when st_atime < max_timestamp ->
+                        cache_log#info "File %s is too old, deleting.." fname;
+                        Unix.unlink filename;
+                        files
+                    | _ -> (stats, filename) :: files)
+                else files)
+              [] (Sys.readdir dir)
+          in
+          let len = List.length files in
+          if cache_max_files < len then (
+            let len = len - cache_max_files in
+            cache_log#info "Too many cached files! Deleting %d oldest ones.."
+              len;
+            let files =
+              List.sort
+                (fun ({ Unix.st_atime = t }, _) ({ Unix.st_atime = t' }, _) ->
+                  Stdlib.compare t t')
+                files
+            in
+            List.iteri
+              (fun pos (_, filename) ->
+                if pos < len then (
+                  cache_log#info "Deleting %s.." (Filename.basename filename);
+                  Unix.unlink filename))
+              files)
+      | _ -> ()
+  with exn ->
+    let bt = Printexc.get_backtrace () in
+    Utils.log_exception ~log:cache_log ~bt
+      (Printf.sprintf "Error while cleaning up cache: %s"
+         (Printexc.to_string exn))
+
+let () = Hooks.cache_maintenance := cache_maintenance

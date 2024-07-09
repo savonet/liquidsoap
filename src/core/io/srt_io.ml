@@ -447,10 +447,11 @@ class virtual output_networking_agent =
         : Srt.socket -> exn -> Printexc.raw_backtrace -> unit
   end
 
-module ToDisconnect = Liquidsoap_lang.Active_value.Make (struct
+module ToDisconnect = Weak.Make (struct
   type t = < disconnect : unit ; srt_id : int >
 
-  let id t = t#srt_id
+  let equal t t' = t#srt_id = t'#srt_id
+  let hash t = t#srt_id
 end)
 
 let to_disconnect = ToDisconnect.create 10
@@ -685,6 +686,9 @@ class virtual input_base ~max ~self_sync ~on_connect ~on_disconnect
       let on_disconnect_cur = !on_disconnect in
       on_disconnect :=
         fun () ->
+          (match decoder_data with
+            | Some (d, _) -> d.Decoder.close ()
+            | None -> ());
           decoder_data <- None;
           (match dump_chan with
             | Some chan ->
@@ -1115,7 +1119,7 @@ let _ =
       let format_val = Lang.assoc "" 1 p in
       let format = Lang.to_format format_val in
       let encoder_factory =
-        try (Encoder.get_factory format) ~pos:format_val.Value.pos
+        try (Encoder.get_factory format) ~pos:(Value.pos format_val)
         with Not_found ->
           raise
             (Error.Invalid_value

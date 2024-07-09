@@ -247,7 +247,7 @@ let audio_compress =
       let ratio =
         let pos = Lang.pos p in
         match List.assoc "ratio" p with
-          | Liquidsoap_lang.Value.{ value = Float f } ->
+          | Liquidsoap_lang.Value.Float { value = f } ->
               if f < 1. then
                 Runtime_error.raise ~pos ~message:"Ratio must be at least 1!"
                   "eval";

@@ -47,7 +47,7 @@ let _ =
     (fun p ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let f () = Lang.apply f [] in
+      let f () = Lang.apply ~pos:(Lang.pos p) f [] in
       Profiler.time name f ())
 
 let _ =

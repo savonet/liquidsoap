@@ -73,6 +73,33 @@ let run () =
   (*
   Unix.putenv "MEMTRACE" (Printf.sprintf "%s.trace" test);
 *)
+  if String.starts_with ~prefix:"liquidsoap" cmd then (
+    let pid =
+      Unix.create_process cmd
+        (Array.concat
+           [
+             [| args.(0) |];
+             [| "--cache-only" |];
+             Array.sub args 1 (Array.length args - 1);
+           ])
+        stdin stdout stdout
+    in
+    pid_ref := Some pid;
+
+    match Unix.waitpid [] pid with
+      | _, Unix.WEXITED 0 ->
+          let min, sec = runtime () in
+          Printf.eprintf "Cache test %s: %s (Test time: %02dm:%02ds)\n"
+            colorized_test colorized_ok min sec;
+          if Sys.getenv_opt "LIQ_VERBOSE_TEST" <> None then print_log ();
+          cleanup ()
+      | _ ->
+          let min, sec = runtime () in
+          Printf.eprintf "%sCache test %s: %s (Test time: %02dm:%02ds)\n"
+            error_prefix colorized_test colorized_failed min sec;
+          print_log ();
+          exit 1);
+
   let pid = Unix.create_process cmd args stdin stdout stdout in
   pid_ref := Some pid;
 
@@ -84,7 +111,7 @@ let run () =
         if Sys.getenv_opt "LIQ_VERBOSE_TEST" <> None then print_log ();
         cleanup ();
         exit 0
-    | _, Unix.WEXITED 2 ->
+    | _, Unix.WEXITED 123 ->
         Printf.eprintf "%sRan test %s: %s\n" warning_prefix colorized_test
           colorized_skipped;
         exit 0

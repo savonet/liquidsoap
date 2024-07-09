@@ -171,14 +171,15 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
         n
       in
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
+      let decoder, buffer = self#decoder_factory input in
       try
         (* Feeding loop. *)
-        let decoder, buffer = self#decoder_factory input in
         while true do
           if should_stop () then failwith "stop";
           decoder.Decoder.decode buffer
         done
       with e ->
+        decoder.Decoder.close ();
         Generator.add_track_mark self#buffer;
 
         (* Closing the socket is slightly overkill but
@@ -226,7 +227,7 @@ let _ =
       let hostname = Lang.to_string (List.assoc "host" p) in
       let fmt =
         let fmt = Lang.assoc "" 1 p in
-        try (Encoder.get_factory (Lang.to_format fmt)) ~pos:fmt.Value.pos
+        try (Encoder.get_factory (Lang.to_format fmt)) ~pos:(Value.pos fmt)
         with Not_found ->
           raise
             (Error.Invalid_value

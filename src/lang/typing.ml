@@ -297,7 +297,7 @@ and bind ?(variance = `Invariant) a b =
   (* update_level a.level b; *)
   satisfies_constraints b (Constraints.elements a.constraints);
   let b = if b.pos = None then Type.make ?pos:a0.pos b.Type.descr else b in
-  v := Link (variance, b)
+  v.contents <- Link (variance, b)
 
 (** Ensure that the type for the method [l] in [a] is a subtype of the one for the same method in [b]. *)
 and unify_meth a b l =
@@ -407,10 +407,10 @@ and ( <: ) a b =
              failwith
                (Printf.sprintf "invalid sup: %s !< %s (%s)" (Type.to_string b')
                   (Type.to_string b'') (Printexc.to_string e)));
-          if b'' != b' then var := Link (`Covariant, b'');
+          if b'' != b' then var.contents <- Link (`Covariant, b'');
           a <: b''
       | Var ({ contents = Link (`Covariant, a') } as var), _ ->
-          var := Link (`Invariant, a');
+          var.contents <- Link (`Invariant, a');
           a <: b
       | _, Var { contents = Link (_, b) } -> a <: b
       | Var { contents = Link (_, a) }, _ -> a <: b
@@ -539,6 +539,8 @@ and ( <: ) a b =
       | Arrow ([], t1), Getter t2 -> (
           try t1 <: t2
           with Error (a, b) -> raise (Error (`Arrow ([], a), `Getter b)))
+      | Never, Var { contents = Free _ } | Var { contents = Free _ }, Never ->
+          raise (Error (Repr.make a, Repr.make b))
       | Var { contents = Free _ }, _ -> (
           try bind a b
           with Occur_check _ | Unsatisfied_constraint ->

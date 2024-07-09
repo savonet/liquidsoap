@@ -103,10 +103,9 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               false
           | `Request req when Request.resolved req && Request.ctype req <> None
             ->
-              assert (
-                Frame.compatible
-                  (Option.get (Request.ctype req))
-                  self#content_type);
+              Frame.assert_compatible
+                (Option.get (Request.ctype req))
+                self#content_type;
 
               (* [Request.resolved] ensures that we can get a filename from the request,
                  and it can be decoded. *)
@@ -130,7 +129,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                      seek =
                        Mutex_utils.mutexify m (fun len ->
                            decoder.Decoder.fseek len);
-                     close = decoder.Decoder.close;
+                     close = decoder.Decoder.fclose;
                    });
               remaining <- decoder.Decoder.remaining ();
               first_fill <- true;

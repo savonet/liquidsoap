@@ -30,9 +30,7 @@ let () =
       ignore
         (Lang.add_builtin_base ~category:`Configuration
            ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
-           ~base:configure name
-           Lang.(String str)
-           Lang.string_t))
+           ~base:configure name (`String str) Lang.string_t))
     [
       ("libdir", "library directory", Configure.liq_libs_dir ());
       ("bindir", "Internal script directory", Configure.bin_dir ());
@@ -52,12 +50,6 @@ let conf_strip_types_types =
   Dtools.Conf.bool
     ~p:(conf_runtime#plug "strip_types")
     ~d:true "Strip runtime types whenever possible to optimize memory usage."
-
-let () =
-  Lifecycle.after_script_parse ~name:"strip types and cleanup memory" (fun () ->
-      if conf_strip_types_types#get then (
-        Liquidsoap_lang.Term.trim_runtime_types ();
-        Gc.full_major ()))
 
 let _ =
   let kind = Lang.univ_t () in

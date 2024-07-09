@@ -151,7 +151,7 @@ let _ =
                   "invalid";
               log#important "At %s: floating point number is infinite!"
                 (Pos.Option.to_string
-                   (try Some (List.hd pos) with Not_found -> None));
+                   (match pos with p :: _ -> Some p | [] -> None));
               if x < 0. then min_int else max_int
           | `Float x when Float.is_nan x ->
               if raise then
@@ -201,20 +201,15 @@ let _ =
 
 let _ =
   Lang.add_builtin_base ~category:`Math ~descr:"Maximal representable integer."
-    "max_int"
-    Lang.(Int max_int)
-    Lang.int_t
+    "max_int" (`Int max_int) Lang.int_t
 
 let _ =
   Lang.add_builtin_base ~category:`Math ~descr:"Minimal representable integer."
-    "min_int"
-    Lang.(Int min_int)
-    Lang.int_t
+    "min_int" (`Int min_int) Lang.int_t
 
 let _ =
   Lang.add_builtin_base ~category:`Math
-    ~descr:"Float representation of infinity." "infinity"
-    Lang.(Float infinity)
+    ~descr:"Float representation of infinity." "infinity" (`Float infinity)
     Lang.float_t
 
 let _ =
@@ -226,9 +221,7 @@ let _ =
        for floating-point comparisons, `==`, `<`, `<=`, `>` and `>=` return \
        `false` and `!=` returns `true` if one or both of their arguments is \
        `nan`."
-    "nan"
-    Lang.(Float nan)
-    Lang.float_t
+    "nan" (`Float nan) Lang.float_t
 
 let _ =
   Lang.add_builtin "lsl" ~category:`Math ~descr:"Logical shift left."

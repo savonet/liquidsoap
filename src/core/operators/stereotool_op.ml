@@ -159,7 +159,7 @@ let _ =
           | "sublevel_pnr" -> `Sublevel_pnr
           | s ->
               let pos =
-                match load_type_val.Liquidsoap_lang.Value.pos with
+                match Liquidsoap_lang.Value.pos load_type_val with
                   | None -> Lang.pos p
                   | Some p -> [p]
               in
@@ -180,7 +180,7 @@ let _ =
         | None -> ()
         | Some filename ->
             let pos =
-              match preset_val.Liquidsoap_lang.Value.pos with
+              match Liquidsoap_lang.Value.pos preset_val with
                 | None -> Lang.pos p
                 | Some p -> [p]
             in

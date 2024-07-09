@@ -67,32 +67,32 @@ let channels args =
     with Not_found -> 2)
 
 let to_int t =
-  match t.value with
-    | Int i -> i
-    | String s -> int_of_string s
-    | Float f -> int_of_float f
-    | _ -> Lang_encoder.raise_error ~pos:t.pos "integer expected"
+  match t with
+    | Value.Int { value = i } -> i
+    | Value.String { value = s } -> int_of_string s
+    | Value.Float { value = f } -> int_of_float f
+    | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "integer expected"
 
 let to_string t =
-  match t.value with
-    | Int i -> Printf.sprintf "%i" i
-    | String s -> s
-    | Float f -> Printf.sprintf "%f" f
-    | _ -> Lang_encoder.raise_error ~pos:t.pos "string expected"
+  match t with
+    | Value.Int { value = i } -> Printf.sprintf "%i" i
+    | Value.String { value = s } -> s
+    | Value.Float { value = f } -> Printf.sprintf "%f" f
+    | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "string expected"
 
 let to_float t =
-  match t.value with
-    | Int i -> float i
-    | String s -> float_of_string s
-    | Float f -> f
-    | _ -> Lang_encoder.raise_error ~pos:t.pos "float expected"
+  match t with
+    | Value.Int { value = i } -> float i
+    | Value.String { value = s } -> float_of_string s
+    | Value.Float { value = f } -> f
+    | _ -> Lang_encoder.raise_error ~pos:(Value.pos t) "float expected"
 
 let to_copy_opt t =
-  match t.value with
-    | String "wait_for_keyframe" -> `Wait_for_keyframe
-    | String "ignore_keyframe" -> `Ignore_keyframe
+  match t with
+    | Value.String { value = "wait_for_keyframe" } -> `Wait_for_keyframe
+    | Value.String { value = "ignore_keyframe" } -> `Ignore_keyframe
     | _ ->
-        Lang_encoder.raise_error ~pos:t.pos
+        Lang_encoder.raise_error ~pos:(Value.pos t)
           ("Invalid value for copy encoder parameter: " ^ Value.to_string t)
 
 let has_content ~to_static_string name p =
@@ -160,7 +160,7 @@ let parse_encoder_name name =
   (field, mode)
 
 let to_static_string_value = function
-  | Value.{ value = String s } -> Some s
+  | Value.String { value = s } -> Some s
   | _ -> None
 
 let parse_encoder_params ~to_pos (name, p) : parsed_encoder =
@@ -314,14 +314,14 @@ let ffmpeg_gen params =
 
   let parse_opts opts = function
     | "q", t | "qscale", t -> set_global_quality (to_float t) opts
-    | "", { value = String "audio_content"; _ }
-    | "", { value = String "video_content"; _ }
+    | "", String { value = "audio_content"; _ }
+    | "", String { value = "video_content"; _ }
     | "codec", _ ->
         ()
-    | k, { value = String s; _ } -> Hashtbl.replace opts k (`String s)
-    | k, { value = Int i; _ } -> Hashtbl.replace opts k (`Int i)
-    | k, { value = Float fl; _ } -> Hashtbl.replace opts k (`Float fl)
-    | _, t -> Lang_encoder.raise_error ~pos:t.pos "unexpected option"
+    | k, String { value = s; _ } -> Hashtbl.replace opts k (`String s)
+    | k, Value.Int { value = i; _ } -> Hashtbl.replace opts k (`Int i)
+    | k, Float { value = fl; _ } -> Hashtbl.replace opts k (`Float fl)
+    | _, t -> Lang_encoder.raise_error ~pos:(Value.pos t) "unexpected option"
   in
 
   let rec parse_audio_args ~opts options = function
@@ -343,8 +343,8 @@ let ffmpeg_gen params =
     | (("channel_layout", t) as arg) :: args ->
         (* Handle 5.1 as float *)
         let layout =
-          match t.value with
-            | Float f -> Printf.sprintf "%.1f" f
+          match t with
+            | Value.Float { value = f } -> Printf.sprintf "%.1f" f
             | _ -> to_string t
         in
         parse_opts opts arg;
@@ -397,7 +397,7 @@ let ffmpeg_gen params =
         parse_video_args ~opts
           { options with Ffmpeg_format.height = Lazy.from_val (to_int t) }
           args
-    | ("pixel_format", { value = String "guess"; _ }) :: args ->
+    | ("pixel_format", String { value = "guess" }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.pixel_format = None }
           args
@@ -405,27 +405,27 @@ let ffmpeg_gen params =
         parse_video_args ~opts
           { options with Ffmpeg_format.pixel_format = Some (to_string t) }
           args
-    | ("hwaccel", { value = String "auto"; _ }) :: args ->
+    | ("hwaccel", String { value = "auto" }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel = `Auto }
           args
-    | ("hwaccel", { value = String "none"; _ }) :: args ->
+    | ("hwaccel", String { value = "none"; _ }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel = `None }
           args
-    | ("hwaccel", { value = String "internal"; _ }) :: args ->
+    | ("hwaccel", String { value = "internal"; _ }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel = `Internal }
           args
-    | ("hwaccel", { value = String "device"; _ }) :: args ->
+    | ("hwaccel", String { value = "device"; _ }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel = `Device }
           args
-    | ("hwaccel", { value = String "frame"; _ }) :: args ->
+    | ("hwaccel", String { value = "frame"; _ }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel = `Frame }
           args
-    | ("hwaccel_device", { value = String "none"; _ }) :: args ->
+    | ("hwaccel_device", String { value = "none"; _ }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel_device = None }
           args
@@ -433,7 +433,7 @@ let ffmpeg_gen params =
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel_device = Some (to_string t) }
           args
-    | ("hwaccel_pixel_format", { value = String "guess"; _ }) :: args ->
+    | ("hwaccel_pixel_format", String { value = "guess" }) :: args ->
         parse_video_args ~opts
           { options with Ffmpeg_format.hwaccel_pixel_format = None }
           args
@@ -488,21 +488,21 @@ let ffmpeg_gen params =
               f.Ffmpeg_format.streams
               @ [(field, `Encode { Ffmpeg_format.mode; options; codec; opts })];
           }
-      | `Option ("format", { value = String "none"; _ }) ->
+      | `Option ("format", String { value = "none"; _ }) ->
           { f with Ffmpeg_format.format = None }
-      | `Option ("format", { value = String fmt; _ }) ->
+      | `Option ("format", String { value = fmt }) ->
           { f with Ffmpeg_format.format = Some fmt }
-      | `Option ("interleaved", { value = Bool b; _ }) ->
+      | `Option ("interleaved", Value.Bool { value = b; _ }) ->
           { f with Ffmpeg_format.interleaved = (if b then `True else `False) }
-      | `Option ("interleaved", { value = String "default"; _ }) ->
+      | `Option ("interleaved", String { value = "default" }) ->
           { f with Ffmpeg_format.interleaved = `Default }
-      | `Option (k, { value = String s; _ }) ->
+      | `Option (k, String { value = s; _ }) ->
           Hashtbl.replace f.Ffmpeg_format.opts k (`String s);
           f
-      | `Option (k, { value = Int i; _ }) ->
+      | `Option (k, Value.Int { value = i; _ }) ->
           Hashtbl.replace f.Ffmpeg_format.opts k (`Int i);
           f
-      | `Option (k, { value = Float i; _ }) ->
+      | `Option (k, Float { value = i }) ->
           Hashtbl.replace f.Ffmpeg_format.opts k (`Float i);
           f
       | `Option (l, v) ->
@@ -525,8 +525,7 @@ let make params =
                   | `Encoder _ -> None)
                 args
             in
-            `Encoder
-              (parse_encoder_params ~to_pos:(fun t -> t.pos) (name, args))
+            `Encoder (parse_encoder_params ~to_pos:Value.pos (name, args))
         | `Anonymous s -> `Option ("", Lang.string s)
         | `Labelled (l, v) -> `Option (l, v))
       params

@@ -20,9 +20,7 @@
 
  *****************************************************************************)
 
-let raise exn =
-  let bt = Printexc.get_raw_backtrace () in
-  Lang.raise_as_runtime ~bt ~kind:"eval" exn
+let raise ~bt exn = Lang.raise_as_runtime ~bt ~kind:"eval" exn
 
 let _ =
   Lang.add_builtin ~category:`Liquidsoap "_eval_"
@@ -33,4 +31,7 @@ let _ =
       let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
       let ty = Type.fresh ty in
       let s = Lang.to_string (List.assoc "" p) in
-      try Runtime.eval ~ignored:false ~ty s with exn -> raise exn)
+      try Lang.eval ~toplevel:false ~stdlib:`Disabled ~ty s
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        raise ~bt exn)

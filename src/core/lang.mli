@@ -34,37 +34,12 @@ type regexp = Liquidsoap_lang.Lang.regexp
 (** {2 Values} *)
 
 module Custom = Value.Custom
+module Methods = Term.Methods
+module Flags = Liquidsoap_lang.Flags
 
-type value = Liquidsoap_lang.Value.t = {
-  pos : Liquidsoap_lang.Pos.Option.t;
-  value : in_value;
-  methods : value Liquidsoap_lang.Value.Methods.t;
-  flags : Liquidsoap_lang.Term.flags;
-  id : int;
-}
-
-and env = (string * value) list
-and lazy_env = (string * value Stdlib.Lazy.t) list
-
-and ffi = Liquidsoap_lang.Value.ffi = {
-  ffi_args : (string * string * value option) list;
-  mutable ffi_fn : env -> value;
-}
-
-and in_value = Liquidsoap_lang.Value.in_value =
-  | Int of int
-  | Float of float
-  | String of string
-  | Bool of bool
-  | Custom of Custom.t
-  | List of value list
-  | Tuple of value list
-  | Null
-  | Fun of
-      (string * string * value option) list * lazy_env * Liquidsoap_lang.Term.t
-  (* A function with given arguments (argument label, argument variable, default
-     value), closure and value. *)
-  | FFI of ffi
+type in_value = Liquidsoap_lang.Value.in_value
+type env = Liquidsoap_lang.Value.env
+type value = Liquidsoap_lang.Value.t
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
@@ -78,11 +53,9 @@ val iter_sources :
 
 (** {2 Computation} *)
 
-val apply_fun : (?pos:Liquidsoap_lang.Pos.t list -> value -> env -> value) ref
-
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
-val apply : value -> env -> value
+val apply : ?pos:Liquidsoap_lang.Pos.t list -> value -> env -> value
 
 (** {3 Helpers for registering protocols} *)
 
@@ -130,7 +103,7 @@ val add_builtin_base :
   ?flags:Doc.Value.flag list ->
   ?base:module_name ->
   string ->
-  in_value ->
+  Liquidsoap_lang.Value.in_value ->
   t ->
   module_name
 
@@ -332,3 +305,29 @@ val descr_of_regexp : regexp -> string
 
 (** Return a string description of a regexp value i.e. r/^foo\/bla$/g *)
 val string_of_regexp : regexp -> string
+
+type stdlib = [ `Disabled | `If_present | `Force | `Override of string ]
+
+(** Type a term, possibly returning the cached term instead. *)
+val type_term :
+  ?name:string ->
+  ?cache:bool ->
+  ?trim:bool ->
+  ?deprecated:bool ->
+  ?ty:t ->
+  stdlib:stdlib ->
+  parsed_term:Liquidsoap_lang.Parsed_term.t ->
+  Term.t ->
+  Term.t
+
+(** Evaluate a term. *)
+val eval :
+  ?toplevel:bool ->
+  ?typecheck:bool ->
+  ?cache:bool ->
+  ?deprecated:bool ->
+  ?ty:t ->
+  ?name:string ->
+  stdlib:stdlib ->
+  string ->
+  value

@@ -211,7 +211,7 @@ let rec base_json_of_pat = function
       ast_node ~typ:"plist"
         [
           ("left", `Tuple (List.map json_of_pat l));
-          ("middle", match v with None -> `Null | Some s -> `String s);
+          ("middle", match v with None -> `Null | Some (_, s) -> `String s);
           ("right", `Tuple (List.map json_of_pat l'));
         ]
   | `PMeth (ellipsis, methods) ->
@@ -248,7 +248,7 @@ let rec base_json_of_pat = function
                     ]) );
         ]
 
-and json_of_pat p = `Assoc (base_json_of_pat p)
+and json_of_pat p = `Assoc (base_json_of_pat p.pat_entry)
 
 let json_of_of { only; except; source } =
   [
@@ -473,7 +473,7 @@ let rec to_ast_json ~to_json = function
         ]
   | `Tuple l -> ast_node ~typ:"tuple" [("value", `Tuple (List.map to_json l))]
   | `Null -> ast_node ~typ:"null" []
-  | `Cast (t, typ) ->
+  | `Cast { cast = t; typ } ->
       ast_node ~typ:"cast"
         [("left", to_json t); ("right", json_of_type_annotation typ)]
   | `Invoke { invoked; optional; meth } ->
@@ -590,7 +590,7 @@ let rec to_json { pos; term; comments } : Json.t =
 
 let parse_string ?(formatter = Format.err_formatter) content =
   let lexbuf = Sedlexing.Utf8.from_string content in
-  let throw = Runtime.throw ~formatter lexbuf in
+  let throw = Runtime.throw ~formatter ~lexbuf () in
   try
     let tokenizer = Preprocessor.mk_tokenizer lexbuf in
     let term = Runtime.program tokenizer in

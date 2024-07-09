@@ -23,6 +23,7 @@
 open Mm
 open Source
 open Lilv
+module Cache = Liquidsoap_lang.Cache
 
 let lv2 = Lang.add_module "lv2"
 let log = Log.make ["Lilv LV2"]
@@ -222,61 +223,40 @@ let get_control_ports p =
   done;
   List.rev !ans
 
-(* TODO: handle types *)
-let port_type _ = `Float
+type port_type = Float
 
-(* Make a parameter for each control port. Returns the liquidsoap parameters
-   and the parameters for the plugin. *)
-let params_of_plugin plugin =
+(* TODO: handle types *)
+let port_type _ = Float
+
+type port = {
+  port_index : int;
+  port_symbol : string;
+  port_name : string;
+  port_type : port_type;
+  port_default_float : float option;
+  port_min_float : float option;
+  port_max_float : float option;
+}
+
+let get_control_ports plugin =
   let control_ports = get_control_ports plugin in
-  let liq_params =
-    List.map
-      (fun p ->
-        let p = Plugin.port_by_index plugin p in
-        let t = port_type p in
-        ( Port.symbol p,
-          (match t with `Float -> Lang.getter_t Lang.float_t),
-          (match Port.default_float p with
-            | Some f -> Some (match t with `Float -> Lang.float f)
-            | None -> None),
-          let bounds =
-            let min = Port.min_float p in
-            let max = Port.max_float p in
-            if (min, max) = (None, None) then ""
-            else (
-              let bounds = ref " (" in
-              begin
-                match min with
-                  | Some f -> (
-                      match t with
-                        | `Float ->
-                            bounds := Printf.sprintf "%s%.6g <= " !bounds f)
-                  | None -> ()
-              end;
-              bounds := !bounds ^ "`" ^ Port.symbol p ^ "`";
-              begin
-                match max with
-                  | Some f -> (
-                      match t with
-                        | `Float ->
-                            bounds := Printf.sprintf "%s <= %.6g" !bounds f)
-                  | None -> ()
-              end;
-              !bounds ^ ")")
-          in
-          Some (Port.name p ^ bounds ^ ".") ))
-      control_ports
+  (* TODO: handle other types *)
+  let control_ports =
+    List.filter (fun p -> port_type p = Float) control_ports
   in
-  let params p =
-    let f v = List.assoc v p in
-    List.map
-      (fun p ->
-        ( p,
-          let v = f (Port.symbol (Plugin.port_by_index plugin p)) in
-          match port_type p with `Float -> Lang.to_float_getter v ))
-      control_ports
-  in
-  (liq_params, params)
+  List.map
+    (fun i ->
+      let p = Plugin.port_by_index plugin i in
+      {
+        port_index = i;
+        port_symbol = Port.symbol p;
+        port_name = Port.name p;
+        port_type = port_type p;
+        port_default_float = Port.default_float p;
+        port_min_float = Port.min_float p;
+        port_max_float = Port.max_float p;
+      })
+    control_ports
 
 (** Get input and output ports. *)
 let get_audio_ports p =
@@ -290,76 +270,155 @@ let get_audio_ports p =
   done;
   (Array.of_list (List.rev !i), Array.of_list (List.rev !o))
 
-let register_plugin plugin =
-  let inputs, outputs = get_audio_ports plugin in
-  let ni = Array.length inputs in
-  let no = Array.length outputs in
-  (* Ensure that we support the number of channels. *)
-  ignore (Audio_converter.Channel_layout.layout_of_channels ni);
-  ignore (Audio_converter.Channel_layout.layout_of_channels no);
-  let liq_params, params = params_of_plugin plugin in
-  let mono = ni = 1 && no = 1 in
-  let input_t =
-    Lang.frame_t Lang.unit_t
-      (Frame.Fields.make ~audio:(Format_type.audio_n ni) ())
-  in
-  let liq_params =
-    liq_params
-    @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
-  in
+type plugin = {
+  plugin_uri : string;
+  plugin_name : string;
+  plugin_inputs : int array;
+  plugin_outputs : int array;
+  plugin_controls : port list;  (** control ports *)
+  plugin_maker : string;
+  plugin_class_label : string;
+}
+
+let load_plugin plugin =
+  let plugin_inputs, plugin_outputs = get_audio_ports plugin in
+  let plugin_controls = get_control_ports plugin in
   let maker = Plugin.author_name plugin in
   let maker_homepage = Plugin.author_homepage plugin in
   let maker =
     if maker_homepage = "" then maker
     else Printf.sprintf "[%s](%s)" maker maker_homepage
   in
-  let maker = if maker = "" then "" else " by " ^ maker in
-  let descr = Plugin.name plugin ^ maker ^ "." in
-  let descr =
-    descr ^ " This is in class "
-    ^ Plugin.Class.label (Plugin.plugin_class plugin)
-    ^ "."
+  let plugin_maker = if maker = "" then "" else " by " ^ maker in
+  let plugin_class_label = Plugin.Class.label (Plugin.plugin_class plugin) in
+  {
+    plugin_uri = Plugin.uri plugin;
+    plugin_name = Plugin.name plugin;
+    plugin_inputs;
+    plugin_outputs;
+    plugin_controls;
+    plugin_maker;
+    plugin_class_label;
+  }
+
+(* Make a parameter for each control port. Returns the liquidsoap parameters
+   and the parameters for the plugin. *)
+let params_of_controls control_ports =
+  let liq_params =
+    List.map
+      (fun p ->
+        let t = p.port_type in
+        ( p.port_symbol,
+          (match t with Float -> Lang.getter_t Lang.float_t),
+          (match p.port_default_float with
+            | Some f -> Some (match t with Float -> Lang.float f)
+            | None -> None),
+          let bounds =
+            let min = p.port_min_float in
+            let max = p.port_max_float in
+            if (min, max) = (None, None) then ""
+            else (
+              let bounds = ref " (" in
+              begin
+                match min with
+                  | Some f -> (
+                      match t with
+                        | Float ->
+                            bounds := Printf.sprintf "%s%.6g <= " !bounds f)
+                  | None -> ()
+              end;
+              bounds := !bounds ^ "`" ^ p.port_symbol ^ "`";
+              begin
+                match max with
+                  | Some f -> (
+                      match t with
+                        | Float ->
+                            bounds := Printf.sprintf "%s <= %.6g" !bounds f)
+                  | None -> ()
+              end;
+              !bounds ^ ")")
+          in
+          Some (p.port_name ^ bounds ^ ".") ))
+      control_ports
   in
-  let descr = descr ^ " See <" ^ Plugin.uri plugin ^ ">." in
+  let params l =
+    List.map
+      (fun p ->
+        ( p.port_index,
+          let v = List.assoc p.port_symbol l in
+          match port_type p with Float -> Lang.to_float_getter v ))
+      control_ports
+  in
+  (liq_params, params)
+
+let register_plugin plugin p =
+  let ni = Array.length p.plugin_inputs in
+  let no = Array.length p.plugin_outputs in
+  (* Ensure that we support the number of channels. *)
+  ignore (Audio_converter.Channel_layout.layout_of_channels ni);
+  ignore (Audio_converter.Channel_layout.layout_of_channels no);
+  let mono = ni = 1 && no = 1 in
+  let input_t =
+    Lang.frame_t Lang.unit_t
+      (Frame.Fields.make ~audio:(Format_type.audio_n ni) ())
+  in
+  let liq_params, params = params_of_controls p.plugin_controls in
+  let liq_params =
+    liq_params
+    @ if ni = 0 then [] else [("", Lang.source_t input_t, None, None)]
+  in
+
+  let descr = p.plugin_name ^ p.plugin_maker ^ "." in
+  let descr = descr ^ " This is in class " ^ p.plugin_class_label ^ "." in
+  let descr = descr ^ " See <" ^ p.plugin_uri ^ ">." in
   let return_t =
     Lang.frame_t Lang.unit_t
       (Frame.Fields.make ~audio:(Format_type.audio_n no) ())
   in
   ignore
     (Lang.add_operator ~base:lv2
-       (Utils.normalize_parameter_string (Plugin.name plugin))
-       liq_params ~return_t ~category:`Audio ~flags:[`Extra] ~descr
-       (fun p ->
-         let f v = List.assoc v p in
+       (Utils.normalize_parameter_string p.plugin_name)
+       liq_params ~return_t ~category:`Audio ~flags:[`Extra] ~descr (fun l ->
+         let f v = List.assoc v l in
          let source =
            try Some (Lang.to_source (f "")) with Not_found -> None
          in
-         let params = params p in
-         if ni = 0 then new lilv_nosource plugin outputs params
+         let params = params l in
+         if ni = 0 then new lilv_nosource plugin p.plugin_outputs params
          else if no = 0 then
            (* TODO: can we really use such a type? *)
-           (new lilv_noout (Option.get source) plugin inputs params
+           (new lilv_noout (Option.get source) plugin p.plugin_inputs params
              :> Source.source)
          else if mono then
            (new lilv_mono
-              (Option.get source) plugin inputs.(0) outputs.(0) params
+              (Option.get source) plugin p.plugin_inputs.(0)
+              p.plugin_outputs.(0) params
              :> Source.source)
          else
-           (new lilv (Option.get source) plugin inputs outputs params
+           (new lilv
+              (Option.get source) plugin p.plugin_inputs p.plugin_outputs params
              :> Source.source)))
 
-let register_plugin plugin =
-  try register_plugin plugin
+let register_plugin cache plugin =
+  (* Only the uri computation is fast. Try to retrieve other parameters from the cache. *)
+  let uri = Plugin.uri plugin in
+  let p = Cache.Table.get cache uri (fun () -> load_plugin plugin) in
+  try register_plugin plugin p
   with Audio_converter.Channel_layout.Unsupported ->
     log#info "Could not register Lilv plugin %s: unhandled number of channels."
-      (Plugin.name plugin)
+      p.plugin_name
 
 let register_plugins () =
+  let cache =
+    (Cache.Table.load ~dirtype:`System ~name:"lilv plugins" "lilv-plugins"
+      : plugin Cache.Table.t)
+  in
   let world = World.create () in
   World.load_all world;
-  Plugins.iter register_plugin (World.plugins world)
+  Plugins.iter (register_plugin cache) (World.plugins world);
+  Cache.Table.store ~dirtype:`System cache
 
 let () =
   Lifecycle.on_load ~name:"lilv plugin registration" (fun () ->
-      if lilv_enabled then
+      if !Startup.register_external_plugins && lilv_enabled then
         Startup.time "Lilv plugins registration" register_plugins)

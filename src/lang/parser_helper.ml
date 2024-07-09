@@ -27,6 +27,7 @@ module Term = Parsed_term
 module Vars = Term_base.Vars
 
 type arglist = Parsed_term.fun_arg list
+type pos = Parsed_term.pos
 
 type lexer_let_decoration =
   [ `None
@@ -111,7 +112,7 @@ let mk_clock_ty ?pos () =
   fn ?pos ()
 
 let mk_named_ty ?pos = function
-  | "_" -> Type.var ?pos ()
+  | "_" -> Type.var ?pos:(Option.map Pos.of_lexing_pos pos) ()
   | "unit" -> Type.make Type.unit
   | "never" -> Type.make Type.Never
   | "bool" -> Type.make Type.Bool
@@ -123,7 +124,7 @@ let mk_named_ty ?pos = function
   | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
   | "source_methods" -> !Hooks.source_methods_t ()
   | name -> (
-      match Type.find_type_opt name with
+      match Type.find_opt_typ name with
         | Some c -> c ()
         | None ->
             let pos =
@@ -173,15 +174,13 @@ and mk_meth_ty ?pos base { Term.name; optional; typ; json_name } =
            base )))
 
 let let_args ~decoration ~pat ?arglist ~def ?cast () =
-  { Parsed_term.decoration; pat; arglist; def; cast }
+  { decoration; pat; arglist; def; cast }
 
 let mk_json_assoc_object_ty ~pos = function
   | `Tuple [`Named "string"; ty], "as", "json", "object" -> `Json_object ty
   | _ -> raise (Term_base.Parse_error (pos, "Invalid type constructor"))
 
 type let_opt_el = string * Term.t
-type meth_term_default = [ `Nullable | `Pattern of Term.pattern | `None ]
-type meth_pattern_el = string * meth_term_default
 
 let let_decoration_of_lexer_let_decoration = function
   | `Json_parse -> `Json_parse []

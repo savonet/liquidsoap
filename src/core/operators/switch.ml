@@ -44,7 +44,7 @@ type selection = {
 let satisfied f = Lang.to_bool (Lang.apply f [])
 
 let trivially_true = function
-  | { Lang.value = Lang.Fun (_, _, { Term.term = `Bool true; _ }); _ } -> true
+  | Value.Fun { fun_body = { Term.term = `Bool true } } -> true
   | _ -> false
 
 let pick_selection (p, _, s) = (p, s)
@@ -246,8 +246,7 @@ class switch ~all_predicates ~override_meta ~transition_length ~replay_meta
 (** Common tools for Lang bindings of switch operators *)
 
 let default_transition =
-  Liquidsoap_lang.Runtime.eval ~ignored:false ~ty:(Lang.univ_t ())
-    "fun (_, y) -> y"
+  Lang.eval ~cache:false ~stdlib:`Disabled ~typecheck:false "fun (_, y) -> y"
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in

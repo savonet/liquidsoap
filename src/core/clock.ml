@@ -238,10 +238,10 @@ let unify =
   let unify c c' =
     let clock = Unifier.deref c in
     let clock' = Unifier.deref c' in
-    Queue.iter_flush clock.pending_activations
+    Queue.flush_iter clock.pending_activations
       (Queue.push clock'.pending_activations);
-    Queue.iter_flush clock.sub_clocks (Queue.push clock'.sub_clocks);
-    Queue.iter_flush clock.on_error (Queue.push clock'.on_error);
+    Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
+    Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
     Queue.filter clocks (fun el -> el != c);
     Unifier.(clock.id <-- clock'.id);
     Unifier.(c <-- c')
@@ -300,6 +300,11 @@ let _target_time { time_implementation; t0; frame_duration; ticks } =
   let module Time = (val time_implementation : Liq_time.T) in
   Time.(t0 |+| (frame_duration |*| of_float (float_of_int (Atomic.get ticks))))
 
+let _set_time { time_implementation; t0; frame_duration; ticks } t =
+  let module Time = (val time_implementation : Liq_time.T) in
+  let delta = Time.(to_float (t |-| t0)) in
+  Atomic.set ticks (int_of_float (delta /. Time.to_float frame_duration))
+
 let _after_tick ~clock x =
   Queue.flush x.after_tick (fun fn ->
       check_stopped ();
@@ -314,6 +319,7 @@ let _after_tick ~clock x =
     | _ ->
         if Time.(x.max_latency |<=| (end_time |-| target_time)) then (
           x.log#severe "Too much latency! Resetting active sources...";
+          _set_time x target_time;
           List.iter
             (fun s ->
               match s#source_type with
@@ -476,7 +482,7 @@ let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
 
 let start_pending () =
   List.iter (Queue.push clocks)
-    (Queue.fold_flush clocks
+    (Queue.flush_fold clocks
        (fun c clocks ->
          start c;
          c :: clocks)

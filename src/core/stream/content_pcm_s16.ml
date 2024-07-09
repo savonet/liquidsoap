@@ -33,6 +33,7 @@ module Specs = struct
   type data =
     (int, Bigarray.int16_signed_elt, Bigarray.c_layout) Bigarray.Array1.t array
 
+  let name = "pcm_s16"
   let string_of_kind = function `Pcm_s16 -> "pcm_s16"
   let copy = copy ~fmt:Bigarray.int16_signed
   let make = make ~fmt:Bigarray.int16_signed

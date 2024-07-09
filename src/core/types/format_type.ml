@@ -20,12 +20,9 @@
 
  *****************************************************************************)
 
-type Type.custom += Kind of (Content_base.kind * Type.t)
-type Type.custom += Format of Content_base.format
-type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
+module Type_custom = Liquidsoap_lang.Type_custom
 
-let get_format = function Format f -> f | _ -> assert false
-let get_kind = function Kind k -> k | _ -> assert false
+type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 (* By convention, all format for pcm kind are from Content_audio to
    allow shared parameters between the different pcm implementations. *)
@@ -45,30 +42,37 @@ let denormalize_format k f =
         Content_pcm_f32.lift_params (Content_audio.get_params f)
     | _ -> f
 
-let format_handler f =
-  {
-    Type.typ = Format (normalize_format f);
-    copy_with = (fun _ f -> Format (Content_base.duplicate (get_format f)));
-    occur_check = (fun _ _ -> ());
-    filter_vars =
-      (fun _ l f ->
-        ignore (get_format f);
-        l);
-    repr = (fun _ _ _ -> assert false);
-    subtype = (fun _ f f' -> Content_base.merge (get_format f) (get_format f'));
-    sup =
-      (fun _ f f' ->
-        Content_base.merge (get_format f) (get_format f');
-        f);
-    to_string = (fun _ -> assert false);
-  }
+module FormatSpecs = struct
+  type content = Content_base.format
 
+  let name = "format"
+  let copy_with _ = Content_base.duplicate
+  let occur_check _ _ = ()
+  let filter_vars _ l _ = l
+  let repr _ _ _ = assert false
+  let subtype _ f f' = Content_base.merge f f'
+
+  let sup _ f f' =
+    Content_base.merge f f';
+    f
+
+  let to_string _ = assert false
+end
+
+module FormatType = struct
+  include Type_custom.Make (FormatSpecs)
+
+  let handler f = handler (normalize_format f)
+end
+
+let format_handler = FormatType.handler
 let format_descr f = Type.Custom (format_handler f)
 
 let string_of_kind (k, ty) =
   match (Type.deref ty).Type.descr with
-    | Type.(Custom { typ = Format f }) ->
-        Content_base.string_of_format (denormalize_format k f)
+    | Type.(Custom { custom_name = "format"; typ }) ->
+        Content_base.string_of_format
+          (denormalize_format k (FormatType.to_content typ))
     | _ ->
         Printf.sprintf "%s(%s)"
           (Content_base.string_of_kind k)
@@ -76,40 +80,36 @@ let string_of_kind (k, ty) =
 
 let repr_of_kind repr l (k, ty) =
   match (Type.deref ty).Type.descr with
-    | Type.(Custom { typ = Format f }) ->
-        `Constr (Content_base.string_of_format (denormalize_format k f), [])
+    | Type.(Custom { custom_name = "format"; typ }) ->
+        `Constr
+          ( Content_base.string_of_format
+              (denormalize_format k (FormatType.to_content typ)),
+            [] )
     | _ -> `Constr (Content_base.string_of_kind k, [(`Covariant, repr l ty)])
 
-let kind_handler k =
-  {
-    Type.typ = Kind k;
-    copy_with =
-      (fun copy_with k ->
-        let k, ty = get_kind k in
-        Kind (k, copy_with ty));
-    occur_check =
-      (fun occur_check k ->
-        let _, ty = get_kind k in
-        occur_check ty);
-    filter_vars =
-      (fun filter_vars l k ->
-        let _, ty = get_kind k in
-        filter_vars l ty);
-    repr = (fun repr l k -> repr_of_kind repr l (get_kind k));
-    subtype =
-      (fun subtype k k' ->
-        let k, t = get_kind k in
-        let k', t' = get_kind k' in
-        assert (k = k');
-        subtype t t');
-    sup =
-      (fun sup k k' ->
-        let k, t = get_kind k in
-        let k', t' = get_kind k' in
-        assert (k = k');
-        Kind (k, sup t t'));
-    to_string = (fun k -> string_of_kind (get_kind k));
-  }
+module KindSpecs = struct
+  type content = Content_base.kind * Type.t
+
+  let name = "kind"
+  let copy_with copy_with (k, ty) = (k, copy_with ty)
+  let occur_check occur_check (_, ty) = occur_check ty
+  let filter_vars filter_vars l (_, ty) = filter_vars l ty
+  let repr = repr_of_kind
+
+  let subtype subtype (k, t) (k', t') =
+    assert (k = k');
+    subtype t t'
+
+  let sup sup (k, t) (k', t') =
+    assert (k = k');
+    (k, sup t t')
+
+  let to_string = string_of_kind
+end
+
+module KindType = Type_custom.Make (KindSpecs)
+
+let kind_handler = KindType.handler
 
 let descr descr =
   let k =
@@ -126,8 +126,12 @@ exception Never_type
 let rec content_type ?kind ty =
   match ((Type.demeth ty).Type.descr, kind) with
     | Type.Never, None -> raise Never_type
-    | Type.Custom { Type.typ = Kind (kind, ty) }, None -> content_type ~kind ty
-    | Type.Custom { Type.typ = Format f }, Some k -> denormalize_format k f
+    | Type.Custom { Type.custom_name = "kind"; typ }, None ->
+        let kind, ty = KindType.to_content typ in
+        content_type ~kind ty
+    | Type.Custom { Type.custom_name = "format"; typ }, Some k ->
+        let f = FormatType.to_content typ in
+        denormalize_format k f
     | Type.Var _, Some kind -> Content_base.default_format kind
     | Type.Var _, None ->
         Runtime_error.raise
@@ -201,12 +205,14 @@ let check_track ?univ_descr modules =
         match b.Type.descr with
           | Type.Var _ -> satisfies b
           | Type.Never -> ()
-          | Type.Custom { Type.typ = Kind (k, _) }
-            when List.exists (is_kind k) modules ->
-              ()
-          | Type.Custom { Type.typ = Format f }
-            when List.exists (is_kind (Content_base.kind f)) modules ->
-              ()
+          | Type.Custom { Type.custom_name = "kind"; typ } ->
+              let k, _ = KindType.to_content typ in
+              if not (List.exists (is_kind k) modules) then
+                raise Type.Unsatisfied_constraint
+          | Type.Custom { Type.custom_name = "format"; typ } ->
+              let f = FormatType.to_content typ in
+              if not (List.exists (is_kind (Content_base.kind f)) modules) then
+                raise Type.Unsatisfied_constraint
           | _ -> raise Type.Unsatisfied_constraint);
   }
 
@@ -228,12 +234,14 @@ let internal_tracks =
           (fun { Type.scheme = _, typ } ->
             match (Type.demeth typ).Type.descr with
               | Type.Never -> ()
-              | Type.Custom { Type.typ = Kind (k, _) }
-                when List.exists (is_kind k) internal_modules ->
-                  ()
-              | Type.Custom { Type.typ = Format f }
-                when List.exists (is_format f) internal_modules ->
-                  ()
+              | Type.Custom { Type.custom_name = "kind"; typ } ->
+                  let k, _ = KindType.to_content typ in
+                  if not (List.exists (is_kind k) internal_modules) then
+                    raise Type.Unsatisfied_constraint
+              | Type.Custom { Type.custom_name = "format"; typ } ->
+                  let f = FormatType.to_content typ in
+                  if not (List.exists (is_format f) internal_modules) then
+                    raise Type.Unsatisfied_constraint
               | Type.Var { contents = Free v } ->
                   v.constraints <-
                     Type.Constraints.add internal_track v.constraints
@@ -251,8 +259,8 @@ let track =
         match b.Type.descr with
           | Type.Var _ -> satisfies b
           | Type.Never
-          | Type.Custom { Type.typ = Kind _ }
-          | Type.Custom { Type.typ = Format _ } ->
+          | Type.Custom { Type.custom_name = "kind" }
+          | Type.Custom { Type.custom_name = "format" } ->
               ()
           | _ -> raise Type.Unsatisfied_constraint);
   }
@@ -272,8 +280,8 @@ let muxed_tracks =
           (fun { Type.scheme = _, typ } ->
             match (Type.demeth typ).Type.descr with
               | Type.Never -> ()
-              | Type.Custom { Type.typ = Kind _ }
-              | Type.Custom { Type.typ = Format _ } ->
+              | Type.Custom { Type.custom_name = "kind" }
+              | Type.Custom { Type.custom_name = "format" } ->
                   ()
               | Type.Var { contents = Free v } ->
                   v.constraints <- Type.Constraints.add track v.constraints

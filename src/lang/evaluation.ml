@@ -35,94 +35,22 @@ let remove_first filter =
   in
   aux []
 
-let rec eval_pat pat v =
-  let rec aux env pat v =
+let eval_pat pat v =
+  let aux env pat v =
     match (pat, v) with
       | `PVar x, v -> (x, v) :: env
-      | `PTuple pl, { Value.value = Value.Tuple l } ->
-          List.fold_left2 aux env pl l
-      (* The parser parses [x,y,z] as PList ([], None, l) *)
-      | ( `PList (([] as l'), (None as spread), l),
-          { Value.value = Value.List lv; pos } )
-      | `PList (l, spread, l'), { Value.value = Value.List lv; pos } ->
-          let ln = List.length l in
-          let ln' = List.length l' in
-          let lvn = List.length lv in
-          if lvn < ln + ln' then
-            Runtime_error.raise
-              ~pos:(match pos with None -> [] | Some p -> [p])
-              ~message:
-                "List value does not have enough elements to fit the \
-                 extraction pattern!"
-              "not_found";
-          let lv =
-            List.mapi
-              (fun pos v ->
-                match pos with
-                  | _ when pos < ln -> (`First, v)
-                  | _ when lvn - ln' <= pos -> (`Second, v)
-                  | _ -> (`Spread, v))
-              lv
-          in
-          let ll =
-            List.map snd (List.filter (fun (lbl, _) -> lbl = `First) lv)
-          in
-          let ls =
-            List.map snd (List.filter (fun (lbl, _) -> lbl = `Spread) lv)
-          in
-          let ll' =
-            List.map snd (List.filter (fun (lbl, _) -> lbl = `Second) lv)
-          in
-          let spread_env =
-            match spread with
-              | None -> []
-              | Some s -> [([s], Value.{ v with value = List ls })]
-          in
-          List.fold_left2 aux [] l' ll'
-          @ spread_env @ env
-          @ List.fold_left2 aux [] l ll
-          @ env
-      | `PMeth (pat, l), _ ->
-          let m, v = Value.split_meths v in
-          let fields = List.map fst l in
-          let v =
-            List.fold_left
-              (fun v (l, m) ->
-                if List.mem l fields then v
-                else Value.{ v with methods = Methods.add l m v.methods })
-              v m
-          in
-          let env = match pat with None -> env | Some pat -> aux env pat v in
-          List.fold_left
-            (fun env (lbl, pat) ->
-              let v =
-                try List.assoc lbl m
-                with Not_found when pat = `Nullable ->
-                  Value.
-                    {
-                      pos = v.Value.pos;
-                      value = Null;
-                      methods = Methods.empty;
-                      flags = 0;
-                      id = Value.id ();
-                    }
-              in
-              (match pat with
-                | `None | `Nullable -> []
-                | `Pattern pat -> eval_pat pat v)
-              @ [([lbl], v)]
-              @ env)
-            env l
+      | `PTuple pl, Value.Tuple { value = l } ->
+          List.fold_left2 (fun env lbl v -> ([lbl], v) :: env) env pl l
       | _ -> assert false
   in
   aux [] pat v
 
 module Env = struct
-  type t = Value.lazy_env
+  type t = Value.env
 
   (** Find the value of a variable in the environment. *)
   let lookup (env : t) var =
-    try Lazy.force (List.assoc var env)
+    try List.assoc var env
     with Not_found ->
       let bt = Printexc.get_raw_backtrace () in
       Printexc.raise_with_backtrace
@@ -142,17 +70,10 @@ module Env = struct
     List.filter (fun (x, _) -> mem x) env
 
   (** Bind a variable to a lazy value in an environment. *)
-  let add_lazy (env : t) x v : t = (x, v) :: env
-
-  (** Bind a variable to a value in an environment. *)
-  let add env x v = add_lazy env x (Lazy.from_val v)
+  let add (env : t) x v : t = (x, v) :: env
 
   (** Bind multiple variables in an environment. *)
   let adds env binds = List.fold_right (fun (x, v) env -> add env x v) binds env
-
-  (** Bind multiple variables to lazy values in an environment. *)
-  let adds_lazy env bind =
-    List.fold_right (fun (x, v) env -> add_lazy env x v) bind env
 end
 
 let rec prepare_fun fv ~eval_check p env =
@@ -178,8 +99,8 @@ and apply ?(pos = []) ~eval_check f l =
   let apply_pos = match pos with [] -> None | p :: _ -> Some p in
   (* Extract the components of the function, whether it's explicit or foreign. *)
   let p, f =
-    match f.Value.value with
-      | Value.Fun (p, e, body) ->
+    match f with
+      | Value.Fun { fun_args = p; fun_env = e; fun_body = body } ->
           ( p,
             fun pe ->
               let env = Env.adds e pe in
@@ -217,11 +138,11 @@ and apply ?(pos = []) ~eval_check f l =
         assert (v <> None);
         ( var,
           (* Set the position information on FFI's default values. Cf. r5008:
-             if an Invalid_value is raised on a default value, which happens
+             if an Invalid value is raised on a default value, which happens
              with the mount/name params of output.icecast.*, the printing of
              the error should succeed at getting a position information. *)
           let v = Option.get v in
-          { v with Value.pos = apply_pos } )
+          Value.set_pos v apply_pos )
         :: pe)
       pe p
   in
@@ -232,25 +153,17 @@ and apply ?(pos = []) ~eval_check f l =
      information. For example, if we build a fallible source and pass it to an
      operator that expects an infallible one, an error is issued about that
      FFI-made value and a position is needed. *)
-  { v with Value.pos = apply_pos }
+  Value.set_pos v apply_pos
 
 and eval_base_term ~eval_check (env : Env.t) tm =
-  let mk v =
-    Value.
-      {
-        pos = tm.t.Type.pos;
-        value = v;
-        methods = Methods.empty;
-        flags = tm.flags;
-        id = Value.id ();
-      }
-  in
+  let mk v = Value.make ?pos:tm.t.Type.pos ~flags:tm.flags v in
   match tm.term with
-    | `Int i -> mk (Value.Int i)
-    | `Float f -> mk (Value.Float f)
-    | `Bool b -> mk (Value.Bool b)
-    | `String s -> mk (Value.String s)
-    | `Custom g -> mk (Value.Custom g)
+    | `Int i -> mk (`Int i)
+    | `Float f -> mk (`Float f)
+    | `Bool b -> mk (`Bool b)
+    | `String s -> mk (`String s)
+    | `Custom g -> mk (`Custom g)
+    | `Cache_env _ -> assert false
     | `Encoder (e, p) ->
         let pos = tm.t.Type.pos in
         let rec eval_param p =
@@ -263,17 +176,22 @@ and eval_base_term ~eval_check (env : Env.t) tm =
             p
         in
         let p = eval_param p in
-        !Hooks.make_encoder ~pos tm (e, p)
-    | `List l -> mk (Value.List (List.map (eval ~eval_check env) l))
-    | `Tuple l ->
-        mk (Value.Tuple (List.map (fun a -> eval ~eval_check env a) l))
-    | `Null -> mk Value.Null
-    | `Cast (e, _) -> { (eval ~eval_check env e) with pos = tm.t.Type.pos }
+        !Hooks.make_encoder ~pos (e, p)
+    | `List l -> mk (`List (List.map (eval ~eval_check env) l))
+    | `Tuple l -> mk (`Tuple (List.map (fun a -> eval ~eval_check env a) l))
+    | `Null -> mk `Null
+    | `Hide (tm, methods) ->
+        let v = eval ~eval_check env tm in
+        Value.map_methods v
+          (Methods.filter (fun n _ -> not (List.mem n methods)))
+    | `Cast { cast = e } -> Value.set_pos (eval ~eval_check env e) tm.t.Type.pos
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
-        match (Value.Methods.find_opt meth v.Value.methods, invoke_default) with
+        match
+          (Value.Methods.find_opt meth (Value.methods v), invoke_default)
+        with
           (* If method returns `null` and a default is provided, pick default. *)
-          | Some Value.{ value = Null; methods }, Some default
+          | Some (Value.Null { methods }), Some default
             when Methods.is_empty methods ->
               eval ~eval_check env default
           | Some v, _ -> v
@@ -288,7 +206,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
         let env =
           Methods.fold
             (fun key meth env -> Env.add env key meth)
-            t.Value.methods env
+            (Value.methods t) env
         in
         eval ~eval_check env u
     | `Let { pat; replace; def = v; body = b; _ } ->
@@ -299,28 +217,21 @@ and eval_base_term ~eval_check (env : Env.t) tm =
               match ll with
                 | [] -> assert false
                 | [x] ->
-                    let v () =
+                    let v =
                       if replace then Value.remeth (Env.lookup env x) v else v
                     in
-                    (x, Lazy.from_fun v)
+                    (x, v)
                 | l :: ll ->
                     (* Add method ll with value v to t *)
                     let rec meths ll v t =
                       match ll with
                         | [] -> assert false
-                        | [l] ->
-                            Value.{ t with methods = Methods.add l v t.methods }
+                        | [l] -> Value.map_methods t (Methods.add l v)
                         | l :: ll ->
-                            Value.
-                              {
-                                t with
-                                methods =
-                                  Methods.add l
-                                    (meths ll v (Value.invoke t l))
-                                    t.methods;
-                              }
+                            Value.map_methods t
+                              (Methods.add l (meths ll v (Value.invoke t l)))
                     in
-                    let v () =
+                    let v =
                       let t = Env.lookup env l in
                       let v =
                         (* When replacing, keep previous methods. *)
@@ -329,23 +240,37 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                       in
                       meths ll v t
                     in
-                    (l, Lazy.from_fun v))
+                    (l, v))
             (eval_pat pat v)
         in
-        let env = Env.adds_lazy env penv in
+        let env = Env.adds env penv in
         eval ~eval_check env b
-    | `Fun ({ name; arguments; body } as p) ->
+    | `Fun ({ name; arguments; body } as p) -> (
         let fv = Term.free_fun_vars p in
         let p, env = prepare_fun ~eval_check fv arguments env in
-        let rec v () =
-          let env =
-            match name with
-              | None -> env
-              | Some name -> Env.add_lazy env name (Lazy.from_fun v)
-          in
-          mk (Value.Fun (p, env, body))
-        in
-        v ()
+        match name with
+          | None ->
+              mk (`Fun { Value.fun_args = p; fun_env = env; fun_body = body })
+          | Some name ->
+              let rec ffi_fn env =
+                let args =
+                  List.map
+                    (fun (n, n', default) ->
+                      let v =
+                        match List.assoc_opt n' env with
+                          | Some v -> v
+                          | None -> Option.get default
+                      in
+                      (n, v))
+                    p
+                in
+                apply ~eval_check (mk_fun ()) args
+              and mk_fun () =
+                let ffi = mk (`FFI { Value.ffi_args = p; ffi_fn }) in
+                let env = Env.add env name ffi in
+                mk (`Fun { Value.fun_args = p; fun_env = env; fun_body = body })
+              in
+              mk_fun ())
     | `Var var -> Env.lookup env var
     | `Seq (a, b) ->
         ignore (eval ~eval_check env a);
@@ -362,8 +287,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                   ::
                   (try
                      List.map Lang_core.Position.of_value
-                       (Lang_core.to_list
-                          (Lazy.force (List.assoc Lang_core.pos_var env)))
+                       (Lang_core.to_list (List.assoc Lang_core.pos_var env))
                    with _ -> [])
           in
           apply ~pos ~eval_check f l
@@ -378,13 +302,10 @@ and eval_term ~eval_check env tm =
   let v = eval_base_term ~eval_check env tm in
   if Methods.is_empty tm.methods then v
   else
-    {
-      v with
-      methods =
-        Methods.fold
-          (fun k tm m -> Methods.add k (eval ~eval_check env tm) m)
-          tm.methods v.Value.methods;
-    }
+    Value.map_methods v
+      (Methods.fold
+         (fun k tm m -> Methods.add k (eval ~eval_check env tm) m)
+         tm.methods)
 
 and eval ~eval_check env tm =
   let v = eval_term ~eval_check env tm in
@@ -401,7 +322,7 @@ let eval ?env tm =
       | Some env -> env
       | None -> Environment.default_environment ()
   in
-  let env = List.map (fun (x, v) -> (x, Lazy.from_val v)) env in
+  let env = List.map (fun (x, v) -> (x, v)) env in
   let eval_check = !Hooks.eval_check in
   eval ~eval_check env tm
 
@@ -427,8 +348,9 @@ let toplevel_add ?doc pat ~t v =
               let ptypes = ref (ptypes t) in
               (* Default values for parameters. *)
               let pvalues v =
-                match v.Value.value with
-                  | Value.Fun (p, _, _) -> List.map (fun (l, _, o) -> (l, o)) p
+                match v with
+                  | Value.Fun { fun_args = p } ->
+                      List.map (fun (l, _, o) -> (l, o)) p
                   | _ -> []
               in
               let pvalues = ref (pvalues v) in
@@ -470,7 +392,7 @@ let toplevel_add ?doc pat ~t v =
             (fun (s, _) ->
                Printf.eprintf "WARNING: Unused @param %S for %s %s\n" s
                  (string_of_pat pat)
-                 (Pos.Option.to_string v.Value.pos))
+                 (Pos.Option.to_string (Value.pos v)))
             !doc_arguments;
           *)
               List.rev !arguments
@@ -535,15 +457,21 @@ let rec eval_toplevel ?(interactive = false) t =
                   let old_t = snd (Type.invokes old_t l) in
                   let old = Value.invokes old l in
                   (Type.remeth old_t def.t, Value.remeth old (eval def))
-              | `PMeth _ | `PList _ | `PTuple _ ->
-                  failwith "TODO: cannot replace toplevel patterns for now")
+              | `PTuple _ -> assert false)
         in
         toplevel_add ?doc pat ~t:(generalized, def_t) def;
         if Lazy.force debug then
           Printf.eprintf "Added toplevel %s : %s\n%!" (string_of_pat pat)
             (Type.to_string ~generalized def_t);
         let var = string_of_pat pat in
-        if interactive && var <> "_" then
+        if
+          interactive && var <> "_"
+          &&
+          try
+            ignore (Scanf.sscanf var "_%dpat" (fun v -> v));
+            false
+          with _ -> true
+        then
           Format.printf "@[<2>%s :@ %a =@ %s@]@." var
             (fun f t -> Repr.print_scheme f (generalized, t))
             def_t (Value.to_string def);
@@ -551,7 +479,7 @@ let rec eval_toplevel ?(interactive = false) t =
     | `Seq (a, b) ->
         ignore
           (let v = eval_toplevel a in
-           if v.Value.pos = None then { v with Value.pos = a.t.Type.pos } else v);
+           if Value.pos v = None then Value.set_pos v a.t.Type.pos else v);
         eval_toplevel ~interactive b
     | _ ->
         let v = eval t in
