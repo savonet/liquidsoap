@@ -35,10 +35,10 @@ module type InternalResampler_type = sig
 
   val create :
     ?options:Swresample.options list ->
-    Avutil__Channel_layout.t ->
+    Avutil.Channel_layout.t ->
     ?in_sample_format:Avutil__Sample_format.t ->
     int ->
-    Avutil__Channel_layout.t ->
+    Avutil.Channel_layout.t ->
     ?out_sample_format:Avutil__Sample_format.t ->
     int ->
     t
@@ -194,7 +194,9 @@ let mk_audio ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
               let f =
                 if
                   src_samplerate <> target_samplerate
-                  || src_channel_layout <> target_channel_layout
+                  || (not
+                        (Avutil.Channel_layout.compare src_channel_layout
+                           target_channel_layout))
                   || src_sample_format <> target_sample_format
                 then (
                   let fn =
