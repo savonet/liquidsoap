@@ -17,10 +17,10 @@ if [ "${IS_FORK}" == "true" ]; then
   IS_FORK=true
 fi
 
-echo "Building on trixie with asan"
-BUILD_OS='["debian_trixie"]'
+echo "Building on bookworm with asan"
+BUILD_OS='["debian_bookworm"]'
 BUILD_PLATFORM='["amd64"]'
-BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}]'
+BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}]'
 
 SHA=$(git rev-parse --short HEAD)
 

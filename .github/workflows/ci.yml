@@ -197,11 +197,7 @@ jobs:
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         run: |
           echo "opam hold" | sudo dpkg --set-selections
-          sudo rm -rf /etc/apt/sources.list
-          sudo apt-get update
-          sudo apt remove -y libavutil58 libfdk-aac2
-          sudo -u opam -E opam remove -y conf-fdkaac
-          sudo apt install -y ffmpeg libavdevice-dev libavfilter-dev libavformat-dev libavcodec-dev libswscale-dev libswresample-dev libpostproc-dev libavutil-dev
+          sudo apt-get -y update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
           sudo apt-get -y install libpcre3-dev libtag1-dev zlib1g-dev
