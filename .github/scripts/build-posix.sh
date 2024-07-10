@@ -52,7 +52,7 @@ opam remove -y jemalloc
 cd ..
 
 opam update
-opam install -y --confirm-level=unsafe-yes magic-mime pcre tls.0.17.3 taglib
+opam install -y --confirm-level=unsafe-yes magic-mime pcre tls.0.17.3
 
 cd /tmp/liquidsoap-full
 
