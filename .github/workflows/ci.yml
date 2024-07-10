@@ -176,7 +176,7 @@ jobs:
           - os: ubuntu_lunar
             platform: armhf
     container:
-      image: savonet/liquidsoap-ci:debian_trixie_asan
+      image: savonet/liquidsoap-ci:debian_bookworm_asan
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
