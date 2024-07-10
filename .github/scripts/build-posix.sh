@@ -65,6 +65,10 @@ echo "::endgroup::"
 
 echo "::group::Compiling"
 
+cd /tmp/liquidsoap-full/liquidsoap
+
+dune clean
+
 cd /tmp/liquidsoap-full
 
 # Workaround
