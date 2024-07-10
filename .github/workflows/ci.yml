@@ -218,6 +218,7 @@ jobs:
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
         run: |
+          apt-get install -y make dpkg-dev
           mkdir -p /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           chown -R opam /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           chown -R opam "${GITHUB_OUTPUT}"
