@@ -197,7 +197,6 @@ jobs:
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         run: |
           echo "opam hold" | sudo dpkg --set-selections
-          rm -f /lib/x86_64-linux-gnu/libstdc++.so*
           sudo apt-get -y update
           sudo apt-get -y dist-upgrade
           sudo apt-get -y autoremove
