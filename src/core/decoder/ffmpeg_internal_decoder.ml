@@ -104,7 +104,9 @@ let mk_audio_decoder ~channels ~stream ~field ~pcm_kind codec =
         in
         if
           !in_sample_rate <> frame_in_sample_rate
-          || !in_channel_layout <> frame_in_channel_layout
+          || (not
+                (Avutil.Channel_layout.compare !in_channel_layout
+                   frame_in_channel_layout))
           || !in_sample_format <> frame_in_sample_format
         then (
           log#important "Frame format change detected!";
