@@ -59,10 +59,10 @@ let parse =
 let annotate s ~log _ =
   try
     let metadata, uri = parse s in
-    [Request.indicator ~metadata:(Frame.Metadata.from_list metadata) uri]
+    Some (Request.indicator ~metadata:(Frame.Metadata.from_list metadata) uri)
   with Error err ->
     log err;
-    []
+    None
 
 let () =
   Lang.add_protocol ~doc:"Add metadata to a request"

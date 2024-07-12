@@ -31,23 +31,33 @@ let eval_check ~env:_ ~tm v =
                 (Frame.Fields.add field ty Frame.Fields.empty)
             in
             Typing.(source#frame_type <: frame_t)))
+  else if Request.Value.is_value v then (
+    let r = Request.Value.of_value v in
+    let ty = Type.fresh (deep_demeth tm.Term.t) in
+    let format = Type.var () in
+    Typing.(Lang_source.request_t format <: ty);
+    Request.set_format r format)
 
 let render_string = function
   | `Verbatim s -> s
   | `String (pos, (sep, s)) -> Liquidsoap_lang.Lexer.render_string ~pos ~sep s
 
-let mk_field_t ~pos kind params =
+let mk_field_t ?pos kind params =
+  let err_pos =
+    Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos
+  in
+  let pos = Option.map Pos.of_lexing_pos pos in
   match kind with
-    | "any" -> Type.var ~pos:(Pos.of_lexing_pos pos) ()
-    | "none" | "never" -> Type.make Type.Never
+    | "any" -> Type.var ?pos ()
+    | "none" | "never" -> Type.make ?pos Type.Never
     | _ -> (
         try
           let k = Content.kind_of_string kind in
           match params with
-            | [] -> Type.make (Format_type.descr (`Kind k))
-            | [("", `Verbatim "any")] -> Type.var ()
+            | [] -> Type.make ?pos (Format_type.descr (`Kind k))
+            | [("", `Verbatim "any")] -> Type.var ?pos ()
             | [("", `Verbatim "internal")] ->
-                Type.var ~constraints:[Format_type.internal_tracks] ()
+                Type.var ?pos ~constraints:[Format_type.internal_tracks] ()
             | param :: params ->
                 let mk_format (label, value) =
                   let value = render_string value in
@@ -58,7 +68,7 @@ let mk_field_t ~pos kind params =
                   (fun param -> Content.merge f (mk_format param))
                   params;
                 assert (k = Content.kind f);
-                Type.make (Format_type.descr (`Format f))
+                Type.make ?pos (Format_type.descr (`Format f))
         with _ ->
           let params =
             params
@@ -68,7 +78,7 @@ let mk_field_t ~pos kind params =
           let t = kind ^ "(" ^ params ^ ")" in
           raise
             (Liquidsoap_lang.Term_base.Parse_error
-               (pos, "Unknown type constructor: " ^ t ^ ".")))
+               (err_pos, "Unknown type constructor: " ^ t ^ ".")))
 
 let () =
   Hooks.mk_clock_ty :=
@@ -77,18 +87,17 @@ let () =
         ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
         Lang_source.ClockValue.base_t.Type.descr
 
-let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
-  let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
+let mk_request_ty ?pos () = Lang_source.request_t ?pos (Lang.univ_t ())
 
-  if name <> "source" then
+let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
+  if name <> "source" then (
+    let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
     raise
       (Liquidsoap_lang.Term_base.Parse_error
-         (pos, "Unknown type constructor: " ^ name ^ "."));
+         (pos, "Unknown type constructor: " ^ name ^ ".")));
 
   match tracks with
-    | [] ->
-        Lang_source.source_t
-          (Frame_type.make (Lang.univ_t ()) Frame.Fields.empty)
+    | [] -> Lang_source.source_t ?pos (Lang.univ_t ())
     | tracks ->
         let fields =
           List.fold_left
@@ -100,13 +109,13 @@ let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
                  } ->
               Frame.Fields.add
                 (Frame.Fields.field_of_string track_name)
-                (mk_field_t ~pos track_type track_params)
+                (mk_field_t ?pos track_type track_params)
                 fields)
             Frame.Fields.empty tracks
         in
         let base = if extensible then Lang.univ_t () else Lang.unit_t in
 
-        Lang_source.source_t (Frame_type.make base fields)
+        Lang_source.source_t ?pos (Frame_type.make base fields)
 
 let register () =
   Hooks.liq_libs_dir := Configure.liq_libs_dir;
@@ -129,6 +138,7 @@ let register () =
          in
          true
        with _ -> false);
+  Hooks.mk_request_ty := mk_request_ty;
   Hooks.mk_source_ty := mk_source_ty;
   Hooks.getpwnam := Unix.getpwnam;
   Hooks.source_methods_t :=

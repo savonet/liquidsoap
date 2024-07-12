@@ -43,9 +43,9 @@ let log_failed_request (log : Log.t) request ans =
   log#important "Could not resolve request %s: %s."
     (Request.initial_uri request)
     (match ans with
-      | Request.Failed -> "failed"
-      | Request.Timeout -> "timeout"
-      | Request.Resolved -> assert false)
+      | `Failed -> "failed"
+      | `Timeout -> "timeout"
+      | `Resolved -> assert false)
 
 let extract_queued_params p =
   let l = Lang.to_int (List.assoc "prefetch" p) in
@@ -109,7 +109,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
               let decoder = Option.get (Request.get_decoder req) in
               self#log#important "Prepared %s (RID %d)."
                 (Lang_string.quote_string file)
-                (Request.get_id req);
+                (Request.id req);
 
               (* We use this mutex to avoid seeking and filling at the same time.. *)
               let m = Mutex.create () in
@@ -148,8 +148,8 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         | Some cur ->
             let buf = cur.fread len in
             if first_fill then (
-              Request.on_air cur.req;
-              let m = Request.get_all_metadata cur.req in
+              Request.is_playing cur.req;
+              let m = Request.metadata cur.req in
               let buf = Frame.add_metadata buf 0 m in
               let buf = Frame.add_track_mark buf 0 in
               first_fill <- false;
@@ -209,9 +209,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         match
           Lang.to_valued_option Request.Value.of_value (Lang.apply f [])
         with
-          | Some r ->
-              Request.set_root_metadata r "source" self#id;
-              `Request r
+          | Some r -> `Request r
           | None -> retry ()
           | exception exn ->
               let bt = Printexc.get_backtrace () in
@@ -231,15 +229,14 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           match
             Request.resolve ~ctype:(Some self#content_type) request timeout
           with
-            | Request.Resolved ->
-                Queue.push retrieved { request; expired = false }
+            | `Resolved -> Queue.push retrieved { request; expired = false }
             | ans -> log_failed_request self#log request ans)
 
     method add i =
       match
         Request.resolve ~ctype:(Some self#content_type) i.request timeout
       with
-        | Request.Resolved ->
+        | `Resolved ->
             Queue.push retrieved i;
             true
         | ans ->
@@ -392,7 +389,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
             match
               Request.resolve ~ctype:(Some self#content_type) req timeout
             with
-              | Request.Resolved ->
+              | `Resolved ->
                   let rec remove_expired ret =
                     match Queue.pop_opt retrieved with
                       | None -> List.rev ret
@@ -413,8 +410,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                   self#log#info "Queued %d requests" self#queue_size;
                   resolving <- None;
                   `Finished
-              | Request.Failed (* Failure of resolving or decoding *)
-              | Request.Timeout ->
+              | `Failed (* Failure of resolving or decoding *) | `Timeout ->
                   resolving <- None;
                   Request.destroy req;
                   `Retry adaptative_delay)
@@ -432,11 +428,12 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let request_t = Lang.request_t return_t in
   let log = Log.make ["request"; "dynamic"] in
   Lang.add_operator ~base:Modules.request "dynamic" ~category:`Input
     ~descr:"Play request dynamically created by a given function."
     [
-      ("", Lang.fun_t [] (Lang.nullable_t Request.Value.t), None, None);
+      ("", Lang.fun_t [] (Lang.nullable_t request_t), None, None);
       ( "retry_delay",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 0.1),
@@ -476,7 +473,7 @@ let _ =
                       log#important "Fetch failed: empty.";
                       Lang.bool false) );
         ( "queue",
-          ([], Lang.fun_t [] (Lang.list_t Request.Value.t)),
+          ([], Lang.fun_t [] (Lang.list_t request_t)),
           "Get the requests currently in the queue.",
           fun s ->
             Lang.val_fun [] (fun _ ->
@@ -487,7 +484,7 @@ let _ =
                 in
                 Lang.list (fetch [])) );
         ( "add",
-          ([], Lang.fun_t [(false, "", Request.Value.t)] Lang.bool_t),
+          ([], Lang.fun_t [(false, "", request_t)] Lang.bool_t),
           "Add a request to the queue. Requests are resolved before being \
            added. Returns `true` if the request was successfully added.",
           fun s ->
@@ -501,7 +498,7 @@ let _ =
                        expired = false;
                      })) );
         ( "set_queue",
-          ([], Lang.fun_t [(false, "", Lang.list_t Request.Value.t)] Lang.unit_t),
+          ([], Lang.fun_t [(false, "", Lang.list_t request_t)] Lang.unit_t),
           "Set the queue of requests. Requests are resolved before being added \
            to the queue. You are responsible for destroying the requests \
            currently in the queue.",
@@ -516,7 +513,7 @@ let _ =
                 s#set_queue l;
                 Lang.unit) );
         ( "current",
-          ([], Lang.fun_t [] (Lang.nullable_t Request.Value.t)),
+          ([], Lang.fun_t [] (Lang.nullable_t request_t)),
           "Get the request currently being played.",
           fun s ->
             Lang.val_fun [] (fun _ ->

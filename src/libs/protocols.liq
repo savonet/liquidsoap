@@ -25,11 +25,9 @@ def protocol.replaygain(~rlog=_, ~maxtime=_, arg) =
   if
     null.defined(gain)
   then
-    [
-      "annotate:#{tag}=\"#{null.get(gain)} dB\":#{arg}"
-    ]
+    "annotate:#{tag}=\"#{null.get(gain)} dB\":#{arg}"
   else
-    [arg]
+    arg
   end
 end
 
@@ -122,7 +120,7 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
     if
       p.status == "exit" and p.status.code == 0
     then
-      [output]
+      output
     else
       log.important(
         "Failed to execute #{cmd}: #{p.status} (#{p.status.code})"
@@ -137,7 +135,7 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
         "Removing #{output}."
       )
       file.remove(output)
-      []
+      null()
     end
   end
 
@@ -159,7 +157,7 @@ def replaces protocol.process(~rlog=_, ~maxtime, arg) =
         level=3,
         "Failed to resolve #{uri}"
       )
-      []
+      null()
     end
   end
 end
@@ -246,7 +244,7 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
     if
       response.status_code < 400
     then
-      [output]
+      output
     else
       log(
         level=3,
@@ -255,14 +253,14 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
         }"
       )
 
-      []
+      null()
     end
   catch err do
     log(
       level=3,
       "Error while fetching http data: #{err}"
     )
-    []
+    null()
   end
 end
 
@@ -331,9 +329,9 @@ def protocol.youtube_dl(~rlog, ~maxtime, arg) =
   if
     title != ""
   then
-    ["annotate:title=#{string.quote(title)}:#{cmd}"]
+    "annotate:title=#{string.quote(title)}:#{cmd}"
   else
-    [cmd]
+    cmd
   end
 end
 
@@ -362,7 +360,7 @@ def protocol.youtube_pl(~rlog=_, ~maxtime, arg) =
   l = string.concat(separator="\n", l) ^ "\n"
   tmp = file.temp("youtube-pl", "")
   file.write(data=l, tmp)
-  [tmp]
+  tmp
 end
 
 protocol.add(
@@ -378,7 +376,7 @@ protocol.add(
 # Register tmp
 # @flag hidden
 def protocol.tmp(~rlog=_, ~maxtime=_, arg) =
-  [arg]
+  arg
 end
 
 protocol.add(
@@ -606,20 +604,20 @@ def protocol.ffmpeg(~rlog, ~maxtime, arg) =
       request.resolve(timeout=delay, wav_r)
     then
       request.destroy(wav_r)
-      ["#{annotate}tmp:#{wav}"]
+      "#{annotate}tmp:#{wav}"
     else
       log(
         level=3,
         "Failed to resolve #{uri}"
       )
-      []
+      null()
     end
   else
     log(
       level=3,
       "Failed to resolve #{arg}"
     )
-    []
+    null()
   end
 end
 
@@ -643,12 +641,12 @@ def protocol.stereo(~rlog=_, ~maxtime=_, arg) =
     log.info(
       "Stereo: failed to resolve request #{arg}"
     )
-    []
+    null()
   else
     # TODO: the following sometimes hangs, so we resolve twice...
     # source.dump(%wav, file, source.stereo(once(request.queue(queue=[r]))))
     source.dump(%wav, file, stereo(once(single(arg))))
-    [file]
+    file
   end
 end
 
@@ -669,7 +667,7 @@ def protocol.copy(~rlog=_, ~maxtime=_, arg) =
   extname = file.extension(arg)
   tmpfile = file.temp("tmp", extname)
   file.copy(force=true, arg, tmpfile)
-  [tmpfile]
+  tmpfile
 end
 
 protocol.add(
@@ -694,12 +692,10 @@ let settings.protocol.text2wave.path =
 # @flag hidden
 def protocol.text2wave(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.text2wave.path()
-  [
-    process.uri(
-      extname="wav",
-      "echo #{process.quote(arg)} | #{binary} -scale 1.9 > $(output)"
-    )
-  ]
+  process.uri(
+    extname="wav",
+    "echo #{process.quote(arg)} | #{binary} -scale 1.9 > $(output)"
+  )
 end
 
 protocol.add(
@@ -733,12 +729,10 @@ let settings.protocol.pico2wave.lang =
 def protocol.pico2wave(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.pico2wave.path()
   lang = settings.protocol.pico2wave.lang()
-  [
-    process.uri(
-      extname="wav",
-      "#{binary} -l #{lang} -w $(output) #{process.quote(arg)}"
-    )
-  ]
+  process.uri(
+    extname="wav",
+    "#{binary} -l #{lang} -w $(output) #{process.quote(arg)}"
+  )
 end
 
 protocol.add(
@@ -780,12 +774,10 @@ def protocol.gtts(~rlog=_, ~maxtime=_, arg) =
   binary = settings.protocol.gtts.path()
   lang = settings.protocol.gtts.lang()
   options = settings.protocol.gtts.options()
-  [
-    process.uri(
-      extname="mp3",
-      "#{binary} --lang #{lang} #{options} -o $(output) #{process.quote(arg)}"
-    )
-  ]
+  process.uri(
+    extname="mp3",
+    "#{binary} --lang #{lang} #{options} -o $(output) #{process.quote(arg)}"
+  )
 end
 
 protocol.add(
@@ -801,10 +793,18 @@ protocol.add(
 
 # Say
 
+let settings.protocol.say = settings.make.protocol("say")
+let settings.protocol.say.implementation =
+  settings.make(
+    description=
+      "Implementation to use. One of: \"pico2wave\", \"gtts\" or \"text2wave\".",
+    "pico2wave"
+  )
+
 # Register the legacy say: protocol
 # @flag hidden
 def protocol.say(~rlog=_, ~maxtime=_, arg) =
-  ["pico2wave:#{arg}", "gtts:#{arg}", "text2wave:#{arg}"]
+  "#{settings.protocol.say.implementation()}:#{arg}"
 end
 
 protocol.add(
@@ -907,12 +907,10 @@ end
 def s3_protocol(~rlog=_, ~maxtime=_, arg) =
   extname = file.extension(leading_dot=false, dir_sep="/", arg)
   arg = process.quote("s3:#{arg}")
-  [
-    process.uri(
-      extname=extname,
-      "#{aws_base()} s3 cp #{arg} $(output)"
-    )
-  ]
+  process.uri(
+    extname=extname,
+    "#{aws_base()} s3 cp #{arg} $(output)"
+  )
 end
 
 protocol.add(
@@ -953,7 +951,7 @@ def polly_protocol(~rlog=_, ~maxtime=_, text) =
       process.quote(voice_id)
     } #{extra_args} $(output)"
 
-  [process.uri(extname=extname, cmd)]
+  process.uri(extname=extname, cmd)
 end
 
 protocol.add(
@@ -979,7 +977,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
   if
     list.exists(fun (l) -> list.length(l) != 2, args)
   then
-    []
+    null()
   else
     args =
       list.map(
@@ -1014,7 +1012,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
         "Synthesizing #{shape()} in #{file}."
       )
       source.dump(%wav, file, once(s))
-      [file]
+      file
     end
 
     if
@@ -1028,7 +1026,7 @@ def synth_protocol(~rlog=_, ~maxtime=_, text) =
       synth(square(duration=duration(), frequency()))
     elsif shape() == "blank" then synth(blank(duration=duration()))
     else
-      []
+      null()
     end
   end
 end
@@ -1061,7 +1059,7 @@ def file_protocol(~rlog=_, ~maxtime=_, arg) =
       segments
     end
 
-  [url.decode(string.concat(separator="/", segments))]
+  url.decode(string.concat(separator="/", segments))
 end
 
 protocol.add(

@@ -143,7 +143,7 @@ let _ =
         (false, "maxtime", Lang.float_t);
         (false, "", Lang.string_t);
       ]
-      (Lang.list_t Lang.string_t)
+      Lang.(nullable_t string_t)
   in
   Lang.add_builtin ~base:Modules.protocol "add" ~category:`Liquidsoap
     ~descr:"Register a new protocol."
@@ -195,7 +195,7 @@ let _ =
                 log (Lang.to_string v);
                 Lang.unit)
           in
-          let l =
+          let ret =
             Lang.apply f
               [
                 ("rlog", log);
@@ -203,9 +203,9 @@ let _ =
                 ("", Lang.string arg);
               ]
           in
-          List.map
+          Option.map
             (fun s -> Request.indicator ~temporary (Lang.to_string s))
-            (Lang.to_list l));
+            (Lang.to_option ret));
       Lang.unit)
 
 let _ =

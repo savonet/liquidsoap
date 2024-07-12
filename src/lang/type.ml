@@ -61,6 +61,7 @@ let ord_constr =
         match b.descr with
           | Var _ -> satisfies b
           | Custom _ | Int | Float | String | Bool | Never -> ()
+          | Constr c -> List.iter (fun (_, t) -> satisfies t) c.params
           | Tuple [] ->
               (* For records, we want to ensure that all fields are ordered. *)
               List.iter

@@ -103,6 +103,10 @@ let attach_comments term =
     !pending_comments;
   pending_comments := []
 
+let mk_request_ty ?pos () =
+  let fn = !Hooks.mk_request_ty in
+  fn ?pos ()
+
 let mk_source_ty ?pos name args =
   let fn = !Hooks.mk_source_ty in
   fn ?pos name args
@@ -113,14 +117,15 @@ let mk_clock_ty ?pos () =
 
 let mk_named_ty ?pos = function
   | "_" -> Type.var ?pos:(Option.map Pos.of_lexing_pos pos) ()
-  | "unit" -> Type.make Type.unit
-  | "never" -> Type.make Type.Never
-  | "bool" -> Type.make Type.Bool
-  | "int" -> Type.make Type.Int
-  | "float" -> Type.make Type.Float
-  | "string" -> Type.make Type.String
+  | "unit" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.unit
+  | "never" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.Never
+  | "bool" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.Bool
+  | "int" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.Int
+  | "float" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.Float
+  | "string" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.String
   | "ref" -> Type.reference (Type.var ())
   | "clock" -> mk_clock_ty ?pos ()
+  | "request" -> mk_request_ty ?pos ()
   | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
   | "source_methods" -> !Hooks.source_methods_t ()
   | name -> (

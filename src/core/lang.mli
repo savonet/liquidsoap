@@ -200,6 +200,7 @@ val of_list_t : t -> t
 val nullable_t : t -> t
 val ref_t : t -> t
 val error_t : t
+val request_t : t -> t
 val source_t : ?methods:bool -> t -> t
 val of_source_t : t -> t
 val format_t : t -> t

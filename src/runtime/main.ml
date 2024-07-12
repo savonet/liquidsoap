@@ -160,21 +160,19 @@ let process_request s =
   with_toplevel (fun () ->
       let req = Request.create ~cue_in_metadata:None ~cue_out_metadata:None s in
       match Request.resolve ~ctype:None req 20. with
-        | Request.Failed ->
+        | `Failed ->
             Printf.eprintf "Request resolution failed.\n";
             Request.destroy req;
             flush_all ();
             exit 2
-        | Request.Timeout ->
+        | `Timeout ->
             Printf.eprintf "Request resolution timeout.\n";
             Request.destroy req;
             flush_all ();
             exit 1
-        | Request.Resolved ->
-            Request.read_metadata req;
+        | `Resolved ->
             let metadata =
-              Request.get_all_metadata req
-              |> Frame.Metadata.to_list |> List.to_seq
+              Request.metadata req |> Frame.Metadata.to_list |> List.to_seq
               |> Seq.map (fun (k, v) ->
                      (k, if String.length v > 1024 then "<redacted>" else v))
               |> Seq.map (fun (k, v) -> k ^ " = " ^ v)
@@ -184,8 +182,7 @@ let process_request s =
             Printf.printf "duration = %!";
             begin
               match
-                Request.duration
-                  ~metadata:(Request.get_all_metadata req)
+                Request.duration ~metadata:(Request.metadata req)
                   (Option.get (Request.get_filename req))
               with
                 | Some f -> Printf.printf "%.2f s\n" f
@@ -521,7 +518,7 @@ let initial_cleanup () =
 
 let final_cleanup () =
   log#important "Cleaning downloaded files...";
-  Request.clean ();
+  Request.cleanup ();
   log#important "Freeing memory...";
   Dtools.Init.exec Dtools.Log.stop;
   flush_all ();
