@@ -99,6 +99,9 @@ val from_id : int -> t option
 (** Mark the request as playing. *)
 val is_playing : t -> unit
 
+(** Mark the request as done playing. *)
+val done_playing : t -> unit
+
 (** {1 Resolving}
 
     Resolving consists in many steps. Every step consist in rewriting the

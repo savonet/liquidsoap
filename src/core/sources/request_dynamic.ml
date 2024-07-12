@@ -88,6 +88,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                 | Some f -> self#log#info "Finished with %S." f
             end;
             cur.close ();
+            Request.done_playing cur.req;
             Request.destroy cur.req
 
     method private fetch_request =

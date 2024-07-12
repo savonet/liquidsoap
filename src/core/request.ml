@@ -539,6 +539,11 @@ let is_playing t =
   t.status <- `Playing (Unix.time ());
   add_log t "Currently on air."
 
+let done_playing t =
+  match t.status with
+    | `Playing _ -> t.status <- `Ready
+    | _ -> raise Invalid_state
+
 let get_cue ~r = function
   | None -> None
   | Some m -> (
@@ -712,8 +717,8 @@ let resolve ~ctype:resolve_ctype t timeout =
 
 let resolve ~ctype t timeout =
   match t.status with
-    | `Playing _ | `Resolving _ -> raise Invalid_state
-    | `Ready -> `Resolved
+    | `Resolving _ -> raise Invalid_state
+    | `Playing _ | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
     | _ -> resolve ~ctype t timeout
 
