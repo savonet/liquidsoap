@@ -9,12 +9,12 @@ def beets_protocol(~rlog, ~maxtime, arg) =
   if
     p.status == "exit" and p.status.code == 0
   then
-    [string.trim(p.stdout)]
+    string.trim(p.stdout)
   else
     rlog(
       "Failed to execute #{command}: #{p.status} (#{p.status.code}) #{p.stderr}"
     )
-    []
+    null()
   end
 end
 protocol.add(
