@@ -118,18 +118,33 @@ let format { format } = format
 
 let set_format req format =
   match req.format with
+    | None when resolved req -> raise Invalid_state
     | None ->
         req.format <- Some format;
         req.ctype <- None
     | Some f -> Typing.(f <: format)
 
 let ctype req =
-  match req.ctype with
-    | Some ctype -> Some ctype
-    | None ->
-        let c = Option.map Frame_type.content_type req.format in
-        req.ctype <- c;
-        c
+  let module Type = Liquidsoap_lang.Type in
+  match (req.ctype, req.format) with
+    | Some ctype, _ -> Some ctype
+    | None, _ when resolved req -> None
+    | None, None -> None
+    | None, Some format -> (
+        (* Contrary to sources, [request('a)] is mapped to no content-type to allow
+           raw requests to succeed. Format (thus content-type) cannot be changed after
+           a request is resolved. *)
+        match Type.split_meths format with
+          | _, Type.{ descr = Constr { constructor = "raw" } } -> None
+          | [], Type.{ descr = Var _ } ->
+              Liquidsoap_lang.Typing.(
+                format
+                <: Type.(make (Constr { constructor = "raw"; params = [] })));
+              None
+          | _ ->
+              let c = Frame_type.content_type format in
+              req.ctype <- Some c;
+              Some c)
 
 let initial_uri r =
   match List.rev r.indicators with { uri } :: _ -> uri | [] -> assert false
@@ -618,10 +633,20 @@ let () =
       Atomic.set should_fail true)
 
 let resolve ~ctype:resolve_ctype t timeout =
-  let req_ctype = ctype t in
-  if resolve_ctype <> None then
-    Frame.assert_compatible (Option.get req_ctype) (Option.get resolve_ctype);
-  log#debug "Resolving request %s." (string_of_indicators t);
+  let ctype =
+    match (ctype t, resolve_ctype) with
+      | ctype, None -> ctype
+      | None, Some resolve_ctype ->
+          t.ctype <- Some resolve_ctype;
+          Some resolve_ctype
+      | Some req_ctype, Some resolve_ctype ->
+          Frame.assert_compatible req_ctype resolve_ctype;
+          Some resolve_ctype
+  in
+  log#debug "Resolving request %s (content-type: %s)." (string_of_indicators t)
+    (match ctype with
+      | None -> "raw"
+      | Some ctype -> Frame.string_of_content_type ctype);
   t.status <- `Resolving (Unix.time ());
   let maxtime = Unix.time () +. timeout in
   let rec resolve i =
