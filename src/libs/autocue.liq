@@ -931,7 +931,7 @@ def file.autocue.metadata(~metadata, uri) =
       log(
         level=2,
         label="autocue.metadata",
-        "No autocue data found for file #{uri}"
+        "No autocue data returned for file #{uri}"
       )
       []
     end
@@ -1040,7 +1040,7 @@ def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
     log(
       level=2,
       label="autocue.protocol",
-      "No autocue data found for URI #{arg}!"
+      "No autocue data returned for URI #{arg}!"
     )
     [arg]
   end
