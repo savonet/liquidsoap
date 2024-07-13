@@ -358,14 +358,8 @@ def file.autocue.metadata(
   if
     null.defined(autocue)
   then
-    let {
-      amplify,
-      cue_in,
-      cue_out,
-      cross_duration,
-      fade_in,
-      fade_out
-    } = null.get(autocue)
+    let {amplify, cue_in, cue_out, cross_duration, fade_in, fade_out} =
+      null.get(autocue)
 
     [
       ("liq_autocue", "true"),
@@ -430,14 +424,14 @@ def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
     cue_metadata =
       list.map(fun (el) -> "#{fst(el)}=#{string.quote(snd(el))}", cue_metadata)
     cue_metadata = string.concat(separator=",", cue_metadata)
-    ["annotate:#{cue_metadata}:#{arg}"]
+    "annotate:#{cue_metadata}:#{arg}"
   else
     log(
       level=2,
       label="autocue.protocol",
       "No autofocus data found for URI #{arg}!"
     )
-    [arg]
+    arg
   end
 end
 protocol.add(
