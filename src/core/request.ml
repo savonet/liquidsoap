@@ -82,12 +82,7 @@ let string_of_log log =
       else Printf.sprintf "\n[%s] %s" (pretty_date date) msg)
     "" log
 
-type indicator = {
-  uri : string;
-  temporary : bool;
-  metadata : Frame.metadata;
-  mutable file_metadata : Frame.Metadata.t;
-}
+type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
 
 type status =
   [ `Idle
@@ -108,6 +103,7 @@ type t = {
   logger : Log.t;
   log : log;
   mutable indicators : indicator list;
+  mutable file_metadata : Frame.Metadata.t;
 }
 
 let resolved t = match t.status with `Ready | `Playing _ -> true | _ -> false
@@ -118,12 +114,7 @@ let initial_uri r =
 let status { status } = status
 
 let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
-  {
-    uri = home_unrelate s;
-    temporary = temporary = Some true;
-    metadata;
-    file_metadata = Frame.Metadata.empty;
-  }
+  { uri = home_unrelate s; temporary = temporary = Some true; metadata }
 
 (** Length *)
 let dresolvers_doc = "Methods to extract duration from a file."
@@ -213,10 +204,8 @@ let add_root_metadata t m =
 let metadata t =
   add_root_metadata t
     (List.fold_left
-       (fun m h ->
-         Frame.Metadata.append m
-           (Frame.Metadata.append h.metadata h.file_metadata))
-       Frame.Metadata.empty t.indicators)
+       (fun m h -> Frame.Metadata.append h.metadata m)
+       t.file_metadata (List.rev t.indicators))
 
 (** Logging *)
 
@@ -369,17 +358,13 @@ let file_is_readable name =
     true
   with Unix.Unix_error _ -> false
 
-let read_metadata ~request i =
-  if file_exists i.uri then
-    if not (file_is_readable i.uri) then
-      log#important "Read permission denied for %s!"
-        (Lang_string.quote_string i.uri)
-    else (
-      let metadata =
-        resolve_metadata ~initial_metadata:(metadata request)
-          ~excluded:request.excluded_metadata_resolvers i.uri
-      in
-      i.file_metadata <- metadata)
+let read_metadata r =
+  let i = List.hd r.indicators in
+  let metadata =
+    resolve_metadata ~initial_metadata:(metadata r)
+      ~excluded:r.excluded_metadata_resolvers i.uri
+  in
+  r.file_metadata <- metadata
 
 let push_indicator t i =
   add_log t (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string i.uri));
@@ -405,6 +390,7 @@ module Pool = Pool.Make (struct
       logger = Log.make [];
       log = Queue.create ();
       indicators = [];
+      file_metadata = Frame.Metadata.empty;
     }
 
   let destroyed id = { destroyed with id }
@@ -465,6 +451,7 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
         logger = Log.make [];
         log = Queue.create ();
         indicators = [];
+        file_metadata = Frame.Metadata.empty;
       }
     in
     Pool.add (fun id ->
@@ -604,7 +591,7 @@ let resolve t timeout =
           (Lang_string.quote_string i.uri);
         add_log t "Read permission denied!";
         raise No_indicator);
-      if t.resolve_metadata then read_metadata ~request:t i;
+      if t.resolve_metadata then read_metadata t;
       raise Request_resolved);
 
     match parse_uri i.uri with
