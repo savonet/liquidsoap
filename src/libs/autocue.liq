@@ -768,9 +768,6 @@ autocue.register(name="internal", autocue.internal.implementation)
 
 let file.autocue = ()
 
-# Dummy blank source for resolving requests.
-let file.autocue.blank = (blank() : source(audio=pcm))
-
 # Return the file's autocue values as metadata suitable for metadata override.
 # @category Source / Audio processing
 def file.autocue.metadata(~metadata, uri) =
@@ -809,7 +806,7 @@ def file.autocue.metadata(~metadata, uri) =
   r = request.create(excluded_metadata_resolvers=["autocue"], uri)
 
   if
-    not request.resolve(content_type=file.autocue.blank, r)
+    not request.resolve(r)
   then
     request.destroy(r)
     log(
@@ -1053,14 +1050,14 @@ def protocol.autocue(~rlog=_, ~maxtime=_, arg) =
     cue_metadata =
       list.map(fun (el) -> "#{fst(el)}=#{string.quote(snd(el))}", cue_metadata)
     cue_metadata = string.concat(separator=",", cue_metadata)
-    ["annotate:#{cue_metadata}:#{arg}"]
+    "annotate:#{cue_metadata}:#{arg}"
   else
     log(
       level=2,
       label="autocue.protocol",
       "No autocue data returned for URI #{arg}!"
     )
-    [arg]
+    arg
   end
 end
 protocol.add(
