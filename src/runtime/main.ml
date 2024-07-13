@@ -159,7 +159,7 @@ let lang_doc name =
 let process_request s =
   with_toplevel (fun () ->
       let req = Request.create ~cue_in_metadata:None ~cue_out_metadata:None s in
-      match Request.resolve ~ctype:None req 20. with
+      match Request.resolve req 20. with
         | `Failed ->
             Printf.eprintf "Request resolution failed.\n";
             Request.destroy req;

@@ -50,15 +50,6 @@ val create :
   string ->
   t
 
-(** Return the format of the request, None for raw requests. *)
-val format : t -> Liquidsoap_lang.Type.t option
-
-(* Set [format]. Raises an error if the request has been resolved. *)
-val set_format : t -> Liquidsoap_lang.Type.t -> unit
-
-(** Return the type of a media request, None for raw requests. *)
-val ctype : t -> Frame.content_type option
-
 (** Return the request's initial uri. *)
 val initial_uri : t -> string
 
@@ -130,10 +121,8 @@ type resolve_flag = [ `Resolved | `Failed | `Timeout ]
 val conf_metadata_decoder_priorities : Dtools.Conf.ut
 
 (** [resolve request timeout] tries to resolve the request within
-    [timeout] seconds. It finds a decoder for the request which produces content
-    type [format], unless this is set to [None]. If resolving succeeds, [is_ready
-    request] is true and you can get a filename. *)
-val resolve : ctype:Frame.content_type option -> t -> float -> resolve_flag
+    [timeout] seconds. *)
+val resolve : t -> float -> resolve_flag
 
 (** [resolved r] if there's an available local filename. It can be true even if
     the resolving hasn't been run, if the initial URI was already a local
@@ -171,9 +160,13 @@ val get_log : t -> log
     @raise Not_found if no duration computation method is found. *)
 val duration : metadata:Frame.metadata -> string -> float option
 
+(** [true] is a decoder exists for the given content-type. *)
+val has_decoder : ctype:Frame.content_type -> t -> bool
+
 (** Return a decoder if the file has been resolved, guaranteed to have
     available data to deliver. *)
-val get_decoder : t -> Decoder.file_decoder_ops option
+val get_decoder :
+  ctype:Frame.content_type -> t -> Decoder.file_decoder_ops option
 
 (** {1 Plugs} *)
 

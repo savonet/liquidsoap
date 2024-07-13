@@ -63,7 +63,7 @@ let _ =
            after being played." );
       ("", Lang.string_t, None, None);
     ]
-    Lang.(request_t (univ_t ()))
+    Request.Value.t
     (fun p ->
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
       let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
@@ -97,7 +97,7 @@ let _ =
         Lang.float_t,
         Some (Lang.float 30.),
         Some "Limit in seconds to the duration of the resolving." );
-      ("", Lang.(request_t (univ_t ())), None, None);
+      ("", Request.Value.t, None, None);
     ]
     Lang.bool_t
     ~descr:
@@ -109,12 +109,11 @@ let _ =
     (fun p ->
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.bool
-        (try Request.resolve ~ctype:None r timeout = `Resolved with _ -> false))
+      Lang.bool (try Request.resolve r timeout = `Resolved with _ -> false))
 
 let _ =
   Lang.add_builtin ~base:request "metadata" ~category:`Liquidsoap
-    [("", Lang.(request_t (univ_t ())), None, None)]
+    [("", Request.Value.t, None, None)]
     Lang.metadata_t ~descr:"Get the metadata associated to a request."
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
@@ -122,7 +121,7 @@ let _ =
 
 let _ =
   Lang.add_builtin ~base:request "log" ~category:`Liquidsoap
-    [("", Lang.(request_t (univ_t ())), None, None)]
+    [("", Request.Value.t, None, None)]
     Lang.string_t ~descr:"Get log data associated to a request."
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
@@ -133,7 +132,7 @@ let _ =
     ~descr:
       "Check if a request is resolved, i.e. is associated to a valid local \
        file."
-    [("", Lang.(request_t (univ_t ())), None, None)]
+    [("", Request.Value.t, None, None)]
     Lang.bool_t
     (fun p ->
       let e = Request.Value.of_value (List.assoc "" p) in
@@ -142,7 +141,7 @@ let _ =
 let _ =
   Lang.add_builtin ~base:request "uri" ~category:`Liquidsoap
     ~descr:"Initial URI of a request."
-    [("", Lang.(request_t (univ_t ())), None, None)]
+    [("", Request.Value.t, None, None)]
     Lang.string_t
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
@@ -153,7 +152,7 @@ let _ =
     ~descr:
       "Return a valid local filename if the request is ready, and the empty \
        string otherwise."
-    [("", Lang.(request_t (univ_t ())), None, None)]
+    [("", Request.Value.t, None, None)]
     Lang.string_t
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
@@ -170,7 +169,7 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Destroy the request even if it is persistent." );
-      ("", Lang.(request_t (univ_t ())), None, None);
+      ("", Request.Value.t, None, None);
     ]
     Lang.unit_t
     (fun p ->
@@ -211,7 +210,7 @@ let _ =
         Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
           ~cue_out_metadata:None f
       in
-      if Request.resolve ~ctype:None r timeout = `Resolved then (
+      if Request.resolve r timeout = `Resolved then (
         match
           Request.duration ~metadata:(Request.metadata r)
             (Option.get (Request.get_filename r))
@@ -226,7 +225,7 @@ let _ =
 let _ =
   Lang.add_builtin ~base:request "id" ~category:`Liquidsoap
     ~descr:"Identifier of a request."
-    [("", Lang.(request_t (univ_t ())), None, None)]
+    [("", Request.Value.t, None, None)]
     Lang.int_t
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
@@ -237,7 +236,7 @@ let _ =
     ~descr:
       "Current status of a request. Can be idle, resolving, ready, playing or \
        destroyed."
-    [("", Lang.(request_t (univ_t ())), None, None)]
+    [("", Request.Value.t, None, None)]
     Lang.string_t
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in

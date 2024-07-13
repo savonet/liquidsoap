@@ -87,7 +87,6 @@ type indicator = {
   temporary : bool;
   metadata : Frame.metadata;
   mutable file_metadata : Frame.Metadata.t;
-  mutable decoder : (unit -> Decoder.file_decoder_ops) option;
 }
 
 type status =
@@ -104,8 +103,6 @@ type t = {
   excluded_metadata_resolvers : string list;
   cue_in_metadata : string option;
   cue_out_metadata : string option;
-  mutable format : Type.t option;
-  mutable ctype : Frame.content_type option;
   persistent : bool;
   mutable status : status;
   logger : Log.t;
@@ -114,37 +111,6 @@ type t = {
 }
 
 let resolved t = match t.status with `Ready | `Playing _ -> true | _ -> false
-let format { format } = format
-
-let set_format req format =
-  match req.format with
-    | None when resolved req -> raise Invalid_state
-    | None ->
-        req.format <- Some format;
-        req.ctype <- None
-    | Some f -> Typing.(f <: format)
-
-let ctype req =
-  let module Type = Liquidsoap_lang.Type in
-  match (req.ctype, req.format) with
-    | Some ctype, _ -> Some ctype
-    | None, _ when resolved req -> None
-    | None, None -> None
-    | None, Some format -> (
-        (* Contrary to sources, [request('a)] is mapped to no content-type to allow
-           raw requests to succeed. Format (thus content-type) cannot be changed after
-           a request is resolved. *)
-        match Type.split_meths format with
-          | _, Type.{ descr = Constr { constructor = "raw" } } -> None
-          | [], Type.{ descr = Var _ } ->
-              Liquidsoap_lang.Typing.(
-                format
-                <: Type.(make (Constr { constructor = "raw"; params = [] })));
-              None
-          | _ ->
-              let c = Frame_type.content_type format in
-              req.ctype <- Some c;
-              Some c)
 
 let initial_uri r =
   match List.rev r.indicators with { uri } :: _ -> uri | [] -> assert false
@@ -157,7 +123,6 @@ let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
     temporary = temporary = Some true;
     metadata;
     file_metadata = Frame.Metadata.empty;
-    decoder = None;
   }
 
 (** Length *)
@@ -227,12 +192,6 @@ let root_metadata t =
   in
 
   (* STATUS *)
-  let m =
-    match ctype t with
-      | None -> m
-      | Some ct -> Frame.Metadata.add "kind" (Frame.string_of_content_type ct) m
-  in
-
   match t.status with
     | `Idle -> Frame.Metadata.add "status" "idle" m
     | `Resolving d ->
@@ -255,7 +214,7 @@ let root_metadata t =
 let metadata t =
   List.fold_left
     (fun m h ->
-      Frame.Metadata.append m (Frame.Metadata.append h.metadata h.file_metadata))
+      Frame.Metadata.append m (Frame.Metadata.append h.file_metadata h.metadata))
     (root_metadata t) t.indicators
 
 (** Logging *)
@@ -421,22 +380,6 @@ let read_metadata ~request i =
       in
       i.file_metadata <- metadata)
 
-let local_check ~request indicator =
-  if request.resolve_metadata then read_metadata ~request indicator;
-  match ctype request with
-    | None -> ()
-    | Some ctype -> (
-        assert (indicator.decoder = None);
-        let metadata = metadata request in
-        if not (file_is_readable indicator.uri) then (
-          log#important "Read permission denied for %s!"
-            (Lang_string.quote_string indicator.uri);
-          add_log request "Read permission denied!";
-          raise No_indicator);
-        match Decoder.get_file_decoder ~metadata ~ctype indicator.uri with
-          | Some (_, f) -> indicator.decoder <- Some f
-          | None -> raise No_indicator)
-
 let push_indicator t i =
   add_log t (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string i.uri));
   t.indicators <- i :: t.indicators
@@ -454,8 +397,6 @@ module Pool = Pool.Make (struct
       id = 0;
       cue_in_metadata = None;
       cue_out_metadata = None;
-      format = None;
-      ctype = None;
       resolve_metadata = false;
       excluded_metadata_resolvers = [];
       persistent = false;
@@ -515,8 +456,6 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
         id = 0;
         cue_in_metadata;
         cue_out_metadata;
-        format = None;
-        ctype = None;
         resolve_metadata;
         excluded_metadata_resolvers;
         (* This is fixed when resolving the request. *)
@@ -556,11 +495,19 @@ let get_cue ~r = function
                   None
               | Some v -> Some v))
 
-let get_decoder r =
-  match r.indicators with
-    | [] -> assert false
-    | { decoder = None } :: _ -> None
-    | { decoder = Some d } :: _ -> (
+let get_base_decoder ~ctype r =
+  if not (resolved r) then None
+  else (
+    let filename = (List.hd r.indicators).uri in
+    let metadata = metadata r in
+    Decoder.get_file_decoder ~metadata ~ctype filename)
+
+let has_decoder ~ctype r = get_base_decoder ~ctype r <> None
+
+let get_decoder ~ctype r =
+  match get_base_decoder ~ctype r with
+    | None -> None
+    | Some (_, d) -> (
         let decoder = d () in
         let open Decoder in
         let initial_pos =
@@ -637,21 +584,8 @@ let () =
   Lifecycle.before_core_shutdown ~name:"Requests shutdown" (fun () ->
       Atomic.set should_fail true)
 
-let resolve ~ctype:resolve_ctype t timeout =
-  let ctype =
-    match (ctype t, resolve_ctype) with
-      | ctype, None -> ctype
-      | None, Some resolve_ctype ->
-          t.ctype <- Some resolve_ctype;
-          Some resolve_ctype
-      | Some req_ctype, Some resolve_ctype ->
-          Frame.assert_compatible req_ctype resolve_ctype;
-          Some resolve_ctype
-  in
-  log#debug "Resolving request %s (content-type: %s)." (string_of_indicators t)
-    (match ctype with
-      | None -> "raw"
-      | Some ctype -> Frame.string_of_content_type ctype);
+let resolve t timeout =
+  log#debug "Resolving request %s." (string_of_indicators t);
   t.status <- `Resolving (Unix.time ());
   let maxtime = Unix.time () +. timeout in
   let rec resolve i =
@@ -664,7 +598,12 @@ let resolve ~ctype:resolve_ctype t timeout =
     log#f 6 "Resolve step %s in %s." i.uri (string_of_indicators t);
     (* If the file is local, this loop should always terminate. *)
     if file_exists i.uri then (
-      local_check ~request:t i;
+      if not (file_is_readable i.uri) then (
+        log#important "Read permission denied for %s!"
+          (Lang_string.quote_string i.uri);
+        add_log t "Read permission denied!";
+        raise No_indicator);
+      if t.resolve_metadata then read_metadata ~request:t i;
       raise Request_resolved);
 
     match parse_uri i.uri with
@@ -715,12 +654,12 @@ let resolve ~ctype:resolve_ctype t timeout =
   if result <> `Resolved then t.status <- `Failed else t.status <- `Ready;
   result
 
-let resolve ~ctype t timeout =
+let resolve t timeout =
   match t.status with
     | `Resolving _ -> raise Invalid_state
     | `Playing _ | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
-    | _ -> resolve ~ctype t timeout
+    | _ -> resolve t timeout
 
 (* Make a few functions more user-friendly, internal stuff is over. *)
 

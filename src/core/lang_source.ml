@@ -338,11 +338,6 @@ let source_methods =
 
 let make_t ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
 
-let request_t ?pos frame_t =
-  make_t ?pos
-    (Type.Constr
-       { Type.constructor = "request"; params = [(`Invariant, frame_t)] })
-
 let source_methods_t t =
   method_t t (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
 

@@ -103,10 +103,6 @@ let attach_comments term =
     !pending_comments;
   pending_comments := []
 
-let mk_request_ty ?pos () =
-  let fn = !Hooks.mk_request_ty in
-  fn ?pos ()
-
 let mk_source_ty ?pos name args =
   let fn = !Hooks.mk_source_ty in
   fn ?pos name args
@@ -125,7 +121,6 @@ let mk_named_ty ?pos = function
   | "string" -> Type.make ?pos:(Option.map Pos.of_lexing_pos pos) Type.String
   | "ref" -> Type.reference (Type.var ())
   | "clock" -> mk_clock_ty ?pos ()
-  | "request" -> mk_request_ty ?pos ()
   | "source" -> mk_source_ty ?pos "source" { extensible = true; tracks = [] }
   | "source_methods" -> !Hooks.source_methods_t ()
   | name -> (

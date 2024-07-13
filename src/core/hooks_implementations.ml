@@ -31,12 +31,6 @@ let eval_check ~env:_ ~tm v =
                 (Frame.Fields.add field ty Frame.Fields.empty)
             in
             Typing.(source#frame_type <: frame_t)))
-  else if Request.Value.is_value v then (
-    let r = Request.Value.of_value v in
-    let ty = Type.fresh (deep_demeth tm.Term.t) in
-    let format = Type.var () in
-    Typing.(Lang_source.request_t format <: ty);
-    Request.set_format r format)
 
 let render_string = function
   | `Verbatim s -> s
@@ -87,8 +81,6 @@ let () =
         ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
         Lang_source.ClockValue.base_t.Type.descr
 
-let mk_request_ty ?pos () = Lang_source.request_t ?pos (Lang.univ_t ())
-
 let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
   if name <> "source" then (
     let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
@@ -138,7 +130,6 @@ let register () =
          in
          true
        with _ -> false);
-  Hooks.mk_request_ty := mk_request_ty;
   Hooks.mk_source_ty := mk_source_ty;
   Hooks.getpwnam := Unix.getpwnam;
   Hooks.source_methods_t :=
