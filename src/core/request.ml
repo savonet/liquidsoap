@@ -214,7 +214,7 @@ let root_metadata t =
 let metadata t =
   List.fold_left
     (fun m h ->
-      Frame.Metadata.append m (Frame.Metadata.append h.file_metadata h.metadata))
+      Frame.Metadata.append m (Frame.Metadata.append h.metadata h.file_metadata))
     (root_metadata t) t.indicators
 
 (** Logging *)

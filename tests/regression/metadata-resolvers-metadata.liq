@@ -1,7 +1,7 @@
 dir = file.temp_dir(cleanup=true, "metadata-resolver")
 
 def media_protocol(~rlog=_, ~maxtime=_, arg) =
-  ["#{dir}/#{arg}"]
+  "#{dir}/#{arg}"
 end
 
 protocol.add("media", media_protocol)
@@ -12,7 +12,7 @@ end
 
 def check_metadata_resolver(~metadata, _) =
   check_metadata(metadata)
-  []
+  null()
 end
 
 decoder.metadata.add("check_metadata_resolver", check_metadata_resolver)
