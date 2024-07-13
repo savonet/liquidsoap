@@ -22,22 +22,27 @@
 
 let () =
   let add = Server.add ~ns:[] in
+  let ids r =
+    String.concat " " (List.map (fun r -> string_of_int (Request.id r)) r)
+  in
   add "version" ~descr:"Display liquidsoap version." (fun _ ->
       "Liquidsoap " ^ Configure.version);
-  add "request.all"
-    ~descr:
-      "Get the identifiers of all requests, in use or not. Destroyed requests \
-       will remain there only for some limited time." (fun _ ->
-      String.concat " " (List.map string_of_int (Request.all_requests ())));
-  add "request.alive"
-    ~descr:"Get the identifiers of requests that are still in use." (fun _ ->
-      String.concat " " (List.map string_of_int (Request.alive_requests ())));
+  add "request.all" ~descr:"Get the identifiers of all existing requests."
+    (fun _ -> ids (Request.all ()));
   add "request.on_air" ~descr:"Get the identifiers of requests that are on air."
     (fun _ ->
-      String.concat " " (List.map string_of_int (Request.on_air_requests ())));
+      ids
+        (List.filter
+           (fun r ->
+             match Request.status r with `Playing _ -> true | _ -> false)
+           (Request.all ())));
   add "request.resolving"
     ~descr:"Get the identifiers of requests that are being prepared." (fun _ ->
-      String.concat " " (List.map string_of_int (Request.resolving_requests ())));
+      ids
+        (List.filter
+           (fun r ->
+             match Request.status r with `Resolving _ -> true | _ -> false)
+           (Request.all ())));
   add "request.trace" ~usage:"request.trace <rid>"
     ~descr:"Print the log associated to a request." (fun args ->
       let id = int_of_string args in
@@ -51,7 +56,7 @@ let () =
       let id = int_of_string args in
       match Request.from_id id with
         | Some r ->
-            let m = Request.get_all_metadata r in
+            let m = Request.metadata r in
             Frame.Metadata.to_string m
         | None -> "No such request.");
   add "uptime" ~descr:"Print the uptime for this instance." (fun _ ->

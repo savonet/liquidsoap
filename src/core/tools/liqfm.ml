@@ -136,8 +136,7 @@ let init host =
                       match Request.get_filename s with
                         | Some file -> (
                             match
-                              Request.duration
-                                ~metadata:(Request.get_all_metadata s)
+                              Request.duration ~metadata:(Request.metadata s)
                                 file
                             with
                               | Some f -> f

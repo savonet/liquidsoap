@@ -336,12 +336,15 @@ let source_methods =
             float (frame_position +. in_frame_position)) );
   ]
 
+let make_t ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
+
 let source_methods_t t =
   method_t t (List.map (fun (name, t, doc, _) -> (name, t, doc)) source_methods)
 
-let source_t ?(methods = false) frame_t =
+let source_t ?(pos : Liquidsoap_lang.Term_base.parsed_pos option)
+    ?(methods = false) frame_t =
   let t =
-    Type.make
+    make_t ?pos
       (Type.Constr
          (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
          { Type.constructor = "source"; params = [(`Invariant, frame_t)] })

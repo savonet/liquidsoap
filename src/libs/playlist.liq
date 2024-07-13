@@ -370,7 +370,7 @@ def playlist.list(
         check_next(r)
       then
         if
-          not request.resolve(content_type=s, r)
+          not request.resolve(r)
         then
           log.info(
             label=id,

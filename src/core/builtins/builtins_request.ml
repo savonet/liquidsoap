@@ -33,7 +33,6 @@ let _ =
   Lang.add_builtin ~base:request "create" ~category:`Liquidsoap
     ~descr:"Create a request from an URI."
     [
-      ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
       ( "cue_in_metadata",
         Lang.nullable_t Lang.string_t,
         Some (Lang.string "liq_cue_in"),
@@ -66,7 +65,6 @@ let _ =
     ]
     Request.Value.t
     (fun p ->
-      let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
       let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
       let excluded_metadata_resolvers =
@@ -86,28 +84,15 @@ let _ =
         if l > 0 && initial.[l - 1] = '\n' then String.sub initial 0 (l - 1)
         else initial
       in
-      let indicators = List.map Lang.to_string (Lang.to_list indicators) in
-      let indicators = List.map (fun x -> Request.indicator x) indicators in
       let temporary = List.assoc "temporary" p |> Lang.to_bool in
-      let indicators =
-        if temporary then
-          Request.indicator ~temporary:true initial :: indicators
-        else indicators
-      in
       Request.Value.to_value
-        (Request.create ~resolve_metadata ~persistent ~indicators
+        (Request.create ~resolve_metadata ~persistent
            ~excluded_metadata_resolvers ~cue_in_metadata ~cue_out_metadata
-           initial))
+           ~temporary initial))
 
 let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap
     [
-      ( "content_type",
-        Lang.nullable_t (Lang.source_t (Lang.univ_t ())),
-        Some Lang.null,
-        Some
-          "If specified, the request will be decoded with the same content \
-           type as the given source." );
       ( "timeout",
         Lang.float_t,
         Some (Lang.float 30.),
@@ -122,25 +107,9 @@ let _ =
        should not be decoded afterward: this is mostly useful to download \
        files such as playlists, etc."
     (fun p ->
-      let ctype =
-        List.assoc "content_type" p
-        |> Lang.to_option
-        |> Option.map (fun s -> (Lang.to_source s)#content_type)
-      in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.bool
-        (try Request.Resolved = Request.resolve ~ctype r timeout
-         with _ -> false))
-
-let _ =
-  Lang.add_builtin ~base:request "read_metadata" ~category:`Liquidsoap
-    [("", Request.Value.t, None, None)]
-    Lang.unit_t ~descr:"Force reading the metadata of a request."
-    (fun p ->
-      let r = Request.Value.of_value (List.assoc "" p) in
-      Request.read_metadata r;
-      Lang.unit)
+      Lang.bool (try Request.resolve r timeout = `Resolved with _ -> false))
 
 let _ =
   Lang.add_builtin ~base:request "metadata" ~category:`Liquidsoap
@@ -148,7 +117,7 @@ let _ =
     Lang.metadata_t ~descr:"Get the metadata associated to a request."
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.metadata (Request.get_all_metadata r))
+      Lang.metadata (Request.metadata r))
 
 let _ =
   Lang.add_builtin ~base:request "log" ~category:`Liquidsoap
@@ -235,16 +204,15 @@ let _ =
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
-      let metadata = Lang.to_metadata_list (List.assoc "metadata" p) in
+      let metadata = Lang.to_metadata (List.assoc "metadata" p) in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r =
         Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
           ~cue_out_metadata:None f
       in
-      if Request.resolve ~ctype:None r timeout = Request.Resolved then (
+      if Request.resolve r timeout = `Resolved then (
         match
-          Request.duration
-            ~metadata:(Request.get_all_metadata r)
+          Request.duration ~metadata:(Request.metadata r)
             (Option.get (Request.get_filename r))
         with
           | Some f -> Lang.float f
@@ -261,7 +229,7 @@ let _ =
     Lang.int_t
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.int (Request.get_id r))
+      Lang.int (Request.id r))
 
 let _ =
   Lang.add_builtin ~base:request "status" ~category:`Liquidsoap
@@ -274,11 +242,11 @@ let _ =
       let r = Request.Value.of_value (List.assoc "" p) in
       let s =
         match Request.status r with
-          | Request.Idle -> "idle"
-          | Request.Resolving -> "resolving"
-          | Request.Ready -> "ready"
-          | Request.Playing -> "playing"
-          | Request.Destroyed -> "destroyed"
-          | Request.Failed -> "failed"
+          | `Idle -> "idle"
+          | `Resolving _ -> "resolving"
+          | `Ready -> "ready"
+          | `Playing _ -> "playing"
+          | `Destroyed -> "destroyed"
+          | `Failed -> "failed"
       in
       Lang.string s)

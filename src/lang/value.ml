@@ -332,6 +332,7 @@ module type Custom = sig
 
   val to_value : ?pos:Pos.t -> content -> t
   val of_value : t -> content
+  val is_value : t -> bool
 end
 
 module type CustomDef = Term.CustomDef

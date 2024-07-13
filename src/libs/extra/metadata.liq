@@ -31,7 +31,7 @@ def file.cover.manager(
     current_cover_file := filename
 
     if
-      last_cover != default
+      last_cover != default and last_cover != filename
     then
       log.info(
         label=id,

@@ -141,7 +141,7 @@ let mpd s ~log _ =
   log (Printf.sprintf "Connected to MPD version %s\n" version);
   let files = search field value in
   write "close\n";
-  files
+  match files with f :: _ -> Some f | [] -> None
 
 let () =
   Lang.add_protocol

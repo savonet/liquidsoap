@@ -211,7 +211,6 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
 
   done = ref(false)
   fail = fallback([])
-  s_ref = ref((fail : source))
 
   def next() =
     if
@@ -221,7 +220,7 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
     else
       done := true
       if
-        request.resolve(r, timeout=timeout, content_type=s_ref())
+        request.resolve(r, timeout=timeout)
       then
         request.queue(queue=[r])
       else
@@ -236,9 +235,8 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
   end
 
   s = source.dynamic(self_sync=false, track_sensitive=true, next)
-  s_ref := (s : source)
   (s : source_methods).{
-    resolve=fun () -> request.resolve(r, timeout=timeout, content_type=s),
+    resolve=fun () -> request.resolve(r, timeout=timeout),
     request=r
   }
 end
@@ -266,7 +264,6 @@ def single(
   infallible = request.is_static(uri) and not fallible
 
   static_request = ref(null())
-  s_ref = ref((fallback([]) : source))
   done = ref(false)
 
   def on_wake_up() =
@@ -285,7 +282,7 @@ def single(
           uri
         )
       if
-        not request.resolve(r, timeout=timeout, content_type=s_ref())
+        not request.resolve(r, timeout=timeout)
       then
         request.destroy(force=true, r)
         error.raise(
@@ -337,7 +334,6 @@ def single(
     )
   s.on_wake_up(on_wake_up)
   s.on_shutdown(on_shutdown)
-  s_ref := (s : source)
   (s : source_methods)
 end
 
