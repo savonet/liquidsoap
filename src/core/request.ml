@@ -131,7 +131,8 @@ let string_of_log log =
 type indicator = {
   string : string;
   temporary : bool;
-  mutable metadata : metadata;
+  metadata : metadata;
+  mutable file_metadata : metadata option;
 }
 
 type status = Idle | Resolving | Ready | Playing | Destroyed
@@ -169,7 +170,12 @@ let initial_uri r = r.initial_uri
 let status r = r.status
 
 let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
-  { string = home_unrelate s; temporary = temporary = Some true; metadata }
+  {
+    string = home_unrelate s;
+    temporary = temporary = Some true;
+    metadata;
+    file_metadata = None;
+  }
 
 (** Length *)
 let dresolvers_doc = "Methods to extract duration from a file."
@@ -222,7 +228,11 @@ let toplevel_metadata t =
 let iter_metadata t f =
   f t.root_metadata;
   List.iter
-    (function [] -> assert false | h :: _ -> f h.metadata)
+    (function
+      | [] -> assert false
+      | h :: _ -> (
+          f h.metadata;
+          match h.file_metadata with None -> () | Some m -> f m))
     t.indicators
 
 let set_metadata t k v = Hashtbl.replace (toplevel_metadata t) k v
@@ -416,17 +426,20 @@ let file_is_readable name =
 let read_metadata t =
   if t.resolve_metadata then (
     let indicator = peek_indicator t in
-    let name = indicator.string in
-    if file_exists name then
-      if not (file_is_readable name) then
-        log#important "Read permission denied for %s!"
-          (Lang_string.quote_string name)
-      else (
-        let metadata =
-          resolve_metadata ~initial_metadata:(get_all_metadata t)
-            ~excluded:t.excluded_metadata_resolvers name
-        in
-        indicator.metadata <- metadata))
+    match indicator.file_metadata with
+      | Some _ -> ()
+      | None ->
+          let name = indicator.string in
+          if file_exists name then
+            if not (file_is_readable name) then
+              log#important "Read permission denied for %s!"
+                (Lang_string.quote_string name)
+            else (
+              let metadata =
+                resolve_metadata ~initial_metadata:(get_all_metadata t)
+                  ~excluded:t.excluded_metadata_resolvers name
+              in
+              indicator.file_metadata <- Some metadata))
 
 let local_check t =
   read_metadata t;
