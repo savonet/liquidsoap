@@ -131,6 +131,7 @@ let string_of_log log =
 type indicator = {
   string : string;
   temporary : bool;
+  mutable metadata_resolved : bool;
   mutable metadata : metadata;
 }
 
@@ -169,7 +170,12 @@ let initial_uri r = r.initial_uri
 let status r = r.status
 
 let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
-  { string = home_unrelate s; temporary = temporary = Some true; metadata }
+  {
+    string = home_unrelate s;
+    temporary = temporary = Some true;
+    metadata;
+    metadata_resolved = false;
+  }
 
 (** Length *)
 let dresolvers_doc = "Methods to extract duration from a file."
@@ -416,17 +422,19 @@ let file_is_readable name =
 let read_metadata t =
   if t.resolve_metadata then (
     let indicator = peek_indicator t in
-    let name = indicator.string in
-    if file_exists name then
-      if not (file_is_readable name) then
-        log#important "Read permission denied for %s!"
-          (Lang_string.quote_string name)
-      else (
-        let metadata =
-          resolve_metadata ~initial_metadata:(get_all_metadata t)
-            ~excluded:t.excluded_metadata_resolvers name
-        in
-        indicator.metadata <- metadata))
+    if not indicator.metadata_resolved then (
+      let name = indicator.string in
+      if file_exists name then
+        if not (file_is_readable name) then
+          log#important "Read permission denied for %s!"
+            (Lang_string.quote_string name)
+        else (
+          let metadata =
+            resolve_metadata ~initial_metadata:(get_all_metadata t)
+              ~excluded:t.excluded_metadata_resolvers name
+          in
+          indicator.metadata_resolved <- true;
+          indicator.metadata <- metadata)))
 
 let local_check t =
   read_metadata t;

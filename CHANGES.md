@@ -8,6 +8,7 @@ Changed:
 Fixed:
 
 - Replace `:` everywhere when processing `$(colon)` in protocols (#3952, @gAlleb)
+- Fixed metadata decoder being called twice (#3960)
 
 # 2.2.5 (2024-05-01) (Mayday!)
 
