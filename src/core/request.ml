@@ -171,8 +171,7 @@ let get_filename t =
 
 (** Manage requests' metadata *)
 
-let root_metadata t =
-  let m = Frame.Metadata.empty in
+let add_root_metadata t m =
   let m = Frame.Metadata.add "rid" (string_of_int t.id) m in
   let m = Frame.Metadata.add "initial_uri" (initial_uri t) m in
 
@@ -212,10 +211,12 @@ let root_metadata t =
     | `Failed -> Frame.Metadata.add "status" "failed" m
 
 let metadata t =
-  List.fold_left
-    (fun m h ->
-      Frame.Metadata.append m (Frame.Metadata.append h.metadata h.file_metadata))
-    (root_metadata t) t.indicators
+  add_root_metadata t
+    (List.fold_left
+       (fun m h ->
+         Frame.Metadata.append m
+           (Frame.Metadata.append h.metadata h.file_metadata))
+       Frame.Metadata.empty t.indicators)
 
 (** Logging *)
 

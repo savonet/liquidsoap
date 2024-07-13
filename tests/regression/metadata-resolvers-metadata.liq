@@ -12,7 +12,7 @@ end
 
 def check_metadata_resolver(~metadata, _) =
   check_metadata(metadata)
-  null()
+  []
 end
 
 decoder.metadata.add("check_metadata_resolver", check_metadata_resolver)
