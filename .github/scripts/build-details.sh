@@ -25,7 +25,7 @@ if [[ "${IS_FORK}" != "true" && ("${BRANCH}" =~ ^rolling-release\-v[0-9]\.[0-9]\
   BUILD_OS='["debian_trixie", "debian_bookworm", "debian_bullseye", "ubuntu_jammy", "ubuntu_lunar", "alpine"]'
   BUILD_PLATFORM='["amd64", "arm64"]'
   #BUILD_PLATFORM='["amd64", "arm64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "trixie"}]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64", "docker-debian-os": "bookworm"}]'
   #BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64"}, {"platform": "arm64", "runs-on": ["self-hosted", "build"], "alpine-arch": "aarch64", "docker-platform": "linux/arm64"}]'
 
   echo "Branch has a docker release"
@@ -37,7 +37,7 @@ else
   echo "Building on amd64 only"
   BUILD_OS='["debian_trixie", "debian_bookworm", "ubuntu_jammy", "ubuntu_lunar", "alpine"]'
   BUILD_PLATFORM='["amd64"]'
-  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "trixie"}]'
+  BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "ubuntu-latest", "alpine-arch": "x86_64", "docker-platform": "linux/amd64", "docker-debian-os": "bookworm"}]'
 
   echo "Branch does not have a docker release"
   DOCKER_RELEASE=
