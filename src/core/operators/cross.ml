@@ -42,7 +42,7 @@ class consumer ~clock buffer =
   * [cross_length] is in ticks (like #remaining estimations) and must be at least one frame. *)
 class cross val_source ~end_duration_getter ~override_end_duration
   ~override_duration ~start_duration_getter ~override_start_duration
-  ~persist_override ~rms_width transition =
+  ~override_max_start_duration ~persist_override ~rms_width transition =
   let s = Lang.to_source val_source in
   let original_end_duration_getter = end_duration_getter in
   let original_start_duration_getter = start_duration_getter in
@@ -65,7 +65,9 @@ class cross val_source ~end_duration_getter ~override_end_duration
     method self_sync = s#self_sync
     val mutable end_duration_getter = end_duration_getter
     val mutable start_duration_getter = start_duration_getter
+    val mutable max_start_duration = None
     val mutable end_main_duration = 0
+    val mutable max_start_main_duration = None
     val mutable start_main_duration = 0
     method end_duration = Frame.seconds_of_main end_main_duration
     method start_duration = Frame.seconds_of_main start_main_duration
@@ -78,12 +80,12 @@ class cross val_source ~end_duration_getter ~override_end_duration
       end_main_duration <-
         (if _end_main_duration < 0 then (
            self#log#important
-             "Cannot set crossfade before duration to negative value %f!"
+             "Cannot set crossfade end duration to negative value %f!"
              end_duration;
            frame_size)
          else if _end_main_duration < frame_size then (
            self#log#important
-             "Cannot set crossfade before duration to less than the frame size!";
+             "Cannot set crossfade end duration to less than the frame size!";
            frame_size)
          else _end_main_duration)
 
@@ -95,18 +97,39 @@ class cross val_source ~end_duration_getter ~override_end_duration
       start_main_duration <-
         (if _start_main_duration < 0 then (
            self#log#important
-             "Cannot set crossfade after duration to negative value %f!"
+             "Cannot set crossfade start duration to negative value %f!"
              start_duration;
            frame_size)
          else if _start_main_duration < frame_size then (
            self#log#important
-             "Cannot set crossfade after duration to less than the frame size!";
+             "Cannot set crossfade start duration to less than the frame size!";
            frame_size)
-         else _start_main_duration)
+         else _start_main_duration);
+
+      max_start_main_duration <-
+        (match max_start_duration with
+          | None -> None
+          | Some max_start_duration ->
+              let _max_start_main_duration =
+                Frame.main_of_seconds max_start_duration
+              in
+              if _max_start_main_duration < 0 then (
+                self#log#important
+                  "Cannot set crossfade max start duration to negative value \
+                   %f!"
+                  max_start_duration;
+                None)
+              else if _max_start_main_duration < frame_size then (
+                self#log#important
+                  "Cannot set crossfade max start duration to less than the \
+                   frame size!";
+                None)
+              else Some _max_start_main_duration)
 
     method reset_duration =
       end_duration_getter <- original_end_duration_getter;
       start_duration_getter <- original_start_duration_getter;
+      max_start_duration <- None;
       self#set_end_main_duration;
       self#set_start_main_duration
 
@@ -195,6 +218,26 @@ class cross val_source ~end_duration_getter ~override_end_duration
               end_duration_getter <- (fun () -> l);
               self#set_end_main_duration
             with _ -> ()));
+      (match Frame.Metadata.find_opt override_end_duration m with
+        | None -> ()
+        | Some v -> (
+            try
+              self#log#info "Overriding crossfade end duration from metadata %s"
+                override_end_duration;
+              let l = float_of_string v in
+              end_duration_getter <- (fun () -> l);
+              self#set_end_main_duration
+            with _ -> ()));
+      (match Frame.Metadata.find_opt override_max_start_duration m with
+        | None -> ()
+        | Some v -> (
+            try
+              self#log#info
+                "Overriding crossfade max start duration from metadata %s"
+                override_max_start_duration;
+              let l = float_of_string v in
+              max_start_duration <- Some l
+            with _ -> ()));
       match Frame.Metadata.find_opt override_start_duration m with
         | None -> ()
         | Some v -> (
@@ -267,10 +310,18 @@ class cross val_source ~end_duration_getter ~override_end_duration
           self#analyze_after ~expected_end_duration:end_main_duration)
         else self#buffer_before ~is_first:false ())
 
+    method private expected_start_duration =
+      let max_start_main_duration =
+        Option.value ~default:start_main_duration max_start_main_duration
+      in
+      if start_main_duration < Generator.length gen_before then
+        min end_main_duration max_start_main_duration
+      else start_main_duration
+
     (* Analyze the beginning of a new track. *)
     method private analyze_after ~expected_end_duration =
       let rec f ~is_first () =
-        let expected_start_duration = start_main_duration in
+        let expected_start_duration = self#expected_start_duration in
         if
           Generator.length gen_after < expected_start_duration
           && source#is_ready
@@ -429,6 +480,13 @@ let _ =
         Some
           "Metadata field which, if present and containing a float, overrides \
            the 'start_duration' parameter for current track." );
+      ( "override_max_start_duration",
+        Lang.string_t,
+        Some (Lang.string "liq_cross_max_start_duration"),
+        Some
+          "Metadata field which, if present and containing a float, informs \
+           the crossfade of the maximum start duration. When not present, it \
+           is assumed to be `0.`." );
       ( "override_end_duration",
         Lang.string_t,
         Some (Lang.string "liq_cross_end_duration"),
@@ -496,6 +554,9 @@ let _ =
       let override_start_duration =
         Lang.to_string (List.assoc "override_start_duration" p)
       in
+      let override_max_start_duration =
+        Lang.to_string (List.assoc "override_max_start_duration" p)
+      in
       let override_end_duration =
         Lang.to_string (List.assoc "override_end_duration" p)
       in
@@ -509,5 +570,5 @@ let _ =
       let source = Lang.assoc "" 2 p in
       new cross
         source transition ~start_duration_getter ~end_duration_getter ~rms_width
-        ~override_start_duration ~override_end_duration ~override_duration
-        ~persist_override)
+        ~override_start_duration ~override_max_start_duration
+        ~override_end_duration ~override_duration ~persist_override)
