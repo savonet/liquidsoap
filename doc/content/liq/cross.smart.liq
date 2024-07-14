@@ -25,8 +25,8 @@ def transition(a, b) =
   then
     sequence([a.source, b.source])
   else
-    # Else, apply the standard smart transition
-    cross.smart(a, b)
+    # Else, apply the standard transition
+    cross.simple(a, b)
   end
 end
 

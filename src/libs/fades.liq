@@ -668,7 +668,7 @@ end
 # @param a Ending track
 # @param b Starting track
 def cross.simple(
-  ~log,
+  ~log=(fun (s) -> log(label="cross.simple", level=3, s)),
   ~fade_in=3.,
   ~fade_out=3.,
   ~initial_fade_in_metadata=[],
