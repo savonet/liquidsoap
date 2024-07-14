@@ -687,9 +687,9 @@ def cross.simple(
 
   fade_in_delay =
     if
-      list.assoc.mem("liq_fade_in_duration", initial_fade_in_metadata)
+      list.assoc.mem("liq_fade_in_delay", initial_fade_in_metadata)
     then
-      float_of_string(initial_fade_in_metadata["liq_fade_in_duration"])
+      float_of_string(initial_fade_in_metadata["liq_fade_in_delay"])
     else
       fade_out_start_next
     end
