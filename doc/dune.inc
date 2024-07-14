@@ -85,7 +85,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -136,32 +136,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -237,7 +211,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -288,32 +262,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -389,7 +337,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -440,32 +388,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -541,7 +463,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -592,32 +514,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -693,7 +589,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -744,32 +640,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -845,7 +715,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -896,32 +766,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -997,7 +841,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -1048,32 +892,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1149,7 +967,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -1200,32 +1018,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1301,7 +1093,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -1352,32 +1144,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1453,7 +1219,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -1504,32 +1270,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1605,7 +1345,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -1656,32 +1396,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1757,7 +1471,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -1808,32 +1522,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -1909,7 +1597,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -1960,32 +1648,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2061,7 +1723,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -2112,32 +1774,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2213,7 +1849,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -2264,32 +1900,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2365,7 +1975,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -2416,32 +2026,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2517,7 +2101,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -2568,32 +2152,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2669,7 +2227,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -2720,32 +2278,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2821,7 +2353,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -2872,32 +2404,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -2973,7 +2479,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -3024,32 +2530,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3125,7 +2605,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -3176,32 +2656,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3277,7 +2731,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -3328,32 +2782,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3429,7 +2857,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -3480,32 +2908,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3581,7 +2983,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -3632,32 +3034,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3733,7 +3109,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -3784,32 +3160,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -3885,7 +3235,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -3936,32 +3286,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4037,7 +3361,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -4088,32 +3412,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4189,7 +3487,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -4240,32 +3538,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4341,7 +3613,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -4392,32 +3664,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4493,7 +3739,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -4544,32 +3790,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4645,7 +3865,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -4696,32 +3916,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4797,7 +3991,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -4848,32 +4042,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -4949,7 +4117,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -5000,32 +4168,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5101,7 +4243,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -5152,32 +4294,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5253,7 +4369,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -5304,32 +4420,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5405,7 +4495,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -5456,32 +4546,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5557,7 +4621,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -5608,32 +4672,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5709,7 +4747,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -5760,32 +4798,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -5861,7 +4873,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -5912,32 +4924,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6013,7 +4999,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -6064,32 +5050,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6165,7 +5125,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -6216,32 +5176,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6317,7 +5251,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -6368,32 +5302,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6469,7 +5377,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -6520,32 +5428,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6621,7 +5503,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -6672,32 +5554,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6773,7 +5629,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -6824,32 +5680,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -6925,7 +5755,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -6976,32 +5806,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7077,7 +5881,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -7128,32 +5932,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7208,462 +5986,6 @@
   (alias doc)
   (enabled_if (not %{bin-available:pandoc}))
   (deps (:no_pandoc no-pandoc))
-  (target on2_part1.html)
-  (action (run cp %{no_pandoc} %{target}))
-)
-
-(rule
-  (alias doc)
-  (enabled_if %{bin-available:pandoc})
-  (deps
-    liquidsoap.xml
-    language.dtd
-    template.html
-    content/liq/append-silence.liq
-    content/liq/archive-cleaner.liq
-    content/liq/basic-radio.liq
-    content/liq/beets-amplify.liq
-    content/liq/beets-protocol-short.liq
-    content/liq/beets-protocol.liq
-    content/liq/beets-source.liq
-    content/liq/blank-detect.liq
-    content/liq/blank-sorry.liq
-    content/liq/complete-case.liq
-    content/liq/cross.smart.liq
-    content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
-    content/liq/dump-hourly.liq
-    content/liq/dump-hourly2.liq
-    content/liq/dynamic-source.liq
-    content/liq/external-output.file.liq
-    content/liq/fallback.liq
-    content/liq/ffmpeg-filter-dynamic-volume.liq
-    content/liq/ffmpeg-filter-flanger-highpass.liq
-    content/liq/ffmpeg-filter-hflip.liq
-    content/liq/ffmpeg-filter-hflip2.liq
-    content/liq/ffmpeg-filter-parallel-flanger-highpass.liq
-    content/liq/ffmpeg-live-switch.liq
-    content/liq/ffmpeg-relay-ondemand.liq
-    content/liq/ffmpeg-relay.liq
-    content/liq/ffmpeg-shared-encoding-rtmp.liq
-    content/liq/ffmpeg-shared-encoding.liq
-    content/liq/fixed-time1.liq
-    content/liq/fixed-time2.liq
-    content/liq/frame-size.liq
-    content/liq/harbor-auth.liq
-    content/liq/harbor-dynamic.liq
-    content/liq/harbor-insert-metadata.liq
-    content/liq/harbor-metadata.liq
-    content/liq/harbor-redirect.liq
-    content/liq/harbor-simple.liq
-    content/liq/harbor-usage.liq
-    content/liq/harbor.http.register.liq
-    content/liq/harbor.http.response.liq
-    content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
-    content/liq/http-input.liq
-    content/liq/icy-update.liq
-    content/liq/input.mplayer.liq
-    content/liq/jingle-hour.liq
-    content/liq/json-ex.liq
-    content/liq/json-stringify.liq
-    content/liq/json1.liq
-    content/liq/live-switch.liq
-    content/liq/medialib-predicate.liq
-    content/liq/medialib.liq
-    content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
-    content/liq/multitrack-add-video-track2.liq
-    content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
-    content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
-    content/liq/output.file.hls.liq
-    content/liq/playlists.liq
-    content/liq/prometheus-callback.liq
-    content/liq/prometheus-settings.liq
-    content/liq/radiopi.liq
-    content/liq/re-encode.liq
-    content/liq/regular.liq
-    content/liq/replaygain-metadata.liq
-    content/liq/replaygain-playlist.liq
-    content/liq/request.dynamic.liq
-    content/liq/rtmp.liq
-    content/liq/samplerate3.liq
-    content/liq/scheduling.liq
-    content/liq/seek-telnet.liq
-    content/liq/settings.liq
-    content/liq/shoutcast.liq
-    content/liq/single.liq
-    content/liq/source-cue.liq
-    content/liq/space_overhead.liq
-    content/liq/split-cue.liq
-    content/liq/sqlite.liq
-    content/liq/srt-receiver.liq
-    content/liq/srt-sender.liq
-    content/liq/switch-show.liq
-    content/liq/transcoding.liq
-    content/liq/video-anonymizer.liq
-    content/liq/video-bluescreen.liq
-    content/liq/video-canvas-example.liq
-    content/liq/video-default-canvas.liq
-    content/liq/video-in-video.liq
-    content/liq/video-logo.liq
-    content/liq/video-osc.liq
-    content/liq/video-simple.liq
-    content/liq/video-static.liq
-    content/liq/video-text.liq
-    content/liq/video-transition.liq
-    content/liq/video-weather.liq
-    content/liq/video-webcam.liq
-    (:md content/on2_part1.md)
-  )
-  (target on2_part1.html)
-  (action
-    (pipe-stdout
-      (run pandoc %{md} -t json)
-      (run pandoc-include --directory content/liq)
-      (run pandoc -f json --syntax-definition=liquidsoap.xml --highlight=pygments --metadata pagetitle=on2_part1 --template=template.html -o %{target})
-    )
-  )
-)
-
-(rule
-  (alias doc)
-  (enabled_if (not %{bin-available:pandoc}))
-  (deps (:no_pandoc no-pandoc))
-  (target on2_part2.html)
-  (action (run cp %{no_pandoc} %{target}))
-)
-
-(rule
-  (alias doc)
-  (enabled_if %{bin-available:pandoc})
-  (deps
-    liquidsoap.xml
-    language.dtd
-    template.html
-    content/liq/append-silence.liq
-    content/liq/archive-cleaner.liq
-    content/liq/basic-radio.liq
-    content/liq/beets-amplify.liq
-    content/liq/beets-protocol-short.liq
-    content/liq/beets-protocol.liq
-    content/liq/beets-source.liq
-    content/liq/blank-detect.liq
-    content/liq/blank-sorry.liq
-    content/liq/complete-case.liq
-    content/liq/cross.smart.liq
-    content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
-    content/liq/dump-hourly.liq
-    content/liq/dump-hourly2.liq
-    content/liq/dynamic-source.liq
-    content/liq/external-output.file.liq
-    content/liq/fallback.liq
-    content/liq/ffmpeg-filter-dynamic-volume.liq
-    content/liq/ffmpeg-filter-flanger-highpass.liq
-    content/liq/ffmpeg-filter-hflip.liq
-    content/liq/ffmpeg-filter-hflip2.liq
-    content/liq/ffmpeg-filter-parallel-flanger-highpass.liq
-    content/liq/ffmpeg-live-switch.liq
-    content/liq/ffmpeg-relay-ondemand.liq
-    content/liq/ffmpeg-relay.liq
-    content/liq/ffmpeg-shared-encoding-rtmp.liq
-    content/liq/ffmpeg-shared-encoding.liq
-    content/liq/fixed-time1.liq
-    content/liq/fixed-time2.liq
-    content/liq/frame-size.liq
-    content/liq/harbor-auth.liq
-    content/liq/harbor-dynamic.liq
-    content/liq/harbor-insert-metadata.liq
-    content/liq/harbor-metadata.liq
-    content/liq/harbor-redirect.liq
-    content/liq/harbor-simple.liq
-    content/liq/harbor-usage.liq
-    content/liq/harbor.http.register.liq
-    content/liq/harbor.http.response.liq
-    content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
-    content/liq/http-input.liq
-    content/liq/icy-update.liq
-    content/liq/input.mplayer.liq
-    content/liq/jingle-hour.liq
-    content/liq/json-ex.liq
-    content/liq/json-stringify.liq
-    content/liq/json1.liq
-    content/liq/live-switch.liq
-    content/liq/medialib-predicate.liq
-    content/liq/medialib.liq
-    content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
-    content/liq/multitrack-add-video-track2.liq
-    content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
-    content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
-    content/liq/output.file.hls.liq
-    content/liq/playlists.liq
-    content/liq/prometheus-callback.liq
-    content/liq/prometheus-settings.liq
-    content/liq/radiopi.liq
-    content/liq/re-encode.liq
-    content/liq/regular.liq
-    content/liq/replaygain-metadata.liq
-    content/liq/replaygain-playlist.liq
-    content/liq/request.dynamic.liq
-    content/liq/rtmp.liq
-    content/liq/samplerate3.liq
-    content/liq/scheduling.liq
-    content/liq/seek-telnet.liq
-    content/liq/settings.liq
-    content/liq/shoutcast.liq
-    content/liq/single.liq
-    content/liq/source-cue.liq
-    content/liq/space_overhead.liq
-    content/liq/split-cue.liq
-    content/liq/sqlite.liq
-    content/liq/srt-receiver.liq
-    content/liq/srt-sender.liq
-    content/liq/switch-show.liq
-    content/liq/transcoding.liq
-    content/liq/video-anonymizer.liq
-    content/liq/video-bluescreen.liq
-    content/liq/video-canvas-example.liq
-    content/liq/video-default-canvas.liq
-    content/liq/video-in-video.liq
-    content/liq/video-logo.liq
-    content/liq/video-osc.liq
-    content/liq/video-simple.liq
-    content/liq/video-static.liq
-    content/liq/video-text.liq
-    content/liq/video-transition.liq
-    content/liq/video-weather.liq
-    content/liq/video-webcam.liq
-    (:md content/on2_part2.md)
-  )
-  (target on2_part2.html)
-  (action
-    (pipe-stdout
-      (run pandoc %{md} -t json)
-      (run pandoc-include --directory content/liq)
-      (run pandoc -f json --syntax-definition=liquidsoap.xml --highlight=pygments --metadata pagetitle=on2_part2 --template=template.html -o %{target})
-    )
-  )
-)
-
-(rule
-  (alias doc)
-  (enabled_if (not %{bin-available:pandoc}))
-  (deps (:no_pandoc no-pandoc))
-  (target on2_part3.html)
-  (action (run cp %{no_pandoc} %{target}))
-)
-
-(rule
-  (alias doc)
-  (enabled_if %{bin-available:pandoc})
-  (deps
-    liquidsoap.xml
-    language.dtd
-    template.html
-    content/liq/append-silence.liq
-    content/liq/archive-cleaner.liq
-    content/liq/basic-radio.liq
-    content/liq/beets-amplify.liq
-    content/liq/beets-protocol-short.liq
-    content/liq/beets-protocol.liq
-    content/liq/beets-source.liq
-    content/liq/blank-detect.liq
-    content/liq/blank-sorry.liq
-    content/liq/complete-case.liq
-    content/liq/cross.smart.liq
-    content/liq/crossfade.liq
-    content/liq/decoder-faad.liq
-    content/liq/decoder-flac.liq
-    content/liq/decoder-metaflac.liq
-    content/liq/dump-hourly.liq
-    content/liq/dump-hourly2.liq
-    content/liq/dynamic-source.liq
-    content/liq/external-output.file.liq
-    content/liq/fallback.liq
-    content/liq/ffmpeg-filter-dynamic-volume.liq
-    content/liq/ffmpeg-filter-flanger-highpass.liq
-    content/liq/ffmpeg-filter-hflip.liq
-    content/liq/ffmpeg-filter-hflip2.liq
-    content/liq/ffmpeg-filter-parallel-flanger-highpass.liq
-    content/liq/ffmpeg-live-switch.liq
-    content/liq/ffmpeg-relay-ondemand.liq
-    content/liq/ffmpeg-relay.liq
-    content/liq/ffmpeg-shared-encoding-rtmp.liq
-    content/liq/ffmpeg-shared-encoding.liq
-    content/liq/fixed-time1.liq
-    content/liq/fixed-time2.liq
-    content/liq/frame-size.liq
-    content/liq/harbor-auth.liq
-    content/liq/harbor-dynamic.liq
-    content/liq/harbor-insert-metadata.liq
-    content/liq/harbor-metadata.liq
-    content/liq/harbor-redirect.liq
-    content/liq/harbor-simple.liq
-    content/liq/harbor-usage.liq
-    content/liq/harbor.http.register.liq
-    content/liq/harbor.http.response.liq
-    content/liq/hls-metadata.liq
-    content/liq/hls-mp4.liq
-    content/liq/http-input.liq
-    content/liq/icy-update.liq
-    content/liq/input.mplayer.liq
-    content/liq/jingle-hour.liq
-    content/liq/json-ex.liq
-    content/liq/json-stringify.liq
-    content/liq/json1.liq
-    content/liq/live-switch.liq
-    content/liq/medialib-predicate.liq
-    content/liq/medialib.liq
-    content/liq/medialib.sqlite.liq
-    content/liq/multitrack-add-video-track.liq
-    content/liq/multitrack-add-video-track2.liq
-    content/liq/multitrack-default-video-track.liq
-    content/liq/multitrack.liq
-    content/liq/multitrack2.liq
-    content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
-    content/liq/output.file.hls.liq
-    content/liq/playlists.liq
-    content/liq/prometheus-callback.liq
-    content/liq/prometheus-settings.liq
-    content/liq/radiopi.liq
-    content/liq/re-encode.liq
-    content/liq/regular.liq
-    content/liq/replaygain-metadata.liq
-    content/liq/replaygain-playlist.liq
-    content/liq/request.dynamic.liq
-    content/liq/rtmp.liq
-    content/liq/samplerate3.liq
-    content/liq/scheduling.liq
-    content/liq/seek-telnet.liq
-    content/liq/settings.liq
-    content/liq/shoutcast.liq
-    content/liq/single.liq
-    content/liq/source-cue.liq
-    content/liq/space_overhead.liq
-    content/liq/split-cue.liq
-    content/liq/sqlite.liq
-    content/liq/srt-receiver.liq
-    content/liq/srt-sender.liq
-    content/liq/switch-show.liq
-    content/liq/transcoding.liq
-    content/liq/video-anonymizer.liq
-    content/liq/video-bluescreen.liq
-    content/liq/video-canvas-example.liq
-    content/liq/video-default-canvas.liq
-    content/liq/video-in-video.liq
-    content/liq/video-logo.liq
-    content/liq/video-osc.liq
-    content/liq/video-simple.liq
-    content/liq/video-static.liq
-    content/liq/video-text.liq
-    content/liq/video-transition.liq
-    content/liq/video-weather.liq
-    content/liq/video-webcam.liq
-    (:md content/on2_part3.md)
-  )
-  (target on2_part3.html)
-  (action
-    (pipe-stdout
-      (run pandoc %{md} -t json)
-      (run pandoc-include --directory content/liq)
-      (run pandoc -f json --syntax-definition=liquidsoap.xml --highlight=pygments --metadata pagetitle=on2_part3 --template=template.html -o %{target})
-    )
-  )
-)
-
-(rule
-  (alias doc)
-  (enabled_if (not %{bin-available:pandoc}))
-  (deps (:no_pandoc no-pandoc))
   (target phases.html)
   (action (run cp %{no_pandoc} %{target}))
 )
@@ -7685,7 +6007,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -7736,32 +6058,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7837,7 +6133,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -7888,32 +6184,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -7989,7 +6259,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -8040,32 +6310,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8141,7 +6385,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -8192,32 +6436,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8293,7 +6511,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -8344,32 +6562,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8445,7 +6637,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -8496,32 +6688,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8597,7 +6763,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -8648,32 +6814,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8749,7 +6889,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -8800,32 +6940,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -8901,7 +7015,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -8952,32 +7066,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9053,7 +7141,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -9104,32 +7192,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9205,7 +7267,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -9256,32 +7318,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9357,7 +7393,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -9408,32 +7444,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9509,7 +7519,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -9560,32 +7570,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9661,7 +7645,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -9712,32 +7696,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9813,7 +7771,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -9864,32 +7822,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -9965,7 +7897,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -10016,32 +7948,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10117,7 +8023,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -10168,32 +8074,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10269,7 +8149,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -10320,32 +8200,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10421,7 +8275,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -10472,32 +8326,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10573,7 +8401,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -10624,32 +8452,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10725,7 +8527,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -10776,32 +8578,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -10877,7 +8653,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -10928,32 +8704,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -11029,7 +8779,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -11080,32 +8830,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -11181,7 +8905,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -11232,32 +8956,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -11333,7 +9031,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -11384,32 +9082,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -11485,7 +9157,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -11536,32 +9208,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -11637,7 +9283,7 @@
     content/liq/blank-detect.liq
     content/liq/blank-sorry.liq
     content/liq/complete-case.liq
-    content/liq/cross.smart.liq
+    content/liq/cross.custom.liq
     content/liq/crossfade.liq
     content/liq/decoder-faad.liq
     content/liq/decoder-flac.liq
@@ -11688,32 +9334,6 @@
     content/liq/multitrack.liq
     content/liq/multitrack2.liq
     content/liq/multitrack3.liq
-    content/liq/on2-crossfade.liq
-    content/liq/on2-fallible.liq
-    content/liq/on2-file-output.liq
-    content/liq/on2-function.liq
-    content/liq/on2-if.liq
-    content/liq/on2-if2.liq
-    content/liq/on2-initial.liq
-    content/liq/on2-interactive.liq
-    content/liq/on2-log.liq
-    content/liq/on2-login.liq
-    content/liq/on2-metadata.liq
-    content/liq/on2-multiple.liq
-    content/liq/on2-notify.liq
-    content/liq/on2-overloaded.liq
-    content/liq/on2-print.liq
-    content/liq/on2-redefine.liq
-    content/liq/on2-remote.liq
-    content/liq/on2-replaygain.liq
-    content/liq/on2-safe.liq
-    content/liq/on2-scheduling.liq
-    content/liq/on2-seq.liq
-    content/liq/on2-slideshow.liq
-    content/liq/on2-smooth-add.liq
-    content/liq/on2-transition.liq
-    content/liq/on2-volume.liq
-    content/liq/on2-volume2.liq
     content/liq/output.file.hls.liq
     content/liq/playlists.liq
     content/liq/prometheus-callback.liq
@@ -11869,9 +9489,9 @@
   (package liquidsoap)
   (deps
     (source_tree ../src/libs)
-    (:test_liq content/liq/cross.smart.liq)
+    (:test_liq content/liq/cross.custom.liq)
   )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/cross.smart.liq))
+  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/cross.custom.liq))
 )
 
 (rule
@@ -12379,266 +9999,6 @@
   (package liquidsoap)
   (deps
     (source_tree ../src/libs)
-    (:test_liq content/liq/on2-crossfade.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-crossfade.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-fallible.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-fallible.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-file-output.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-file-output.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-function.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-function.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-if.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-if.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-if2.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-if2.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-initial.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-initial.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-interactive.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-interactive.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-log.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-log.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-login.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-login.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-metadata.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-metadata.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-multiple.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-multiple.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-notify.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-notify.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-overloaded.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-overloaded.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-print.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-print.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-redefine.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-redefine.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-remote.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-remote.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-replaygain.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-replaygain.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-safe.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-safe.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-scheduling.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-scheduling.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-seq.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-seq.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-slideshow.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-slideshow.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-smooth-add.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-smooth-add.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-transition.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-transition.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-volume.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-volume.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
-    (:test_liq content/liq/on2-volume2.liq)
-  )
-  (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/on2-volume2.liq))
-)
-
-(rule
-  (alias doctest)
-  (package liquidsoap)
-  (deps
-    (source_tree ../src/libs)
     (:test_liq content/liq/output.file.hls.liq)
   )
   (action (run %{bin:liquidsoap} --check --no-fallible-check content/liq/output.file.hls.liq))
@@ -13060,9 +10420,6 @@
     (migrating.html as html/migrating.html)
     (multitrack.html as html/multitrack.html)
     (on2.html as html/on2.html)
-    (on2_part1.html as html/on2_part1.html)
-    (on2_part2.html as html/on2_part2.html)
-    (on2_part3.html as html/on2_part3.html)
     (orig/css/homepage.css as html/css/homepage.css)
     (orig/css/style.css as html/css/style.css)
     (orig/fosdem2020/clock.png as html/fosdem2020/clock.png)
