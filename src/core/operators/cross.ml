@@ -305,9 +305,8 @@ class cross val_source ~end_duration_getter ~override_end_duration
 
         (* Should we buffer more or are we done ? *)
         if Frame.is_partial buf_frame then (
-          let end_main_duration = end_main_duration in
           if not persist_override then self#reset_duration;
-          self#analyze_after ~expected_end_duration:end_main_duration)
+          self#analyze_after)
         else self#buffer_before ~is_first:false ())
 
     method private expected_start_duration =
@@ -315,11 +314,11 @@ class cross val_source ~end_duration_getter ~override_end_duration
         Option.value ~default:start_main_duration max_start_main_duration
       in
       if start_main_duration < Generator.length gen_before then
-        min end_main_duration max_start_main_duration
+        min (Generator.length gen_before) max_start_main_duration
       else start_main_duration
 
     (* Analyze the beginning of a new track. *)
-    method private analyze_after ~expected_end_duration =
+    method private analyze_after =
       let rec f ~is_first () =
         let expected_start_duration = self#expected_start_duration in
         if
@@ -340,15 +339,14 @@ class cross val_source ~end_duration_getter ~override_end_duration
               "End of track reached while buffering next track data, crossfade \
                duration is longer than the track's duration. Make sure to \
                adjust the crossfade duration to avoid issues.";
-            self#create_after ~expected_start_duration ~expected_end_duration)
+            self#create_after)
           else f ~is_first:false ())
-        else self#create_after ~expected_start_duration ~expected_end_duration
+        else self#create_after
       in
       f ~is_first:true ()
 
     (* Sum up analysis and build the transition *)
-    method private create_after ~expected_start_duration ~expected_end_duration
-        =
+    method private create_after =
       let db_after =
         Audio.dB_of_lin
           (sqrt (rms_after /. float rmsi_after /. float self#audio_channels))
@@ -386,11 +384,6 @@ class cross val_source ~end_duration_getter ~override_end_duration
                   [
                     ("source", Lang.source before);
                     ("db_level", Lang.float db_before);
-                    ( "expected_duration",
-                      Lang.float (Frame.seconds_of_main expected_end_duration)
-                    );
-                    ( "buffered",
-                      Lang.float (Frame.seconds_of_main buffered_before) );
                     ("metadata", Lang.metadata before_metadata);
                   ] );
               ( "",
@@ -398,11 +391,6 @@ class cross val_source ~end_duration_getter ~override_end_duration
                   [
                     ("source", Lang.source after);
                     ("db_level", Lang.float db_after);
-                    ( "expected_duration",
-                      Lang.float (Frame.seconds_of_main expected_start_duration)
-                    );
-                    ( "buffered",
-                      Lang.float (Frame.seconds_of_main buffered_after) );
                     ("metadata", Lang.metadata after_metadata);
                   ] );
             ]
@@ -449,8 +437,6 @@ let _ =
       [
         ("source", ([], Lang.source_t frame_t), "Source");
         ("db_level", ([], Lang.float_t), "dB level of the source.");
-        ("expected_duration", ([], Lang.float_t), "Expected buffered duration.");
-        ("buffered", ([], Lang.float_t), "Buffered duration.");
         ("metadata", ([], Lang.metadata_t), "Metadata of the source.");
       ]
   in

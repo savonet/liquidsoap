@@ -796,13 +796,6 @@ def crossfade(
       metadata.cover.remove(a.metadata)
     )
 
-    log(
-      level=4,
-      "Before: expected duration: #{a.expected_duration}, buffered: #{
-        a.buffered
-      }"
-    )
-
     list.iter(
       fun (x) ->
         log(
@@ -810,13 +803,6 @@ def crossfade(
           "After : #{x}"
         ),
       metadata.cover.remove(b.metadata)
-    )
-
-    log(
-      level=4,
-      "After: expected duration: #{b.expected_duration}, buffered: #{
-        b.buffered
-      }"
     )
 
     cross.simple(
