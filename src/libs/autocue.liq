@@ -896,7 +896,7 @@ def file.autocue.metadata(~metadata, uri) =
         ("liq_cue_in", string(cue_in)),
         ("liq_cue_out", string(cue_out)),
         ("liq_cross_start_duration", string(fade_in)),
-        ("liq_max_start_duration", string(max_start_duration)),
+        ("liq_cross_max_start_duration", string(max_start_duration)),
         ("liq_cross_end_duration", string(total_fade_out)),
         ("liq_fade_in", string(fade_in)),
         ...opt_arg("liq_fade_in_type", fade_in_type),
