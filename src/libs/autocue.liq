@@ -8,15 +8,6 @@ let settings.autocue.implementations =
     []
   )
 
-let settings.autocue.target_cross_duration =
-  settings.make(
-    description=
-      "How much data should be buffer from each track when computing crossfade \
-       transitions. This will be shorter if one of the track is shorter than \
-       that.",
-    3.
-  )
-
 let settings.autocue.metadata = ()
 
 let settings.autocue.metadata.priority =
@@ -843,8 +834,6 @@ def file.autocue.metadata(~metadata, uri) =
       let {cue_in, cue_out, fade_in, fade_out} = autocue
 
       extra_metadata = autocue.extra_metadata ?? []
-      target_cross_duration = settings.autocue.target_cross_duration()
-
       amplify = autocue?.amplify
 
       fade_in_type = autocue?.fade_in_type
@@ -896,32 +885,6 @@ def file.autocue.metadata(~metadata, uri) =
 
       total_fade_out = fade_out + fade_out_delay
 
-      cross_duration =
-        if
-          cue_out - cue_in < target_cross_duration * 2.
-        or
-          target_cross_duration < fade_in
-        or
-          target_cross_duration < total_fade_out
-        then
-          max(fade_in, total_fade_out)
-        else
-          target_cross_duration
-        end
-
-      # Make sure cross_duration is never 0.
-      cross_duration = max(cross_duration, 0.1)
-
-      fade_out_delay =
-        fade_out_delay +
-          if
-            total_fade_out < cross_duration
-          then
-            cross_duration - total_fade_out
-          else
-            0.
-          end
-
       opt_arg = fun (lbl, v) -> null.defined(v) ? [(lbl, string(v))] : []
 
       [
@@ -930,8 +893,8 @@ def file.autocue.metadata(~metadata, uri) =
 
         ("liq_cue_in", string(cue_in)),
         ("liq_cue_out", string(cue_out)),
-        ("liq_cross_start_duration", string(cross_duration)),
-        ("liq_cross_end_duration", string(cross_duration)),
+        ("liq_cross_start_duration", string(fade_in)),
+        ("liq_cross_end_duration", string(total_fade_out)),
         ("liq_fade_in", string(fade_in)),
         ...opt_arg("liq_fade_in_type", fade_in_type),
         ...opt_arg("liq_fade_in_curve", fade_in_curve),
