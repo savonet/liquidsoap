@@ -26,7 +26,7 @@ def transition(a, b) =
     sequence([a.source, b.source])
   else
     # Else, apply the standard transition
-    cross.simple(a, b)
+    cross.simple(a.source, b.source)
   end
 end
 
