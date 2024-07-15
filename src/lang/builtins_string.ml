@@ -30,6 +30,15 @@ let _ =
       Lang.string (s1 ^ s2))
 
 let _ =
+  Lang.add_builtin ~base:string "digest" ~category:`String
+    ~descr:"Return an MD5 digest for the given string."
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
+      let data = Lang.to_string (List.assoc "" p) in
+      Lang.string Digest.(to_hex (string data)))
+
+let _ =
   Lang.add_builtin ~base:string "concat" ~category:`String
     ~descr:"Concatenate strings."
     [
