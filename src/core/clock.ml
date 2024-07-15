@@ -68,7 +68,12 @@ let allow_streaming_errors =
 let conf_log_delay =
   Dtools.Conf.float
     ~p:(conf_clock#plug "log_delay")
-    ~d:1. "How often (in seconds) we should indicate catchup errors."
+    ~d:1. "How often (in seconds) we should notify latency issues."
+
+let conf_log_delay_threshold =
+  Dtools.Conf.float
+    ~p:(conf_clock#plug "log_delay_threshold")
+    ~d:0.2 "Notify latency issues after delay exceeds this threshold."
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "root") "Streaming clock settings"
@@ -107,6 +112,7 @@ type active_params = {
   time_implementation : Liq_time.implementation;
   t0 : Liq_time.t;
   log_delay : Liq_time.t;
+  log_delay_threshold : Liq_time.t;
   frame_duration : Liq_time.t;
   max_latency : Liq_time.t;
   last_catchup_log : Liq_time.t Atomic.t;
@@ -317,7 +323,8 @@ let _after_tick ~clock x =
     | `Unsynced, _, _ | `Passive, _, _ | `Automatic, true, _ -> ()
     | `Automatic, false, true | `CPU, _, true -> Time.sleep_until target_time
     | _ ->
-        if Time.(x.max_latency |<=| (end_time |-| target_time)) then (
+        let latency = Time.(end_time |-| target_time) in
+        if Time.(x.max_latency |<=| latency) then (
           x.log#severe "Too much latency! Resetting active sources...";
           _set_time x target_time;
           List.iter
@@ -328,7 +335,9 @@ let _after_tick ~clock x =
                 | `Output s -> s#reset)
             (_animated_sources x))
         else if
-          Time.(x.log_delay |<=| (end_time |-| Atomic.get x.last_catchup_log))
+          Time.(
+            x.log_delay_threshold |<=| latency
+            && x.log_delay |<=| (end_time |-| Atomic.get x.last_catchup_log))
         then (
           Atomic.set x.last_catchup_log end_time;
           x.log#severe "We must catchup %.2f seconds!"
@@ -436,12 +445,14 @@ and start ?(force = false) c =
         let frame_duration = Time.of_float (Lazy.force Frame.duration) in
         let max_latency = Time.of_float conf_max_latency#get in
         let log_delay = Time.of_float conf_log_delay#get in
+        let log_delay_threshold = Time.of_float conf_log_delay_threshold#get in
         let t0 = Time.time () in
         let last_catchup_log = Atomic.make t0 in
         let x =
           {
             frame_duration;
             log_delay;
+            log_delay_threshold;
             max_latency;
             time_implementation;
             t0;
