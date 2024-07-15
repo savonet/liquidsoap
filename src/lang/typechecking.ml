@@ -29,8 +29,24 @@ let debug = ref false
 
 (** {1 Type checking / inference} *)
 
-(** Can a function body type be generalized after being applied?
-    This is called after typechecking the function. *)
+(** Can a function return type be generalized after being applied?
+    Current implementation considers it safe to generalize when all
+    universal types in the function return type are specified by a non-optional
+    argument.
+
+    For instance, this can be generalized:
+      [def f() = fun (x) -> x end; fn = f() : fun ('a) -> 'a ]
+    But this cannot:
+      [s = single() : source('A) ]
+    and this cannot either:
+      [def f() = fun (x=null()) -> ref(x) end; fn = f() : (?'A?) -> ref('A) ]
+
+    When all universal types in the return are specified by a non-optional
+    argument, we are assured that anything that would be generalized is later
+    specified when the required argument is passed. If this argument is still
+    of a universal type, then the argument's universal type takes over the
+    type that was generalized. *)
+
 let function_app_value_restriction fn =
   let rec filter_app_vars l t =
     let t = Type.deref t in
