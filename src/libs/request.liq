@@ -34,7 +34,7 @@ end
 def request.queue(
   ~id=null(),
   ~interactive=true,
-  ~prefetch=1,
+  ~prefetch=null(),
   ~native=false,
   ~queue=[],
   ~timeout=20.
@@ -113,13 +113,14 @@ def request.queue(
     [...s.queue(), ...(queue())]
   end
 
-  s = s.{
-    add=add,
-    push=push.{uri=push_uri},
-    length={list.length(queue()) + list.length(s.queue())},
-    set_queue=set_queue,
-    queue=get_queue
-  }
+  s =
+    s.{
+      add=add,
+      push=push.{uri=push_uri},
+      length={list.length(queue()) + list.length(s.queue())},
+      set_queue=set_queue,
+      queue=get_queue
+    }
 
   s.on_wake_up({s.set_queue(initial_queue)})
 
@@ -252,7 +253,7 @@ end
 # @param uri URI where to find the file
 def single(
   ~id=null("single"),
-  ~prefetch=1,
+  ~prefetch=null(),
   ~timeout=20.,
   ~fallible=false,
   ~cue_in_metadata=null("liq_cue_in"),
