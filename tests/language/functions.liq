@@ -35,6 +35,15 @@ def f() =
   x = replacesg
   let evalf = ()
   x = evalf
+
+  # Function application generalization
+  def f() =
+    fun (_) -> 1
+  end
+  fn = f()
+  fn(1)
+  fn("bla")
+
   test.pass()
 end
 
