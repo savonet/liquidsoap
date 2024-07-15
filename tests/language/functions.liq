@@ -41,8 +41,22 @@ def f() =
     fun (_) -> 1
   end
   fn = f()
-  fn(1)
-  fn("bla")
+  ignore(fn(1))
+  ignore(fn("bla"))
+
+  def f() =
+    fun (x) -> {foo=x}
+  end
+  fn = f()
+  test.equal(fn(1), {foo=1})
+  test.equal(fn("aabb"), {foo="aabb"})
+
+  def f() =
+    fun (x) -> {foo=x.gni}
+  end
+  fn = f()
+  test.equal(fn({gni=1}), {foo=1})
+  test.equal(fn({gni="aabb"}), {foo="aabb"})
 
   test.pass()
 end
