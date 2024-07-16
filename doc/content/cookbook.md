@@ -325,9 +325,9 @@ One limitation of these transitions, however, is that if the transition happen r
 
 Crossfade-based transitions are more complex and involve buffering source data in advance to be able to compute a transition where ending and starting track potentially overlap. This does not work with all type of sources since some of them, such as `input.http` may only receive data at real-time rate and cannot be accelerated to buffer their data or else we risk running out of data.
 
-We provide a default operator named `cross.smart` which may be suitable for most usage. But you can also create your own customized crossfade transitions. This is in particular true if you are expecting crossfade transitions between tracks of your `music` source but not between a `music` track and e.g. some jingles. Here's how to do it in this case:
+We provide a default operator named `cross.simple` transition which may be suitable for most usage. But you can also create your own customized crossfade transitions. This is in particular true if you are expecting crossfade transitions between tracks of your `music` source but not between a `music` track and e.g. some jingles. Here's how to do it in this case:
 
-```{.liquidsoap include="cross.smart.liq" from="BEGIN" to="END"}
+```{.liquidsoap include="cross.custom.liq" from="BEGIN" to="END"}
 
 ```
 

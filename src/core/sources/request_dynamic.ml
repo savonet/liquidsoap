@@ -23,6 +23,9 @@
 open Source
 module Queue = Liquidsoap_lang.Queues.Queue
 
+let conf_prefetch =
+  Dtools.Conf.int ~p:(Request.conf#plug "prefetch") ~d:1 "Default prefetch"
+
 (* Scheduler priority for request resolutions. *)
 let priority = `Maybe_blocking
 
@@ -43,12 +46,13 @@ let log_failed_request (log : Log.t) request ans =
   log#important "Could not resolve request %s: %s."
     (Request.initial_uri request)
     (match ans with
-      | Request.Failed -> "failed"
-      | Request.Timeout -> "timeout"
-      | Request.Resolved -> assert false)
+      | `Failed -> "failed"
+      | `Timeout -> "timeout"
+      | `Resolved -> "file could not be decoded with the correct content")
 
 let extract_queued_params p =
-  let l = Lang.to_int (List.assoc "prefetch" p) in
+  let l = Lang.to_valued_option Lang.to_int (List.assoc "prefetch" p) in
+  let l = Option.value ~default:conf_prefetch#get l in
   let t = Lang.to_float (List.assoc "timeout" p) in
   (l, t)
 
@@ -88,6 +92,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                 | Some f -> self#log#info "Finished with %S." f
             end;
             cur.close ();
+            Request.done_playing cur.req;
             Request.destroy cur.req
 
     method private fetch_request =
@@ -97,19 +102,18 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
           | `Retry _ | `Empty ->
               self#log#debug "Failed to prepare track: no file.";
               false
-          | `Request req when Request.resolved req && Request.ctype req <> None
-            ->
-              Frame.assert_compatible
-                (Option.get (Request.ctype req))
-                self#content_type;
-
+          | `Request req
+            when Request.resolved req
+                 && Request.has_decoder ~ctype:self#content_type req ->
               (* [Request.resolved] ensures that we can get a filename from the request,
                  and it can be decoded. *)
               let file = Option.get (Request.get_filename req) in
-              let decoder = Option.get (Request.get_decoder req) in
+              let decoder =
+                Option.get (Request.get_decoder ~ctype:self#content_type req)
+              in
               self#log#important "Prepared %s (RID %d)."
                 (Lang_string.quote_string file)
-                (Request.get_id req);
+                (Request.id req);
 
               (* We use this mutex to avoid seeking and filling at the same time.. *)
               let m = Mutex.create () in
@@ -148,8 +152,8 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         | Some cur ->
             let buf = cur.fread len in
             if first_fill then (
-              Request.on_air cur.req;
-              let m = Request.get_all_metadata cur.req in
+              Request.is_playing cur.req;
+              let m = Request.metadata cur.req in
               let buf = Frame.add_metadata buf 0 m in
               let buf = Frame.add_track_mark buf 0 in
               first_fill <- false;
@@ -209,9 +213,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         match
           Lang.to_valued_option Request.Value.of_value (Lang.apply f [])
         with
-          | Some r ->
-              Request.set_root_metadata r "source" self#id;
-              `Request r
+          | Some r -> `Request r
           | None -> retry ()
           | exception exn ->
               let bt = Printexc.get_backtrace () in
@@ -228,18 +230,16 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
     method set_queue =
       self#clear_retrieved;
       List.iter (fun request ->
-          match
-            Request.resolve ~ctype:(Some self#content_type) request timeout
-          with
-            | Request.Resolved ->
+          match Request.resolve request timeout with
+            | `Resolved
+              when Request.has_decoder ~ctype:self#content_type request ->
                 Queue.push retrieved { request; expired = false }
             | ans -> log_failed_request self#log request ans)
 
     method add i =
-      match
-        Request.resolve ~ctype:(Some self#content_type) i.request timeout
-      with
-        | Request.Resolved ->
+      match Request.resolve i.request timeout with
+        | `Resolved when Request.has_decoder ~ctype:self#content_type i.request
+          ->
             Queue.push retrieved i;
             true
         | ans ->
@@ -389,10 +389,9 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
         | `Retry fn -> `Retry fn
         | `Request req -> (
             resolving <- Some req;
-            match
-              Request.resolve ~ctype:(Some self#content_type) req timeout
-            with
-              | Request.Resolved ->
+            match Request.resolve req timeout with
+              | `Resolved when Request.has_decoder ~ctype:self#content_type req
+                ->
                   let rec remove_expired ret =
                     match Queue.pop_opt retrieved with
                       | None -> List.rev ret
@@ -413,8 +412,7 @@ class dynamic ~retry_delay ~available (f : Lang.value) prefetch timeout =
                   self#log#info "Queued %d requests" self#queue_size;
                   resolving <- None;
                   `Finished
-              | Request.Failed (* Failure of resolving or decoding *)
-              | Request.Timeout ->
+              | _ ->
                   resolving <- None;
                   Request.destroy req;
                   `Retry adaptative_delay)
@@ -450,8 +448,8 @@ let _ =
           "Whether some new requests are available (when set to false, it \
            stops after current playing request)." );
       ( "prefetch",
-        Lang.int_t,
-        Some (Lang.int 1),
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
         Some "How many requests should be queued in advance." );
       ( "timeout",
         Lang.float_t,

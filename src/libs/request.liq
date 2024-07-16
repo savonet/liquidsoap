@@ -34,7 +34,7 @@ end
 def request.queue(
   ~id=null(),
   ~interactive=true,
-  ~prefetch=1,
+  ~prefetch=null(),
   ~native=false,
   ~queue=[],
   ~timeout=20.
@@ -113,13 +113,14 @@ def request.queue(
     [...s.queue(), ...(queue())]
   end
 
-  s = s.{
-    add=add,
-    push=push.{uri=push_uri},
-    length={list.length(queue()) + list.length(s.queue())},
-    set_queue=set_queue,
-    queue=get_queue
-  }
+  s =
+    s.{
+      add=add,
+      push=push.{uri=push_uri},
+      length={list.length(queue()) + list.length(s.queue())},
+      set_queue=set_queue,
+      queue=get_queue
+    }
 
   s.on_wake_up({s.set_queue(initial_queue)})
 
@@ -210,7 +211,6 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
 
   done = ref(false)
   fail = fallback([])
-  s_ref = ref((fail : source))
 
   def next() =
     if
@@ -220,7 +220,7 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
     else
       done := true
       if
-        request.resolve(r, timeout=timeout, content_type=s_ref())
+        request.resolve(r, timeout=timeout)
       then
         request.queue(queue=[r])
       else
@@ -235,9 +235,8 @@ def request.once(~id=null("request.once"), ~timeout=20., r) =
   end
 
   s = source.dynamic(self_sync=false, track_sensitive=true, next)
-  s_ref := (s : source)
   (s : source_methods).{
-    resolve=fun () -> request.resolve(r, timeout=timeout, content_type=s),
+    resolve=fun () -> request.resolve(r, timeout=timeout),
     request=r
   }
 end
@@ -254,7 +253,7 @@ end
 # @param uri URI where to find the file
 def single(
   ~id=null("single"),
-  ~prefetch=1,
+  ~prefetch=null(),
   ~timeout=20.,
   ~fallible=false,
   ~cue_in_metadata=null("liq_cue_in"),
@@ -265,7 +264,6 @@ def single(
   infallible = request.is_static(uri) and not fallible
 
   static_request = ref(null())
-  s_ref = ref((fallback([]) : source))
   done = ref(false)
 
   def on_wake_up() =
@@ -284,7 +282,7 @@ def single(
           uri
         )
       if
-        not request.resolve(r, timeout=timeout, content_type=s_ref())
+        not request.resolve(r, timeout=timeout)
       then
         request.destroy(force=true, r)
         error.raise(
@@ -336,7 +334,6 @@ def single(
     )
   s.on_wake_up(on_wake_up)
   s.on_shutdown(on_shutdown)
-  s_ref := (s : source)
   (s : source_methods)
 end
 

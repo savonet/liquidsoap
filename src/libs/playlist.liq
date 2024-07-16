@@ -198,7 +198,7 @@ let stdlib_native = native
 def playlist.list(
   ~id=null(),
   ~check_next=null(),
-  ~prefetch=1,
+  ~prefetch=null(),
   ~loop=true,
   ~mode="normal",
   ~native=false,
@@ -370,7 +370,7 @@ def playlist.list(
         check_next(r)
       then
         if
-          not request.resolve(content_type=s, r)
+          not request.resolve(r)
         then
           log.info(
             label=id,
@@ -464,7 +464,7 @@ end
 def replaces playlist(
   ~id=null(),
   ~check_next=null(),
-  ~prefetch=1,
+  ~prefetch=null(),
   ~loop=true,
   ~max_fail=10,
   ~mime_type=null(),

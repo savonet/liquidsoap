@@ -1,26 +1,32 @@
-# Smart crossfade
+# Crossfade
 
-## Basic operator
+## Out of the box
 
-Liquidsoap includes an advanced crossfading operator. Using it, you can code which transition you want for your songs, according to the average volume level (in dB) computed on the end of the ending track and the beginning of the new one.
+Liquidsoap provides a default `crossfade` operator out of the box. It is a simple operator that does the work and does it well!
 
-The low level operator is `cross`. With it, you can register a function that returns the transition you like. The arguments passed to this function are:
+Over the years, we have realized that crossfading is a very sensitive topic and that people care a lot about specific details and how well
+it is done.
 
-- volume level for previous track
-- volume level for next track
-- metadata chunk for previous track
-- metadata chunk for next track
-- source corresponding to previous track
-- source corresponding to next track
+Since release `2.2.5`, liquidsoap integrates an automated mechanism to compute crossfade transitions that was contributed by our users.
+
+If you have the `ffmpeg` bindings enabled, all you should need to do to enable this feature is adding the following to your script:
+
+```liquidsoap
+enable_autocue_metadata()
+```
+
+This uses the default, internal implementation. If you want more control over the automated crossfade parameters, you can
+check out the external [autocue](https://github.com/Moonbase59/autocue) implementation and its associated documentation.
+
+## Custom crossfades
+
+You can also define your own crossfade transitions if you want to be more specific about them! The base `cross` operator accepts a scripted transition function that,
+according to the average volume level (in dB) computed on the end of the ending track and the beginning of the new one, returns the transition that is desired.
 
 You can find its documentation in the [language reference](reference.html).
 
-## Example
-
-Liquidsoap also includes a ready-to-use operator defined using `cross`, it is called `crossfade` and is defined in the pervasive helper script `utils.liq`. Its code is:
+Here's an example:
 
 ```{.liquidsoap include="crossfade.liq"}
 
 ```
-
-You can use it directly in your script, or use this code to define yours!

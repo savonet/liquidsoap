@@ -1,7 +1,7 @@
 dir = file.temp_dir(cleanup=true, "metadata-resolver")
 
 def media_protocol(~rlog=_, ~maxtime=_, arg) =
-  ["#{dir}/#{arg}"]
+  "#{dir}/#{arg}"
 end
 
 protocol.add("media", media_protocol)

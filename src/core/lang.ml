@@ -4,6 +4,7 @@ include Lang_encoder.L
 module Doc = Liquidsoap_lang.Doc
 module Flags = Liquidsoap_lang.Flags
 
+let source_t = source_t ?pos:None
 let () = Hooks_implementations.register ()
 
 (** Helpers for defining protocols. *)
