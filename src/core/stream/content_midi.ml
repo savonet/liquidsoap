@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ module Specs = struct
   type params = { channels : int }
   type data = MIDI.Multitrack.t
 
+  let name = "midi"
   let internal_content_type = Some `Midi
   let string_of_kind = function `Midi -> "midi"
   let string_of_params { channels } = Printf.sprintf "channels=%d" channels
@@ -48,7 +49,6 @@ module Specs = struct
   let params m = { channels = MIDI.Multitrack.channels m }
   let kind = `Midi
   let default_params _ = { channels = Lazy.force Frame_settings.midi_channels }
-  let clear _ = ()
 
   let make ?(length = 0) { channels } =
     MIDI.Multitrack.create channels (midi_of_main length)
@@ -62,6 +62,6 @@ module Specs = struct
       | _ | (exception _) -> None
 end
 
-include MkContent (Specs)
+include MkContentBase (Specs)
 
 let kind = lift_kind `Midi

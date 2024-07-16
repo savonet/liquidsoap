@@ -39,18 +39,26 @@ let run () =
 
   let runtime () =
     let runtime = Unix.time () -. start_time in
-    let min = runtime /. 60. in
-    let sec = runtime -. (min *. 60.) in
-    (int_of_float min, int_of_float sec)
+    let min = int_of_float (runtime /. 60.) in
+    let sec = runtime -. (float min *. 60.) in
+    (min, int_of_float sec)
   in
+
+  let () = Console.color_conf := `Always in
+  let colorized_test = Console.colorize [`white; `bold] test in
+  let colorized_timeout = Console.colorize [`magenta; `bold] "[timeout]" in
+  let colorized_ok = Console.colorize [`green; `bold] "[ok]" in
+  let colorized_skipped = Console.colorize [`yellow; `bold] "[skipped]" in
+  let colorized_failed = Console.colorize [`red; `bold] "[failed]" in
+
+  let pid_ref = ref None in
 
   let on_timeout () =
     let min, sec = runtime () in
-    Printf.eprintf
-      "%sRan test \027[1m%s\027[0m: \027[1;34m[timeout]\027[0m (Test time: \
-       %02dm:%02ds)\n"
-      error_prefix test min sec;
+    Printf.eprintf "%sRan test %s: %s (Test time: %02dm:%02ds)\n" error_prefix
+      colorized_test colorized_timeout min sec;
     print_log ();
+    (match !pid_ref with Some p -> Unix.kill p Sys.sigkill | None -> ());
     cleanup ();
     exit 1
   in
@@ -62,29 +70,55 @@ let run () =
          on_timeout ())
        ());
 
+  (*
+  Unix.putenv "MEMTRACE" (Printf.sprintf "%s.trace" test);
+*)
+  if String.starts_with ~prefix:"liquidsoap" cmd then (
+    let pid =
+      Unix.create_process cmd
+        (Array.concat
+           [
+             [| args.(0) |];
+             [| "--cache-only" |];
+             Array.sub args 1 (Array.length args - 1);
+           ])
+        stdin stdout stdout
+    in
+    pid_ref := Some pid;
+
+    match Unix.waitpid [] pid with
+      | _, Unix.WEXITED 0 ->
+          let min, sec = runtime () in
+          Printf.eprintf "Cache test %s: %s (Test time: %02dm:%02ds)\n"
+            colorized_test colorized_ok min sec;
+          if Sys.getenv_opt "LIQ_VERBOSE_TEST" <> None then print_log ();
+          cleanup ()
+      | _ ->
+          let min, sec = runtime () in
+          Printf.eprintf "%sCache test %s: %s (Test time: %02dm:%02ds)\n"
+            error_prefix colorized_test colorized_failed min sec;
+          print_log ();
+          exit 1);
+
   let pid = Unix.create_process cmd args stdin stdout stdout in
+  pid_ref := Some pid;
 
   match Unix.waitpid [] pid with
     | _, Unix.WEXITED 0 ->
         let min, sec = runtime () in
-        Printf.eprintf
-          "Ran test \027[1m%s\027[0m: \027[0;32m[ok]\027[0m (Test time: \
-           %02dm:%02ds)\n"
-          test min sec;
+        Printf.eprintf "Ran test %s: %s (Test time: %02dm:%02ds)\n"
+          colorized_test colorized_ok min sec;
         if Sys.getenv_opt "LIQ_VERBOSE_TEST" <> None then print_log ();
         cleanup ();
         exit 0
-    | _, Unix.WEXITED 2 ->
-        Printf.eprintf
-          "%sRan test \027[1m%s\027[0m: \027[1;33m[skipped]\027[0m\n"
-          warning_prefix test;
+    | _, Unix.WEXITED 123 ->
+        Printf.eprintf "%sRan test %s: %s\n" warning_prefix colorized_test
+          colorized_skipped;
         exit 0
     | _ ->
         let min, sec = runtime () in
-        Printf.eprintf
-          "%sRan test \027[1m%s\027[0m: \027[0;31m[failed]\027[0m (Test time: \
-           %02dm:%02ds)\n"
-          error_prefix test min sec;
+        Printf.eprintf "%sRan test %s: %s (Test time: %02dm:%02ds)\n"
+          error_prefix colorized_test colorized_failed min sec;
         print_log ();
         exit 1
 

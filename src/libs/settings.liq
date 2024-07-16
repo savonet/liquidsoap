@@ -3,18 +3,14 @@
 # @flag hidden
 def settings.make(~comments="", ~(description:string), v) =
   current_value = ref(v)
-  {!current_value}.{
-    description = description,
-    comments    = comments,
-    set         = (fun (v) -> current_value := v)
-  }
+  current_value.{description=description, comments=comments}
 end
 
 # Instantiate a new empty setting.
 # @category Settings
 # @flag hidden
 def settings.make.void(~comments="", (description:string)) =
-  { description = description, comments = comments }
+  {description=description, comments=comments}
 end
 
 let frame = ()

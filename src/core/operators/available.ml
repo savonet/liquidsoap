@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,27 +23,39 @@
 open Source
 
 class available ~track_sensitive ~override p (source : source) =
-  object
+  object (self)
     inherit operator ~name:"source.available" [source]
-    method stype = `Fallible
+    method fallible = true
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    val mutable ready = p ()
+    val mutable ready = None
 
-    method is_ready =
-      if not (track_sensitive () && ready) then ready <- p ();
-      ready && (override || source#is_ready)
+    method private ready =
+      match ready with
+        | None ->
+            let r = p () in
+            ready <- Some r;
+            r
+        | Some r -> r
 
-    method private get_frame buf =
-      source#get buf;
-      if track_sensitive () && Frame.is_partial buf then ready <- p ()
+    method private can_generate_frame =
+      if not (track_sensitive () && self#ready) then ready <- Some (p ());
+      self#ready && (override || source#is_ready)
+
+    method private generate_frame =
+      let frame = source#get_frame in
+      match self#split_frame frame with
+        | buf, None -> buf
+        | buf, Some _ ->
+            if track_sensitive () then ready <- Some (p ());
+            if self#ready then frame else buf
   end
 
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "available"
+  Lang.add_operator ~base:Muxer.source "available"
     [
       ( "track_sensitive",
         Lang.getter_t Lang.bool_t,

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,22 +16,26 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
 (** A request is something from which we can produce a file. *)
-
-(** Metadatas of a request. *)
-type metadata = (string, string) Hashtbl.t
 
 (** An indicator is a resource location (URI), when meaningful, it can be
     declared as temporary if liquidsoap should destroy it after usage (this means
     deleting a local file). *)
 type indicator
 
+(** Root configuration node. *)
+val conf : Dtools.Conf.ut
+
 (** Create an indicator. *)
-val indicator : ?metadata:metadata -> ?temporary:bool -> string -> indicator
+val indicator :
+  ?metadata:Frame.metadata -> ?temporary:bool -> string -> indicator
+
+(** Raised when trying to set an invalid status, e.g. playing when not ready. *)
+exception Invalid_state
 
 (** Type of requests, which are devices for obtaining a local file from an
     URI. *)
@@ -39,14 +43,15 @@ type t
 
 (** Create a request. *)
 val create :
-  ?metadata:(string * string) list ->
+  ?resolve_metadata:bool ->
+  ?excluded_metadata_resolvers:string list ->
+  ?metadata:Frame.Metadata.t ->
   ?persistent:bool ->
-  ?indicators:indicator list ->
+  ?temporary:bool ->
+  cue_in_metadata:string option ->
+  cue_out_metadata:string option ->
   string ->
   t
-
-(** Return the type of a media request, None for raw requests. *)
-val ctype : t -> Frame.content_type option
 
 (** Return the request's initial uri. *)
 val initial_uri : t -> string
@@ -59,7 +64,13 @@ val initial_uri : t -> string
 val destroy : ?force:bool -> t -> unit
 
 (** Status of a request. *)
-type status = Idle | Resolving | Ready | Playing | Destroyed
+type status =
+  [ `Idle
+  | `Resolving of float
+  | `Ready
+  | `Playing of float
+  | `Destroyed
+  | `Failed ]
 
 (** Current status of a request. *)
 val status : t -> status
@@ -68,38 +79,35 @@ val status : t -> status
 
 (** Called at exit, for cleaning temporary files and destroying all the
     requests, even persistent ones. *)
-val clean : unit -> unit
+val cleanup : unit -> unit
 
 (** Identifier of a request. *)
-val get_id : t -> int
-
-(** Find a request by its identifier. *)
-val from_id : int -> t option
+val id : t -> int
 
 (** Get the list of all requests. *)
-val all_requests : unit -> int list
+val all : unit -> t list
 
-(** Get the list of requests that are currently alive. *)
-val alive_requests : unit -> int list
+(** Retrieve a request from its id. *)
+val from_id : int -> t option
 
-(** Get the list of requests that are currently on air. *)
-val on_air_requests : unit -> int list
+(** Mark the request as playing. *)
+val is_playing : t -> unit
 
-(** Get the list of requests that are currently being resolved. *)
-val resolving_requests : unit -> int list
+(** Mark the request as done playing. *)
+val done_playing : t -> unit
 
 (** {1 Resolving}
 
     Resolving consists in many steps. Every step consist in rewriting the
-    first URI into other URIs. The process ends when the first URI
+    first URI into other URIs. The process ends when the last URI
     is a local filename. For example, the initial URI can be a database query,
-    which is then turned into a list of remote locations, which are then
+    which is then turned into a remote locations, which is then
     tentatively downloaded...
-    At each step [protocol.resolve first_uri timeout] is called,
+    At each step [protocol.resolve uri timeout] is called,
     and the function is expected to push the new URIs in the request. *)
 
 (** Something that resolves an URI. *)
-type resolver = string -> log:(string -> unit) -> float -> indicator list
+type resolver = string -> log:(string -> unit) -> float -> indicator option
 
 (** A protocol, which can resolve associated URIs. *)
 type protocol = { resolve : resolver; static : bool }
@@ -110,18 +118,14 @@ val is_static : string -> bool
 
 (** Resolving can fail because an URI is invalid, or doesn't refer to a valid
   * audio file, or simply because there was no enough time left. *)
-type resolve_flag = Resolved | Failed | Timeout
+type resolve_flag = [ `Resolved | `Failed | `Timeout ]
 
-(** Read the metadata for the toplevel indicator of the request. This is usually
-    performed automatically by [resolve] so that you do not have to use this,
-    excepting when the [ctype] is [None]. *)
-val read_metadata : t -> unit
+(** Metadata resolvers priorities. *)
+val conf_metadata_decoder_priorities : Dtools.Conf.ut
 
-(** [resolve ?ctype request timeout] tries to resolve the request within
-    [timeout] seconds. It finds a decoder for the request which produces content
-    type [ctype], unless this is set to [None]. If resolving succeeds, [is_ready
-    request] is true and you can get a filename. *)
-val resolve : ctype:Frame.content_type option -> t -> float -> resolve_flag
+(** [resolve request timeout] tries to resolve the request within
+    [timeout] seconds. *)
+val resolve : t -> float -> resolve_flag
 
 (** [resolved r] if there's an available local filename. It can be true even if
     the resolving hasn't been run, if the initial URI was already a local
@@ -132,27 +136,13 @@ val resolved : t -> bool
     is ready. *)
 val get_filename : t -> string option
 
-(** {1 URI manipulation} For protocol plugins. *)
-
-(** Removes the top URI, possibly destroys the associated file. *)
-val pop_indicator : t -> unit
-
-(** Return the top URI, without removing it. *)
-val peek_indicator : t -> string
-
-(** In most of the case you don't peek or pop any URI, you just push the new
-    URIs you computed from [first_uri]. *)
-val push_indicators : t -> indicator list -> unit
-
 (** {1 Metadatas} *)
 
-val string_of_metadata : metadata -> string
-val short_string_of_metadata : metadata -> string
-val set_metadata : t -> string -> string -> unit
-val get_metadata : t -> string -> string option
-val set_root_metadata : t -> string -> string -> unit
-val get_root_metadata : t -> string -> string option
-val get_all_metadata : t -> metadata
+(** Metadata are resolved from the first indicator to the last,
+    the last one overriding the ones before. The only exception are
+    root metadata, which are metadata internal to liquidsoap such
+    as request id and etc. These cannot be overridden by resolvers. *)
+val metadata : t -> Frame.metadata
 
 (** {1 Logging}
     Every request has a separate log in which its history can be written. *)
@@ -165,34 +155,52 @@ val get_log : t -> log
 
 (** {1 Media operations}
 
-    These operations are only meaningful for media requests, and might crash
-    otherwise. *)
+    These operations are only meaningful for media requests, and might raise
+    exceptions otherwise. *)
 
-(** Indicate that a request is currently being streamed. *)
-val on_air : t -> unit
-
-(** Query whether a request is currently being streamed. *)
-val is_on_air : t -> bool
-
-(** [duration filename] computes the duration of audio data contained in
+(** [duration ~metadata filename] computes the duration of audio data contained in
     [filename]. The computation may be expensive.
     @raise Not_found if no duration computation method is found. *)
-val duration : string -> float
+val duration : metadata:Frame.metadata -> string -> float option
+
+(** [true] is a decoder exists for the given content-type. *)
+val has_decoder : ctype:Frame.content_type -> t -> bool
 
 (** Return a decoder if the file has been resolved, guaranteed to have
     available data to deliver. *)
-val get_decoder : t -> Decoder.file_decoder_ops option
+val get_decoder :
+  ctype:Frame.content_type -> t -> Decoder.file_decoder_ops option
 
 (** {1 Plugs} *)
 
 (** Functions for computing duration. *)
-val dresolvers : (string -> float) Plug.t
+val dresolvers : (metadata:Frame.metadata -> string -> float) Plug.t
+
+(** Type for a metadata resolver. Resolvers are executed in priority
+    order and the first returned metadata take precedence over any other
+    one later returned. *)
+type metadata_resolver = {
+  priority : unit -> int;
+  resolver :
+    metadata:Frame.metadata ->
+    extension:string option ->
+    mime:string ->
+    string ->
+    (string * string) list;
+}
 
 (** Functions for resolving metadata. Metadata filling isn't included in Decoder
     because we want it to occur immediately after request resolution. *)
-val mresolvers : (string -> (string * string) list) Plug.t
+val mresolvers : metadata_resolver Plug.t
+
+(** Resolve metadata for a local file: *)
+val resolve_metadata :
+  initial_metadata:Frame.metadata ->
+  excluded:string list ->
+  string ->
+  Frame.metadata
 
 (** Functions for resolving URIs. *)
 val protocols : protocol Plug.t
 
-module Value : Value.Abstract with type content := t
+module Value : Value.Custom with type content := t

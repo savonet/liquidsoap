@@ -18,32 +18,10 @@ git fetch --recurse-submodules=no && git checkout origin/master -- Makefile.git
 git reset --hard
 git pull
 
-# Remove later
-git submodule init ocaml-metadata
-git submodule update ocaml-metadata
-
 git pull
 make clean
 make public
 make update
-
-echo "::endgroup::"
-
-echo "::group::Setting up specific dependencies"
-
-# TODO: Add those to docker CI images.
-cd ocaml-metadata && opam install -y .
-opam install -y fileutils
-
-cd /tmp/liquidsoap-full/liquidsoap
-
-./.github/scripts/checkout-deps.sh
-
-cd /tmp/liquidsoap-full
-
-sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
-
-export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
 
 echo "::endgroup::"
 
@@ -60,10 +38,30 @@ git reset --hard
 
 echo "::endgroup::"
 
-echo "::group::Compiling"
+echo "::group::Setting up specific dependencies"
 
-# See: https://github.com/whitequark/ocaml-inotify/pull/20
-opam install -y uri inotify.2.3
+cd /tmp/liquidsoap-full/liquidsoap
+
+./.github/scripts/checkout-deps.sh
+
+git clone https://github.com/savonet/ocaml-mem_usage.git
+cd ocaml-mem_usage
+opam install -y .
+cd ..
+
+opam update
+opam remove -y jemalloc
+opam install -y tls.0.17.4 saturn_lockfree.0.4.1 ppx_hash
+
+cd /tmp/liquidsoap-full
+
+sed -e 's@ocaml-gstreamer@#ocaml-gstreamer@' -i PACKAGES
+
+export PKG_CONFIG_PATH=/usr/share/pkgconfig/pkgconfig
+
+echo "::endgroup::"
+
+echo "::group::Compiling"
 
 cd /tmp/liquidsoap-full
 
@@ -86,7 +84,7 @@ OCAMLPATH="$(cat .ocamlpath)"
 export OCAMLPATH
 
 cd /tmp/liquidsoap-full/liquidsoap
-dune build
+dune build --profile=release
 
 echo "::endgroup::"
 

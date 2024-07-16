@@ -1,26 +1,25 @@
-success = ref(true)
+#!../../liquidsoap ../test.liq
 
-def t(x, y)
-  if x != y then
-    print("Failure: got #{x} instead of #{y}")
-    success := false
-  end
+def id(x) =
+  x
 end
 
-def id(x) = x end
-def incr(n) = n + 1 end
+def incr(n) =
+  n + 1
+end
 
 def f() =
   n = ref(0)
   n := 5
-  t(!n, 5)
+  test.equal(n(), 5)
   s = ref("a")
   s := "b"
-  t(!s, "b")
+  test.equal(s(), "b")
   f = ref(id)
   f := incr
-
-  if !success then test.pass() else test.fail() end
+  r = ref.make({0}, fun (x) -> ignore(x + 1))
+  _ = ref.map(float_of_int, int_of_float, r)
+  test.pass()
 end
 
 test.check(f)

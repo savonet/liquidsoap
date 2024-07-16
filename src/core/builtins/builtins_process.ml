@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,6 +22,29 @@
 
 let log = Log.make ["process"]
 let process = Modules.process
+
+let _ =
+  if Sys.os_type <> "Win32" then
+    ignore
+      (let ret_t =
+         Lang.record_t [("user", Lang.float_t); ("system", Lang.float_t)]
+       in
+       Lang.add_builtin ~base:process "time" ~category:`System [] ret_t
+         ~descr:"Get the execution time of the current liquidsoap process."
+         (fun _ ->
+           let { Unix.tms_utime = user; tms_stime = system } = Unix.times () in
+           Lang.record
+             [("user", Lang.float user); ("system", Lang.float system)]))
+
+let () =
+  List.iter
+    (fun (name, fd) ->
+      ignore
+        (Lang.add_builtin_value ~base:process name ~category:`System
+           ~descr:("The process' " ^ name)
+           (Builtins_socket.Socket_value.to_value (Http.unix_socket fd))
+           Builtins_socket.Socket_value.t))
+    [("stdin", Unix.stdin); ("stdout", Unix.stdout); ("stderr", Unix.stderr)]
 
 let _ =
   let ret_t =
@@ -70,6 +93,10 @@ let _ =
         Some
           "Inherit calling process's environment when `env` parameter is empty."
       );
+      ( "stdin",
+        Lang.string_t,
+        Some (Lang.string ""),
+        Some "Data to write to the process' standard input." );
       ( "rwdirs",
         path_t,
         Some (Lang.list [Lang.string "default"]),
@@ -105,6 +132,7 @@ let _ =
             (Lang.to_string k, Lang.to_string v))
           env
       in
+      let stdin = Lang.to_string (List.assoc "stdin" p) in
       let sandbox_rw =
         List.map Lang.to_string (Lang.to_list (List.assoc "rwdirs" p))
       in
@@ -177,6 +205,7 @@ let _ =
         let ((in_chan, out_ch, err_chan) as p) =
           Unix.open_process_full cmd env
         in
+        if stdin <> "" then output_string out_ch stdin;
         close_out out_ch;
         let pull buf ch =
           let tmp = Bytes.create Utils.pagesize in
@@ -195,8 +224,8 @@ let _ =
       in
       let asynchronous () =
         let out_pipe, in_pipe = Unix.pipe ~cloexec:true () in
-        Tutils.finalize
-          ~k:(fun () ->
+        Fun.protect
+          ~finally:(fun () ->
             ignore (Unix.close in_pipe);
             ignore (Unix.close out_pipe))
           (fun () ->
@@ -236,19 +265,17 @@ let _ =
             in
             (timed_out, !status))
       in
-      let tutils_started = Tutils.has_started () in
-      if 0. <= timeout && not tutils_started then
+      let sync_run = not (Tutils.running ()) in
+      if sync_run && 0. < timeout then
         log#important
           "Command %s cannot be executed with timeout %.02f because the \
-           internal scheduler has not yet started. Most likely, this call is \
-           made at the beginning of your script. We suggest that you wrap this \
-           call in an asynchronous task using `thread.run`. If you really need \
-           this value immediately as your script is starting, you should \
-           implement the timeout within the process call itself."
+           internal scheduler is not running. Most likely, this call is made \
+           at the beginning of your script. We suggest that you wrap this call \
+           in an asynchronous task using `thread.run`. If you really need this \
+           value immediately as your script is starting, you should implement \
+           the timeout within the process call itself."
           cmd_value timeout;
-      on_done
-        (if 0. <= timeout && tutils_started then asynchronous ()
-        else synchronous ()))
+      on_done (if sync_run then synchronous () else asynchronous ()))
 
 let process_quote =
   Lang.add_builtin ~base:process "quote" ~category:`System

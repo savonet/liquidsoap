@@ -1,17 +1,234 @@
-# 2.2.0 (unreleased)
+# 2.3.0 (unreleased)
 
 New:
 
+- Rewrote the streaming API to work with immutable frame content. This
+  should greatly impact impredictable side-effect of the previous models w.r.t.
+  track marks, content sharing and more. This also impacts multiple operators
+  behavior. Mostly, things should be roughly the same with differences around
+  behavors related to track marks (`source.on_track` and etc). See @TODO@ for
+  more details (#3577)
+- Allow frames smaller than one video frames, typically values under `0.04s`.
+  Smaller frames means less latency and memory consumption at the expense of
+  a higher CPU usage. See @TODO@ for more details (#3607)
+- Optimized runtime (#3927, #3928, #3919)
+- Add `video.canvas` to make it possible to position video elements independently
+  of the rendered video size ([#3656](https://github.com/savonet/liquidsoap/pull/3656), [blog post](https://www.liquidsoap.info/blog/2024-02-10-video-canvas-and-ai/)
+- Add cover manager (#3651)
+- Added non-interleaved API to `%ffmpeg` encoder, enabled by default when only
+  one stream is encoded.
+- Allow trailing commas in record definition (#3300).
+- Add `metadata.getter.source.float` (#3356).
+- Added optional `main_playlist_writer` to `output.file.hls` and
+  derivated operator (#3484)
+- Added `is_nan`, `is_infinite`, `ceil`, `floor`, `sign` and `round` (#3407)
+- Added `%track.drop` to the `%ffmpeg` encoder to allow partial encoding
+  of a source's available tracks (#3480)
+- Added `let { foo? } = ...` pattern matching (#3481)
+- Add `metadata.replaygain` method to extract unified replay gain value from metadata (#3438).
+- Add `compute` parameter to `file.replaygain` to control gain calculation (#3438).
+- Add `compute` parameter to `enable_replaygain_metadata` to control replay gain calculation (#3438).
+- Add `copy:` protocol (#3506)
+- Add `file.touch`.
+- Add support for sqlite databases (#3575).
+- Add `string.of_int` and `string.spaces`.
+- Add `list.assoc.nullable`.
+- Add `source.cue` (#3620).
+- Added atomic file write operations.
+- Added `file.cover.manager` from an original code by @vitoyucepi (#3651)
+
+Changed:
+
+- Mute SDL startup messages (#2913).
+- `int` can optionally raises an error when passing `nan` or `infinity`, `int(infinity)`
+  now returns `max_int` and `int(-infinity)` returns `min_int`. (#3407)
+- Made default font a setting (#3507)
+- Changed internal metadata format to be immutable (#3297).
+- Allow a getter for the offset of `on_offset` and dropped the metadata
+  mechanism for updating it (#3355).
+- Disable output paging when `TERM` environment variable is not set.
+- Allow running as `root` user inside `docker` container by default (#3406).
+- Run `check_next` before playlist's requests resolutions (#3625)
+- Set `force` to `true` by default in `file.copy` to make operator behave
+  as expected.
+- BREAKING: Float comparison now follows the expected specs, in particular: `nan == x` is always `false` and
+  `nan != x` is always `true`. Use `float.is_nan` to test if a float is `nan`.
+- BREAKING: `replaygain` no longer takes `ebu_r128` parameter (#3438).
+- BREAKING: assume `replaygain_track_gain` always stores volume in _dB_ (#3438).
+- Added `parents` option of `file.mkdir` (#3600, #3601).
+- Added `forced_major_collections` record field to the result of `runtime.gc.stat()` and
+  `runtime.gc.quick_stat()` (#3783).
+- Changed the port for the built-in Prometheus exporter to `9599` (#3801).
+- Add support for caching LV2 and LADSPA plugins (#3959).
+
+---
+
+# 2.2.5 (2024-05-01) (Mayday!)
+
+New:
+
+- Added `enable_autocue_metadata` and `autocue:` protocol to automatically compute cue points and crossfade parameters (#3753, #3811, @RM-FM and @Moonbase59)
+- Added various ffmpeg timestamps when exporting ffmpeg metadata from filters.
+- Added `db_levels` method to `blank.*` sources (#3790)
+- Added `excluded_metadata_resolvers` to `request.create` to make it possible to selectively disable specific metadata resolvers when resolving requests.
+- Normalized expected API from `autocue`, allow multiple implementation and adapt `cross`/`crossfade` to work with it out of the box with workaround for short tracks.
+- Added private and swapped memory reporting when compiled with `mem_usage`.
+- Added priorities to metadata deocoders, allows finer-control of metadata overriding. (#3887)
+
+Changed:
+
+- Allow to disable `http.*` url normalization. Add warning when url normalization changes the url (#3789)
+- Add `namespace` and optional source IDs to `mix`.
+
+Fixed:
+
+- Prevent request metadata from overriding root metadata (#3813)
+- Fixed `source.drop` and `source.dump` clock initialization.
+- Fixed bogus report of non-monotonous PTS content when using raw ffmpeg content.
+- Fixed streaming errors when disconnecting `input.harbor`.
+- Fixed issues with rendered id3v2 frame that contain binary data (#3817)
+- Fixed memory leaks with SRT listen socket polling callbacks.
+- Fixed `%ffmpeg` copy muxer logic with some audio/video streams (#3840)
+- Fixed `duration` metadata calculation in the presence of `cue_in`/`cue_out` metadata.
+
+---
+
+# 2.2.4 (2024-02-04)
+
+New:
+
+- Added support for `id3v2` metadata in `output.*.hls` when using `%mp3`, `%shine` or `%fdkaac` encoders (#3604)
+- Added option to set preferred address class (`ipv4`, `ipv6` or system default) when resolving hostnames in http transports and `output.icecast`
+- Added `self_sync` option to `input.srt` to accommodate for streams in file mode (#3684)
+- Added `curve` parameter to fade functions and `liq_fade_{in,skip,out}_curve` metadata override (#3691)
+- Added `delay` parameter to fade functions to make it possible to add delay before fade happens. Add `liq_fade_{in,skip,out}_delay` metadata override.
+- Added `single_track` option to allow `sequence` to play each source until they are unavailable while keeping track marks.
+
+Changed:
+
+- `cue_cut` operator has been removed. Cueing mechanisms have been moved to underlying file-based sources. See migration notes for more details.
+
+Fixed:
+
+- Fix pop/click at the end of fade out/in (#3318)
+- Fix audio/video synchronization issues when decoding live streams using ffmpeg.
+- Fix issues with TLS connecting clients not being properly timed out (#3598)
+- Make sure reconnection errors are router through the regulat `on_error` callback in `output.icecast` (#3635)
+- Fixed discontinuity count after a restart in HLS outputs.
+- Fixed file header logic when reopening in `output.file` (#3675)
+- Fixed memory leaks when using dynamically created sources (`input.harbor`, `input.ffmepg`, SRT sources and `request.dynamic`)
+- Fixed invalid array fill in `add` (#3678)
+- Fixed deadlock when connecting to a non-SSL icecast using the TLS transport (#3681)
+- Fixed crash when closing external process (#3685)
+
+---
+
+# 2.2.2 (2023-11-02)
+
+New:
+
+- Added `string.escape.html` (#3418, @ghostnumber7)
+- Add support for getters in arguments of `blank.detect` (#3452).
+- Allow float in source content type annotation so that it possible
+  to write: `source(audio=pcm(5.1))`
+
+Changed:
+
+- Trim urls in `input.ffmpeg` by default. Disable using
+  `trim_url=false` (#3424)
+- Automatically add HLS-specific ffmpeg parameters to
+  `%ffmpeg` encoder (#3483)
+- BREAKING: default `on_fail` removed on `playlist` (#3479)
+
+Fixed:
+
+- Allow `channel_layout` argument in ffmpeg encoder to set the
+  number of channels.
+- Improved support for unitary minus, fix runtime call of optional
+  methods (#3498)
+- Fixed `map.metadata` mutating existing metadata.
+- Fixed reloading loop in playlists with invalid files (#3479)
+- Fixed main HLS playlist codecs when using `mpegts` (#3483)
+- Fixed pop/clicks in crossfade and source with caching (#3318)
+- Fixed pop/clicks when resampling using `libsamplerate` (#3429)
+- Fixed gstreamer compilation. Remember that gstreamer features are
+  DEPRECATED! (#3459)
+- Fixed html character escaping in `interactive.harbor` (#3418, @ghostnumber7)
+- Fixed icecast not reconnecting after erroring out while closing connection
+  in some circumstances (#3427)
+- Fixed parse-only mode (#3423)
+- Fixed ffmpeg decoding failing on files with unknown codecs.
+- Fixed a crash due to `wait_until` timestamp being in the past when
+  using `posix-time2`
+- Make sure that temporary files are always cleaned up in HLS outputs (#3493)
+
+---
+
+# 2.2.1 (2023-09-05)
+
+Changed:
+
+- BREAKING: on HLS outputs, `on_file_change` events are
+  now `"created"`, `"updated"` and `"deleted"`, to better
+  reflect the new atomic file operations (#3284)
+- Added `compact` argument to the `http.response.json` function. `http.response.json` will produce minified JSON by
+  default. Added a newline symbol to the end of the JSON data produced by `http.response.json`. (#3299)
+- Bumped internal ogg decoder to make sure that it is used over the ffmpeg decoder whenever possible.
+  FFmpeg has issues with metadata in chained streams which needs to be fixed upstream. Unfortunately,
+  `input.http` can only use the ffmpeg decoder at the moment.
+- Cleanup `output.file` encoding and file handling logic (#3328)
+- Added `ratio` to `source.{dump,drop}` to make it possible to control its CPU peaks.
+- Enhanced clock error reporting (#3317)
+
+Fixed:
+
+- Fixed slow memory leak in muxer operator (#3372, #3181, #3334)
+- Fixed discontinuity logic error in HLS outputs after a restart.
+- Fixed HTTP response status in `output.harbor` (#3255)
+- Make sure main HLS playlist is regenerated after being
+  unlinked (#3275)
+- Fixed hard crash on icecast disconnection errors.
+- Fix `output.harbor` encoder header when encoding with
+  `%ogg`, `%vorbis` and etc. (#3276)
+- Fixed quality argument parsing in ffmpeg encoders (#3267)
+- Make all HLS file write atomic (#3284)
+- Allow seek and cue operators to work with muxed sources
+  using a single underlying source (#3252)
+- Fixed export of cover art metadata (#3279)
+- Remove use of `stereo:` protocol in `say:` protocol:
+  this is now handled automatically by the decoder and generates latency via
+  high CPU usage peak.
+- Fixed `output.file` reopening with flac encoding (#3328)
+
+---
+
+# 2.2.0 (2023-07-21)
+
+New:
+
+- Added support for less memory hungry audio formats, namely
+  `pcm_s16` and `pcm_f32` (#3008)
 - Added support for native osc library (#2426, #2480).
 - SRT: added support for passphrase, pbkeylen, streamid,
   added native type for srt sockets with methods, moved stats
   to socket methods, added `socket()` method on srt input/outputs
   (#2556)
+- HLS: Added support for ID3 in-stream metadat (#3154) and
+  custom tags (#2898).
+- Added support for FLAC metadata (#2952)
+- Added support for YAML parsing and rendering (#2855)
+- Added support for the proprietary shared stereotool library (#2953)
+- Added TLS support via `ocaml-tls` (#3074)
 - Added `video.align`.
 - Added `string.index`.
+- Added support for ffmpeg decoder parameters to allow decoding of
+  raw PCM stream and file (#3066)
 - Added support for unit interactive variables: those call a handler when their
   value is set.
 - Added support for id3v2 `v2.2.0` frames and pictures.
+- Added `track.audio.defer` to be used to buffer large amount of audio data (#3136)
+- Added `runtime.locale.force` to force the system's locale (#3231)
+- Added support for customizable, optimized `jemalloc` memory allocator (#3170)
 - Added `source.drop` to animate a source as fast as possible..
 - Added in house replaygain computation:
   - `source.replaygain.compute` to compute replaygain of a source
@@ -22,6 +239,27 @@ New:
   and `y = { foo = 123, gni = "aabb", ...x}` (#2737)
 - Added `file.{copy, move}` (#2771)
 - Add support for canvas video output (#2789).
+- Detect functions defining multiple arguments with the same label (#2823).
+- Added `null.map`.
+- References of type `'a` are now objects of type `(()->'a).{set : ('a) -> unit}`. This means that you should use `x()` instead of `!x` in order to get
+  the value of a reference. Setting a reference can be done both by `x.set(v)`
+  and `x := v`, which is still supported as a notation (#2881).
+- Added `ref.make` and `ref.map`.
+- Added `video.board`, `video.graph`, `video.info` (#2886).
+- Added the `pico2wave` protocol in order to perform speech synthesis using
+  [Pico TTS](https://github.com/naggety/picotts) (#2934).
+- Added `settings.protocol.gtts.lang` to be able to select `gtts`' language,
+  added `settings.protocol.gtts.options` to be able to add any other option (#3182)
+- Added `settings.protocol.pico2wave.lang` to be able to select `pico2wav` language (#3182)
+- Added `"metadata_url"` to the default list of exported metadata (#2946)
+- Added log colors!
+- Added `list.filter_map` and `list.flatten`.
+- Added `medialib` in order to store metadata of files in a folder and query
+  them (#3115).
+- Added `--unsafe` option (#3113). This makes the startup much faster but
+  disables some guarantees (and might even make the script crash...).
+- Added `string.split.first` (#3146).
+- Added `string.getter.single` (#3125).
 
 Changed:
 
@@ -29,9 +267,23 @@ Changed:
 - Changed `cry` to be a required dependency.
 - Changed default character encoding in `output.harbor`, `output.icecast`
   `output.shoutcast` to `UTF-8` (#2704)
+- BREAKING: all `timeout` settings and parameters are now `float` values
+  and in seconds (#2809)
+- BREAKING: in `output.{shoutcast,icecast}`:
+  - Old `icy_metadata` renamed to `send_icy_metadata` and changed to a nullable `bool`. `null` means guess.
+  - New `icy_metadata` now returns a list of metadata to send with ICY updates.
+  - Added `icy_song` argument to generate default `"song"` metadata for ICY updates. Defaults
+    to `<artist> - <title>` when available, otherwise `artist` or `title` if available, otherwise
+    `null`, meaning don't add the metadata.
+  - Cleanup, removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
+  - Make `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
+- `reopen_on_error` and `reopen_on_metadata` in `output.file` and related operators are now callbacks to
+  allow dynamic handling.
+- Added `reopen` method to `output.file`.
 - Added support for a Javascript build an interpreter.
 - Removed support for `%define` variables, superseded by support for actual
   variables in encoders.
+- Cancel pending append when skipping current track on `append` source.
 - Errors now report proper stack trace via their `trace` method, making it
   possible to programmatically point to file, line and character offsets
   of each step in the error call trace (#2712)
@@ -42,10 +294,20 @@ Changed:
   `"liq_fade_in"`, `"liq_cross_duration"` and `"liq_fade_type"` now all reset on
   new tracks. Use `persist_overrides` to revert to previous behavior
   (`persist_override` for `cross`/`crossfade`) (#2488).
+- Allow running as root by default when docker container can be detected using
+  the presence of a `/.dockerenv` file.
+- `id3v2` argument of `%mp3` encoder changed to `"none"` or version number to allow
+  to choose the metadata version. `true` is still accepted and defaults to version
+  `3`. Switched to our internal implementation so that it does not require `taglib`
+  anymore.
 - Moved HLS outputs stream info as optional methods on their respective encoder.
+- Changed `self_sync` in `input.ffmpeg` to be a boolean getter, changed `self_sync`
+  in `input.http` to be a nullable boolean getter. Set `self_sync` to `true` in
+  `input.http` when an icecast or shoutcast server can be detected.
 - Add `sorted` option to `file.ls`.
 - Add `buffer_length` method to `input.external.rawaudio` and
   `input.external.wav` (#2612).
+- Added full `OCaml` backtrace as `trace` to runtime errors returned from OCaml code.
 - Removed confusing `let json.stringify` in favor of `json.stringify()`.
 - Font, font size and colors are now getters for text operators (`video.text`,
   `video.add_text`, etc.) (#2623).
@@ -57,15 +319,23 @@ Changed:
 - Deprecated `get_mime`, added `file.mime.libmagic` and `file.mime.cli`, made
   `file.mime` try `file.mime.libmagic` if present and `file.mime.cli` otherwise,
   changed eturned value when no mime was found to `null()`.
+- Return a nullable float in `request.duration`.
 - Removed `--list-plugins-json` and `--list-plugins-xml` options.
 - Added `--list-functions-json` option.
 - Removed built-in use of `strftime` conversions in output filenames, replaced
   by an explicit call to `time.string` (#2593)
 - Added nullable default to `{int,float,bool}_of_string` conversion functions, raise
   an exception if conversion fails and no default is given.
-- The camomile library for charset conversion is now optional (#2696).
 - Deprecated `string_of` in favor of `string` (#2700).
 - Deprecated `string_of_float` in favor of `string.float` (#2700).
+- Added `settings.protocol.youtube_dl.timeout` to specify timeout when using
+  `youtube-dl` protocol (#2827). Use `yt-dlp` as default binary for the
+  protocol.
+- The `sleeper` operator is now scripted (#2899).
+- Reworked remote request file extension resolution (#2947)
+- REMOVED `osx-secure-transport`. Doubt it was ever used, API deprecated
+  upstream (#3067)
+- Renamed `rectangle` to `add_rectangle`, and similarly for `line`.
 
 Fixed:
 
@@ -73,6 +343,105 @@ Fixed:
   could lead to incorrectly randomized playlists (#2507, #2500).
 - Fixed srt output in listener mode to allow more than one listener at a time and
   prevent listening socket from being re-created on listener disconnection (#2556)
+- Fixed race condition when switching `input.ffmpeg`-based urls (#2956)
+- Fixed deadlock in `%external` encoder (#3029)
+- Fixed crash in encoders due to concurrent access (#3064)
+- Fixed long-term connection issues with SSL (#3067)
+
+---
+
+# 2.1.4 (2022-03-01)
+
+New:
+
+- Added `buffer_length` method to `buffer` operator.
+- Always display error backtrace when a fatal exception
+  is raised in the streaming loop.
+- Added `umask()` to get the current `umask` and `umask.set(...)`
+  to set the current `umask` (#2840)
+
+Changed:
+
+- Add break when restarting the external process in `input.external.{rawaudio,rawvideo}`
+  (#2860, #2872)
+- Removed `disconnect` method on `input.harbor`. This method was doing the same as
+  the `stop` method. Added `shutdown` method to properly shutdown the
+  source even when not connected to an output.
+- Made process a string getter in `input.external.{rawaudio,rawvideo}` (#2877)
+
+Fixed:
+
+- Fixed parameter type for `stats_interval` in SRT I/O.
+- Fixed type generalization on variable and pattern bindings
+  (#2782)
+- Fixed memory leak in http requests (#2935)
+- Make sure that exception raised in `request.dynamic` never crash
+  the process (#2897)
+- Fixed `filename` getter being called multiple time in
+  `output.file` (#2842)
+- Fixed default directory permissions in `output.*.hls`
+  operators (#2930)
+- Space trim in interactive variables set on telnet (#2785)
+- Fixed internal streaming logic in `max_duration` and `crossfade`.
+- Make sure that there's at most one metadata at any given
+  frame position (#2786)
+- Fixed `metadata.json.parse` always returns an empty list (#2816).
+- Fixed `icy_id` being ignored in `output.shoutcast` (#2819)
+- Fixed shutdown livelock with some ffmpeg inline encoder,
+  decoder and filter operators.
+- Fixed input polling stop (#2769)
+- Fixed parsed error report in `%include` directives (#2775)
+- Fixed crash in external processes when received a `Unix.EINTR`
+  event (#2861)
+- Fixed crash in `string.interpolate` (#2883)
+- Cleaned up srt support.
+
+---
+
+# 2.1.3 (2022-11-04)
+
+New:
+
+- Added `time.string`.
+- Added `error.on_error` to report any error raised during the
+  script's execution. Enhanced reported error positions (#2712)
+- Added `device_id` and `latency` options to `input.portaudio`
+  and `output.portaudio` to be able to choose the requested
+  device. Use `liquidsoap --list-portaudio-devices` to see the
+  list of devices (#2733)
+- Added `disconnect` method to `input.harbor`, making it possible
+  to disconnect a source client programmatically, including when
+  a new client is trying to connect.
+
+Changed:
+
+- Send data in-memory in `http.{post,put}.file` when input data
+  is already in memory. This allows to use plain `Content-Length`
+  instead of `chunked` transfer encoding in these case, though
+  `libcurl` seems to always prefer `chunked` encoding for `put`
+  requests.
+- Better error message when an encoder is not available on windows
+  (#2665)
+- Create output directory in HLS outputs when it does not exist
+  using newly introduced `perms` permission argument (#2725)
+- Removed `restart_on_error` argument on `output.url` and added
+  `restart_delay` which implements a delayed restart. Added
+  `on_error` argument to be notified of errors (#2731)
+- Changed default `encoding` parameter in `string.{quote, escape}`
+  to be `null`. Fallback to `"ascii"` encoding when no encoding is
+  specified and `"utf8"` fails. This prevents unexpected script
+  failures but might not be backward-compatible if you used a
+  custom `escape_char` or `special_char` function (#2738)
+
+Fixed:
+
+- Enhanced methods typing support (#2659)
+- Add support for `song` metadata (mapped to `title`) and `url` (mapped to
+  `metadata_url`) in `input.harbor` (#2676)
+- Fixed `blank.*` operator types.
+- Fixed request metadata escaping (#2732)
+- Fixed `input.external.rawadudio` mono input (#2742)
+- Fixed `http` response body on redirect (#2758)
 
 ---
 
@@ -576,6 +945,8 @@ Changed:
   (#1084).
 - Added `path.home.unrelate`.
 - Use getters for arguments of `video.add_image` (#1176).
+- Add `x`, `y`, `width` and `height` argument to `image`, unify with
+  `video.add_image`.
 - Generalize `audio_to_stereo` to video frames and those without audio.
 - Allow crossfading for video (#1132, #1135).
 - Use getters for parameters of synthesizer sources (#1036).
@@ -1666,7 +2037,7 @@ Bugs fixed:
 - Factorized buffered I/O code. Also added a blocking API, which avoids
   "no available frame" and "reader not ready" messages and audio glitches.
   It enforces that `root.sync` be deactivated for these sources, such that
-  synchronisation is done by the source. (#203)
+  synchronization is done by the source. (#203)
 - Factorized file decoding code.
 - Fixed reversed order when parsing playlists using `playlist.parse()`.
 - Avoid bad crashes when resources lack, e.g. no more memory.

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -105,11 +105,11 @@ let loudness z = -0.691 +. (10. *. log10 z)
 
 class lufs window source =
   object (self)
-    inherit operator [source] ~name:"lufs" as super
-    method stype = source#stype
-    method is_ready = source#is_ready
+    inherit operator [source] ~name:"lufs"
+    method fallible = source#fallible
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
     method channels = self#audio_channels
@@ -126,12 +126,12 @@ class lufs window source =
     (** Last 100ms blocks. *)
     val mutable ms_blocks = []
 
-    method! wake_up a =
-      super#wake_up a;
-      let channels = self#channels in
-      let samplerate = self#samplerate in
-      stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
-      stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate)
+    initializer
+      self#on_wake_up (fun () ->
+          let channels = self#channels in
+          let samplerate = self#samplerate in
+          stage1 <- IIR.process (IIR.stage1 ~channels ~samplerate);
+          stage2 <- IIR.process (IIR.stage2 ~channels ~samplerate))
 
     (** Compute LUFS. *)
     method compute =
@@ -156,14 +156,13 @@ class lufs window source =
     (** Momentary LUFS. *)
     method momentary = loudness (List.mean (List.prefix 4 ms_blocks))
 
-    method private get_frame buf =
+    method private generate_frame =
       let channels = self#channels in
       let len_100ms = Frame.audio_of_seconds 0.1 in
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
-      for i = offset to position - 1 do
+      let frame = source#get_frame in
+      let position = AFrame.position frame in
+      let buf = AFrame.pcm frame in
+      for i = 0 to position - 1 do
         let x = Array.init channels (fun c -> buf.(c).(i)) in
         (* Prefilter. *)
         let x = stage1 x in
@@ -181,7 +180,8 @@ class lufs window source =
           ms_len <- 0)
       done;
       (* Keep only a limited (by the window) number of blocks. *)
-      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks
+      ms_blocks <- List.prefix (int_of_float (window () /. 0.1)) ms_blocks;
+      frame
   end
 
 let _ =

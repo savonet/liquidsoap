@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,46 +22,42 @@
 
 open Source
 
-class compress (source : source) mu =
-  object
+class compress ~field (source : source) mu =
+  object (self)
     inherit operator ~name:"compress" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      for c = 0 to Array.length b - 1 do
+    method private generate_frame =
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
+      for c = 0 to self#audio_channels - 1 do
         let b_c = b.(c) in
-        for i = offset to AFrame.position buf - 1 do
+        for i = 0 to source#frame_audio_position - 1 do
           let x = b_c.(i) in
           let sign = if x < 0. then -1. else 1. in
-          b_c.(i) <- sign *. (1. -. ((1. -. abs_float x) ** mu))
+          b_c.(i) <- sign *. (1. -. ((1. -. Utils.abs_float x) ** mu))
         done
-      done
+      done;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator ~base:Compress.compress "exponential" ~category:`Audio
-    ~descr:"Exponential compressor."
+  let return_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Compress.audio_compress "exponential"
+    ~category:`Audio ~descr:"Exponential compressor."
     [
       ( "mu",
         Lang.float_t,
         Some (Lang.float 2.),
         Some "Exponential compression factor, typically greater than 1." );
-      ("", Lang.source_t return_t, None, None);
+      ("", return_t, None, None);
     ]
     ~return_t
     (fun p ->
       let f v = List.assoc v p in
-      let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
-      new compress src mu)
+      let mu, (field, src) = (Lang.to_float (f "mu"), Track.of_value (f "")) in
+      (field, new compress ~field src mu))

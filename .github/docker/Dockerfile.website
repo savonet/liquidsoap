@@ -1,4 +1,4 @@
-FROM savonet/liquidsoap-ci:debian_bullseye_amd64
+FROM savonet/liquidsoap-ci:debian_bookworm_amd64
 
 MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
 
@@ -32,6 +32,11 @@ RUN git remote set-url origin https://github.com/savonet/liquidsoap-full.git && 
 RUN eval "$(opam config env)" && make clean
 
 RUN eval "$(opam config env)" && cd ocaml-metadata && opam install -y . fileutils
+
+RUN eval "$(opam config env)" && \
+    git clone https://github.com/savonet/ocaml-posix.git && \
+    cd ocaml-posix && \
+    opam install -y .
 
 RUN cd liquidsoap && \
     mv .git /tmp && \

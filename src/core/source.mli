@@ -1,7 +1,7 @@
 (*****************************************************************************
 
   Liquidsoap, a programmable stream generator.
-  Copyright 2003-2022 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,11 +16,11 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
-type clock_variable
+open Mm
 
 (** In [`CPU] mode, synchronization is governed by the CPU clock.
   * In [`None] mode, there is no synchronization control. Latency in
@@ -34,47 +34,49 @@ type clock_variable
   * protocol such as [input.srt]. *)
 type sync = [ `Auto | `CPU | `None ]
 
-(** Type for source's self_sync. The boolean indicates whether the operator
-    takes care of synchronization by itself or not. The first component indicates
-    whether this value can change during the source's lifetime (it cannot if this
-    is [`Static]. *)
-type self_sync = [ `Static | `Dynamic ] * bool
+(** A source can be: passive, active or output. Active sources and outputs are
+    animated on each clock cycle. Output are kept around until they are manually
+    shutdown. Active and passive sources can be garbage collected if they are not connected to
+    any output. The [output] method is called on each clock cycle on active sources and outputs.
+    The [reset] method is called when there is too much latency. *)
+type active = < reset : unit ; output : unit >
 
-(** The liveness type of a source indicates whether or not it can
-  * fail to broadcast.
-  * A `Infallible source never fails; it is always ready. *)
-type source_t = [ `Fallible | `Infallible ]
+type source_type = [ `Passive | `Active of active | `Output of active ]
+
+exception Unavailable
+
+type streaming_state =
+  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
 (** Instrumentation. *)
 
-type metadata = (int * (string, string) Hashtbl.t) list
-type clock_sync_mode = [ sync | `Unknown ]
+type metadata = (int * Frame.metadata) list
 
 type watcher = {
-  get_ready :
-    stype:source_t ->
-    is_active:bool ->
+  wake_up :
+    fallible:bool ->
+    source_type:source_type ->
     id:string ->
     ctype:Frame.content_type ->
     clock_id:string ->
-    clock_sync_mode:clock_sync_mode ->
     unit;
-  leave : unit -> unit;
-  get_frame :
+  sleep : unit -> unit;
+  generate_frame :
     start_time:float ->
     end_time:float ->
-    start_position:int ->
-    end_position:int ->
-    is_partial:bool ->
+    length:int ->
+    has_track_mark:bool ->
     metadata:metadata ->
     unit;
-  before_output : unit -> unit;
-  after_output : unit -> unit;
+  before_streaming_cycle : unit -> unit;
+  after_streaming_cycle : unit -> unit;
 }
 
 (** The [source] use is to send data frames through the [get] method. *)
 class virtual source :
-  ?name:string
+  ?stack:Pos.t list
+  -> ?clock:Clock.t
+  -> ?name:string
   -> unit
   -> object
        method private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
@@ -87,19 +89,31 @@ class virtual source :
        method set_name : string -> unit
        method set_id : ?definitive:bool -> string -> unit
 
-       (* {1 Liveness type}
-          [stype] is the liveness type, telling whether a scheduler is
-          fallible or not, i.e. [get] will never fail.
-          It is defined by each operator based on its sources' types. *)
-       method virtual stype : source_t
+       (** Position in script *)
+       method pos : Pos.Option.t
+
+       method stack : Pos.t list
+       method set_stack : Pos.t list -> unit
+       method stack_unifier : Pos.t list Unifier.t
+
+       (** {1 Source characteristics} *)
+
+       (** If [false], [is_ready] should always return [true]. *)
+       method virtual fallible : bool
+
+       (** The source type. Defaults to [`Passive] *)
+       method source_type : source_type
+
+       (** [true] if the source needs to be animated on each clock tick. *)
+       method active : bool
 
        (** {1 Init/shutdown} *)
 
        (** Register a callback, to be executed when source shuts down. *)
-       method on_shutdown : (unit -> unit) -> unit
+       method on_sleep : (unit -> unit) -> unit
 
-       (** The clock under which the source will run, initially unknown. *)
-       method clock : clock_variable
+       (** The clock under which the source will run. *)
+       method clock : Clock.t
 
        (** Does the source provide its own synchronization?
            Examples: Alsa, AO, SRT I/O, etc.. This information
@@ -112,30 +126,24 @@ class virtual source :
            clock), we simply decide based on whether there is one [self_sync]
            source or not. This logic should dictate how the method is
            implemented by the various operators. *)
-       method virtual self_sync : self_sync
+       method virtual self_sync : Clock.self_sync
 
-       (** Choose your clock, by adjusting to your children source,
-           or anything custom. *)
-       method private set_clock : unit
+       method source_sync : bool -> Clock.sync_source option
 
-       (** Register a callback when get_ready is called. *)
-       method on_get_ready : (unit -> unit) -> unit
+       (** Register a callback when wake_up is called. *)
+       method on_wake_up : (unit -> unit) -> unit
 
-       (** The operator says to the source that he will ask it frames. *)
-       method get_ready : ?dynamic:bool -> source list -> unit
+       (** Called when the source must be ready. Can be called multiple times *)
+       method wake_up : unit
 
-       (** Called when the source must be ready and had no active operator,
-           means that the source has to initialize. This method is called by
-           [get_ready] and not called externally. *)
-       method private wake_up : source list -> unit
+       (** Register a callback when sleep is called. *)
+       method on_sleep : (unit -> unit) -> unit
 
-       (** Register a callback when leave is called. *)
-       method on_leave : (unit -> unit) -> unit
+       (** Called when the source can release all its resources. Can be called concurrently and multiple times. *)
+       method sleep : unit
 
-       (** Opposite of [get_ready] : the operator no longer needs the source. *)
-       method leave : ?failed_to_start:bool -> ?dynamic:bool -> source -> unit
-
-       method private sleep : unit
+       (** Force the source to sleep. Should be called by the clocks only. *)
+       method force_sleep : unit
 
        (** Check if a source is up or not. *)
        method is_up : bool
@@ -143,6 +151,13 @@ class virtual source :
        (** {1 Streaming} *)
 
        method frame_type : Type.t
+
+       (** This is called when content-type can be computed,
+           i.e. either after frame type has been passed from
+           the typing system during `check_eval` or at `wake_up` *)
+       method content_type_computation_allowed : unit
+
+       method has_content_type : bool
 
        (** What type of content does this source produce. *)
        method content_type : Frame.content_type
@@ -152,33 +167,51 @@ class virtual source :
 
        method private video_dimensions : int * int
 
-       (** Retrieve the frame currently being filled. *)
-       method memo : Frame.t
-
        (** A buffer that can be used by the source. *)
        method buffer : Generator.t
 
-       (** Number of frames left in the current track. Defaults to -1=infinity. *)
+       method private generate_video :
+         ?create:
+           (pos:int -> width:int -> height:int -> unit -> Video.Canvas.image) ->
+         field:Frame.Fields.field ->
+         int ->
+         Content.Video.data
+
+       method last_image : Frame.Fields.field -> Video.Canvas.image
+
+       method private nearest_image :
+         pos:int ->
+         last_image:Video.Canvas.image ->
+         Content.Video.data ->
+         Video.Canvas.image
+
+       (** An empty frame that can be used by the source. *)
+       method empty_frame : Frame.t
+
+       (** An empty frame with a track mark. *)
+       method end_of_track : Frame.t
+
+       (** Number of main ticks left in the current track. Defaults to -1=unknown. *)
        method virtual remaining : int
 
+       (* Elapsed time since the last track mark. *)
        method elapsed : int
+
+       (* Estimated total duration of the current track. -1=unknown. *)
        method duration : int
+
+       (** Return the source effectively used to seek. Used
+           by the muxer to determine if there is a unique seeking
+           source. Should return [self] if there isn't such a unique
+           source. *)
+       method virtual seek_source : source
 
        (** [self#seek_ticks x] skips [x] main ticks.
            returns the number of ticks actually skipped.
            By default it always returns 0, refusing to seek at all.
            That method may be called from any thread, concurrently
-           with [#get], so they should not interfere. *)
-       method virtual seek : int -> int
-
-       (** [is_ready] tells you if [get] can be called. *)
-       method virtual is_ready : bool
-
-       (** [get buf] asks the source to fill the buffer [buf] if possible.
-           The [get] call is partial when the buffer is not completely filled.
-           [get] should never be called with a full buffer,
-           and without checking that the source is ready. *)
-       method get : Frame.t -> unit
+           with [#get_frame], so they should not interfere. *)
+       method seek : int -> int
 
        (** The source's last metadata. *)
        method last_metadata : Frame.metadata option
@@ -186,23 +219,99 @@ class virtual source :
        (** Register a callback to be called on new metadata *)
        method on_metadata : (Frame.metadata -> unit) -> unit
 
-       (** Register a callback to be called on new track *)
-       method on_track : ((string, string) Hashtbl.t -> unit) -> unit
+       (** Register a callback to be called on new track. Callback
+           is called with the most recent metadata before a given
+           track mark. *)
+       method on_track : (Frame.metadata -> unit) -> unit
 
-       method virtual private get_frame : Frame.t -> unit
+       (** These two are used by [generate_from_multiple_sources] and should not
+           be used otherwise. *)
+       method private execute_on_track : Frame.t -> unit
 
-       (** Tells the source to finish the reading of current track. *)
+       method private set_last_metadata : Frame.t -> unit
+
+       (** Sources must implement this method. It should return [true] when
+           the source can produce data during the current streaming cycle. *)
+       method virtual private can_generate_frame : bool
+
+       method on_before_streaming_cycle : (unit -> unit) -> unit
+       method on_after_streaming_cycle : (unit -> unit) -> unit
+
+       (** Sources must implement this method. It should return the data
+           produced during the current streaming cycle. Sources are responsible
+           for producing as much data as possible, up-to the frame size setting. *)
+       method virtual private generate_frame : Frame.t
+
+       (** This method is based on [can_generate_frame] and has the same value through
+           the whole streaming cycle. *)
+       method is_ready : bool
+
+       (** If the source is ready, this method computes the frame generated by the
+           source during the current streaming cycle. Returned value is cached and should
+           be the same throughout the whole streaming cycle. *)
+       method get_frame : Frame.t
+
+       (** This method passes the frame returned by [#get_frame] to the given callback.
+           The callback should return the portion of the frame (of the form: [start, end))
+           that was effectively used. This method is used when a consumer of the source's data
+           only uses an initial chunk of the frame. In this case, the remaining data is cached
+           whenever possible and returned during the next streaming cycle. Final returned value
+           is the same as the partial chunk returned from the callback for easy method call chaining.
+
+           Calling this method is equivalent to doing: {[
+             let frame = Frame.slice source#peek_frame len in
+             source#consumed (Frame.position frame);
+             frame
+           ]} *)
+       method get_partial_frame : (Frame.t -> Frame.t) -> Frame.t
+
+       (** Check a frame without consuming any of its data. *)
+       method peek_frame : Frame.t
+
+       (** Manually mark amount of consumed data from the source. *)
+       method consumed : int -> unit
+
+       (** This method requests a specific field of the frame that can be mutated. It is used
+           by a consumer of the source that will modify the source's data (e.g. [amplify]). The
+           source will do its best to minimize data copy according to the streaming context. Typically,
+           if there is only one consumer of the source's data, it should be safe to pass its
+           data without copying it. *)
+       method get_mutable_content : Frame.field -> Content.data
+
+       (** This method is the same as [#get_mutable_content] but returns a full frame with the requested
+           mutable field included. *)
+       method get_mutable_frame : Frame.field -> Frame.t
+
+       (** By convention, frames produced during the streaming cycle can only have at most one
+           track mark. In case of multiple track marks (which most likely indicate a programming
+           problem), all subsequent track marks past the first one are dropped.
+
+           This function returns a pair: [(initial_frame, new_track option)] of an initial frame
+           and, if a track mark is present in the frame, the optional portion of the frame contained
+           after this track mark.
+
+           This method can be used to implement operations that should be aware of new tracks. *)
+       method private split_frame : Frame.t -> Frame.t * Frame.t option
+
+       (** This method is a convenience function to set some data. It returns the frame produced by the
+           source during the current streaming cycle with the given field data replaced by the data
+           passed to the function with length set as the frame's length. *)
+       method set_frame_data :
+         Frame.field ->
+         (?offset:int -> ?length:int -> 'a -> Content.data) ->
+         'a ->
+         Frame.t
+
+       (** Various information related to the current frame. *)
+
+       method frame_position : int
+       method frame_audio_position : int
+       method frame_has_track_mark : bool
+       method frame_track_mark : int option
+       method frame_metadata : (int * Frame.Metadata.t) list
+
+       (** Tells the source to end its current track. *)
        method virtual abort_track : unit
-
-       method is_active : bool
-
-       (** Prepare for output round. *)
-       method before_output : unit
-
-       (** Cleanup after output round. *)
-       method after_output : unit
-
-       method advance : unit
 
        (** {1 Utilities} *)
 
@@ -212,21 +321,24 @@ class virtual source :
 
 (* Entry-points sources, which need to actively perform some task. *)
 and virtual active_source :
-  ?name:string
+  ?stack:Pos.t list
+  -> ?clock:Clock.t
+  -> ?name:string
   -> unit
   -> object
        inherit source
 
-       (** Start a new output round, triggers computation of a new frame. *)
-       method virtual output : unit
-
        (** Do whatever needed when the latency gets too big and is reset. *)
        method virtual reset : unit
+
+       method virtual output : unit
      end
 
 (* This is for defining a source which has children *)
 class virtual operator :
-  ?name:string
+  ?stack:Pos.t list
+  -> ?clock:Clock.t
+  -> ?name:string
   -> source list
   -> object
        inherit source
@@ -235,70 +347,41 @@ class virtual operator :
 (* Most usual active source: the active_operator, pulling one source's data
  * and outputting it. *)
 class virtual active_operator :
-  ?name:string
+  ?stack:Pos.t list
+  -> ?clock:Clock.t
+  -> ?name:string
   -> source list
   -> object
        inherit active_source
      end
 
-class virtual no_seek :
-  object
-    method virtual log : Log.t
-    method seek : int -> int
-  end
+(** Type governing whether or not the same source should be re-selected.
+    - [`Force] means that the operator should at least try to see if a new
+      source should be selected.
+    - [`Ok] means that the operator should re-select the current source
+      whenever possible.
+    - [`After_position p] means that the operator should re-select the
+      current source only if it can produce data past the given position
+    The [generate_from_multiple_sources] implements a [can_reselect] that
+    can be called with the currently selected source to validate this logic. *)
+type reselect = [ `Ok | `Force | `After_position of int ]
 
-val has_outputs : unit -> bool
-val iterate_new_outputs : (active_source -> unit) -> unit
-
-(** {1 Clocks}
-    Tick identifiers are useful (cf. [#get_tick]) but we don't need much
-    more than the guarantee that the next tick is different from the
-    current one. Booleans should be OK, in any case an overflow on int
-    is not a problem. *)
-
-class type clock =
-  object
-    (** Identifier of the clock. *)
-    method id : string
-
-    method sync_mode : sync
-
-    (** Attach an active source to the clock. *)
-    method attach : active_source -> unit
-
-    (** Detach active sources that satisfy a given criterion. *)
-    method detach : (active_source -> bool) -> unit
-
-    (** Manage subordinate clocks *)
-
-    method attach_clock : clock_variable -> unit
-    method detach_clock : clock_variable -> unit
-    method sub_clocks : clock_variable list
-
-    (** Streaming *)
-
-    method start_outputs : (active_source -> bool) -> unit -> active_source list
-    method get_tick : int
-    method end_tick : unit
-  end
-
-exception Clock_conflict of string * string
-exception Clock_loop of string * string
-
-module Clock_variables : sig
-  val to_string : clock_variable -> string
-
-  val create_unknown :
-    sources:active_source list ->
-    sub_clocks:clock_variable list ->
-    clock_variable
-
-  val create_known : clock -> clock_variable
-  val unify : clock_variable -> clock_variable -> unit
-  val forget : clock_variable -> clock_variable -> unit
-  val get : clock_variable -> clock
-  val is_known : clock_variable -> bool
-
-  (* This is exported for testing purposes only at the moment. *)
-  val subclocks : clock_variable -> clock_variable list
-end
+(* Helper to generate data from a sequence of source.
+   Data generation calls [get_source] on track marks.
+   When frame is partial, a track mark is added unless [merge] is
+   set to [true]. *)
+class virtual generate_from_multiple_sources :
+  merge:(unit -> bool)
+  -> track_sensitive:(unit -> bool)
+  -> unit
+  -> object
+       method virtual get_source : reselect:reselect -> unit -> source option
+       method virtual split_frame : Frame.t -> Frame.t * Frame.t option
+       method virtual empty_frame : Frame.t
+       method virtual private execute_on_track : Frame.t -> unit
+       method virtual private set_last_metadata : Frame.t -> unit
+       method virtual log : Log.t
+       method private can_reselect : reselect:reselect -> source -> bool
+       method private can_generate_frame : bool
+       method private generate_frame : Frame.t
+     end

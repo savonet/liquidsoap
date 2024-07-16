@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,12 +40,17 @@ let file_extensions =
     "File extensions used for decoding metadata using native parser."
     ~d:["avi"; "mp4"]
 
-let get_tags fname =
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "video_metadata")
+    "Priority for the native video metadata decoder" ~d:1
+
+let get_tags ~metadata:_ ~extension ~mime fname =
   try
     if
       not
-        (Decoder.test_file ~log ~mimes:mime_types#get
-           ~extensions:file_extensions#get fname)
+        (Decoder.test_file ~log ~mime ~extension ~mimes:(Some mime_types#get)
+           ~extensions:(Some file_extensions#get) fname)
     then raise Metadata.Invalid;
     Metadata.Video.parse_file fname
   with
@@ -59,4 +64,5 @@ let get_tags fname =
 
 let () =
   Plug.register Request.mresolvers "video-metadata"
-    ~doc:"Native metadata decoder for videos." get_tags
+    ~doc:"Native metadata decoder for videos."
+    { Request.priority = (fun () -> priority#get); resolver = get_tags }

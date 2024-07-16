@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
     kdown threshold gmin gmax =
   let rmsi = Frame.audio_of_seconds window in
   object (self)
-    inherit operator ~name:"normalize" [source] as super
+    inherit operator ~name:"normalize" [source]
 
     (** Current squares of RMS. *)
     val mutable rms = 0.
@@ -57,28 +57,23 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
       v <- 1.;
       vold <- 1.
 
-    method! wake_up a =
-      super#wake_up a;
-      self#init
-
-    method stype = source#stype
+    initializer self#on_wake_up (fun () -> self#init)
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
+    method private normalize buf =
+      let b = Content.Audio.get_data (Frame.get buf Frame.Fields.audio) in
       let rmst = rmst () in
       let kup = kup () in
       let kdown = kdown () in
       let threshold = threshold () in
       let gmin = gmin () in
       let gmax = gmax () in
-      for i = offset to AFrame.position buf - 1 do
+      for i = 0 to source#frame_audio_position - 1 do
         for c = 0 to self#audio_channels - 1 do
           let bc = b.(c) in
           let x = bc.(i) in
@@ -100,9 +95,15 @@ class normalize ~track_sensitive (source : source) (* RMS target. *) rmst
           rms <- 0.;
           rmsc <- 0)
       done;
+      Frame.set_data buf Frame.Fields.audio Content.Audio.lift_data b
 
-      (* Reset values if it is the end of the track. *)
-      if track_sensitive && AFrame.is_partial buf then self#init
+    method private generate_frame =
+      match self#split_frame (source#get_mutable_frame Frame.Fields.audio) with
+        | buf, None -> self#normalize buf
+        | buf, Some new_track ->
+            let buf = self#normalize buf in
+            if track_sensitive then self#init;
+            Frame.append buf (self#normalize new_track)
   end
 
 let normalize = Lang.add_module "normalize"

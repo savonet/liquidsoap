@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,12 +42,11 @@ let srt_file_extensions =
 let () =
   Plug.register Decoder.decoders "srt" ~doc:"Decode srt files."
     {
-      Decoder.media_type = `Audio_video;
-      priority = (fun () -> srt_priorities#get);
+      Decoder.priority = (fun () -> srt_priorities#get);
       file_extensions = (fun () -> Some srt_file_extensions#get);
       mime_types = (fun () -> Some srt_mime_types#get);
       file_type =
-        (fun ~ctype fname ->
+        (fun ~metadata:_ ~ctype fname ->
           if Srt_parser.check_file fname then
             Some
               (Frame.Fields.make
@@ -57,7 +56,7 @@ let () =
           else None);
       file_decoder =
         Some
-          (fun ~metadata:_ ~ctype:_ fname ->
+          (fun ~metadata:_ ~ctype fname ->
             let srt = Srt_parser.parse_file fname in
             let srt =
               List.map
@@ -73,21 +72,34 @@ let () =
               List.map (fun (t, s) -> (Frame.main_of_seconds t, s)) srt
             in
             let srt = List.to_seq srt |> Queue.of_seq in
-            let frame_size = Lazy.force Frame.size in
             let t = ref 0 in
-            let fill frame =
-              if not (Queue.is_empty srt) then (
-                let sub_t, sub = Queue.peek srt in
-                let r = sub_t - !t in
-                assert (r >= 0);
-                if r < frame_size then (
-                  Frame.set_metadata frame r
-                    (Frame.metadata_of_list [("subtitle", sub)]);
-                  ignore (Queue.take srt)));
-              Frame.add_break frame frame_size;
-              t := !t + frame_size;
-              -1
+            let remaining _ = -1 in
+            let fread length =
+              let rec fill frame =
+                if Queue.is_empty srt then frame
+                else (
+                  let sub_t, sub = Queue.peek srt in
+                  let r = sub_t - !t in
+                  assert (r >= 0);
+                  if r < length then (
+                    ignore (Queue.take srt);
+                    let frame =
+                      Frame.add_metadata frame r
+                        (Frame.Metadata.from_list [("subtitle", sub)])
+                    in
+                    fill frame)
+                  else frame)
+              in
+              let frame = fill (Frame.create ~length ctype) in
+              t := !t + length;
+              frame
             in
-            Decoder.{ fill; fseek = (fun _ -> 0); close = (fun () -> ()) });
+            Decoder.
+              {
+                fread;
+                remaining;
+                fseek = (fun _ -> 0);
+                fclose = (fun () -> ());
+              });
       stream_decoder = None;
     }

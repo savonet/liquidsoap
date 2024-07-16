@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ let () =
              try Hashtbl.find tasks host
              with Not_found ->
                let t = Liqfm.init host in
-               Hashtbl.add tasks host t;
+               Hashtbl.replace tasks host t;
                t
            in
            Liqfm.submit (user, password) task length mode stype [metas];

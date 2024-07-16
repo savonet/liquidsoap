@@ -1,7 +1,10 @@
 (env
- (dev
+ (release
+  (ocamlopt_flags
+   (:standard -w -9 -alert --deprecated -O2)))
+ (_
   (flags
-   (:standard -w -9))))
+   (:standard -w -9 -alert --deprecated))))
 
 (include_subdirs unqualified)
 
@@ -20,30 +23,26 @@
   dune-build-info
   duppy
   fileutils
-  liquidsoap_lang
+  liquidsoap-lang
+  liquidsoap-lang.console
+  liquidsoap_stdlib
   menhirLib
-  (select
-   charset.ml
-   from
-   (camomile -> charset.camomile.ml)
-   (-> charset.native.ml))
+  camomile.lib
   curl
   cry
+  re
   uri
   metadata
+  mem_usage
+  magic-mime
   (select
    file_watcher.ml
    from
    (inotify -> file_watcher.inotify.ml)
-   (-> file_watcher.mtime.ml))
-  (select
-   liqmagic.ml
-   from
-   (magic -> liqmagic.enabled.ml)
-   (-> liqmagic.disabled.ml)))
+   (-> file_watcher.mtime.ml)))
  (foreign_stubs
   (language c)
-  (names unix_c))
+  (names unix_c defer_c content_pcm_c))
  (wrapped false)
  (library_flags -linkall)
  (modules
@@ -52,10 +51,8 @@
   add
   amplify
   annotate
-  append
   audio_converter
   audio_gen
-  audio_to_stereo
   available
   avi
   avi_encoder
@@ -68,13 +65,16 @@
   chord
   clip
   clock
+  clock_base
   comb
   compand
   compress
   compress_exp
-  compress_old
   content
   content_audio
+  content_pcm_base
+  content_pcm_f32
+  content_pcm_s16
   content_base
   content_midi
   content_timed
@@ -82,19 +82,19 @@
   conversion
   configure
   cross
-  cuepoint
   debug_sources
   decoder
   decoder_utils
+  defer
   delay
   delay_line
   doc
-  drop
   dtmf
   dyn_op
   echo
   encoder
   encoder_formats
+  encoder_utils
   error
   external_decoder
   external_encoder
@@ -111,6 +111,7 @@
   filter_rc
   fir_filter
   flac_format
+  flac_metadata_plug
   flanger
   frame
   frame_base
@@ -135,7 +136,6 @@
   image_decoder
   image_plug
   insert_metadata
-  ioRing
   json
   keyboard
   lang
@@ -159,7 +159,6 @@
   liqcurl
   lifecycle
   liq_time
-  liqmagic
   liquidsoap_paths
   log
   lufs
@@ -168,7 +167,8 @@
   map_op
   max_duration
   mean
-  meta_format
+  merge_metadata
+  metadata_base
   midi_decoder
   midi_routing
   midimeter
@@ -176,7 +176,8 @@
   mp3_format
   mpd
   ms_stereo
-  mux
+  muxer
+  mutex_utils
   native_audio_converter
   native_video_converter
   noblank
@@ -195,22 +196,19 @@
   pipe
   pipe_output
   pitch
-  playlist_basic
   playlist_parser
   plug
   pool
+  pos
   ppm_decoder
-  prepend
   process_handler
   producer_consumer
   raw_audio_decoder
   replaygain_op
   request
-  request_simple
-  request_source
+  request_dynamic
   resample
   rms_smooth
-  rqueue
   runtime_error
   sandbox
   sequence
@@ -219,12 +217,13 @@
   sha1
   shebang
   shine_format
-  sleeper
   source
   speex_format
   srt_decoder
   srt_parser
   start_stop
+  startup
+  stereo
   still_frame
   stringView
   strings
@@ -235,6 +234,8 @@
   term
   theora_format
   time_warp
+  track
+  track_map
   tutils
   type
   typing
@@ -243,6 +244,7 @@
   utils
   value
   vFrame
+  video_board
   video_converter
   video_effects
   video_fade
@@ -273,9 +275,12 @@
   builtins_files
   builtins_harbor
   builtins_http
+  builtins_metadata
+  builtins_mem_usage
   builtins_process
   builtins_request
   builtins_resolvers
+  playlist_basic
   builtins_runtime
   builtins_server
   builtins_settings
@@ -284,7 +289,8 @@
   builtins_string_extra
   builtins_sys
   builtins_thread
-  builtins_time))
+  builtins_time
+  builtins_track))
 
 (library
  (name liquidsoap_alsa)
@@ -292,7 +298,7 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules alsa_in alsa_out alsa_io alsa_settings))
+ (modules alsa_io alsa_settings))
 
 (library
  (name liquidsoap_ao)
@@ -317,22 +323,6 @@
  (wrapped false)
  (optional)
  (modules camlimages_decoder))
-
-(library
- (name liquidsoap_mem_usage)
- (libraries mem_usage liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules builtins_mem_usage))
-
-(library
- (name liquidsoap_memtrace)
- (libraries memtrace liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules liqmemtrace))
 
 (library
  (name liquidsoap_dssi)
@@ -413,6 +403,9 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
+ (foreign_stubs
+  (language c)
+  (names ogg_flac_encoder_stubs))
  (modules liq_flac_ogg_decoder ogg_flac_encoder ogg_flac_duration))
 
 (library
@@ -469,6 +462,14 @@
  (modules builtins_irc))
 
 (library
+ (name liquidsoap_jemalloc)
+ (libraries jemalloc liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_jemalloc))
+
+(library
  (name liquidsoap_ladspa)
  (libraries ladspa liquidsoap_core)
  (library_flags -linkall)
@@ -517,14 +518,6 @@
  (modules mad_decoder))
 
 (library
- (name liquidsoap_magic)
- (libraries magic liquidsoap_core)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules builtins_magic))
-
-(library
  (name liquidsoap_ogg)
  (libraries ogg ogg.decoder liquidsoap_core)
  (library_flags -linkall)
@@ -560,14 +553,6 @@
   (language c)
   (names oss_io_c))
  (modules oss_io))
-
-(library
- (name liquidsoap_secure_transport)
- (libraries osx-secure-transport liquidsoap_core liquidsoap_builtins)
- (library_flags -linkall)
- (wrapped false)
- (optional)
- (modules builtins_http_secure_transport))
 
 (library
  (name liquidsoap_portaudio)
@@ -610,8 +595,16 @@
  (modules libsamplerate_converter))
 
 (library
+ (name liquidsoap_sdl_log_level)
+ (libraries tsdl)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules sdl_log_level))
+
+(library
  (name liquidsoap_sdl)
- (libraries tsdl-image tsdl-ttf liquidsoap_core)
+ (libraries liquidsoap_sdl_log_level tsdl-image tsdl-ttf liquidsoap_core)
  (library_flags -linkall)
  (wrapped false)
  (optional)
@@ -663,7 +656,15 @@
  (library_flags -linkall)
  (wrapped false)
  (optional)
- (modules ssl_base builtins_http_ssl))
+ (modules ssl_base builtins_ssl))
+
+(library
+ (name liquidsoap_stereotool)
+ (libraries stereotool liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules stereotool_op))
 
 (library
  (name liquidsoap_taglib)
@@ -682,6 +683,20 @@
  (modules liq_theora_decoder theora_encoder))
 
 (library
+ (name liquidsoap_tls)
+ (libraries
+  tls
+  ca-certs
+  mirage-crypto-rng.unix
+  cstruct
+  liquidsoap_core
+  liquidsoap_builtins)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_tls))
+
+(library
  (name liquidsoap_vorbis)
  (libraries vorbis vorbis.decoder liquidsoap_core liquidsoap_ogg)
  (library_flags -linkall)
@@ -690,8 +705,24 @@
  (modules liq_vorbis_decoder vorbis_encoder vorbisduration))
 
 (library
+ (name liquidsoap_sqlite)
+ (libraries sqlite3 liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_sqlite))
+
+(library
+ (name liquidsoap_yaml)
+ (libraries yaml liquidsoap_core)
+ (library_flags -linkall)
+ (wrapped false)
+ (optional)
+ (modules builtins_yaml))
+
+(library
  (name liquidsoap_xmlplaylist)
- (libraries xmlplaylist liquidsoap_core)
+ (libraries xmlplaylist liquidsoap_core liquidsoap_builtins)
  (library_flags -linkall)
  (wrapped false)
  (optional)
@@ -711,7 +742,6 @@
   bjack_option
   builtins_optionals
   camlimages_option
-  camomile_option
   canvas_option
   dssi_option
   faad_option
@@ -726,20 +756,18 @@
   imagelib_option
   inotify_option
   irc_option
+  jemalloc_option
   ladspa_option
   lame_option
   lastfm_option
   lilv_option
   lo_option
   mad_option
-  magic_option
-  mem_usage_option
   memtrace_option
   ogg_option
   opus_option
   osc_option
   oss_option
-  osx_secure_transport_option
   portaudio_option
   posix_time_option
   prometheus_option
@@ -751,10 +779,14 @@
   speex_option
   srt_option
   ssl_option
+  stereotool_option
+  sqlite3_option
   taglib_option
   theora_option
+  tls_option
   vorbis_option
   winsvc_option
+  yaml_option
   xmlplaylist_option)
  (libraries
   liquidsoap_core
@@ -839,15 +871,15 @@
    (inotify -> inotify_option.enabled.ml)
    (-> inotify_option.disabled.ml))
   (select
-   camomile_option.ml
-   from
-   (camomile -> camomile_option.enabled.ml)
-   (-> camomile_option.disabled.ml))
-  (select
    irc_option.ml
    from
    (liquidsoap_irc -> irc_option.enabled.ml)
    (-> irc_option.disabled.ml))
+  (select
+   jemalloc_option.ml
+   from
+   (liquidsoap_jemalloc -> jemalloc_option.enabled.ml)
+   (-> jemalloc_option.disabled.ml))
   (select
    ladspa_option.ml
    from
@@ -879,16 +911,6 @@
    (liquidsoap_mad -> mad_option.enabled.ml)
    (-> mad_option.disabled.ml))
   (select
-   magic_option.ml
-   from
-   (liquidsoap_magic -> magic_option.enabled.ml)
-   (-> magic_option.disabled.ml))
-  (select
-   mem_usage_option.ml
-   from
-   (liquidsoap_mem_usage -> mem_usage_option.enabled.ml)
-   (-> mem_usage_option.disabled.ml))
-  (select
    memtrace_option.ml
    from
    (liquidsoap_memtrace -> memtrace_option.enabled.ml)
@@ -913,11 +935,6 @@
    from
    (liquidsoap_oss -> oss_option.enabled.ml)
    (-> oss_option.disabled.ml))
-  (select
-   osx_secure_transport_option.ml
-   from
-   (liquidsoap_secure_transport -> osx_secure_transport_option.enabled.ml)
-   (-> osx_secure_transport_option.disabled.ml))
   (select
    portaudio_option.ml
    from
@@ -979,6 +996,16 @@
    (liquidsoap_ssl -> ssl_option.enabled.ml)
    (-> ssl_option.disabled.ml))
   (select
+   stereotool_option.ml
+   from
+   (liquidsoap_stereotool -> stereotool_option.enabled.ml)
+   (-> stereotool_option.disabled.ml))
+  (select
+   sqlite3_option.ml
+   from
+   (liquidsoap_sqlite -> sqlite3_option.enabled.ml)
+   (-> sqlite3_option.disabled.ml))
+  (select
    taglib_option.ml
    from
    (liquidsoap_taglib -> taglib_option.enabled.ml)
@@ -989,6 +1016,11 @@
    (liquidsoap_theora -> theora_option.enabled.ml)
    (-> theora_option.disabled.ml))
   (select
+   tls_option.ml
+   from
+   (liquidsoap_tls -> tls_option.enabled.ml)
+   (-> tls_option.disabled.ml))
+  (select
    vorbis_option.ml
    from
    (liquidsoap_vorbis -> vorbis_option.enabled.ml)
@@ -998,6 +1030,11 @@
    from
    (winsvc -> winsvc_option.enabled.ml)
    (-> winsvc_option.disabled.ml))
+  (select
+   yaml_option.ml
+   from
+   (liquidsoap_yaml -> yaml_option.enabled.ml)
+   (-> yaml_option.disabled.ml))
   (select
    xmlplaylist_option.ml
    from

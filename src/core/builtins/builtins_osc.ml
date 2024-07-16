@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -92,14 +92,14 @@ let start_server () =
        ())
 
 let () =
-  Lifecycle.on_start
-    (Tutils.mutexify started_m (fun () ->
+  Lifecycle.on_start ~name:"osc initialization"
+    (Mutex_utils.mutexify started_m (fun () ->
          if !should_start && !server = None then start_server ()
          else started := true))
 
 let () =
-  Lifecycle.on_core_shutdown
-    (Tutils.mutexify started_m (fun () ->
+  Lifecycle.on_core_shutdown ~name:"osc shutdown"
+    (Mutex_utils.mutexify started_m (fun () ->
          match !server with
            | Some s ->
                log#info "Stopping OSC server";
@@ -108,7 +108,7 @@ let () =
            | None -> ()))
 
 let start_server =
-  Tutils.mutexify started_m (fun () ->
+  Mutex_utils.mutexify started_m (fun () ->
       if !started && !server = None then start_server ()
       else should_start := true)
 
@@ -184,9 +184,9 @@ let register name osc_t liq_t =
            Unix.ADDR_INET ((Unix.gethostbyname host).h_addr_list.(0), port)
          in
          let osc_val v =
-           match v.Lang.value with
-             | Lang.(Ground (Ground.String s)) -> [Osc.Types.String s]
-             | Lang.(Ground (Ground.Float x)) -> [Osc.Types.Float32 x]
+           match v with
+             | Value.String { value = s } -> [Osc.Types.String s]
+             | Value.Float { value = x } -> [Osc.Types.Float32 x]
              | _ -> failwith "Unhandled value."
          in
          let packet =

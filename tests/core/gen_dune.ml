@@ -11,12 +11,13 @@ let test_params =
 let () =
   let location = Sys.getcwd () in
   let tests =
-    List.filter_map
-      (fun f ->
-        if f <> "gen_dune.ml" && Filename.extension f = ".ml" then
-          Some (Filename.remove_extension f)
-        else None)
-      (Array.to_list (Sys.readdir location))
+    List.sort Stdlib.compare
+      (List.filter_map
+         (fun f ->
+           if f <> "gen_dune.ml" && Filename.extension f = ".ml" then
+             Some (Filename.remove_extension f)
+           else None)
+         (Build_tools.read_files ~location ""))
   in
   List.iter
     (fun test ->
@@ -33,7 +34,7 @@ let () =
  (libraries liquidsoap_core liquidsoap_optionals))
 
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   %s

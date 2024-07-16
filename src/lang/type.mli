@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,15 +26,46 @@ val debug_variance : bool ref
 
 (** {2 Types} *)
 
-type variance = [ `Covariant | `Contravariant | `Invariant ]
-type descr = Type_base.descr = ..
-type t = Type_base.t = private { pos : Pos.Option.t; descr : descr }
-type constr_t = Type_base.constr_t = ..
-type constr_t += Num | Ord
+open Type_base
+
+type variance = [ `Covariant | `Invariant ]
+type t = Type_base.t = { pos : Pos.Option.t; descr : descr }
+type custom = Type_base.custom
+
+type custom_handler = Type_base.custom_handler = {
+  typ : custom;
+  custom_name : string;
+  copy_with : (t -> t) -> custom -> custom;
+  occur_check : (t -> unit) -> custom -> unit;
+  filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
+  repr : (var list -> t -> constr R.t) -> var list -> custom -> constr R.t;
+  subtype : (t -> t -> unit) -> custom -> custom -> unit;
+  sup : (t -> t -> t) -> custom -> custom -> custom;
+  to_string : custom -> string;
+}
+
+type invar = Type_base.invar = Free of var | Link of variance * t
+type var_t = Type_base.var_t = { id : int; mutable contents : invar }
+
+type descr = Type_base.descr =
+  | String
+  | Int
+  | Float
+  | Bool
+  | Never
+  | Custom of custom_handler
+  | Constr of constructed
+  | Getter of t  (** a getter: something that is either a t or () -> t *)
+  | List of repr_t
+  | Tuple of t list
+  | Nullable of t  (** something that is either t or null *)
+  | Meth of meth * t  (** t with a method added *)
+  | Arrow of t argument list * t  (** a function *)
+  | Var of var_t  (** a type variable *)
 
 type constr = Type_base.constr = {
-  t : constr_t;
   constr_descr : string;
+  univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
 }
 
@@ -51,7 +82,6 @@ type var = Type_base.var = {
   mutable constraints : Constraints.t;
 }
 
-type invar = Free of var | Link of variance * t
 type scheme = var list * t
 
 type meth = Type_base.meth = {
@@ -65,35 +95,13 @@ type meth = Type_base.meth = {
 type repr_t = Type_base.repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
 val string_of_constr : constr -> string
+val record_constr : constr
 val num_constr : constr
 val ord_constr : constr
 
-module Subst = Type_base.Subst
 module R = Type_base.R
 
-type custom = Type_base.custom = ..
-
-type custom_handler = Type_base.custom_handler = {
-  typ : custom;
-  copy_with : (t -> t) -> custom -> custom;
-  occur_check : (t -> unit) -> custom -> unit;
-  filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
-  repr : (var list -> t -> Repr.t) -> var list -> custom -> Repr.t;
-  subtype : (t -> t -> unit) -> custom -> custom -> unit;
-  sup : (t -> t -> t) -> custom -> custom -> custom;
-  to_string : custom -> string;
-}
-
-type descr +=
-  | Custom of custom_handler
-  | Constr of constructed
-  | Getter of t
-  | List of repr_t
-  | Tuple of t list
-  | Nullable of t
-  | Meth of meth * t
-  | Arrow of (bool * string * t) list * t
-  | Var of invar ref
+type 'a argument = bool * string * 'a
 
 exception NotImplemented
 exception Exists of Pos.Option.t * string
@@ -104,6 +112,31 @@ val unit : descr
 module Var = Type_base.Var
 module Vars = Type_base.Vars
 
+(** Generate fresh types from existing types. *)
+module Fresh : sig
+  type mapper = Type_base.Fresh.mapper
+
+  (* Use [selector] to pick variables to be re-freshed. If [level] is passed,
+     all new variables are created with the given level. *)
+  val init :
+    ?preserve_positions:bool ->
+    ?selector:(var -> bool) ->
+    ?level:int ->
+    unit ->
+    mapper
+
+  (* Generate a fresh var using the parameters passed when initializing
+     the corresponding handler. Generated variables are memoized. *)
+  val make_var : mapper -> var -> var
+
+  (* Generate a fresh type using the parameters passed when initializing
+     the corresponding handler. *)
+  val make : mapper -> t -> t
+end
+
+(* Generate a fully refreshed type. Shared variables are mapped
+   to shared fresh variables. *)
+val fresh : t -> t
 val make : ?pos:Pos.t -> descr -> t
 val deref : t -> t
 val demeth : t -> t
@@ -122,16 +155,21 @@ val meth :
   t ->
   t
 
+(** Type of references on a given type. *)
+val reference : ?pos:Pos.t -> t -> t
+
 val meths : ?pos:Pos.t -> string list -> scheme -> t -> t
 val split_meths : t -> meth list * t
+val filter_meths : t -> (meth -> bool) -> t
 val var : ?constraints:constr list -> ?level:int -> ?pos:Pos.t -> unit -> t
+val mk_invariant : t -> unit
 val to_string_fun : (?generalized:var list -> t -> string) ref
 val to_string : ?generalized:var list -> t -> string
 val string_of_scheme : scheme -> string
 val is_fun : t -> bool
 val is_source : t -> bool
 
-module Ground = Ground_type
+module Custom = Type_custom
 
-val register_custom_type : ?pos:Pos.t -> string -> custom_handler -> unit
-val find_custom_type_opt : string -> custom_handler option
+val register_type : string -> (unit -> t) -> unit
+val find_opt_typ : string -> (unit -> t) option

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -79,8 +79,8 @@ let create process ctype filename =
   let dec = Decoder.opaque_file_decoder ~filename ~ctype create in
   {
     dec with
-    Decoder.close =
-      (fun () -> Tutils.finalize ~k:(fun () -> dec.Decoder.close ()) !close);
+    Decoder.fclose =
+      (fun () -> Fun.protect ~finally:(fun () -> dec.Decoder.fclose ()) !close);
   }
 
 let create_stream process input =
@@ -91,13 +91,7 @@ let create_stream process input =
   Gc.finalise close ret;
   ret
 
-let audio_n n =
-  Content.(
-    Audio.lift_params
-      {
-        Content.channel_layout =
-          lazy (Audio_converter.Channel_layout.layout_of_channels n);
-      })
+let audio_n = Frame_base.format_of_channels ~pcm_kind:Content.Audio.kind
 
 let test_ctype f filename =
   (* 0 = file rejected,
@@ -110,23 +104,23 @@ let test_ctype f filename =
       (Frame.Fields.make
          ~audio:
            (if ret < 0 then audio_n (Lazy.force Frame.audio_channels)
-           else audio_n ret)
+            else audio_n ret)
          ())
 
 let register_stdin ~name ~doc ~priority ~mimes ~file_extensions ~test process =
   Plug.register Decoder.decoders name ~doc
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority);
+      Decoder.priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
-      file_type = (fun ~ctype:_ filename -> test_ctype test filename);
+      file_type =
+        (fun ~metadata:_ ~ctype:_ filename -> test_ctype test filename);
       file_decoder =
         Some (fun ~metadata:_ ~ctype filename -> create process ctype filename);
       stream_decoder = Some (fun ~ctype:_ _ -> create_stream process);
     };
 
-  let duration filename =
+  let duration ~metadata:_ filename =
     let process =
       Printf.sprintf "cat %s | %s" (Filename.quote filename) process
     in
@@ -152,7 +146,7 @@ let external_input_oblivious process filename prebuf =
     try Process_handler.on_stdout process (fun reader -> reader buf ofs len)
     with Process_handler.Finished -> 0
   in
-  let close () =
+  let fclose () =
     try Process_handler.kill process with Process_handler.Finished -> ()
   in
   let input = { Decoder.read; tell = None; length = None; lseek = None } in
@@ -164,35 +158,37 @@ let external_input_oblivious process filename prebuf =
   let buffer = Decoder.mk_buffer ~ctype gen in
   let prebuf = Frame.main_of_seconds prebuf in
   let decoder = Wav_aiff_decoder.create input in
-  let fill frame =
+  let fread len =
     begin
       try
         while
-          Generator.length gen < prebuf && not (Process_handler.stopped process)
+          Generator.length gen < max prebuf len
+          && not (Process_handler.stopped process)
         do
           decoder.Decoder.decode buffer
         done
       with e ->
         log#info "Decoding %s ended: %s." command (Printexc.to_string e);
-        close ()
+        fclose ()
     end;
-    Generator.fill gen frame;
-
+    Generator.slice gen len
+  in
+  let remaining () =
     (* We return -1 while the process is not yet
      * finished. *)
     if Process_handler.stopped process then Generator.length gen else -1
   in
-  { Decoder.fill; fseek = decoder.Decoder.seek; close }
+  { Decoder.fread; remaining; fseek = decoder.Decoder.seek; fclose }
 
 let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
     ~process prebuf =
   Plug.register Decoder.decoders name ~doc
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority);
+      Decoder.priority = (fun () -> priority);
       file_extensions = (fun () -> file_extensions);
       mime_types = (fun () -> mimes);
-      file_type = (fun ~ctype:_ filename -> test_ctype test filename);
+      file_type =
+        (fun ~metadata:_ ~ctype:_ filename -> test_ctype test filename);
       file_decoder =
         Some
           (fun ~metadata:_ ~ctype:_ filename ->
@@ -200,5 +196,5 @@ let register_oblivious ~name ~doc ~priority ~mimes ~file_extensions ~test
       stream_decoder = None;
     };
 
-  let duration filename = duration (process filename) in
+  let duration ~metadata:_ filename = duration (process filename) in
   Plug.register Request.dresolvers name ~doc duration

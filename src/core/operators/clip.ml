@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,31 +23,28 @@
 open Mm
 open Source
 
-class clip (source : source) =
+class clip ~field (source : source) =
   object
     inherit operator ~name:"clip" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
-    method is_ready = source#is_ready
+    method seek_source = source#seek_source
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
-      Audio.clip b offset (position - offset)
+    method private generate_frame =
+      let c = source#get_mutable_content field in
+      let b = Content.Audio.get_data c in
+      let position = source#frame_audio_position in
+      Audio.clip b 0 position;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "clip"
-    [("", Lang.source_t frame_t, None, None)]
+  let frame_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.track_audio "clip"
+    [("", frame_t, None, None)]
     ~return_t:frame_t ~category:`Audio
     ~descr:
       "Clip samples, i.e. ensure that all values are between -1 and 1: values \
@@ -55,5 +52,5 @@ let _ =
        become `0.`"
     (fun p ->
       let f v = List.assoc v p in
-      let src = Lang.to_source (f "") in
-      new clip src)
+      let field, src = Lang.to_track (f "") in
+      (field, new clip ~field src))

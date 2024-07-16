@@ -14,12 +14,10 @@ let string =
       let v = List.assoc "" p in
       let dv = Lang.demeth v in
       (* Always show fields for records. *)
-      let show_fields =
-        if dv.Lang.value = Value.unit then true else show_fields
-      in
+      let show_fields = if Value.is_unit dv then true else show_fields in
       let v = if show_fields then v else dv in
       match v with
-        | { Lang.value = Lang.(Ground (Ground.String s)); _ } -> Lang.string s
+        | String { value = s } -> Lang.string s
         | v -> Lang.string (Value.to_string v))
 
 let _ =
@@ -30,6 +28,15 @@ let _ =
       let s1 = Lang.to_string (Lang.assoc "" 1 p) in
       let s2 = Lang.to_string (Lang.assoc "" 2 p) in
       Lang.string (s1 ^ s2))
+
+let _ =
+  Lang.add_builtin ~base:string "digest" ~category:`String
+    ~descr:"Return an MD5 digest for the given string."
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
+      let data = Lang.to_string (List.assoc "" p) in
+      Lang.string Digest.(to_hex (string data)))
 
 let _ =
   Lang.add_builtin ~base:string "concat" ~category:`String
@@ -177,9 +184,9 @@ let string_escape =
               (Printf.sprintf "Error while escaping %s string.%s"
                  (match encoding with `Utf8 -> "utf8" | `Ascii -> "ascii")
                  (if encoding <> `Ascii then
-                  " If you are not sure about the string's encoding, you \
-                   should use `\"ascii\"` as this encoding never fails."
-                 else ""))
+                    " If you are not sure about the string's encoding, you \
+                     should use `\"ascii\"` as this encoding never fails."
+                  else ""))
             "string"
       in
       match encoding with
@@ -335,7 +342,7 @@ let _ =
       let string = Lang.to_string (List.assoc "" p) in
       Lang.string
         (if lower then String.lowercase_ascii string
-        else String.uppercase_ascii string))
+         else String.uppercase_ascii string))
 
 let _ =
   Lang.add_builtin ~base:string "trim" ~category:`String
@@ -370,10 +377,10 @@ let _ =
       in
       Lang.string
         (if space_sensitive then (
-         let l = Regexp.split (Regexp.regexp " ") string in
-         let l = List.map f l in
-         String.concat " " l)
-        else f string))
+           let l = Re.Pcre.split ~rex:(Re.Pcre.regexp " ") string in
+           let l = List.map f l in
+           String.concat " " l)
+         else f string))
 
 let _ =
   Lang.add_builtin ~base:string "hex_of_int" ~category:`String
@@ -469,12 +476,8 @@ let _ =
       let x = List.assoc "" p |> Lang.to_float in
       let s =
         match dp with
-          | Some 0 -> Printf.sprintf "%.00f" x
-          | Some 1 -> Printf.sprintf "%.01f" x
-          | Some 2 -> Printf.sprintf "%.02f" x
-          | Some 3 -> Printf.sprintf "%.03f" x
-          | Some 4 -> Printf.sprintf "%.04f" x
-          | _ -> string_of_float x
+          | Some d -> Printf.sprintf "%.*f" d x
+          | None -> Utils.string_of_float x
       in
       Lang.string s)
 

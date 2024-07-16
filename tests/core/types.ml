@@ -1,5 +1,9 @@
 open Type
 
+exception Failed
+
+let () = Frame_settings.lazy_config_eval := true
+
 let should_work t t' r =
   let t = make t in
   let t' = make t' in
@@ -18,13 +22,13 @@ let should_fail t t' =
   with _ -> ()
 
 let () =
-  should_work (var ()).descr Ground.bool Ground.bool;
-  should_work Ground.bool (var ()).descr Ground.bool;
+  should_work (var ()).descr Bool Bool;
+  should_work Bool (var ()).descr Bool;
 
-  should_fail Ground.bool Ground.int;
+  should_fail Bool Int;
   should_fail
-    (List { t = make Ground.bool; json_repr = `Tuple })
-    (List { t = make Ground.int; json_repr = `Tuple });
+    (List { t = make Bool; json_repr = `Tuple })
+    (List { t = make Int; json_repr = `Tuple });
 
   let mk_meth meth ty t =
     Meth
@@ -38,19 +42,19 @@ let () =
         make t )
   in
 
-  let m = mk_meth "aa" Ground.int Ground.bool in
+  let m = mk_meth "aa" Int Bool in
 
-  should_work m Ground.bool Ground.bool;
+  should_work m Bool Bool;
 
-  let n = mk_meth "b" Ground.bool m in
+  let n = mk_meth "b" Bool m in
 
   should_work m n m;
 
-  let n = mk_meth "aa" Ground.int Ground.int in
+  let n = mk_meth "aa" Int Int in
 
   should_fail m n;
 
-  let n = mk_meth "aa" Ground.bool Ground.bool in
+  let n = mk_meth "aa" Bool Bool in
 
   should_fail m n;
 
@@ -195,6 +199,38 @@ let () =
   assert (gni.Type.optional = false)
 
 let () =
+  let open Liquidsoap_lang in
+  (* {gni?:int} *)
+  let a_meth = Type.meth ~optional:true "gni" ([], Lang.int_t) Lang.unit_t in
+
+  (* {gni:'a} *)
+  let b_meth = Type.meth "gni" ([], Lang.univ_t ()) Lang.unit_t in
+
+  (* {gni?:int} <: {gni:'a} *)
+  try
+    Typing.(a_meth <: b_meth);
+    assert false
+  with Repr.Type_error (_, a, _, _, _) -> (
+    let meths, _ = Type.split_meths a in
+    match meths with
+      | [{ Type.meth = "gni"; optional = true; scheme = [], t; _ }] ->
+          Typing.(t <: Lang.int_t)
+      | _ -> assert false)
+
+let () =
+  (* { audio: pcm('a), video?: canvas } *)
+  let f =
+    Type.meth "audio"
+      ([], Format_type.audio ())
+      (Type.meth ~optional:true "video" ([], Format_type.video ()) Lang.unit_t)
+  in
+
+  let c = Frame_type.content_type f in
+
+  assert (Frame.Fields.cardinal c = 1);
+  assert (Content.Audio.is_format (Frame.Fields.find Frame.Fields.audio c))
+
+let () =
   (* {gni:int} *)
   let a_meth = Type.meth "gni" ([], Lang.int_t) Lang.unit_t in
 
@@ -204,3 +240,158 @@ let () =
 
   (* This should work: {gni:int} <: {foo: float}.{foo?:int} *)
   Typing.(a_meth <: b_meth)
+
+let () =
+  (* 'a.{gni:int} *)
+  let a_meth = Type.meth "gni" ([], Lang.int_t) (Lang.univ_t ()) in
+
+  (* 'a.{foo?:int} *)
+  let b_meth =
+    Type.meth ~optional:true "foo" ([], Lang.int_t) (Lang.univ_t ())
+  in
+
+  Typing.(a_meth <: b_meth);
+
+  let meths, _ = Type.split_meths a_meth in
+  let foo = List.find (fun Type.{ meth; _ } -> meth = "foo") meths in
+  assert (foo.Type.optional = true)
+
+let () =
+  (* source(audio=pcm(stereo)) *)
+  let a =
+    Lang.source_t (Lang.record_t [("audio", Format_type.audio_stereo ())])
+  in
+
+  (* source() *)
+  let b = Lang.source_t Lang.unit_t in
+
+  (* { audio?: pcm(stereo)}, covariant *)
+  let record_t =
+    Lang.optional_record_t [("audio", Format_type.audio_stereo ())]
+  in
+  let covariant_t = Lang.univ_t () in
+  Typing.bind ~variance:`Covariant covariant_t record_t;
+  (match covariant_t.Type.descr with
+    | Type.Var { contents = Type.Link (`Covariant, _) } -> ()
+    | _ -> assert false);
+
+  (* source(?audio=pcm(stereo)) *)
+  let optional = Lang.source_t covariant_t in
+
+  Typing.(a <: optional);
+  Typing.(b <: optional);
+
+  match optional.Type.descr with
+    | Type.Constr { constructor = "source"; params = [(`Invariant, t)] } -> (
+        let meths, t = Type.split_meths t in
+        Typing.(t <: Lang.unit_t);
+        match meths with
+          | [{ Type.meth = "audio"; optional = true; scheme = [], t; _ }] ->
+              Typing.(t <: Format_type.audio_stereo ())
+          | _ -> assert false)
+    | _ -> assert false
+
+exception Test_failed
+
+let () =
+  (* fun (format('a), source('a)) -> unit *)
+  let a = Lang.univ_t () in
+  let fn_t =
+    Lang.fun_t
+      [(false, "", Lang.format_t a); (false, "", Lang.source_t a)]
+      Lang.unit_t
+  in
+  let fn = Term.make (`Var "fn") in
+
+  (* format(audio: pcm(stereo)) *)
+  let x_t =
+    Lang.format_t
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio_stereo ()) ()))
+  in
+  let x_var = Term.make (`Var "x") in
+
+  (* source(audio: pcm(mono)) *)
+  let y_t =
+    Lang.source_t
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~audio:(Format_type.audio_mono ()) ()))
+  in
+  let y_var = Term.make (`Var "y") in
+
+  let app = Term.make (`App (fn, [("", x_var); ("", y_var)])) in
+
+  let throw exn = raise exn in
+  let env = [("fn", ([], fn_t)); ("x", ([], x_t)); ("y", ([], y_t))] in
+
+  try
+    Liquidsoap_lang.Typechecking.check ~throw ~env app;
+    raise Test_failed
+  with
+    | Test_failed -> raise Test_failed
+    | _ -> ()
+
+let () =
+  (* source('a) where 'a is an internal media type. *)
+  let a = Lang.source_t (Lang.internal_tracks_t ()) in
+  (* source(video: ffmpeg.video.raw, 'b) *)
+  let b =
+    Lang.source_t
+      (Frame_type.make (Lang.univ_t ())
+         Frame.Fields.(
+           add video
+             (Type.make
+                (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
+             empty))
+  in
+
+  let () =
+    try
+      Typing.(a <: b);
+      raise Failed
+    with
+      | Failed -> raise Failed
+      | _ -> ()
+  in
+
+  (* source('a) where 'a is an internal media type. *)
+  let a = Lang.source_t (Lang.internal_tracks_t ()) in
+  (* source(video: ffmpeg.video.raw, 'b) *)
+  let b =
+    Lang.source_t
+      (Frame_type.make (Lang.univ_t ())
+         Frame.Fields.(
+           add video
+             (Type.make
+                (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
+             empty))
+  in
+
+  try
+    Typing.(b <: a);
+    raise Failed
+  with
+    | Failed -> raise Failed
+    | _ -> ()
+
+let () =
+  (* { audio: 'a, metadata: metadata, track_marks : track_marks } where 'a is an internal media type. *)
+  let a =
+    Lang.record_t
+      [
+        ("audio", Lang.internal_tracks_t ());
+        ("metadata", Lang.metadata_track_t);
+        ("track_marks", Lang.track_marks_t);
+      ]
+  in
+  (* 'b.{metadata? : metadata, track_marks? : track_marks } where 'b is an internal media type. *)
+  let b =
+    Lang.optional_method_t
+      (Lang.internal_tracks_t ())
+      [
+        ("metadata", ([], Lang.metadata_track_t), "");
+        ("track_marks", ([], Lang.track_marks_t), "");
+      ]
+  in
+
+  Typing.(a <: b)

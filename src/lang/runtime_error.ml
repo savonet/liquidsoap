@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -44,6 +44,5 @@ let raise ?bt ?(message = "") ~pos kind =
   let err = { kind; msg = message; pos } in
   List.iter (fun fn -> fn err) (Atomic.get listeners);
   let e = Runtime_error err in
-  match bt with
-    | None -> raise e
-    | Some bt -> Printexc.raise_with_backtrace e bt
+  let bt = match bt with None -> Printexc.get_callstack 0 | Some bt -> bt in
+  Printexc.raise_with_backtrace e bt

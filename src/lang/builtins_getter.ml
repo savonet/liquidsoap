@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -47,9 +47,10 @@ let _ =
       let x = Lang.assoc "" 1 p in
       let f = Lang.assoc "" 2 p in
       let g = Lang.assoc "" 3 p in
-      match (Lang.demeth x).Lang.value with
-        | Lang.Fun ([], _, _) | Lang.FFI ([], _) -> Lang.apply g [("", x)]
-        | _ -> Lang.apply f [("", x)])
+      match x with
+        | Fun { fun_args = [] } | FFI { ffi_args = []; _ } ->
+            Lang.apply ~pos:(Lang.pos p) g [("", x)]
+        | _ -> Lang.apply ~pos:(Lang.pos p) f [("", x)])
 
 let _ =
   let a = Lang.univ_t () in
@@ -74,10 +75,12 @@ let getter_map =
     (fun p ->
       let f = Lang.assoc "" 1 p in
       let x = Lang.assoc "" 2 p in
-      match (Lang.demeth x).Lang.value with
-        | Lang.Fun ([], _, _) | Lang.FFI ([], _) ->
-            Lang.val_fun [] (fun _ -> Lang.apply f [("", Lang.apply x [])])
-        | _ -> Lang.apply f [("", x)])
+      match x with
+        | Fun { fun_args = [] } | FFI { ffi_args = []; _ } ->
+            Lang.val_fun [] (fun p' ->
+                Lang.apply ~pos:(Lang.pos p') f
+                  [("", Lang.apply ~pos:(Lang.pos p') x [])])
+        | _ -> Lang.apply ~pos:(Lang.pos p) f [("", x)])
 
 let _ =
   let a = Lang.univ_t ~constraints:[Type.ord_constr] () in
@@ -95,15 +98,15 @@ let _ =
     (fun p ->
       let f = Lang.assoc "" 1 p in
       let x = Lang.assoc "" 2 p in
-      match (Lang.demeth x).Lang.value with
-        | Lang.Fun ([], _, _) | Lang.FFI ([], _) ->
-            let last_x = ref (Lang.apply x []) in
-            let last_y = ref (Lang.apply f [("", !last_x)]) in
-            Lang.val_fun [] (fun _ ->
-                let x = Lang.apply x [] in
+      match x with
+        | Fun { fun_args = [] } | FFI { ffi_args = []; _ } ->
+            let last_x = ref (Lang.apply ~pos:(Lang.pos p) x []) in
+            let last_y = ref (Lang.apply ~pos:(Lang.pos p) f [("", !last_x)]) in
+            Lang.val_fun [] (fun p' ->
+                let x = Lang.apply ~pos:(Lang.pos p') x [] in
                 if Value.compare x !last_x = 0 then !last_y
                 else (
-                  let y = Lang.apply f [("", x)] in
+                  let y = Lang.apply ~pos:(Lang.pos p') f [("", x)] in
                   last_y := y;
                   y))
-        | _ -> Lang.apply f [("", x)])
+        | _ -> Lang.apply ~pos:(Lang.pos p) f [("", x)])

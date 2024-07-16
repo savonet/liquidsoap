@@ -1,5 +1,4 @@
 pkgname=@APK_PACKAGE@
-subpackages="$pkgname-dbg"
 pkgver=@APK_VERSION@
 pkgrel=@APK_RELEASE@
 pkgdesc="Swiss-army knife for multimedia streaming"
@@ -17,13 +16,13 @@ package() {
         export LIQUIDSOAP_BUILD_TARGET=posix
         eval "$(opam config env)"
         export OCAMLPATH=$(cat ../.ocamlpath)
-        dune build @install
+        dune build @install --release
         dune install --relocatable --prefix "${pkgdir}/usr"
 
+        rm -rf "$pkgdir/usr/lib"
         rm -rf "$pkgdir/usr/share/doc"
         rm -rf "$pkgdir/usr/share/man"
 
-        mkdir -p "$pkgdir/usr/share/liquidsoap"
-
-        cp -rf "$(opam config var share)/camomile" "$pkgdir/usr/share/liquidsoap"
+        mv "$pkgdir/usr/share/liquidsoap-lang" "$pkgdir/usr/share/liquidsoap"
+        cp -rf "$(opam var share)/camomile" "$pkgdir/usr/share/liquidsoap"
 }

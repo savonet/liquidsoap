@@ -8,15 +8,13 @@ let () =
       ignore
         (Lang.add_builtin_base ~category:`Configuration
            ~descr:("Build-time configuration for " ^ name)
-           ~base:liquidsoap_build_config_optionals name
-           Lang.(Ground (Ground.Bool value))
+           ~base:liquidsoap_build_config_optionals name (`Bool value)
            Lang.bool_t))
     [
       ("alsa", Alsa_option.enabled);
       ("ao", Ao_option.enabled);
       ("bjack", Bjack_option.enabled);
       ("camlimages", Camlimages_option.enabled);
-      ("camomile", Camomile_option.enabled);
       ("canvas", Canvas_option.enabled);
       ("dssi", Dssi_option.enabled);
       ("faad", Faad_option.enabled);
@@ -36,14 +34,11 @@ let () =
       ("lilv", Lilv_option.enabled);
       ("lo", Lo_option.enabled);
       ("mad", Mad_option.enabled);
-      ("magic", Magic_option.enabled);
-      ("mem_usage", Mem_usage_option.enabled);
       ("memtrace", Memtrace_option.enabled);
       ("ogg", Ogg_option.enabled);
       ("opus", Opus_option.enabled);
       ("osc", Osc_option.enabled);
       ("oss", Oss_option.enabled);
-      ("osx_secure_transport", Osx_secure_transport_option.enabled);
       ("portaudio", Portaudio_option.enabled);
       ("posix_time2", Posix_time_option.enabled);
       ("prometheus", Prometheus_option.enabled);
@@ -55,6 +50,7 @@ let () =
       ("speex", Speex_option.enabled);
       ("srt", Srt_option.enabled);
       ("ssl", Ssl_option.enabled);
+      ("tls", Tls_option.enabled);
       ("taglib", Taglib_option.enabled);
       ("theora", Theora_option.enabled);
       ("vorbis", Vorbis_option.enabled);

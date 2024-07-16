@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -56,7 +56,8 @@ let argv =
                 [| Sys.argv.(1) |],
                 Array.sub Sys.argv 2 (Array.length Sys.argv - 2) )
             else
-              ( Array.of_list (Pcre.split ~pat:"\\s+" Sys.argv.(1)),
+              ( Array.of_list
+                  (Re.Pcre.split ~rex:(Re.Pcre.regexp "\\s+") Sys.argv.(1)),
                 [| Sys.argv.(2) |],
                 Array.sub Sys.argv 3 (Array.length Sys.argv - 3) )
           in

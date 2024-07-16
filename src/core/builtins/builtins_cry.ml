@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,6 +33,13 @@ let _ =
       ("host", Lang.string_t, Some (Lang.string "localhost"), None);
       ("port", Lang.int_t, Some (Lang.int 8000), None);
       ("user", Lang.string_t, Some (Lang.string "source"), None);
+      ( "transport",
+        Lang.http_transport_base_t,
+        Some (Lang.base_http_transport Http.unix_transport),
+        Some
+          "Http transport. Use `http.transport.ssl` or \
+           `http.transport.secure_transport`, when available, to enable HTTPS \
+           output" );
       ("password", Lang.string_t, Some (Lang.string "hackme"), None);
       ( "mount",
         Lang.string_t,
@@ -69,14 +76,15 @@ let _ =
         |> Option.map Charset.of_string
       in
       let metas =
-        let ret = Hashtbl.create (Hashtbl.length metas) in
-        Hashtbl.iter
-          (fun x y -> Hashtbl.add ret x (Charset.convert ?target:out_enc y))
+        let ret = Hashtbl.create 0 in
+        Frame.Metadata.iter
+          (fun x y -> Hashtbl.replace ret x (Charset.convert ?target:out_enc y))
           metas;
         ret
       in
       let host = Lang.to_string (List.assoc "host" p) in
       let port = Lang.to_int (List.assoc "port" p) in
+      let transport = Lang.to_http_transport (List.assoc "transport" p) in
       let headers =
         List.map
           (fun v ->
@@ -86,7 +94,7 @@ let _ =
       in
       let headers =
         let h = Hashtbl.create 10 in
-        List.iter (fun (x, y) -> Hashtbl.add h x y) headers;
+        List.iter (fun (x, y) -> Hashtbl.replace h x y) headers;
         h
       in
       let protocol =
@@ -94,7 +102,6 @@ let _ =
         match Lang.to_string v with
           | "icy" -> Cry.Icy
           | "http" -> Cry.Http Cry.Source (* Verb doesn't matter here. *)
-          | "https" -> Cry.Https Cry.Source
           | _ ->
               raise
                 (Error.Invalid_value
@@ -107,8 +114,9 @@ let _ =
       in
       begin
         try
+          let transport = (transport :> Cry.transport) in
           Cry.manual_update_metadata ~host ~port ~protocol ~user ~password
-            ~mount ~headers metas
+            ~mount ~headers ~transport metas
         with e ->
           log#severe "Manual metadata update failed: %s" (Printexc.to_string e)
       end;

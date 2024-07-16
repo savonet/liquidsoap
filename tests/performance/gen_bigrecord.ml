@@ -1,3 +1,42 @@
+let parse_memory_consumption script =
+  Gc.full_major ();
+  Gc.full_major ();
+  let mem_before = Mem_usage.info () in
+  let _, tm = Liquidsoap_lang.Runtime.parse script in
+
+  Gc.full_major ();
+  Gc.full_major ();
+  let mem_after = Mem_usage.info () in
+  ignore tm;
+  Printf.printf "Big record memory consumption: %s\n%!"
+    Mem_usage.(
+      prettify_bytes
+        (mem_after.process_private_memory - mem_before.process_private_memory))
+
+(* Remove type information. *)
+let rec strip tm =
+  let { Liquidsoap_lang.Term.term; methods; _ } = tm in
+  let methods =
+    Liquidsoap_lang.Term.Methods.fold (fun _ v ret -> strip v @ ret) methods []
+  in
+  term :: methods
+
+let term_memory_consumption script =
+  Gc.full_major ();
+  Gc.full_major ();
+  let mem_before = Mem_usage.info () in
+  let _, terms = Liquidsoap_lang.Runtime.parse script in
+  let terms = strip terms in
+
+  Gc.full_major ();
+  Gc.full_major ();
+  let mem_after = Mem_usage.info () in
+  ignore terms;
+  Printf.printf "Big record term-only memory consumption: %s\n%!"
+    Mem_usage.(
+      prettify_bytes
+        (mem_after.process_private_memory - mem_before.process_private_memory))
+
 let () =
   let indexes = List.init 5000 string_of_int in
   let methods =
@@ -6,11 +45,12 @@ let () =
   in
   let sums =
     String.concat "\n"
-      (List.map (fun idx -> [%string "n := !n + r.a%{idx}"]) indexes)
+      (List.map (fun idx -> [%string "n := n() + r.a%{idx}"]) indexes)
   in
-  Printf.printf "%s"
-    [%string
-      {|
+  let script =
+    Printf.sprintf "%s"
+      [%string
+        {|
 def sum () =
   r = ()
   %{methods}
@@ -20,3 +60,11 @@ end
 time("sum of fields (big record)", sum)
 exit(0)
   |}]
+  in
+
+  parse_memory_consumption script;
+  term_memory_consumption script;
+
+  let fd = open_out Sys.argv.(1) in
+  output_string fd script;
+  close_out fd

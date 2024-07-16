@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,8 +28,11 @@ open Liquidsoap_lang
 (* Same as [Lang.frame_t] (with position) *)
 val make : ?pos:Pos.t -> Type.t -> Type.t Frame.Fields.t -> Type.t
 
-(* Same as [Lang.internal_t] (with position) *)
-val internal : ?pos:Pos.t -> unit -> Type.t
+(* Same as [Lang.internal_tracks_t] (with position) *)
+val internal_tracks : ?pos:Pos.t -> unit -> Type.t
+
+(* Same as [Lang.pcm_audio_t] (with position) *)
+val pcm_audio : ?pos:Pos.t -> unit -> Type.t
 
 (* [set_field frame_type field field_type] assigns a field to a frame type. *)
 val set_field : Type.t -> Frame.field -> Type.t -> Type.t
@@ -37,6 +40,10 @@ val set_field : Type.t -> Frame.field -> Type.t -> Type.t
 (* [get_field frame_type field] returns the frame field's type.
    Raises [Not_found] if field does not exist. *)
 val get_field : Type.t -> Frame.field -> Type.t
+
+(* [get_fields frame_type] returns all the field currently
+   set for the given type. *)
+val get_fields : Type.t -> Frame.field list
 
 (* Resolve a frame type into a content type. If the frame has explicit fields,
    this seales the frame type and resolves kind formats with their default format.

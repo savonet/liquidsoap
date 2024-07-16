@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,26 +24,12 @@
 
 let log = Log.make ["playlist parser"]
 
-let conf_playlists =
-  Dtools.Conf.void ~p:(Configure.conf#plug "playlists") "Playlist formats"
-
-let conf_mime_types =
-  Dtools.Conf.void
-    ~p:(conf_playlists#plug "mime_types")
-    "Mime-types used for guessing playlist formats."
-    ~comments:
-      [
-        "When a mime-type is available (e.g. with input.http), it can be used";
-        "to guess which playlist format to use.";
-        "This section contains the listings used for that detection, which you";
-        "might want to tweak if you encounter a new mime-type.";
-        "If you feel that new mime-types should be permanently added, please";
-        "contact the developers.";
-      ]
+let conf_playlist =
+  Dtools.Conf.void ~p:(Configure.conf#plug "playlist") "Playlist formats"
 
 let conf_cue_in_metadata =
   Dtools.Conf.string
-    ~p:(conf_playlists#plug "cue_in_metadata")
+    ~p:(conf_playlist#plug "cue_in_metadata")
     ~d:"liq_cue_in" "Cue in metadata for playlists with track index."
     ~comments:
       [
@@ -52,14 +38,12 @@ let conf_cue_in_metadata =
          request with";
         "a cue-in metadata containing the index. If you want to make use of \
          this index,";
-        "you should specify here what label you want for this metadata and use \
-         the cue_cut";
-        "operator on the resulting source";
+        "you should specify here what label you want for this metadata.";
       ]
 
 let conf_cue_out_metadata =
   Dtools.Conf.string
-    ~p:(conf_playlists#plug "cue_out_metadata")
+    ~p:(conf_playlist#plug "cue_out_metadata")
     ~d:"liq_cue_out" "Cue out metadata for playlists with track index."
     ~comments:
       [
@@ -68,21 +52,21 @@ let conf_cue_out_metadata =
          request with";
         "a cue-in metadata containing the index. If you want to make use of \
          this index,";
-        "you should specify here what label you want for this metadata and use \
-         the cue_cut";
-        "operator on the resulting source";
+        "you should specify here what label you want for this metadata.";
       ]
 
 (** A playlist is list of metadatas,uri *)
 type playlist = ((string * string) list * string) list
 
+type parser = ?pwd:string -> string -> playlist
+
 (** A plugin is a boolean and a parsing function *)
 type plugin = {
+  (* true if the format can be automatically detected *)
   strict : bool;
-  (* true is the format can be detected *)
-  parser : ?pwd:string -> string -> playlist;
-      (* The parser is expected to respect the order
-         of the files in the playlist. *)
+  (* The parser is expected to respect the order
+     of the files in the playlist. *)
+  parser : parser;
 }
 
 (** Parsers are given a string and return a list of metadatas,uri, if possible. *)

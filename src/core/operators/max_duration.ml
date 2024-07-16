@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,19 +26,13 @@
  *  stack of sources. *)
 class max_duration ~override_meta ~duration source =
   object (self)
-    inherit Source.operator ~name:"max_duration" [] as super
+    inherit Source.operator ~name:"max_duration" []
+    initializer Clock.unify ~pos:self#pos self#clock source#clock
     val mutable remaining = duration
     val mutable s : Source.source = source
     method self_sync = source#self_sync
-    method! private set_clock = Clock.unify self#clock s#clock
-
-    method! private wake_up activation =
-      let activation = (self :> Source.operator) :: activation in
-      s#get_ready activation
-
-    method! private sleep = s#leave (self :> Source.operator)
-    method stype = `Fallible
-    method is_ready = remaining > 0 && s#is_ready
+    method fallible = true
+    method private can_generate_frame = remaining > 0 && s#is_ready
     method abort_track = s#abort_track
 
     method remaining =
@@ -47,37 +41,32 @@ class max_duration ~override_meta ~duration source =
         | _, -1 -> -1
         | rem, rem' -> min rem rem'
 
-    method seek len = source#seek (min remaining len)
+    method! seek len = source#seek_source#seek (min remaining len)
+    method seek_source = source#seek_source
 
-    method private check_for_override ~offset buf =
+    method private check_for_override buf =
       List.iter
-        (fun (p, m) ->
-          if p >= offset then
-            Hashtbl.iter
-              (fun lbl v ->
-                if lbl = override_meta then (
-                  try
-                    let v = float_of_string v in
-                    remaining <- Frame.main_of_seconds v;
-                    self#log#info "Overriding remaining value: %.02f." v
-                  with _ ->
-                    self#log#important "Invalid remaining override value: %s." v))
-              m)
+        (fun (_, m) ->
+          Frame.Metadata.iter
+            (fun lbl v ->
+              if lbl = override_meta then (
+                try
+                  let v = float_of_string v in
+                  remaining <- Frame.main_of_seconds v;
+                  self#log#info "Overriding remaining value: %.02f." v
+                with _ ->
+                  self#log#important "Invalid remaining override value: %s." v))
+            m)
         (Frame.get_all_metadata buf)
 
-    method private get_frame buf =
-      let offset = Frame.position buf in
-      s#get buf;
-      self#check_for_override ~offset buf;
-      remaining <- remaining - Frame.position buf + offset;
-      if remaining <= 0 then (
-        s#leave (self :> Source.source);
-        s <- Debug_sources.empty ();
-        s#get_ready [(self :> Source.source)])
-
-    method! after_output =
-      super#after_output;
-      s#after_output
+    method private generate_frame =
+      let buf = s#get_frame in
+      self#check_for_override buf;
+      let pos = Frame.position buf in
+      let len = min remaining pos in
+      remaining <- remaining - len;
+      if remaining <= 0 then s <- Debug_sources.empty ();
+      if len < pos then Frame.slice buf len else buf
   end
 
 let _ =

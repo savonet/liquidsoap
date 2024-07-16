@@ -5,7 +5,7 @@ type uri = {
   path : string;
 }
 
-type event = [ `Write | `Read | `Both ]
+type event = Cry.event
 
 type socket =
   < typ : string
@@ -16,73 +16,86 @@ type socket =
   ; read : Bytes.t -> int -> int -> int
   ; close : unit >
 
+and server =
+  < transport : transport
+  ; accept : ?timeout:float -> Unix.file_descr -> socket * Unix.sockaddr >
+
 and transport =
   < name : string
   ; protocol : string
   ; default_port : int
-  ; connect : ?bind_address:string -> string -> int -> socket
-  ; accept : Unix.file_descr -> socket * Unix.sockaddr >
+  ; connect :
+      ?bind_address:string ->
+      ?timeout:float ->
+      ?prefer:[ `System_default | `Ipv4 | `Ipv6 ] ->
+      string ->
+      int ->
+      socket
+  ; server : server >
 
-let unix_socket transport fd : socket =
+let connect = Cry.unix_connect
+
+let rec accept ?timeout sock =
+  let has_timeout = timeout <> None in
+  let check_timeout () =
+    Tutils.wait_for (`Read sock) (Option.get timeout);
+    match Unix.getsockopt_error sock with
+      | Some err -> raise (Unix.Unix_error (err, "accept", ""))
+      | None ->
+          Unix.clear_nonblock sock;
+          accept ?timeout sock
+  in
+  try
+    if has_timeout then Unix.set_nonblock sock;
+    let fd, addr = Unix.accept ~cloexec:true sock in
+    if has_timeout then (
+      Unix.clear_nonblock sock;
+      Unix.clear_nonblock fd);
+    (fd, addr)
+  with
+    | Unix.Unix_error (Unix.EAGAIN, _, _) when has_timeout -> check_timeout ()
+    | Unix.Unix_error (Unix.EWOULDBLOCK, _, _) when has_timeout ->
+        check_timeout ()
+
+let rec unix_socket fd =
+  let s = Cry.unix_socket fd in
   object
-    method typ = "unix"
+    method typ = s#typ
     method file_descr = fd
-    method transport = transport
-
-    method wait_for ?log (event : event) d =
-      let event =
-        match event with
-          | `Read -> `Read fd
-          | `Write -> `Write fd
-          | `Both -> `Both fd
-      in
-      Tutils.wait_for ?log event d
-
-    method write = Unix.write fd
-    method read = Unix.read fd
-    method close = Unix.close fd
+    method transport = unix_transport ()
+    method wait_for = s#wait_for
+    method write = s#write
+    method read = s#read
+    method close = s#close
   end
 
-let unix_transport : transport =
+and unix_transport () =
   object (self)
-    method name = "unix"
-    method protocol = "http"
-    method default_port = 80
+    method name = Cry.unix_transport#name
+    method protocol = Cry.unix_transport#protocol
+    method default_port = Cry.unix_transport#default_port
 
-    method connect ?bind_address host port =
-      let socket = Unix.socket ~cloexec:true Unix.PF_INET Unix.SOCK_STREAM 0 in
-      begin
-        match bind_address with
-          | None -> ()
-          | Some s ->
-              let bind_addr_inet =
-                (Unix.gethostbyname s).Unix.h_addr_list.(0)
-              in
-              (* Seems like you need to bind on port 0 *)
-              let bind_addr = Unix.ADDR_INET (bind_addr_inet, 0) in
-              Unix.bind socket bind_addr
-      end;
-      try
-        Unix.connect socket
-          (Unix.ADDR_INET ((Unix.gethostbyname host).Unix.h_addr_list.(0), port));
-        unix_socket self socket
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Unix.close socket;
-        Printexc.raise_with_backtrace exn bt
+    method connect ?bind_address ?timeout ?prefer host port =
+      let fd = Cry.unix_connect ?bind_address ?timeout ?prefer host port in
+      unix_socket fd
 
-    method accept fd =
-      let fd, addr = Unix.accept ~cloexec:true fd in
-      (unix_socket self fd, addr)
+    method server =
+      object
+        method transport = self
+
+        method accept ?timeout fd =
+          let fd, addr = accept ?timeout fd in
+          (unix_socket fd, addr)
+      end
   end
 
-let unix_socket = unix_socket unix_transport
+let unix_transport = unix_transport ()
 let user_agent = Configure.vendor
 
 let args_split s =
   let args = Hashtbl.create 2 in
   let fill_arg arg =
-    match Pcre.split ~pat:"=" arg with
+    match Pcre.split ~rex:(Pcre.regexp "=") arg with
       | e :: l ->
           (* There should be only arg=value *)
           List.iter
@@ -92,7 +105,7 @@ let args_split s =
             l
       | [] -> ()
   in
-  List.iter fill_arg (Pcre.split ~pat:"&" s);
+  List.iter fill_arg (Pcre.split ~rex:(Pcre.regexp "&") s);
   args
 
 let parse_url url =
@@ -117,7 +130,8 @@ let parse_url url =
   let path = try Pcre.get_substring sub 4 with Not_found -> "/" in
   { protocol; host; port; path }
 
-let is_url path = Pcre.pmatch ~pat:"^[Hh][Tt][Tt][Pp][sS]?://.+" path
+let is_url path =
+  Pcre.pmatch ~rex:(Pcre.regexp "^[Hh][Tt][Tt][Pp][sS]?://.+") path
 
 let dirname url =
   let rex = Pcre.regexp "^([Hh][Tt][Tt][Pp][sS]?://.+/)[^/]*$" in
@@ -181,9 +195,14 @@ let really_read ~timeout (socket : socket) len =
 (* Read chunked transfer. *)
 let read_chunked ~timeout (socket : socket) =
   let read = read_crlf ~count:1 ~timeout socket in
-  let len = List.hd (Pcre.split ~pat:"[\r]?\n" read) in
-  let len = List.hd (Pcre.split ~pat:";" len) in
+  let len = List.hd (Pcre.split ~rex:(Pcre.regexp "[\r]?\n") read) in
+  let len = List.hd (Pcre.split ~rex:(Pcre.regexp ";") len) in
   let len = int_of_string ("0x" ^ len) in
   let s = really_read socket ~timeout len in
   ignore (read_crlf ~count:1 ~timeout socket);
   (s, len)
+
+let set_socket_default ~read_timeout ~write_timeout fd =
+  Unix.set_close_on_exec fd;
+  Unix.setsockopt_float fd Unix.SO_RCVTIMEO read_timeout;
+  Unix.setsockopt_float fd Unix.SO_SNDTIMEO write_timeout

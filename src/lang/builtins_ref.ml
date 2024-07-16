@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,27 +27,7 @@ let ref =
     [("", a, None, None)]
     (Lang.ref_t a)
     (fun p ->
-      let x = List.assoc "" p in
-      Lang.reference (Atomic.make x))
-
-let _ =
-  let a = Lang.univ_t () in
-  Lang.add_builtin ~base:ref "get" ~category:`Programming
-    ~descr:"Retrieve the contents of a reference."
-    [("", Lang.ref_t a, None, None)]
-    a
-    (fun p ->
-      let r = Lang.to_ref (List.assoc "" p) in
-      Atomic.get r)
-
-let _ =
-  let a = Lang.univ_t () in
-  Lang.add_builtin ~base:ref "set" ~category:`Programming
-    ~descr:"Set the value of a reference."
-    [("", Lang.ref_t a, None, None); ("", a, None, None)]
-    Lang.unit_t
-    (fun p ->
-      let r = Lang.to_ref (Lang.assoc "" 1 p) in
-      let v = Lang.assoc "" 2 p in
-      Atomic.set r v;
-      Lang.unit)
+      let x = List.assoc "" p |> Atomic.make in
+      let get () = Atomic.get x in
+      let set v = Atomic.set x v in
+      Lang.reference get set)

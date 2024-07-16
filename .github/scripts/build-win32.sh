@@ -30,7 +30,7 @@ if [ "${SYSTEM}" = "x64" ]; then
 else
   # shellcheck disable=SC2034
   HOST="i686-w64-mingw32.static"
-  BUILD="${TAG}-${VERSION}-win32"
+  BUILD="${TAG}${VERSION}-win32"
   # shellcheck disable=SC2034
   PKG_CONFIG_PATH="/usr/src/mxe/usr/i686-w64-mingw32.static/lib/pkgconfig/"
 fi
@@ -43,19 +43,30 @@ echo "::group::Installing deps"
 
 eval "$(opam config env)"
 opam repository set-url default https://github.com/ocaml/opam-repository.git
-cd /home/opam/opam-cross-windows/
-# shellcheck disable=SC2046
-opam remove -y ppx_tools_versioned-windows $(echo "$OPAM_DEPS" | sed -e 's#,# #g')
+opam repository set-url windows https://github.com/ocaml-cross/opam-cross-windows.git
+opam update windows
 # shellcheck disable=SC2046
 opam upgrade -y $(echo "$OPAM_DEPS" | sed -e 's#,# #g') ffmpeg-windows ffmpeg-avutil-windows
+opam remove -y pcre-windows
+
+# Debug
+opam reinstall -y cry-windows
 
 echo "::endgroup::"
 
 echo "::group::Install liquidsoap-windows"
-opam install -y liquidsoap-windows
+opam install -y liquidsoap-core-windows
 echo "::endgroup::"
 
-wine "${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap" --build-config
+echo "::group::Save build config"
+
+wine "${OPAM_PREFIX}/windows-sysroot/bin/liquidsoap" --build-config >> "/tmp/${GITHUB_RUN_NUMBER}/win32/dist/liquidsoap-$BUILD.config"
+
+echo "Build config:"
+
+cat "/tmp/${GITHUB_RUN_NUMBER}/win32/dist/liquidsoap-$BUILD.config"
+
+echo "::endgroup::"
 
 echo "::group::Bundling executable"
 
@@ -70,6 +81,6 @@ zip -r "liquidsoap-$BUILD.zip" "liquidsoap-$BUILD"
 
 mv "liquidsoap-$BUILD.zip" "/tmp/${GITHUB_RUN_NUMBER}/win32/dist"
 
-echo "##[set-output name=basename;]liquidsoap-${BUILD}"
+echo "basename=liquidsoap-${BUILD}" >> "${GITHUB_OUTPUT}"
 
 echo "::endgroup::"

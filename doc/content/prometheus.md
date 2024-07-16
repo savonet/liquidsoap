@@ -5,10 +5,8 @@ When compiled with optional support for [mirage/prometheus](https://github.com/m
 
 The basic settings to enable exports are:
 
-```liquidsoap
-# Prometheus settings
-settings.prometheus.server.set(true)
-settings.prometheus.server.port.set(9090)
+```{.liquidsoap include="prometheus-settings.liq"}
+
 ```
 
 Common metrics, namely `gauge`, `counter` and `summary` are provided via the script language, as well
@@ -39,15 +37,14 @@ This type can be a little confusing. Here's how it works:
 
 1. First, one has to create a metric factory of a given type. For instance:
 
-```liquidsoap
-is_playing_metric = prometheus.gauge(labels=["source"],"liquidsoap_is_playing")
+```{.liquidsoap include="prometheus-callback.liq" from="A0" to="A1"}
+
 ```
 
 2. Then, the metric factory can be used to instantiate speific metrics by passing the label's values:
 
-```liquidsoap
-playlist = playlist(id="playlist", ...)
-set_playlist_is_playing = is_playing_metric(label_values=["radio"])
+```{.liquidsoap include="prometheus-callback.liq" from="B0" to="B1"}
+
 ```
 
 The returned function is a setter for this metric, i.e.
@@ -58,19 +55,8 @@ The returned function is a setter for this metric, i.e.
 
 Finally, the programmer can now use that callback to set the metric as desired. For instance here:
 
-```liquidsoap
-def check_if_ready(set_is_ready, source) =
-  def callback() =
-    if source.is_ready(source) then
-      set_is_ready(1.)
-    else
-      set_is_ready(0.)
-    end
-    0.1
-  end
-  callback
-end
-thread.run.recurrent(delay=0.,check_if_ready(set_playlist_is_playing, playlist))
+```{.liquidsoap include="prometheus-callback.liq" from="C0"}
+
 ```
 
 ## `prometheus.latency`

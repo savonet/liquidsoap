@@ -29,6 +29,25 @@ If you are installing via [opam](https://opam.ocaml.org/), installing the `ffmpe
 % opam install ffmpeg
 ```
 
+### fdk-aac support in ffmpeg
+
+One common question is how to install `ffmpeg` with `fdk-aac` support. This can get tricky because you need the _ffmpeg shared libraries_ compiled with `libfdk-aac`.
+This means that installing `libfdk-aac` alone will not be enough, you might also need to recompile `ffmpeg` to take advantage of it.
+
+When recompiling `ffmpeg`, make sure that the `--enable-shared` argument is passed to the `configure` script. Also, compiling the shared libraries is different
+than downloading the `ffmpeg` command line. Most `ffmpeg` downloads include a _static build_ of ffmpeg that is, one that does not use or provide shared libraries.
+
+On linux platforms, you can check what dynamic libraries liquidsoap is using using
+
+```shell
+ldd /path/to/liquidsopap
+```
+
+On macos, you can use `otool -L`. In the list of libraries, you should see `libavcodec`. In turn, you should be able to use the same command to inspect the libraries required by the `libavcodec` used by the `liquidsoap` binary. If this includes `libfdk-aac`, you're good to go!
+
+On debian, you might be able to use [deb-multimedia.org](https://www.deb-multimedia.org/) to install a build of `ffmpeg` with `libfdk-aac` enabled. You are advised
+to follow the instructions on the website for the latest up-to date guide. You may also refer to [this conversation](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
+
 ## Decoders
 
 For the most part, you should never have to worry about the `ffmpeg` decoder. When enabled, it should be the preferred decoder for all supported media.
@@ -40,13 +59,13 @@ The `settings.decoder.decoders` settings controls which decoders are to be used 
 You can use it to restrict which decoders are being used, for instance making sure only the ffmpeg decoder is used:
 
 ```liquidsoap
-settings.decoder.decoders.set(["FFMPEG"])
+settings.decoder.decoders := ["FFMPEG"]
 ```
 
 Priority for the decoder is set via:
 
 ```liquidsoap
-settings.decoder.priorities.ffmpeg.set(10)
+settings.decoder.priorities.ffmpeg := 10
 ```
 
 You can use this setting to adjust whether or not the ffmpeg decoder should be tried first when decoding media files, in particular in
@@ -58,12 +77,12 @@ decode this type of content (there could more than one decoder for a given codec
 For instance, for the `aac` codec:
 
 - `settings.decoder.ffmpeg.codecs.aac.available()` returns the list of available decoders, typically `["aac", "aac_fixed"]`.
-- `settings.decoder.ffmpeg.codecs.aac.set` can be used to choose which decoder should be used, typically: `settings.decoder.ffmpeg.codecs.aac.set("aac")`
+- `settings.decoder.ffmpeg.codecs.aac` can be used to choose which decoder should be used, typically: `settings.decoder.ffmpeg.codecs.aac := "aac"`
 
 When debugging issues with `ffmpeg`, it can be useful to increase the log verbosity.
 
 ```liquidsoap
-settings.ffmpeg.log.verbosity.set("warning")
+settings.ffmpeg.log.verbosity := "warning"
 ```
 
 This settings sets the verbosity of `ffmpeg` logs. Possible values, from less verbose to more verbose are:
@@ -72,6 +91,50 @@ This settings sets the verbosity of `ffmpeg` logs. Possible values, from less ve
 Please note that, due to a technical limitation, we are not yet able to route `ffmpeg` logs through
 the liquidsoap logging facilities, which means that `ffmpeg` logs are currently only printed to the
 process's standard output and that the `settings.ffmpeg.log.level` is currently not used.
+
+### Decoder arguments
+
+In some cases, for instance when sending raw PCM data, it might be required to pass some arguments to
+the ffmpeg decoder to let it know what kind of format, codec, etc. it should decode.
+
+There are two ways to do that:
+
+- For _streams_, the `content_type` argument can be used. The convention is to use `"application/ffmpeg;<arguments>"`.
+- For _files_, the `ffmpeg_options` metadata can be used, for instance using the `annotate` protocol: `annotate:ffmpeg_options="<arguments>":/path/to/file.raw`
+
+Here's an example of a SRT input and output that can be used to send raw PCM data between two instances:
+
+Sender:
+
+```liquidsoap
+enc = %ffmpeg(
+  format="s16le",
+  %audio(
+    codec="pcm_s16le",
+    ac=2,
+    ar=48000
+  )
+)
+
+output.srt(enc, s)
+```
+
+Receiver:
+
+```liquidsoap
+s = input.srt(
+  content_type="application/ffmpeg;format=s16le,ch_layout=stereo,sample_rate=48000"
+)
+```
+
+If, instead of using `output.srt` above, we were using `output.file` and saving to a file
+named `bla.raw`, this file could be read with a `single` source this way:
+
+```liquidsoap
+s = single("annotate:ffmpeg_options='format=s16le,ch_layout=stereo,sample_rate=44100':/tmp/bla.raw")
+```
+
+This could also be done in a `playlist` or `request.dynamic` and etc.
 
 ## Encoders
 
@@ -128,7 +191,7 @@ Some containers such as `mp4`, however, do allow stream where video resolution o
 relax those compatibility checks using the following setting:
 
 ```liquidsoap
-settings.ffmpeg.content.copy.relaxed_compatibility_check.set(true)
+settings.ffmpeg.content.copy.relaxed_compatibility_check := true
 ```
 
 This is a global setting for now and could be refined per-stream in the future if the needs arises.
@@ -141,7 +204,7 @@ This is a global setting for now and could be refined per-stream in the future i
 audio_source = single(audio_url)
 video_source = single(image)
 
-stream = mux_video(video=video_source, audio_source)
+stream = source.mux.video(video=video_source, audio_source)
 
 stream = ffmpeg.encode.audio_video(
     %ffmpeg(
@@ -217,7 +280,7 @@ use the _bitstream filter_ `ffmpeg.filter.bitstream.extract_extradata` to extrac
 audio_source = single(audio_url)
 video_source = single(image)
 
-stream = mux_video(video=video_source, audio_source)
+stream = source.mux.video(video=video_source, audio_source)
 
 stream = ffmpeg.encode.audio_video(
     %ffmpeg(

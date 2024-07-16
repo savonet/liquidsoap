@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,21 +30,26 @@ let () =
       ignore
         (Lang.add_builtin_base ~category:`Configuration
            ~descr:(Printf.sprintf "Liquidsoap's %s." kind)
-           ~base:configure name
-           Lang.(Ground (Ground.String str))
-           Lang.string_t))
+           ~base:configure name (`String str) Lang.string_t))
     [
       ("libdir", "library directory", Configure.liq_libs_dir ());
       ("bindir", "Internal script directory", Configure.bin_dir ());
       ("rundir", "PID file directory", Configure.rundir ());
       ("logdir", "logging directory", Configure.logdir ());
-      ("default_font", "default font file", Configure.default_font);
     ]
 
 (** Liquidsoap stuff *)
 
 let log = Lang.log
 let encoder = Modules.encoder
+
+let conf_runtime =
+  Dtools.Conf.void ~p:(Configure.conf#plug "runtime") "Runtime configuration."
+
+let conf_strip_types_types =
+  Dtools.Conf.bool
+    ~p:(conf_runtime#plug "strip_types")
+    ~d:true "Strip runtime types whenever possible to optimize memory usage."
 
 let _ =
   let kind = Lang.univ_t () in
@@ -211,10 +216,26 @@ let _ =
     let a = Lang.to_string (Lang.assoc "" 2 p) in
     let s = match a with "" -> c | _ -> c ^ " " ^ a in
     let r = try Server.exec s with Not_found -> "Command not found!" in
-    Lang.list (List.map Lang.string (Pcre.split ~pat:"\r?\n" r))
+    Lang.list (List.map Lang.string (Pcre.split ~rex:(Pcre.regexp "\r?\n") r))
   in
   Lang.add_builtin ~base:Modules.server "execute" ~category ~descr params
     return_t execute
+
+let locale = Lang.add_module ~base:Modules.runtime "locale"
+
+let _ =
+  Lang.add_builtin ~base:locale "set" ~category:`System
+    ~descr:
+      "Set the system's locale. This sets `LANG` and `LC_ALL` environment \
+       variables to the given value and then calls `setlocale`. This is set to \
+       `\"C\"` on startup, which defaults to the system's default locale. Keep \
+       in mind that changing this can potentially impact some functions such a \
+       `float_of_string`."
+    [("", Lang.string_t, None, None)]
+    Lang.unit_t
+    (fun p ->
+      Utils.force_locale (Lang.to_string (List.assoc "" p));
+      Lang.unit)
 
 let _ =
   Lang.add_builtin "shutdown" ~category:`System
@@ -246,18 +267,6 @@ let _ =
       let n = Lang.to_int (List.assoc "" p) in
       flush_all ();
       exit n)
-
-let _ =
-  Lang.add_builtin "sleep" ~category:`System
-    ~descr:
-      "Interrupt execution for a given amount of seconds. This freezes the \
-       calling thread and should not be used in the main streaming loop."
-    [("", Lang.float_t, None, Some "Number of seconds of sleep.")]
-    Lang.unit_t
-    (fun p ->
-      let t = Lang.to_float (List.assoc "" p) in
-      Unix.sleepf t;
-      Lang.unit)
 
 let reopen = Lang.add_module "reopen"
 

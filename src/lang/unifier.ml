@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,21 +22,25 @@
 
 (* Simple unification module for variables with no unknown value *)
 
-type 'a t = [ `Value of 'a | `Link of 'a t ref ]
+type 'a t = [ `Value of 'a | `Link of 'a t Atomic.t ]
 
-let make v = `Link (ref (`Value v))
-let rec deref x = match x with `Value v -> v | `Link x -> deref !x
+let make v = `Link (Atomic.make (`Value v))
+let rec deref x = match x with `Value v -> v | `Link x -> deref (Atomic.get x)
 
 let set x v =
-  let rec f x = match !x with `Value _ -> x := `Value v | `Link x -> f x in
+  let rec f x =
+    match Atomic.get x with
+      | `Value _ -> Atomic.set x (`Value v)
+      | `Link x -> f x
+  in
   match x with `Value _ -> assert false | `Link x -> f x
 
 let ( <-- ) x x' =
   let rec f x x' =
-    match (!x, !x') with
+    match (Atomic.get x, Atomic.get x') with
       | `Link x, _ -> f x x'
       | _, `Link x' -> f x x'
-      | _ when x != x' -> x := `Link x'
+      | _ when x != x' -> Atomic.set x (`Link x')
       | _ -> ()
   in
   match (x, x') with

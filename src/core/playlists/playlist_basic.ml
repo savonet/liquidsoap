@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,19 +21,17 @@
  *****************************************************************************)
 
 let log = Log.make ["playlist"; "basic"]
-let split_lines buf = Pcre.split ~pat:"[\r\n]+" buf
+let split_lines buf = Pcre.split ~rex:(Pcre.regexp "[\r\n]+") buf
 
 let parse_meta =
+  let processor =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Liquidsoap_lang.Parser.annotate_metadata_entry
+  in
   let rec f cur s =
     try
       let lexbuf = Sedlexing.Utf8.from_string s in
-      let processor =
-        MenhirLib.Convert.Simplified.traditional2revised
-          Liquidsoap_lang.Parser.annotate_metadata_entry
-      in
-      let tokenizer =
-        Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf
-      in
+      let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
       let metadata = processor tokenizer in
       let b = Buffer.create 10 in
       let rec g () =
@@ -63,7 +61,7 @@ let parse_extinf s =
         | "" -> meta
         | duration -> ("extinf_duration", duration) :: meta
     in
-    let lines = Pcre.split ~pat:"\\s*-\\s*" song in
+    let lines = Pcre.split ~rex:(Pcre.regexp "\\s*-\\s*") song in
     meta
     @
     match lines with
@@ -77,7 +75,7 @@ let parse_extinf s =
 (* This parser cannot detect the format !! *)
 let parse_mpegurl ?pwd string =
   let lines = List.filter (fun x -> x <> "") (split_lines string) in
-  let is_info line = Pcre.pmatch ~pat:"^#EXTINF" line in
+  let is_info line = Pcre.pmatch ~rex:(Pcre.regexp "^#EXTINF") line in
   let skip_line line = line.[0] == '#' in
   let rec get_urls cur lines =
     match lines with
@@ -92,10 +90,16 @@ let parse_mpegurl ?pwd string =
   get_urls [] lines
 
 let parse_scpls ?pwd string =
-  let string = Pcre.replace ~pat:"#[^\\r\\n]*[\\n\\r]+" string in
+  let string =
+    Pcre.substitute
+      ~rex:(Pcre.regexp "#[^\\r\\n]*[\\n\\r]+")
+      ~subst:(fun _ -> "")
+      string
+  in
   (* Format check, raise Not_found if invalid *)
   ignore
-    (Pcre.exec ~pat:"^[\\r\\n\\s]*\\[playlist\\]"
+    (Pcre.exec
+       ~rex:(Pcre.regexp "^[\\r\\n\\s]*\\[playlist\\]")
        (String.lowercase_ascii string));
   let lines = split_lines string in
   let urls =
@@ -209,7 +213,7 @@ let parse_tracks index lines =
                   else track)
             in
             begin
-              try parse_index x (Hashtbl.add track.indexes)
+              try parse_index x (Hashtbl.replace track.indexes)
               with Not_found -> ()
             end;
             parse tracks track rem)
@@ -228,7 +232,8 @@ let parse_cue ?pwd string =
   let strings = split_lines string in
   let strings =
     List.map
-      (fun string -> Pcre.replace ~rex:(Pcre.regexp "^\\s+") string)
+      (fun string ->
+        Pcre.substitute ~rex:(Pcre.regexp "^\\s+") ~subst:(fun _ -> "") string)
       strings
   in
   let strings = List.filter (fun s -> s <> "") strings in
@@ -289,14 +294,8 @@ let parse_cue ?pwd string =
   in
   export_tracks [] sheet.tracks
 
-let () =
-  Plug.register Playlist_parser.parsers "audio/x-scpls" ~doc:""
-    { Playlist_parser.strict = true; Playlist_parser.parser = parse_scpls };
-  Plug.register Playlist_parser.parsers "application/x-cue" ~doc:""
-    { Playlist_parser.strict = true; Playlist_parser.parser = parse_cue };
-  Plug.register Playlist_parser.parsers "audio/x-mpegurl" ~doc:""
-    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl };
-  Plug.register Playlist_parser.parsers "audio/mpegurl" ~doc:""
-    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl };
-  Plug.register Playlist_parser.parsers "application/x-mpegURL" ~doc:""
-    { Playlist_parser.strict = false; Playlist_parser.parser = parse_mpegurl }
+let _ =
+  Builtins_resolvers.add_playlist_parser ~format:"SCPLS" "scpls" parse_scpls
+
+let _ = Builtins_resolvers.add_playlist_parser ~format:"CUE" "cue" parse_cue
+let _ = Builtins_resolvers.add_playlist_parser ~format:"M3U" "m3u" parse_mpegurl

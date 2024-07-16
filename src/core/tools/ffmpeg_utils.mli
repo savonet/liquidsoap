@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -39,13 +39,12 @@ val pack_image : Image.YUV420.t -> (Image.Data.t * int) array
 val unpack_image :
   width:int -> height:int -> (Image.Data.t * int) array -> Image.YUV420.t
 
-val best_pts : _ Avutil.frame -> int64 option
-
 val convert_time_base :
   src:Avutil.rational -> dst:Avutil.rational -> int64 -> int64
 
 val mk_hardware_context :
   hwaccel:Ffmpeg_format.hwaccel ->
+  hwaccel_pixel_format:Avutil.Pixel_format.t option ->
   hwaccel_device:string option ->
   opts:Avutil.opts ->
   target_pixel_format:Avutil.Pixel_format.t ->
@@ -63,7 +62,18 @@ val mk_hardware_context :
 module Duration : sig
   type 'a t
 
-  val init : src:Avutil.rational -> get_ts:('a -> Int64.t option) -> 'a t
+  val init :
+    ?offset:int64 ->
+    ?last_ts:int64 ->
+    mode:[ `DTS | `PTS ] ->
+    src:Avutil.rational ->
+    convert_ts:bool ->
+    get_ts:('a -> int64 option) ->
+    set_ts:('a -> int64 option -> unit) ->
+    unit ->
+    'a t
+
+  val last_ts : 'a t -> int64 option
   val push : 'a t -> 'a -> (int * (int * 'a) list) option
   val flush : 'a t -> (int * 'a) list
 end

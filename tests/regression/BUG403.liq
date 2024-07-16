@@ -9,17 +9,21 @@
 # as a result, B has selected = A, attempts to stream it
 # but A finds itself not ready anymore.
 # In other words, B committed but A did not.
-
 r = ref(false)
-def pred () =
+
+def pred() =
   v = !r
   r := false
   v
 end
-thread.run(delay=2., { r := true })
 
-mixer = fallback(id="mixer", track_sensitive=false,
-  [source.available(sine(duration=3.), pred), blank()])
+thread.run(delay=2., {r := true})
+mixer =
+  fallback(
+    id="mixer",
+    track_sensitive=false,
+    [source.available(sine(duration=3.), pred), blank()]
+  )
 
 output.dummy(mixer)
-thread.run(delay=3., { test.pass() ; shutdown()})
+thread.run(delay=3., test.pass)

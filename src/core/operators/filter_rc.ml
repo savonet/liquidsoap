@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,26 +28,26 @@ class filter (source : source) freq wet mode =
   let rate = float (Lazy.force Frame.audio_rate) in
   let dt = 1. /. rate in
   object (self)
-    inherit operator ~name:"filter.rc" [source] as super
-    method stype = source#stype
+    inherit operator ~name:"filter.rc" [source]
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable prev = [||]
     val mutable prev_in = [||]
 
-    method! wake_up a =
-      super#wake_up a;
-      prev <- Array.make self#audio_channels 0.;
-      prev_in <- Array.make self#audio_channels 0.
+    initializer
+      self#on_wake_up (fun () ->
+          prev <- Array.make self#audio_channels 0.;
+          prev_in <- Array.make self#audio_channels 0.)
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let position = source#frame_audio_position in
       let rc = 1. /. freq () in
       let alpha =
         match mode with
@@ -57,12 +57,12 @@ class filter (source : source) freq wet mode =
       let alpha' = 1. -. alpha in
       let wet = wet () in
       let wet' = 1. -. wet in
-      match mode with
+      (match mode with
         | Low_pass ->
             let alpha = dt /. (rc +. dt) in
             for c = 0 to Array.length b - 1 do
               let b_c = b.(c) in
-              for i = offset to position - 1 do
+              for i = 0 to position - 1 do
                 prev.(c) <- (alpha *. b_c.(i)) +. (alpha' *. prev.(c));
                 b_c.(i) <- (wet *. prev.(c)) +. (wet' *. b_c.(i))
               done
@@ -71,12 +71,13 @@ class filter (source : source) freq wet mode =
             let alpha = dt /. (rc +. dt) in
             for c = 0 to Array.length b - 1 do
               let b_c = b.(c) in
-              for i = offset to position - 1 do
+              for i = 0 to position - 1 do
                 prev.(c) <- alpha *. (prev.(c) +. b_c.(i) -. prev_in.(c));
                 prev_in.(c) <- b_c.(i);
                 b_c.(i) <- (wet *. prev.(c)) +. (wet' *. b_c.(i))
               done
-            done
+            done);
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

@@ -10,19 +10,24 @@
  (action
   (with-stdout-to
    dune.inc.gen
-   (run ../gen_dune.exe))))
+   (run ./gen_dune.exe))))
 
 (rule
  (alias gendune)
  (action
   (diff dune.inc dune.inc.gen)))
 
+(executable
+ (name gen_dune)
+ (libraries liquidsoap_build_tools)
+ (modules gen_dune))
+
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (:run_test ../run_test.exe))
  (action

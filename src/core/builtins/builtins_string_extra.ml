@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ let _ =
       try
         let metadata, uri = Annotate.parse (Lang.to_string v) in
         Lang.product
-          (Lang.metadata (Utils.hashtbl_of_list metadata))
+          (Lang.metadata (Frame.Metadata.from_list metadata))
           (Lang.string uri)
       with Annotate.Error err ->
         Lang.raise_error ~message:err ~pos:(Lang.pos p) "string")
@@ -56,16 +56,20 @@ let _ =
     ]
     Lang.string_t
     (fun p ->
-      let in_enc =
-        List.assoc "in_enc" p
-        |> Lang.to_valued_option Lang.to_string
-        |> Option.map Charset.of_string
-      in
-      let out_enc =
-        List.assoc "out_enc" p |> Lang.to_string |> Charset.of_string
-      in
-      let string = Lang.to_string (List.assoc "" p) in
-      Lang.string (Charset.convert ?source:in_enc ~target:out_enc string))
+      try
+        let in_enc =
+          List.assoc "in_enc" p
+          |> Lang.to_valued_option Lang.to_string
+          |> Option.map Charset.of_string
+        in
+        let out_enc =
+          List.assoc "out_enc" p |> Lang.to_string |> Charset.of_string
+        in
+        let string = Lang.to_string (List.assoc "" p) in
+        Lang.string (Charset.convert ?source:in_enc ~target:out_enc string)
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Lang.raise_as_runtime ~bt ~kind:"string" exn)
 
 let _ =
   Lang.add_builtin "%" ~category:`String

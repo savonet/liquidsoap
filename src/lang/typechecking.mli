@@ -1,3 +1,5 @@
+exception No_method of string * Type.t
+
 val debug : bool ref
 val display_types : bool ref
 val value_restriction : Term.t -> bool
@@ -10,4 +12,4 @@ val type_of_pat :
   Term.pattern ->
   (string list * Type.t) list * Type.t
 
-val check : ?ignored:bool -> throw:(exn -> unit) -> Term.t -> unit
+val check : ?env:Typing.env -> throw:(exn -> unit) -> Term.t -> unit

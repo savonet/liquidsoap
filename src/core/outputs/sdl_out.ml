@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,13 +26,13 @@ open Mm
 
 open Tsdl
 
-class output ~infallible ~on_start ~on_stop ~autostart source =
+class output ~infallible ~register_telnet ~on_start ~on_stop ~autostart source =
   let () = Sdl_utils.init [Sdl.Init.video] in
   object (self)
     inherit
       Output.output
-        ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~on_start ~on_stop
-          source autostart
+        ~name:"sdl" ~output_kind:"output.sdl" ~infallible ~register_telnet
+          ~on_start ~on_stop source autostart
 
     val mutable fullscreen = false
     val mutable window = None
@@ -73,7 +73,7 @@ class output ~infallible ~on_start ~on_stop ~autostart source =
                        (fun () ->
                          Sdl.set_window_fullscreen (Option.get window)
                            (if fullscreen then Sdl.Window.fullscreen
-                           else Sdl.Window.windowed))
+                            else Sdl.Window.windowed))
                        ()
                  | k when k = Sdl.K.q ->
                      let e = Sdl.Event.create () in
@@ -87,15 +87,18 @@ class output ~infallible ~on_start ~on_stop ~autostart source =
       self#process_events;
       let window = Option.get window in
       let surface = Sdl_utils.check Sdl.get_window_surface window in
-      let img =
-        let width, height = self#video_dimensions in
-        (* We only display the first image of each frame *)
-        Video.Canvas.get (VFrame.data buf) 0
-        |> Video.Canvas.Image.viewport width height
-        |> Video.Canvas.Image.render ~transparent:false
-      in
-      Sdl_utils.Surface.of_img surface img;
-      Sdl_utils.check Sdl.update_window_surface window
+      let width, height = self#video_dimensions in
+      match (VFrame.data buf).Content.Video.data with
+        | [] -> ()
+        | (_, img) :: _ ->
+            (* We only display the first image of each frame *)
+            let img =
+              img
+              |> Video.Canvas.Image.viewport width height
+              |> Video.Canvas.Image.render ~transparent:false
+            in
+            Sdl_utils.Surface.of_img surface img;
+            Sdl_utils.check Sdl.update_window_surface window
   end
 
 let output_sdl =
@@ -110,6 +113,7 @@ let output_sdl =
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -119,7 +123,8 @@ let output_sdl =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output ~infallible ~autostart ~on_start ~on_stop source
+      (new output
+         ~infallible ~register_telnet ~autostart ~on_start ~on_stop source
         :> Output.output))
 
 let _ =

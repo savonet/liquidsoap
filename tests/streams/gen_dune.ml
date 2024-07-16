@@ -1,16 +1,26 @@
+let static_tests =
+  [
+    "icecast_ssl.liq";
+    "icecast_tls.liq";
+    "icecast_tls_ssl.liq";
+    "icecast_ssl_tls.liq";
+  ]
+
 let () =
   let location = Sys.getcwd () in
   let tests =
     List.filter
-      (fun f -> Filename.extension f = ".liq")
-      (Array.to_list (Sys.readdir location))
+      (fun f ->
+        (not (List.mem (Filename.basename f) static_tests))
+        && Filename.extension f = ".liq")
+      (Build_tools.read_files ~location "")
   in
   List.iter
     (fun test ->
       Printf.printf
         {|
 (rule
- (alias runtest)
+ (alias citest)
  (package liquidsoap)
  (deps
   %s
@@ -25,9 +35,17 @@ let () =
   ./jingles
   ./playlist
   ./huge_playlist
-  ../media/all_media_files
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ./crossfade-plot.old.txt
+  ./crossfade-plot.new.txt
   ../../src/bin/liquidsoap.exe
-  (source_tree ../../src/libs)
+  (package liquidsoap)
   (:test_liq ../test.liq)
   (:run_test ../run_test.exe))
  (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))

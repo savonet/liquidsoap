@@ -11,12 +11,22 @@ type socket =
   ; read : Bytes.t -> int -> int -> int
   ; close : unit >
 
+and server =
+  < transport : transport
+  ; accept : ?timeout:float -> Unix.file_descr -> socket * Unix.sockaddr >
+
 and transport =
   < name : string
   ; protocol : string
   ; default_port : int
-  ; connect : ?bind_address:string -> string -> int -> socket
-  ; accept : Unix.file_descr -> socket * Unix.sockaddr >
+  ; connect :
+      ?bind_address:string ->
+      ?timeout:float ->
+      ?prefer:[ `System_default | `Ipv4 | `Ipv6 ] ->
+      string ->
+      int ->
+      socket
+  ; server : server >
 
 type uri = {
   protocol : string;
@@ -24,6 +34,21 @@ type uri = {
   port : int option;
   path : string;
 }
+
+(** Base unix connect *)
+val connect :
+  ?bind_address:string ->
+  ?timeout:float ->
+  ?prefer:[ `System_default | `Ipv4 | `Ipv6 ] ->
+  string ->
+  int ->
+  Unix.file_descr
+
+val accept :
+  ?timeout:float -> Unix.file_descr -> Unix.file_descr * Unix.sockaddr
+
+val set_socket_default :
+  read_timeout:float -> write_timeout:float -> Unix.file_descr -> unit
 
 (** Unix transport and socket. *)
 val unix_transport : transport

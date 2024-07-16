@@ -1,9 +1,9 @@
-module type T = sig
-  type t
+type t
 
+module type T = sig
   val implementation : string
   val time : unit -> t
-  val sleep : t -> unit
+  val sleep_until : t -> unit
   val of_float : float -> t
   val to_float : t -> float
   val ( |+| ) : t -> t -> t
@@ -14,19 +14,27 @@ module type T = sig
 end
 
 module Unix = struct
-  type t = float
-
   let implementation = "builtin (low-precision)"
-  let time = Unix.gettimeofday
-  let of_float x = x
-  let to_float x = x
-  let ( |+| ) x y = x +. y
-  let ( |-| ) x y = x -. y
-  let ( |*| ) x y = x *. y
-  let ( |<| ) x y = x < y
-  let ( |<=| ) x y = x <= y
-  let sleep = Thread.delay
+  let of_time : t -> float = Obj.magic
+  let to_time : float -> t = Obj.magic
+  let time () = to_time (Unix.gettimeofday ())
+  let of_float x = to_time x
+  let to_float = of_time
+  let ( |+| ) x y = to_time (of_time x +. of_time y)
+  let ( |-| ) x y = to_time (of_time x -. of_time y)
+  let ( |*| ) x y = to_time (of_time x *. of_time y)
+  let ( |<| ) x y = of_time x < of_time y
+  let ( |<=| ) x y = of_time x <= of_time y
+
+  let rec sleep_until t =
+    let delay = of_time t -. Unix.gettimeofday () in
+    if 0. < delay then (
+      try Thread.delay delay
+      with Unix.Unix_error (Unix.EINTR, _, _) -> sleep_until t)
 end
 
-let unix : (module T) = (module Unix)
-let implementation = ref unix
+type implementation = (module T)
+
+let unix : implementation = (module Unix)
+let implementations : (string, implementation) Hashtbl.t = Hashtbl.create 2
+let () = Hashtbl.replace implementations "ocaml" unix

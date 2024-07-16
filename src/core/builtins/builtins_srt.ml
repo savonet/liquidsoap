@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,38 +28,46 @@ exception Done
 exception Not_connected
 
 module Socket_value = struct
-  let socket_options_specs =
+  let read_only_socket_options_specs = [("read_data", `Int Srt.rcvdata)]
+
+  let read_write_socket_options_specs =
     [
-      ("connection_timeout", `Int Srt.conntimeo);
       ("read_timeout", `Int Srt.rcvtimeo);
       ("write_timeout", `Int Srt.sndtimeo);
-      ("enforced_encryption", `Bool Srt.enforced_encryption);
       ("streamid", `String Srt.streamid);
-      ("passphrase", `String Srt.passphrase);
       ("pbkeylen", `Int Srt.pbkeylen);
+      ("read_latency", `Int Srt.rcvlatency);
     ]
+
+  let mk_socket_option name socket_opt =
+    let t =
+      match socket_opt with
+        | `Int _ -> Lang.int_t
+        | `Bool _ -> Lang.bool_t
+        | `String _ -> Lang.string_t
+    in
+    ( name,
+      ([], Lang.fun_t [] t),
+      "Get " ^ name ^ " option",
+      fun s ->
+        Lang.val_fun [] (fun _ ->
+            try
+              match socket_opt with
+                | `Int socket_opt -> Lang.int (Srt.getsockflag s socket_opt)
+                | `Bool socket_opt -> Lang.bool (Srt.getsockflag s socket_opt)
+                | `String socket_opt ->
+                    Lang.string (Srt.getsockflag s socket_opt)
+            with exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              Lang.raise_as_runtime ~bt ~kind:"srt" exn) )
 
   let socket_options_meths =
     List.fold_left
-      (fun cur (name, socket_opt) ->
-        let t =
-          match socket_opt with
-            | `Int _ -> Lang.int_t
-            | `Bool _ -> Lang.bool_t
-            | `String _ -> Lang.string_t
-        in
-        ( name,
-          ([], Lang.fun_t [] t),
-          "Get " ^ name ^ " option",
-          fun s ->
-            Lang.val_fun [] (fun _ ->
-                match socket_opt with
-                  | `Int socket_opt -> Lang.int (Srt.getsockflag s socket_opt)
-                  | `Bool socket_opt -> Lang.bool (Srt.getsockflag s socket_opt)
-                  | `String socket_opt ->
-                      Lang.string (Srt.getsockflag s socket_opt)) )
-        :: cur)
-      [] socket_options_specs
+      (fun cur (name, socket_opt) -> mk_socket_option name socket_opt :: cur)
+      (List.fold_left
+         (fun cur (name, socket_opt) -> mk_socket_option name socket_opt :: cur)
+         [] read_only_socket_options_specs)
+      read_write_socket_options_specs
 
   let stats_specs =
     [
@@ -239,7 +247,7 @@ module Socket_value = struct
   let stats_t =
     Lang.record_t (List.map (fun (name, t, _) -> (name, t)) stats_specs)
 
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Srt.socket
 
     let name = "srt_socket"
@@ -248,7 +256,7 @@ module Socket_value = struct
       Runtime_error.raise ~pos
         ~message:"SRT socket cannot be represented as json" "json"
 
-    let descr _ = "<srt_socket>"
+    let to_string _ = "<srt_socket>"
     let compare = Stdlib.compare
   end)
 
@@ -324,6 +332,4 @@ module Socket_value = struct
 
   let to_value s =
     Lang.meth (to_value s) (List.map (fun (lbl, _, _, m) -> (lbl, m s)) meths)
-
-  let of_value s = of_value (Lang.demeth s)
 end

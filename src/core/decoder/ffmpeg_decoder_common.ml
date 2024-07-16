@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-   Liquidsoap, a programmable audio stream generator.
-   Copyright 2003-2022 Savonet team
+   Liquidsoap, a programmable stream generator.
+   Copyright 2003-2024 Savonet team
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -31,6 +31,16 @@ let conf_ffmpeg_decoder =
 
 let conf_codecs =
   Dtools.Conf.unit ~p:(conf_ffmpeg_decoder#plug "codecs") "Codecs settings"
+
+let conf_max_interleave_duration =
+  Dtools.Conf.float
+    ~p:(conf_ffmpeg_decoder#plug "max_interleave_duration")
+    ~d:5. "Maximum data buffered while waiting for all streams."
+
+let conf_max_interleave_delta =
+  Dtools.Conf.float
+    ~p:(conf_ffmpeg_decoder#plug "max_interleave_delta")
+    ~d:0.04 "Maximum delay between interleaved streams."
 
 let conf_codecs =
   let codecs = Hashtbl.create 10 in

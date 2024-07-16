@@ -2,14 +2,27 @@ open Liquidsoap_lang
 include Build_config
 include Liquidsoap_paths
 
-(* See: https://github.com/ocaml/dune/issues/4453 *)
-let git_snapshot = false
+let git_snapshot = git_sha <> None
 let requests_max_id = 50
 let requests_table_size = 50
-let default_font = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+let () =
+  Liquidsoap_lang.Cache.user_dir_override :=
+    Liquidsoap_paths.user_cache_override;
+  Liquidsoap_lang.Cache.system_dir_override :=
+    Liquidsoap_paths.system_cache_override
 
 (** General configuration *)
 let conf = Dtools.Conf.void "Liquidsoap configuration"
+
+let conf_default_font =
+  Dtools.Conf.string
+    ~d:
+      (match (Sys.os_type, Build_config.system) with
+        | _, "macosx" -> "/System/Library/Fonts/Times.ttc"
+        | "Win32", _ -> {|C:\\Windows\WinSxS\calibri.ttf|}
+        | _ -> "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    ~p:(conf#plug "default_font") "Default font"
 
 let libs_versions () =
   Build_info.V1.Statically_linked_libraries.to_list ()
@@ -26,11 +39,6 @@ let libs_versions () =
          if version = "?" then name else name ^ "=" ^ version)
   |> String.concat " "
 
-let () =
-  Lifecycle.before_init (fun () ->
-      Utils.add_subst "<sysrundir>" (rundir ());
-      Utils.add_subst "<syslogdir>" (logdir ()))
-
 let restart = ref false
 
 let vendor =
@@ -41,29 +49,11 @@ let path () =
   let s = try Sys.getenv "PATH" with Not_found -> "" in
   bin_dir () :: Str.split (Str.regexp_string ":") s
 
-let conf_console =
-  Dtools.Conf.void ~p:(conf#plug "console") "Console configuration"
+let () = conf#plug "log" Dtools.Log.conf
 
-let conf_colorize =
-  Dtools.Conf.string
-    ~p:(conf_console#plug "colorize")
-    ~d:
-      (match !Console.color_conf with
-        | `Auto -> "auto"
-        | `Always -> "always"
-        | `Never -> "never")
-    "Use color in console output when available. One of: \"always\", \"never\" \
-     or \"auto\"."
-
-let () =
-  let log = Log.make ["console"] in
-  conf_colorize#on_change (function
-    | "auto" -> Console.color_conf := `Auto
-    | "always" -> Console.color_conf := `Always
-    | "never" -> Console.color_conf := `Never
-    | _ ->
-        log#important "Invalid color configuration, using default \"auto\"";
-        Console.color_conf := `Auto)
+let conf_init =
+  conf#plug "init" Dtools.Init.conf;
+  Dtools.Init.conf
 
 let conf_debug =
   Dtools.Conf.bool ~p:(conf#plug "debug") ~d:!Term.conf_debug

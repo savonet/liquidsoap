@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 exception Invalid_value of Value.t * string
 
 exception Clock_conflict of (Pos.Option.t * string * string)
-exception Clock_loop of (Pos.Option.t * string * string)
 
 let () =
   Printexc.register_printer (function
@@ -34,12 +33,5 @@ let () =
           (Printf.sprintf
              "Clock_conflict: At position: %s, a source cannot belong to two \
               clocks (%s, %s)"
-             pos a b)
-    | Clock_loop (pos, a, b) ->
-        let pos = Pos.Option.to_string pos in
-        Some
-          (Printf.sprintf
-             "Clock_loop: At position: %s, cannot unify two nested clocks \
-              (%s,%s)"
              pos a b)
     | _ -> None)

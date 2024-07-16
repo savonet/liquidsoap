@@ -1,21 +1,39 @@
+# @docof file.temp
+# @param ~cleanup Delete the file on shutdown
+def file.temp(~cleanup=false, %argsof(file.temp), prefix, suffix) =
+  f = file.temp(%argsof(file.temp), prefix, suffix)
+  if cleanup then on_cleanup({file.remove(f)}) end
+  f
+end
+
+# @docof file.temp_dir
+# @param ~cleanup Delete the file on shutdown
+def file.temp_dir(~cleanup=false, prefix, suffix="") =
+  dir = file.temp_dir(prefix, suffix)
+  if cleanup then on_cleanup({file.rmdir(dir)}) end
+  dir
+end
+
 # Read the content of a file. Returns a function of type `()->string`. File is
 # done reading when function returns the empty string `""`.
 # @category File
 def file.read(fname) =
   fd = file.open(write=false, fname)
   is_done = ref(false)
+
   def read() =
-    if !is_done then
+    if
+      is_done()
+    then
       ""
     else
       s = fd.read()
       is_done := s == ""
-      if !is_done then
-        fd.close()
-      end
+      if is_done() then fd.close() end
       s
     end
   end
+
   read
 end
 
@@ -26,15 +44,65 @@ let file.write = ()
 # @category File
 # @param ~append Append data if file exists.
 # @param ~perms Default file rights if created. Default: `0o644`.
+# @param ~atomic Make the write atomic by writing to a temporary file and moving \
+#                the file to destination once writing has succeeded.
+# @param ~temp_dir Temporary directory for atomic write.
 # @param path Path to write to
-def file.write.stream(~perms=0o644, ~append=false, path) =
-  fd = file.open(write=true, append=append, perms=perms, path)
+def file.write.stream(
+  ~perms=0o644,
+  ~append=false,
+  ~atomic=false,
+  ~temp_dir=null(),
+  p
+) =
+  let (fd, exec) =
+    if
+      atomic
+    then
+      let (temp_dir, ensure) =
+        if
+          null.defined(temp_dir)
+        then
+          (null.get(temp_dir), {()})
+        else
+          temp_dir = file.temp_dir("temp", "dir")
+          (temp_dir, {file.rmdir(temp_dir)})
+        end
+      tmp = path.concat(temp_dir, "atomic.write")
+      if append and file.exists(p) then file.copy(p, tmp) end
+      def exec() =
+        try
+          file.move(atomic=true, tmp, p)
+        catch _ : [error.file.cross_device] do
+          log(
+            label="file.write",
+            "Atomic rename failed! Directory for temporary files appears to be \
+             on a different file system. Please set it to the same one using \
+             `temp_dir` argument to guarantee atomic file operations!"
+          )
+          file.copy(force=true, tmp, p)
+        finally
+          ensure()
+        end
+      end
+      fd = file.open(write=true, append=append, perms=perms, tmp)
+      (fd, exec)
+    else
+      (file.open(write=true, append=append, perms=perms, p), {()})
+    end
+
   def write(s) =
     s = s ?? ""
-    if s == "" then fd.close() else
+    if
+      s == ""
+    then
+      fd.close()
+      exec()
+    else
       fd.write(s)
     end
   end
+
   write
 end
 
@@ -44,66 +112,91 @@ end
 #              must return `null` or `""` when it has finished sending all its data.
 # @param ~append Append data if file exists.
 # @param ~perms Default file rights if created. Default: `0o644`.
-# @param path Path to write to
-def replaces file.write(~data, ~perms=0o644, ~append=false, path) =
-  cb = file.write.stream(append=append, perms=perms, path)
+# @param ~atomic Make the write atomic by writing to a temporary file and moving \
+#                the file to destination once writing has succeeded.
+# @param ~temp_dir Temporary directory for atomic write.
+# @param path Path to write to.
+def replaces file.write(
+  ~data,
+  ~perms=0o644,
+  ~append=false,
+  ~atomic=false,
+  ~temp_dir=null(),
+  path
+) =
+  cb =
+    file.write.stream(
+      append=append, perms=perms, atomic=atomic, temp_dir=temp_dir, path
+    )
+
   def rec write() =
     s = getter.get(data) ?? ""
     cb(s)
-    if getter.is_constant(data) then
-      cb("")
-    elsif s != "" then
-      write()
+    if
+      s == ""
+    then
+      ()
+    elsif getter.is_constant(data) then cb("")
+    elsif s != "" then write()
     end
   end
+
   write()
+end
+
+# Ensure that a file exists, creating it empty if it does not.
+# @category File
+# @param path Path of the file.
+def file.touch(~perms=0o644, path) =
+  file.write(data="", perms=perms, append=true, path)
 end
 
 # Read the whole contents of a file.
 # @category File
 def file.contents(fname) =
   fn = file.read(fname)
+
   def rec f(cur) =
     s = fn()
-    if s == "" then
-      cur
-    else
-      f("#{cur}#{s}")
-    end
+    if s == "" then cur else f("#{cur}#{s}") end
   end
+
   f("")
 end
 
 # Get the list of lines of a file.
 # @category File
-def file.lines(fname)
+def file.lines(fname) =
   r/\n/.split(file.contents(fname))
 end
 
 # Iterate over the lines of a file.
 # @category File
-def file.lines.iterator(fname)
+def file.lines.iterator(fname) =
   list.iterator(file.lines(fname))
 end
 
 # Iterate over the contents of a file.
 # @category File
-def file.iterator(fname)
+def file.iterator(fname) =
   f = file.read(fname)
-  fun () -> begin
-    s = f()
-    (s=="")?null():s
-  end
+  fun () ->
+    begin
+      s = f()
+      (s == "") ? null() : s
+    end
 end
 
 # Get a file's mime type by calling the `file` command line binary.
 # @category File
 def file.mime.cli(fname) =
-  mime = list.hd(default="",
-    process.read.lines(
-      process.quote.command("file", args=["-b", "--mime-type", fname])
+  mime =
+    list.hd(
+      default="",
+      process.read.lines(
+        process.quote.command("file", args=["-b", "--mime-type", fname])
+      )
     )
-  )
 
   mime == "" ? null() : mime
 end
@@ -115,7 +208,6 @@ end
 # @param file The file to test
 def replaces file.mime(fname) =
   fn = file.mime.cli
-
 %ifdef file.mime.libmagic
   ignore(fn)
   fn = file.mime.libmagic
@@ -127,23 +219,29 @@ end
 # Getter to the contents of a file.
 # @category File
 # @param fname Name of the file from which the contents should be taken.
-def file.getter(fname)
+def file.getter(fname) =
   contents = ref("")
-  def update()
+
+  def update() =
     contents := file.contents(fname)
   end
+
   update()
   ignore(file.watch(fname, update))
-  {!contents}
+  ref.getter(contents)
 end
 
 # Float getter from a file.
 # @category File
 # @param fname Name of the file from which the contents should be taken.
 # @param ~default Default value when the file contains invalid data.
-def file.getter.float(~default=0., fname)
+def file.getter.float(~default=0., fname) =
   x = file.getter(fname)
-  def f(x) = float_of_string(default=default, string.trim(x)) end
+
+  def f(x) =
+    float_of_string(default=default, string.trim(x))
+  end
+
   getter.map.memoize(f, x)
 end
 
@@ -160,15 +258,19 @@ def file.metadata.flac.cover.decode(s) =
   i = ref(0)
 
   def read_int() =
-    ret = string.binary.to_int(little_endian=false, string.sub(s, start=!i, length=4))
-    i := !i + 4
+    ret =
+      string.binary.to_int(
+        little_endian=false, string.sub(s, start=i(), length=4)
+      )
+
+    i := i() + 4
     ret
   end
 
   def read_string(len) =
-    ret = string.sub(s, start=!i, length=len)
-    i := !i + len
-    (ret:string)
+    ret = string.sub(s, start=i(), length=len)
+    i := i() + len
+    (ret : string)
   end
 
   pic_type = read_int()
@@ -182,113 +284,78 @@ def file.metadata.flac.cover.decode(s) =
   number_of_colors = read_int()
   number_of_colors = number_of_colors > 0 ? null(number_of_colors) : null()
   data_len = read_int()
-  data = string.sub(s, start=!i, length=data_len)
-
-  if data == "" then
-    log.info("Failed to read cover metadata")
+  data = string.sub(s, start=i(), length=data_len)
+  if
+    data == ""
+  then
+    log.info(
+      "Failed to read cover metadata"
+    )
     null()
   else
-    null(data.{
-      picture_type=pic_type,
-      mime=mime, description=desc,
-      width=width, height=height,
-      color_depth=color_depth,
-      number_of_colors=number_of_colors
-     })
+    null(
+      data.{
+        picture_type=pic_type,
+        mime=mime,
+        description=desc,
+        width=width,
+        height=height,
+        color_depth=color_depth,
+        number_of_colors=number_of_colors
+      }
+    )
   end
 end
 
 # Encode cover metadata for embedding with flac files.
 # @category String
 def file.metadata.flac.cover.encode(
-        ~picture_type,
-        ~mime, ~description="",
-        ~width, ~height,
-        ~color_depth, ~number_of_colors=null(),
-        data) =
+  ~picture_type,
+  ~mime,
+  ~description="",
+  ~width,
+  ~height,
+  ~color_depth,
+  ~number_of_colors=null(),
+  data
+) =
   def encode_string(s) =
     len = 1 + (string.length(s) / 8)
     str_len = string.binary.of_int(little_endian=false, pad=4, len)
-    if string.length(str_len) > 4 then
-      error.raise(error.invalid, "Data length too long for APIC format!")
+    if
+      string.length(str_len) > 4
+    then
+      error.raise(
+        error.invalid,
+        "Data length too long for APIC format!"
+      )
     end
+
     pad = string.make(char_code=0, len * 8 - string.length(s))
     (str_len, "#{s}#{pad}")
   end
+
   pic_type = string.binary.of_int(little_endian=false, pad=4, picture_type)
   let (mime_len, mime) = encode_string(mime)
   let (desc_len, description) = encode_string(description)
   width = string.binary.of_int(little_endian=false, pad=4, width)
   height = string.binary.of_int(little_endian=false, pad=4, height)
   color_depth = string.binary.of_int(little_endian=false, pad=4, color_depth)
-  number_of_colors = string.binary.of_int(little_endian=false, pad=4, number_of_colors ?? 0)
+  number_of_colors =
+    string.binary.of_int(little_endian=false, pad=4, number_of_colors ?? 0)
+
   let (data_len, data) = encode_string(data)
-  "#{pic_type}#{mime_len}#{mime}#{desc_len}#{description}#{width}#{height}#{color_depth}#{number_of_colors}#{data_len}#{data}"
+  "#{pic_type}#{mime_len}#{mime}#{desc_len}#{description}#{width}#{height}#{
+    color_depth
+  }#{number_of_colors}#{data_len}#{data}"
 end
 
-%ifdef http.get.stream
 # Download file using a regular http.get request. Returns `true` on success.
 # @category File
 # @param ~filename Downloaded filename.
 # @param ~timeout Timeout in seconds
 def file.download(~filename, ~timeout=5., url) =
   file_writer = file.write.stream(filename)
-
-  response = http.get.stream(
-    on_body_data=file_writer,
-    timeout_ms=int_of_float(timeout * 1000.),
-    url
-  )
-
+  response = http.get.stream(on_body_data=file_writer, timeout=timeout, url)
   response.status_code < 400
-end
-%endif
-
-# Keep a record of played files. This is primarily useful to know when a song
-# was last played and avoid repetitions.
-# @flag extra
-# @param ~duration Duration (in seconds) after which songs are forgotten. By default, songs are not forgotten which means that the playlog will contain all the songs ever played.
-# @param ~hash Function to extract an identifier from the metadata. By default, the filename is used but we could return the artist to know when a song from a given artist was last played for instance.
-# @param ~persistency Set a file name where the values are stored and loaded in case the script is restarted.
-# @category Source / Track processing
-# @method add Record that file with given metadata has been played.
-# @method last How long ago a file was played (in seconds), `infinity` is returned if the song has never been played.
-def playlog(~duration=infinity, ~persistency=null(), ~hash=fun(m)->m["filename"])
-  l = ref([])
-  # Load from persistency file
-  if null.defined(persistency) then
-    if file.exists(null.get(persistency)) then
-      let json.parse ( parsed : [(string * float)]? ) = file.contents(null.get(persistency))
-      if null.defined(parsed) then
-         l := null.get(parsed)
-      end
-    end
-  end
-  # Save into persistency file
-  def save()
-    if null.defined(persistency) then
-      data = json.stringify(!l)
-      file.write(data=data, null.get(persistency))
-    end
-  end
-  # Remove too old elements
-  def prune()
-    if duration != infinity then
-      t = time()
-      l := list.assoc.filter(fun(_, tf) -> t - tf <= duration, !l)
-    end
-  end
-  # Add a new entry
-  def add(m)
-    prune()
-    f = hash(m)
-    l := (f, time()) :: !l
-    save()
-  end
-  # Last time this entry was played
-  def last(m)
-    f = hash(m)
-    time() - list.assoc(default = 0.-infinity, f, !l)
-  end
-  { add=add, last=last }
 end

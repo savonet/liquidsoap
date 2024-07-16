@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,11 +42,12 @@ module Specs = struct
   let is_empty { data } = data = []
 
   let sort : 'a. (int * 'a) list -> (int * 'a) list =
-   fun data -> List.sort (fun (p, _) (p', _) -> compare p p') data
+   fun data -> List.stable_sort (fun (p, _) (p', _) -> compare p p') data
 
-  let sub c ofs len =
+  let sub c ofs length =
+    let len = match length with Infinite -> max_int | Finite len -> len in
     {
-      c with
+      length;
       data =
         List.filter_map
           (fun (pos, x) ->
@@ -56,14 +57,16 @@ module Specs = struct
 
   let blit : 'a. 'a content -> int -> 'a content -> int -> int -> unit =
    fun src src_pos dst dst_pos len ->
-    let head = (sub dst 0 dst_pos).data in
+    let head = (sub dst 0 (Finite dst_pos)).data in
     let middle =
-      List.map (fun (pos, x) -> (dst_pos + pos, x)) (sub src src_pos len).data
+      List.map
+        (fun (pos, x) -> (dst_pos + pos, x))
+        (sub src src_pos (Finite len)).data
     in
     let tail_length =
       match dst.length with
-        | Infinite -> max_int
-        | Finite dst_len -> dst_len - len - dst_pos
+        | Infinite -> Infinite
+        | Finite dst_len -> Finite (dst_len - len - dst_pos)
     in
     let tail = (sub dst (dst_pos + len) tail_length).data in
     dst.data <- sort (head @ middle @ tail)
@@ -79,24 +82,32 @@ module Metadata_specs = struct
 
   type kind = [ `Metadata ]
   type params = unit
-  type data = Frame_base.metadata content
+  type data = Metadata_base.t content
 
+  let name = "metadata"
   let internal_content_type = None
   let kind = `Metadata
   let string_of_kind _ = "metadata"
   let kind_of_string = function "metadata" -> Some `Metadata | _ -> None
-  let string_of_params () = "metadata"
+  let string_of_params () = ""
   let compatible _ _ = true
   let default_params _ = ()
   let parse_param _ _ = Some ()
   let merge _ _ = ()
-  let copy = copy ~copy:Hashtbl.copy
+  let copy = copy ~copy:(fun x -> x)
 end
 
 module Metadata = struct
-  include Content_base.MkContent (Metadata_specs)
+  include Content_base.MkContentBase (Metadata_specs)
 
   let format = lift_params ()
+
+  let lift_data m =
+    lift_data
+      {
+        Specs.length = Finite (List.fold_left (fun l (p, _) -> max l p) 0 m);
+        data = m;
+      }
 
   let set_data d m =
     let d = get_data d in
@@ -107,7 +118,7 @@ module Metadata = struct
     let length = match length with Infinite -> max_int | Finite len -> len in
     List.filter
       (fun (p, _) -> 0 <= p && p < length)
-      (List.sort (fun (p, _) (p', _) -> compare p p') data)
+      (List.stable_sort (fun (p, _) (p', _) -> compare p p') data)
 end
 
 module Track_marks_specs = struct
@@ -116,11 +127,12 @@ module Track_marks_specs = struct
   type kind = [ `Track_marks ]
   type data = unit content
 
+  let name = "track_marks"
   let internal_content_type = None
   let kind = `Track_marks
-  let string_of_kind _ = "track_mark"
+  let string_of_kind _ = "track_marks"
   let kind_of_string = function "track_mark" -> Some `Track_marks | _ -> None
-  let string_of_params () = "track_mark"
+  let string_of_params () = ""
   let compatible _ _ = true
   let default_params _ = ()
   let parse_param _ _ = Some ()
@@ -129,9 +141,16 @@ module Track_marks_specs = struct
 end
 
 module Track_marks = struct
-  include Content_base.MkContent (Track_marks_specs)
+  include Content_base.MkContentBase (Track_marks_specs)
 
   let format = lift_params ()
+
+  let lift_data p =
+    lift_data
+      {
+        Specs.length = Finite (List.fold_left (fun l p -> max l p) 0 p);
+        data = List.map (fun p -> (p, ())) p;
+      }
 
   let set_data d b =
     let d = get_data d in
@@ -142,5 +161,5 @@ module Track_marks = struct
     let length = match length with Infinite -> max_int | Finite len -> len in
     List.filter
       (fun p -> 0 <= p && p < length)
-      (List.sort compare (List.map fst data))
+      (List.stable_sort compare (List.map fst data))
 end

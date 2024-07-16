@@ -1,0 +1,49 @@
+log.level.set(4)
+settings.ffmpeg.log.level.set(12)
+audio.samplerate.set(48000)
+settings.audio.converter.samplerate.converters.set(["native"])
+
+out = {"stream_video-#{random.int()}.mp4"}
+
+s = noise(duration=2.)
+
+s = once(s)
+
+#clock.assign_new(sync='none',[s])
+
+output.udp(id="output",port=5001,host="localhost",fallible=true,@FORMAT@,s)
+
+s = input.udp(id="input",port=5001,host="localhost",buffer=0.1,"application/ffmpeg")
+
+s = (s:source(1,1,0))
+
+#clock.assign_new(sync='none',[s])
+
+done = ref(false)
+
+def on_close (filename) =
+  if not done() then
+	  done := true
+
+    process.run("sync")
+
+    j = process.read("ffprobe -v quiet -print_format json -show_streams #{process.quote(filename)}")
+
+    let json.parse ( parsed: {
+      streams: [{
+        r_frame_rate: string,
+        codec_name: string
+      }]
+    }) = j
+
+    let [stream] = parsed.streams
+
+    if stream.r_frame_rate == "45/1" and stream.codec_name == "h264" then
+      test.pass()
+    else
+      test.fail()
+    end
+  end
+end
+
+output.file(fallible=true, on_close=on_close, %ffmpeg(format="mp4",%audio(codec="aac",channels=1),%video(codec="libx264")), out, s)

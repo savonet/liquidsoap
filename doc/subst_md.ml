@@ -9,5 +9,8 @@ let () =
   print_string
     (List.fold_left
        (fun cur (lbl, v) ->
-         Pcre.substitute ~pat:("@" ^ lbl ^ "@") ~subst:(fun _ -> v) cur)
+         Pcre.substitute
+           ~rex:(Pcre.regexp ("@" ^ lbl ^ "@"))
+           ~subst:(fun _ -> v)
+           cur)
        (Bytes.unsafe_to_string b) variables)

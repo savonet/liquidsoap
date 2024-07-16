@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ module Icecast = struct
 
   type info = unit
 
-  let info_of_encoder _ = ()
+  let info_of_encoder _ _ = ()
 end
 
 module M = Icecast_utils.Icecast_v (Icecast)
@@ -75,8 +75,8 @@ let proto frame_t =
       ("mount", Lang.string_t, None, None);
       ("port", Lang.int_t, Some (Lang.int 8000), None);
       ( "transport",
-        Lang.http_transport_t,
-        Some (Lang.http_transport Http.unix_transport),
+        Lang.http_transport_base_t,
+        Some (Lang.base_http_transport Http.unix_transport),
         Some
           "Http transport. Use `http.transport.ssl` or \
            `http.transport.secure_transport`, when available, to enable HTTPS \
@@ -193,9 +193,11 @@ type client = {
 
 let add_meta c data =
   let mk_icy_meta meta =
-    let f x = try Some (Hashtbl.find meta x) with _ -> None in
     let meta_info =
-      match (f "artist", f "title") with
+      match
+        ( Frame.Metadata.find_opt "artist" meta,
+          Frame.Metadata.find_opt "title" meta )
+      with
         | Some a, Some t -> Some (Printf.sprintf "%s - %s" a t)
         | Some s, None | None, Some s -> Some s
         | None, None -> None
@@ -230,7 +232,7 @@ let add_meta c data =
   in
   let get_meta () =
     let meta =
-      Tutils.mutexify c.meta.metadata_m
+      Mutex_utils.mutexify c.meta.metadata_m
         (fun () ->
           let meta = c.meta.metadata in
           c.meta.metadata <- None;
@@ -258,7 +260,7 @@ let add_meta c data =
 let rec client_task c =
   let* data =
     Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
-      (Tutils.mutexify c.mutex
+      (Mutex_utils.mutexify c.mutex
          (fun () ->
            let buflen = Strings.Mutable.length c.buffer in
            let data =
@@ -280,13 +282,13 @@ let rec client_task c =
   in
   let* state =
     Duppy.Monad.Io.exec ~priority:`Maybe_blocking c.handler
-      (let ret = Tutils.mutexify c.mutex (fun () -> c.state) () in
+      (let ret = Mutex_utils.mutexify c.mutex (fun () -> c.state) () in
        Duppy.Monad.return ret)
   in
   if state <> Done then client_task c else Duppy.Monad.return ()
 
 let client_task c =
-  Tutils.mutexify c.mutex
+  Mutex_utils.mutexify c.mutex
     (fun () ->
       assert (c.state = Hello);
       c.state <- Sending)
@@ -319,14 +321,12 @@ class output p =
   let encoding = Lang.to_string (List.assoc "encoding" p) in
   let recode m =
     let out_enc =
-      match encoding with
-        | "" -> `UTF_8
-        | s -> Charset.of_string (String.uppercase_ascii s)
+      match encoding with "" -> Charset.utf8 | s -> Charset.of_string s
     in
     let f = Charset.convert ~target:out_enc in
-    let meta = Hashtbl.create (Hashtbl.length m) in
-    Hashtbl.iter (fun a b -> Hashtbl.add meta a (f b)) m;
-    meta
+    Frame.Metadata.fold
+      (fun a b m -> Frame.Metadata.add a (f b) m)
+      Frame.Metadata.empty m
   in
   let timeout = Lang.to_float (List.assoc "timeout" p) in
   let buflen = Lang.to_int (List.assoc "buffer" p) in
@@ -349,9 +349,14 @@ class output p =
   let uri =
     match mount.[0] with '/' -> mount | _ -> Printf.sprintf "%c%s" '/' mount
   in
-  let uri = Lang.Regexp.regexp [%string {|^%{uri}$|}] in
+  let uri =
+    let regexp = [%string {|^%{uri}$|}] in
+    Liquidsoap_lang.Builtins_regexp.
+      { descr = regexp; flags = []; regexp = Re.Pcre.regexp regexp }
+  in
   let autostart = Lang.to_bool (List.assoc "start" p) in
   let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+  let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
   let on_start =
     let f = List.assoc "on_start" p in
     fun () -> ignore (Lang.apply f [])
@@ -410,9 +415,9 @@ class output p =
   object (self)
     (** File descriptor where to dump. *)
     inherit
-      Output.encoded
-        ~output_kind:"output.harbor" ~infallible ~autostart ~on_start ~on_stop
-          ~name:mount source
+      [Strings.t] Output.encoded
+        ~output_kind:"output.harbor" ~infallible ~register_telnet ~autostart
+          ~export_cover_metadata:false ~on_start ~on_stop ~name:mount source
 
     val mutable dump = None
     val mutable encoder = None
@@ -428,13 +433,13 @@ class output p =
       (Option.get encoder).Encoder.encode frame ofs len
 
     method insert_metadata m =
-      let m = Meta_format.to_metadata m in
+      let m = Frame.Metadata.Export.to_metadata m in
       let m = recode m in
-      Tutils.mutexify metadata.metadata_m
+      Mutex_utils.mutexify metadata.metadata_m
         (fun () -> metadata.metadata <- Some m)
         ();
       (Option.get encoder).Encoder.insert_metadata
-        (Meta_format.export_metadata m)
+        (Frame.Metadata.Export.from_metadata ~cover:false m)
 
     method add_client ~protocol ~headers ~uri ~query s =
       let ip =
@@ -455,11 +460,11 @@ class output p =
              extra_headers)
       in
       let reply =
-        Printf.sprintf "%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" protocol
+        Printf.sprintf "HTTP/%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" protocol
           data.format icyheader extra_headers
       in
       let buffer =
-        Strings.Mutable.of_strings (Option.get encoder).Encoder.header
+        Strings.Mutable.of_strings ((Option.get encoder).Encoder.header ())
       in
       let close () = try Harbor.close s with _ -> () in
       let rec client =
@@ -499,7 +504,7 @@ class output p =
               in
               Utils.log_exception ~log:self#log ~bt msg;
               self#log#info "Client %s disconnected" ip;
-              Tutils.mutexify client.mutex
+              Mutex_utils.mutexify client.mutex
                 (fun () ->
                   client.state <- Done;
                   ignore (Strings.Mutable.flush client.buffer))
@@ -512,14 +517,14 @@ class output p =
       let* () =
         Duppy.Monad.catch
           (if
-           (default_user <> None && default_password <> None)
-           || auth_function <> None
-          then (
-           let default_user = Option.value default_user ~default:"" in
-           Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
-             (Harbor.http_auth_check ~query ~login:(default_user, login) s
-                headers))
-          else Duppy.Monad.return ())
+             (default_user <> None && default_password <> None)
+             || auth_function <> None
+           then (
+             let default_user = Option.value default_user ~default:"" in
+             Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
+               (Harbor.http_auth_check ~query ~login:(default_user, login) s
+                  headers))
+           else Duppy.Monad.return ())
           (function
             | Harbor.Close s ->
                 self#log#info "Client %s failed to authenticate!" ip;
@@ -530,10 +535,12 @@ class output p =
       Duppy.Monad.Io.exec ~priority:`Maybe_blocking handler
         (Harbor.relayed reply (fun () ->
              self#log#info "Client %s connected" ip;
-             Tutils.mutexify clients_m (fun () -> Queue.push client clients) ();
-             let h_headers = Hashtbl.create (List.length headers) in
-             List.iter (fun (x, y) -> Hashtbl.add h_headers x y) headers;
-             on_connect ~protocol ~uri ~headers:h_headers ip))
+             Mutex_utils.mutexify clients_m
+               (fun () -> Queue.push client clients)
+               ();
+             on_connect ~protocol ~uri
+               ~headers:(Frame.Metadata.from_list headers)
+               ip))
 
     method send b =
       let slen = Strings.length b in
@@ -551,12 +558,12 @@ class output p =
         (match dump with
           | Some s -> Strings.iter (output_substring s) b
           | None -> ());
-        Tutils.mutexify clients_m
+        Mutex_utils.mutexify clients_m
           (fun () ->
             Queue.iter
               (fun c ->
                 let start =
-                  Tutils.mutexify c.mutex
+                  Mutex_utils.mutexify c.mutex
                     (fun () ->
                       match c.state with
                         | Hello ->
@@ -590,7 +597,7 @@ class output p =
     method start =
       assert (encoder = None);
       let enc = data.factory self#id in
-      encoder <- Some (enc Meta_format.empty_metadata);
+      encoder <- Some (enc Frame.Metadata.Export.empty);
       let handler ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri =
         self#add_client ~protocol ~headers ~uri ~query socket
       in
@@ -602,11 +609,11 @@ class output p =
       encoder <- None;
       Harbor.remove_http_handler ~port ~verb:`Get ~uri ();
       let new_clients = Queue.create () in
-      Tutils.mutexify clients_m
+      Mutex_utils.mutexify clients_m
         (fun () ->
           Queue.iter
             (fun c ->
-              Tutils.mutexify c.mutex
+              Mutex_utils.mutexify c.mutex
                 (fun () ->
                   c.state <- Done;
                   Duppy.Monad.run

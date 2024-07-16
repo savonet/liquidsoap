@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,17 +29,16 @@ open Mm
 open Source
 
 class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
-  ~pre_gain ~make_up_gain ~lookahead ~window ~wet (source : source) =
+  ~pre_gain ~make_up_gain ~lookahead ~window ~wet ~field (source : source) =
   let lookahead () = Frame.audio_of_seconds (lookahead ()) in
   object (self)
-    inherit operator ~name:"compress" [source] as super
+    inherit operator ~name:"compress" [source]
     val mutable effect = None
-    method! private wake_up a = super#wake_up a
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
     (* Current gain in dB. *)
@@ -65,13 +64,10 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       gain <- 0.;
       ms <- 0.
 
-    method private get_frame buf =
-      let ofs = AFrame.position buf in
-      source#get buf;
-      let pos = AFrame.position buf in
-      let partial = AFrame.is_partial buf in
-      let buf = AFrame.pcm buf in
-      let chans = self#audio_channels in
+    method private compress frame =
+      let pos = AFrame.position frame in
+      let buf = Content.Audio.get_data (Frame.get frame field) in
+      let chans = Array.length buf in
       let samplerate = float (Lazy.force Frame.audio_rate) in
       let threshold = threshold () in
       let knee = knee () in
@@ -88,7 +84,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
       let window_coef = 1. -. exp (-1. /. (window *. samplerate)) in
       let wet = wet () in
       self#prepare lookahead;
-      for i = ofs to pos - 1 do
+      for i = 0 to pos - 1 do
         (* Apply pre_gain. *)
         if pre_gain <> 0. then
           for c = 0 to chans - 1 do
@@ -107,7 +103,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
                   ringbuffer.(c).(ringbuffer_pos) <- buf.(c).(i);
                   old)
               in
-              x := max !x (abs_float old)
+              x := max !x (Utils.abs_float old)
             done;
             if lookahead > 0 then
               ringbuffer_pos <- (ringbuffer_pos + 1) mod lookahead;
@@ -163,15 +159,20 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
           buf.(c).(i) <- buf.(c).(i) *. (1. -. wet +. (wet *. gain))
         done
       done;
-      if partial && track_sensitive then self#reset
+      Frame.set_data frame field Content.Audio.lift_data buf
+
+    method private generate_frame =
+      match self#split_frame (source#get_mutable_frame field) with
+        | frame, None -> self#compress frame
+        | frame, Some new_track ->
+            let frame = self#compress frame in
+            if track_sensitive then self#reset;
+            Frame.append frame (self#compress new_track)
   end
 
-let compress =
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "compress"
+let audio_compress =
+  let return_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.track_audio "compress"
     [
       ( "attack",
         Lang.getter_t Lang.float_t,
@@ -208,7 +209,8 @@ let compress =
       ( "ratio",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 2.),
-        Some "Gain reduction ratio (reduction is ratio:1)." );
+        Some "Gain reduction ratio (reduction is ratio:1). Must be at least 1."
+      );
       ( "window",
         Lang.getter_t Lang.float_t,
         Some (Lang.float 0.),
@@ -219,7 +221,7 @@ let compress =
         Some
           "How much of input sound to output (between 0 and 1, 0 means only \
            original sound, 1 means only compressed sound)." );
-      ("", Lang.source_t return_t, None, None);
+      ("", return_t, None, None);
     ]
     ~return_t ~category:`Audio ~descr:"Compress the signal."
     ~meth:
@@ -242,13 +244,30 @@ let compress =
       let lookahead () = lookahead () /. 1000. in
       let threshold = List.assoc "threshold" p |> Lang.to_float_getter in
       let track_sensitive = List.assoc "track_sensitive" p |> Lang.to_bool in
-      let ratio = List.assoc "ratio" p |> Lang.to_float_getter in
+      let ratio =
+        let pos = Lang.pos p in
+        match List.assoc "ratio" p with
+          | Liquidsoap_lang.Value.Float { value = f } ->
+              if f < 1. then
+                Runtime_error.raise ~pos ~message:"Ratio must be at least 1!"
+                  "eval";
+              fun () -> f
+          | v ->
+              let f = Lang.to_float_getter v in
+              fun () ->
+                let v = f () in
+                if v < 1. then
+                  Runtime_error.raise ~pos ~message:"Ratio must be at least 1!"
+                    "eval";
+                v
+      in
       let knee = List.assoc "knee" p |> Lang.to_float_getter in
       let pre_gain = List.assoc "pre_gain" p |> Lang.to_float_getter in
       let make_up_gain = List.assoc "gain" p |> Lang.to_float_getter in
       let window = List.assoc "window" p |> Lang.to_float_getter in
       let wet = List.assoc "wet" p |> Lang.to_float_getter in
-      let s = List.assoc "" p |> Lang.to_source in
-      new compress
-        ~attack ~release ~lookahead ~ratio ~knee ~threshold ~track_sensitive
-        ~pre_gain ~make_up_gain ~window ~wet s)
+      let field, s = List.assoc "" p |> Track.of_value in
+      ( field,
+        new compress
+          ~attack ~release ~lookahead ~ratio ~knee ~threshold ~track_sensitive
+          ~pre_gain ~make_up_gain ~window ~wet ~field s ))

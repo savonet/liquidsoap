@@ -38,22 +38,14 @@ Parameters:
 ```
 
 Filters input and output are abstract values of type `ffmpeg.filter.audio` and `ffmpeg.filter.video`. They can be created
-using `ffmpeg.filter.audio.input`, `ffmpeg.filter.video.input`. Conversely, sources can be created from them using
-`ffmpeg.filter.audio.output` and `ffmpeg.filter.video.output`.
+using `ffmpeg.filter.audio.input`, `ffmpeg.filter.video.input`. These operators take [media tracks](multitrack.html) as input.
+
+Conversely, tracks can be created from them using `ffmpeg.filter.audio.output` and `ffmpeg.filter.video.output`.
 
 Filters are configured within the closure of a function. Here's an example:
 
-```liquidsoap
-def flanger_highpass(s) =
-  def mkfilter(graph) =
-    s = ffmpeg.filter.audio.input(graph, s)
-    s = ffmpeg.filter.flanger(graph, s, delay=10.)
-    s = ffmpeg.filter.highpass(graph, s, frequency=4000.)
-    ffmpeg.filter.audio.output(graph, s)
-  end
+```{.liquidsoap include="ffmpeg-filter-flanger-highpass.liq"}
 
-  ffmpeg.filter.create(mkfilter)
-end
 ```
 
 This filter receives an audio input, creates a `ffmpeg.filter.audio.input` with it that can be passed
@@ -61,20 +53,26 @@ to filters, applies a flanger effect and then a high pass effect, creates an aud
 
 Here's another example for video:
 
-```liquidsoap
-def hflip(s) =
-  def mkfilter(graph) =
-    s = ffmpeg.filter.video.input(graph, s)
-    s = ffmpeg.filter.hflip(graph, s)
-    ffmpeg.filter.video.output(graph, s)
-  end
+```{.liquidsoap include="ffmpeg-filter-hflip.liq"}
 
-  ffmpeg.filter.create(mkfilter)
-end
 ```
 
 This filter receives a video input, creates a `ffmpeg.filter.video.input` with it that can be passed to filters,
 applies a `hflip` filter (flips the video vertically), creates a video output from it and returns it.
+
+## Applying filters to a source
+
+When applying a filter, the input is placed in a clock that is driven by the output. This means that you cannot share other tracks from the
+input to the output. This can be an annoying source of confusion.
+
+Thus, when applying FFMpeg filters to sources with audio and video tracks, it is recommended to pass all the tracks through the filter, even
+if they are simply copied.
+
+Here's an example with the previous filter:
+
+```{.liquidsoap include="ffmpeg-filter-hflip2.liq"}
+
+```
 
 FFmpeg filters are very powerful, they can also convert audio to video, for instance displaying information about the
 stream, and they can combined into powerful graph processing filters.
@@ -86,27 +84,8 @@ supported in liquidsoap.
 
 In order to do so, you have to use a slightly different API:
 
-```liquidsoap
-def dynamic_volume(s) =
-  def mkfilter(graph) =
-    filter = ffmpeg.filter.volume.create(graph)
+```{.liquidsoap include="ffmpeg-filter-dynamic-volume.liq" to="END"}
 
-    def set_volume(v) =
-      ignore(filter.process_command("volume", "#{v}"))
-    end
-
-    s = ffmpeg.filter.audio.input(graph, s)
-    filter.set_input(s)
-    s = filter.output
-    s = ffmpeg.filter.audio.output(graph, s)
-
-    (s, set_volume)
-  end
-
-  ffmpeg.filter.create(mkfilter)
-end
-
-let (s, set_volume) = dynamic_volume(s)
 ```
 
 First, we instantiate a volume filter via `ffmpeg.filter.volume.create`. The filter instance has a `process_command`, which we use to create the `set_volume` function. Then,
@@ -180,27 +159,6 @@ This filter receives an array of possible `audio` inputs as well as an array of 
 
 Put together, this can be used as such:
 
-```liquidsoap
-def parallel_flanger_highpass(s) =
-  def mkfilter(graph) =
-    s = ffmpeg.filter.audio.input(graph, s)
+```{.liquidsoap include="ffmpeg-filter-parallel-flanger-highpass.liq"}
 
-    let (audio, _) = ffmpeg.filter.asplit(outputs=2, graph, s)
-
-    let [s1, s2] = audio
-
-    s1 = ffmpeg.filter.flanger(graph, s1, delay=10.)
-    s2 = ffmpeg.filter.highpass(graph, s2, frequency=4000.)
-
-    # For some reason, we need to enforce the format here.
-    s1 = ffmpeg.filter.aformat(sample_fmts="s16", sample_rates="44100", channel_layouts="stereo", graph, s1)
-    s2 = ffmpeg.filter.aformat(sample_fmts="s16", sample_rates="44100", channel_layouts="stereo", graph, s2)
-
-    s = ffmpeg.filter.amerge(inputs=2, graph, [s1, s2], [])
-
-    ffmpeg.filter.audio.output(graph, s)
-  end
-
-  ffmpeg.filter.create(mkfilter)
-end
 ```

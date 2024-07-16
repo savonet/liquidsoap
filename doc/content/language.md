@@ -163,7 +163,7 @@ The following sequences are recognized:
 | `\'`            | `\x27`             | Apostrophe or single quotation mark                                                   |
 | `\"`            | `\x22`             | Double quotation mark                                                                 |
 | `\?`            | `\x3F`             | Question mark (used to avoid Digraphs and trigraphs)                                  |
-| `\nnn`          | any                | The byte whose numerical value is given by _nnn_interpreted as an \_octal_ number     |
+| `\nnn`          | any                | The byte whose numerical value is given by _nnn_ interpreted as an _octal_ number     |
 | `\xhh`          | any                | The byte whose numerical value is given by _hh_ interpreted as a _hexadecimal_ number |
 | `\uhhhh`        | none               | UTF8-8 code point given by _hhhh_ interpreted as an _hexadecimal_ number              |
 
@@ -280,8 +280,8 @@ will result in
 
 ```
 At line 1, char 19-21:
-Error 5: this value has type (...) -> string
-but it should be a subtype of (...) -> int
+Error 5: this value has type string
+but it should be a subtype of int
 ```
 
 meaning that `"A"` is a string but is expected to be an integer because the
@@ -502,25 +502,31 @@ ref(int)
 ```
 
 meaning that its a memory cell containing integers. On such a reference, two
-operations are available:
+operations are available.
 
-- one can obtain the value of the reference by using the `!` keyword before the
-  reference, so that `!r` denotes the value contained in the reference `r`, for
-  instance
+- One can obtain the value of the reference by applying the reference to `()`,
+  so that `r()` denotes the value contained in the reference `r`, for instance
 
   ```liquidsoap
-  x = !r + 4
+  x = r() + 4
   ```
 
-  declares the variable `x` as being 9 (which is 5+4),
+  declares the variable `x` as being 9 (which is 5+4).
 
-- one can change the value of the reference by using the `:=` keyword, e.g.
+- One can change the value of the reference by using the `:=` keyword, e.g.
 
   ```liquidsoap
   r := 2
   ```
 
-  will assign the value 2 to `r`.
+  will assign the value 2 to `r`. Internally, this is done by calling the `set`
+  method of the reference, so that the above is equivalent to writing
+
+  ```liquidsoap
+  r.set(2)
+  ```
+
+  which used to be the syntax for some reference manipulations.
 
 ### Loops
 
@@ -546,14 +552,14 @@ reference `n` as long as its value is below `10`:
 
 ```liquidsoap
 n = ref(1)
-while !n < 10 do
-  n := !n * 2
+while n() < 10 do
+  n := n() * 2
 end
-print(!n)
+print(n())
 ```
 
 The variable `n` will thus successively take the values `1`, `2`, `4`, `8` and
-`16`, at which point the looping condition `!n < 10` is not satisfied anymore
+`16`, at which point the looping condition `n() < 10` is not satisfied anymore
 and the loop is exited. The printed value is thus `16`.
 
 ## Functions
@@ -693,7 +699,7 @@ for such arguments, the default value will be used. For instance, if for some
 reason we tend to generally measure samples over a period of 2.5 seconds, we can
 make this become the value for the `duration` parameter:
 
-```{.liquidsoap include="liq/samplerate3.liq" from=0 to=0}
+```{.liquidsoap include="samplerate3.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -764,8 +770,8 @@ the value. For instance, we can define a float getter by
 ```liquidsoap
 n = ref(0.)
 def f ()
-  n := !n + 1.
-  !n
+  n := n() + 1.
+  n()
 end
 ```
 
@@ -1107,6 +1113,13 @@ let _.{foo, bar} = "aabbcc".{foo = 123, bar = "baz", gni = true}
 # Record capture with sub-patterns. Same works for module!
 let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
 # foo = [1, 2, 3], x = 1, y = 2, z = 3, gni = "baz"
+
+# Record capture with optional methods:
+let { foo? } = ()
+# foo = null()
+
+let { foo? } = { foo = 123 }
+# foo = 123
 ```
 
 ## Combining patterns
@@ -1224,7 +1237,7 @@ takes as arguments the error to raise and the error message. For instance:
 error.raise(error.not_found, "we could not find your result")
 ```
 
-Finally, we should mention that all the errors should be declared in advance
+We should also mention that all the errors should be declared in advance
 with the function `error.register`, which takes as argument the name of the new
 error to register:
 
@@ -1232,6 +1245,50 @@ error to register:
 myerr = error.register("my_error")
 error.raise(myerr, "testing my own error")
 ```
+
+Lastly, if you need to make sure that a certain piece of code is executed
+whether or not there is an exception raised, you can use _finally_:
+
+```liquidsoap
+# Without a catch block
+try
+  ...
+finally
+  ...
+end
+
+# With a catch block
+try
+  ...
+catch ... do
+  ...
+finally
+  ...
+end
+```
+
+This is roughly equivalent to:
+
+```liquidsoap
+finally_called = ref(false)
+def finally() = ... end
+try
+  let ret = ...
+  finally_called := true
+  finally()
+  ret
+# If specified:
+catch ... do
+  let ret = ...
+  if not finally_called() then finally() end
+  ret
+end
+```
+
+The biggest different is that `finally` is called on all errors, including internal errors that cannot
+be caught by the runtime code.
+
+Errors raised in a `finally` block do override any previously raised errors.
 
 ### Nullable values
 
@@ -1319,3 +1376,140 @@ output.icecast(%mp3, host="localhost", port=8000,
 ```
 
 so that passwords are not shown in the main script.
+
+### Code comments
+
+Comments can be added to your code in two ways:
+
+_Multi-line comments_ are comments that can span multiple lines. They are delimitated
+by the sequence of characters `#<` at the beginning and `>#` at the end. Anything
+in between those two sequences is considered code comment.
+
+Here are some examples:
+
+Simple multiline comments:
+
+```liquidsoap
+#< This is a comment >#
+```
+
+Multiline comments can be nested:
+
+```liquidsoap
+#<
+This is a top-level comment
+
+  # This is also a comment
+
+  #<
+    This is a nested code comment
+  >#
+>#
+```
+
+Fancy looking multiline comment
+
+```liquidsoap
+#<------- BEGIN CODE COMMENT ----#
+Comments can also look like this
+#--------- END CODE COMMENT ----->#
+```
+
+_Single-line comments_ are comments that are limited to the current line. Such comments
+are started with the character `#` without a following `<`. Anything after the initial
+`#` character and until the end of the line is considered code comment:
+
+```liquidsoap
+def f(x) = # This is a single line comment.
+  123
+end
+```
+
+## Caching
+
+Type-checking scripts can take a lot of time and consume memory. To optimize things, this step can be cached.
+
+During the first execution, the script is parsed, type checked and evaluated. On second and any following execution, a cache of the script is used, reducing the typechecking phase, sometimes by a `100x` factor!
+
+Here's a log without caching on a M3 macbook pro:
+
+```
+2024/07/03 14:31:41 [startup:3] main script hash computation: 0.03s
+2024/07/03 14:31:41 [startup:3] main script cache retrieval: 0.03s
+2024/07/03 14:31:41 [startup:3] stdlib hash computation: 0.03s
+2024/07/03 14:31:41 [startup:3] stdlib cache retrieval: 0.03s
+2024/07/03 14:31:41 [startup:3] Typechecking stdlib: 3.37s
+2024/07/03 14:31:41 [startup:3] Typechecking main script: 0.00s
+```
+
+And the same log after caching:
+
+```
+2024/07/03 14:32:59 [startup:3] main script hash computation: 0.02s
+2024/07/03 14:32:59 [startup:3] Loading main script from cache!
+2024/07/03 14:32:59 [startup:3] main script cache retrieval: 0.05s
+```
+
+Scripts can be cached ahead of time without executing them, for instance while compiling a docker image, using `--cache-only`. Caching can also be disabled using `--no-cache`.
+
+Caching happens at two different time:
+
+- First the standard library is cached
+- Then the script itself is cached
+
+Caching the standard library makes it possible to run the type-checker faster on new scripts. Here's an example of a log from running a new script with
+a cached standard library:
+
+```
+2024/07/03 14:33:27 [startup:3] main script hash computation: 0.02s
+2024/07/03 14:33:27 [startup:3] main script cache retrieval: 0.02s
+2024/07/03 14:33:27 [startup:3] stdlib hash computation: 0.03s
+2024/07/03 14:33:27 [startup:3] Loading stdlib from cache!
+2024/07/03 14:33:27 [startup:3] stdlib cache retrieval: 0.10s
+2024/07/03 14:33:27 [startup:3] Typechecking main script: 0.00s
+```
+
+Caching can be disabled by setting `LIQ_CACHE` to anything else than `"true"`.
+
+### Cache locations
+
+Cache files can accumulate and also take up disk space so it is important to know where they are located!
+
+There are two type of cache locations:
+
+- System cache for cached files that should be shared with all liquidsoap scripts. This is where the standard library cache is located. This location is a system-wide path on unix system such as `/var/cache/liquidsoap`.
+- User cache for cached files that are specific to the user running liquidsoap scripts. On unix systems, this location is at `$HOME/.cache/liquidsoap`.
+
+On windows, the default cache directory for both type of cache locations is in the same directory as the binary.
+
+At runtime, `liquidsoap.cache(mode=<mode>)` returns the cache directory. `mode` should be one of: `"user"` or `"system"`.
+
+### Cache maintenance
+
+There is a cache maintenance routine which deletes unused cache files after `10` days and keeps the cache to a maximum of `200` files.
+
+You can run the cache maintenance routing by calling `liquidsoap.cache.maintenance(mode=<mode>)` manually. Here, too, `mode` should be one of: `"user"` or `"system"`.
+
+### Cache security
+
+Please be aware that the cache does _not_ encrypt its values. As such, user cache files should be considered sensitive as they may contain password and other runtime secrets
+that are available through your scripts. We recommend to:
+
+- Use environment variables as much as possible when passing secrets
+- Secure your user script and cache files.
+
+The default creation permissions for user cache files is: `0o600` so only the user creating them should be able to read them. You should make sure that your script permissions are also similarly restricted.
+
+### Cache environment variables
+
+The following environment variables control the cache behavior:
+
+- `LIQ_CACHE`: disable the cache when set to anything else than `1` or `true`
+- `LIQ_CACHE_SYSTEM_DIR`: set the cache system directory
+- `LIQ_CACHE_SYSTEM_DIR_PERMS`: set the permission used when creating cache system directory (and its parents when needed). Default: `0o755`
+- `LIQ_CACHE_SYSTEM_FILE_PERMS`: set the permissions used when creating a system cache file. Default: `0o644`
+- `LIQ_CACHE_USER_DIR`: set the cache user directory
+- `LIQ_CACHE_USER_DIR_PERMS`: set the permission used when creating cache user directory (and its parents when needed). Default: `0o700`.
+- `LIQ_CACHE_USER_FILE_PERMS`: set the permissions used when creating a user cache file. Default: `0o600`
+- `LIQ_CACHE_MAX_DAYS`: set the maximum days a cache file can be stored before it is eligible to be deleted during the next cache maintenance pass.
+- `LIQ_CACHE_MAX_FILES`: set the maximum number of files in each cache directory. Older files are removed first.

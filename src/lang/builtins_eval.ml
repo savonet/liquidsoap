@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,9 +20,7 @@
 
  *****************************************************************************)
 
-let raise exn =
-  let bt = Printexc.get_raw_backtrace () in
-  Lang.raise_as_runtime ~bt ~kind:"eval" exn
+let raise ~bt exn = Lang.raise_as_runtime ~bt ~kind:"eval" exn
 
 let _ =
   Lang.add_builtin ~category:`Liquidsoap "_eval_"
@@ -30,12 +28,10 @@ let _ =
     [("type", Value.RuntimeType.t, None, None); ("", Lang.string_t, None, None)]
     (Lang.univ_t ())
     (fun p ->
-      try
-        let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
-        let s = Lang.to_string (List.assoc "" p) in
-        let v = Runtime.eval ~ignored:false ~ty s in
-        (match Type.((demeth (deref ty)).descr) with
-          | Type.Var _ -> Typing.(ty <: Lang.unit_t)
-          | _ -> ());
-        v
-      with exn -> raise exn)
+      let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
+      let ty = Type.fresh ty in
+      let s = Lang.to_string (List.assoc "" p) in
+      try Lang.eval ~toplevel:false ~stdlib:`Disabled ~ty s
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        raise ~bt exn)

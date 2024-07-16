@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -44,6 +44,7 @@ val create :
   ?log:(string -> unit) ->
   ?max_length:int ->
   ?length:int ->
+  ?content:Frame.t ->
   Frame_base.content_type ->
   t
 
@@ -69,6 +70,10 @@ val remaining : t -> int
 (* Drop given length of content at the beginning of the generator. *)
 val truncate : t -> int -> unit
 
+(* Return at most the given len of data from the start of the generator
+   and truncate the generator of that data. *)
+val slice : t -> int -> Frame.t
+
 (* Empty the generator. *)
 val clear : t -> unit
 
@@ -76,10 +81,6 @@ val clear : t -> unit
    with metadata or track marks, use the corresponding add method
    for these type of content. *)
 val put : t -> Frame_base.field -> Content.data -> unit
-
-(* Remove the given length of content from the beginning of the generator
-   and return it. Defaults to the whole available length. *)
-val get : ?length:int -> t -> Content.data Frame_base.Fields.t
 
 (* Return the generator's content without removing it. *)
 val peek : t -> Content.data Frame_base.Fields.t
@@ -95,12 +96,5 @@ val add_metadata : ?pos:int -> t -> Frame_base.metadata -> unit
    for track mark. Default position is generator's length. *)
 val add_track_mark : ?pos:int -> t -> unit
 
-(* [feed ?offset ?length ?fields generator frame] is the old call
-   to feed a frame's content to a generator. *)
-val feed :
-  ?offset:int -> ?length:int -> ?fields:Frame_base.field list -> t -> t -> unit
-
-(* [fill generator frame] fills the frame with as much content as possible,
-   from the generator either until the frame is full or the generator's
-   remaining length (if applicable) or length. *)
-val fill : t -> t -> unit
+(* Append a frame content to a generator. *)
+val append : ?offset:int -> ?length:int -> t -> Frame_base.t -> unit

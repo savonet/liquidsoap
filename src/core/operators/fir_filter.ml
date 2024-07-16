@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ open Complex
 
 class fir (source : source) freq beta numcoeffs =
   object (self)
-    inherit operator ~name:"fir_filter" [source] as super
+    inherit operator ~name:"fir_filter" [source]
 
     (* Needed to compute RC *)
     val f1 = (1. -. beta) *. (freq /. float_of_int (Frame.audio_of_seconds 1.))
@@ -37,9 +37,9 @@ class fir (source : source) freq beta numcoeffs =
     val mutable gain = 0.
     val mutable xv = [||]
 
-    method! wake_up a =
-      super#wake_up a;
-      xv <- Array.make_matrix self#audio_channels numcoeffs 0.
+    initializer
+      self#on_wake_up (fun () ->
+          xv <- Array.make_matrix self#audio_channels numcoeffs 0.)
 
     (* Coefficients *)
     val mutable xcoeffs = Array.make numcoeffs 0.
@@ -47,87 +47,91 @@ class fir (source : source) freq beta numcoeffs =
     val mutable temp = Array.make 2048 { re = 0.; im = 0. }
 
     initializer
-    self#log#info
-      "Init: alpha=%+.013f beta=%+.013f F1=%+.013f F2=%+.013f tau=%+.013f \
-       zeros=%d."
-      (freq /. float_of_int (Frame.audio_of_seconds 1.))
-      beta f1 f2 tau nzeros;
+      self#log#info
+        "Init: alpha=%+.013f beta=%+.013f F1=%+.013f F2=%+.013f tau=%+.013f \
+         zeros=%d."
+        (freq /. float_of_int (Frame.audio_of_seconds 1.))
+        beta f1 f2 tau nzeros;
 
-    (* Init circle *)
-    let circle =
-      let rec mkcircle n =
-        if n < 0 then [||]
-        else (
-          let theta = Float.pi *. float_of_int n /. 1024. in
-          Array.append
-            (mkcircle (n - 1))
-            [| { re = cos theta; im = sin theta } |])
+      (* Init circle *)
+      let circle =
+        let rec mkcircle n =
+          if n < 0 then [||]
+          else (
+            let theta = Float.pi *. float_of_int n /. 1024. in
+            Array.append
+              (mkcircle (n - 1))
+              [| { re = cos theta; im = sin theta } |])
+        in
+        mkcircle 1024
       in
-      mkcircle 1024
-    in
-    (* Compute vec *)
-    let vec = Array.make 2048 { re = 0.; im = 0. } in
-    let c n =
-      let f = float_of_int n /. 2048. in
-      match (f <= f1, f <= f2) with
-        | true, _ -> 1.
-        | false, true ->
-            0.5 *. (1. +. cos (Float.pi *. tau /. beta *. (f -. f1)))
-        | false, false -> 0.
-    in
-    for i = 0 to 1024 do
-      vec.(i) <- { re = c i *. tau; im = 0. }
-    done;
-    for i = 1 to 1024 do
-      vec.(2048 - i) <- vec.(i)
-    done;
+      (* Compute vec *)
+      let vec = Array.make 2048 { re = 0.; im = 0. } in
+      let c n =
+        let f = float_of_int n /. 2048. in
+        match (f <= f1, f <= f2) with
+          | true, _ -> 1.
+          | false, true ->
+              0.5 *. (1. +. cos (Float.pi *. tau /. beta *. (f -. f1)))
+          | false, false -> 0.
+      in
+      for i = 0 to 1024 do
+        vec.(i) <- { re = c i *. tau; im = 0. }
+      done;
+      for i = 1 to 1024 do
+        vec.(2048 - i) <- vec.(i)
+      done;
 
-    (* FFT *)
-    let ( +~ ), ( -~ ), ( *~ ) = (Complex.add, Complex.sub, Complex.mul) in
-    let rec fft t d s n =
-      if n > 1 then (
-        let h = n / 2 in
-        for i = 0 to h - 1 do
-          !t.(s + i) <- !d.(s + (2 * i));
+      (* FFT *)
+      let ( +~ ), ( -~ ), ( *~ ) = (Complex.add, Complex.sub, Complex.mul) in
+      let rec fft t d s n =
+        if n > 1 then (
+          let h = n / 2 in
+          for i = 0 to h - 1 do
+            !t.(s + i) <- !d.(s + (2 * i));
 
-          (* even *)
-          !t.(s + h + i) <- !d.(s + (2 * i) + 1) (* odd  *)
-        done;
-        fft d t s h;
-        fft d t (s + h) h;
-        let a = 2048 / n in
-        for i = 0 to h - 1 do
-          let wkt = circle.(i * a) *~ !t.(s + h + i) in
-          !d.(s + i) <- !t.(s + i) +~ wkt;
-          !d.(s + h + i) <- !t.(s + i) -~ wkt
-        done)
-    in
-    fft (ref temp) (ref vec) 0 2048;
+            (* even *)
+            !t.(s + h + i) <- !d.(s + (2 * i) + 1) (* odd  *)
+          done;
+          fft d t s h;
+          fft d t (s + h) h;
+          let a = 2048 / n in
+          for i = 0 to h - 1 do
+            let wkt = circle.(i * a) *~ !t.(s + h + i) in
+            !d.(s + i) <- !t.(s + i) +~ wkt;
+            !d.(s + h + i) <- !t.(s + i) -~ wkt
+          done)
+      in
+      fft (ref temp) (ref vec) 0 2048;
 
-    (* inverse fft *)
-    let h = (numcoeffs - 1) / 2 in
-    xcoeffs <-
-      Array.mapi (fun i _ -> vec.((2048 - h + i) mod 2048).re /. 2048.) xcoeffs;
-    self#log#info "Xcoeffs: %s"
-      (String.concat "\n"
-         (Array.to_list
-            (Array.mapi (fun i a -> Printf.sprintf "%d: %+.013f." i a) xcoeffs)));
-    gain <- Array.fold_left ( +. ) 0. xcoeffs;
-    self#log#info "Gain: %+.013f." gain;
-    self#log#info "Init done."
+      (* inverse fft *)
+      let h = (numcoeffs - 1) / 2 in
+      xcoeffs <-
+        Array.mapi
+          (fun i _ -> vec.((2048 - h + i) mod 2048).re /. 2048.)
+          xcoeffs;
+      self#log#info "Xcoeffs: %s"
+        (String.concat "\n"
+           (Array.to_list
+              (Array.mapi
+                 (fun i a -> Printf.sprintf "%d: %+.013f." i a)
+                 xcoeffs)));
+      gain <- Array.fold_left ( +. ) 0. xcoeffs;
+      self#log#info "Gain: %+.013f." gain;
+      self#log#info "Init done."
 
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method is_ready = source#is_ready
-    method seek = source#seek
+    method private can_generate_frame = source#is_ready
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
       let shift a =
         for i = 0 to Array.length a - 2 do
           a.(i) <- a.(i + 1)
@@ -143,12 +147,13 @@ class fir (source : source) freq beta numcoeffs =
       in
       let addtimes a b c = a +. (b *. c) in
       for c = 0 to 1 do
-        for i = offset to AFrame.position buf - 1 do
+        for i = 0 to source#frame_audio_position - 1 do
           shift xv.(c);
           xv.(c).(nzeros) <- b.(c).(i) /. gain;
           b.(c).(i) <- fold_left2 addtimes 0. xcoeffs xv.(c)
         done
-      done
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

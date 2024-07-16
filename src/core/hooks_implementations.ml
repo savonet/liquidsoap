@@ -1,122 +1,210 @@
 module Hooks = Liquidsoap_lang.Hooks
+module Lang = Liquidsoap_lang.Lang
+module Cache = Liquidsoap_lang.Cache
 
-let () = Hooks.liq_libs_dir := Configure.liq_libs_dir
+(* For source eval check there are cases of:
+     source('a) <: (source('a).{ source methods })?
+   b/c of source.dynamic so we want to dig deeper
+   than the regular demeth. *)
+let rec deep_demeth t =
+  match Type.demeth t with
+    | Type.{ descr = Nullable t } -> deep_demeth t
+    | t -> t
+
+let eval_check ~env:_ ~tm v =
+  if Lang_source.Source_val.is_value v then (
+    let s = Lang_source.Source_val.of_value v in
+    if not s#has_content_type then (
+      let ty = Type.fresh (deep_demeth tm.Term.t) in
+      Typing.(Lang_source.source_t ~methods:false s#frame_type <: ty);
+      s#content_type_computation_allowed))
+  else if Track.is_value v then (
+    let field, source = Lang_source.to_track v in
+    if not source#has_content_type then (
+      match field with
+        | _ when field = Frame.Fields.metadata -> ()
+        | _ when field = Frame.Fields.track_marks -> ()
+        | _ ->
+            let ty = Type.fresh (deep_demeth tm.Term.t) in
+            let frame_t =
+              Frame_type.make (Lang.univ_t ())
+                (Frame.Fields.add field ty Frame.Fields.empty)
+            in
+            Typing.(source#frame_type <: frame_t)))
+
+let render_string = function
+  | `Verbatim s -> s
+  | `String (pos, (sep, s)) -> Liquidsoap_lang.Lexer.render_string ~pos ~sep s
+
+let mk_field_t ?pos kind params =
+  let err_pos =
+    Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos
+  in
+  let pos = Option.map Pos.of_lexing_pos pos in
+  match kind with
+    | "any" -> Type.var ?pos ()
+    | "none" | "never" -> Type.make ?pos Type.Never
+    | _ -> (
+        try
+          let k = Content.kind_of_string kind in
+          match params with
+            | [] -> Type.make ?pos (Format_type.descr (`Kind k))
+            | [("", `Verbatim "any")] -> Type.var ?pos ()
+            | [("", `Verbatim "internal")] ->
+                Type.var ?pos ~constraints:[Format_type.internal_tracks] ()
+            | param :: params ->
+                let mk_format (label, value) =
+                  let value = render_string value in
+                  Content.parse_param k label value
+                in
+                let f = mk_format param in
+                List.iter
+                  (fun param -> Content.merge f (mk_format param))
+                  params;
+                assert (k = Content.kind f);
+                Type.make ?pos (Format_type.descr (`Format f))
+        with _ ->
+          let params =
+            params
+            |> List.map (fun (l, v) -> l ^ "=" ^ render_string v)
+            |> String.concat ","
+          in
+          let t = kind ^ "(" ^ params ^ ")" in
+          raise
+            (Liquidsoap_lang.Term_base.Parse_error
+               (err_pos, "Unknown type constructor: " ^ t ^ ".")))
 
 let () =
+  Hooks.mk_clock_ty :=
+    fun ?pos () ->
+      Type.make
+        ?pos:(Option.map Liquidsoap_lang.Pos.of_lexing_pos pos)
+        Lang_source.ClockValue.base_t.Type.descr
+
+let mk_source_ty ?pos name { Liquidsoap_lang.Parsed_term.extensible; tracks } =
+  if name <> "source" then (
+    let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
+    raise
+      (Liquidsoap_lang.Term_base.Parse_error
+         (pos, "Unknown type constructor: " ^ name ^ ".")));
+
+  match tracks with
+    | [] -> Lang_source.source_t ?pos (Lang.univ_t ())
+    | tracks ->
+        let fields =
+          List.fold_left
+            (fun fields
+                 {
+                   Liquidsoap_lang.Parsed_term.track_name;
+                   track_type;
+                   track_params;
+                 } ->
+              Frame.Fields.add
+                (Frame.Fields.field_of_string track_name)
+                (mk_field_t ?pos track_type track_params)
+                fields)
+            Frame.Fields.empty tracks
+        in
+        let base = if extensible then Lang.univ_t () else Lang.unit_t in
+
+        Lang_source.source_t ?pos (Frame_type.make base fields)
+
+let register () =
+  Hooks.liq_libs_dir := Configure.liq_libs_dir;
   let on_change v =
     Hooks.log_path :=
       if v then (try Some Dtools.Log.conf_file_path#get with _ -> None)
       else None
   in
   Dtools.Log.conf_file#on_change on_change;
-  ignore (Option.map on_change Dtools.Log.conf_file#get_d)
-
-type sub = Lang.Regexp.sub = {
-  matches : string option list;
-  groups : (string * string) list;
-}
-
-let cflags_of_flags (flags : Liquidsoap_lang.Regexp.flag list) =
-  List.fold_left
-    (fun l f ->
-      match f with
-        | `i -> `CASELESS :: l
-        (* `g is handled at the call level. *)
-        | `g -> l
-        | `s -> `DOTALL :: l
-        | `m -> `MULTILINE :: l)
-    [] flags
-
-let regexp ?(flags = []) s =
-  let iflags = Pcre.cflags (cflags_of_flags flags) in
-  let rex = Pcre.regexp ~iflags s in
-  object
-    method split s = Pcre.split ~rex s
-
-    method exec s =
-      let sub = Pcre.exec ~rex s in
-      let matches = Array.to_list (Pcre.get_opt_substrings sub) in
-      let groups =
-        List.fold_left
-          (fun groups name ->
-            try (name, Pcre.get_named_substring rex name sub) :: groups
-            with _ -> groups)
-          []
-          (Array.to_list (Pcre.names rex))
-      in
-      { Lang.Regexp.matches; groups }
-
-    method test s = Pcre.pmatch ~rex s
-
-    method substitute ~subst s =
-      let substitute =
-        if List.mem `g flags then Pcre.substitute else Pcre.substitute_first
-      in
-      substitute ~rex ~subst s
-  end
-
-let () =
-  Hooks.collect_after := Clock.collect_after;
-  Hooks.regexp := regexp;
+  ignore (Option.map on_change Dtools.Log.conf_file#get_d);
   (Hooks.make_log := fun name -> (Log.make name :> Hooks.log));
   Hooks.type_of_encoder := Lang_encoder.type_of_encoder;
   Hooks.make_encoder := Lang_encoder.make_encoder;
-  Hooks.has_encoder :=
-    fun fmt ->
-      try
-        let (_ : Encoder.factory) =
-          Encoder.get_factory (Lang_encoder.V.of_value fmt)
-        in
-        true
-      with _ -> false
+  Hooks.eval_check := eval_check;
+  (Hooks.has_encoder :=
+     fun fmt ->
+       try
+         let (_ : Encoder.factory) =
+           Encoder.get_factory (Lang_encoder.V.of_value fmt)
+         in
+         true
+       with _ -> false);
+  Hooks.mk_source_ty := mk_source_ty;
+  Hooks.getpwnam := Unix.getpwnam;
+  Hooks.source_methods_t :=
+    fun () -> Lang_source.source_t ~methods:true (Lang.univ_t ())
 
-let eval_check ~env:_ ~tm v =
-  let open Liquidsoap_lang.Term in
-  if Lang_source.V.is_value v then
-    Typing.(tm.t <: Lang.source_t (Lang_source.V.of_value v)#frame_type)
+let cache_max_days =
+  try int_of_string (Sys.getenv "LIQ_CACHE_MAX_DAYS") with _ -> 10
 
-let () = Hooks.eval_check := eval_check
+let cache_max_files =
+  try int_of_string (Sys.getenv "LIQ_CACHE_MAX_FILES") with _ -> 20
 
-let mk_field_t ~pos (kind, params) =
-  if kind = "any" then Type.var ~pos ()
-  else (
-    try
-      let k = Content.kind_of_string kind in
-      match params with
-        | [] -> Type.make (Format_type.descr (`Kind k))
-        | [("", "any")] -> Type.var ()
-        | [("", "internal")] ->
-            Type.var ~constraints:[Format_type.internal_media] ()
-        | param :: params ->
-            let mk_format (label, value) = Content.parse_param k label value in
-            let f = mk_format param in
-            List.iter (fun param -> Content.merge f (mk_format param)) params;
-            assert (k = Content.kind f);
-            Type.make (Format_type.descr (`Format f))
-    with _ ->
-      let params =
-        params |> List.map (fun (l, v) -> l ^ "=" ^ v) |> String.concat ","
-      in
-      let t = kind ^ "(" ^ params ^ ")" in
-      raise (Term.Parse_error (pos, "Unknown type constructor: " ^ t ^ ".")))
+let () =
+  (try
+     Liquidsoap_lang.Cache.system_dir_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_DIR_PERMS")
+   with _ -> ());
+  (try
+     Liquidsoap_lang.Cache.system_file_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_SYSTEM_FILE_PERMS")
+   with _ -> ());
+  (try
+     Liquidsoap_lang.Cache.user_dir_perms :=
+       int_of_string (Sys.getenv "LIQ_CACHE_USER_DIR_PERMS")
+   with _ -> ());
+  try
+    Liquidsoap_lang.Cache.user_file_perms :=
+      int_of_string (Sys.getenv "LIQ_CACHE_USER_FILE_PERMS")
+  with _ -> ()
 
-let mk_source_ty ~pos name args =
-  if name <> "source" then
-    raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ "."));
+module Term_cache = Liquidsoap_lang.Term_cache
 
-  match args with
-    | [] -> Lang.source_t (Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty)
-    | args ->
-        let fields =
-          List.fold_left
-            (fun fields (lbl, k) ->
-              Frame.Fields.add
-                (Frame.Fields.field_of_string lbl)
-                (mk_field_t ~pos k) fields)
-            Frame.Fields.empty args
-        in
+let cache_log = Log.make ["cache"]
 
-        Lang.source_t (Lang.frame_t Lang.unit_t fields)
+let cache_maintenance dirtype =
+  let max_timestamp = Unix.time () -. (float cache_max_days *. 86400.) in
+  try
+    match Cache.dir dirtype with
+      | Some dir when Sys.file_exists dir && Sys.is_directory dir ->
+          let files =
+            Array.fold_left
+              (fun files fname ->
+                if String.ends_with ~suffix:".liq-cache" fname then (
+                  let filename = Filename.concat dir fname in
+                  let stats = Unix.stat filename in
+                  match Unix.stat filename with
+                    | { Unix.st_atime } when st_atime < max_timestamp ->
+                        cache_log#info "File %s is too old, deleting.." fname;
+                        Unix.unlink filename;
+                        files
+                    | _ -> (stats, filename) :: files)
+                else files)
+              [] (Sys.readdir dir)
+          in
+          let len = List.length files in
+          if cache_max_files < len then (
+            let len = len - cache_max_files in
+            cache_log#info "Too many cached files! Deleting %d oldest ones.."
+              len;
+            let files =
+              List.sort
+                (fun ({ Unix.st_atime = t }, _) ({ Unix.st_atime = t' }, _) ->
+                  Stdlib.compare t t')
+                files
+            in
+            List.iteri
+              (fun pos (_, filename) ->
+                if pos < len then (
+                  cache_log#info "Deleting %s.." (Filename.basename filename);
+                  Unix.unlink filename))
+              files)
+      | _ -> ()
+  with exn ->
+    let bt = Printexc.get_backtrace () in
+    Utils.log_exception ~log:cache_log ~bt
+      (Printf.sprintf "Error while cleaning up cache: %s"
+         (Printexc.to_string exn))
 
-let () = Hooks.mk_source_ty := mk_source_ty
-let () = Hooks.getpwnam := Unix.getpwnam
+let () = Hooks.cache_maintenance := cache_maintenance

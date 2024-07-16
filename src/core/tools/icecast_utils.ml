@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ module type Icecast_t = sig
 
   type info
 
-  val info_of_encoder : Encoder.format -> info
+  val info_of_encoder : Encoder.format -> Encoder.encoder -> info
 end
 
 let ffmpeg_mime_of_format = function
@@ -72,7 +72,7 @@ let ffmpeg_mime_of_format = function
   | "avm2" -> Some "application/x-shockwave-flash"
   | "bin" -> Some "application/octet-stream"
   | "bit" -> Some "audio/bit"
-  | "caf" -> Some "audio/x-caf"
+  | "calf" -> Some "audio/x-calf"
   | "dts" -> Some "audio/x-dca"
   | "dvd" -> Some "video/mpeg"
   | "eac3" -> Some "audio/x-eac3"
@@ -146,9 +146,9 @@ let ffmpeg_mime_of_format = function
 
 module Icecast_v (M : Icecast_t) = struct
   type encoder_data = {
-    factory : string -> Meta_format.export_metadata -> Encoder.encoder;
+    factory : string -> Frame.Metadata.Export.t -> Encoder.encoder;
     format : M.content;
-    info : M.info;
+    info : Encoder.encoder -> M.info;
   }
 
   let mpeg = M.format_of_content mpeg_mime
@@ -177,9 +177,18 @@ module Icecast_v (M : Icecast_t) = struct
     | Encoder.AVI _ -> Some avi
     | Encoder.Ogg _ -> Some ogg
 
+  let encoder_overrides = function
+    | Encoder.Ffmpeg { Ffmpeg_format.format = Some "mp3"; opts } as e ->
+        if not (Hashtbl.mem opts "id3v2_version") then
+          Hashtbl.replace opts "id3v2_version" (`Int 0);
+        if not (Hashtbl.mem opts "write_xing") then
+          Hashtbl.replace opts "write_xing" (`Int 0);
+        e
+    | e -> e
+
   let encoder_data p =
     let v = Lang.assoc "" 1 p in
-    let enc = Lang.to_format v in
+    let enc = encoder_overrides (Lang.to_format v) in
     let info, format = (M.info_of_encoder enc, format_of_encoder enc) in
     let encoder_factory =
       try Encoder.get_factory enc
@@ -198,5 +207,5 @@ module Icecast_v (M : Icecast_t) = struct
                    ( Lang.assoc "" 1 p,
                      "No format (mime) found, please specify one." )))
     in
-    { factory = encoder_factory; format; info }
+    { factory = encoder_factory ~pos:(Value.pos v); format; info }
 end

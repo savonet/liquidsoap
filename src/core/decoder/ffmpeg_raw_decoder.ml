@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-   Liquidsoap, a programmable audio stream generator.
-   Copyright 2003-2022 Savonet team
+   Liquidsoap, a programmable stream generator.
+   Copyright 2003-2024 Savonet team
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,29 +25,31 @@
 let mk_decoder ~stream_idx ~stream_time_base ~mk_params ~lift_data ~put_data
     params =
   let duration_converter =
-    Ffmpeg_utils.Duration.init ~src:stream_time_base
-      ~get_ts:Ffmpeg_utils.best_pts
+    Ffmpeg_utils.Duration.init ~mode:`PTS ~src:stream_time_base
+      ~convert_ts:false ~get_ts:Avutil.Frame.pts ~set_ts:Avutil.Frame.set_pts ()
   in
-  fun ~buffer frame ->
-    match Ffmpeg_utils.Duration.push duration_converter frame with
-      | Some (length, frames) ->
-          let data =
-            List.map
-              (fun (pos, frame) ->
-                ( pos,
-                  {
-                    Ffmpeg_raw_content.time_base = stream_time_base;
-                    stream_idx;
-                    frame;
-                  } ))
-              frames
-          in
-          let data =
-            { Ffmpeg_content_base.params = mk_params params; data; length }
-          in
-          let data = lift_data data in
-          put_data buffer.Decoder.generator data
-      | None -> ()
+  fun ~buffer -> function
+    | `Flush -> ()
+    | `Frame frame -> (
+        match Ffmpeg_utils.Duration.push duration_converter frame with
+          | Some (length, frames) ->
+              let data =
+                List.map
+                  (fun (pos, frame) ->
+                    ( pos,
+                      {
+                        Ffmpeg_raw_content.time_base = stream_time_base;
+                        stream_idx;
+                        frame;
+                      } ))
+                  frames
+              in
+              let data =
+                { Content.Video.params = mk_params params; data; length }
+              in
+              let data = lift_data data in
+              put_data buffer.Decoder.generator data
+          | None -> ())
 
 let mk_audio_decoder ~stream_idx ~format ~stream ~field params =
   Ffmpeg_decoder_common.set_audio_stream_decoder stream;

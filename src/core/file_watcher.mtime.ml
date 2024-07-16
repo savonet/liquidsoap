@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ let m = Mutex.create ()
 let file_mtime file = (Unix.stat file).Unix.st_mtime
 
 let rec handler _ =
-  Tutils.mutexify m
+  Mutex_utils.mutexify m
     (fun () ->
       List.iter
         (fun ({ file; callback; mtime } as w) ->
@@ -68,7 +68,7 @@ let watch : watch =
  fun ~pos e file callback ->
   if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
   if List.mem `Modify e then
-    Tutils.mutexify m
+    Mutex_utils.mutexify m
       (fun () ->
         if not !launched then begin
           launched := true;
@@ -82,7 +82,7 @@ let watch : watch =
         let mtime = try file_mtime file with _ -> 0. in
         watched := { file; mtime; callback } :: !watched;
         let unwatch =
-          Tutils.mutexify m (fun () ->
+          Mutex_utils.mutexify m (fun () ->
               watched := List.filter (fun w -> w.file <> file) !watched)
         in
         unwatch)

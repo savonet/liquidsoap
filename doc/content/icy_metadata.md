@@ -16,14 +16,25 @@ in liquidsoap. We list some of those here.
 ## Enable/disable ICY metadata updates
 
 You can enable or disable icy metadata update in `output.icecast`
-by setting the `icy_metadata` parameter to either `"true"`
-or `"false"`. The default value is `"guess"` and does the following:
+by setting the `send_icy_metadata` parameter to `null(), `true`or`false`. The default value is `null()` and does the following:
 
-- Set `"true"` for: mp3, aac, aac+, wav
-- Set `"false"` for any format using the ogg container
+- Set `true` for: mp3, aac, aac+, wav
+- Set `false` for any format using the ogg container
 
-You may, for instance, enable icy metadata update for ogg/vorbis
-streams.
+In some cases, `liquidsoap` might not be able to detect if
+ICY metadata need to be enabled, in which case it will ask you
+to set a `true` or `false` value for this parameter.
+
+## `song` metadata
+
+Most Icecast listeners expect a `song` metadata to be generated. This metadata
+should combine both artist and title metadata and will be played preferably.
+
+We provide a default implementation that returns `artist` or `title` metadata
+when only one of these two is available and `$(artist) - $(title)` otherwise.
+
+You can use the `icy_song` parameter to use your own implementation. Returning
+`null()` from that function disables the metadata altogether.
 
 ## Update metadata manually
 
@@ -34,30 +45,8 @@ parameter described above, provided icecast supports ICY metadata for the intend
 For instance the following script registers a telnet command name `metadata.update`
 that can be used to manually update metadata:
 
-```liquidsoap
-def icy_update(v) =
-  # Parse the argument
-  l = string.split(separator=",",v)
-  def split(l,v) =
-    v = string.split(separator="=",v)
-    if list.length(v) >= 2 then
-      list.append(l,[(list.nth(v,0,default=""),list.nth(v,1,default=""))])
-    else
-      l
-    end
-  end
-  meta = list.fold(split,[],l)
+```{.liquidsoap include="icy-update.liq"}
 
-  # Update metadata
-  icy.update_metadata(mount="/mystream",password="hackme",
-                      host="myserver.net",meta)
-  "Done !"
-end
-
-server.register("update",namespace="metadata",
-                 description="Update metadata",
-                 usage="update title=foo,album=bar,..",
-                 icy_update)
 ```
 
 As usual, `liquidsoap -h icy.update_metadata` lists all the arguments

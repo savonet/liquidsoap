@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,29 +24,19 @@ exception Found of (Lang.value * Lang.value option)
 
 let settings = ref Lang.null
 
-type Type.constr_t += Dtools
-
 let dtools_constr =
   let open Liquidsoap_lang in
   let open Type in
   {
-    t = Dtools;
     constr_descr = "unit, bool, int, float, string or [string]";
+    univ_descr = None;
     satisfied =
       (fun ~subtype ~satisfies:_ b ->
         let b = demeth b in
         match b.descr with
-          | Custom { typ }
-            when List.mem typ
-                   [
-                     Ground_type.Bool.Type;
-                     Ground_type.Int.Type;
-                     Ground_type.Float.Type;
-                     Ground_type.String.Type;
-                   ] ->
-              ()
+          | Bool | Int | Float | String -> ()
           | Tuple [] -> ()
-          | List { t = b } -> subtype b (make Ground_type.string)
+          | List { t = b } -> subtype b (make String)
           | _ -> raise Unsatisfied_constraint);
   }
 
@@ -117,17 +107,7 @@ let settings_module =
              Printf.sprintf "Entry for configuration key %s" label ))
          conf#subs
      in
-     let log_t = get_type Dtools.Log.conf in
-     let init_t = get_type Dtools.Init.conf in
-     let settings_t =
-       get_type
-         ~sub:
-           [
-             ("init", ([], init_t), "Daemon settings");
-             ("log", ([], log_t), "Logging settings");
-           ]
-         Configure.conf
-     in
+     let settings_t = get_type Configure.conf in
      let get_v fn conv_to conv_from conf =
        let get =
          Lang.val_fun [] (fun _ ->
@@ -178,13 +158,10 @@ let settings_module =
            (Utils.normalize_parameter_string label, v))
          conf#subs
      in
-     let init = get_value Dtools.Init.conf in
-     let log = get_value Dtools.Log.conf in
-     settings := get_value ~sub:[("log", log); ("init", init)] Configure.conf;
+     settings := get_value Configure.conf;
      ignore
-       (Lang.add_builtin_base ~category:`Settings "settings"
-          ~descr:"All settings." ~flags:[`Hidden] !settings.Lang.value
-          settings_t))
+       (Lang.add_builtin_value ~category:`Settings "settings"
+          ~descr:"All settings." ~flags:[`Hidden] !settings settings_t))
 
 (** Hack to keep track of latest settings at runtime. *)
 let _ =
@@ -200,66 +177,57 @@ type descr = {
   description : string;
   comments : string;
   children : (string * descr) list;
-  value : Lang.in_value;
+  value : Lang.value;
 }
 
 let filtered_settings = ["subordinate log level"]
 
 let print_settings () =
-  let rec grab_descr cur = function
-    | Value.Meth ("description", d, v) ->
-        grab_descr { cur with description = Lang.to_string d } v.Lang.value
-    | Value.Meth ("comments", c, v) ->
-        grab_descr { cur with comments = Lang.to_string c } v.Lang.value
-    | Value.Meth ("set", _, v) -> grab_descr cur v.Lang.value
-    | Value.Meth (key, _, v) when List.mem_assoc key cur.children ->
-        grab_descr cur v.Lang.value
-    | Value.Meth (key, c, v) ->
-        let descr =
-          {
-            description = "";
-            comments = "";
-            children = [];
-            value = Value.Tuple [];
-          }
-        in
-        grab_descr
-          {
-            cur with
-            children = (key, grab_descr descr c.Lang.value) :: cur.children;
-          }
-          v.Lang.value
-    | value -> { cur with value }
+  let rec grab_descr v =
+    {
+      description =
+        (try Lang.to_string (Value.Methods.find "description" (Value.methods v))
+         with _ -> "");
+      comments =
+        (try Lang.to_string (Value.Methods.find "comments" (Value.methods v))
+         with _ -> "");
+      children =
+        Value.Methods.fold
+          (fun key meth children ->
+            if key <> "comments" && key <> "description" && key <> "set" then
+              (key, grab_descr meth) :: children
+            else children)
+          (Value.methods v) [];
+      value = v;
+    }
   in
-  let descr =
-    { description = ""; comments = ""; children = []; value = Value.Tuple [] }
-  in
-  let descr = grab_descr descr !settings.Lang.value in
+  let descr = grab_descr !settings in
   let filter_children =
     List.filter (fun (_, { description }) ->
         not (List.mem description filtered_settings))
   in
   let print_set ~path = function
-    | Value.Tuple [] -> []
-    | (Value.Fun ([], _, _) | Value.FFI ([], _)) as value ->
-        let value = Lang.apply { Value.pos = None; value } [] in
+    | Liquidsoap_lang.Value.Tuple { value = [] } -> []
+    | Liquidsoap_lang.Value.(Fun { fun_args = [] } | FFI { ffi_args = []; _ })
+      as value ->
+        let value = Lang.apply value [] in
         [
           Printf.sprintf {|
 ```liquidsoap
-%s.set(%s)
+%s := %s
 ```
 |} path
-            (if value.Value.value = Value.Null then "<value>"
-            else Value.to_string value);
+            (if match value with Null _ -> true | _ -> false then "<value>"
+             else Value.to_string value);
         ]
     | value ->
         [
           Printf.sprintf {|
 ```liquidsoap
-%s.set(%s)
+%s := %s
 ```
 |} path
-            (Value.to_string { Value.pos = None; value });
+            (Value.to_string value);
         ]
   in
   let rec print_descr ~level ~path descr =
@@ -284,14 +252,9 @@ let log = Lang.log
 let _ =
   let grab path value =
     let path = String.split_on_char '.' path in
-    let rec grab links v =
-      match (links, v.Value.value) with
-        | [], _ -> v
-        | link :: links, Value.Meth (key, v, _) when key = link -> grab links v
-        | _, Value.Meth (_, _, v) -> grab links v
-        | _ -> raise Not_found
-    in
-    grab path value
+    List.fold_left
+      (fun cur link -> Value.Methods.find link (Value.methods cur))
+      value path
   in
   ignore
     (Lang.add_builtin ~category:`Settings "set"
@@ -307,12 +270,12 @@ let _ =
        (fun p ->
          log#severe
            "WARNING: \"set\" is deprecated and will be removed in future \
-            version. Please use `settings.path.to.key.set(value)`";
+            version. Please use `settings.path.to.key := value`";
          let path = Lang.to_string (Lang.assoc "" 1 p) in
          let value = Lang.assoc "" 2 p in
          (try
             let set = grab (path ^ ".set") !settings in
-            try ignore (Lang.apply (Lang.demeth set) [("", value)])
+            try ignore (Lang.apply set [("", value)])
             with _ ->
               log#severe
                 "WARNING: Error while setting value %s for setting %S. Is that \
@@ -335,20 +298,18 @@ let _ =
       let default = List.assoc "default" p in
       try
         let get = grab path !settings in
-        let v = Lang.apply (Lang.demeth get) [] in
-        match (default.Lang.value, v.Lang.value) with
-          | Lang.(Ground (Ground.Bool _)), Lang.(Ground (Ground.Bool _))
-          | Lang.(Ground (Ground.Int _)), Lang.(Ground (Ground.Int _))
-          | Lang.(Ground (Ground.Float _)), Lang.(Ground (Ground.Float _))
-          | Lang.(Ground (Ground.String _)), Lang.(Ground (Ground.String _))
-          | Lang.(List []), Lang.(List [])
-          | ( Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)),
-              Lang.(List []) )
-          | ( Lang.(List []),
-              Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)) )
-          | ( Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)),
-              Lang.(List ({ pos = _; value = Ground (Ground.String _) } :: _)) )
-            ->
+        let v = Lang.apply ~pos:(Lang.pos p) get [] in
+        let open Liquidsoap_lang.Value in
+        match (default, v) with
+          | Bool _, Bool _
+          | Int _, Int _
+          | Float _, Float _
+          | String _, String _
+          | List { value = [] }, List { value = [] }
+          | List { value = Value.String _ :: _ }, List { value = [] }
+          | List { value = [] }, List { value = Value.String _ :: _ }
+          | ( List { value = Value.String _ :: _ },
+              List { value = Value.String _ :: _ } ) ->
               v
           | _ ->
               log#severe

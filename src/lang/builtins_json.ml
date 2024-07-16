@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,22 +24,23 @@ let log = Hooks.log ["json"; "parse"]
 
 let rec json_of_value ?pos v : Json.t =
   let pos =
-    match (pos, v.Value.pos) with
+    match (pos, Value.pos v) with
       | Some p, _ -> p
       | None, Some p -> [p]
       | None, None -> []
   in
-  match v.Value.value with
-    | Value.Null -> `Null
-    | Value.Ground g -> Term.Ground.to_json ~pos g
-    | Value.List l -> `Tuple (List.map (json_of_value ~pos) l)
-    | Value.Tuple l -> `Tuple (List.map (json_of_value ~pos) l)
-    | Value.Meth _ -> (
-        let m, v = Value.split_meths v in
-        match v.Value.value with
-          | Value.Tuple [] ->
-              `Assoc (List.map (fun (l, v) -> (l, json_of_value ~pos v)) m)
-          | _ -> json_of_value ~pos v)
+  let m, v = Value.split_meths v in
+  match v with
+    | Null _ -> `Null
+    | Int { value = i } -> `Int i
+    | Float { value = f } -> `Float f
+    | Bool { value = b } -> `Bool b
+    | String { value = s } -> `String s
+    | Custom { value = g } -> Term.Custom.to_json ~pos g
+    | List { value = l } -> `Tuple (List.map (json_of_value ~pos) l)
+    | Tuple { value = [] } when m <> [] ->
+        `Assoc (List.map (fun (l, v) -> (l, json_of_value ~pos v)) m)
+    | Tuple { value = l } -> `Tuple (List.map (json_of_value ~pos) l)
     | _ ->
         Runtime_error.raise
           ~message:
@@ -146,17 +147,12 @@ let rec value_of_typed_json ~ty json =
                 (meth, v))
               tm
           in
-          Lang.meth Lang.unit meth
+          Lang.record meth
       | ( `Assoc l,
           Type.(
             List
               {
-                t =
-                  {
-                    descr =
-                      Tuple
-                        [{ descr = Custom { typ = Ground.String.Type } }; ty];
-                  };
+                t = { descr = Tuple [{ descr = String }; ty] };
                 json_repr = `Object;
               }) ) ->
           Lang.list
@@ -187,30 +183,26 @@ let rec value_of_typed_json ~ty json =
                    in
                    raise (Failed (nullable, `Tuple l)))
                t)
-      | `String s, Type.(Custom { typ = Ground.String.Type }) -> Lang.string s
-      | `Bool b, Type.(Custom { typ = Ground.Bool.Type }) -> Lang.bool b
-      | `Float f, Type.(Custom { typ = Ground.Float.Type }) -> Lang.float f
-      | `Int i, Type.(Custom { typ = Ground.Float.Type }) ->
-          Lang.float (float i)
-      | `Int i, Type.(Custom { typ = Ground.Int.Type }) -> Lang.int i
+      | `String s, Type.String -> Lang.string s
+      | `Bool b, Type.Bool -> Lang.bool b
+      | `Float f, Type.Float -> Lang.float f
+      | `Int i, Type.Float -> Lang.float (float i)
+      | `Int i, Type.Int -> Lang.int i
       | _, Type.Var _ ->
           Typing.(ty <: type_of_json json);
           Lang.null
-      | _, Type.(Custom { typ = Ground.String.Type }) ->
-          raise (Failed (nullable, `String))
-      | _, Type.(Custom { typ = Ground.Bool.Type }) ->
-          raise (Failed (nullable, `Bool))
-      | _, Type.(Custom { typ = Ground.Float.Type }) ->
-          raise (Failed (nullable, `Float))
-      | _, Type.(Custom { typ = Ground.Int.Type }) ->
-          raise (Failed (nullable, `Int))
+      | _, Type.String -> raise (Failed (nullable, `String))
+      | _, Type.Bool -> raise (Failed (nullable, `Bool))
+      | _, Type.Float -> raise (Failed (nullable, `Float))
+      | _, Type.Int -> raise (Failed (nullable, `Int))
       | _ -> assert false
   with _ when nullable -> Lang.null
 
 let value_of_typed_json ~ty json =
   try value_of_typed_json ~ty json with
     | Failed v ->
-        Runtime_error.raise
+        let bt = Printexc.get_raw_backtrace () in
+        Runtime_error.raise ~bt
           ~message:
             (Printf.sprintf
                "Parsing error: json value cannot be parsed as type %s"
@@ -230,7 +222,7 @@ module JsonSpecs = struct
   type content = (string, Lang.value) Hashtbl.t
 
   let name = "json"
-  let descr _ = "json"
+  let to_string _ = "json"
 
   let to_json ~pos v =
     `Assoc (Hashtbl.fold (fun k v l -> (k, json_of_value ~pos v) :: l) v [])
@@ -238,7 +230,7 @@ module JsonSpecs = struct
   let compare = Stdlib.compare
 end
 
-module JsonValue = Value.MkAbstract (JsonSpecs)
+module JsonValue = Value.MkCustom (JsonSpecs)
 
 let json =
   let val_t = Lang.univ_t () in
@@ -343,6 +335,7 @@ let _ =
     (fun p ->
       let s = Lang.to_string (List.assoc "" p) in
       let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
+      let ty = Type.fresh ty in
       let json5 = Lang.to_bool (List.assoc "json5" p) in
       try
         let json = Json.from_string ~json5 s in
@@ -368,28 +361,29 @@ let () =
 (* We compare the default's type with the parsed json value and return if they
    match. This comes with json.stringify in Builtin. *)
 let rec deprecated_of_json d j =
+  let m, d = Value.split_meths d in
   Lang.(
-    match (d.value, j) with
-      | Tuple [], `Null -> unit
-      | Ground (Ground.Bool _), `Bool b -> bool b
+    match (d, j) with
+      | Tuple { value = [] }, `Null -> unit
+      | Bool _, `Bool b -> bool b
       (* JSON specs do not differentiate between ints and floats. Therefore, we
          should parse int as floats when required. *)
-      | Ground (Ground.Int _), `Int i -> int i
-      | Ground (Ground.Float _), `Int i -> float (float_of_int i)
-      | Ground (Ground.Float _), `Float x -> float x
-      | Ground (Ground.String _), `String s -> string s
+      | Int _, `Int i -> int i
+      | Float _, `Int i -> float (float_of_int i)
+      | Float _, `Float x -> float x
+      | String _, `String s -> string s
       (* Be liberal and allow casting basic types to string. *)
-      | Ground (Ground.String _), `Int i -> string (string_of_int i)
-      | Ground (Ground.String _), `Float x -> string (string_of_float x)
-      | Ground (Ground.String _), `Bool b -> string (string_of_bool b)
-      | List [], `Tuple [] -> list []
-      | List (d :: _), `Tuple l ->
+      | String _, `Int i -> string (string_of_int i)
+      | String _, `Float x -> string (Utils.string_of_float x)
+      | String _, `Bool b -> string (string_of_bool b)
+      | List { value = [] }, `Tuple [] -> list []
+      | List { value = d :: _ }, `Tuple l ->
           (* TODO: we could also try with other elements of the default list... *)
           let l = List.map (deprecated_of_json d) l in
           list l
-      | Tuple dd, `Tuple jj when List.length dd = List.length jj ->
+      | Tuple { value = dd }, `Tuple jj when List.length dd = List.length jj ->
           tuple (List.map2 deprecated_of_json dd jj)
-      | ( List ({ value = Tuple [{ value = Ground (Ground.String _) }; d] } :: _),
+      | ( List { value = Tuple { value = [String { value = _ }; d] } :: _ },
           `Assoc l ) ->
           (* Try to convert the object to a list of pairs, dropping fields that
              cannot be parsed.  This requires the target type to be [(string*'a)],
@@ -404,14 +398,16 @@ let rec deprecated_of_json d j =
           in
           list l
       (* Parse records. *)
-      | Meth (l, x, d), `Assoc a -> (
+      | Tuple { value = [] }, `Assoc a when m <> [] -> (
           try
-            let y = List.assoc l a in
-            let v = deprecated_of_json x y in
-            let a' = List.remove_assoc l a in
-            meth (deprecated_of_json d (`Assoc a')) [(l, v)]
+            List.fold_left
+              (fun parsed (key, meth) ->
+                let json_meth = List.assoc key a in
+                let parsed_meth = deprecated_of_json meth json_meth in
+                Value.map_methods parsed (Methods.add key parsed_meth))
+              unit m
           with Not_found -> raise DeprecatedFailed)
-      | Tuple [], `Assoc _ -> unit
+      | Tuple { value = [] }, `Assoc _ -> unit
       | _ -> raise DeprecatedFailed)
 
 let _ =

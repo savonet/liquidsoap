@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -78,6 +78,7 @@ module Protocol = struct
     db := p :: !db
 
   let db () = List.sort compare !db
+  let count () = db () |> List.length
 
   let print_md print =
     List.iter
@@ -118,11 +119,13 @@ module Value = struct
     | `MIDI
     | `Visualization
     | `Synthesis
+    | `Testing
     | `Fade
     | `Liquidsoap ]
 
   type category =
     [ `Source of source
+    | `Track of source
     | `System
     | `File
     | `Math
@@ -154,6 +157,19 @@ module Value = struct
       (`Source `Visualization, "Source / Visualization");
       (`Source `Liquidsoap, "Source / Liquidsoap");
       (`Source `Fade, "Source / Fade");
+      (`Source `Testing, "Source / Testing");
+      (`Track `Input, "Track / Input");
+      (`Track `Output, "Track / Output");
+      (`Track `Conversion, "Track / Conversion");
+      (`Track `FFmpegFilter, "Track / FFmpeg filter");
+      (`Track `Track, "Track / Track processing");
+      (`Track `Audio, "Track / Audio processing");
+      (`Track `Video, "Track / Video processing");
+      (`Track `MIDI, "Track / MIDI processing");
+      (`Track `Synthesis, "Track / Sound synthesis");
+      (`Track `Visualization, "Track / Visualization");
+      (`Track `Liquidsoap, "Track / Liquidsoap");
+      (`Track `Fade, "Track / Fade");
       (`System, "System");
       (`Configuration, "Configuration");
       (`Settings, "Settings");
@@ -204,6 +220,7 @@ module Value = struct
   let db = ref Map.empty
   let add (name : string) (doc : t Lazy.t) = db := Map.add name doc !db
   let get name = Lazy.force (Map.find name !db)
+  let count () = Map.cardinal !db
 
   (** Only print function names. *)
   let print_functions print =
@@ -228,6 +245,12 @@ module Value = struct
           !db;
         print "\n")
       categories
+
+  let colorize = Console.colorize
+  let title_color = colorize [`bold]
+  let type_color = colorize [`yellow]
+  let default_color = colorize [`red; `bold]
+  let label_color = colorize [`cyan; `bold]
 
   let print name print =
     let f = get name in
@@ -267,42 +290,50 @@ module Value = struct
         s;
       Buffer.contents buf
     in
-    print f.description;
+    print (title_color f.description);
     print "\n\n";
-    print "Type: ";
+    print (title_color "Type: ");
     print f.typ;
     print "\n\n";
-    print ("Category: " ^ string_of_category f.category ^ "\n\n");
+    print (title_color "Category: " ^ string_of_category f.category ^ "\n\n");
     if f.flags <> [] then (
       let flags = f.flags |> List.map string_of_flag |> String.concat "," in
-      print ("Flags: " ^ flags ^ "\n\n"));
+      print (title_color "Flags: " ^ flags ^ "\n\n"));
     List.iter
       (fun e ->
-        print "Example:\n\n";
+        print (title_color "Example:\n\n");
         print e;
         print "\n\n")
       f.examples;
-    print "Arguments:\n\n";
+    print (title_color "Arguments:\n\n");
     List.iter
       (fun (l, a) ->
         let l = Option.value ~default:"(unlabeled)" l in
+        let l = label_color l in
         let default =
           match a.arg_default with
-            | Some d -> " (default: " ^ d ^ ")"
+            | Some d -> " (default: " ^ default_color d ^ ")"
             | None -> ""
         in
-        print (" * " ^ l ^ " : " ^ a.arg_type ^ default ^ "\n");
+        print (" * " ^ l ^ " : " ^ type_color a.arg_type ^ default ^ "\n");
         Option.iter (fun d -> print (reflow ~indent:5 d)) a.arg_description;
         print "\n\n")
-      f.arguments;
+      (List.stable_sort
+         (fun v v' ->
+           match (v, v') with
+             | (None, _), (None, _) -> 0
+             | (None, _), _ -> 1
+             | _, (None, _) -> -1
+             | (l, _), (l', _) -> Stdlib.compare l l')
+         f.arguments);
     if f.methods <> [] then (
-      print "Methods:\n\n";
+      print (title_color "Methods:\n\n");
       List.iter
         (fun (l, m) ->
-          print (" * " ^ l ^ " : " ^ m.meth_type ^ "\n");
+          print (" * " ^ label_color l ^ " : " ^ type_color m.meth_type ^ "\n");
           Option.iter (fun d -> print (reflow ~indent:5 d)) m.meth_description;
           print "\n\n")
-        f.methods)
+        (List.sort compare f.methods))
 
   let to_json () : Json.t =
     !db |> Map.to_seq
@@ -356,9 +387,22 @@ module Value = struct
     |> List.of_seq
     |> fun l -> `Assoc l
 
-  let print_functions_md ?extra print =
+  let print_functions_md ?extra ?deprecated print =
+    let should_show ~category d =
+      let d = Lazy.force d in
+      (not (List.mem `Hidden d.flags))
+      && ((not (deprecated = Some true)) || List.mem `Deprecated d.flags)
+      && (deprecated = Some true || not (List.mem `Deprecated d.flags))
+      && d.category = category
+      && ((not (extra = Some true)) || List.mem `Extra d.flags)
+      && ((not (extra = Some false)) || not (List.mem `Extra d.flags))
+    in
     let categories =
-      categories |> List.map (fun (c, s) -> (s, c)) |> List.sort compare
+      categories
+      |> List.map (fun (c, s) -> (s, c))
+      |> List.filter (fun (_, category) ->
+             Map.exists (fun _ d -> should_show ~category d) !db)
+      |> List.sort compare
     in
     List.iter
       (fun (category, _) ->
@@ -375,13 +419,8 @@ module Value = struct
         print ("## " ^ category_name ^ "\n\n");
         Map.iter
           (fun f d ->
-            let d = Lazy.force d in
-            if
-              (not (List.mem `Hidden d.flags || List.mem `Deprecated d.flags))
-              && d.category = category
-              && ((not (extra = Some true)) || List.mem `Extra d.flags)
-              && ((not (extra = Some false)) || not (List.mem `Extra d.flags))
-            then (
+            if should_show ~category d then (
+              let d = Lazy.force d in
               print ("### `" ^ f ^ "`\n\n");
               print d.description;
               print "\n\n";
@@ -423,7 +462,7 @@ module Value = struct
                         | Some s -> ": " ^ s
                     in
                     Printf.ksprintf print "- `%s` (of type `%s`)%s\n" l t s)
-                  d.methods;
+                  (List.sort compare d.methods);
                 print "\n");
               if List.mem `Experimental d.flags then
                 print "This function is experimental.\n\n"))
@@ -444,3 +483,216 @@ module Value = struct
     print "))\n\n";
     print "(provide 'liquidsoap-completions)\n"
 end
+
+type doc_type = [ `Full | `Argsof of string list ]
+
+let parse_doc ~pos doc =
+  let doc = String.split_on_char '\n' doc in
+  let doc =
+    List.map
+      (fun x ->
+        Re.replace ~all:true ~f:(fun _ -> "") (Re.Pcre.regexp "^\\s*#\\s?") x)
+      doc
+  in
+  if doc = [] then None
+  else (
+    let rec parse_doc (main, special, params, methods) = function
+      | [] -> (main, special, params, methods)
+      | line :: lines -> (
+          try
+            let sub =
+              Re.Pcre.exec
+                ~rex:
+                  (Re.Pcre.regexp
+                     "^\\s*@(category|docof|flag|param|method|argsof)\\s*(.*)$")
+                line
+            in
+            let s = Re.Pcre.get_substring sub 2 in
+            match Re.Pcre.get_substring sub 1 with
+              | "docof" ->
+                  let doc = Value.get s in
+                  let main =
+                    if doc.description <> "" then doc.description :: main
+                    else main
+                  in
+                  let params =
+                    List.filter_map
+                      (fun (l, a) ->
+                        match a.Value.arg_description with
+                          | Some d -> Some (l, d)
+                          | None -> None)
+                      doc.arguments
+                    @ params
+                  in
+                  let doc_specials =
+                    `Category (Value.string_of_category doc.category)
+                    :: List.map
+                         (fun f -> `Flag (Value.string_of_flag f))
+                         doc.flags
+                  in
+                  parse_doc
+                    (main, doc_specials @ special, params, methods)
+                    lines
+              | "argsof" ->
+                  let s, only, except =
+                    try
+                      let sub =
+                        Re.Pcre.exec
+                          ~rex:
+                            (Re.Pcre.regexp "^\\s*([^\\[]+)\\[([^\\]]+)\\]\\s*$")
+                          s
+                      in
+                      let s = Re.Pcre.get_substring sub 1 in
+                      let args =
+                        List.filter
+                          (fun s -> s <> "")
+                          (List.map String.trim
+                             (String.split_on_char ','
+                                (Re.Pcre.get_substring sub 2)))
+                      in
+                      let only, except =
+                        List.fold_left
+                          (fun (only, except) v ->
+                            if String.length v > 0 && v.[0] = '!' then
+                              ( only,
+                                String.sub v 1 (String.length v - 1) :: except
+                              )
+                            else (v :: only, except))
+                          ([], []) args
+                      in
+                      (s, only, except)
+                    with Not_found -> (s, [], [])
+                  in
+                  let doc = Value.get s in
+                  let args =
+                    List.filter
+                      (fun (n, _) ->
+                        match n with
+                          | None -> false
+                          | Some n -> (
+                              match (only, except) with
+                                | [], except -> not (List.mem n except)
+                                | only, except ->
+                                    List.mem n only && not (List.mem n except)))
+                      doc.arguments
+                  in
+                  let args =
+                    List.filter_map
+                      (fun (n, a) ->
+                        Option.map (fun d -> (n, d)) a.Value.arg_description)
+                      args
+                  in
+                  parse_doc (main, special, args @ params, methods) lines
+              | "category" ->
+                  parse_doc
+                    (main, `Category s :: special, params, methods)
+                    lines
+              | "flag" ->
+                  parse_doc (main, `Flag s :: special, params, methods) lines
+              | "param" ->
+                  let sub =
+                    Re.Pcre.exec
+                      ~rex:(Re.Pcre.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
+                      s
+                  in
+                  let label = Re.Pcre.get_substring sub 1 in
+                  let descr = Re.Pcre.get_substring sub 2 in
+                  let label =
+                    if label.[0] = '~' then
+                      Some (String.sub label 1 (String.length label - 1))
+                    else None
+                  in
+                  let rec parse_descr descr lines =
+                    match lines with
+                      | [] -> raise Not_found
+                      | line :: lines ->
+                          let line =
+                            Re.replace ~all:true
+                              ~f:(fun _ -> "")
+                              (Re.Pcre.regexp "^ *") line
+                          in
+                          let n = String.length line - 1 in
+                          if line.[n] = '\\' then (
+                            let descr = String.sub line 0 n :: descr in
+                            parse_descr descr lines)
+                          else (
+                            let descr = List.rev (line :: descr) in
+                            (String.concat "" descr, lines))
+                  in
+                  let descr, lines = parse_descr [] (descr :: lines) in
+                  parse_doc
+                    (main, special, (label, descr) :: params, methods)
+                    lines
+              | "method" ->
+                  let sub =
+                    Re.Pcre.exec
+                      ~rex:(Re.Pcre.regexp "^(~?[a-zA-Z0-9_.]+)\\s*(.*)$")
+                      s
+                  in
+                  let label = Re.Pcre.get_substring sub 1 in
+                  let descr = Re.Pcre.get_substring sub 2 in
+                  parse_doc
+                    (main, special, params, (label, descr) :: methods)
+                    lines
+              | d -> failwith ("Unknown documentation item: " ^ d)
+          with Not_found ->
+            parse_doc (line :: main, special, params, methods) lines)
+    in
+    let main, special, params, methods = parse_doc ([], [], [], []) doc in
+    let main = List.rev main in
+    let params =
+      List.map
+        (fun (l, d) ->
+          ( l,
+            Value.
+              { arg_type = "???"; arg_default = None; arg_description = Some d }
+          ))
+        (List.rev params)
+    in
+    let methods =
+      List.map
+        (fun (l, d) ->
+          (l, Value.{ meth_type = "???"; meth_description = Some d }))
+        (List.rev methods)
+    in
+    let main = String.concat "\n" main in
+    let main = Lang_string.unbreak_md main in
+    (* let main = String.concat "\n" main in *)
+    let category, flags =
+      List.fold_left
+        (fun (c, f) s ->
+          match s with `Category c -> (c, f) | `Flag flag -> (c, flag :: f))
+        ("Uncategorized", []) special
+    in
+    let category = String.trim category in
+    let category =
+      match Value.category_of_string category with
+        | Some c -> c
+        | None ->
+            failwith
+              (Printf.sprintf "Unknown category: %s (%s)." category
+                 (Pos.to_string pos))
+    in
+    let flags =
+      let f f =
+        match Value.flag_of_string f with
+          | Some f -> f
+          | None ->
+              failwith
+                (Printf.sprintf "Unknown flag: %s (%s)." f (Pos.to_string pos))
+      in
+      List.map f flags
+    in
+    Some
+      Value.
+        {
+          (* filled in later on *)
+          typ = "???";
+          category;
+          flags;
+          description = main;
+          (* TODO *)
+          examples = [];
+          arguments = params;
+          methods;
+        })

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,25 +20,31 @@
 
  *****************************************************************************)
 
-class on_frame f s =
+class on_frame ~before f s =
   object
     inherit Source.operator ~name:"on_frame" [s]
-    method stype = s#stype
-    method is_ready = s#is_ready
+    method fallible = s#fallible
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
-    method seek n = s#seek n
+    method seek_source = s#seek_source
     method self_sync = s#self_sync
 
-    method private get_frame ab =
-      s#get ab;
-      ignore (Lang.apply f [])
+    method private generate_frame =
+      if before then ignore (Lang.apply f []);
+      let ret = s#get_frame in
+      if not before then ignore (Lang.apply f []);
+      ret
   end
 
 let _ =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "on_frame"
+  Lang.add_operator ~base:Muxer.source "on_frame"
     [
+      ( "before",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Execute the callback before computing the next frame." );
       ("", Lang.source_t frame_t, None, None);
       ( "",
         Lang.fun_t [] Lang.unit_t,
@@ -50,31 +56,32 @@ let _ =
     ~category:`Track ~descr:"Call a given handler on every frame."
     ~return_t:frame_t
     (fun p ->
+      let before = List.assoc "before" p |> Lang.to_bool in
       let s = Lang.assoc "" 1 p |> Lang.to_source in
       let f = Lang.assoc "" 2 p in
-      new on_frame f s)
+      new on_frame ~before f s)
 
 (** Operations on frames. *)
 class frame_op ~name f default s =
   object
     inherit Source.operator ~name [s]
-    method stype = s#stype
-    method is_ready = s#is_ready
+    method fallible = s#fallible
+    method private can_generate_frame = s#is_ready
     method abort_track = s#abort_track
     method remaining = s#remaining
-    method seek n = s#seek n
+    method seek_source = s#seek_source
     method self_sync = s#self_sync
     val mutable value = default
     method value : Lang.value = value
 
-    method private get_frame buf =
-      let off = Frame.position buf in
-      s#get buf;
+    method private generate_frame =
+      let buf = s#get_frame in
       let pos = Frame.position buf in
-      value <- f buf off (pos - off)
+      value <- f buf 0 pos;
+      buf
   end
 
-let source_frame = Lang.add_module ~base:Modules.source "frame"
+let source_frame = Lang.add_module ~base:Muxer.source "frame"
 
 let op name descr f_t f default =
   let frame_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in

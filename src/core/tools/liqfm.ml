@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -88,8 +88,7 @@ type task = {
   task : Duppy.Async.t;
   submit_m : Mutex.t;
   submissions :
-    (string * string * source * submission * bool * (string, string) Hashtbl.t)
-    Queue.t;
+    (string * string * source * submission * bool * Frame.metadata) Queue.t;
 }
 
 let log = Log.make ["audioscrobbler"]
@@ -110,24 +109,24 @@ let init host =
       (* This function checks that the submission is valid *)
       let song songs (user, password, (source : source), stype, length, m) =
         let login = { user; password } in
-        let f x = try Hashtbl.find m x with Not_found -> "" in
+        let f x = try Frame.Metadata.find x m with Not_found -> "" in
         let artist, track = (f "artist", f "title") in
         let s =
           match stype with Played -> "submit" | NowPlaying -> "nowplaying"
         in
         let h, p = host in
-        log#info "Submiting %s -- %s with mode: %s to %s:%i" artist track s h p;
+        log#info "Submitting %s -- %s with mode: %s to %s:%i" artist track s h p;
         try
           let duration () =
             try
-              match float_of_string_opt (Hashtbl.find m "duration") with
+              match float_of_string_opt (Frame.Metadata.find "duration" m) with
                 | Some d -> d
                 | None -> raise Not_found
             with Not_found -> (
               let exception Bad_rid in
               try
                 let rid =
-                  match int_of_string_opt (Hashtbl.find m "rid") with
+                  match int_of_string_opt (Frame.Metadata.find "rid" m) with
                     | Some rid -> rid
                     | None -> raise Bad_rid
                 in
@@ -135,7 +134,13 @@ let init host =
                 match request with
                   | Some s -> (
                       match Request.get_filename s with
-                        | Some file -> Request.duration file
+                        | Some file -> (
+                            match
+                              Request.duration ~metadata:(Request.metadata s)
+                                file
+                            with
+                              | Some f -> f
+                              | None -> raise Not_found)
                         | None -> raise Not_found)
                   | None -> raise Not_found
               with
@@ -205,7 +210,7 @@ let init host =
         try
           let v = Hashtbl.find submit (c, t) in
           Hashtbl.replace submit (c, t) (m :: v)
-        with Not_found -> Hashtbl.add submit (c, t) [m]
+        with Not_found -> Hashtbl.replace submit (c, t) [m]
       in
       List.iter filter songs;
       let f (login, (stype : submission)) songs =

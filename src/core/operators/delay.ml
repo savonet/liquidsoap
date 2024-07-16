@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,33 +28,25 @@ open Source
 class delay ~initial (source : source) delay =
   object (self)
     inherit operator ~name:"delay" [source]
-    method stype = `Fallible
+    val mutable last_track = if initial then Unix.time () else 0.
+    method fallible = true
     method remaining = source#remaining
 
     method abort_track =
-      self#end_track;
+      last_track <- Unix.time ();
       source#abort_track
 
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    val mutable last = if initial then Unix.time () else 0.
-    val mutable in_track = false
-    method private delay_ok = Unix.time () -. last >= delay ()
+    method private delay_ok = Unix.time () -. last_track >= delay ()
+    method private can_generate_frame = self#delay_ok && source#is_ready
 
-    method private end_track =
-      in_track <- false;
-      last <- Unix.time ()
-
-    method is_ready =
-      let is_ready = source#is_ready in
-      if in_track && not is_ready then self#end_track;
-      self#delay_ok && is_ready
-
-    method private get_frame buf =
-      source#get buf;
-      in_track <- true;
-      (* The current track ends. *)
-      if Frame.is_partial buf then self#end_track
+    method private generate_frame =
+      match self#split_frame source#get_frame with
+        | buf, Some _ ->
+            last_track <- Unix.time ();
+            buf
+        | buf, None -> buf
   end
 
 let _ =

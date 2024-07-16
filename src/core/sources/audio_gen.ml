@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,24 +26,42 @@ open Mm
 
 open Source
 
+let get_params = function
+  | format when Content.Audio.is_format format -> format
+  | format when Content_pcm_s16.is_format format ->
+      Content.Audio.lift_params (Content_pcm_s16.get_params format)
+  | format when Content_pcm_f32.is_format format ->
+      Content.Audio.lift_params (Content_pcm_f32.get_params format)
+  | _ -> raise Content.Invalid
+
+let to_content ~format c =
+  match format with
+    | _ when Content.Audio.is_format format -> Content.Audio.lift_data c
+    | _ when Content_pcm_s16.is_format format ->
+        Content_pcm_s16.(lift_data (from_audio c))
+    | _ when Content_pcm_f32.is_format format ->
+        Content_pcm_f32.(lift_data (from_audio c))
+    | _ -> raise Content.Invalid
+
 class gen ~seek name g freq duration ampl =
   let g = g (freq ()) in
-  object
+  object (self)
     inherit Synthesized.source ~seek ~name duration
 
-    method private synthesize frame off len =
-      let off = Frame.audio_of_main off in
-      let len = Frame.audio_of_main len in
-      let buf = AFrame.pcm frame in
+    method private synthesize length =
+      let frame = Frame.create ~length Frame.Fields.empty in
+      let format = Frame.Fields.find Frame.Fields.audio self#content_type in
+      let content = Content.make ~length (get_params format) in
+      let buf = Content.Audio.get_data content in
       g#set_frequency (freq ());
       g#set_volume (ampl ());
-      g#fill buf off len
+      g#fill buf 0 (Frame.audio_of_main length);
+      Frame.Fields.add Frame.Fields.audio (to_content ~format buf) frame
   end
 
 let add name g =
   let return_t =
-    Lang.frame_t Lang.unit_t
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
+    Lang.frame_t Lang.unit_t (Frame.Fields.make ~audio:(Lang.pcm_audio_t ()) ())
   in
   Lang.add_operator name ~category:`Input
     ~descr:("Generate a " ^ name ^ " wave.")

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,19 +22,28 @@
 
 type request = Get | Post | Put | Head | Delete
 
+let string_of_request = function
+  | Get -> "get"
+  | Post -> "post"
+  | Put -> "put"
+  | Head -> "head"
+  | Delete -> "delete"
+
 let request_with_body = [Get; Post; Put]
 let http = Modules.http
 let http_transport = Modules.http_transport
 
 let _ =
-  Lang.add_builtin_base ~category:`Internet ~descr:"Http unencrypted transport"
+  Lang.add_builtin_value ~category:`Internet ~descr:"Http unencrypted transport"
     ~base:http_transport "unix"
-    (Lang.http_transport Http.unix_transport).Lang.value Lang.http_transport_t
+    (Lang.http_transport Http.unix_transport)
+    Lang.http_transport_t
 
 let add_http_request ~base ~stream_body ~descr ~request name =
   let header_t = Lang.product_t Lang.string_t Lang.string_t in
   let headers_t = Lang.list_t header_t in
   let has_body = List.mem request request_with_body in
+  let log = Log.make ["http"; string_of_request request] in
   let request_return_t =
     Lang.method_t
       (if (not has_body) || stream_body then Lang.unit_t else Lang.string_t)
@@ -69,10 +78,14 @@ let add_http_request ~base ~stream_body ~descr ~request name =
           Lang.bool_t,
           Some (Lang.bool true),
           Some "Perform redirections if needed." );
-        ( "timeout_ms",
-          Lang.nullable_t Lang.int_t,
-          Some (Lang.int 10000),
-          Some "Timeout for network operations in milliseconds." );
+        ( "timeout",
+          Lang.nullable_t Lang.float_t,
+          Some (Lang.float 10.),
+          Some "Timeout for network operations in seconds." );
+        ( "normalize_url",
+          Lang.bool_t,
+          Some (Lang.bool true),
+          Some "Normalize url, replacing spaces with `%20` and more." );
         ( "",
           Lang.string_t,
           None,
@@ -99,12 +112,25 @@ let add_http_request ~base ~stream_body ~descr ~request name =
         List.map (fun (x, y) -> (Lang.to_string x, Lang.to_string y)) headers
       in
       let timeout =
-        Lang.to_valued_option Lang.to_int (List.assoc "timeout_ms" p)
+        Lang.to_valued_option
+          (fun v -> int_of_float (1000. *. Lang.to_float v))
+          (List.assoc "timeout" p)
       in
       let http_version =
         Option.map Lang.to_string (Lang.to_option (List.assoc "http_version" p))
       in
-      let url = Lang.to_string (List.assoc "" p) in
+      let original_url = Lang.to_string (List.assoc "" p) in
+      let normalize_url = Lang.to_bool (List.assoc "normalize_url" p) in
+      let url =
+        if normalize_url then Uri.(to_string (of_string original_url))
+        else original_url
+      in
+      if url <> original_url then
+        log#important
+          "Requested url %s different from normalized url: %s. Either fix it \
+           or use `normalize_url=false` to disable url normalization!"
+          (Lang_string.quote_utf8_string original_url)
+          (Lang_string.quote_utf8_string url);
       let redirect = Lang.to_bool (List.assoc "redirect" p) in
       let on_body_data, get_body =
         if stream_body then (
@@ -223,6 +249,4 @@ let () =
 
 let _ =
   Lang.add_builtin_base ~category:`Internet ~descr:"Default user-agent"
-    ~base:http "user_agent"
-    Lang.(Ground (Ground.String Http.user_agent))
-    Lang.string_t
+    ~base:http "user_agent" (`String Http.user_agent) Lang.string_t

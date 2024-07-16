@@ -1,7 +1,7 @@
-(*****************************************************************************
+(**********************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,20 +20,27 @@
 
  *****************************************************************************)
 
-(* Force locale to C *)
-external force_locale : unit -> unit = "liquidsoap_set_locale" [@@noalloc]
+include Liquidsoap_lang.Utils
+
+let select = if Sys.win32 then Unix.select else Duppy.poll
+
+(* Util to log exception and backtrace together
+   when log level is set to info and just exception
+   as severe otherwise. Backtrace should be captured as early
+   as possible. *)
+let log_exception ~(log : Log.t) ~bt msg =
+  log#severe "%s" msg;
+  if log#active 4 (* info *) then log#info "%s" bt
+
+(* Force locale *)
+external force_locale : string -> unit = "liquidsoap_set_locale"
 
 (** Get page size. *)
 external pagesize : unit -> int = "liquidsoap_get_pagesize"
   [@@noalloc]
 
 let pagesize = pagesize ()
-let () = force_locale ()
-
-(* Resolve a path. *)
-let resolve_path ?cwd path =
-  let cwd = match cwd with None -> Sys.getcwd () | Some cwd -> cwd in
-  if Filename.is_relative path then Filename.concat cwd path else path
+let () = force_locale "C"
 
 (* Several list utilities *)
 
@@ -42,18 +49,6 @@ let rec prefix p l =
     | [], _ -> true
     | _, [] -> false
     | hp :: tp, hl :: tl -> hp = hl && prefix tp tl
-
-let hashtbl_of_list l =
-  let h = Hashtbl.create (List.length l) in
-  List.iter (fun (k, v) -> Hashtbl.add h k v) l;
-  h
-
-let list_of_metadata m =
-  let f x y l = (x, y) :: l in
-  Hashtbl.fold f m []
-
-let hashtbl_get : ('a, 'b) Hashtbl.t -> 'a -> 'b option =
- fun h k -> try Some (Hashtbl.find h k) with Not_found -> None
 
 (** Remove the first element satisfying a predicate, raising Not_found
   * if none is found. *)
@@ -86,6 +81,28 @@ let read_all filename =
   close_in channel;
   Strings.Mutable.to_string contents
 
+let copy ?(mode = [Open_wronly; Open_creat; Open_trunc]) ?(perms = 0o660) src
+    dst =
+  let oc = open_out_gen mode perms dst in
+  Fun.protect
+    ~finally:(fun () -> close_out_noerr oc)
+    (fun () ->
+      set_binary_mode_out oc true;
+      let ic = open_in_bin src in
+      Fun.protect
+        ~finally:(fun () -> close_in_noerr ic)
+        (fun () ->
+          let len = 4096 in
+          let buf = Bytes.create len in
+          let rec f () =
+            match input ic buf 0 len with
+              | 0 -> ()
+              | n ->
+                  output_substring oc (Bytes.unsafe_to_string buf) 0 n;
+                  f ()
+          in
+          f ()))
+
 (* Drop the first [len] bytes. *)
 let buffer_drop buffer len =
   let size = Buffer.length buffer in
@@ -111,6 +128,7 @@ let () = Printexc.register_printer unix_translator
  * and interpolates them just like make does, using the hash table for
  * variable definitions. *)
 let interpolate =
+  let log = Log.make ["string"; "interpolate"] in
   (* TODO Use PCRE *)
   let quoted = "\"\\(\\([^\"\\]\\|\\(\\\\\"\\)\\)*\\)\"" in
   (* 3 groups *)
@@ -149,7 +167,13 @@ let interpolate =
           if p = "\\" then Str.matched_group 2 s
           else p ^ find (Str.matched_group 3 s))
     in
-    interpolate (process_if s)
+    try interpolate (process_if s)
+    with exn ->
+      let bt = Printexc.get_backtrace () in
+      log_exception ~log ~bt
+        (Printf.sprintf "Error while interpolating string: %s"
+           (Printexc.to_string exn));
+      s
 
 (** [which s] is equivalent to /usr/bin/which s, raises Not_found on error *)
 let which ~path s =
@@ -263,7 +287,7 @@ let strftime ?time str : string =
     let key = Pcre.get_substring sub 1 in
     try List.assoc key assoc with _ -> "%" ^ key
   in
-  Pcre.substitute_substrings ~pat:"%(.)" ~subst str
+  Re.replace (Pcre.regexp "%(.)") ~f:subst str
 
 (** Check if a directory exists. *)
 let is_dir d =
@@ -323,17 +347,22 @@ let uptime =
 (** Generate a string which can be used as a parameter name. *)
 let normalize_parameter_string s =
   let s =
-    Pcre.substitute ~pat:"( *\\([^\\)]*\\)| *\\[[^\\]]*\\])"
+    Pcre.substitute
+      ~rex:(Pcre.regexp "( *\\([^\\)]*\\)| *\\[[^\\]]*\\])")
       ~subst:(fun _ -> "")
       s
   in
-  let s = Pcre.substitute ~pat:"(\\.+|\\++)" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:" +$" ~subst:(fun _ -> "") s in
-  let s = Pcre.substitute ~pat:"( +|/+|-+)" ~subst:(fun _ -> "_") s in
-  let s = Pcre.substitute ~pat:"\"" ~subst:(fun _ -> "") s in
+  let s =
+    Pcre.substitute ~rex:(Pcre.regexp "(\\.+|\\++)") ~subst:(fun _ -> "") s
+  in
+  let s = Pcre.substitute ~rex:(Pcre.regexp " +$") ~subst:(fun _ -> "") s in
+  let s =
+    Pcre.substitute ~rex:(Pcre.regexp "( +|/+|-+)") ~subst:(fun _ -> "_") s
+  in
+  let s = Pcre.substitute ~rex:(Pcre.regexp "\"") ~subst:(fun _ -> "") s in
   let s = String.lowercase_ascii s in
   (* Identifiers cannot begin with a digit. *)
-  let s = if Pcre.pmatch ~pat:"^[0-9]" s then "_" ^ s else s in
+  let s = if Pcre.pmatch ~rex:(Pcre.regexp "^[0-9]") s then "_" ^ s else s in
   s
 
 (** A function to reopen a file descriptor
@@ -401,54 +430,6 @@ let string_of_size n =
     Printf.sprintf "%.02f MiB" (float_of_int n /. float_of_int (1 lsl 20))
   else Printf.sprintf "%.02f GiB" (float_of_int n /. float_of_int (1 lsl 30))
 
-(* Util to log exception and backtrace together
-   when log level is set to info and just exception
-   as severe otherwise. Backtrace should be captured as early
-   as possible. *)
-let log_exception ~(log : Log.t) ~bt msg =
-  if log#active 4 (* info *) then log#info "%s\n%s" msg bt
-  else log#severe "%s" msg
-
-let self_sync_type sources =
-  lazy
-    (fst
-       (List.fold_left
-          (fun cur s ->
-            match (cur, s#self_sync) with
-              | (`Static, None), (`Static, v) -> (`Static, Some v)
-              | (`Static, Some v), (`Static, v') when v = v' -> (`Static, Some v)
-              | _ -> (`Dynamic, None))
-          (`Static, None) sources))
-
-let string_of_pcre_error =
-  Pcre.(
-    function
-    | Partial -> "String only matched the pattern partially"
-    | BadPartial ->
-        "Pattern contains items that cannot be used together with partial \
-         matching."
-    | BadPattern (msg, pos) ->
-        Printf.sprintf "Malformed regular expression. Error: %s, position: %i"
-          msg pos
-    | BadUTF8 -> "UTF8 string being matched is invalid"
-    | BadUTF8Offset -> "A UTF8 string being matched with offset is invalid."
-    | MatchLimit ->
-        "Maximum allowed number of match attempts with backtracking or \
-         recursion is reached during matching."
-    | RecursionLimit -> "Maximum allowed number of recursion reached"
-    | InternalError msg -> Printf.sprintf "Internal error: %s" msg
-    (* This is a hack to be extensible here and enable warning 11 *)
-    | exn ->
-        if exn == WorkspaceSize then "Provided workspace array is too small"
-        else "Unknown error")
-
-let () =
-  Printexc.register_printer
-    Pcre.(
-      function
-      | Error err -> Some (Printf.sprintf "Pcre(%s)" (string_of_pcre_error err))
-      | _ -> None)
-
 let var_script = ref "default"
 
 let substs =
@@ -465,3 +446,59 @@ let subst_vars s =
   List.fold_left
     (fun v (r, s) -> Str.global_replace (Str.regexp r) (s ()) v)
     s !substs
+
+let concat_with_last ~last sep l =
+  match List.rev l with
+    | [] -> ""
+    | [x] -> x
+    | [x; y] -> Printf.sprintf "%s %s %s" y last x
+    | x :: l ->
+        Printf.sprintf "%s %s %s" (String.concat sep (List.rev l)) last x
+
+(* Stdlib.abs_float is not inlined!. *)
+let abs_float (f : float) = if f < 0. then -.f else f [@@inline always]
+
+let frame_id_of_string = function
+  | "comment" -> Some `COMM
+  | "album" -> Some `TALB
+  | "bpm" -> Some `TBPM
+  | "composer" -> Some `TCOM
+  | "content" -> Some `TCON
+  | "copyright" -> Some `TCOP
+  | "date" -> Some `TDAT
+  | "encoder" -> Some `TENC
+  | "title" -> Some `TIT2
+  | "language" -> Some `TLAN
+  | "length" -> Some `TLEN
+  | "performer" -> Some `TOPE
+  | "artist" -> Some `TPE1
+  | "band" -> Some `TPE2
+  | "publisher" -> Some `TPUB
+  | "tracknumber" -> Some `TRCK
+  | "year" -> Some `TYER
+  | "url" -> Some `WXXX
+  | v -> Metadata.ID3v2.frame_id_of_string v
+
+let id3v2_of_metadata ~version m =
+  let frames =
+    List.fold_left
+      (fun frames (k, v) ->
+        match frame_id_of_string k with
+          | Some id ->
+              {
+                Metadata.ID3v2.id;
+                data =
+                  (if Metadata.ID3v2.binary_frame id then `Binary v
+                   else `Text (`UTF_8, v));
+                flags = Metadata.ID3v2.default_flags id;
+              }
+              :: frames
+          | None -> frames)
+      [] m
+  in
+  Metadata.ID3v2.make ~version frames
+
+let is_docker =
+  Lazy.from_fun (fun () ->
+      Sys.unix
+      && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)

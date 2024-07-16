@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,61 +20,30 @@
 
  *****************************************************************************)
 
-type clock_variable = Source.clock_variable
-type source = Source.source
-type active_source = Source.active_source
+include Clock_base
 
-include Source.Clock_variables
+type active_sync_mode = [ `Automatic | `CPU | `Unsynced | `Passive ]
+type sync_mode = [ active_sync_mode | `Stopping | `Stopped ]
 
-let create_known s = create_known (s :> Source.clock)
+let string_of_sync_mode = function
+  | `Stopped -> "stopped"
+  | `Stopping -> "stopping"
+  | `Automatic -> "auto"
+  | `CPU -> "cpu"
+  | `Unsynced -> "none"
+  | `Passive -> "passive"
+
+let active_sync_mode_of_string = function
+  | "auto" -> `Automatic
+  | "cpu" -> `CPU
+  | "none" -> `Unsynced
+  | "passive" -> `Passive
+  | _ -> raise Not_found
+
 let log = Log.make ["clock"]
 
 let conf_clock =
   Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
-
-module Time : Liq_time.T = (val !Liq_time.implementation)
-open Time
-
-let time_unit = Time.of_float 1.
-let time_zero = Time.of_float 0.
-
-let sleep d =
-  let cur = time () in
-  try sleep d
-  with Unix.Unix_error (Unix.EINTR, _, _) ->
-    let diff = d |-| time () |+| cur in
-    if time_zero |<| diff then sleep diff
-
-let () =
-  Lifecycle.on_init (fun () ->
-      log#important "Using %s implementation for latency control"
-        Time.implementation)
-
-(** [started] indicates that the application has loaded and started
-  * its initial configuration; it is set after the first collect.
-  * It is mostly intended to allow different behaviors on error:
-  *  - for the initial conf, all errors are fatal
-  *  - after that (dynamic code execution, interactive mode) some errors
-  *    are not fatal anymore. *)
-let started : [ `Yes | `No | `Soon ] ref = ref `No
-
-(** Indicates whether the application has started to run or not. *)
-let running () = !started = `Yes
-
-(** We need to keep track of all used clocks, to have them (un)register
-  * new sources. We use a weak table to avoid keeping track forever of
-  * clocks that are unused and unusable. *)
-
-module H = struct
-  type t = Source.clock
-
-  let equal a b = a = b
-  let hash a = Oo.id a
-end
-
-module Clocks = Weak.Make (H)
-
-let clocks = Clocks.create 10
 
 (** If true, a clock keeps running when an output fails. Other outputs may
   * still be useful. But there may also be some useless inputs left.
@@ -99,21 +68,12 @@ let allow_streaming_errors =
 let conf_log_delay =
   Dtools.Conf.float
     ~p:(conf_clock#plug "log_delay")
-    ~d:1. "How often (in seconds) we should indicate catchup errors."
+    ~d:1. "How often (in seconds) we should notify latency issues."
 
-(** Leave a source, ignoring errors *)
-
-let leave ?failed_to_start (s : active_source) =
-  try s#leave ?failed_to_start (s :> source)
-  with e ->
-    let bt = Printexc.get_backtrace () in
-    Utils.log_exception ~log ~bt
-      (Printf.sprintf "Error when leaving output %s: %s!" s#id
-         (Printexc.to_string e))
-
-(** {1 Clock implementation}
-  * One could think of several clocks for isolated parts of a script.
-  * One can also think of alsa-clocks, etc. *)
+let conf_log_delay_threshold =
+  Dtools.Conf.float
+    ~p:(conf_clock#plug "log_delay_threshold")
+    ~d:0.2 "Notify latency issues after delay exceeds this threshold."
 
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "root") "Streaming clock settings"
@@ -128,420 +88,456 @@ let conf_max_latency =
         "The reset is typically only useful to reconnect icecast mounts.";
       ]
 
-(** Timing stuff, make sure the frame rate is correct. *)
+let conf_clock_preferred =
+  Dtools.Conf.string ~d:"posix"
+    ~p:(conf_clock#plug "preferred")
+    "Preferred clock implementation. One if: \"posix\" or \"ocaml\"."
 
-let sync_descr = function
-  | `Auto -> "auto-sync"
-  | `CPU -> "CPU sync"
-  | `None -> "no sync"
+let time_implementation () =
+  try Hashtbl.find Liq_time.implementations conf_clock_preferred#get
+  with Not_found -> Liq_time.unix
 
-class clock ?(start = true) ?(sync = `Auto) id =
-  object (self)
-    initializer Clocks.add clocks (self :> Source.clock)
-    method id = id
-    method sync_mode : Source.sync = sync
-    val log = Log.make ["clock"; id]
+let () =
+  Lifecycle.on_init ~name:"Clock initialization" (fun () ->
+      let module Time = (val time_implementation () : Liq_time.T) in
+      log#important "Using %s implementation for latency control"
+        Time.implementation)
 
-    (** List of outputs, together with a flag indicating their status:
-    *   `New, `Starting, `Aborted, `Active, `Old
-    * The list needs to be accessed within critical section of [lock]. *)
-    val mutable outputs = []
+module Pos = Liquidsoap_lang.Pos
+module Unifier = Liquidsoap_lang.Unifier
 
-    val lock = Mutex.create ()
+type active_params = {
+  sync : active_sync_mode;
+  log : Log.t;
+  time_implementation : Liq_time.implementation;
+  t0 : Liq_time.t;
+  log_delay : Liq_time.t;
+  log_delay_threshold : Liq_time.t;
+  frame_duration : Liq_time.t;
+  max_latency : Liq_time.t;
+  last_catchup_log : Liq_time.t Atomic.t;
+  outputs : source Queue.t;
+  active_sources : source WeakQueue.t;
+  passive_sources : source WeakQueue.t;
+  on_tick : (unit -> unit) Queue.t;
+  after_tick : (unit -> unit) Queue.t;
+  ticks : int Atomic.t;
+}
 
-    method attach s =
-      Tutils.mutexify lock
-        (fun () ->
-          if not (List.exists (fun (_, s') -> s = s') outputs) then
-            outputs <- (`New, s) :: outputs)
-        ()
+type state =
+  [ `Stopping of active_params
+  | `Started of active_params
+  | `Stopped of active_sync_mode ]
 
-    method detach test =
-      Tutils.mutexify lock
-        (fun () ->
-          outputs <-
-            List.fold_left
-              (fun outputs (flag, s) ->
-                if test s then (
-                  match flag with
-                    | `New -> outputs
-                    | `Active -> (`Old, s) :: outputs
-                    | `Starting -> (`Aborted, s) :: outputs
-                    | `Old | `Aborted -> (flag, s) :: outputs)
-                else (flag, s) :: outputs)
-              [] outputs)
-        ()
+type clock = {
+  id : string Unifier.t;
+  sub_ids : string list;
+  stack : Pos.t list Atomic.t;
+  state : state Atomic.t;
+  pending_activations : source Queue.t;
+  sub_clocks : t Queue.t;
+  on_error : (exn -> Printexc.raw_backtrace -> unit) Queue.t;
+}
 
-    val mutable sub_clocks : Source.clock_variable list = []
-    method sub_clocks = sub_clocks
+and t = clock Unifier.t
 
-    method attach_clock c =
-      if not (List.mem c sub_clocks) then sub_clocks <- c :: sub_clocks
+let _id clock =
+  Unifier.deref clock.id
+  ^ match clock.sub_ids with [] -> "" | l -> "." ^ String.concat "." l
 
-    method detach_clock c =
-      assert (List.mem c sub_clocks);
-      sub_clocks <- List.filter (fun c' -> c <> c') sub_clocks
+let id c = _id (Unifier.deref c)
 
-    val mutable round = 0
-    method get_tick = round
-    val mutable running = false
+let attach c s =
+  let clock = Unifier.deref c in
+  Queue.push clock.pending_activations s
 
-    val do_running =
-      let lock = Mutex.create () in
-      fun f -> Tutils.mutexify lock f ()
+let _detach x s =
+  Queue.filter x.pending_activations (fun s' -> s == s');
+  match Atomic.get x.state with
+    | `Stopped _ -> ()
+    | `Stopping { outputs; active_sources; passive_sources }
+    | `Started { outputs; active_sources; passive_sources } ->
+        Queue.filter outputs (fun s' -> s == s');
+        WeakQueue.filter active_sources (fun s' -> s == s');
+        WeakQueue.filter passive_sources (fun s' -> s == s')
 
-    val mutable self_sync = None
-    val mutable t0 = time ()
-    val mutable ticks = 0L
+let detach c s = _detach (Unifier.deref c) s
 
-    method private self_sync =
-      let new_val =
-        match sync with
-          | `Auto ->
-              List.exists
-                (fun (state, s) ->
-                  state = `Active && snd s#self_sync && s#is_ready)
-                outputs
-          | `CPU -> false
-          | `None -> true
-      in
-      begin
-        match (self_sync, new_val) with
-          | None, false | Some true, false ->
-              log#important "Delegating synchronisation to CPU clock";
-              t0 <- time ();
-              ticks <- 0L
-          | None, true | Some false, true ->
-              log#important "Delegating synchronisation to active sources"
-          | _ -> ()
-      end;
-      self_sync <- Some new_val;
-      new_val
+let active_sources c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Started { active_sources } | `Stopping { active_sources } ->
+        WeakQueue.elements active_sources
+    | _ -> []
 
-    method private run =
-      let acc = ref 0 in
-      let log_delay = Time.of_float conf_log_delay#get in
-      let max_latency = Time.of_float (-.conf_max_latency#get) in
-      let last_latency_log = ref (time ()) in
-      t0 <- time ();
-      ticks <- 0L;
-      let frame_duration = Time.of_float (Lazy.force Frame.duration) in
-      let delay () =
-        t0
-        |+| (frame_duration
-            |*| Time.of_float (Int64.to_float (Int64.add ticks 1L)))
-        |-| time ()
-      in
-      log#important "Streaming loop starts in %s mode" (sync_descr sync);
-      let rec loop () =
-        (* Stop running if there is no output. *)
-        if outputs = [] then ()
-        else (
-          let self_sync = self#self_sync in
-          let rem = if self_sync then time_zero else delay () in
-          (* Sleep a while or worry about the latency *)
-          if self_sync || time_zero |<| rem then (
-            acc := 0;
-            if time_zero |<| rem then sleep rem)
-          else (
-            incr acc;
-            if rem |<| max_latency then (
-              log#severe "Too much latency! Resetting active sources...";
-              List.iter (function `Active, s -> s#reset | _ -> ()) outputs;
-              t0 <- time ();
-              ticks <- 0L;
-              acc := 0)
-            else if
-              (rem |<=| (time_zero |-| time_unit) || !acc >= 100)
-              && !last_latency_log |+| log_delay |<| time ()
-            then (
-              last_latency_log := time ();
-              log#severe "We must catchup %.2f seconds%s!"
-                (Time.to_float (time_zero |-| rem))
-                (if !acc <= 100 then ""
-                else " (we've been late for 100 rounds)");
-              acc := 0));
-          ticks <- Int64.add ticks 1L;
-          (* This is where the streaming actually happens: *)
-          self#end_tick;
-          loop ())
-      in
-      loop ();
-      do_running (fun () -> running <- false);
-      log#important "Streaming loop stopped."
+let outputs c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Started { outputs } | `Stopping { outputs } -> Queue.elements outputs
+    | _ -> []
 
-    val thread_name = "clock_" ^ id
+let passive_sources c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Started { passive_sources } | `Stopping { passive_sources } ->
+        WeakQueue.elements passive_sources
+    | _ -> []
 
-    (** This is the main streaming step *)
-    method end_tick =
-      let leaving, active =
-        Tutils.mutexify lock
-          (fun () ->
-            let new_outputs, leaving, active =
-              List.fold_left
-                (fun (outputs, leaving, active) (flag, (s : active_source)) ->
-                  match flag with
-                    | `Old -> (outputs, s :: leaving, active)
-                    | `Active -> ((flag, s) :: outputs, leaving, s :: active)
-                    | _ -> ((flag, s) :: outputs, leaving, active))
-                ([], [], []) outputs
-            in
-            outputs <- new_outputs;
-            (leaving, active))
-          ()
-      in
-      List.iter (fun (s : active_source) -> leave s) leaving;
-      List.iter (fun s -> s#before_output) active;
-      let error, active =
-        List.fold_left
-          (fun (e, a) s ->
-            try
-              s#output;
-              (e, s :: a)
-            with exn ->
-              let bt = Printexc.get_backtrace () in
-              Utils.log_exception ~log ~bt
-                (Printf.sprintf "Source %s failed while streaming: %s!" s#id
-                   (Printexc.to_string exn));
-              leave ~failed_to_start:true s;
-              (s :: e, a))
-          ([], []) active
-      in
-      if error <> [] then (
-        Tutils.mutexify lock
-          (fun () ->
-            outputs <-
-              List.filter (fun (_, s) -> not (List.mem s error)) outputs)
-          ();
+let pending_activations c = Queue.elements (Unifier.deref c).pending_activations
 
-        (* To stop this clock it would be enough to detach all sources
-         * and let things stop by themselves. We stop all sources by
-         * calling Tutils.shutdown, which calls Clock.stop, stopping
-         * all clocks.
-         * In any case, we can't just raise an exception here, otherwise
-         * the streaming thread (method private run) will die and won't
-         * be able to leave all sources. *)
-        if not allow_streaming_errors#get then Tutils.shutdown 1);
-      round <- round + 1;
-      List.iter (fun s -> s#after_output) active
+let sources c =
+  let clock = Unifier.deref c in
+  Queue.elements clock.pending_activations
+  @
+  match Atomic.get clock.state with
+    | `Started { passive_sources; active_sources; outputs }
+    | `Stopping { passive_sources; active_sources; outputs } ->
+        WeakQueue.elements passive_sources
+        @ WeakQueue.elements active_sources
+        @ Queue.elements outputs
+    | _ -> []
 
-    method start_outputs f =
-      (* Extract the list of outputs to start, mark them as Starting
-       * so they are not managed by a nested call of start_outputs
-       * (triggered by collect, which can be triggered by the
-       *  starting of outputs).
-       *
-       * It would be simpler to let the streaming loop (or #end_tick) take
-       * care of initialization, just like it takes care of shutting sources
-       * down. But this way we guarantee that sources created "simultaneously"
-       * start streaming simultaneously. *)
-      let to_start =
-        Tutils.mutexify lock
-          (fun () ->
-            let rec aux (outputs, to_start) = function
-              | (`New, s) :: tl when f s ->
-                  aux ((`Starting, s) :: outputs, s :: to_start) tl
-              | (flag, s) :: tl -> aux ((flag, s) :: outputs, to_start) tl
-              | [] -> (outputs, to_start)
-            in
-            let new_outputs, to_start = aux ([], []) outputs in
-            outputs <- new_outputs;
-            to_start)
-          ()
-      in
-      fun () ->
-        let to_start =
-          if to_start <> [] then
-            log#info "Starting %d source(s)..." (List.length to_start);
-          List.map
-            (fun (s : active_source) ->
-              try
-                s#get_ready [(s :> source)];
-                `Started s
-              with e ->
-                let bt = Printexc.get_backtrace () in
-                Utils.log_exception ~log ~bt
-                  (Printf.sprintf "Error when starting %s: %s!" s#id
-                     (Printexc.to_string e));
-                leave ~failed_to_start:true s;
-                `Error s)
-            to_start
-        in
-        (* Now mark the started sources as `Active,
-         * unless they have been deactivating in the meantime (`Aborted)
-         * in which case they have to be cleanly stopped. *)
-        let leaving, errors =
-          Tutils.mutexify lock
-            (fun () ->
-              let new_outputs, leaving, errors =
-                List.fold_left
-                  (fun (outputs, leaving, errors) (flag, s) ->
-                    if List.mem (`Started s) to_start then (
-                      match flag with
-                        | `Starting -> ((`Active, s) :: outputs, leaving, errors)
-                        | `Aborted -> (outputs, s :: leaving, errors)
-                        | `New | `Active | `Old -> assert false)
-                    else if List.mem (`Error s) to_start then (
-                      match flag with
-                        | `Starting -> (outputs, leaving, s :: errors)
-                        | `Aborted -> (outputs, leaving, s :: errors)
-                        | `New | `Active | `Old -> assert false)
-                    else ((flag, s) :: outputs, leaving, errors))
-                  ([], [], []) outputs
-              in
-              outputs <- new_outputs;
-              (leaving, errors))
-            ()
-        in
-        if !started <> `Yes && errors <> [] then Tutils.shutdown 1;
-        if leaving <> [] then (
-          log#info "Stopping %d sources..." (List.length leaving);
-          List.iter (fun (s : active_source) -> leave s) leaving);
-        if
-          start
-          && List.exists (function `Active, _ -> true | _ -> false) outputs
-        then
-          do_running (fun () ->
-              if not running then (
-                running <- true;
-                ignore (Tutils.create (fun () -> self#run) () thread_name)));
-        errors
-  end
+let _sync ?(pending = false) x =
+  match Atomic.get x.state with
+    | `Stopped p when pending -> (p :> sync_mode)
+    | `Stopped _ -> `Stopped
+    | `Stopping _ -> `Stopping
+    | `Started { sync } -> (sync :> sync_mode)
 
-(** {1 Global clock management} *)
+let sync c = _sync (Unifier.deref c)
+let cleanup_source s = s#force_sleep
 
-(** When created, sources have a clock variable, which gets unified
-  * with other variables or concrete clocks. When the time comes to
-  * initialize the source, if its clock isn't defined yet, it gets
-  * assigned to a default clock and that clock will take care of
-  * starting it.
-  *
-  * Taking all freshly created sources, assigning them to the default
-  * clock if needed, and starting them, is performed by [collect].
-  * This is typically called after each script execution.
-  * Technically we could separate collection and clock assignment,
-  * which might simplify some things if it becomes unmanageable in the
-  * future.
-  *
-  * Sometimes we need to be sure that collect doesn't happen during
-  * the execution of a function. Otherwise, sources might be assigned
-  * the default clock too early. This is done using [collect_after].
-  * This need is not cause by running collect in too many places, but
-  * simply because there is no way to control collection on a per-thread
-  * basis (collect only the sources created by a given thread of
-  * script execution).
-  *
-  * Functions running using [collect_after] should be kept short.
-  * However, in theory, with multiple threads, we could have plenty
-  * of short functions always overlapping so that collection can
-  * never be done. This shouldn't happen too much, but in any case
-  * we can't get rid of this without a more fine-grained collect,
-  * which would require (heavy) execution contexts to tell from
-  * which thread/code a given source has been added. *)
+let rec _cleanup ~clock { outputs; passive_sources; active_sources } =
+  Queue.iter outputs cleanup_source;
+  WeakQueue.iter passive_sources cleanup_source;
+  WeakQueue.iter active_sources cleanup_source;
+  Queue.iter clock.sub_clocks stop
 
-(** We must keep track of the number of tasks currently executing
-  * in a collect_after. When the last one exits it must collect.
-  *
-  * It is okay to start a new collect_after when a collect is
-  * ongoing: all that we're doing is avoiding collection of sources
-  * created by the task. That's why #start_outputs first harvests
-  * sources then returns a function actually starting those sources:
-  * only the first part is done within critical section.
-  *
-  * The last trick is that we start with a fake task (after_collect_tasks=1)
-  * to make sure that the initial parsing of files does not triggers collect and thus
-  * a too early initialization of outputs (before daemonization). Main is
-  * in charge of finishing that virtual task and trigger the initial
-  * collect. *)
-let after_collect_tasks = ref 1
+and stop c =
+  let clock = Unifier.deref c in
+  match Atomic.get clock.state with
+    | `Stopped _ | `Stopping _ -> ()
+    | `Started ({ sync = `Passive } as x) ->
+        _cleanup ~clock x;
+        x.log#debug "Clock stopped";
+        Atomic.set clock.state (`Stopped `Passive)
+    | `Started x ->
+        x.log#debug "Clock stopping";
+        Atomic.set clock.state (`Stopping x)
 
-let lock = Mutex.create ()
+let clocks = Queue.create ()
+let started = Atomic.make false
+let global_stop = Atomic.make false
 
-(** We might not need a default clock, so we use a lazy clock value.
-  * We don't use Lazy because we need a thread-safe mechanism. *)
-let get_default =
-  Tutils.lazy_cell (fun () -> (new clock "main" :> Source.clock))
+exception Has_stopped
 
-(** A function displaying the varying number of allocated clocks. *)
-let gc_alarm =
-  let last_displayed = ref (-1) in
-  fun () ->
-    let nb_clocks = Clocks.count clocks in
-    if nb_clocks <> !last_displayed then (
-      log#info "Currently %d clock(s) allocated." nb_clocks;
-      last_displayed := nb_clocks)
+let[@inline] check_stopped () = if Atomic.get global_stop then raise Has_stopped
 
-let () = ignore (Gc.create_alarm gc_alarm)
+let descr clock =
+  let clock = Unifier.deref clock in
+  Printf.sprintf "clock(id=%s,sync=%s%s)" (_id clock)
+    (string_of_sync_mode (_sync clock))
+    (match Atomic.get clock.state with
+      | `Stopped pending ->
+          Printf.sprintf ",pending=%s"
+            (string_of_sync_mode (pending :> sync_mode))
+      | _ -> "")
 
-(** After some sources have been created or removed (by script execution),
-  * finish assigning clocks to sources (assigning the default clock),
-  * start clocks and sources that need starting,
-  * and stop those that need stopping. *)
-let collect ~must_lock =
-  if must_lock then Mutex.lock lock;
-
-  (* If at least one task is engaged it will take care of collection later.
-   * Otherwise, prepare a collection while in critical section
-   * (to avoid harvesting sources created by a task) and run it
-   * outside of critical section (to avoid all sorts of shit). *)
-  if !after_collect_tasks > 0 then Mutex.unlock lock
-  else (
-    Source.iterate_new_outputs (fun o ->
-        if not (is_known o#clock) then
-          ignore (unify o#clock (create_known (get_default ()))));
-    gc_alarm ();
-    let filter _ = true in
-    let collects =
-      Clocks.fold (fun s l -> s#start_outputs filter :: l) clocks []
-    in
-    let start =
-      if !started <> `No then ignore
-      else (
-        (* Avoid that some other collection takes up the task
-         * to set started := true. Typically they would be
-         * trivial (empty) collections terminating before us,
-         * which defeats the purpose of the flag. *)
-        started := `Soon;
-        fun () ->
-          log#info "Main phase starts.";
-          started := `Yes)
-    in
-    Mutex.unlock lock;
-    List.iter (fun f -> ignore (f ())) collects;
-    start ())
-
-let collect_after f =
-  Mutex.lock lock;
-  after_collect_tasks := !after_collect_tasks + 1;
-  Mutex.unlock lock;
-  Tutils.finalize f ~k:(fun () ->
-      Mutex.lock lock;
-      after_collect_tasks := !after_collect_tasks - 1;
-      collect ~must_lock:false)
-
-(** Initialize only some sources, recognized by a filter function.
-  * The advantage over collect is that it is synchronous and a list
-  * of errors (sources that failed to initialize) is returned. *)
-let force_init filter =
-  let collects =
-    Tutils.mutexify lock
-      (fun () ->
-        Source.iterate_new_outputs (fun o ->
-            if filter o && not (is_known o#clock) then
-              ignore (unify o#clock (create_known (get_default ()))));
-        gc_alarm ();
-        Clocks.fold (fun s l -> s#start_outputs filter :: l) clocks [])
-      ()
+let unify =
+  let unify c c' =
+    let clock = Unifier.deref c in
+    let clock' = Unifier.deref c' in
+    Queue.flush_iter clock.pending_activations
+      (Queue.push clock'.pending_activations);
+    Queue.flush_iter clock.sub_clocks (Queue.push clock'.sub_clocks);
+    Queue.flush_iter clock.on_error (Queue.push clock'.on_error);
+    Queue.filter clocks (fun el -> el != c);
+    Unifier.(clock.id <-- clock'.id);
+    Unifier.(c <-- c')
   in
-  List.concat (List.map (fun f -> f ()) collects)
+  fun ~pos c c' ->
+    let _c = Unifier.deref c in
+    let _c' = Unifier.deref c' in
+    match (_c == _c', Atomic.get _c.state, Atomic.get _c'.state) with
+      | true, _, _ -> ()
+      | _, `Stopped s, `Stopped s' when s = s' -> unify c c'
+      | _, `Stopped s, _
+        when s = `Automatic || (s :> sync_mode) = _sync ~pending:true _c' ->
+          unify c c'
+      | _, _, `Stopped s'
+        when s' = `Automatic || _sync ~pending:true _c = (s' :> sync_mode) ->
+          unify c' c
+      | _ ->
+          raise (Liquidsoap_lang.Error.Clock_conflict (pos, descr c, descr c'))
 
-let start () =
-  Mutex.lock lock;
-  after_collect_tasks := !after_collect_tasks - 1;
-  collect ~must_lock:false
+let () =
+  Lifecycle.before_core_shutdown ~name:"Clocks stop" (fun () ->
+      Atomic.set global_stop true;
+      Queue.iter clocks (fun c -> if sync c <> `Passive then stop c))
 
-(** To stop, simply detach everything and the clocks will stop running.
-  * No need to collect, stopping is done by itself. *)
-let stop () = Clocks.iter (fun s -> s#detach (fun _ -> true)) clocks
+let _animated_sources { outputs; active_sources } =
+  Queue.elements outputs @ WeakQueue.elements active_sources
 
-let fold f x = Clocks.fold f clocks x
+let _self_sync ~clock x =
+  let self_sync_sources =
+    List.fold_left
+      (fun self_sync_sources s ->
+        match s#self_sync with
+          | _, None -> self_sync_sources
+          | _, Some sync_source ->
+              SelfSyncSet.add
+                { sync_source; name = s#id; stack = s#stack }
+                self_sync_sources)
+      SelfSyncSet.empty (_animated_sources x)
+  in
+  if SelfSyncSet.cardinal self_sync_sources > 1 then
+    raise
+      (Sync_error
+         {
+           name = Printf.sprintf "clock %s" (_id clock);
+           stack = Atomic.get clock.stack;
+           sync_sources = SelfSyncSet.elements self_sync_sources;
+         });
+  SelfSyncSet.cardinal self_sync_sources = 1
+
+let ticks c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Stopped _ -> 0
+    | `Stopping { ticks } | `Started { ticks } -> Atomic.get ticks
+
+let _target_time { time_implementation; t0; frame_duration; ticks } =
+  let module Time = (val time_implementation : Liq_time.T) in
+  Time.(t0 |+| (frame_duration |*| of_float (float_of_int (Atomic.get ticks))))
+
+let _set_time { time_implementation; t0; frame_duration; ticks } t =
+  let module Time = (val time_implementation : Liq_time.T) in
+  let delta = Time.(to_float (t |-| t0)) in
+  Atomic.set ticks (int_of_float (delta /. Time.to_float frame_duration))
+
+let _after_tick ~clock x =
+  Queue.flush x.after_tick (fun fn ->
+      check_stopped ();
+      fn ());
+  let module Time = (val x.time_implementation : Liq_time.T) in
+  let end_time = Time.time () in
+  let target_time = _target_time x in
+  check_stopped ();
+  match (x.sync, _self_sync ~clock x, Time.(end_time |<| target_time)) with
+    | `Unsynced, _, _ | `Passive, _, _ | `Automatic, true, _ -> ()
+    | `Automatic, false, true | `CPU, _, true -> Time.sleep_until target_time
+    | _ ->
+        let latency = Time.(end_time |-| target_time) in
+        if Time.(x.max_latency |<=| latency) then (
+          x.log#severe "Too much latency! Resetting active sources...";
+          _set_time x target_time;
+          List.iter
+            (fun s ->
+              match s#source_type with
+                | `Passive -> assert false
+                | `Active s -> s#reset
+                | `Output s -> s#reset)
+            (_animated_sources x))
+        else if
+          Time.(
+            x.log_delay_threshold |<=| latency
+            && x.log_delay |<=| (end_time |-| Atomic.get x.last_catchup_log))
+        then (
+          Atomic.set x.last_catchup_log end_time;
+          x.log#severe "We must catchup %.2f seconds!"
+            Time.(to_float (end_time |-| target_time)))
+
+let rec active_params c =
+  match Atomic.get (Unifier.deref c).state with
+    | `Stopping s | `Started s -> s
+    | _ when Atomic.get global_stop -> raise Has_stopped
+    | _ -> raise Invalid_state
+
+and _tick ~clock x =
+  Queue.flush clock.pending_activations (fun s ->
+      check_stopped ();
+      s#wake_up;
+      match s#source_type with
+        | `Active _ -> WeakQueue.push x.active_sources s
+        | `Output _ -> Queue.push x.outputs s
+        | `Passive -> WeakQueue.push x.passive_sources s);
+  let sub_clocks =
+    List.map (fun c -> (c, ticks c)) (Queue.elements clock.sub_clocks)
+  in
+  let sources = _animated_sources x in
+  List.iter
+    (fun s ->
+      check_stopped ();
+      try
+        match s#source_type with
+          | `Output s | `Active s -> s#output
+          | _ -> assert false
+      with exn when exn <> Has_stopped ->
+        let bt = Printexc.get_raw_backtrace () in
+        if Queue.is_empty clock.on_error then (
+          log#severe "Source %s failed while streaming: %s!\n%s" s#id
+            (Printexc.to_string exn)
+            (Printexc.raw_backtrace_to_string bt);
+          if not allow_streaming_errors#get then Tutils.shutdown 1
+          else _detach clock s)
+        else Queue.iter clock.on_error (fun fn -> fn exn bt))
+    sources;
+  Queue.flush x.on_tick (fun fn ->
+      check_stopped ();
+      fn ());
+  List.iter
+    (fun (c, old_ticks) ->
+      if ticks c = old_ticks then
+        _tick ~clock:(Unifier.deref c) (active_params c))
+    sub_clocks;
+  Atomic.incr x.ticks;
+  check_stopped ();
+  _after_tick ~clock x;
+  check_stopped ();
+  Queue.iter clocks start
+
+and _clock_thread ~clock x =
+  let has_sources_to_process () =
+    0 < Queue.length clock.pending_activations
+    || 0 < Queue.length x.outputs
+    || 0 < WeakQueue.length x.active_sources
+  in
+  let on_stop () =
+    x.log#info "Clock thread has stopped";
+    _cleanup ~clock x;
+    Atomic.set clock.state (`Stopped x.sync)
+  in
+  let run () =
+    try
+      while
+        (match Atomic.get clock.state with `Started _ -> true | _ -> false)
+        && (not (Atomic.get global_stop))
+        && has_sources_to_process ()
+      do
+        _tick ~clock x
+      done;
+      on_stop ()
+    with Has_stopped -> on_stop ()
+  in
+  ignore
+    (Tutils.create
+       (fun () ->
+         x.log#info "Clock thread is starting";
+         run ())
+       ()
+       ("Clock " ^ _id clock))
+
+and start ?(force = false) c =
+  let clock = Unifier.deref c in
+  let has_output =
+    force
+    || Queue.exists clock.pending_activations (fun s ->
+           match s#source_type with `Output _ -> true | _ -> false)
+  in
+  let can_start =
+    (not (Atomic.get global_stop)) && (force || Atomic.get started)
+  in
+  match (can_start, has_output, Atomic.get clock.state) with
+    | true, _, `Stopped (`Passive as sync) | true, true, `Stopped sync ->
+        Unifier.set clock.id (Lang_string.generate_id (Unifier.deref clock.id));
+        let id = _id clock in
+        log#important "Starting clock %s with %d source(s) and sync: %s" id
+          (Queue.length clock.pending_activations)
+          (string_of_sync_mode sync);
+        let time_implementation = time_implementation () in
+        let module Time = (val time_implementation : Liq_time.T) in
+        let frame_duration = Time.of_float (Lazy.force Frame.duration) in
+        let max_latency = Time.of_float conf_max_latency#get in
+        let log_delay = Time.of_float conf_log_delay#get in
+        let log_delay_threshold = Time.of_float conf_log_delay_threshold#get in
+        let t0 = Time.time () in
+        let last_catchup_log = Atomic.make t0 in
+        let x =
+          {
+            frame_duration;
+            log_delay;
+            log_delay_threshold;
+            max_latency;
+            time_implementation;
+            t0;
+            log = Log.make (["clock"] @ String.split_on_char '.' id);
+            last_catchup_log;
+            sync;
+            active_sources = WeakQueue.create ();
+            passive_sources = WeakQueue.create ();
+            on_tick = Queue.create ();
+            after_tick = Queue.create ();
+            outputs = Queue.create ();
+            ticks = Atomic.make 0;
+          }
+        in
+        Queue.iter clock.sub_clocks (fun c -> start c);
+        Atomic.set clock.state (`Started x);
+        if sync <> `Passive then _clock_thread ~clock x
+    | _ -> ()
+
+let create ?(stack = []) ?on_error ?(id = "generic") ?(sub_ids = [])
+    ?(sync = `Automatic) () =
+  let on_error_queue = Queue.create () in
+  (match on_error with None -> () | Some fn -> Queue.push on_error_queue fn);
+  let c =
+    Unifier.make
+      {
+        id = Unifier.make id;
+        sub_ids;
+        stack = Atomic.make stack;
+        pending_activations = Queue.create ();
+        sub_clocks = Queue.create ();
+        state = Atomic.make (`Stopped sync);
+        on_error = on_error_queue;
+      }
+  in
+  Queue.push clocks c;
+  c
+
+let start_pending () =
+  List.iter (Queue.push clocks)
+    (Queue.flush_fold clocks
+       (fun c clocks ->
+         start c;
+         c :: clocks)
+       [])
+
+let () =
+  Lifecycle.before_start ~name:"Clocks start" (fun () ->
+      Atomic.set started true;
+      start_pending ())
+
+let on_tick c fn =
+  let x = active_params c in
+  Queue.push x.on_tick fn
+
+let after_tick c fn =
+  let x = active_params c in
+  Queue.push x.after_tick fn
+
+let after_eval () = if not (Atomic.get global_stop) then start_pending ()
+
+let self_sync c =
+  let clock = Unifier.deref c in
+  match Atomic.get clock.state with
+    | `Started params -> _self_sync ~clock params
+    | _ -> false
+
+let tick clock = _tick ~clock:(Unifier.deref clock) (active_params clock)
+
+let set_stack c stack =
+  ignore (Atomic.compare_and_set (Unifier.deref c).stack [] stack)
+
+let create_sub_clock ~id clock =
+  let clock = Unifier.deref clock in
+  let sub_clock =
+    create ~stack:(Atomic.get clock.stack) ~id
+      ~sub_ids:(clock.sub_ids @ ["child"])
+      ~sync:`Passive ()
+  in
+  Queue.push clock.sub_clocks sub_clock;
+  sub_clock
+
+let create ?stack ?on_error ?id ?sync () = create ?stack ?on_error ?id ?sync ()
+
+let clocks () =
+  List.sort_uniq
+    (fun c c' -> Stdlib.compare (Unifier.deref c) (Unifier.deref c'))
+    (Queue.elements clocks)

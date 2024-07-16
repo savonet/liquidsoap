@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,11 +41,11 @@ module Tutils = struct
     let lock = Mutex.create () in
     let should_stop = ref false in
     let has_stopped = ref false in
-    let kill = mutexify lock (fun () -> should_stop := true) in
+    let kill = Mutex_utils.mutexify lock (fun () -> should_stop := true) in
     let wait () = wait cond lock (fun () -> !has_stopped) in
-    let should_stop = mutexify lock (fun () -> !should_stop) in
+    let should_stop = Mutex_utils.mutexify lock (fun () -> !should_stop) in
     let has_stopped =
-      mutexify lock (fun () ->
+      Mutex_utils.mutexify lock (fun () ->
           has_stopped := true;
           Condition.signal cond)
     in
@@ -53,12 +53,13 @@ module Tutils = struct
     (kill, wait)
 end
 
-class output ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-  ~encoder_factory source =
+class output ~on_start ~on_stop ~register_telnet ~infallible ~autostart
+  ~hostname ~port ~encoder_factory source =
   object (self)
     inherit
-      Output.encoded
-        ~output_kind:"udp" ~on_start ~on_stop ~infallible ~autostart
+      [Strings.t] Output.encoded
+        ~output_kind:"udp" ~on_start ~on_stop ~register_telnet ~infallible
+          ~autostart ~export_cover_metadata:false
         ~name:(Printf.sprintf "udp://%s:%d" hostname port)
         source
 
@@ -83,7 +84,7 @@ class output ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
                 f (pos + len))
             in
             f 0);
-      encoder <- Some (encoder_factory self#id Meta_format.empty_metadata)
+      encoder <- Some (encoder_factory self#id Frame.Metadata.Export.empty)
 
     method! private reset =
       self#start;
@@ -107,18 +108,20 @@ class output ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
 class input ~hostname ~port ~get_stream_decoder ~bufferize =
   let max_length = Some (2 * Frame.main_of_seconds bufferize) in
   object (self)
-    inherit Generated.source ~empty_on_abort:false ~bufferize ()
+    inherit Generated.source ~empty_on_abort:false ~bufferize () as generated
 
     inherit!
       Start_stop.active_source
-        ~name:"input.udp" ~clock_safe:false ~fallible:true ~on_start:ignore
-          ~on_stop:ignore ~autostart:true ()
+        ~name:"input.udp" ~fallible:true ~on_start:ignore ~on_stop:ignore
+          ~autostart:true () as super
 
-    initializer Generator.set_max_length self#buffer max_length
     val mutable kill_feeding = None
     val mutable wait_feeding = None
     val mutable decoder_factory = None
     method private decoder_factory = Option.get decoder_factory
+
+    method! private can_generate_frame =
+      super#started && generated#can_generate_frame
 
     method private start =
       begin
@@ -137,6 +140,10 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
       kill_feeding <- Some kill;
       wait_feeding <- Some wait
 
+    initializer
+      self#on_wake_up (fun () ->
+          Generator.set_max_length self#buffer max_length)
+
     method private stop =
       (Option.get kill_feeding) ();
       kill_feeding <- None;
@@ -154,7 +161,7 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
       (* Wait until there's something to read or we must stop. *)
       let rec wait () =
         if should_stop () then failwith "stop";
-        let l, _, _ = Unix.select [socket] [] [] 1. in
+        let l, _, _ = Utils.select [socket] [] [] 1. in
         if l = [] then wait ()
       in
       (* Read data from the network. *)
@@ -164,14 +171,15 @@ class input ~hostname ~port ~get_stream_decoder ~bufferize =
         n
       in
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
+      let decoder, buffer = self#decoder_factory input in
       try
         (* Feeding loop. *)
-        let decoder, buffer = self#decoder_factory input in
         while true do
           if should_stop () then failwith "stop";
           decoder.Decoder.decode buffer
         done
       with e ->
+        decoder.Decoder.close ();
         Generator.add_track_mark self#buffer;
 
         (* Closing the socket is slightly overkill but
@@ -205,6 +213,7 @@ let _ =
       (* Generic output parameters *)
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -218,7 +227,7 @@ let _ =
       let hostname = Lang.to_string (List.assoc "host" p) in
       let fmt =
         let fmt = Lang.assoc "" 1 p in
-        try Encoder.get_factory (Lang.to_format fmt)
+        try (Encoder.get_factory (Lang.to_format fmt)) ~pos:(Value.pos fmt)
         with Not_found ->
           raise
             (Error.Invalid_value
@@ -226,8 +235,8 @@ let _ =
       in
       let source = Lang.assoc "" 2 p in
       (new output
-         ~on_start ~on_stop ~infallible ~autostart ~hostname ~port
-         ~encoder_factory:fmt source
+         ~on_start ~on_stop ~register_telnet ~infallible ~autostart ~hostname
+         ~port ~encoder_factory:fmt source
         :> Source.source))
 
 let _ =

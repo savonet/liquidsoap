@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -49,21 +49,24 @@ type fps = { num : int; den : int }
     - Implicit content drop *)
 type buffer = {
   generator : Generator.t;
-  put_pcm : ?field:Frame.field -> samplerate:int -> Content.Audio.data -> unit;
-  put_yuva420p : ?field:Frame.field -> fps:fps -> Content.Video.data -> unit;
+  put_pcm : ?field:Frame.field -> samplerate:int -> Audio.t -> unit;
+  put_yuva420p : ?field:Frame.field -> fps:fps -> Video.Canvas.image -> unit;
 }
 
 type decoder = {
   decode : buffer -> unit;
+  eof : buffer -> unit;
   (* [seek x]: Skip [x] main ticks.
    * Returns the number of ticks atcually skipped. *)
   seek : int -> int;
+  close : unit -> unit;
 }
 
 type file_decoder_ops = {
-  fill : Frame.t -> int;
+  fread : int -> Frame.t;
+  remaining : unit -> int;
   fseek : int -> int;
-  close : unit -> unit;
+  fclose : unit -> unit;
 }
 
 type stream_decoder = input -> decoder
@@ -76,7 +79,6 @@ type file_decoder =
   file_decoder_ops
 
 type decoder_specs = {
-  media_type : [ `Audio | `Video | `Audio_video | `Midi ];
   priority : unit -> int;
   (* None means accept all file extensions. *)
   file_extensions : unit -> string list option;
@@ -88,7 +90,11 @@ type decoder_specs = {
    * None means accept all mime-types. *)
   mime_types : unit -> string list option;
   (* None means no decodable content for that file. *)
-  file_type : ctype:Frame.content_type -> string -> Frame.content_type option;
+  file_type :
+    metadata:Frame.metadata ->
+    ctype:Frame.content_type ->
+    string ->
+    Frame.content_type option;
   file_decoder : file_decoder option;
   (* String argument is the full mime-type. *)
   stream_decoder : (ctype:Frame.content_type -> string -> stream_decoder) option;
@@ -102,7 +108,13 @@ val conf_priorities : Dtools.Conf.ut
 
 (** Test file extension and mime if available *)
 val test_file :
-  ?log:Log.t -> ?mimes:string list -> ?extensions:string list -> string -> bool
+  log:Log.t ->
+  extension:string option ->
+  mime:stream ->
+  mimes:stream list option ->
+  extensions:string list option ->
+  stream ->
+  bool
 
 (** Test if we can decode for a content_type. This include cases where we
     know how to convert channel layout. *)
@@ -126,7 +138,6 @@ val mk_buffer : ctype:Frame.content_type -> Generator.t -> buffer
 (* Create a file decoder when remaining time is known. *)
 val file_decoder :
   filename:string ->
-  close:(unit -> unit) ->
   remaining:(unit -> int) ->
   ctype:Frame.content_type ->
   decoder ->

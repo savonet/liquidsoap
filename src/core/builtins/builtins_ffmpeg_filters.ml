@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
  *****************************************************************************)
 
 open Builtins_ffmpeg_base
+module Queue = Liquidsoap_lang.Queues.Queue
 
 (** FFmpeg filter graphs initialization is pretty tricky. Things to consider:
   * - FFmpeg filters are using a push paradigm, pushing from the sources down
@@ -80,38 +81,38 @@ type graph = {
 }
 
 let init_graph graph =
-  if Queue.fold (fun b v -> b && v ()) true graph.input_inits then (
-    try Queue.iter Lazy.force graph.init
+  if Queue.fold graph.input_inits (fun v b -> b && v ()) true then (
+    try Queue.iter graph.init Lazy.force
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
       graph.failed <- true;
       Printexc.raise_with_backtrace exn bt)
 
 let initialized graph =
-  Queue.fold (fun cur q -> cur && Lazy.is_val q) true graph.init
+  Queue.fold graph.init (fun q cur -> cur && Lazy.is_val q) true
 
 let is_ready graph =
+  (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
+    | false, Some s -> Clock.tick s#clock
+    | _ -> ());
   (not graph.failed)
-  && Queue.fold (fun cur s -> cur && s#is_ready) true graph.graph_inputs
+  && Queue.fold graph.graph_inputs
+       (fun (s : Source.source) cur -> cur && s#is_ready)
+       true
 
 let pull graph =
-  (Clock.get (Queue.peek graph.graph_inputs)#clock)#end_tick;
-  Queue.iter (fun s -> s#after_output) graph.graph_inputs
+  match Queue.peek_opt graph.graph_inputs with
+    | Some s -> Clock.tick s#clock
+    | None -> ()
 
-let self_sync_type graph =
-  Lazy.from_fun (fun () ->
-      Lazy.force
-        (Utils.self_sync_type
-           (Queue.fold (fun cur s -> s :: cur) [] graph.graph_inputs)))
+let self_sync graph source =
+  (Clock_base.self_sync ~source (Queue.elements graph.graph_inputs)) ()
 
-let self_sync graph =
-  Queue.fold (fun cur s -> cur || snd s#self_sync) false graph.graph_inputs
-
-module Graph = Value.MkAbstract (struct
+module Graph = Value.MkCustom (struct
   type content = graph
 
   let name = "ffmpeg.filter.graph"
-  let descr _ = name
+  let to_string _ = name
 
   let to_json ~pos _ =
     Lang.raise_error
@@ -120,14 +121,14 @@ module Graph = Value.MkAbstract (struct
   let compare = Stdlib.compare
 end)
 
-module Audio = Value.MkAbstract (struct
+module Audio = Value.MkCustom (struct
   type content =
     [ `Input of ([ `Attached ], [ `Audio ], [ `Input ]) Avfilter.pad
     | `Output of ([ `Attached ], [ `Audio ], [ `Output ]) Avfilter.pad Lazy.t
     ]
 
   let name = "ffmpeg.filter.audio"
-  let descr _ = name
+  let to_string _ = name
 
   let to_json ~pos _ =
     Lang.raise_error ~pos
@@ -136,14 +137,14 @@ module Audio = Value.MkAbstract (struct
   let compare = Stdlib.compare
 end)
 
-module Video = Value.MkAbstract (struct
+module Video = Value.MkCustom (struct
   type content =
     [ `Input of ([ `Attached ], [ `Video ], [ `Input ]) Avfilter.pad
     | `Output of ([ `Attached ], [ `Video ], [ `Output ]) Avfilter.pad Lazy.t
     ]
 
   let name = "ffmpeg.filter.video"
-  let descr _ = name
+  let to_string _ = name
 
   let to_json ~pos _ =
     Lang.raise_error ~pos
@@ -160,7 +161,7 @@ let uniq_name =
           Hashtbl.replace names name (x + 1);
           x
       | None ->
-          Hashtbl.add names name 1;
+          Hashtbl.replace names name 1;
           0
   in
   fun name -> Printf.sprintf "%s_%d" name (name_idx name)
@@ -327,7 +328,7 @@ let mk_options options =
               s
         | `Channel_layout s ->
             mk_opt ~t:Lang.string_t
-              ~to_string:(Avutil.Channel_layout.get_description ?channels:None)
+              ~to_string:Avutil.Channel_layout.get_description
               ~from_value:(fun v ->
                 Avutil.Channel_layout.find (Lang.to_string v))
               s
@@ -378,12 +379,12 @@ let apply_filter ~args_parser ~filter ~sources_t p =
         ( "output",
           let audio =
             List.map
-              (fun p -> Audio.to_value (`Output (lazy p)))
+              (fun p -> Audio.to_value (`Output (Lazy.from_val p)))
               filter.io.outputs.audio
           in
           let video =
             List.map
-              (fun p -> Video.to_value (`Output (lazy p)))
+              (fun p -> Video.to_value (`Output (Lazy.from_val p)))
               filter.io.outputs.video
           in
           if List.mem `Dynamic_outputs flags then
@@ -393,11 +394,14 @@ let apply_filter ~args_parser ~filter ~sources_t p =
           Lang.val_fun
             (List.map (fun (_, lbl, _) -> (lbl, lbl, None)) sources_t)
             (fun p ->
-              let v = List.assoc "" p in
-              if !input_set then
-                Lang.raise_error
-                  ~pos:(match v.Value.pos with None -> [] | Some p -> [p])
-                  ~message:"Filter input already set!" "ffmpeg.filter";
+              if !input_set then (
+                let pos =
+                  match Value.pos (List.assoc "" p) with
+                    | (exception Not_found) | None -> []
+                    | Some p -> [p]
+                in
+                Lang.raise_error ~pos ~message:"Filter input already set!"
+                  "ffmpeg.filter");
               let audio_inputs_c = List.length filter.io.inputs.audio in
               let get_input ~mode ~ofs idx =
                 if List.mem `Dynamic_inputs flags then (
@@ -413,39 +417,38 @@ let apply_filter ~args_parser ~filter ~sources_t p =
                   List.nth inputs idx)
                 else Lang.assoc "" (idx + ofs + 1) p
               in
-              Queue.push
-                (lazy
-                  (List.iteri
-                     (fun idx input ->
-                       let output =
-                         match
-                           Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx)
-                         with
-                           | `Output output -> Lazy.force output
-                           | _ -> assert false
-                       in
-                       link output input)
-                     filter.io.inputs.audio;
-                   List.iteri
-                     (fun idx input ->
-                       let output =
-                         match
-                           Video.of_value
-                             (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
-                         with
-                           | `Output output -> output
-                           | _ -> assert false
-                       in
-                       link (Lazy.force output) input)
-                     filter.io.inputs.video))
-                graph.init;
+              Queue.push graph.init
+                (Lazy.from_fun (fun () ->
+                     List.iteri
+                       (fun idx input ->
+                         let output =
+                           match
+                             Audio.of_value (get_input ~mode:`Audio ~ofs:0 idx)
+                           with
+                             | `Output output -> Lazy.force output
+                             | _ -> assert false
+                         in
+                         link output input)
+                       filter.io.inputs.audio;
+                     List.iteri
+                       (fun idx input ->
+                         let output =
+                           match
+                             Video.of_value
+                               (get_input ~mode:`Video ~ofs:audio_inputs_c idx)
+                           with
+                             | `Output output -> output
+                             | _ -> assert false
+                         in
+                         link (Lazy.force output) input)
+                       filter.io.inputs.video));
               input_set := true;
               Lang.unit) );
       ]
     in
     Lang.meth Lang.unit meths)
 
-let () =
+let register_filters () =
   Avfilter.(
     let mk_av_t ~flags ~mode { audio; video } =
       match mode with
@@ -496,12 +499,12 @@ let () =
         let explanation =
           String.concat " "
             ((if List.mem `Dynamic_inputs flags then
-              [
-                "This filter has dynamic inputs: last two arguments are lists \
-                 of audio and video inputs. Total number of inputs is \
-                 determined at runtime.";
-              ]
-             else [])
+                [
+                  "This filter has dynamic inputs: last two arguments are \
+                   lists of audio and video inputs. Total number of inputs is \
+                   determined at runtime.";
+                ]
+              else [])
             @
             if List.mem `Dynamic_outputs flags then
               [
@@ -537,7 +540,10 @@ let () =
               in
               let args = named_args @ unnamed_args in
               let filter = apply_filter ~args_parser ~filter ~sources_t args in
-              ignore (Lang.apply (Value.invoke filter "set_input") inputs);
+              ignore
+                (Lang.apply ~pos:(Lang.pos p)
+                   (Value.invoke filter "set_input")
+                   inputs);
               Value.invoke filter "output")
         in
         ignore
@@ -553,15 +559,29 @@ let () =
              (apply_filter ~args_parser ~filter ~sources_t)))
       filters)
 
+let () = Startup.time "FFmpeg filters registration" register_filters
+
 let abuffer_args frame =
   let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
   let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
+  let channel_layout_params =
+    match Avutil.Channel_layout.get_native_id channel_layout with
+      | Some id -> ("channel_layout", `Int64 id)
+      | None ->
+          let channel_layout =
+            Avutil.Channel_layout.get_default
+              (Avutil.Channel_layout.get_nb_channels channel_layout)
+          in
+          ( "channel_layout",
+            `Int64
+              (Option.get (Avutil.Channel_layout.get_native_id channel_layout))
+          )
+  in
   let sample_format = Avutil.Audio.frame_get_sample_format frame in
   [
     `Pair ("sample_rate", `Int sample_rate);
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
-    `Pair
-      ("channel_layout", `Int64 (Avutil.Channel_layout.get_id channel_layout));
+    `Pair channel_layout_params;
     `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id sample_format));
   ]
 
@@ -579,40 +599,34 @@ let buffer_args frame =
 let _ =
   let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.kind in
   let raw_video_format = `Kind Ffmpeg_raw_content.Video.kind in
-  let audio_frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make
-         ~audio:(Type.make (Format_type.descr raw_audio_format))
-         ())
-  in
-  let video_frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make
-         ~video:(Type.make (Format_type.descr raw_video_format))
-         ())
-  in
-  let audio_t = Lang.(source_t ~methods:false audio_frame_t) in
-  let video_t = Lang.(source_t ~methods:false video_frame_t) in
+  let audio_frame_t = Type.make (Format_type.descr raw_audio_format) in
+  let video_frame_t = Type.make (Format_type.descr raw_video_format) in
 
   ignore
     (Lang.add_builtin ~category:(`Source `FFmpegFilter)
        ~base:ffmpeg_filter_audio "input"
-       ~descr:"Attach an audio source to a filter's input"
+       ~descr:"Attach an audio track to a filter's input"
        [
+         ("id", Lang.nullable_t Lang.string_t, Some Lang.null, None);
          ( "pass_metadata",
            Lang.bool_t,
            Some (Lang.bool true),
            Some "Pass liquidsoap's metadata to this stream" );
          ("", Graph.t, None, None);
-         ("", audio_t, None, None);
+         ("", audio_frame_t, None, None);
        ]
        Audio.t
        (fun p ->
+         let id =
+           Option.value ~default:"ffmpeg.filter.audio.input"
+             (Lang.to_valued_option Lang.to_string (List.assoc "id" p))
+         in
          let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
          let graph_v = Lang.assoc "" 1 p in
          let config = get_config graph_v in
          let graph = Graph.of_value graph_v in
-         let source_val = Lang.assoc "" 2 p in
+         let track_val = Lang.assoc "" 2 p in
+         let field, source = Lang.to_track track_val in
 
          let frame_t =
            Lang.frame_t Lang.unit_t
@@ -628,32 +642,28 @@ let _ =
                 ())
          in
          let name = uniq_name "abuffer" in
-         let pos = source_val.Lang.pos in
          let s =
-           try
-             Ffmpeg_filter_io.(
-               new audio_output ~pass_metadata ~name ~frame_t source_val)
-           with
-             | Source.Clock_conflict (a, b) ->
-                 raise (Error.Clock_conflict (pos, a, b))
-             | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+           Ffmpeg_filter_io.(
+             new audio_output ~pass_metadata ~name ~frame_t ~field source)
          in
-         Queue.add (s :> Source.source) graph.graph_inputs;
+         s#set_stack (Liquidsoap_lang.Lang_core.pos p);
+         s#set_id id;
+         Queue.push graph.graph_inputs (s :> Source.source);
 
          let args = ref None in
 
          let audio =
-           lazy
-             (let _abuffer =
-                Avfilter.attach ~args:(Option.get !args) ~name Avfilter.abuffer
-                  config
-              in
-              Avfilter.(Hashtbl.add graph.entries.inputs.audio name s#set_input);
-              init_graph graph;
-              List.hd Avfilter.(_abuffer.io.outputs.audio))
+           Lazy.from_fun (fun () ->
+               let _abuffer =
+                 Avfilter.attach ~args:(Option.get !args) ~name Avfilter.abuffer
+                   config
+               in
+               Avfilter.(
+                 Hashtbl.replace graph.entries.inputs.audio name s#set_input);
+               List.hd Avfilter.(_abuffer.io.outputs.audio))
          in
 
-         Queue.add (fun () -> Lazy.is_val audio) graph.input_inits;
+         Queue.push graph.input_inits (fun () -> Lazy.is_val audio);
 
          s#set_init (fun frame ->
              if !args = None then (
@@ -663,16 +673,11 @@ let _ =
 
          Audio.to_value (`Output audio)));
 
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make
-         ~audio:(Type.make (Format_type.descr raw_audio_format))
-         ())
-  in
+  let return_t = Type.make (Format_type.descr raw_audio_format) in
   ignore
-    (Lang.add_operator ~base:ffmpeg_filter_audio "output"
+    (Lang.add_track_operator ~base:ffmpeg_filter_audio "output"
        ~category:`FFmpegFilter
-       ~descr:"Return an audio source from a filter's output" ~return_t
+       ~descr:"Return an audio track from a filter's output" ~return_t
        [
          ( "pass_metadata",
            Lang.bool_t,
@@ -697,53 +702,59 @@ let _ =
                      (Format_type.descr (`Kind Ffmpeg_raw_content.Audio.kind)))
                 ())
          in
+         let field = Frame.Fields.audio in
          let s =
            new Ffmpeg_filter_io.audio_input
+             ~field
              ~pull:(fun () -> pull graph)
              ~is_ready:(fun () -> is_ready graph)
-             ~self_sync:(fun () -> self_sync graph)
-             ~self_sync_type:(self_sync_type graph) ~pass_metadata frame_t
+             ~self_sync:(self_sync graph) ~pass_metadata frame_t
          in
-         Queue.add (s :> Source.source) graph.graph_outputs;
+         Queue.push graph.graph_outputs (s :> Source.source);
 
          let pad = Audio.of_value (Lang.assoc "" 2 p) in
-         Queue.add
-           (lazy
-             (let pad =
-                match pad with
-                  | `Output pad -> Lazy.force pad
-                  | _ -> assert false
-              in
-              let name = uniq_name "abuffersink" in
-              let _abuffersink =
-                Avfilter.attach ~name Avfilter.abuffersink config
-              in
-              Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
-              Avfilter.(
-                Hashtbl.add graph.entries.outputs.audio name s#set_output)))
-           graph.init;
+         Queue.push graph.init
+           (Lazy.from_fun (fun () ->
+                let pad =
+                  match pad with
+                    | `Output pad -> Lazy.force pad
+                    | _ -> assert false
+                in
+                let name = uniq_name "abuffersink" in
+                let _abuffersink =
+                  Avfilter.attach ~name Avfilter.abuffersink config
+                in
+                Avfilter.(link pad (List.hd _abuffersink.io.inputs.audio));
+                Avfilter.(
+                  Hashtbl.replace graph.entries.outputs.audio name s#set_output)));
 
-         (s :> Source.source)));
+         (field, (s :> Source.source))));
 
   ignore
     (Lang.add_builtin ~category:(`Source `FFmpegFilter)
        ~base:ffmpeg_filter_video "input"
-       ~descr:"Attach a video source to a filter's input"
+       ~descr:"Attach a video track to a filter's input"
        [
+         ("id", Lang.nullable_t Lang.string_t, Some Lang.null, None);
          ( "pass_metadata",
            Lang.bool_t,
-           Some (Lang.bool false),
+           Some (Lang.bool true),
            Some "Pass liquidsoap's metadata to this stream" );
          ("", Graph.t, None, None);
-         ("", video_t, None, None);
+         ("", video_frame_t, None, None);
        ]
        Video.t
        (fun p ->
+         let id =
+           Option.value ~default:"ffmpeg.filter.video.input"
+             (Lang.to_valued_option Lang.to_string (List.assoc "id" p))
+         in
          let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
          let graph_v = Lang.assoc "" 1 p in
          let config = get_config graph_v in
          let graph = Graph.of_value graph_v in
-         let source_val = Lang.assoc "" 2 p in
+         let track_val = Lang.assoc "" 2 p in
+         let field, source = Lang.to_track track_val in
 
          let frame_t =
            Lang.frame_t Lang.unit_t
@@ -759,31 +770,28 @@ let _ =
                 ())
          in
          let name = uniq_name "buffer" in
-         let pos = source_val.Lang.pos in
          let s =
-           try
-             Ffmpeg_filter_io.(
-               new video_output ~pass_metadata ~name ~frame_t source_val)
-           with
-             | Source.Clock_conflict (a, b) ->
-                 raise (Error.Clock_conflict (pos, a, b))
-             | Source.Clock_loop (a, b) -> raise (Error.Clock_loop (pos, a, b))
+           Ffmpeg_filter_io.(
+             new video_output ~pass_metadata ~name ~frame_t ~field source)
          in
-         Queue.add (s :> Source.source) graph.graph_inputs;
+         s#set_stack (Liquidsoap_lang.Lang_core.pos p);
+         s#set_id id;
+         Queue.push graph.graph_inputs (s :> Source.source);
 
          let args = ref None in
 
          let video =
-           lazy
-             (let _buffer =
-                Avfilter.attach ~args:(Option.get !args) ~name Avfilter.buffer
-                  config
-              in
-              Avfilter.(Hashtbl.add graph.entries.inputs.video name s#set_input);
-              List.hd Avfilter.(_buffer.io.outputs.video))
+           Lazy.from_fun (fun () ->
+               let _buffer =
+                 Avfilter.attach ~args:(Option.get !args) ~name Avfilter.buffer
+                   config
+               in
+               Avfilter.(
+                 Hashtbl.replace graph.entries.inputs.video name s#set_input);
+               List.hd Avfilter.(_buffer.io.outputs.video))
          in
 
-         Queue.add (fun () -> Lazy.is_val video) graph.input_inits;
+         Queue.push graph.input_inits (fun () -> Lazy.is_val video);
 
          s#set_init (fun frame ->
              if !args = None then (
@@ -793,23 +801,14 @@ let _ =
 
          Video.to_value (`Output video)));
 
-  let return_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make
-         ~video:(Type.make (Format_type.descr raw_video_format))
-         ())
-  in
-  Lang.add_operator ~base:ffmpeg_filter_video "output" ~category:`Video
-    ~descr:"Return a video source from a filter's output" ~return_t
+  let return_t = Type.make (Format_type.descr raw_video_format) in
+  Lang.add_track_operator ~base:ffmpeg_filter_video "output" ~category:`Video
+    ~descr:"Return a video track from a filter's output" ~return_t
     [
       ( "pass_metadata",
         Lang.bool_t,
-        Some (Lang.bool false),
+        Some (Lang.bool true),
         Some "Pass ffmpeg stream metadata to liquidsoap" );
-      ( "fps",
-        Lang.nullable_t Lang.int_t,
-        Some Lang.null,
-        Some "Output frame per seconds. Defaults to global value" );
       ("", Graph.t, None, None);
       ("", Video.t, None, None);
     ]
@@ -819,10 +818,6 @@ let _ =
       let config = get_config graph_v in
       let graph = Graph.of_value graph_v in
 
-      let fps = Lang.to_option (Lang.assoc "fps" 1 p) in
-      let fps = Option.map (fun v -> lazy (Lang.to_int v)) fps in
-      let fps = Option.value fps ~default:Frame.video_rate in
-
       let frame_t =
         Lang.frame_t Lang.unit_t
           (Frame.Fields.make
@@ -831,46 +826,35 @@ let _ =
                   (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
              ())
       in
+      let field = Frame.Fields.video in
       let s =
         new Ffmpeg_filter_io.video_input
+          ~field
           ~pull:(fun () -> pull graph)
           ~is_ready:(fun () -> is_ready graph)
-          ~self_sync:(fun () -> self_sync graph)
-          ~self_sync_type:(self_sync_type graph) ~pass_metadata ~fps frame_t
+          ~self_sync:(self_sync graph) ~pass_metadata frame_t
       in
-      Queue.add (s :> Source.source) graph.graph_outputs;
+      Queue.push graph.graph_outputs (s :> Source.source);
 
-      Queue.add
-        (lazy
-          (let pad =
-             match Video.of_value (Lang.assoc "" 2 p) with
-               | `Output p -> Lazy.force p
-               | _ -> assert false
-           in
-           let name = uniq_name "buffersink" in
-           let target_frame_rate = Lazy.force fps in
-           let fps =
-             match Avfilter.find_opt "fps" with
-               | Some f -> f
-               | None -> failwith "Could not find ffmpeg fps filter"
-           in
-           let fps =
-             let args = [`Pair ("fps", `Int target_frame_rate)] in
-             Avfilter.attach ~name:(uniq_name "fps") ~args fps config
-           in
-           let _buffersink = Avfilter.attach ~name Avfilter.buffersink config in
-           Avfilter.(link pad (List.hd fps.io.inputs.video));
-           Avfilter.(
-             link
-               (List.hd fps.io.outputs.video)
-               (List.hd _buffersink.io.inputs.video));
-           Avfilter.(Hashtbl.add graph.entries.outputs.video name s#set_output)))
-        graph.init;
+      Queue.push graph.init
+        (Lazy.from_fun (fun () ->
+             let pad =
+               match Video.of_value (Lang.assoc "" 2 p) with
+                 | `Output p -> Lazy.force p
+                 | _ -> assert false
+             in
+             let name = uniq_name "buffersink" in
+             let _buffersink =
+               Avfilter.attach ~name Avfilter.buffersink config
+             in
+             Avfilter.(link pad (List.hd _buffersink.io.inputs.video));
+             Avfilter.(
+               Hashtbl.replace graph.entries.outputs.video name s#set_output)));
 
-      (s :> Source.source))
+      (field, (s :> Source.source)))
 
 let unify_clocks ~clock sources =
-  Queue.iter (fun s -> Clock.unify clock s#clock) sources
+  Queue.iter sources (fun s -> Clock.unify ~pos:s#pos clock s#clock)
 
 let _ =
   let univ_t = Lang.univ_t () in
@@ -900,48 +884,50 @@ let _ =
               };
           }
       in
-      let ret = Lang.apply fn [("", Graph.to_value graph)] in
+      let ret = Lang.apply ~pos:(Lang.pos p) fn [("", Graph.to_value graph)] in
+      let id = Lang_string.generate_id "ffmpeg.filter" in
+      let output_clock = Clock.create ~id () in
       let input_clock =
-        Clock.create_known (new Clock.clock ~start:false "ffmpeg.filter")
+        Clock.create_sub_clock ~id:(id ^ ".input") output_clock
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
-      let output_clock =
-        Clock.create_unknown ~sources:[] ~sub_clocks:[input_clock]
-      in
       unify_clocks ~clock:output_clock graph.graph_outputs;
-      Queue.add
-        (lazy
-          (log#info "Initializing graph";
-           let filter = Avfilter.launch config in
-           Avfilter.(
-             List.iter
-               (fun (name, input) ->
-                 let set_input = Hashtbl.find graph.entries.inputs.audio name in
-                 set_input input)
-               filter.inputs.audio);
-           Avfilter.(
-             List.iter
-               (fun (name, input) ->
-                 let set_input = Hashtbl.find graph.entries.inputs.video name in
-                 set_input input)
-               filter.inputs.video);
-           Avfilter.(
-             List.iter
-               (fun (name, output) ->
-                 let set_output =
-                   Hashtbl.find graph.entries.outputs.audio name
-                 in
-                 set_output output)
-               filter.outputs.audio);
-           Avfilter.(
-             List.iter
-               (fun (name, output) ->
-                 let set_output =
-                   Hashtbl.find graph.entries.outputs.video name
-                 in
-                 set_output output)
-               filter.outputs.video)))
-        graph.init;
-      init_graph graph;
+
+      Queue.push graph.init
+        (Lazy.from_fun (fun () ->
+             log#info "Initializing graph";
+             let filter = Avfilter.launch config in
+             Avfilter.(
+               List.iter
+                 (fun (name, input) ->
+                   let set_input =
+                     Hashtbl.find graph.entries.inputs.audio name
+                   in
+                   set_input input)
+                 filter.inputs.audio);
+             Avfilter.(
+               List.iter
+                 (fun (name, input) ->
+                   let set_input =
+                     Hashtbl.find graph.entries.inputs.video name
+                   in
+                   set_input input)
+                 filter.inputs.video);
+             Avfilter.(
+               List.iter
+                 (fun (name, output) ->
+                   let set_output =
+                     Hashtbl.find graph.entries.outputs.audio name
+                   in
+                   set_output output)
+                 filter.outputs.audio);
+             Avfilter.(
+               List.iter
+                 (fun (name, output) ->
+                   let set_output =
+                     Hashtbl.find graph.entries.outputs.video name
+                   in
+                   set_output output)
+                 filter.outputs.video)));
       graph.config <- None;
       ret)

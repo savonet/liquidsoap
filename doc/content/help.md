@@ -6,8 +6,8 @@ You will learn here how to get help by yourself, by asking liquidsoap.
 If you do not succeed in asking the tool, you can of course get help from
 humans. We maintain the following communication channels:
 
-- Slack: [slack.liquidsoap.info](http://slack.liquidsoap.info/)
-- IRC: #savonet on [irc.libera.chat](https://libera.chat/) (through a slack bridge)
+- Discord: [chat.liquidsoap.info](http://chat.liquidsoap.info/)
+- IRC: #savonet on [irc.libera.chat](https://libera.chat/) (through a discord bridge)
 - Mailing list: [savonet-users@lists.sourceforge.net](mailto:savonet-users@lists.sourceforge.net)
 
 ## Scripting API
@@ -107,21 +107,14 @@ it this way or can in our [build page](build.html).
 
 ## Settings
 
-Liquidsoap scripts contain expression like `settings.log.stdout.set(true)`.
+Liquidsoap scripts contain expression like `settings.log.stdout := true`.
 These are _settings_, global variables affecting the behaviour of the
 application.
 
 Some common settings have shortcut for convenience. These are all shortcuts to their respective `settings` values:
 
-```liquidsoap
-log.level.set(4)
-log.file.set(true)
-log.stdout.set(true)
-init.daemon.set(true)
-audio.samplerate.set(48000)
-audio.channels.set(2)
-video.frame.width.set(720)
-video.frame.height.set(1280)
+```{.liquidsoap include="settings.liq"}
+
 ```
 
 You can have a list of available settings, with their documentation,

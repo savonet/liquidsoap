@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-  Copyright 2003-2022 Savonet team
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,12 +21,12 @@
 
 open Mm
 
-class output ~infallible ~autostart ~on_start ~on_stop source =
+class output ~infallible ~register_telnet ~autostart ~on_start ~on_stop source =
   object (self)
     inherit
       Output.output
-        ~name:"graphics" ~output_kind:"output.graphics" ~infallible ~on_start
-          ~on_stop source autostart
+        ~name:"graphics" ~output_kind:"output.graphics" ~infallible
+          ~register_telnet ~on_start ~on_stop source autostart
 
     val mutable sleep = false
     method stop = sleep <- true
@@ -39,14 +39,17 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
       sleep <- false
 
     method send_frame buf =
-      let img =
-        let width, height = self#video_dimensions in
-        Video.Canvas.get (VFrame.data buf) 0
-        |> Video.Canvas.Image.viewport width height
-        |> Video.Canvas.Image.render ~transparent:false
-        |> Image.YUV420.to_int_image |> Graphics.make_image
-      in
-      Graphics.draw_image img 0 0
+      match (VFrame.data buf).Content.Video.data with
+        | [] -> ()
+        | (_, img) :: _ ->
+            let width, height = self#video_dimensions in
+            let img =
+              img
+              |> Video.Canvas.Image.viewport width height
+              |> Video.Canvas.Image.render ~transparent:false
+              |> Image.YUV420.to_int_image |> Graphics.make_image
+            in
+            Graphics.draw_image img 0 0
 
     method! reset = ()
   end
@@ -63,6 +66,7 @@ let _ =
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_start =
         let f = List.assoc "on_start" p in
         fun () -> ignore (Lang.apply f [])
@@ -72,5 +76,6 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output ~infallible ~autostart ~on_start ~on_stop source
+      (new output
+         ~infallible ~register_telnet ~autostart ~on_start ~on_stop source
         :> Output.output))

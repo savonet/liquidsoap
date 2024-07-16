@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Rawright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Rawright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ type 'a frame = {
 }
 
 module BaseSpecs = struct
-  include Ffmpeg_content_base
+  include Content_video.Base
 
   type kind = [ `Raw ]
 
@@ -58,6 +58,8 @@ module AudioSpecs = struct
 
   type data = (params, audio frame) content
 
+  let name = "ffmpeg.raw.audio"
+
   let frame_params { frame } =
     {
       channel_layout = Some (Audio.frame_get_channel_layout frame);
@@ -79,9 +81,7 @@ module AudioSpecs = struct
     Content.print_optional
       [
         ( "channel_layout",
-          Option.map
-            (Channel_layout.get_description ?channels:None)
-            channel_layout );
+          Option.map Channel_layout.get_description channel_layout );
         ( "sample_format",
           Option.map
             (fun p ->
@@ -116,15 +116,20 @@ module AudioSpecs = struct
       | _ -> None
 
   let compatible p p' =
-    let c = function None, _ | _, None -> true | Some p, Some p' -> p = p' in
-    c (p.channel_layout, p'.channel_layout)
+    let c ?(compare = fun x x' -> x = x') = function
+      | None, _ | _, None -> true
+      | Some p, Some p' -> compare p p'
+    in
+    c ~compare:Avutil.Channel_layout.compare
+      (p.channel_layout, p'.channel_layout)
     && c (p.sample_format, p'.sample_format)
     && c (p.sample_rate, p'.sample_rate)
 
   let merge p p' =
     {
       channel_layout =
-        Content.merge_param ~name:"channel_layout"
+        Content.merge_param ~compare:Avutil.Channel_layout.compare
+          ~name:"channel_layout"
           (p.channel_layout, p'.channel_layout);
       sample_format =
         Content.merge_param ~name:"sample_format"
@@ -154,6 +159,8 @@ module VideoSpecs = struct
   }
 
   type data = (params, video frame) content
+
+  let name = "ffmpeg.raw.video"
 
   let frame_params { frame } =
     {

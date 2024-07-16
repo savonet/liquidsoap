@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -64,7 +64,73 @@ let _ =
       let l, e, f = (Lang.assoc "" 1 p, Lang.assoc "" 2 p, Lang.assoc "" 3 p) in
       match Lang.to_list l with
         | [] -> e
-        | x :: l -> Lang.apply f [("", x); ("", Lang.list l)])
+        | x :: l -> Lang.apply ~pos:(Lang.pos p) f [("", x); ("", Lang.list l)])
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "length" ~category:`List
+    ~descr:"Compute the length of a list, i.e., the number of its elements."
+    [("", Lang.list_t a, None, None)]
+    Lang.int_t
+    (fun p -> Lang.int (List.length (Lang.to_list (List.assoc "" p))))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "nth" ~category:`List
+    ~descr:
+      "Get the n-th element of a list (the first element is at position 0), or \
+       `default` if element does not exist."
+    [
+      ( "default",
+        Lang.nullable_t a,
+        Some Lang.null,
+        Some
+          "Default element. Raises `error.not_found` if `null` and no element \
+           can be found in the list." );
+      ("", Lang.list_t a, None, None);
+      ("", Lang.int_t, None, None);
+    ]
+    a
+    (fun p ->
+      let default = Lang.to_option (List.assoc "default" p) in
+      let l = Lang.to_list (Lang.assoc "" 1 p) in
+      let n = Lang.to_int (Lang.assoc "" 2 p) in
+      try List.nth l n
+      with _ -> (
+        match default with
+          | Some v -> v
+          | None ->
+              Runtime_error.raise ~pos:(Lang.pos p)
+                ~message:"no default value for list.nth" "not_found"))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "slice" ~category:`List
+    ~descr:
+      "Return the sublist of length `length` starting with the element at \
+       index `offset`."
+    [
+      ( "offset",
+        Lang.int_t,
+        Some (Lang.int 0),
+        Some "Index of the first element." );
+      ( "length",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some
+          "Length of the returned list. Include all elements from `offset` if \
+           `null`." );
+      ("", Lang.list_t a, None, None);
+    ]
+    (Lang.list_t a)
+    (fun p ->
+      let start = Lang.to_int (List.assoc "offset" p) in
+      let length = Lang.to_valued_option Lang.to_int (List.assoc "length" p) in
+      let l = Lang.to_list (List.assoc "" p) in
+      let stop =
+        match length with Some l -> start + l | None -> List.length l
+      in
+      Lang.list (List.filteri (fun pos _ -> start <= pos && pos < stop) l))
 
 let _ =
   let a = Lang.univ_t () in
@@ -93,7 +159,10 @@ let _ =
         | [] -> k e
         | x :: l ->
             aux
-              (fun r -> k (Lang.apply f [("", x); ("", Lang.list l); ("", r)]))
+              (fun r ->
+                k
+                  (Lang.apply ~pos:(Lang.pos p) f
+                     [("", x); ("", Lang.list l); ("", r)]))
               l
       in
       aux (fun r -> r) (Lang.to_list l))
@@ -129,9 +198,99 @@ let _ =
     (Lang.list_t a)
     (fun p ->
       let f = Lang.assoc "" 1 p in
-      let sort x y = Lang.to_int (Lang.apply f [("", x); ("", y)]) in
+      let sort x y =
+        Lang.to_int (Lang.apply ~pos:(Lang.pos p) f [("", x); ("", y)])
+      in
       let l = Lang.assoc "" 2 p in
       Lang.list (List.sort sort (Lang.to_list l)))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "init" ~category:`List ~descr:"Initialize a list."
+    [
+      ("", Lang.int_t, None, Some "Number of elements in the list.");
+      ( "",
+        Lang.fun_t [(false, "", Lang.int_t)] a,
+        None,
+        Some "Function such that `f i` is the `i`th element." );
+    ]
+    (Lang.list_t a)
+    (fun p ->
+      let n = Lang.to_int (Lang.assoc "" 1 p) in
+      let fn = Lang.assoc "" 2 p in
+      let apply n = Lang.apply ~pos:(Lang.pos p) fn [("", Lang.int n)] in
+      Lang.list (List.init n apply))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "iteri" ~category:`List
+    ~descr:"Call a function on every element of a list, along with its index."
+    [
+      ( "",
+        Lang.fun_t [(false, "", Lang.int_t); (false, "", a)] Lang.unit_t,
+        None,
+        None );
+      ("", Lang.list_t a, None, None);
+    ]
+    Lang.unit_t
+    (fun p ->
+      let fn = Lang.assoc "" 1 p in
+      let l = Lang.to_list (Lang.assoc "" 2 p) in
+      List.iteri
+        (fun pos v ->
+          ignore (Lang.apply ~pos:(Lang.pos p) fn [("", Lang.int pos); ("", v)]))
+        l;
+      Lang.unit)
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "append" ~category:`List
+    ~descr:"Concatenate two lists."
+    [("", Lang.list_t a, None, None); ("", Lang.list_t a, None, None)]
+    (Lang.list_t a)
+    (fun p ->
+      Lang.list
+        (List.append
+           (Lang.to_list (Lang.assoc "" 1 p))
+           (Lang.to_list (Lang.assoc "" 2 p))))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "rev" ~category:`List ~descr:"Revert list order."
+    [("", Lang.list_t a, None, None)]
+    (Lang.list_t a)
+    (fun p -> Lang.list (List.rev (Lang.to_list (List.assoc "" p))))
+
+let _ =
+  let a = Lang.univ_t () in
+  let b = Lang.univ_t () in
+  Lang.add_builtin ~base:list "map" ~category:`List
+    ~descr:"Map a function on every element of a list."
+    [
+      ("", Lang.fun_t [(false, "", a)] b, None, None);
+      ("", Lang.list_t a, None, None);
+    ]
+    (Lang.list_t b)
+    (fun p ->
+      let fn = Lang.assoc "" 1 p in
+      let l = Lang.to_list (Lang.assoc "" 2 p) in
+      Lang.list
+        (List.map (fun v -> Lang.apply ~pos:(Lang.pos p) fn [("", v)]) l))
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:list "remove" ~category:`List
+    ~descr:"Remove the first occurrence of a value from a list."
+    [("", a, None, None); ("", Lang.list_t a, None, None)]
+    (Lang.list_t a)
+    (fun p ->
+      let v = Lang.assoc "" 1 p in
+      let lv = Lang.assoc "" 2 p in
+      let l = Lang.to_list lv in
+      try
+        let v = List.find (fun v' -> Value.compare v v' == 0) l in
+        Lang.list (List.filter (fun v' -> v' != v) l)
+      with Not_found -> lv)
 
 let _ =
   let t = Lang.list_t (Lang.univ_t ()) in

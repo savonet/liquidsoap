@@ -5,36 +5,36 @@ selected = ref([])
 s1 = blank(duration=0.1)
 
 def m1(_) =
-  [("id","s1")]
+  [("id", "s1")]
 end
 
-s1 = metadata.map(id="s1",m1,s1)
+s1 = metadata.map(id="s1", m1, s1)
 
 s2 = blank(duration=0.1)
 
 def m2(_) =
-  [("id","s2")]
+  [("id", "s2")]
 end
 
-s2 = metadata.map(id="s2",m2,s2)
+s2 = metadata.map(id="s2", m2, s2)
 
 def f(m) =
-  selected := list.add(m["id"],!selected)
+  selected := list.add(m["id"], !selected)
 end
 
-s = rotate(weights=[2,1],[s1,s2])
+s = rotate(weights=[2, 1], [s1, s2])
 
 s.on_track(f)
 
 def m_noise(_) =
-  [("id","noise")]
+  [("id", "noise")]
 end
 
 noise = metadata.map(id="noise", m_noise, noise())
 
 ready = ref(false)
 
-s = switch(track_sensitive=false,[({!ready}, s), ({true}, noise)])
+s = switch(track_sensitive=false, [({!ready}, s), ({true}, noise)])
 
 def f(_) =
   ready := true
@@ -44,20 +44,26 @@ s.on_track(f)
 
 output.dummy(s)
 
-def on_done () =
+def on_done() =
+  print(!selected)
   s = list.rev(!selected)
-  if list.nth(default="",s,0) == "s1" and
-     list.nth(default="",s,1) == "s1" and
-     list.nth(default="",s,2) == "s2" and
-     list.nth(default="",s,3) == "s1" and
-     list.nth(default="",s,4) == "s1" and
-     list.nth(default="",s,5) == "s2" then
+  if
+    list.nth(default="", s, 0) == "s1"
+  and
+    list.nth(default="", s, 1) == "s1"
+  and
+    list.nth(default="", s, 2) == "s2"
+  and
+    list.nth(default="", s, 3) == "s1"
+  and
+    list.nth(default="", s, 4) == "s1"
+  and
+    list.nth(default="", s, 5) == "s2"
+  then
     test.pass()
   else
     test.fail()
   end
-
-  shutdown()
 end
 
 thread.run(delay=1., on_done)

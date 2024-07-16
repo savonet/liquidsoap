@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,10 +22,10 @@
 
 (** Read duration of ogg/vorbis files. *)
 
-let duration file =
+let duration ~metadata:_ file =
   let dec, fd = Vorbis.File.Decoder.openfile file in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun _ -> Vorbis.File.Decoder.duration dec (-1))
 
 let () = Plug.register Request.dresolvers "vorbis" ~doc:"" duration

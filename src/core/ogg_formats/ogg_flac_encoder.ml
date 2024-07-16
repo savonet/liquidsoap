@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+external set_stream_eos : Ogg.Stream.stream -> unit
+  = "liq_ocaml_ogg_stream_set_eos"
+
 let create_encoder ~flac ~comments () =
   let samplerate = Lazy.force flac.Flac_format.samplerate in
   let p =
@@ -33,22 +36,33 @@ let create_encoder ~flac ~comments () =
   in
   let enc = ref None in
   let started = ref false in
+  let m = Mutex.create () in
+  let pages = ref [] in
+  let write_cb = Mutex_utils.mutexify m (fun p -> pages := p :: !pages) in
+  let flush_pages =
+    Mutex_utils.mutexify m (fun () ->
+        let p = !pages in
+        pages := [];
+        List.rev p)
+  in
   let get_enc os =
     match !enc with
       | Some x -> x
       | None ->
-          let x = Flac_ogg.Encoder.create ~comments p os in
+          let x =
+            Flac_ogg.Encoder.create ~comments ~serialno:(Ogg.Stream.serialno os)
+              p write_cb
+          in
           enc := Some x;
           x
   in
-  let cb = Flac_ogg.Encoder.callbacks in
   let empty_data () =
     Array.make (Lazy.force Frame.audio_channels) (Array.make 1 0.)
   in
   let header_encoder os =
-    let _, p, _ = get_enc os in
-    Ogg.Stream.put_packet os p;
-    Ogg.Stream.flush_page os
+    match get_enc os with
+      | { Flac_ogg.Encoder.first_pages = p :: _ } -> p
+      | _ -> raise Ogg_muxer.Invalid_data
   in
   let fisbone_packet os =
     Some
@@ -56,18 +70,19 @@ let create_encoder ~flac ~comments () =
          ~samplerate:(Int64.of_int samplerate) ())
   in
   let stream_start os =
-    let _, _, l = get_enc os in
-    List.iter (Ogg.Stream.put_packet os) l;
-    Ogg_muxer.flush_pages os
+    match get_enc os with
+      | { Flac_ogg.Encoder.first_pages = _ :: pages } -> pages
+      | _ -> raise Ogg_muxer.Invalid_data
   in
-  let data_encoder data os _ =
+  let data_encoder data os write_page =
     if not !started then started := true;
     let b, ofs, len =
       (data.Ogg_muxer.data, data.Ogg_muxer.offset, data.Ogg_muxer.length)
     in
     let b = Array.map (fun x -> Array.sub x ofs len) b in
-    let enc, _, _ = get_enc os in
-    Flac.Encoder.process enc cb b
+    let { Flac_ogg.Encoder.encoder; callbacks } = get_enc os in
+    Flac.Encoder.process encoder callbacks b;
+    List.iter write_page (flush_pages ())
   in
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
@@ -75,13 +90,14 @@ let create_encoder ~flac ~comments () =
     else Ogg_muxer.Time (Int64.to_float granulepos /. float samplerate)
   in
   let end_of_stream os =
-    let enc, _, _ = get_enc os in
+    let { Flac_ogg.Encoder.encoder; callbacks } = get_enc os in
     (* Assert that at least some data was encoded.. *)
     if not !started then (
       let b = empty_data () in
-      Flac.Encoder.process enc cb b);
-    Flac.Encoder.finish enc cb;
-    Flac_ogg.Encoder.finish enc
+      Flac.Encoder.process encoder callbacks b);
+    Flac.Encoder.finish encoder callbacks;
+    set_stream_eos os;
+    flush_pages ()
   in
   {
     Ogg_muxer.header_encoder;
@@ -95,7 +111,9 @@ let create_encoder ~flac ~comments () =
 let create_flac = function
   | Ogg_format.Flac flac ->
       let reset ogg_enc m =
-        let comments = Utils.list_of_metadata (Meta_format.to_metadata m) in
+        let comments =
+          Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
+        in
         let enc = create_encoder ~flac ~comments () in
         Ogg_muxer.register_track ?fill:flac.Flac_format.fill ogg_enc enc
       in
@@ -106,4 +124,4 @@ let create_flac = function
       { Ogg_encoder.encode; reset; id = None }
   | _ -> assert false
 
-let () = Hashtbl.add Ogg_encoder.audio_encoders "flac" create_flac
+let () = Hashtbl.replace Ogg_encoder.audio_encoders "flac" create_flac

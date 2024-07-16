@@ -1,0 +1,16 @@
+
+log.level.set(4)
+
+file = "@FILE@"
+
+let {audio} = source.tracks(sine(duration=10.))
+let {video} = source.tracks(video.testsrc.ffmpeg(duration=10.))
+s = source({audio=audio, video=video})
+
+s = once(s)
+
+clock.assign_new(sync="none",[s])
+
+output.file(
+  fallible=true,on_close=fun (_) -> test.pass(),
+  @FORMAT@,file,s)

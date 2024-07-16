@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,10 +23,18 @@
 let decoder_metadata = Lang.add_module ~base:Modules.decoder "metadata"
 
 let _ =
-  let resolver_t = Lang.fun_t [(false, "", Lang.string_t)] Lang.metadata_t in
+  let resolver_t =
+    Lang.fun_t
+      [(false, "metadata", Lang.metadata_t); (false, "", Lang.string_t)]
+      Lang.metadata_t
+  in
   Lang.add_builtin ~base:decoder_metadata "add" ~category:`Liquidsoap
     ~descr:"Register an external file metadata decoder."
     [
+      ( "priority",
+        Lang.getter_t Lang.int_t,
+        Some (Lang.int 1),
+        Some "Resolver's priority." );
       ("", Lang.string_t, None, Some "Format/resolver's name.");
       ( "",
         resolver_t,
@@ -39,8 +47,12 @@ let _ =
     (fun p ->
       let format = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let resolver name =
-        let ret = Lang.apply f [("", Lang.string name)] in
+      let priority = Lang.to_int_getter (List.assoc "priority" p) in
+      let resolver ~metadata ~extension:_ ~mime:_ name =
+        let ret =
+          Lang.apply f
+            [("metadata", Lang.metadata metadata); ("", Lang.string name)]
+        in
         let ret = Lang.to_list ret in
         let ret = List.map Lang.to_product ret in
         let ret =
@@ -48,8 +60,31 @@ let _ =
         in
         ret
       in
-      Plug.register Request.mresolvers format ~doc:"" resolver;
+      Plug.register Request.mresolvers format ~doc:""
+        { Request.priority; resolver };
       Lang.unit)
+
+let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
+  let return_t = Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t) in
+  Lang.add_builtin ~base:Builtins_sys.playlist_parse name ~category:`Liquidsoap
+    ~descr:(Printf.sprintf "Parse %s playlists" format)
+    [
+      ("", Lang.string_t, None, Some "Playlist file");
+      ( "pwd",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Current directory to use for relative file path." );
+    ]
+    return_t
+    (fun p ->
+      let uri = Lang.to_string (List.assoc "" p) in
+      let pwd = Lang.to_valued_option Lang.to_string (List.assoc "pwd" p) in
+      let entries = parser ?pwd uri in
+      Lang.list
+        (List.map
+           (fun (metadata, uri) ->
+             Lang.product (Lang.metadata_list metadata) (Lang.string uri))
+           entries))
 
 let _ =
   let playlist_t = Lang.list_t (Lang.product_t Lang.metadata_t Lang.string_t) in
@@ -108,7 +143,7 @@ let _ =
         (false, "maxtime", Lang.float_t);
         (false, "", Lang.string_t);
       ]
-      (Lang.list_t Lang.string_t)
+      Lang.(nullable_t string_t)
   in
   Lang.add_builtin ~base:Modules.protocol "add" ~category:`Liquidsoap
     ~descr:"Register a new protocol."
@@ -160,7 +195,7 @@ let _ =
                 log (Lang.to_string v);
                 Lang.unit)
           in
-          let l =
+          let ret =
             Lang.apply f
               [
                 ("rlog", log);
@@ -168,7 +203,12 @@ let _ =
                 ("", Lang.string arg);
               ]
           in
-          List.map
+          Option.map
             (fun s -> Request.indicator ~temporary (Lang.to_string s))
-            (Lang.to_list l));
+            (Lang.to_option ret));
       Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:Modules.protocol "count" ~category:`Liquidsoap
+    ~descr:"Number of registered protocols." [] Lang.int_t (fun _ ->
+      Doc.Protocol.count () |> Lang.int)

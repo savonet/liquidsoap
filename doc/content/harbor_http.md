@@ -9,26 +9,19 @@ HTTP response implementation. This function receives a record describing the req
 the HTTP response.
 
 The request passed to the function contains all expected information from the underlying HTTP
-query. Its `data` method is a _string getter_, that is a function of type: `() -> string`
-which returns the empty string `""` when all data has been consumed. The convenience function
-`harbor.http.request.body` can be used to read all the data from the request and return it at
-once.
+query.
 
-For convenience, a HTTP response builder is provided via `harbor.http.response`. Here's an example:
+The `data` method on a request is a _string getter_, that is a function of type: `() -> string`
+which returns the empty string `""` when all data has been consumed. You can use this function
+to e.g. write the request data to a file using `file.write.stream`.
 
-```liquidsoap
-def handler(request) =
-  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
-       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       data: #{harbor.http.request.body((request.data)}")
+The `body` method can be used to read all of the request's data and store it in
+memory. Make sure to only use it if you know that the response should be small enough!
 
-  harbor.http.response(
-    content_type="text/html",
-    data="<p>ok, this works!</p>"
-  )
-end
+For convenience, a HTTP response builder is provided via `http.response`. Here's an example:
 
-harbor.http.register.simple(port=8080, method="GET", path, handler)
+```{.liquidsoap include="harbor.http.response.liq" from="BEGIN"}
+
 ```
 
 where:
@@ -42,47 +35,8 @@ where:
 The `harbor.http.register` function offers a higher-level API for advanced HTTP response implementation.
 Its API is very similar to the node/express API. Here's an example:
 
-```liquidsoap
-def handler(request, response) =
-  log("Got a request on path #{request.path}, protocol version: #{request.http_version}, \
-       method: #{request.method}, headers: #{request.headers}, query: #{request.query}, \
-       data: #{harbor.http.request.body(request.data)}")
+```{.liquidsoap include="harbor.http.register.liq" from="BEGIN"}
 
-  # Set response code. Defaults to 200
-  response.status_code(201)
-
-  # Set response status message. Uses `status_code` if not specified
-  response.status_message("Created")
-
-  # Replaces response headers
-  response.headers(["X-Foo", "bar"])
-
-  # Set a single header
-  response.header("X-Foo", "bar")
-
-  # Set http protocol version
-  response.http_version("1.1")
-
-  # Same as setting the "Content-Type" header
-  response.content_type("application/liquidsoap")
-
-  # Set response data. Can be a `string` or a function of type `()->string` returning an empty string
-  # when done such as `file.read`
-  response.data("foo")
-
-  # Advanced wrappers:
-
-  # Sets content-type to json and data to `json.stringify({foo = "bla"})`
-  response.json({foo = "bla"})
-
-  # Sets `status_code` and `Location:` header for a HTTP redirect response. Takes an optional `status_code` argument.
-  response.redirect("http://...")
-
-  # Sets content-type to html and data to `"<p>It works!</p>"`
-  response.html("<p>It works!</p>")
-end
-
-harbor.http.register(port=8080, method="GET", path, handler)
 ```
 
 where:
@@ -96,17 +50,30 @@ up the details about the response, which is then used to write a proper HTTP res
 
 Named fragments from the request path are passed to the response `query` list.
 
-Middleware _a la_ node/express are also supported and registered via `http.harbor.middleware.register`. See `http.harbor.middleware.cors` for an example.
+Middleware _a la_ node/express are also supported and registered via `http.harbor.middleware.register`. See `http.harbor.middleware.cors` for an example of how to implement one such middleware.
+
+Here's how you would enable the `cors` middleware:
+
+```
+harbor.http.middleware.register(harbor.http.middleware.cors(origin="example.com"))
+```
 
 ## Https support
 
-`https` is supported using either `libssl` or macos' `SecureTransport`. When compiled with either of them, a `http.transport.ssl` or `http.transport.secure_transport`
+`https` is supported using either `libssl` or `ocaml-tls`. When compiled with either of them, a `http.transport.ssl` or `http.transport.tls`
 is available and can be passed to each `harbor` operator:
 
 ```liquidsoap
 transport = http.transport.ssl(
+  # Server mode: required,
+  # client mode: optional, add certificate to trusted pool
   certificate="/path/to/certificate/file",
+
+  # Server mode: required, client mode: ignored
   key="/path/to/secret/key/file",
+
+  # Required if key file requires one.
+  # TLS does not support password encrypted keys!
   password="optional password"
 )
 
@@ -115,6 +82,8 @@ harbor.http.register(transport=transport, port=8000, ...)
 input.harbor(transport=..., port=8000, ...)
 
 output.harbor(transport=..., port=8000, ...)
+
+output.icecast(transport=..., port=8000, ...)
 ```
 
 A given port can only support one type of transport at a time and registering handlers, sources or outputs on the same port with different transports
@@ -128,17 +97,8 @@ parameter.
 
 It is also possible to directly interact with the underlying socket using the `simple` API:
 
-```liquidsoap
-  # Custom response
-  def handler(req) =
-    req.socket.write("HTTP/1.0 201 YYR\r\nFoo: bar\r\n\r\n")
-    req.socket.close()
+```{.liquidsoap include="harbor-simple.liq"}
 
-    # Null indicates that we're using the socket directly.
-    null()
-  end
-
-  harbor.http.register.simple("/custom", port=3456, handler)
 ```
 
 ## Examples
@@ -152,44 +112,17 @@ Some source clients using the harbor may also request pages that
 are served by an icecast server, for instance listeners statistics.
 In this case, you can register the following handler:
 
-```liquidsoap
-# Redirect all files other
-# than /admin.* to icecast,
-# located at localhost:8000
-def redirect_icecast(request, response) =
-  response.redirect("http://localhost:8000#{request.path}")
-end
+```{.liquidsoap include="harbor-redirect.liq"}
 
-# Register this handler at port 8005
-# (provided harbor sources are also served
-#  from this port).
-harbor.http.register.regexp(
-  port=8005,
-  method="GET",
-  r/^\/(?!admin)/,
-  redirect_icecast
-)
 ```
 
 ## Get metadata
 
 You can use harbor to register HTTP services to
-fecth/set the metadata of a source. For instance,
-using the [JSON export function](json.html) `json.stringify`:
+fecth/set the metadata of a source.
 
-```liquidsoap
-meta = ref([])
+```{.liquidsoap include="harbor-metadata.liq" from="BEGIN"}
 
-# s = some source
-s.on_metadata(fun (m) -> meta := m)
-
-# Return the json content of meta
-def get_meta(_, response) =
-  response.json(!meta)
-end
-
-# Register get_meta at port 700
-harbor.http.register(port=7000,method="GET","/getmeta",get_meta)
 ```
 
 Once the script is running,
@@ -213,31 +146,8 @@ Content-Type: application/json; charset=utf-8
 Using `insert_metadata`, you can register a GET handler that
 updates the metadata of a given source. For instance:
 
-```liquidsoap
-# s = some source
+```{.liquidsoap include="harbor-insert-metadata.liq" from="BEGIN"}
 
-# Create a source equipped with a `insert_metadata` method:
-s = insert_metadata(s)
-
-# The handler
-def set_meta(request, response) =
-  # Filter out unusual metadata
-  meta = metadata.export(request.query)
-
-  # Grab the returned message
-  ret =
-    if meta != [] then
-      s.insert_metadata(meta)
-      "OK!"
-    else
-      "No metadata to add!"
-  end
-
-  response.html("<html><body><b>#{ret}</b></body></html>")
-end
-
-# Register handler on port 700
-harbor.http.register(port=7000,method="GET","/setmeta",set_meta)
 ```
 
 Now, a request of the form `http://server:7000/setmeta?title=foo`

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,8 +38,10 @@ let make ?pos base_type fields =
       Type.make ?pos (Type.Meth (meth, typ)))
     fields base_type
 
-let internal ?pos () =
-  Type.var ?pos ~constraints:[Format_type.internal_media] ()
+let internal_tracks ?pos () =
+  Type.var ?pos ~constraints:[Format_type.internal_tracks] ()
+
+let pcm_audio ?pos () = Type.var ?pos ~constraints:[Format_type.pcm_audio] ()
 
 let set_field frame_type field field_type =
   let field = Frame.Fields.string_of_field field in
@@ -54,6 +56,10 @@ let set_field frame_type field field_type =
   in
   Type.make (Type.Meth (meth, frame_type))
 
+let get_fields frame_type =
+  let fields, _ = Type.split_meths frame_type in
+  List.map (fun Type.{ meth } -> Frame.Fields.register meth) fields
+
 let get_field frame_type field =
   let field = Frame.Fields.string_of_field field in
   let fields, _ = Type.split_meths frame_type in
@@ -67,13 +73,16 @@ let get_field frame_type field =
     | None -> raise Not_found
 
 let content_type frame_type =
+  let meths, base_type = Type.split_meths frame_type in
   let frame_type =
-    match (Type.deref frame_type).Type.descr with
+    match (meths, base_type.Type.descr) with
       (* If type is empty we add default formats. *)
-      | Type.Var _ ->
+      | [], Type.Var _ ->
           let audio =
             if Frame_settings.conf_audio_channels#get > 0 then
-              Some (Format_type.audio_n Frame_settings.conf_audio_channels#get)
+              Some
+                (Format_type.audio_n ~pcm_kind:Content_audio.kind
+                   Frame_settings.conf_audio_channels#get)
             else None
           in
           let video =
@@ -86,22 +95,38 @@ let content_type frame_type =
           in
           Typing.(frame_type <: default_t);
           default_t
-      | _ -> frame_type
+      | _ ->
+          (try
+             (* Map audio and video fields to their default value when possible.
+                This is in case the source has types such as { audio = 'a } *)
+             Typing.satisfies_constraint base_type Format_type.internal_tracks;
+             List.iter
+               (function
+                 | { Type.meth = "audio"; scheme = [], ty } ->
+                     Typing.(
+                       ty <: Format_type.audio ~pcm_kind:Content_audio.kind ())
+                 | { Type.meth = "video"; scheme = [], ty } ->
+                     Typing.(ty <: Format_type.video ())
+                 | _ -> ())
+               meths
+           with _ -> ());
+          frame_type
   in
   let meths, _ = Type.split_meths frame_type in
+  let meths = List.filter (fun { Type.optional } -> not optional) meths in
   let content_type, resolved_frame_type =
     List.fold_left
       (fun (content_type, resolved_frame_type)
            ({ Type.meth = field; scheme = _, ty } as meth) ->
-        let format = Format_type.content_type ty in
-        let format_type = Type.make (Format_type.descr (`Format format)) in
-        ( Frame.Fields.add
-            (Frame.Fields.field_of_string field)
-            format content_type,
-          Type.make
-            (Type.Meth
-               ( { meth with Type.scheme = ([], format_type) },
-                 resolved_frame_type )) ))
+        try
+          let format = Format_type.content_type ty in
+          let format_type = Type.make (Format_type.descr (`Format format)) in
+          ( Frame.Fields.add (Frame.Fields.register field) format content_type,
+            Type.make
+              (Type.Meth
+                 ( { meth with Type.scheme = ([], format_type) },
+                   resolved_frame_type )) )
+        with Format_type.Never_type -> (content_type, resolved_frame_type))
       (Frame.Fields.empty, Type.make Type.unit)
       meths
   in

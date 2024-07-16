@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ module Samplerate = struct
   (** A converter takes a conversion ratio (output samplerate / input
       samplerate), an audio buffer, and returns a resampled buffer. *)
   type converter =
-    float -> Content.Audio.data -> int -> int -> Content.Audio.data * int * int
+    float -> Content_audio.data -> int -> int -> Content_audio.data * int * int
 
   type converter_plug = int -> converter
   type t = { channels : int; converter : converter }
@@ -92,7 +92,8 @@ module Samplerate = struct
 
   (** Log which converter is used at start. *)
   let () =
-    Lifecycle.before_start (fun () ->
+    Lifecycle.on_start ~name:"audio samplerate converter initialization"
+      (fun () ->
         let rec f = function
           | conv :: _ when Plug.get converters conv <> None ->
               log#important "Using samplerate converter: %s." conv
@@ -107,11 +108,11 @@ module Channel_layout = struct
   exception Invalid_data
 
   type layout = [ `Mono | `Stereo | `Five_point_one ]
-  type converter = layout -> layout -> Content.Audio.data -> Content.Audio.data
+  type converter = layout -> layout -> Content_audio.data -> Content_audio.data
 
   type t = {
     src : layout;
-    converter : Content.Audio.data -> Content.Audio.data;
+    converter : Content_audio.data -> Content_audio.data;
   }
 
   let channel_layout_conf =

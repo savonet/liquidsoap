@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ let _ =
     (fun p ->
       let name = Lang.to_string (Lang.assoc "" 1 p) in
       let f = Lang.assoc "" 2 p in
-      let f () = Lang.apply f [] in
+      let f () = Lang.apply ~pos:(Lang.pos p) f [] in
       Profiler.time name f ())
 
 let _ =

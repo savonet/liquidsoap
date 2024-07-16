@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ module Fps : sig
   val time_base : t -> Avutil.rational
 
   val init :
+    ?start_pts:int64 ->
     width:int ->
     height:int ->
     pixel_format:Avutil.Pixel_format.t ->
@@ -38,4 +39,6 @@ module Fps : sig
 
   val convert :
     t -> [ `Video ] Avutil.frame -> ([ `Video ] Avutil.frame -> unit) -> unit
+
+  val eof : t -> ([ `Video ] Avutil.frame -> unit) -> unit
 end

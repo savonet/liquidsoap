@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ module ErrorDef = struct
 
   let name = "error"
 
-  let descr { kind; msg; pos } =
+  let to_string { kind; msg; pos } =
     let pos =
       if pos <> [] then
         Printf.sprintf ",positions=%s"
@@ -57,7 +57,7 @@ module ErrorDef = struct
 end
 
 module Error = struct
-  include Value.MkAbstract ((ErrorDef : Value.AbstractDef))
+  include Value.MkCustom ((ErrorDef : Value.CustomDef))
 
   let meths =
     [
@@ -75,6 +75,8 @@ module Error = struct
         fun { pos } -> Lang_core.Stacktrace.to_value pos );
     ]
 
+  let base_t = t
+
   let t =
     Lang_core.method_t t
       (List.map (fun (lbl, t, descr, _) -> (lbl, t, descr)) meths)
@@ -82,8 +84,6 @@ module Error = struct
   let to_value err =
     Lang_core.meth (to_value err)
       (List.map (fun (lbl, _, _, m) -> (lbl, m err)) meths)
-
-  let of_value err = of_value (Lang_core.demeth err)
 end
 
 let _ =
@@ -99,7 +99,7 @@ let _ =
   Lang_core.add_builtin ~base:error_module "raise" ~category:`Programming
     ~descr:"Raise an error."
     [
-      ("", Error.t, None, Some "Error kind.");
+      ("", Error.base_t, None, Some "Error kind.");
       ( "",
         Lang_core.string_t,
         Some (Lang_core.string ""),
@@ -116,7 +116,8 @@ let _ =
     ~descr:
       "Register a callback to monitor errors raised during the execution of \
        the program. The callback is allow to re-raise a different error if \
-       needed."
+       needed. The callback passed to this function is called on every errors, \
+       not just uncaught errors."
     [("", Lang_core.fun_t [(false, "", Error.t)] Lang_core.unit_t, None, None)]
     Lang_core.unit_t
     (fun p ->
@@ -135,30 +136,57 @@ let _ =
     ~flags:[`Hidden] ~descr:"Execute a function, catching eventual exceptions."
     [
       ( "errors",
-        Lang_core.nullable_t (Lang_core.list_t Error.t),
+        Lang_core.nullable_t (Lang_core.list_t Error.base_t),
         None,
         Some "Kinds of errors to catch. Catches all errors if not set." );
-      ("", Lang_core.fun_t [] a, None, Some "Function to execute.");
-      ("", Lang_core.fun_t [(false, "", Error.t)] a, None, Some "Error handler.");
+      ("body", Lang_core.fun_t [] a, None, Some "Function to execute.");
+      ( "catch",
+        Lang_core.fun_t [(false, "", Error.t)] a,
+        None,
+        Some "Error handler." );
+      ( "finally",
+        Lang_core.fun_t [] Lang_core.unit_t,
+        None,
+        Some "Invariant handler." );
     ]
     a
     (fun p ->
       let errors =
         Option.map
           (fun v -> List.map Error.of_value (Lang_core.to_list v))
-          (Lang_core.to_option (Lang_core.assoc "errors" 1 p))
+          (Lang_core.to_option (List.assoc "errors" p))
       in
-      let f = Lang_core.to_fun (Lang_core.assoc "" 1 p) in
-      let h = Lang_core.to_fun (Lang_core.assoc "" 2 p) in
-      try f []
+      let body = Lang_core.to_fun (List.assoc "body" p) in
+      let catch = Lang_core.to_fun (List.assoc "catch" p) in
+      let finally = Lang_core.to_fun (List.assoc "finally" p) in
+      let finally_called = Atomic.make false in
+      try
+        let v = body [] in
+        Atomic.set finally_called true;
+        ignore (finally []);
+        v
       with
-      | Runtime_error.(Runtime_error { kind; msg })
-      when errors = None
-           || List.exists (fun err -> err.kind = kind) (Option.get errors)
-      ->
-        h
-          [
-            ( "",
-              Error.to_value
-                (Runtime_error.make ~pos:(Lang_core.pos p) ~message:msg kind) );
-          ])
+        | Runtime_error.(Runtime_error { kind; msg })
+          when errors = None
+               || List.exists (fun err -> err.kind = kind) (Option.get errors)
+          ->
+            let v =
+              try
+                catch
+                  [
+                    ( "",
+                      Error.to_value
+                        (Runtime_error.make ~pos:(Lang_core.pos p) ~message:msg
+                           kind) );
+                  ]
+              with exn when not (Atomic.get finally_called) ->
+                let bt = Printexc.get_raw_backtrace () in
+                ignore (finally []);
+                Printexc.raise_with_backtrace exn bt
+            in
+            if not (Atomic.get finally_called) then ignore (finally []);
+            v
+        | exn when Atomic.get finally_called ->
+            let bt = Printexc.get_raw_backtrace () in
+            ignore (finally []);
+            Printexc.raise_with_backtrace exn bt)

@@ -3,13 +3,118 @@
 In this page, we list the most common catches when migrating to a new version of
 Liquidsoap.
 
+### Generalities
+
+If you are installing via `opam`, it can be useful to create a [new switch](https://opam.ocaml.org/doc/Usage.html) to install
+the new version of `liquidsoap`. This will allow to test the new version while keeping
+the old version around in case you to revert to it.
+
+More generally, we recommend to always keep a version of your script around and also
+to make sure that you test your new script with a staging environment that is
+close to production. Streaming issues can build up over time. We do our best to
+release the most stable possible code but problems can arise from many reasons
+so, always best to first to a trial run before putting things to production!
+
+## From 2.2.x to 2.3.x
+
+### Crossfade transitions and track marks
+
+Track marks can now be properly passed through crossfade transitions. This means that you also have to make sure
+that your transition function is fallible! For instance, this silly transition function:
+
+```liquidsoap
+def transition(_, _) =
+  blank(duration=2.)
+end
+```
+
+Will never terminate!
+
+Typically, to insert a jingle you would do:
+
+```liquidsoap
+def transition(old, new) =
+  sequence([old.source, single("/path/to/jingle.mp3"), new.source])
+end
+```
+
+### Replaygain
+
+- There is a new `metadata.replaygain` function that extracts the replay gain value in _dB_ from the metadata.
+  It handles both `r128_track_gain` and `replaygain_track_gain` internally and returns a single unified gain value.
+
+- The `file.replaygain` function now takes a new compute parameter:
+  `file.replaygain(~id=null(), ~compute=true, ~ratio=50., file_name)`.
+  The compute parameter determines if gain should be calculated when the metadata does not already contain replaygain tags.
+
+- The `enable_replaygain_metadata` function now accepts a compute parameter to control replaygain calculation.
+
+- The `replaygain` function no longer takes an `ebu_r128` parameter. The signature is now simply: `replaygain(~id=null(), s)`.
+  Previously, `ebu_r128` allowed controlling whether EBU R128 or standard replaygain was used.
+  However, EBU R128 data is now extracted directly from metadata when available.
+  So `replaygain` cannot control the gain type via this parameter anymore.
+
+### `check_next`
+
+`check_next` in playlist operators is now called _before_ the request is resolved, to make it possible to cut out
+unwanted requests before consuming process time. If you need to see the request's metadata or if the request resolves
+into a valid tile, however, you might need to call `request.resolve` inside your `check_next` script.
+
+### Prometheus
+
+The default port for the Prometheus metrics exporter has changed from `9090` to `9599`.
+As before, you can change it with `settings.prometheus.server.port := <your port value>`.
+
 ## From 2.1.x to 2.2.x
 
-### Harbor HTTP server
+### References
 
-The API for registering HTTP server endpoint was completely. It should be more flexible and
-provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](harbor_http.html)
+The `!x` notation for getting the value of a reference is now deprecated. You
+should write `x()` instead. And `x := v` is now an alias for `x.set(v)` (both
+can be used interchangeably).
+
+### Icecast and Shoutcast outputs
+
+`output.icecast` and `output.shoutcast` are some of our oldest operators and were in dire need of some
+cleanup so we did it!
+
+We applied the following changes:
+
+- You should now use `output.icecast` only for sending to icecast servers and `output.shoutcast` only for sending to shoutcast servers. All shared options have been moved to their respective specialized operator.
+- Old `icy_metadata` argument was renamed to `send_icy_metadata` and changed to a nullable `bool`. `null` means guess.
+- New `icy_metadata` argument now returns a list of metadata to send with ICY updates.
+- Added a `icy_song` argument to generate default `"song"` metadata for ICY updates. Defaults to `<artist> - <title>` when available, otherwise `artist` or `title` if available, otherwise `null`, meaning don't add the metadata.
+- Cleaned up and removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
+- Made `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
+
+### HLS events
+
+Starting with version `2.2.1`, on HLS outputs, `on_file_change` events are now `"created"`, `"updated"` and `"deleted"`. This breaking
+was required to reflect the fact that file changes are now atomic. See [this issue](https://github.com/savonet/liquidsoap/issues/3284)
 for more details.
+
+### `cue_cut`
+
+Starting with version `2.2.4`, the `cue_cut` operator has been removed. Requests cue-in and cue-out processing has been integrated
+directly into requests resolution. In most cases, you simply can remove the operator from your script. In some cases, you might
+need to disable `cue_in_metadata` and `cue_out_metadat` either when creating new requests or when creating `playlist` sources.
+
+### Harbor HTTP server and SSL support
+
+The API for registering HTTP server endpoint and using SSL was completely rewritten. It should be more flexible and
+provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](harbor_http.html)
+for more details. The [Https support](harbor_http.html#https-support) section also explains the new SSL/TLS API.
+
+### Timeout
+
+We used to have timeout values labelled `timeout` or `timeout_ms`, some of these would be integer and
+in milliseconds, other floating point and in seconds etc. This was pretty confusing so, now all `timeout`
+settings and arguments have been unified to be named `timeout` and hold a floating point value representing
+a number of seconds.
+
+In most cases, your script will not execute until you have updated your custom `timeout`
+values but you should also review all of them to make sure that they follow the new
+convention.
 
 ### Metadata overrides
 
@@ -59,6 +164,12 @@ becomes:
 settings.decoder.decoders.set(["ffmpeg"])
 ```
 
+Actually, because of the above change in references, this even becomes:
+
+```
+settings.decoder.decoders := ["ffmpeg"]
+```
+
 ### `strftime`
 
 Add file-based operators do not support `strftime` type conversions out of the box anymore. Instead, you should use explicit conversions using `time.string`. This means that this script:
@@ -72,6 +183,12 @@ becomes:
 ```liquidsoap
 output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 ```
+
+### Other breaking changes
+
+- `reopen_on_error` and `reopen_on_metadata` in `output.file` an related outputs are now callbacks.
+- `request.duration` now returns a `nullable` float, `null` being value returned when the request duration could not be computed.
+- `getenv` (resp. `setenv`) has been renamed to `environment.get` (resp. `environment.set`).
 
 ## From 2.0.x to 2.1.x
 

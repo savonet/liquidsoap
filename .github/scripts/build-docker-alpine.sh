@@ -3,14 +3,13 @@
 set -e
 
 APK_FILE="$1"
-APK_DBG_FILE="$2"
-TAG="$3"
-USER="$4"
-PASSWORD="$5"
-ARCHITECTURE="$6"
-DOCKER_PLATFORM="$7"
+TAG="$2"
+USER="$3"
+PASSWORD="$4"
+ARCHITECTURE="$5"
+DOCKER_PLATFORM="$6"
 
-cp "$APK_FILE" "$APK_DBG_FILE" .
+cp "$APK_FILE" .
 
 docker login -u "$USER" -p "$PASSWORD"
 
@@ -19,7 +18,6 @@ docker buildx build \
   --platform "${DOCKER_PLATFORM}" \
   --no-cache \
   --build-arg "APK_FILE=$APK_FILE" \
-  --build-arg "APK_DBG_FILE=$APK_DBG_FILE" \
   --file .github/docker/Dockerfile.production-alpine \
   --tag "savonet/liquidsoap-ci-build:${TAG}_alpine_${ARCHITECTURE}" \
   --push \

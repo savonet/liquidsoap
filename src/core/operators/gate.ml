@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,10 +26,10 @@ open Source
 class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
   object (self)
     inherit operator ~name:"gate" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
-    method is_ready = source#is_ready
+    method seek_source = source#seek_source
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
@@ -47,11 +47,11 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
     val mutable hold_delay =
       int_of_float (hold () *. float (Lazy.force Frame.audio_rate))
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
+    method private generate_frame =
+      let buf =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let position = self#frame_audio_position in
       let chans = self#audio_channels in
       let samplerate = float (Lazy.force Frame.audio_rate) in
       let attack = attack () in
@@ -63,11 +63,11 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
       let window_coef = 1. -. exp (-1. /. (window () *. samplerate)) in
       let range = range () in
       let hold = int_of_float (hold () *. samplerate) in
-      for i = offset to position - 1 do
+      for i = 0 to position - 1 do
         let x =
           let x = ref 0. in
           for c = 0 to chans - 1 do
-            x := max !x (abs_float buf.(c).(i))
+            x := max !x (Utils.abs_float buf.(c).(i))
           done;
           peak <- peak +. (window_coef *. (!x -. peak));
           peak
@@ -95,7 +95,8 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
         for c = 0 to chans - 1 do
           buf.(c).(i) <- buf.(c).(i) *. gain
         done
-      done
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

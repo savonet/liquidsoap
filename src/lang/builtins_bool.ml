@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,25 +20,68 @@
 
  *****************************************************************************)
 
+type op = {
+  name : string;
+  value_op : int -> bool;
+  ground_op : 'a. 'a -> 'a -> bool;
+}
+
+let operators =
+  [
+    {
+      name = "==";
+      value_op = (fun c -> c = 0);
+      ground_op = (fun c c' -> c = c');
+    };
+    {
+      name = "!=";
+      value_op = (fun c -> c <> 0);
+      ground_op = (fun c c' -> c <> c');
+    };
+    {
+      name = "<";
+      value_op = (fun c -> c = -1);
+      ground_op = (fun c c' -> c < c');
+    };
+    {
+      name = "<=";
+      value_op = (fun c -> c <> 1);
+      ground_op = (fun c c' -> c <= c');
+    };
+    {
+      name = ">=";
+      value_op = (fun c -> c <> -1);
+      ground_op = (fun c c' -> c >= c');
+    };
+    {
+      name = ">";
+      value_op = (fun c -> c = 1);
+      ground_op = (fun c c' -> c > c');
+    };
+  ]
+
 let () =
   let t = Lang.univ_t ~constraints:[Type.ord_constr] () in
-  let register_op name op =
-    ignore
-      (Lang.add_builtin name ~category:`Bool
-         ~descr:"Comparison of comparable values."
-         [("", t, None, None); ("", t, None, None)]
-         Lang.bool_t
-         (fun p ->
-           let a = Lang.assoc "" 1 p in
-           let b = Lang.assoc "" 2 p in
-           Lang.bool (op (Value.compare a b))))
-  in
-  register_op "==" (fun c -> c = 0);
-  register_op "!=" (fun c -> c <> 0);
-  register_op "<" (fun c -> c = -1);
-  register_op "<=" (fun c -> c <> 1);
-  register_op ">=" (fun c -> c <> -1);
-  register_op ">" (fun c -> c = 1)
+  List.iter
+    (fun { name; value_op; ground_op } ->
+      ignore
+        (Lang.add_builtin name ~category:`Bool
+           ~descr:"Comparison of comparable values."
+           [("", t, None, None); ("", t, None, None)]
+           Lang.bool_t
+           (fun p ->
+             let v = Lang.assoc "" 1 p in
+             let v' = Lang.assoc "" 2 p in
+             Lang.bool
+               (match (v, v') with
+                 | Custom { value = g }, Custom { value = g' } ->
+                     value_op (Term.Custom.compare g g')
+                 | Int { value = v }, Int { value = v' } -> ground_op v v'
+                 | Float { value = v }, Float { value = v' } -> ground_op v v'
+                 | String { value = v }, String { value = v' } -> ground_op v v'
+                 | Bool { value = v }, Bool { value = v' } -> ground_op v v'
+                 | _ -> value_op (Value.compare v v')))))
+    operators
 
 let _ =
   Lang.add_builtin "and" ~category:`Bool

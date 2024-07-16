@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,25 +31,29 @@ let global_evar_names = ref false
 open Type_base
 include R
 
+type t = Type_base.constr R.t
+
 (** Given a position, find the relevant excerpt. *)
-let excerpt (start, stop) =
+let excerpt pos =
+  let { Pos.fname; lstart; lstop; cstart; cstop } = Pos.unpack pos in
   try
-    if start.Lexing.pos_fname <> stop.Lexing.pos_fname then raise Exit;
-    let fname = start.Lexing.pos_fname in
-    let l1 = start.Lexing.pos_lnum in
-    let l2 = stop.Lexing.pos_lnum in
-    let ic = open_in fname in
-    let n = ref 1 in
-    while !n < l1 do
-      ignore (input_line ic);
-      incr n
-    done;
-    let lines = ref [] in
-    while !n <= l2 do
-      lines := input_line ic :: !lines;
-      incr n
-    done;
-    close_in ic;
+    let lines =
+      let ic = open_in fname in
+      Fun.protect
+        ~finally:(fun () -> close_in ic)
+        (fun () ->
+          let n = ref 1 in
+          while !n < lstart do
+            ignore (input_line ic);
+            incr n
+          done;
+          let lines = ref [] in
+          while !n <= lstop do
+            lines := input_line ic :: !lines;
+            incr n
+          done;
+          lines)
+    in
     let lines = Array.of_list (List.rev !lines) in
     let lines =
       let n = Array.length lines in
@@ -64,14 +68,8 @@ let excerpt (start, stop) =
     in
     (* The order is important here because both lines might be the same. *)
     lines.(Array.length lines - 1) <-
-      insert_at (Console.stop_color ())
-        (stop.Lexing.pos_cnum - stop.Lexing.pos_bol)
-        lines.(Array.length lines - 1);
-    lines.(0) <-
-      insert_at
-        (Console.start_color [`red])
-        (start.Lexing.pos_cnum - start.Lexing.pos_bol)
-        lines.(0);
+      insert_at (Console.stop_color ()) cstop lines.(Array.length lines - 1);
+    lines.(0) <- insert_at (Console.start_color [`red]) cstart lines.(0);
     let lines = Array.to_list lines in
     let s = String.concat "\n" lines ^ "\n" in
     Some s
@@ -103,7 +101,7 @@ let evar_global_name =
     with Not_found ->
       incr n;
       let name = String.uppercase_ascii (name !n) in
-      Hashtbl.add evars i name;
+      Hashtbl.replace evars i name;
       name
 
 (** Compute the structure that a term represents, given the list of universally
@@ -157,7 +155,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         try Hashtbl.find evars var.name
         with Not_found ->
           let name = String.uppercase_ascii (name (counter ())) in
-          Hashtbl.add evars var.name name;
+          Hashtbl.replace evars var.name name;
           name
       in
       `EVar (Printf.sprintf "'%s%s" constr_symbols s, Constraints.of_list c))
@@ -166,6 +164,11 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
     if filter_out t then `Ellipsis
     else (
       match t.descr with
+        | Int -> `Constr ("int", [])
+        | Float -> `Constr ("float", [])
+        | String -> `Constr ("string", [])
+        | Bool -> `Constr ("bool", [])
+        | Never -> `Constr ("never", [])
         | Custom c -> c.repr repr g c.typ
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
@@ -197,11 +200,7 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | Var { contents = Link (`Covariant, t) } when !debug || !debug_variance
           ->
             `Debug ("[>", repr g t, "]")
-        | Var { contents = Link (`Contravariant, t) }
-          when !debug || !debug_variance ->
-            `Debug ("[<", repr g t, "]")
-        | Var { contents = Link (_, t) } -> repr g t
-        | _ -> raise NotImplemented)
+        | Var { contents = Link (_, t) } -> repr g t)
   in
   repr generalized t
 
@@ -221,8 +220,10 @@ let print f t =
           | `Meth ({ R.name = field }, base_type)
             when List.mem_assoc (Some field) fields ->
               extract fields base_type
-          | `Meth (R.{ name = field; scheme = _, ty }, base_type) ->
-              extract ((Some field, ty) :: fields) base_type
+          | `Meth ({ R.scheme = _, `Constr ("never", _) }, base_type) ->
+              extract fields base_type
+          | `Meth (R.{ name = field; optional; scheme = _, ty }, base_type) ->
+              extract ((Some field, (optional, ty)) :: fields) base_type
           | base_type -> (fields, base_type)
         in
         let fields, base_type = extract [] record_type in
@@ -232,37 +233,25 @@ let print f t =
         let fields =
           match (base_type, fields) with
             | `Tuple [], _ -> fields
-            | v, _ -> fields @ [(None, v)]
+            | v, _ -> fields @ [(None, (false, v))]
         in
-        let first, has_ellipsis, vars =
+        let _, vars =
           List.fold_left
-            (fun (first, has_ellipsis, vars) (lbl, t) ->
-              if t = `Ellipsis then (first, true, vars)
-              else (
-                if not first then Format.fprintf f ",@ ";
-                ignore (Option.map (Format.fprintf f "%s=") lbl);
-                let vars = print ~par:false vars t in
-                (false, has_ellipsis, vars)))
-            (true, false, vars) fields
-        in
-        let vars =
-          if not has_ellipsis then vars
-          else (
-            if not first then Format.fprintf f ",@,";
-            print ~par:false vars `Range_Ellipsis)
+            (fun (first, vars) (lbl, (optional, t)) ->
+              if not first then Format.fprintf f ",@ ";
+              ignore
+                (Option.map
+                   (Format.fprintf f "%s%s=" (if optional then "?" else ""))
+                   lbl);
+              let vars = print ~par:false vars t in
+              (false, vars))
+            (true, vars) fields
         in
         Format.fprintf f ")";
         Format.close_box ();
         vars
     | `Constr (name, []) ->
         Format.fprintf f "%s" name;
-        vars
-    | `Constr (name, [(_, `Constr ("alias", [(_, a)]))]) ->
-        Format.open_box (1 + String.length name);
-        Format.fprintf f "%s (alias of: " name;
-        let vars = print ~par:true vars a in
-        Format.fprintf f ")";
-        Format.close_box ();
         vars
     | `Constr ("none", _) ->
         Format.fprintf f "none";
@@ -390,6 +379,12 @@ let print f t =
         let vars = print ~par:false vars t in
         Format.fprintf f "}";
         vars
+    | (`EVar (_, c) | `UVar (_, c))
+      when Constraints.cardinal c = 1
+           && (Constraints.choose c).univ_descr <> None ->
+        let constr = Constraints.choose c in
+        Format.fprintf f "%s" (Option.get constr.univ_descr);
+        vars
     | `EVar (name, c) | `UVar (name, c) ->
         Format.fprintf f "%s" name;
         if not (Constraints.is_empty c) then DS.add (name, c) vars else vars
@@ -494,7 +489,9 @@ let print_scheme f (generalized, t) =
   if !debug then
     List.iter
       (fun v ->
-        print f (make ~generalized (Type_base.make (Var (ref (Free v)))));
+        print f
+          (make ~generalized
+             (Type_base.make (Var { id = 0; contents = Free v })));
         Format.fprintf f ".")
       generalized;
   print f (make ~generalized t)
@@ -518,7 +515,9 @@ let print_type_error ~formatter error_header
   match b with
     | `Meth (R.{ name = l; scheme = [], `Ellipsis }, `Ellipsis) when not flipped
       ->
-        Format.fprintf formatter "this value has no method `%s`@." l
+        Format.fprintf formatter
+          "this value has no method `%s`@.@[<2>  Its type is %s.@]@." l
+          (string_of_type ta)
     | _ ->
         let inferred_pos a =
           let dpos = (deref a).pos in

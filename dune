@@ -1,9 +1,11 @@
 (rule
  (target liquidsoap.config)
- (deps ./src/bin/liquidsoap.exe)
  (package liquidsoap)
  (alias install)
  (enabled_if %{env:LIQUIDSOAP_ENABLE_BUILD_CONFIG=true})
+ (deps
+  src/libs/stdlib.liq
+  (source_tree src/libs))
  (mode
   (promote
    (only liquidsoap.config)
@@ -12,10 +14,10 @@
   (progn
    (echo
     "\nCongratulation on building liquidsoap! Here are the details of your build and configuration:\n")
-   (run ./src/bin/liquidsoap.exe --build-config)
+   (run %{bin:liquidsoap} --build-config)
    (with-stdout-to
     %{target}
-    (run ./src/bin/liquidsoap.exe --opam-config)))))
+    (run %{bin:liquidsoap} --opam-config)))))
 
 (alias
  (name default)
@@ -26,3 +28,9 @@
  (name runtest)
  (deps
   (alias_rec install)))
+
+(alias
+ (name citest)
+ (deps
+  (alias_rec perftest)
+  (alias_rec runtest)))

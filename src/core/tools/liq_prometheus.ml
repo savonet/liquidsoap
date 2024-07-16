@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,14 +37,14 @@ let conf_server =
     ~d:false "Enable the prometheus server."
 
 let conf_port =
-  Dtools.Conf.int ~p:(conf_server#plug "port") ~d:9090
+  Dtools.Conf.int ~p:(conf_server#plug "port") ~d:9599
     "Port to run the server on."
 
 let server () =
   Server.create ~mode:(`TCP (`Port conf_port#get)) (Server.make ~callback ())
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start ~name:"prometheus initialization" (fun () ->
       if conf_server#get then
         ignore
           (Thread.create

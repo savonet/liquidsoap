@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,11 +29,11 @@ open Extralib
 class still_frame ~name (source : source) =
   object (self)
     inherit operator ~name [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable fname = None
 
@@ -44,15 +44,14 @@ class still_frame ~name (source : source) =
            .bmp"
       else fname <- Some f
 
-    method private get_frame buf =
+    method private still buf =
       match fname with
-        | None -> source#get buf
+        | None -> ()
         | Some f -> (
-            let v = VFrame.get_content buf source in
-            match v with
-              | Some (v, off, _) ->
-                  let v = Content.Video.get_data v in
-                  let i = Video.Canvas.get v off in
+            let v = Content.Video.get_data (Frame.get buf Frame.Fields.video) in
+            match v.Content.Video.data with
+              | [] -> ()
+              | (_, i) :: _ ->
                   let i =
                     i |> Video.Canvas.Image.render |> Image.YUV420.to_RGBA32
                     |> Image.RGBA32.to_BMP
@@ -60,8 +59,12 @@ class still_frame ~name (source : source) =
                   let oc = open_out f in
                   output_string oc i;
                   close_out oc;
-                  fname <- None
-              | None -> ())
+                  fname <- None)
+
+    method private generate_frame =
+      let buf = source#get_frame in
+      self#still buf;
+      buf
   end
 
 let _ =

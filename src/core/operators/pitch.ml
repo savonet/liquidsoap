@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ let average_diff delta buf ofs len =
   let s = ref 0. in
   for i = 0 to len - delta - 1 do
     for c = 0 to Array.length buf - 1 do
-      s := !s +. abs_float (buf.(c).(ofs + i + delta) -. buf.(c).(ofs + i))
+      s := !s +. Utils.abs_float (buf.(c).(ofs + i + delta) -. buf.(c).(ofs + i))
     done
   done;
   !s /. float ((len - delta) * Array.length buf)
@@ -77,16 +77,17 @@ class pitch every length freq_min freq_max (source : source) =
         (Lazy.from_fun (fun () -> Audio.create self#audio_channels length))
 
     val mutable computations = -1
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
-    method is_ready = source#is_ready
+    method seek_source = source#seek_source
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
-    method private get_frame buf =
-      source#get buf;
-      let buf = AFrame.pcm buf in
+    method private generate_frame =
+      let buf =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
       let ring = self#ring in
       let databuf = self#databuf in
       Ringbuffer.write ring buf;
@@ -109,7 +110,8 @@ class pitch every length freq_min freq_max (source : source) =
         let f = samples_per_second /. float !wl_opt in
         let f = if f > freq_max then 0. else f in
         self#log#important "Found frequency: %.02f (%s)\n%!" f
-          (string_of_note (note_of_freq f)))
+          (string_of_note (note_of_freq f)));
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let _ =

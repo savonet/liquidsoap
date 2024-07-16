@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,13 +23,6 @@
 type write_payload = [ `Frame of Frame.t | `Flush ]
 type write_frame = write_payload -> unit
 
-let write_to_buffer ~fields g = function
-  | `Frame frame ->
-      Generator.feed ~fields g frame;
-      let excess = Generator.length g - Lazy.force Frame.size in
-      if 0 < excess then Generator.truncate g excess
-  | `Flush -> ()
-
 (* This here is tricky:
  * - We want to use the output API to have a method for
  *   generating data when calling a clock tick.
@@ -37,14 +30,15 @@ let write_to_buffer ~fields g = function
  *   clock animation framework.
  * Thus, we manually mark this operator as ready only
  * before we're about to pull from it. *)
-class consumer ~write_frame ~name ~source () =
+class consumer ?(always_enabled = false) ~write_frame ~name ~source () =
   let s = Lang.to_source source in
-  let infallible = s#stype = `Infallible in
+  let infallible = not s#fallible in
   let noop () = () in
   object
     inherit
       Output.output
-        ~output_kind:name ~infallible ~on_start:noop ~on_stop:noop source true as super
+        ~output_kind:name ~register_telnet:false ~infallible ~on_start:noop
+          ~on_stop:noop source true as super
 
     val mutable output_enabled = false
     val mutable producer_buffer = Generator.create Frame.Fields.empty
@@ -53,79 +47,61 @@ class consumer ~write_frame ~name ~source () =
     method! reset = ()
     method start = ()
     method stop = write_frame producer_buffer `Flush
-    method! output = if output_enabled then super#output
+    method! output = if always_enabled || output_enabled then super#output
     method private send_frame frame = write_frame producer_buffer (`Frame frame)
   end
 
 (** The source which produces data by reading the buffer.
     We do NOT want to use [operator] here b/c the [consumers]
     may have different content-kind when this is used in the muxers. *)
-class producer ~check_self_sync ~consumers ~name () =
-  let infallible = List.for_all (fun s -> s#stype = `Infallible) consumers in
-  let self_sync_type = Utils.self_sync_type consumers in
+class producer ?stack ~check_self_sync ~consumers ~name () =
+  let infallible = List.for_all (fun s -> not s#fallible) consumers in
+  let self_sync = Clock_base.self_sync consumers in
   object (self)
-    inherit Source.source ~name () as super
+    inherit Source.source ?stack ~name ()
 
-    inherit!
+    inherit
       Child_support.base
         ~check_self_sync
-        (List.map (fun s -> Lang.source (s :> Source.source)) consumers) as child_support
+        (List.map (fun s -> Lang.source (s :> Source.source)) consumers)
 
-    method self_sync =
-      ( Lazy.force self_sync_type,
-        List.fold_left (fun cur s -> cur || snd s#self_sync) false consumers )
+    method self_sync = self_sync ~source:self ()
+    method fallible = not infallible
 
-    method stype = if infallible then `Infallible else `Fallible
-
-    method seek len =
+    method! seek len =
       let len = min (Generator.length self#buffer) len in
       Generator.truncate self#buffer len;
       len
 
+    method seek_source = (self :> Source.source)
+
     method remaining =
-      match List.fold_left (fun r p -> min r p#remaining) (-1) consumers with
-        | -1 -> -1
-        | r -> Generator.remaining self#buffer + r
+      match
+        ( Generator.remaining self#buffer,
+          List.fold_left
+            (fun r s -> if r = -1 then s#remaining else min r s#remaining)
+            (-1) consumers )
+      with
+        | -1, r -> r
+        | r, _ -> r
 
-    method is_ready = List.for_all (fun c -> c#is_ready) consumers
+    method private can_generate_frame =
+      List.for_all (fun c -> c#is_ready) consumers
 
-    method! wake_up a =
-      super#wake_up a;
-      List.iter
-        (fun c ->
-          c#set_producer_buffer self#buffer;
-          c#get_ready ?dynamic:None [(self :> Source.source)])
-        consumers
+    initializer
+      self#on_wake_up (fun () ->
+          List.iter (fun c -> c#set_producer_buffer self#buffer) consumers)
 
-    method! sleep =
-      super#sleep;
-      List.iter
-        (fun c ->
-          c#leave ?failed_to_start:None ?dynamic:None (self :> Source.source))
-        consumers
-
-    method private get_frame buf =
-      let b = Frame.breaks buf in
+    method private generate_frame =
       List.iter (fun c -> c#set_output_enabled true) consumers;
       while
-        Generator.length self#buffer < Lazy.force Frame.size && self#is_ready
+        Generator.length self#buffer < Lazy.force Frame.size
+        && self#can_generate_frame
       do
         self#child_tick
       done;
-      needs_tick <- false;
       List.iter (fun c -> c#set_output_enabled false) consumers;
-      Generator.fill self#buffer buf;
-      if List.length b + 1 <> List.length (Frame.breaks buf) then (
-        let cur_pos = Frame.position buf in
-        Frame.set_breaks buf (b @ [cur_pos]))
-
-    method! before_output =
-      super#before_output;
-      child_support#before_output
-
-    method! after_output =
-      super#after_output;
-      child_support#after_output
+      Generator.slice self#buffer (Lazy.force Frame.size)
 
     method abort_track =
       Generator.add_track_mark self#buffer;

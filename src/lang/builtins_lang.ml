@@ -8,10 +8,10 @@ let _ =
 
 let _ =
   Lang.add_builtin "position" ~descr:"Return the current position in the script"
-    ~category:`Programming [] Lang_core.Single_position.t (fun p ->
+    ~category:`Programming [] Lang_core.Position.t (fun p ->
       match Lang.pos p with
         | [] -> Lang.raise_error ~pos:[] ~message:"Unknown position" "eval"
-        | (p, _) :: _ -> Lang_core.Single_position.to_value p)
+        | p :: _ -> Lang_core.Position.to_value p)
 
 let _ =
   let t = Lang.univ_t () in
@@ -28,7 +28,7 @@ let _ =
       let fy = List.assoc "then" p in
       let fn = List.assoc "else" p in
       let c = Lang.to_bool c in
-      Lang.apply (if c then fy else fn) [])
+      Lang.apply ~pos:(Lang.pos p) (if c then fy else fn) [])
 
 (** Operations on products. *)
 
@@ -65,12 +65,10 @@ let _ =
       let nl = Lang.to_bool (List.assoc "newline" p) in
       let v = List.assoc "" p in
       let v =
-        match v.Lang.value with
-          | Lang.(Ground (Ground.String s)) -> s
-          | _ -> Value.to_string v
+        match v with String { value = s } -> s | _ -> Value.to_string v
       in
-      let v = if nl then v ^ "\n" else v in
       print_string v;
+      if nl then print_string "\n";
       flush stdout;
       Lang.unit)
 
@@ -136,31 +134,84 @@ let _ =
 
 let liquidsoap = Modules.liquidsoap
 
+let liquidsoap_cache =
+  Lang.add_builtin ~category:`Configuration ~descr:"Liquidsoap cache directory."
+    ~base:liquidsoap "cache"
+    [
+      ( "mode",
+        Lang.string_t,
+        None,
+        Some "Cache mode, one of: \"user\" or \"system\"" );
+    ]
+    (Lang.nullable_t Lang.string_t)
+    (fun p ->
+      let mode = List.assoc "mode" p in
+      let dirtype =
+        match Lang.to_string mode with
+          | "system" -> `System
+          | "user" -> `User
+          | _ ->
+              raise
+                (Error.Invalid_value
+                   ( mode,
+                     "Invalid mode. Should be one of: \"user\" or \"system\"" ))
+      in
+      match Cache.dir dirtype with
+        | None -> Lang.null
+        | Some dir -> Lang.string dir)
+
 let _ =
+  Lang.add_builtin ~category:`Configuration
+    ~descr:"Execute cache maintenance routine." ~base:liquidsoap_cache
+    "maintenance"
+    [
+      ( "mode",
+        Lang.string_t,
+        None,
+        Some "Cache mode, one of: \"user\" or \"system\"" );
+    ]
+    Lang.unit_t
+    (fun p ->
+      let mode = List.assoc "mode" p in
+      let dirtype =
+        match Lang.to_string mode with
+          | "system" -> `System
+          | "user" -> `User
+          | _ ->
+              raise
+                (Error.Invalid_value
+                   ( mode,
+                     "Invalid mode. Should be one of: \"user\" or \"system\"" ))
+      in
+      let fn = !Hooks.cache_maintenance in
+      fn dirtype;
+      Lang.unit)
+
+let liquidsoap_version =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"Liquidsoap version string." ~base:liquidsoap "version"
-    Lang.(Ground (Ground.String Build_config.version))
-    Lang.string_t
+    (`String Build_config.version) Lang.string_t
 
 let _ =
   Lang.add_builtin_base ~base:liquidsoap "executable" ~category:`Liquidsoap
-    ~descr:"Path to the Liquidsoap executable."
-    Lang.(Ground (Ground.String Sys.executable_name))
+    ~descr:"Path to the Liquidsoap executable." (`String Sys.executable_name)
     Lang.string_t
+
+let liquidsoap_functions = Lang.add_module ~base:liquidsoap "functions"
+
+let _ =
+  Lang.add_builtin ~base:liquidsoap_functions "count" ~category:`Liquidsoap
+    ~descr:"Number of functions registered in the standard library." []
+    Lang.int_t (fun _ -> Doc.Value.count () |> Lang.int)
 
 let _ =
   Lang.add_builtin_base ~category:`System
     ~descr:"Type of OS running liquidsoap." ~base:Modules.os "type"
-    Lang.(Ground (Ground.String Sys.os_type))
-    Lang.string_t
+    (`String Sys.os_type) Lang.string_t
 
 let _ =
   Lang.add_builtin_base ~category:`System ~descr:"Executable file extension."
-    "exe_ext"
-    Lang.(Ground (Ground.String Build_config.ext_exe))
-    Lang.string_t
-
-let liquidsoap_version = Lang.add_module ~base:liquidsoap "version"
+    "exe_ext" (`String Build_config.ext_exe) Lang.string_t
 
 let _ =
   Lang.add_builtin ~category:`Liquidsoap
@@ -181,25 +232,25 @@ let liquidsoap_build_config = Lang.add_module ~base:liquidsoap "build_config"
 let _ =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"OCaml version used to compile liquidspap."
-    ~base:liquidsoap_build_config "ocaml_version"
-    Lang.(Ground (Ground.String Sys.ocaml_version))
+    ~base:liquidsoap_build_config "ocaml_version" (`String Sys.ocaml_version)
     Lang.string_t
 
 let _ =
   Lang.add_builtin_base ~category:`Configuration
     ~descr:"Git sha used to compile liquidsoap." ~base:liquidsoap_build_config
     "git_sha"
-    (match Build_config.git_sha with
-      | None -> Lang.Null
-      | Some sha -> Lang.(Ground (Ground.String sha)))
+    (match Build_config.git_sha with None -> `Null | Some sha -> `String sha)
     Lang.(nullable_t string_t)
 
 let _ =
   Lang.add_builtin_base ~category:`Configuration
+    ~descr:"Is this build a development snapshot?" ~base:liquidsoap_build_config
+    "is_snapshot" (`Bool Build_config.is_snapshot) Lang.bool_t
+
+let _ =
+  Lang.add_builtin_base ~category:`Configuration
     ~descr:"Is this build a release build?" ~base:liquidsoap_build_config
-    "is_release"
-    Lang.(Ground (Ground.Bool Build_config.is_release))
-    Lang.bool_t
+    "is_release" (`Bool (not Build_config.is_snapshot)) Lang.bool_t
 
 let () =
   List.iter
@@ -207,9 +258,7 @@ let () =
       ignore
         (Lang.add_builtin_base ~category:`Configuration
            ~descr:("Build-time configuration value for " ^ name)
-           ~base:liquidsoap_build_config name
-           Lang.(Ground (Ground.String value))
-           Lang.string_t))
+           ~base:liquidsoap_build_config name (`String value) Lang.string_t))
     [
       ("architecture", Build_config.architecture);
       ("host", Build_config.host);

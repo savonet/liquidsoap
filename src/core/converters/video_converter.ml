@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -61,7 +61,7 @@ exception Exit of converter
 
 (** Only log preferred decoder availability once at start. *)
 let () =
-  Lifecycle.before_start (fun () ->
+  Lifecycle.on_start ~name:"video converter initialization" (fun () ->
       let preferred = preferred_converter_conf#get in
       match Plug.get video_converters preferred with
         | None ->

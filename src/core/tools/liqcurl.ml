@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -117,14 +117,14 @@ let () =
 
 let fail ~pos message = Lang.raise_error ~pos ~message "http"
 let interrupt = Atomic.make false
-let () = Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true)
 
-let mk_read =
-  let interrupt = Atomic.make false in
-  Lifecycle.on_core_shutdown (fun () -> Atomic.set interrupt true);
-  fun fn len ->
-    if Atomic.get interrupt then Curl.Abort
-    else (try Proceed (fn len) with _ -> Curl.Abort)
+let () =
+  Lifecycle.before_core_shutdown ~name:"libcurl shutdown" (fun () ->
+      Atomic.set interrupt true)
+
+let mk_read fn len =
+  if Atomic.get interrupt then Curl.Abort
+  else (try Proceed (fn len) with _ -> Curl.Abort)
 
 let parse_http_answer ~pos s =
   let f v c s = (v, c, s) in
@@ -132,23 +132,12 @@ let parse_http_answer ~pos s =
     | Scanf.Scan_failure s -> fail ~pos s
     | _ -> fail ~pos "Unknown error"
 
-let should_stop =
-  let should_stop = ref false in
-  let m = Mutex.create () in
-  let () =
-    Lifecycle.before_core_shutdown
-      (Tutils.mutexify m (fun () -> should_stop := true))
-  in
-  let should_stop = Tutils.mutexify m (fun () -> !should_stop) in
-  fun _ _ _ _ -> should_stop ()
+let should_stop _ _ _ _ = Atomic.get interrupt
 
 let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
     ~request ~on_body_data ~pos () =
   let connection = new Curl.handle in
   try
-    (* Check url correctness, fix fixable mistakes.
-     * See: https://github.com/savonet/liquidsoap/issues/2551 *)
-    let url = Uri.(to_string (of_string url)) in
     connection#set_url url;
     connection#set_useragent Http.user_agent;
     connection#set_httpversion
@@ -181,37 +170,26 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
            connection#set_httpheader
              (List.map (fun (k, v) -> Printf.sprintf "%s: %s" k v) headers))
          headers);
+    let accepted = Atomic.make false in
     let response_headers = Buffer.create 1024 in
     connection#set_headerfunction (fun s ->
+        if not (Atomic.get accepted) then (
+          let code = connection#get_httpcode in
+          Atomic.set accepted (code < 300 || 400 <= code));
         Buffer.add_string response_headers s;
         String.length s);
     connection#set_xferinfofunction should_stop;
-    let accepted = ref false in
-    let accepted_m = Mutex.create () in
-    let pending = Buffer.create 1024 in
     connection#set_writefunction (fun s ->
-        Tutils.mutexify accepted_m
-          (fun () ->
-            if !accepted then on_body_data s else Buffer.add_string pending s)
-          ();
+        if Atomic.get accepted then on_body_data s;
         String.length s);
     connection#set_noprogress false;
     connection#perform;
     match connection#get_redirecturl with
       | url when url <> "" && follow_redirect ->
           connection#cleanup;
-          Tutils.mutexify accepted_m (fun () -> Buffer.clear pending) ();
           http_request ?headers ?http_version ~follow_redirect ~timeout ~url
             ~request ~on_body_data ~pos ()
       | _ ->
-          Tutils.mutexify accepted_m
-            (fun () ->
-              begin
-                on_body_data (Buffer.contents pending);
-                Buffer.clear pending;
-                accepted := true
-              end)
-            ();
           let response_headers =
             Pcre.split ~rex:(Pcre.regexp "[\r]?\n")
               (Buffer.contents response_headers)
@@ -224,7 +202,9 @@ let rec http_request ?headers ?http_version ~follow_redirect ~timeout ~url
               (fun ret header ->
                 if header <> "" then (
                   try
-                    let res = Pcre.exec ~pat:"([^:]*):\\s*(.*)" header in
+                    let res =
+                      Pcre.exec ~rex:(Pcre.regexp "([^:]*):\\s*(.*)") header
+                    in
                     ( String.lowercase_ascii (Pcre.get_substring res 1),
                       Pcre.get_substring res 2 )
                     :: ret

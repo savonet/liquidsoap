@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -141,7 +141,7 @@ let prefix_ns cmd ns = to_string (ns @ [cmd])
 let add ~ns ?usage ~descr cmd handler =
   let usage = match usage with None -> cmd | Some u -> u in
   let usage = prefix_ns usage ns in
-  Tutils.mutexify lock
+  Mutex_utils.mutexify lock
     (fun () ->
       let name = prefix_ns cmd ns in
       if Hashtbl.mem commands name then
@@ -154,7 +154,9 @@ let add ~ns ?usage ~descr cmd handler =
 
 (* ... and maybe remove them. *)
 let remove ~ns cmd =
-  Tutils.mutexify lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns)) ()
+  Mutex_utils.mutexify lock
+    (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
+    ()
 
 (* That's if you want to have your command wait. *)
 type condition = {
@@ -215,7 +217,7 @@ let read ~after payload = raise (Read { payload; after })
 (* The usage string sums up all the commands... *)
 let usage () =
   let l =
-    Tutils.mutexify lock
+    Mutex_utils.mutexify lock
       (fun () -> Hashtbl.fold (fun k v l -> (k, v) :: l) commands [])
       ()
   in
@@ -233,8 +235,10 @@ let () =
   add "help" ~usage:"help [<command>]"
     ~descr:"Get information on available commands." (fun args ->
       try
-        let args = Pcre.substitute ~pat:"\\s*" ~subst:(fun _ -> "") args in
-        let _, us, d = Tutils.mutexify lock (Hashtbl.find commands) args in
+        let args =
+          Pcre.substitute ~rex:(Pcre.regexp "\\s*") ~subst:(fun _ -> "") args
+        in
+        let _, us, d = Mutex_utils.mutexify lock (Hashtbl.find commands) args in
         Printf.sprintf "Usage: %s\r\n  %s" us d
       with Not_found ->
         (if args <> "" then "No such command: " ^ args ^ "\r\n" else "")
@@ -250,7 +254,7 @@ let exec s =
     with Not_found -> (s, "")
   in
   try
-    let command, _, _ = Tutils.mutexify lock (Hashtbl.find commands) s in
+    let command, _, _ = Mutex_utils.mutexify lock (Hashtbl.find commands) s in
     command args
   with
     | Server_wait opts -> raise (Server_wait opts)
@@ -369,7 +373,7 @@ let start_socket () =
   let sock = Unix.socket ~cloexec:true Unix.PF_UNIX Unix.SOCK_STREAM 0 in
   let rec incoming _ =
     (try
-       let socket, caller = Unix.accept ~cloexec:true sock in
+       let socket, caller = Http.accept ~timeout:(get_timeout ()) sock in
        let ip = Utils.name_of_sockaddr ~rev_dns:conf_telnet_revdns#get caller in
        log#f conf_log_level#get "New client %s." ip;
        handle_client socket ip
@@ -396,7 +400,7 @@ let start_socket () =
   end;
   log#f conf_log_level#get "Socket created at %s." socket_path;
   Unix.listen sock max_conn;
-  Lifecycle.after_scheduler_shutdown (fun () ->
+  Lifecycle.after_scheduler_shutdown ~name:"server socket cleanup" (fun () ->
       log#f conf_log_level#get "Unlink %s" socket_name;
       Unix.unlink socket_path);
   Unix.chmod socket_path rights;
@@ -416,7 +420,7 @@ let start_telnet () =
   let () =
     (* The socket has to be closed for restart to work, and this has to be
        done after duppy has stopped using it. *)
-    Lifecycle.after_scheduler_shutdown (fun () ->
+    Lifecycle.after_scheduler_shutdown ~name:"telnet cleanup" (fun () ->
         log#f conf_log_level#get "Closing socket.";
         Unix.close sock)
   in

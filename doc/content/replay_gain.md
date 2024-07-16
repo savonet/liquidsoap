@@ -56,7 +56,7 @@ behind some `request.dynamic.list` operator. If you are using the
 Protocols can be chained, for instance:
 
 ```
-annotate:foo=\"bar":replaygain:/path/to/file.mp3
+annotate:foo="bar":replaygain:/path/to/file.mp3
 ```
 
 ### Applying replay gain information
@@ -68,18 +68,13 @@ done using the `override` parameter.
 
 For replay gain implementation, the `amplify` operator would typically be added immediately on top of the basic tracks source, before transitions or other audio processing operators. Typically:
 
-```liquidsoap
-enable_replaygain_metadata()
+```{.liquidsoap include="replaygain-metadata.liq" to="END"}
 
-s = playlist("~/playlist")
-s = amplify(1.,override="replaygain_track_gain",s)
 ```
 
 For convenience, we added the `replaygain` operator which performs the
 amplification on the right metadata so that this can further be simplified to
 
-```liquidsoap
-enable_replaygain_metadata()
+```{.liquidsoap include="replaygain-playlist.liq" to="END"}
 
-s = replaygain(playlist("~/playlist"))
 ```

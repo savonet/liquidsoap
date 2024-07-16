@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -20,13 +20,19 @@
 
  *****************************************************************************)
 
-(** Abstract classes for easy creation of output nodes. *)
+(** Custom classes for easy creation of output nodes. *)
 
 open Source
+
+let fallibility_check = ref true
 
 let proto =
   Start_stop.output_proto
   @ [
+      ( "register_telnet",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Register telnet commands for this output." );
       ( "fallible",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -41,36 +47,33 @@ let meth = Start_stop.meth ()
     of pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including
     start/stop. *)
-class virtual output ~output_kind ?(name = "") ~infallible
-  ~(on_start : unit -> unit) ~(on_stop : unit -> unit) val_source autostart =
+class virtual output ~output_kind ?clock ?(name = "") ~infallible
+  ~register_telnet ~(on_start : unit -> unit) ~(on_stop : unit -> unit)
+  val_source autostart =
   let source = Lang.to_source val_source in
   object (self)
     initializer
-    (* This should be done before the active_operator initializer attaches us
-       to a clock. *)
-    if infallible && source#stype <> `Infallible then
-      raise (Error.Invalid_value (val_source, "That source is fallible"))
+      (* This should be done before the active_operator initializer attaches us
+         to a clock. *)
+      if !fallibility_check && infallible && source#fallible then
+        raise (Error.Invalid_value (val_source, "That source is fallible."))
 
-    initializer
-    Typing.(source#frame_type <: self#frame_type);
-    Typing.(self#frame_type <: self#frame_type)
-
-    inherit active_operator ~name:output_kind [source] as super
+    initializer Typing.(source#frame_type <: self#frame_type)
+    inherit active_operator ?clock ~name:output_kind [source]
     inherit Start_stop.base ~on_start ~on_stop as start_stop
     method virtual private start : unit
     method virtual private stop : unit
     method virtual private send_frame : Frame.t -> unit
     method self_sync = source#self_sync
-    method stype = if infallible then `Infallible else `Fallible
-    val mutable nb_frames = 0L
-    method private nb_frames = nb_frames
+    method fallible = not infallible
+    method! source_type : source_type = `Output (self :> Source.active)
 
     (* Registration of Telnet commands must be delayed because some operators
        change their id at initialization time. *)
     val mutable registered_telnet = false
 
     method private register_telnet =
-      if not registered_telnet then (
+      if register_telnet && not registered_telnet then (
         registered_telnet <- true;
         (* Add a few more server controls *)
         let ns = [self#id] in
@@ -88,7 +91,8 @@ class virtual output ~output_kind ?(name = "") ~infallible
                      s
                      ^ (if s = "" then "--- " else "\n--- ")
                      ^ string_of_int i ^ " ---\n"
-                     ^ Request.string_of_metadata m
+                     ^ Frame.Metadata.to_string
+                         (Frame.Metadata.Export.to_metadata m)
                    in
                    (s, i - 1))
                  ("", Queue.length q)
@@ -101,44 +105,42 @@ class virtual output ~output_kind ?(name = "") ~infallible
               let t = Frame.seconds_of_main r in
               Printf.sprintf "%.2f" t)))
 
-    method is_ready =
-      if infallible then (
-        assert source#is_ready;
-        true)
-      else source#is_ready
+    method private cleanup_telnet =
+      if registered_telnet then
+        List.iter
+          (Server.remove ~ns:[self#id])
+          ["skip"; "metadata"; "remaining"];
+      registered_telnet <- false
+
+    method private can_generate_frame =
+      if infallible then true else source#is_ready
 
     method remaining = source#remaining
     method abort_track = source#abort_track
-    method seek len = source#seek len
+    method seek_source = source#seek_source
 
     (* Operator startup *)
-    method! private wake_up activation =
-      (* We prefer [name] as an ID over the default, but do not overwrite
-         user-defined ID. Our ID will be used for the server interface. *)
-      if name <> "" then self#set_id ~definitive:false name;
+    initializer
+      self#on_wake_up (fun () ->
+          (* We prefer [name] as an ID over the default, but do not overwrite
+             user-defined ID. Our ID will be used for the server interface. *)
+          if name <> "" then self#set_id ~definitive:false name;
 
-      self#log#debug "Clock is %s."
-        (Source.Clock_variables.to_string self#clock);
-      self#log#info "Content type is %s."
-        (Frame.string_of_content_type self#content_type);
+          self#log#debug "Clock is %s." (Clock.id self#clock);
+          self#log#important "Content type is %s."
+            (Frame.string_of_content_type self#content_type);
 
-      (* Get our source ready. This can take a while (preparing playlists,
-         etc). *)
-      source#get_ready ((self :> operator) :: activation);
-      if infallible then
-        while not source#is_ready do
-          self#log#important "Waiting for %S to be ready..." source#id;
-          Thread.delay 1.
-        done;
+          if Frame.Fields.is_empty self#content_type then
+            failwith
+              (Printf.sprintf
+                 "Empty content-type detected for output %s. You might want to \
+                  use an expliciy type annotation!"
+                 self#id);
 
-      if source#stype = `Infallible then
-        start_stop#transition_to (if autostart then `Started else `Stopped);
+          if not autostart then start_stop#transition_to `Stopped;
 
-      self#register_telnet
-
-    method! private sleep =
-      start_stop#transition_to `Stopped;
-      source#leave (self :> operator)
+          self#register_telnet);
+      self#on_sleep (fun () -> start_stop#transition_to `Stopped)
 
     (* Metadata stuff: keep track of what was streamed. *)
     val q_length = 10
@@ -153,50 +155,43 @@ class virtual output ~output_kind ?(name = "") ~infallible
     (* The output process *)
     val mutable skip = false
     method private skip = skip <- true
-    method private get_frame buf = if Frame.is_partial buf then source#get buf
+    method private generate_frame = source#get_frame
 
-    method private output =
-      if self#is_ready && state <> `Stopped then
+    method output =
+      if self#can_generate_frame && state <> `Stopped then
         start_stop#transition_to `Started;
       if start_stop#state = `Started then (
-        (* Complete filling of the frame *)
-        let get_count = ref 0 in
-        while Frame.is_partial self#memo && self#is_ready do
-          incr get_count;
-          if !get_count > Lazy.force Frame.size then
-            self#log#severe
-              "Warning: there may be an infinite sequence of empty tracks!";
-          source#get self#memo
-        done;
+        let data =
+          if source#is_ready then source#get_frame else self#end_of_track
+        in
         List.iter
-          (fun (_, m) -> self#add_metadata m)
-          (Frame.get_all_metadata self#memo);
+          (fun (_, m) ->
+            self#add_metadata
+              (Frame.Metadata.Export.from_metadata ~cover:false m))
+          (Frame.get_all_metadata data);
 
         (* Output that frame if it has some data *)
-        if Frame.position self#memo > 0 then (
-          self#send_frame self#memo;
-          nb_frames <- Int64.succ nb_frames);
-        if Frame.is_partial self#memo then (
+        if Frame.position data > 0 then self#send_frame data;
+        if Frame.is_partial data then (
+          if not self#fallible then (
+            self#log#critical "Infallible source produced a partial frame!";
+            assert false);
           self#log#important "Source failed (no more tracks) stopping output...";
-          self#transition_to `Idle))
+          self#transition_to `Idle);
 
-    method! after_output =
-      (* Let [memo] be cleared and signal propagated *)
-      super#after_output;
-
-      (* Perform skip if needed *)
-      if skip then (
-        self#log#important "Performing user-requested skip";
-        skip <- false;
-        self#abort_track)
+        if skip then (
+          self#log#important "Performing user-requested skip";
+          skip <- false;
+          self#abort_track))
   end
 
-class dummy ~infallible ~on_start ~on_stop ~autostart source =
+class dummy ?clock ~infallible ~on_start ~on_stop ~autostart ~register_telnet
+  source =
   object
     inherit
       output
-        source autostart ~name:"dummy" ~output_kind:"output.dummy" ~infallible
-          ~on_start ~on_stop
+        source autostart ?clock ~name:"dummy" ~output_kind:"output.dummy"
+          ~infallible ~on_start ~on_stop ~register_telnet
 
     method! private reset = ()
     method private start = ()
@@ -218,17 +213,22 @@ let _ =
       let on_stop = List.assoc "on_stop" p in
       let on_start () = ignore (Lang.apply on_start []) in
       let on_stop () = ignore (Lang.apply on_stop []) in
-      new dummy ~on_start ~on_stop ~infallible ~autostart (List.assoc "" p))
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
+      new dummy
+        ~on_start ~on_stop ~infallible ~autostart ~register_telnet
+        (List.assoc "" p))
 
 (** More concrete abstract-class, which takes care of the #send_frame method for
     outputs based on encoders. *)
-class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
-  ~autostart source =
+class virtual ['a] encoded ~output_kind ?clock ~name ~infallible ~on_start
+  ~on_stop ~register_telnet ~autostart ~export_cover_metadata source =
   object (self)
     inherit
-      output ~infallible ~on_start ~on_stop ~output_kind ~name source autostart
+      output
+        ~infallible ~on_start ~on_stop ~output_kind ?clock ~name
+          ~register_telnet source autostart
 
-    method virtual private insert_metadata : Meta_format.export_metadata -> unit
+    method virtual private insert_metadata : Frame.Metadata.Export.t -> unit
     method virtual private encode : Frame.t -> int -> int -> 'a
     method virtual private send : 'a -> unit
 
@@ -239,7 +239,10 @@ class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
           self#send data;
           match Frame.get_metadata frame start with
             | None -> ()
-            | Some m -> self#insert_metadata (Meta_format.export_metadata m)
+            | Some m ->
+                self#insert_metadata
+                  (Frame.Metadata.Export.from_metadata
+                     ~cover:export_cover_metadata m)
         in
         function
         | [] -> assert false
@@ -251,6 +254,6 @@ class virtual encoded ~output_kind ~name ~infallible ~on_start ~on_stop
       output_chunks frame
         (0
         :: List.sort compare
-             (List.map fst (Frame.get_all_metadata frame) @ Frame.breaks frame)
-        )
+             (List.map fst (Frame.get_all_metadata frame)
+             @ [Frame.position frame]))
   end

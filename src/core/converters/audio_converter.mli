@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -30,7 +30,7 @@ module Samplerate : sig
   exception Invalid_data
 
   type converter =
-    float -> Content.Audio.data -> int -> int -> Content.Audio.data * int * int
+    float -> Content_audio.data -> int -> int -> Content_audio.data * int * int
 
   type converter_plug = int -> converter
   type t
@@ -47,10 +47,10 @@ module Samplerate : sig
   val resample :
     t ->
     float ->
-    Content.Audio.data ->
+    Content_audio.data ->
     int ->
     int ->
-    Content.Audio.data * int * int
+    Content_audio.data * int * int
 end
 
 module Channel_layout : sig
@@ -58,7 +58,7 @@ module Channel_layout : sig
   exception Invalid_data
 
   type layout = [ `Mono | `Stereo | `Five_point_one ]
-  type converter = layout -> layout -> Content.Audio.data -> Content.Audio.data
+  type converter = layout -> layout -> Content_audio.data -> Content_audio.data
   type t
 
   val channels_of_layout : layout -> int
@@ -72,5 +72,5 @@ module Channel_layout : sig
   (** [convert converter data]: converts input data to the destination layout.
       Raises [Invalid_data] if input layout does not match the layout passed
       as [create]. *)
-  val convert : t -> Content.Audio.data -> Content.Audio.data
+  val convert : t -> Content_audio.data -> Content_audio.data
 end

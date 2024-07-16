@@ -10,7 +10,10 @@ though it should work too.
 
 ## Basic operator
 
-The basic operator for creating an external stream is `input.external`. Its parameters are:
+The basic operators for creating an external stream are `input.external.wav`,
+`input.external.rawaudio`, `input.external.avi` and `input.external.rawvideo`
+(depending on the format of the data produced by the external program). The
+parameters for the two first are
 
 - `buffer`: Duration of the pre-buffered data.
 - `max`: Maximum duration of the buffered data.
@@ -27,23 +30,6 @@ run the external program.
 A wrapper, `input.mplayer`, is defined to use mplayer as the external decoder.
 Its code is:
 
-```liquidsoap
-# Stream data from mplayer
-# @category Source / Input
-# @param s data URI.
-# @param ~restart restart on exit.
-# @param ~restart_on_error restart on exit with error.
-# @param ~buffer Duration of the pre-buffered data.
-# @param ~max Maximum duration of the buffered data.
-def input.mplayer(~id="input.mplayer",
-         ~restart=true,~restart_on_error=false,
-         ~buffer=0.2,~max=10.,s) =
-  input.external(id=id,restart=restart,
-      restart_on_error=restart_on_error,
-      buffer=buffer,max=max,
-      "mplayer -really-quiet \
-              -ao pcm:file=/dev/stdout \
-              -vc null -vo null #{quote(s)} \
-                    2>/dev/null")
-end
+```{.liquidsoap include="input.mplayer.liq"}
+
 ```

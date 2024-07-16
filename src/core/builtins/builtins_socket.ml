@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 module Socket_domain = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Unix.socket_domain
 
     let name = "socket_domain"
@@ -30,7 +30,7 @@ module Socket_domain = struct
       Lang.raise_error ~pos
         ~message:"Socket domain cannot be represented as json" "json"
 
-    let descr = function
+    let to_string = function
       | Unix.PF_UNIX -> "socket.domain.unix"
       | Unix.PF_INET -> "socket.domain.inet"
       | Unix.PF_INET6 -> "socket.domain.inet6"
@@ -44,7 +44,7 @@ module Socket_domain = struct
 end
 
 module Socket_type = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Unix.socket_type
 
     let name = "socket_type"
@@ -53,7 +53,7 @@ module Socket_type = struct
       Lang.raise_error ~pos ~message:"Socket type cannot be represented as json"
         "json"
 
-    let descr = function
+    let to_string = function
       | Unix.SOCK_STREAM -> "socket.type.stream"
       | Unix.SOCK_DGRAM -> "socket.type.dgram"
       | Unix.SOCK_RAW -> "socket.type.raw"
@@ -71,10 +71,10 @@ module Socket_type = struct
 end
 
 module Inet_addr = struct
-  let descr s =
+  let to_string s =
     Printf.sprintf "socket.internet_address(%S)" (Unix.string_of_inet_addr s)
 
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Unix.inet_addr
 
     let name = "internet_address"
@@ -83,7 +83,7 @@ module Inet_addr = struct
       Lang.raise_error ~pos
         ~message:"Internet address type cannot be represented as json" "json"
 
-    let descr = descr
+    let to_string = to_string
 
     let compare s s' =
       Stdlib.compare (Unix.string_of_inet_addr s) (Unix.string_of_inet_addr s')
@@ -108,7 +108,6 @@ module Inet_addr = struct
         ("is_ipv6", Lang.bool (Unix.is_inet6_addr v));
       ]
 
-  let of_value v = of_value (Lang.demeth v)
   let any = to_value Unix.inet_addr_any
   let loopback = to_value Unix.inet_addr_loopback
   let ipv6_any = to_value Unix.inet6_addr_any
@@ -116,7 +115,7 @@ module Inet_addr = struct
 end
 
 module Socket_addr = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Unix.sockaddr
 
     let name = "socket_address"
@@ -125,11 +124,11 @@ module Socket_addr = struct
       Lang.raise_error ~pos
         ~message:"Socket address type cannot be represented as json" "json"
 
-    let descr = function
+    let to_string = function
       | Unix.ADDR_UNIX s -> Printf.sprintf "socket.address.unix(%S)" s
       | Unix.ADDR_INET (inet_addr, port) ->
           Printf.sprintf "socket.address.inet(%s, %i)"
-            (Inet_addr.descr inet_addr)
+            (Inet_addr.to_string inet_addr)
             port
 
     let compare = Stdlib.compare
@@ -167,12 +166,10 @@ module Socket_addr = struct
             ("port", Lang.int port);
           ]
     | _ -> assert false
-
-  let of_value v = of_value (Lang.demeth v)
 end
 
 module Socket_value = struct
-  include Value.MkAbstract (struct
+  include Value.MkCustom (struct
     type content = Http.socket
 
     let name = "socket"
@@ -181,14 +178,12 @@ module Socket_value = struct
       Lang.raise_error ~pos ~message:"Socket cannot be represented as json"
         "json"
 
-    let descr s = Printf.sprintf "<%s socket>" s#typ
+    let to_string s = Printf.sprintf "<%s socket>" s#typ
     let compare = Stdlib.compare
   end)
 
-  let of_value socket = of_value (Lang.demeth socket)
-
   let meths =
-    let descr_of_mode = function `Read -> "read" | `Write -> "write" in
+    let string_of_mode = function `Read -> "read" | `Write -> "write" in
     let wait_t ~mode t =
       Lang.method_t t
         [
@@ -201,7 +196,7 @@ module Socket_value = struct
                 ]
                 Lang.unit_t ),
             "Execute the given callback when the socket is ready to "
-            ^ descr_of_mode mode ^ " some data" );
+            ^ string_of_mode mode ^ " some data" );
         ]
     in
     let wait_meth ~mode socket v =
@@ -395,10 +390,14 @@ module Socket_value = struct
     Lang.method_t server_t
       [
         ( "accept",
-          ([], Lang.fun_t [] (Lang.product_t t Socket_addr.base_t)),
+          ( [],
+            Lang.fun_t
+              [(true, "timeout", Lang.nullable_t Lang.float_t)]
+              (Lang.product_t t Socket_addr.base_t) ),
           "Accept connections on the given socket. The returned socket is a \
            socket connected to the client; the returned address is the address \
-           of the connecting client." );
+           of the connecting client. Timeout defaults to harbor's \
+           accept_timeout if `null`." );
         ( "connect",
           ([], Lang.fun_t [(false, "", Socket_addr.base_t)] Lang.unit_t),
           "Connect a socket to an address." );
@@ -406,11 +405,21 @@ module Socket_value = struct
 
   let to_unix_value v =
     let socket = Http.unix_socket v in
+    let server = socket#transport#server in
     Lang.meth (to_server_value socket)
       [
         ( "accept",
-          Lang.val_fun [] (fun _ ->
-              let fd, sockaddr = socket#transport#accept socket#file_descr in
+          Lang.val_fun
+            [
+              ( "timeout",
+                "timeout",
+                Some (Lang.float Harbor_base.conf_accept_timeout#get) );
+            ]
+            (fun p ->
+              let timeout =
+                Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
+              in
+              let fd, sockaddr = server#accept ?timeout socket#file_descr in
               Lang.product (to_value fd) (Socket_addr.to_value sockaddr)) );
         ( "connect",
           Lang.val_fun
@@ -469,21 +478,21 @@ let socket_domain = Lang.add_module ~base:socket "domain"
 let socket_type = Lang.add_module ~base:socket "type"
 
 let add ~t ~name ~descr ~base value =
-  ignore (Lang.add_builtin_base ~category:`Internet ~descr ~base name value t)
+  ignore (Lang.add_builtin_value ~category:`Internet ~descr ~base name value t)
 
 let () =
   add ~t:Socket_domain.t ~base:socket_domain ~name:"unix"
-    ~descr:"Unix socket domain" Socket_domain.unix.Value.value;
+    ~descr:"Unix socket domain" Socket_domain.unix;
   add ~t:Socket_domain.t ~base:socket_domain ~name:"inet"
-    ~descr:"Inet socket domain" Socket_domain.inet.Value.value;
+    ~descr:"Inet socket domain" Socket_domain.inet;
   add ~t:Socket_domain.t ~base:socket_domain ~name:"inet6"
-    ~descr:"Inet6 socket domain" Socket_domain.inet6.Value.value;
+    ~descr:"Inet6 socket domain" Socket_domain.inet6;
   add ~t:Socket_type.t ~base:socket_type ~name:"stream"
-    ~descr:"Stream socket type" Socket_type.stream.Value.value;
+    ~descr:"Stream socket type" Socket_type.stream;
   add ~t:Socket_type.t ~base:socket_type ~name:"dgram"
-    ~descr:"Dgram socket type" Socket_type.dgram.Value.value;
+    ~descr:"Dgram socket type" Socket_type.dgram;
   add ~t:Socket_type.t ~base:socket_type ~name:"raw" ~descr:"Raw socket type"
-    Socket_type.raw.Value.value
+    Socket_type.raw
 
 let socket_internet_address =
   Lang.add_builtin ~base:socket "internet_address" ~category:`Internet
@@ -499,10 +508,10 @@ let () =
     ~descr:
       "A special IPv4 address, for use only with `socket.bind`, representing \
        all the Internet addresses that the host machine possesses."
-    Inet_addr.any.Value.value;
+    Inet_addr.any;
   add ~t:Inet_addr.t ~base:socket_internet_address ~name:"loopback"
     ~descr:"A special IPv4 address representing the host machine (`127.0.0.1`)."
-    Inet_addr.loopback.Value.value
+    Inet_addr.loopback
 
 let socket_internet_address_ipv6 =
   Lang.add_module ~base:socket_internet_address "ipv6"
@@ -512,10 +521,10 @@ let () =
     ~descr:
       "A special IPv6 address, for use only with `socket.bind`, representing \
        all the Internet addresses that the host machine possesses."
-    Inet_addr.ipv6_any.Value.value;
+    Inet_addr.ipv6_any;
   add ~t:Inet_addr.t ~base:socket_internet_address_ipv6 ~name:"loopback"
     ~descr:"A special IPv6 address representing the host machine (`::1`)."
-    Inet_addr.ipv6_loopback.Value.value
+    Inet_addr.ipv6_loopback
 
 let socket_address = Lang.add_module ~base:socket "address"
 

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,3 +23,5 @@
 let ffmpeg = Lang.add_module "ffmpeg"
 let ffmpeg_filter = Lang.add_module ~base:ffmpeg "filter"
 let ffmpeg_raw = Lang.add_module ~base:ffmpeg "raw"
+let track_ffmpeg = Lang.add_module ~base:Modules.track "ffmpeg"
+let track_ffmpeg_raw = Lang.add_module ~base:track_ffmpeg "raw"

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-    Liquidsoap, a programmable audio stream generator.
-    Copyright 2003-2022 Savonet team
+    Liquidsoap, a programmable stream generator.
+    Copyright 2003-2024 Savonet team
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,20 +20,47 @@
 
   *****************************************************************************)
 
-type t = [ `ISO_8859_1 | `UTF_16 | `UTF_16BE | `UTF_16LE | `UTF_8 ]
+let conf_charset =
+  Dtools.Conf.void
+    ~p:(Configure.conf#plug "charset")
+    "Settings related to charset conversion."
+
+let conf_path =
+  Dtools.Conf.string ~p:(conf_charset#plug "path")
+    ~d:(Liquidsoap_paths.camomile_dir ())
+    "Directory where charset files are to be found."
+
+let conf_encoding =
+  Dtools.Conf.list
+    ~p:(conf_charset#plug "encodings")
+    ~d:["UTF-8"; "ISO-8859-1"; "UTF-16"]
+    "List of encodings to try for automatic encoding detection."
+
+module C = CamomileLib.CharEncoding.Configure (struct
+  let basedir = conf_path#get
+  let datadir = Filename.concat basedir "database"
+  let localedir = Filename.concat basedir "locales"
+  let charmapdir = Filename.concat basedir "charmaps"
+  let unimapdir = Filename.concat basedir "mappings"
+end)
+
+include C
 
 exception Unknown_encoding of string
 exception Unsupported_encoding of t
 
-let of_string : string -> t = function
-  | "UTF-8" -> `UTF_8
-  | "ISO-8859-1" -> `ISO_8859_1
-  | "UTF-16" -> `UTF_16
-  | e -> raise (Unknown_encoding e)
+let of_string s =
+  try C.of_name (String.uppercase_ascii s)
+  with Not_found -> raise (Unknown_encoding s)
 
-let to_string : t -> string = function
-  | `UTF_8 -> "UTF-8"
-  | `UTF_16 -> "UTF-16"
-  | `UTF_16BE -> "UTF-16BE"
-  | `UTF_16LE -> "UTF-16LE"
-  | `ISO_8859_1 -> "ISO-8859-1"
+let to_string = C.name_of
+let custom_encoding = ref None
+
+let automatic_encoding () =
+  match !custom_encoding with
+    | Some e -> e
+    | None ->
+        let encs = conf_encoding#get in
+        let e = C.automatic "auto" (List.map of_string encs) C.utf8 in
+        custom_encoding := Some e;
+        e

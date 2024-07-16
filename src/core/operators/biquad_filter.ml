@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ open Source
 class biquad (source : source) filter_type freq q gain =
   let samplerate = float (Frame.audio_of_seconds 1.) in
   object (self)
-    inherit operator ~name:"biquad_filter" [source] as super
+    inherit operator ~name:"biquad_filter" [source]
     val mutable p0 = 0.
     val mutable p1 = 0.
     val mutable p2 = 0.
@@ -118,26 +118,22 @@ class biquad (source : source) filter_type freq q gain =
         q1 <- a1 /. a0;
         q2 <- a2 /. a0)
 
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
+    initializer self#on_wake_up (fun () -> self#init)
 
-    method! wake_up a =
-      super#wake_up a;
-      self#init
-
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let position = AFrame.position buf in
-      let buf = AFrame.pcm buf in
+    method private generate_frame =
+      let data = source#get_mutable_content Frame.Fields.audio in
+      let buf = Content.Audio.get_data data in
+      let position = source#frame_audio_position in
       self#init;
       for c = 0 to self#audio_channels - 1 do
         let buf = buf.(c) in
-        for i = offset to position - 1 do
+        for i = 0 to position - 1 do
           let x0 = buf.(i) in
           let y0 =
             (p0 *. x0)
@@ -152,7 +148,8 @@ class biquad (source : source) filter_type freq q gain =
           y2.(c) <- y1.(c);
           y1.(c) <- y0
         done
-      done
+      done;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data buf
   end
 
 let filter_iir_eq = Lang.add_module ~base:Iir_filter.filter_iir "eq"

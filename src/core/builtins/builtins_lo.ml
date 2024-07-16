@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -94,14 +94,14 @@ let start_server () =
        ())
 
 let () =
-  Lifecycle.on_start
-    (Tutils.mutexify started_m (fun () ->
+  Lifecycle.on_start ~name:"lo initialization"
+    (Mutex_utils.mutexify started_m (fun () ->
          if !should_start && !server = None then start_server ()
          else started := true))
 
 let () =
-  Lifecycle.on_core_shutdown
-    (Tutils.mutexify started_m (fun () ->
+  Lifecycle.on_core_shutdown ~name:"lo shutdown"
+    (Mutex_utils.mutexify started_m (fun () ->
          match !server with
            | Some s ->
                log#info "Stopping OSC server";
@@ -110,7 +110,7 @@ let () =
            | None -> ()))
 
 let start_server =
-  Tutils.mutexify started_m (fun () ->
+  Mutex_utils.mutexify started_m (fun () ->
       if !started && !server = None then start_server ()
       else should_start := true)
 
@@ -172,10 +172,10 @@ let register name osc_t liq_t =
          let v = Lang.assoc "" 2 p in
          let address = Lo.Address.create host port in
          let osc_val v =
-           match v.Lang.value with
-             | Lang.(Ground (Ground.Bool b)) -> if b then [`True] else [`False]
-             | Lang.(Ground (Ground.String s)) -> [`String s]
-             | Lang.(Ground (Ground.Float x)) -> [`Float x]
+           match v with
+             | Value.Bool { value = b } -> if b then [`True] else [`False]
+             | Value.String { value = s } -> [`String s]
+             | Value.Float { value = x } -> [`Float x]
              | _ -> failwith "Unhandled value."
          in
          (* There was a bug in early versions of lo bindings and anyway we don't

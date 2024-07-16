@@ -98,21 +98,40 @@ let _ =
       with _ -> Lang.int 0)
 
 let _ =
+  Lang.add_builtin ~base:file "mtime" ~category:`File
+    ~descr:"Last modification time."
+    [("", Lang.string_t, None, None)]
+    Lang.float_t
+    (fun p ->
+      let fname = List.assoc "" p |> Lang.to_string in
+      try Lang.float (Unix.stat fname).st_mtime with _ -> Lang.float 0.)
+
+let _ =
   Lang.add_builtin ~base:file "mkdir" ~category:`File
     ~descr:"Create a directory."
     [
+      ( "parents",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some "Also create parent directories if they do not exist." );
       ( "perms",
         Lang.int_t,
-        Some (Lang.int 0o755),
-        Some "Default file rights if created (default is `0o755`)." );
+        Some (Lang.octal_int 0o755),
+        Some "Default file rights if created." );
       ("", Lang.string_t, None, None);
     ]
     Lang.unit_t
     (fun p ->
+      let parents = List.assoc "parents" p |> Lang.to_bool in
       let perms = List.assoc "perms" p |> Lang.to_int in
       let dir = List.assoc "" p |> Lang.to_string in
       try
-        Unix.mkdir dir perms;
+        let rec recmkdir dir =
+          if not (Sys.file_exists dir) then (
+            recmkdir (Filename.dirname dir);
+            Unix.mkdir dir perms)
+        in
+        if parents then recmkdir dir else Unix.mkdir dir perms;
         Lang.unit
       with _ -> Lang.unit)
 
@@ -152,14 +171,21 @@ let _ =
       "Return a fresh temporary filename. The temporary file is created empty, \
        with permissions 0o600 (readable and writable only by the file owner)."
     [
+      ( "directory",
+        Lang.nullable_t Lang.string_t,
+        Some Lang.null,
+        Some "Directory where to create the file." );
       ("", Lang.string_t, None, Some "File prefix");
       ("", Lang.string_t, None, Some "File suffix");
     ]
     Lang.string_t
     (fun p ->
+      let temp_dir =
+        Lang.to_valued_option Lang.to_string (List.assoc "directory" p)
+      in
       try
         Lang.string
-          (Filename.temp_file
+          (Filename.temp_file ?temp_dir
              (Lang.to_string (Lang.assoc "" 1 p))
              (Lang.to_string (Lang.assoc "" 2 p)))
       with exn ->
@@ -303,7 +329,11 @@ let _ =
 let _ =
   Lang.add_builtin ~base:path "basename" ~category:`File
     [("", Lang.string_t, None, None)]
-    Lang.string_t ~descr:"Get the base name of a path."
+    Lang.string_t
+    ~descr:
+      "Get the base name of a path, i.e. the name of the file without the full \
+       path. For instance `file.basename(\"/tmp/folder/bla.mp3\")` returns \
+       `\"bla.mp3\"`."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
       Lang.string (Filename.basename f))
@@ -370,8 +400,8 @@ let _ =
         Some "Open in non-blocking mode." );
       ( "perms",
         Lang.int_t,
-        Some (Lang.int 0o644),
-        Some "Default file rights if created. Default: `0o644`" );
+        Some (Lang.octal_int 0o644),
+        Some "Default file rights if created." );
       ("", Lang.string_t, None, None);
     ]
     Builtins_socket.Socket_value.t ~descr:"Open a file."
@@ -425,7 +455,12 @@ let _ =
       let fname = Lang.to_string (Extralib.List.assoc_nth "" 0 p) in
       let fname = Lang_string.home_unrelate fname in
       let f = Extralib.List.assoc_nth "" 1 p in
-      let f () = ignore (Lang.apply f []) in
+      let f () =
+        try ignore (Lang.apply f [])
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Lang.raise_as_runtime ~bt ~kind:"file" exn
+      in
       let unwatch = File_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f in
       Lang.meth Lang.unit
         [
@@ -442,18 +477,23 @@ let file_metadata =
         Lang.string_t,
         None,
         Some "File from which the metadata should be read." );
+      ( "exclude",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some "Decoders to exclude" );
     ]
     Lang.metadata_t ~descr:"Read metadata from a file."
     (fun p ->
       let uri = Lang.to_string (List.assoc "" p) in
-      let r = Request.create uri in
-      if Request.resolve ~ctype:None r 30. = Request.Resolved then (
-        Request.read_metadata r;
-        Lang.metadata (Request.get_all_metadata r))
-      else Lang.metadata (Hashtbl.create 0))
+      let excluded =
+        List.map Lang.to_string (Lang.to_list (List.assoc "exclude" p))
+      in
+      Lang.metadata
+        (Request.resolve_metadata ~initial_metadata:Frame.Metadata.empty
+           ~excluded uri))
 
 let () =
-  Lifecycle.before_script_parse (fun () ->
+  Lifecycle.on_load ~name:"metadata resolvers registration" (fun () ->
       Plug.iter Request.mresolvers (fun name decoder ->
           let name = String.lowercase_ascii name in
           ignore
@@ -469,11 +509,35 @@ let () =
                  ("Read metadata from a file using the " ^ name ^ " decoder.")
                (fun p ->
                  let uri = Lang.to_string (List.assoc "" p) in
-                 let m = try decoder uri with _ -> [] in
+                 let extension =
+                   try Some (Utils.get_ext uri) with _ -> None
+                 in
+                 let mime = Magic_mime.lookup uri in
+                 let m =
+                   try
+                     decoder.Request.resolver ~metadata:Frame.Metadata.empty
+                       ~extension ~mime uri
+                   with _ -> []
+                 in
                  let m =
                    List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m
                  in
-                 Lang.metadata (Frame.metadata_of_list m)))))
+                 Lang.metadata (Frame.Metadata.from_list m)))))
+
+let _ =
+  Lang.add_builtin ~base:file_metadata "native" ~category:`File
+    [
+      ( "",
+        Lang.string_t,
+        None,
+        Some "File from which the metadata should be read." );
+    ]
+    Lang.metadata_t ~descr:"Read metadata from a file using the native decoder."
+    (fun p ->
+      let file = List.assoc "" p |> Lang.to_string in
+      let m = try Metadata.parse_file file with _ -> [] in
+      let m = List.map (fun (k, v) -> (String.lowercase_ascii k, v)) m in
+      Lang.metadata (Frame.Metadata.from_list m))
 
 let _ =
   Lang.add_builtin ~base:file "which" ~category:`File
@@ -500,7 +564,7 @@ let _ =
         Some "Copy file hierarchies." );
       ( "force",
         Lang.bool_t,
-        Some (Lang.bool false),
+        Some (Lang.bool true),
         Some
           "If a file descriptor for a destination file cannot be obtained \
            attempt to unlink the destination file and proceed." );
@@ -538,6 +602,13 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Do not prompt for confirmation if the destination path exists." );
+      ( "atomic",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Move the file atomically. Implies `force` and raises \
+           `error.file.cross_device` if atomic move fails because the source \
+           and destination files are not on the same partition." );
       ("", Lang.string_t, None, Some "Source");
       ("", Lang.string_t, None, Some "Destination");
     ]
@@ -547,14 +618,58 @@ let _ =
         if Lang.to_bool (List.assoc "force" p) then FileUtil.Force
         else FileUtil.Ask (fun _ -> false)
       in
+      let atomic = Lang.to_bool (List.assoc "atomic" p) in
       let src = Lang.to_string (Lang.assoc "" 1 p) in
       let dst = Lang.to_string (Lang.assoc "" 2 p) in
       let error message _ =
         Runtime_error.raise ~pos:(Lang.pos p) ~message "file"
       in
       try
-        FileUtil.mv ~force ~error src dst;
+        if atomic then Unix.rename src dst
+        else FileUtil.mv ~force ~error src dst;
         Lang.unit
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+      with
+        | Unix.Unix_error (Unix.EXDEV, _, _) ->
+            Runtime_error.raise ~pos:(Lang.pos p)
+              ~message:
+                "Rename failed! Directory for temporary files appears to be on \
+                 a different filesystem"
+              "file.cross_device"
+        | exn ->
+            let bt = Printexc.get_raw_backtrace () in
+            Lang.raise_as_runtime ~bt ~kind:"file" exn)
+
+let () =
+  if not Sys.win32 then (
+    let umask_m = Mutex.create () in
+    let get_umask =
+      Mutex_utils.mutexify umask_m (fun () ->
+          let umask = Unix.umask 0 in
+          ignore (Unix.umask umask);
+          umask)
+    in
+    let set_umask =
+      Mutex_utils.mutexify umask_m (fun umask -> ignore (Unix.umask umask))
+    in
+    let umask =
+      Lang.add_builtin ~base:file "umask" ~category:`File
+        ~descr:"Get the process's file mode creation mask." [] Lang.int_t
+        (fun _ -> Lang.int (get_umask ()))
+    in
+    ignore
+      (Lang.add_builtin ~base:umask "set" ~category:`File
+         ~descr:"Set process's file mode creation mask."
+         [("", Lang.int_t, None, None)]
+         Lang.unit_t
+         (fun p ->
+           set_umask (Lang.to_int (List.assoc "" p));
+           Lang.unit)))
+
+let _ =
+  Lang.add_builtin ~base:Modules.file_mime "magic" ~category:`File
+    ~descr:"Get the MIME type of a file."
+    [("", Lang.string_t, None, None)]
+    Lang.string_t
+    (fun p ->
+      let file = Lang.to_string (Lang.assoc "" 1 p) in
+      Lang.string (Magic_mime.lookup file))

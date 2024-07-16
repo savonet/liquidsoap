@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,8 +25,14 @@ open Extralib
 open Gstreamer
 module GU = Gstreamer_utils
 
-let log = Log.make ["io"; "gstreamer"]
-let gst_clock = Tutils.lazy_cell (fun () -> new Clock.clock "gstreamer")
+module SyncSource = Clock.MkSyncSource (struct
+  type t = unit
+
+  let to_string _ = "gstreamer"
+end)
+
+let sync_source = SyncSource.make ()
+let log = Log.make ["gstreamer"]
 
 let string_of_state_change = function
   | Element.State_change_success -> "success"
@@ -45,6 +51,12 @@ type ('a, 'b) element = {
 }
 
 class virtual ['a, 'b] element_factory ~on_error =
+  let () =
+    log#important
+      "Gstreamer is DEPRECATED! Please consider moving to FFMPEG. See: \
+       https://github.com/savonet/liquidsoap/issues/2592 for some discussion \
+       and example."
+  in
   object (self)
     val restart_m = Mutex.create ()
     val mutable restarting = false
@@ -57,7 +69,7 @@ class virtual ['a, 'b] element_factory ~on_error =
     method virtual make_element : ('a, 'b) element
 
     method private get_element =
-      Tutils.mutexify element_m
+      Mutex_utils.mutexify element_m
         (fun () ->
           match element with
             | Some el -> el
@@ -69,7 +81,7 @@ class virtual ['a, 'b] element_factory ~on_error =
 
     method private restart_task =
       let should_run =
-        Tutils.mutexify restart_m
+        Mutex_utils.mutexify restart_m
           (fun () ->
             if not restarting then (
               restarting <- true;
@@ -80,7 +92,7 @@ class virtual ['a, 'b] element_factory ~on_error =
       if should_run then (
         try
           self#log#important "Restarting pipeline.";
-          Tutils.mutexify element_m
+          Mutex_utils.mutexify element_m
             (fun () ->
               begin
                 match element with
@@ -98,7 +110,7 @@ class virtual ['a, 'b] element_factory ~on_error =
                 ~on_error:(fun err -> retry_in <- on_error (Flushing_error err))
                 el.bin)
             ();
-          Tutils.mutexify restart_m (fun () -> restarting <- false) ();
+          Mutex_utils.mutexify restart_m (fun () -> restarting <- false) ();
           if retry_in >= 0. then
             self#log#info
               "An error occurred while restarting pipeline, will retry in %.02f"
@@ -112,12 +124,12 @@ class virtual ['a, 'b] element_factory ~on_error =
                (Printexc.to_string exn));
           retry_in <- on_error exn;
           self#log#important "Will retry again in %.02f" retry_in;
-          Tutils.mutexify restart_m (fun () -> restarting <- false) ();
+          Mutex_utils.mutexify restart_m (fun () -> restarting <- false) ();
           retry_in)
       else -1.
 
     method private register_task ~priority scheduler =
-      Tutils.mutexify task_m
+      Mutex_utils.mutexify task_m
         (fun () ->
           task <-
             Some
@@ -125,7 +137,7 @@ class virtual ['a, 'b] element_factory ~on_error =
         ()
 
     method private stop_task =
-      Tutils.mutexify task_m
+      Mutex_utils.mutexify task_m
         (fun () ->
           match task with
             | None -> ()
@@ -135,7 +147,7 @@ class virtual ['a, 'b] element_factory ~on_error =
         ()
 
     method private restart =
-      Tutils.mutexify task_m
+      Mutex_utils.mutexify task_m
         (fun () ->
           match task with None -> () | Some t -> Duppy.Async.wake_up t)
         ()
@@ -159,8 +171,9 @@ class virtual ['a, 'b] element_factory ~on_error =
 
 (* Audio/video output *)
 
-class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
-  ?(blocking = true) source start (pipeline, audio_pipeline, video_pipeline) =
+class output ~self_sync ~on_error ~infallible ~register_telnet ~on_start
+  ~on_stop ?(blocking = true) source start
+  (pipeline, audio_pipeline, video_pipeline) =
   let has_audio, audio_pipeline =
     match audio_pipeline with
       | Some audio_pipeline -> (true, audio_pipeline)
@@ -174,18 +187,15 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
   object (self)
     inherit
       Output.output
-        ~infallible ~on_start ~on_stop ~name:"output.gstreamer"
+        ~infallible ~register_telnet ~on_start ~on_stop ~name:"output.gstreamer"
           ~output_kind:"gstreamer" source start as super
 
     inherit [App_src.t, App_src.t] element_factory ~on_error
     val mutable started = false
-    method! self_sync = (`Dynamic, started)
 
-    method! private set_clock =
-      super#set_clock;
-      if clock_safe then
-        Clock.unify self#clock
-          (Clock.create_known (gst_clock () :> Clock.clock))
+    method! self_sync =
+      if self_sync then (`Dynamic, if started then Some sync_source else None)
+      else (`Static, None)
 
     method start =
       let el = self#get_element in
@@ -203,7 +213,7 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
       self#stop_task;
       started <- false;
       let todo =
-        Tutils.mutexify element_m
+        Mutex_utils.mutexify element_m
           (fun () ->
             match element with
               | None -> fun () -> ()
@@ -275,17 +285,18 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
               (Option.get el.audio) data 0 (Bytes.length data));
           if has_video then (
             let buf = VFrame.data frame in
-            for i = 0 to Video.Canvas.length buf - 1 do
-              let img = Video.Canvas.render buf i in
-              let y, u, v = Image.YUV420.data img in
-              let buf =
-                Gstreamer.Buffer.of_data_list
-                  (List.map (fun d -> (d, 0, Image.Data.length d)) [y; u; v])
-              in
-              Gstreamer.Buffer.set_duration buf duration;
-              Gstreamer.Buffer.set_presentation_time buf presentation_time;
-              Gstreamer.App_src.push_buffer (Option.get el.video) buf
-            done);
+            List.iter
+              (fun (_, img) ->
+                let img = Video.Canvas.Image.render img in
+                let y, u, v = Image.YUV420.data img in
+                let buf =
+                  Gstreamer.Buffer.of_data_list
+                    (List.map (fun d -> (d, 0, Image.Data.length d)) [y; u; v])
+                in
+                Gstreamer.Buffer.set_duration buf duration;
+                Gstreamer.Buffer.set_presentation_time buf presentation_time;
+                Gstreamer.App_src.push_buffer (Option.get el.video) buf)
+              buf.Content.Video.data);
           presentation_time <- Int64.add presentation_time duration;
           GU.flush ~log:self#log
             ~on_error:(fun err -> raise (Flushing_error err))
@@ -303,7 +314,7 @@ class output ~clock_safe ~on_error ~infallible ~on_start ~on_stop
 let output_proto ~return_t ~pipeline =
   Output.proto
   @ [
-      ( "clock_safe",
+      ( "self_sync",
         Lang.bool_t,
         Some (Lang.bool true),
         Some "Use the dedicated GStreamer clock." );
@@ -334,9 +345,10 @@ let _ =
     (output_proto ~return_t ~pipeline:"autoaudiosink")
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to a GStreamer pipeline." ~return_t (fun p ->
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -353,8 +365,8 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~on_error ~infallible ~on_start ~on_stop source start
-         ("", Some pipeline, None)
+         ~self_sync ~on_error ~infallible ~register_telnet ~on_start ~on_stop
+         source start ("", Some pipeline, None)
         :> Output.output))
 
 let _ =
@@ -366,9 +378,10 @@ let _ =
     (output_proto ~return_t ~pipeline:"videoconvert ! autovideosink")
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to a GStreamer pipeline." ~return_t (fun p ->
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -385,8 +398,8 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~infallible ~on_error ~on_start ~on_stop source start
-         ("", None, Some pipeline)
+         ~self_sync ~infallible ~register_telnet ~on_error ~on_start ~on_stop
+         source start ("", None, Some pipeline)
         :> Output.output))
 
 let _ =
@@ -414,11 +427,12 @@ let _ =
     ~category:`Output ~meth:Output.meth
     ~descr:"Output stream to a GStreamer pipeline." ~return_t
     (fun p ->
-      let clock_safe = Lang.to_bool (List.assoc "clock_safe" p) in
+      let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
       let pipeline = Lang.to_string (List.assoc "pipeline" p) in
       let audio_pipeline = Lang.to_string (List.assoc "audio_pipeline" p) in
       let video_pipeline = Lang.to_string (List.assoc "video_pipeline" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let on_error = List.assoc "on_error" p in
       let on_error error =
         let msg = Printexc.to_string error in
@@ -436,8 +450,8 @@ let _ =
       in
       let source = List.assoc "" p in
       (new output
-         ~clock_safe ~infallible ~on_error ~on_start ~on_stop ~blocking source
-         start
+         ~self_sync ~infallible ~register_telnet ~on_error ~on_start ~on_stop
+         ~blocking source start
          (pipeline, Some audio_pipeline, Some video_pipeline)
         :> Output.output))
 
@@ -467,20 +481,20 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
   let rlog = ref (fun _ -> ()) in
   object (self)
     inherit Source.source ~name:"input.gstreamer.audio_video" () as super
-    inherit Source.no_seek
     inherit [string sink, Gstreamer.data sink] element_factory ~on_error
     initializer rlog := fun s -> self#log#important "%s" s
     method set_state s = ignore (Element.set_state self#get_element.bin s)
     method pause_cmd = self#set_state Element.State_paused
     method play_cmd = self#set_state Element.State_playing
     method restart_cmd = self#restart
-    method stype = `Fallible
+    method fallible = true
     method remaining = -1
+    method seek_source = (self :> Source.source)
 
     (* Source is ready when ready = true and gst has some audio or some video. *)
     val mutable ready = true
 
-    method is_ready =
+    method private can_generate_frame =
       let pending = function
         | Some sink -> sink.pending () > 0
         | None -> false
@@ -495,7 +509,11 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           (Printexc.to_string e);
         false
 
-    method self_sync = (`Dynamic, self#is_ready)
+    method self_sync =
+      if self_sync then
+        (`Dynamic, if self#is_ready then Some sync_source else None)
+      else (`Static, None)
+
     method abort_track = ()
 
     method! wake_up activations =
@@ -512,7 +530,7 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
     method! sleep =
       self#stop_task;
       let todo =
-        Tutils.mutexify element_m
+        Mutex_utils.mutexify element_m
           (fun () ->
             match element with
               | Some el ->
@@ -550,10 +568,11 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
         let m = Mutex.create () in
         let counter = ref 0 in
         App_sink.emit_signals sink;
-        App_sink.on_new_sample sink (Tutils.mutexify m (fun () -> incr counter));
-        let pending = Tutils.mutexify m (fun () -> !counter) in
+        App_sink.on_new_sample sink
+          (Mutex_utils.mutexify m (fun () -> incr counter));
+        let pending = Mutex_utils.mutexify m (fun () -> !counter) in
         let pull =
-          Tutils.mutexify m (fun () ->
+          Mutex_utils.mutexify m (fun () ->
               let b = pull sink in
               decr counter;
               b)
@@ -595,12 +614,11 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
           Image.YUV420.make_data width height b (Image.Data.round 4 width)
             (Image.Data.round 4 (width / 2))
         in
-        let stream = Video.Canvas.single_image img in
         Generator.put self#buffer Frame.Fields.video
-          (Content.Video.lift_data stream)
+          (Content.Video.lift_image (Video.Canvas.Image.make img))
       done
 
-    method get_frame frame =
+    method generate_frame =
       let el = self#get_element in
       let conditional_fill fn = function
         | None -> ()
@@ -609,23 +627,27 @@ class audio_video_input p (pipeline, audio_pipeline, video_pipeline) =
       try
         conditional_fill self#fill_audio el.audio;
         conditional_fill self#fill_video el.video;
-        Generator.fill self#buffer frame;
+        let frame = Generator.slice self#buffer (Lazy.force Frame.size) in
         GU.flush ~log:self#log
           ~on_error:(fun err -> raise (Flushing_error err))
-          el.bin
+          el.bin;
+        frame
       with
         | Gstreamer.End_of_stream ->
             self#log#info "End of stream.";
             ready <- false;
             if restart then (
               self#log#info "Restarting.";
-              self#restart)
+              self#restart);
+            if self#can_generate_frame then self#generate_frame
+            else self#end_of_track
         | exn ->
             let bt = Printexc.get_backtrace () in
             Utils.log_exception ~log:self#log ~bt
               (Printf.sprintf "Error while processing input data: %s"
                  (Printexc.to_string exn));
-            self#on_error exn
+            self#on_error exn;
+            self#end_of_track
   end
 
 let input_proto =

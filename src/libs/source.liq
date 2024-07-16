@@ -1,48 +1,114 @@
+# Create an audio source from the given track, with
+# metadata and track marks from that same track.
+# @category Source / Track processing
+def source.audio(~id=null("source.audio"), audio) =
+  source(
+    id=id,
+    {
+      audio=audio,
+      metadata=track.metadata(audio),
+      track_marks=track.track_marks(audio)
+    }
+  )
+end
+
+# Create a video source from the given track, with
+# metadata and track marks from that same track.
+# @category Source / Track processing
+def source.video(~id=null("source.video"), video) =
+  source(
+    id=id,
+    {
+      video=video,
+      metadata=track.metadata(video),
+      track_marks=track.track_marks(video)
+    }
+  )
+end
+
+# Remove duplicate metadata in a track.
+# @param ~using Labels to use to compare the metadata. Defaults to all of them \
+#               when `null`.
+# @category Metadata
+def track.metadata.deduplicate(
+  ~id=null("track.metadata.deduplicate"),
+  ~using=null(),
+  t
+) =
+  last_meta = ref([])
+
+  def f(m) =
+    m =
+      if
+        null.defined(using)
+      then
+        using = null.get(using)
+        list.filter(fun (x) -> list.mem(fst(x), using), m)
+      else
+        m
+      end
+
+    if
+      m == last_meta()
+    then
+      []
+    else
+      last_meta := m
+      m
+    end
+  end
+
+  track.metadata.map(
+    id=id, insert_missing=false, update=false, strip=true, f, t
+  )
+end
+
+# Remove duplicate metadata in a source.
+# @category Metadata
+# @param ~using Labels to use to compare the metadata. Defaults to all of them \
+#               when `null`.
+# @param ~id Source id
+# @param s source
+def metadata.deduplicate(~id=null("metadata.deduplicate"), ~using=null(), s) =
+  tracks = source.tracks(s)
+  source(
+    id=id,
+    tracks.{metadata=track.metadata.deduplicate(using=using, tracks.metadata)}
+  )
+end
+
+# Rewrite metadata on the fly using a function.
+# @category Source / Track processing
+# @argsof track.metadata.map
+def metadata.map(
+  ~id=null("metadata.map"),
+  %argsof(track.metadata.map[!id]),
+  f,
+  (s:source)
+) =
+  tracks = source.tracks(s)
+  source(
+    id=id,
+    tracks.{
+      metadata=
+        track.metadata.map(%argsof(track.metadata.map), f, tracks.metadata)
+    }
+  )
+end
+
 # Turn a source into an infaillible source by adding blank when the source is
 # not available.
 # @param s the source to turn infaillible
 # @category Source / Track processing
-def mksafe(~id="mksafe",s)
-  fallback(id=id,track_sensitive=false,[(s:source),blank(id="safe_blank")])
-end
-
-# Add a skip telnet command to a source when it does not have one by default.
-# @category Interaction
-# @flag extra
-# @param s The source to attach the command to.
-def add_skip_command(s) =
-  # A command to skip
-  def skip(_) =
-    s.skip()
-    "Done!"
-  end
-  # Register the command:
-  server.register(namespace="#{source.id(s)}",
-                  usage="skip",
-                  description="Skip the current song.",
-                  "skip",skip)
-end
-
-# Removes all metadata coming from a source.
-# @category Metadata
-def drop_metadata(s)
-  metadata.map(fun(_)->[],update=false,strip=true,insert_missing=false,s)
+def mksafe(~id="mksafe", s) =
+  fallback(id=id, track_sensitive=false, [(s : source), blank(id="safe_blank")])
 end
 
 # Creates a source that plays only one track of the input source.
 # @category Source / Track processing
 # @param s The input source.
-def once(s)
-  sequence([(s:source),source.fail()])
-end
-
-# Apply a function to the first track of a source
-# @category Source / Track processing
-# @param ~id Force the value of the source ID.
-# @param fn The applied function.
-# @param s The input source.
-def map_first_track(~id=null(),fn,s)
-  fallback(id=id,track_sensitive=true,[fn((once(s):source)),s])
+def once(~id=null("once"), s) =
+  sequence(id=id, [(s : source), source.fail()])
 end
 
 # Skip track when detecting a blank.
@@ -52,222 +118,161 @@ end
 # @param ~max_blank Maximum silence length allowed, in seconds.
 # @param ~min_noise Minimum duration of noise required to end silence, in seconds.
 # @param ~track_sensitive Reset blank counter at each track.
-def blank.skip(~id=null(),~threshold=-40.,~max_blank=20.,~min_noise=0.,~track_sensitive=true,s)
-  blank.detect(id=id,{s.skip()},threshold=threshold,max_blank=max_blank,min_noise=min_noise,track_sensitive=track_sensitive,s)
-end
-
-# Same operator as rotate but merges tracks from each sources.
-# For instance, `rotate.merge([intro,main,outro])` creates a source
-# that plays a sequence `[intro,main,outro]` as single track and loops back.
-# @category Source / Track processing
-# @param ~id Force the value of the source ID.
-# @param ~transitions Transition functions, padded with `fun (x,y) -> y` functions.
-# @param ~weights Weights of the children (padded with 1), defining for each child how many tracks are played from it per round, if that many are actually available.
-# @param sources Sequence of sources to be merged
-def rotate.merge(~id=null(),~transitions=[],~weights=[],sources)
-  ready = ref(true)
-  duration = frame.duration()
-
-  def to_first(_,new) =
-    ready := (not !ready)
-    sequence(merge=true,[blank(duration=duration),(new:source)])
-  end
-
-  transitions = if list.length(transitions) == 0 then
-    [to_first]
-  else
-    list.mapi((fun (i,t) ->
-      if i == 0 then
-        (fun (old,new) ->
-          to_first(old,t(old,new)))
-      else t end), transitions)
-  end
-
-  source = rotate(transitions=transitions,weights=weights,sources)
-  source = merge_tracks(source)
-
-  switch(id=id,replay_metadata=false,track_sensitive=false,[({!ready}, source), ({(not !ready)}, source)])
-end
-
-# Extract the left channel of a stereo source
-# @category Source / Conversion
-# @param s Source to extract from
-def stereo.left(s)
-  mean(stereo.pan(pan=-1., s))
-end
-
-# Extract the right channel of a stereo source
-# @category Source / Conversion
-# @param s Source to extract from
-def stereo.right(s)
-  mean(stereo.pan(pan=1., s))
-end
-
-# Rotate between overlapping sources. Next track starts according
-# to 'liq_start_next' offset metadata.
-# @category Source / Track processing
-# @param ~id Force the value of the source ID.
-# @param ~start_next Metadata field indicating when the next track should start, relative to current track's time.
-# @param ~weights Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
-# @param sources Sources to toggle from
-def overlap_sources(~id=null(),~normalize=false,
-                    ~start_next="liq_start_next",
-                    ~weights=[],sources) =
-  position = ref(0)
-  length   = list.length(sources)
-
-  def current_position() =
-    pos = !position
-    position := (pos + 1) mod length
-    pos
-  end
-
-  ready_list = list.map(fun (_) -> ref(false),sources)
-  grab_ready = fun(n) -> list.nth(default=ref(false),ready_list,n)
-
-  def set_ready(pos,b) =
-    is_ready = grab_ready(pos)
-    is_ready := b
-  end
-
-  # Start next track on_offset
-  def on_start_next(_,_) =
-    set_ready(current_position(),true)
-  end
-  on_offset = fun(s) -> on_offset(force=true,override=start_next,on_start_next,s)
-  sources = list.map(on_offset,sources)
-
-  # Disable after each track
-  def disable(pos,source) =
-    def disable(_) =
-      set_ready(pos,false)
-    end
-    source.on_track(disable)
-  end
-
-  list.iteri(disable,sources)
-
-  # Relay metadata from all sources
-  send_to_main_source = ref(fun (_) -> ())
-
-  def relay_metadata(m) =
-    fn = !send_to_main_source
-    fn(m)
-  end
-  list.iter(fun (s) -> s.on_metadata(relay_metadata),sources)
-
-  # Now drop all metadata
-  sources = list.map(drop_metadata,sources)
-
-  # Wrap sources into switches.
-  def make_switch(pos,source) =
-    is_ready = grab_ready(pos)
-    switch(track_sensitive=true,[({!is_ready},source)])
-  end
-  sources = list.mapi(make_switch,sources)
-
-  # Initiate the whole thing.
-  set_ready(current_position(),true)
-
-  # Create main source
-  source = add(id=id,normalize=normalize,weights=weights,sources)
-
-  # Set send_to_main_source
-  s = insert_metadata(source)
-  send_to_main_source := fun (m) -> s.insert_metadata(m)
+def blank.skip(
+  ~id=null("blank.skip"),
+  ~threshold=-40.,
+  ~max_blank=20.,
+  ~min_noise=0.,
+  ~track_sensitive=true,
   s
-end
-
-# Append speech-synthesized tracks reading the metadata.
-# @category Metadata
-# @param ~pattern Pattern to use
-# @param s The source to use
-def source.say_metadata =
-  def pattern(m) =
-    artist = m["artist"]
-    title = m["title"]
-    artist_predicate =
-      if artist != "" then
-        "It was #{artist} playing "
-      else
-        ""
-      end
-    "say:#{artist_predicate}#{title}"
-  end
-  fun (~id=null(), ~pattern=pattern, s) ->
-    append(id=id, s, fun (m) -> once(single(pattern(m))))
+) =
+  blank.detect(
+    id=id,
+    {s.skip()},
+    threshold=threshold,
+    max_blank=max_blank,
+    min_noise=min_noise,
+    track_sensitive=track_sensitive,
+    s
+  )
 end
 
 # Run a function regularly. This is similar to `thread.run` but based on a
-# source internal time instead of the world's time.
+# source internal time instead of the computer's time.
 # @category Source / Track processing
 # @param s Source whose time is taken as reference.
 # @param ~delay Time to wait before the first run (in seconds).
 # @param ~every How often to run the function (in seconds). The function is run once if `null`.
 # @param f Function to run.
-def source.run(s, ~delay=0., ~every=null(), f)
+def source.run(s, ~delay=0., ~every=null(), f) =
   next = ref(delay)
-  def check()
-    if source.time(s) >= !next then
-      null.case(every, {next := infinity}, fun (every) -> next := !next + every)
+
+  def check() =
+    if
+      source.time(s) >= next()
+    then
+      null.case(
+        every, {next := infinity}, fun (every) -> next := next() + every
+      )
+
       f()
     end
   end
+
   source.on_frame(s, check)
 end
 
-# Regularly insert track boundaries in a stream (useful for testing tracks).
+# Append an extra track to every track. Set the metadata ‘liq_append’ to
+# `false` to inhibit appending on one track.
 # @category Source / Track processing
-# @param ~every Duration of a track (in seconds).
-# @param ~metadata Metadata for tracks.
-# @param s The stream.
-def chop(~every=getter(3.), ~metadata=getter([]), s) =
-  s = insert_metadata(s)
-
-  # Track time in the source's context:
-  start_time = ref(0.)
-  def f() =
-    if getter.get(every) <= s.time() - !start_time then
-      start_time := s.time()
-      s.insert_metadata(new_track=true, getter.get(metadata))
-    end
-  end
-
-  source.on_frame(s, f)
-end
-
-# Regularly skip tracks from a source (useful for testing skipping).
-# @category Source / Track processing
-# @param ~every How often to skip tracks.
-# @param s The stream.
+# @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent appening a new track.
+# @param ~insert_missing Treat track beginnings without metadata as having empty one.
+# @param ~merge Merge the track with its appended track.
 # @flag extra
-def skipper(~every=getter(5.), s) =
-  start_time = ref(0.)
-  def f() =
-    if getter.get(every) <= s.time() - !start_time then
-      start_time := s.time()
-      s.skip()
+def append(~id=null("append"), ~insert_missing=true, ~merge=false, s, f) =
+  last_meta = ref(null())
+  pending = ref(null())
+
+  def f(m) =
+    if
+      m["liq_append"] == "false"
+    then
+      last_meta := null()
+      pending := null()
+    elsif
+      last_meta() != m
+    then
+      last_meta := m
+      pending := (f(m) : source?)
     end
   end
 
-  source.on_frame(s, f)
+  s = if insert_missing then source.on_track(s, f) else s end
+  s = source.on_metadata(s, f)
+
+  def next() =
+    p = pending()
+    pending := null()
+    last_meta := null()
+    if
+      null.defined(p)
+    then
+      p = null.get(p)
+      sequence(merge=merge, [p, s])
+    else
+      s
+    end
+  end
+
+  d = source.dynamic(track_sensitive=true, next)
+  s = fallback(id=id, track_sensitive=true, [d, s])
+  s.{
+    pending=
+      # Return the pending source
+      fun () -> pending(),
+    set_pending=
+      # Set the pending source
+      fun (s) -> pending.set(s),
+    cancel_pending=
+      # Cancel any pending appended source.
+      fun () -> pending.set(null()),
+    skip=
+      # Skip the current track. Pending appended source are cancelled by default. Pass `cancel_pending=false` to keep it.
+      fun (~cancel_pending=true) ->
+        begin
+          if cancel_pending then pending.set(null()) end
+          s.skip()
+        end
+  }
 end
 
-# Indicate beats.
-# @category Source / Sound synthesis
-# @param ~frequency Frequency of the sound.
-# @param bpm Number of beats per minute.
-def metronome(~frequency=440., bpm=60.)
-  volume_down = 0.
-  beat_duration = 0.1
-  s = sine(frequency)
-  def f() =
-    if s.time() mod (60. / bpm) <= beat_duration then
-      1.
-    else
-      volume_down
+# Prepend an extra track before every track. Set the metadata `liq_prepend` to
+# `false` to inhibit prepending on one track.
+# @category Source / Track processing
+# @param f Given the metadata, build the source producing the track to append. The function can return `null` to prevent any track prepend.
+# @param ~merge Merge the track with its appended track.
+# @flag extra
+def prepend(~id=null("prepend"), ~merge=false, s, f) =
+  last_meta = ref(null())
+
+  def on_meta(m) =
+    if
+      m["liq_prepend"] == "false"
+    then
+      last_meta := null()
+    elsif last_meta() != m then last_meta := m
     end
   end
 
-  amplify(f,s)
+  s = source.on_track(s, fun (m) -> m == [] ? last_meta := null() : on_meta(m) )
+  s = source.on_metadata(s, on_meta)
+
+  def next() =
+    if
+      null.defined(last_meta)
+    then
+      m = last_meta()
+      last_meta := null()
+      if
+        null.defined(m)
+      then
+        m = null.get(m)
+        p = (f(m) : source?)
+        if
+          null.defined(p)
+        then
+          sequence(merge=merge, [null.get(p), s])
+        else
+          s
+        end
+      else
+        s
+      end
+    else
+      s
+    end
+  end
+
+  d = source.dynamic(track_sensitive=true, next)
+  fallback(id=id, track_sensitive=true, [d, s])
 end

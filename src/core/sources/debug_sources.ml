@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,15 +21,15 @@
  *****************************************************************************)
 
 class fail name =
-  object
+  object (self)
     inherit Source.source ~name ()
-    inherit Source.no_seek
-    method stype = `Fallible
-    method is_ready = false
-    method self_sync = (`Static, false)
+    method seek_source = (self :> Source.source)
+    method fallible = true
+    method private can_generate_frame = false
+    method self_sync = (`Static, None)
     method remaining = 0
     method abort_track = ()
-    method get_frame _ = assert false
+    method generate_frame = assert false
   end
 
 let fail () = (new fail "fail" :> Source.source)
@@ -37,17 +37,19 @@ let empty = fail
 
 let fail =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
-  Lang.add_operator ~base:Modules.source "fail" ~category:`Input
+  Lang.add_operator ~base:Muxer.source "fail" ~category:`Input
     ~descr:
       "A source that does not produce anything. No silence, no track at all."
     ~return_t [] (fun _ -> (new fail "source.fail" :> Source.source))
 
 class fail_init =
-  object
+  object (self)
     inherit fail "source.fail.init"
 
-    method! wake_up _ =
-      Lang.raise_error ~pos:[] ~message:"Source's initialization failed" "debug"
+    initializer
+      self#on_wake_up (fun () ->
+          Lang.raise_error ~pos:[] ~message:"Source's initialization failed"
+            "debug")
   end
 
 let _ =

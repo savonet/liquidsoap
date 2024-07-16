@@ -1,6 +1,6 @@
 (*****************************************************************************
 
-    Liquidsoap, a programmable audio stream generator.
+    Liquidsoap, a programmable stream generator.
     Copyright 2003-2016 Savonet team
 
     This program is free software; you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 open Harbor_base
 module Monad = Duppy.Monad
 module Type = Liquidsoap_lang.Type
-module Regexp = Liquidsoap_lang.Regexp
 module Http_base = Http
 
 let ( let* ) = Duppy.Monad.bind
@@ -101,6 +100,7 @@ module type T = sig
   exception Unknown_codec
   exception Mount_taken
   exception Websocket_closed
+  exception Protocol_not_supported of string
 
   (* Generic *)
 
@@ -160,7 +160,7 @@ module type T = sig
         socket ->
         unit
 
-      method virtual insert_metadata : (string, string) Hashtbl.t -> unit
+      method virtual insert_metadata : Frame.metadata -> unit
 
       method virtual login :
         string * (socket:socket -> string -> string -> bool)
@@ -223,7 +223,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             socket ->
             unit
 
-      method virtual insert_metadata : (string, string) Hashtbl.t -> unit
+      method virtual insert_metadata : Frame.metadata -> unit
 
       method virtual login
           : string * (socket:socket -> string -> string -> bool)
@@ -361,7 +361,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let websocket_error n msg = Websocket.to_string (`Close (Some (n, msg)))
 
   let parse_icy_request_line ~port h r =
-    let auth_data = Pcre.split ~pat:":" r in
+    let auth_data = Pcre.split ~rex:(Pcre.regexp ":") r in
     let requested_user, password =
       match auth_data with
         | user :: password :: _ -> (user, password)
@@ -383,6 +383,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
          log#info "ICY error: invalid password";
          simple_reply "Invalid password\r\n\r\n"))
 
+  exception Protocol_not_supported of string
+
   let parse_http_request_line r =
     try
       let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") r in
@@ -395,10 +397,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             | "HTTP/1.1" -> `Http_11
             | "ICE/1.0" -> `Ice_10
             | s when protocol = `Source -> `Xaudiocast_uri s
-            | _ -> raise Not_found )
-    with e ->
-      log#info "Invalid request line %s: %s" r (Printexc.to_string e);
-      simple_reply "HTTP 500 Invalid request\r\n\r\n"
+            | s -> raise (Protocol_not_supported s) )
+    with
+      | Protocol_not_supported p ->
+          log#info "Protocol not supported for request %s: %s" r p;
+          simple_reply "HTTP 505 Protocol Not Supported\r\n\r\n"
+      | e ->
+          log#info "Invalid request line %s: %s" r (Printexc.to_string e);
+          simple_reply "HTTP 500 Invalid request\r\n\r\n"
 
   let parse_headers headers =
     let split_header h l =
@@ -446,7 +452,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           let data = Pcre.split ~rex:(Pcre.regexp "[ \t]+") auth in
           match data with
             | "Basic" :: x :: _ -> (
-                let auth_data = Pcre.split ~pat:":" (Lang_string.decode64 x) in
+                let auth_data =
+                  Pcre.split ~rex:(Pcre.regexp ":") (Lang_string.decode64 x)
+                in
                 match auth_data with
                   | x :: y :: _ -> (x, y)
                   | _ -> raise Not_found)
@@ -651,13 +659,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   log#debug "Metadata packet: %s\n%!" s;
                   let data = Option.get data in
                   let m = List.map (fun (l, v) -> (l, json_string_of v)) data in
-                  let m =
-                    let ans = Hashtbl.create (List.length m) in
-                    (* TODO: convert charset *)
-                    let g x = x in
-                    List.iter (fun (l, v) -> Hashtbl.add ans (g l) (g v)) m;
-                    ans
-                  in
+                  let m = Frame.Metadata.from_list m in
                   source#insert_metadata m;
                   raise Retry
               | _ -> raise Retry)
@@ -708,7 +710,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
        if
          assoc_uppercase "CONTENT-TYPE" headers
          = "application/x-www-form-urlencoded"
-       then Hashtbl.iter (Hashtbl.add args) (Http.args_split data)
+       then Hashtbl.iter (Hashtbl.replace args) (Http.args_split data)
      with Not_found -> ());
     match mode with
       | "updinfo" ->
@@ -739,11 +741,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Hashtbl.remove args "mode";
           let in_enc =
             try
-              let enc =
-                match String.uppercase_ascii (Hashtbl.find args "charset") with
-                  | "LATIN1" -> `ISO_8859_1
-                  | s -> Charset.of_string s
-              in
+              let enc = Charset.of_string (Hashtbl.find args "charset") in
               Hashtbl.remove args "charset";
               Some enc
             with Not_found ->
@@ -759,12 +757,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 | _ -> x
             in
             let g x = Charset.convert ?source:in_enc x in
-            Hashtbl.add m (g x) (g y);
-            m
+            Frame.Metadata.add (g x) (g y) m
           in
-          let args =
-            Hashtbl.fold f args (Hashtbl.create (Hashtbl.length args))
-          in
+          let args = Hashtbl.fold f args Frame.Metadata.empty in
           s#insert_metadata args;
           simple_reply
             (Printf.sprintf
@@ -794,11 +789,25 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
     (* First, try with a registered handler. *)
     let { handler; _ } = find_handler port in
-    let f (verb, rex, handler) =
-      if (verb :> verb) = hmethod && Lang.Regexp.test rex base_uri then (
-        let { Lang.Regexp.groups } = Lang.Regexp.exec rex base_uri in
+    let f (verb, regex, handler) =
+      let rex = regex.Liquidsoap_lang.Builtins_regexp.regexp in
+      let sub =
+        Lazy.from_fun (fun () ->
+            try Some (Re.Pcre.exec ~rex base_uri) with _ -> None)
+      in
+      if (verb :> verb) = hmethod && Lazy.force sub <> None then (
+        let sub = Option.get (Lazy.force sub) in
+        let groups =
+          List.fold_left
+            (fun groups name ->
+              try (name, Re.Pcre.get_named_substring rex name sub) :: groups
+              with Not_found -> groups)
+            []
+            (Array.to_list (Re.Pcre.names rex))
+        in
         log#info "Found handler '%s %s' on port %d%s." smethod
-          (Lang.descr_of_regexp rex) port
+          (Lang.descr_of_regexp regex)
+          port
           (match groups with
             | [] -> ""
             | groups ->
@@ -1008,9 +1017,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let open_port ~transport ~icy port =
     log#info "Opening port %d with icy = %b" port icy;
     let max_conn = conf_harbor_max_conn#get in
+    let server = transport#server in
     let process_client sock =
       try
-        let socket, caller = transport#accept sock in
+        let socket, caller =
+          server#accept ?timeout:(Some conf_accept_timeout#get) sock
+        in
         let ip = Utils.name_of_sockaddr ~rev_dns:conf_revdns#get caller in
         log#info "New client on port %i: %s" port ip;
         let unix_socket = T.file_descr_of_socket socket in
@@ -1063,7 +1075,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         in
         Duppy.Monad.run ~return:reply ~raise:reply (handle_client ~port ~icy h)
       with e ->
-        log#severe "Failed to accept new client: %s" (Printexc.to_string e)
+        let bt = Printexc.get_backtrace () in
+        Utils.log_exception ~log ~bt
+          (Printf.sprintf "Failed to accept new client: %s"
+             (Printexc.to_string e))
     in
     let rec incoming ~port ~icy events (out_s : Unix.file_descr) e =
       if List.mem (`Read out_s) e then (
@@ -1116,7 +1131,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   let get_handler ~pos ~transport ~icy port =
     try
       let { handler; fds; transport = t } = Hashtbl.find opened_ports port in
-      if transport != t then
+      if transport#name <> t#name then
         Lang.raise_error ~pos
           ~message:"Port is already opened with a different transport" "http";
       (* If we have only one socket and icy=true,
@@ -1134,7 +1149,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         if icy then open_port ~transport ~icy (port + 1) :: fds else fds
       in
       let handler = { sources = Hashtbl.create 1; http = Atomic.make [] } in
-      Hashtbl.add opened_ports port { handler; fds; transport };
+      Hashtbl.replace opened_ports port { handler; fds; transport };
       handler
 
   (* Add sources... This is tied up to sources lifecycle so
@@ -1148,7 +1163,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       handler.sources
     in
     log#important "Adding mountpoint '%s' on port %i" mountpoint port;
-    Hashtbl.add sources mountpoint source
+    Hashtbl.replace sources mountpoint source
 
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =

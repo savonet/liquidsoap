@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ class external_input ~name ~restart ~bufferize ~restart_on_error ~max ~converter
       External_input.base
         ~name ?read_header ~restart ~restart_on_error ~on_data command
 
-    inherit Generated.source ~empty_on_abort:false ~bufferize ()
+    inherit! Generated.source ~empty_on_abort:false ~bufferize ()
   end
 
 let proto =
@@ -69,7 +69,7 @@ let proto =
       Lang.bool_t,
       Some (Lang.bool false),
       Some "Restart process when exited with error." );
-    ("", Lang.string_t, None, Some "Command to execute.");
+    ("", Lang.getter_t Lang.string_t, None, Some "Command to execute.");
   ]
 
 let _ =
@@ -88,7 +88,7 @@ let _ =
       ])
     ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let channels_v = List.assoc "channels" p in
       let channels = Lang.to_int channels_v in
@@ -124,7 +124,7 @@ let _ =
   Lang.add_operator ~base:Modules.input_external "wav" ~category:`Input
     ~descr:"Stream WAV data from an external application." proto ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let converter_ref = ref (fun _ _ _ -> assert false) in
       let converter data ofs len = !converter_ref data ofs len in

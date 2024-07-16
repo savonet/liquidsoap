@@ -1,5 +1,7 @@
 open Liquidsoap_lang
 
+let deprecated_features = [("GStreamer", Gstreamer_option.enabled)]
+
 let build_config =
   let path_mode =
     match Liquidsoap_paths.mode with
@@ -7,12 +9,23 @@ let build_config =
       | `Standalone -> "standalone"
       | `Posix -> "posix"
   in
+  let deprecated_features =
+    List.filter_map
+      (fun (name, enabled) -> if enabled then Some ("   - " ^ name) else None)
+      deprecated_features
+  in
+  let deprecated_features =
+    if deprecated_features <> [] then
+      Printf.sprintf "\n * Deprecated features:\n%s\n"
+        (String.concat "\n" deprecated_features)
+    else ""
+  in
   [%string
     {|
  * Liquidsoap version  : %{Build_config.version}
-
+%{deprecated_features}
  * Compilation options
-   - Release build       : %{string_of_bool Build_config.is_release}
+   - Release build       : %{string_of_bool (not Build_config.is_snapshot)}
    - Git SHA             : %{Option.value ~default:"(none)" Build_config.git_sha}
    - OCaml version       : %{Sys.ocaml_version}
    - OS type             : %{Sys.os_type}
@@ -31,6 +44,9 @@ let build_config =
    - scripted binaries : %{Liquidsoap_paths.bin_dir_descr}
    - rundir            : %{Liquidsoap_paths.rundir_descr}
    - logdir            : %{Liquidsoap_paths.logdir_descr}
+   - user cache        : %{Liquidsoap_paths.user_cache_override_descr} (override with $LIQ_CACHE_USER_DIR)
+   - system cache      : %{Liquidsoap_paths.system_cache_override_descr} (override with $LIQ_CACHE_SYSTEM_DIR)
+   - camomile files    : %{Liquidsoap_paths.camomile_dir_descr}
 
  * Supported input formats
    - MP3               : %{Mad_option.detected}
@@ -48,6 +64,8 @@ let build_config =
    - Ffmpeg            : %{Ffmpeg_option.detected}
    - MP3               : %{Lame_option.detected}
    - MP3 (fixed-point) : %{Shine_option.detected}
+   - Flac (native)     : %{Flac_option.detected}
+   - Flac (ogg)        : %{Ogg_flac_option.detected}
    - Opus              : %{Opus_option.detected}
    - Speex             : %{Speex_option.detected}
    - Theora            : %{Theora_option.detected}
@@ -74,6 +92,7 @@ let build_config =
    - Lilv              : %{Lilv_option.detected}
    - Samplerate        : %{Samplerate_option.detected}
    - SoundTouch        : %{Soundtouch_option.detected}
+   - StereoTool        : %{Stereotool_option.detected}
 
  * Video manipulation
    - camlimages        : %{Camlimages_option.detected}
@@ -94,19 +113,19 @@ let build_config =
  * Additional libraries
    - FFmpeg filters    : %{Ffmpeg_option.detected}
    - FFmpeg devices    : %{Ffmpeg_option.detected}
-   - camomile          : %{Camomile_option.detected}
    - inotify           : %{Inotify_option.detected}
    - irc               : %{Irc_option.detected}
+   - jemalloc          : %{Jemalloc_option.detected}
    - lastfm            : %{Lastfm_option.detected}
    - lo                : %{Lo_option.detected}
-   - magic             : %{Magic_option.detected}
    - memtrace          : %{Memtrace_option.detected}
-   - mem_usage         : %{Mem_usage_option.detected}
    - osc               : %{Osc_option.detected}
-   - SecureTransport   : %{Osx_secure_transport_option.detected}
    - ssl               : %{Ssl_option.detected}
+   - sqlite3           : %{Sqlite3_option.detected}
+   - tls               : %{Tls_option.detected}
    - posix-time2       : %{Posix_time_option.detected}
    - windows service   : %{Winsvc_option.detected}
+   - YAML support      : %{Yaml_option.detected}
    - XML playlists     : %{Xmlplaylist_option.detected}
 
  * Monitoring
@@ -119,12 +138,8 @@ let opam_config =
 opam-version: "2.0"
 variables {
   ffmpeg-enabled: %{string_of_bool Ffmpeg_option.enabled}
-  lame-enabled: %{string_of_bool Lame_option.enabled}
-  mad-enabled: %{string_of_bool Mad_option.enabled}
-  samperate-enabled: %{string_of_bool Samplerate_option.enabled}
-  secure-transport-enabled: %{string_of_bool Osx_secure_transport_option.enabled}
-  shine-enabled: %{string_of_bool Shine_option.enabled}
+  gstreamer-enabled: %{string_of_bool Gstreamer_option.enabled}
   ssl-enabled: %{string_of_bool Ssl_option.enabled}
-  taglib-enabled: %{string_of_bool Taglib_option.enabled}
+  tls-enabled: %{string_of_bool Tls_option.enabled}
 }
 |}]

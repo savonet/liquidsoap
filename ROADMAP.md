@@ -8,39 +8,76 @@
   - Needs some cleanup, definition of a minimal JS library.
 - Switch to `dune`
 - Separate standard library (in pure liq)
-
-### Ongoing
-
 - support for multi-track audio
-- support for subtitles
-- Switch to immutable content
 - live switch with ffmpeg encoded content
+- deprecate "!" and ":=" in favor of x.get / x.set
+
+## For 2.2
+
+- ~~switch to immutable content for metadata~~
+- ~~Add script tooling, prettier etc.~~
+- ~~switch to immutable content for frames (#2364)~~
+  - ~~frame should be changed to extensible arrays (a bit like `Strings`) instead
+    of filling a buffer~~
+  - ~~take the opportunity to change the handling of track boundaries (currently
+    boundary = we have a partial fill, which has quite messy corner cases)~~
+
+## For 2.3
+
+### Done:
+
+- ~~Rewrite streaming loop~~
+- ~~rewrite the clock system~~
+  - ~~the code is unreadable and overengineered ⇒ simplify it~~
+  - we want to get rid of the assumption clock = thread
+
+### In progress
+
+- Optimize runtime: start time, typing and memory usage
+
+### TODO
+
+- remove requests and use sources instead everywhere (a request is a source with
+  one track [or more])
+  - Precise scheduling with queue.push, etc.: we could make the track available
+    at some precise time if requests were sources...
+  - this may allow stuff like `append` more easily
+
+### Maybe
+
+- Update the book
+
+## For 2.4
+
+### Maybe
+
+- support for ffmpeg subtitles
+- use OCaml 5 threads (#2879)
+- Add support for modules, load minimal API by default
+
+## FOSDEM 2023 TODO
+
+- use source getters for switch in order to be able to play two tracks ever day
+  (#2880)
+- use naive (as in native.liq) implementation of switch (based on
+  source.dynamic)
+- rework buffer.adaptative
+- allow showing graphs (of buffer.adaptative for instance)
+- reimplement video.tile in native liq
 
 ## Backlog
 
+- Simple mechanism to tell source how much data will be expected in advance (e.g. 10s with cross) to allow automatic buffer management.
+- Redefine switch-based transitions.
+- javascrtipt/browser support using [WebCodecs](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API)!
 - refine video support in order to have next liquidshop running on Liquidsoap
   (dogfooding)
 - native RTMP support (and ensure that HLS output is easy to use)
-- update the Liquidsoap book
-- switch to immutable content for frames (#2364)
-  - frame should be changed to extensible arrays (a bit like `Strings`) instead
-    of filling a buffer
-  - take the opportunity to change the handling of track boundaries (currently
-    boundary = we have a partial fill, which has quite messy corner cases)
-- rewrite the clock system
-  - the code is unreadable and overengineered ⇒ simplify it
-  - we want to get rid of the assumption clock = thread
 - rewrite switch / sequence / etc. operators based on only one binary operator:
   fallback
-  - note: predicates can ben encoded in availablility
+  - note: predicates can ben encoded in availability
   - transitions might be tricky... we want to make them on the Liquidsoap side
     using cross and a tag system to know from which source we come
 - use row variables for methods, using Garrigue's _Simple Type Inference for
   Structural Polymorphism_
-- modules (#1934 based on runtime types, not ideal): we can implement them as
-  records
-  - import
-  - support for hiding fields
-- ocaml5 support
-  - we don't seem to have bigarrays anymore?
 - can we reimplement something like [melt](https://www.mltframework.org/)?

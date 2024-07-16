@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -27,58 +27,31 @@ type t = Type.t
 
 type module_name
 type scheme = Type.scheme
-type regexp
+type regexp = Builtins_regexp.regexp
 
 (** {2 Values} *)
 
-(** A typed value. *)
-module Ground : sig
-  type t = Term.Ground.t = ..
-  type t += Bool of bool | Int of int | String of string | Float of float
+module Custom = Value.Custom
+module Methods = Term.Methods
 
-  type content = Term.Ground.content = {
-    descr : t -> string;
-    to_json : pos:Pos.t list -> t -> Json.t;
-    compare : t -> t -> int;
-    typ : (module Type.Ground.Custom);
-  }
-
-  val register : (t -> bool) -> content -> unit
-  val to_string : t -> string
-end
-
-type value = Value.t = { pos : Pos.Option.t; value : in_value }
-and env = (string * value) list
-and lazy_env = (string * value Lazy.t) list
-
-and in_value = Value.in_value =
-  | Ground of Ground.t
-  | List of value list
-  | Tuple of value list
-  | Null
-  | Meth of string * value * value
-  | Ref of value Atomic.t
-  | Fun of (string * string * value option) list * lazy_env * Term.t
-  (* A function with given arguments (argument label, argument variable, default
-     value), closure and value. *)
-  | FFI of (string * string * value option) list * (env -> value)
+type in_value = Value.in_value
+type env = Value.env
+type value = Value.t
 
 val demeth : value -> value
 val split_meths : value -> (string * value) list * value
 
 (** {2 Computation} *)
 
-val apply_fun : (?pos:Pos.t -> value -> env -> value) ref
-
 (** Multiapply a value to arguments. The argument [t] is the type of the result
    of the application. *)
-val apply : value -> env -> value
+val apply : ?pos:Pos.t list -> value -> env -> value
 
 (** {3 Helpers for source builtins} *)
 
 type proto = (string * t * value option * string option) list
 
-(** Add an builtin to the language, high-level version for functions. *)
+(** Add a builtin to the language, high-level version for functions. *)
 val add_builtin :
   category:Doc.Value.category ->
   descr:string ->
@@ -92,14 +65,25 @@ val add_builtin :
   (env -> value) ->
   module_name
 
-(** Add an builtin to the language, more rudimentary version. *)
+(** Add a builtin value to the language *)
+val add_builtin_value :
+  category:Doc.Value.category ->
+  descr:string ->
+  ?flags:Doc.Value.flag list ->
+  ?base:module_name ->
+  string ->
+  value ->
+  t ->
+  module_name
+
+(** Add a builtin to the language, more rudimentary version. *)
 val add_builtin_base :
   category:Doc.Value.category ->
   descr:string ->
   ?flags:Doc.Value.flag list ->
   ?base:module_name ->
   string ->
-  in_value ->
+  Value.in_value ->
   t ->
   module_name
 
@@ -128,7 +112,11 @@ val to_valued_option : (value -> 'a) -> value -> 'a option
 val to_default_option : default:'a -> (value -> 'a) -> value -> 'a
 val to_product : value -> value * value
 val to_tuple : value -> value list
-val to_ref : value -> value Atomic.t
+val to_ref : value -> (unit -> value) * (value -> unit)
+
+val to_valued_ref :
+  (value -> 'a) -> ('a -> value) -> value -> (unit -> 'a) * ('a -> unit)
+
 val to_string_list : value -> string list
 val to_int_list : value -> int list
 val to_fun : value -> (string * value) list -> value
@@ -172,6 +160,8 @@ val getter_t : t -> t
 
 val unit : value
 val int : int -> value
+val octal_int : int -> value
+val hex_int : int -> value
 val bool : bool -> value
 val float : float -> value
 val string : string -> value
@@ -183,11 +173,15 @@ val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
-val reference : value Atomic.t -> value
+val reference : (unit -> value) -> (value -> unit) -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate
-    the label and optional values. *)
+    the label and optional values. Second string value is used when renaming
+    argument name, e.g. `fun (foo=_, ...) -> ` *)
 val val_fun : (string * string * value option) list -> (env -> value) -> value
+
+(** Build a function from a term. *)
+val term_fun : (string * string * value option) list -> Term.t -> value
 
 (** Build a constant function.
   * It is slightly less opaque and allows the printing of the closure
@@ -221,11 +215,28 @@ val descr_of_regexp : regexp -> string
 (** Return a string description of a regexp value i.e. r/^foo\/bla$/g *)
 val string_of_regexp : regexp -> string
 
-module Regexp : sig
-  include Regexp.T with type t := regexp
+type stdlib = [ `Disabled | `If_present | `Force | `Override of string ]
 
-  type sub = Regexp.sub = {
-    matches : string option list;
-    groups : (string * string) list;
-  }
-end
+(** Type a term, possibly returning the cached term instead. *)
+val type_term :
+  ?name:string ->
+  ?cache:bool ->
+  ?trim:bool ->
+  ?deprecated:bool ->
+  ?ty:t ->
+  stdlib:stdlib ->
+  parsed_term:Parsed_term.t ->
+  Term.t ->
+  Term.t
+
+(** Evaluate a term. *)
+val eval :
+  ?toplevel:bool ->
+  ?typecheck:bool ->
+  ?cache:bool ->
+  ?deprecated:bool ->
+  ?ty:t ->
+  ?name:string ->
+  stdlib:stdlib ->
+  string ->
+  value

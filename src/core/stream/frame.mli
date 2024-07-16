@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -25,9 +25,10 @@
 (** {2 Frame definitions} *)
 
 module Fields : sig
-  type field = Frame_base.Fields.field
+  include module type of Liquidsoap_lang.Methods
 
-  include Map.S with type key := field and type 'a t = 'a Frame_base.Fields.t
+  type field = Frame_base.Fields.field
+  type nonrec 'a t = (field, 'a) t
 
   val metadata : field
   val track_marks : field
@@ -35,6 +36,8 @@ module Fields : sig
   val audio_n : int -> field
   val video : field
   val video_n : int -> field
+  val data : field
+  val data_n : int -> field
   val midi : field
   val register : string -> field
   val make : ?audio:'a -> ?video:'a -> ?midi:'a -> unit -> 'a t
@@ -47,106 +50,144 @@ type field = Fields.field
 (** Precise description of the channel types for the current track. *)
 type content_type = Content.format Fields.t
 
+module Metadata : sig
+  type t = Frame_base.Metadata.t
+
+  val to_string : t -> string
+  val from_list : (string * string) list -> t
+  val to_list : t -> (string * string) list
+  val is_empty : t -> bool
+  val empty : t
+  val append : t -> t -> t
+  val cardinal : t -> int
+  val fold : (string -> string -> 'a -> 'a) -> t -> 'a -> 'a
+  val find : string -> t -> string
+  val find_opt : string -> t -> string option
+  val mem : string -> t -> bool
+  val remove : string -> t -> t
+  val add : string -> string -> t -> t
+  val mapi : (string -> string -> string) -> t -> t
+  val map : (string -> string) -> t -> t
+  val filter : (string -> string -> bool) -> t -> t
+  val for_all : (string -> string -> bool) -> t -> bool
+  val exists : (string -> string -> bool) -> t -> bool
+  val iter : (string -> string -> unit) -> t -> unit
+
+  module Export : sig
+    type metadata = t
+    type t
+
+    val from_metadata : ?cover:bool -> metadata -> t
+    val to_metadata : t -> metadata
+    val to_list : t -> (string * string) list
+    val equal : t -> t -> bool
+    val empty : t
+    val is_empty : t -> bool
+  end
+end
+
 (** Metadata of a frame. *)
-type metadata = (string, string) Hashtbl.t
+type metadata = Metadata.t
 
-val metadata_of_list : (string * string) list -> metadata
-val list_of_metadata : metadata -> (string * string) list
-
-(** A frame. *)
-type t = Generator.t
+(** A frame is a chunk of data which should be
+    at most [size] *)
+type t = Content.data Fields.t
 
 (** {2 Content-independent frame operations} *)
 
 (** All units are in ticks (main clock). *)
 
 (** Create a frame of a given content type. *)
-val create : content_type -> t
+val create : length:int -> content_type -> t
 
-(** A dummy frame which should never written to or read from. This is however
-    useful as a placeholder before initialization of references. *)
-val dummy : unit -> t
+(** Get at most length data from the start of the given frame. *)
+val slice : t -> int -> t
+
+(** Get the content after a given offset. *)
+val after : t -> int -> t
 
 (** Get a frame's content type. *)
 val content_type : t -> content_type
+
+(** [append f f'] appends the data from [f'] to [f].
+    [f'] can possibly have more fields that [f]. *)
+val append : t -> t -> t
 
 (** Get a frame's content. *)
 val get : t -> field -> Content.data
 
 (** Set a frame's content. *)
-val set : t -> field -> Content.data -> unit
+val set : t -> field -> Content.data -> t
+
+(** Set a frame's content using data.
+    Data is assumed to be of the frame's position
+    length. The type is designed to work with `Content.*.lift_data`
+    functions. *)
+val set_data :
+  t -> field -> (?offset:int -> ?length:int -> 'a -> Content.data) -> 'a -> t
 
 (** Get a frame's audio content. *)
 val audio : t -> Content.data
 
-(** Set a frame's audio content. *)
-val set_audio : t -> Content.data -> unit
-
 (** Get a frame's video content. *)
 val video : t -> Content.data
-
-(** Set a frame's video content. *)
-val set_video : t -> Content.data -> unit
 
 (** Get a frame's midi content. *)
 val midi : t -> Content.data
 
-(** Set a frame's midi content. *)
-val set_midi : t -> Content.data -> unit
-
-(** Position of the end of the last chunk of the frame (i.e. the offset of the
-    end of the frame). *)
+(* Position in the frame. *)
 val position : t -> int
 
 (** Remaining data length in the frame. *)
 val remaining : t -> int
 
 (** Is the frame partially filled, i.e. is its end [position] strictly before
-    its size? *)
+    [Lazy.force Frame.size]? *)
 val is_partial : t -> bool
 
-(** Make the frame empty. *)
-val clear : t -> unit
+(** {3 Track marks} *)
 
-(** {3 Breaks} *)
+(** List of track marks in a frame. *)
+val track_marks : t -> int list
 
-(** List of breaks in a frame. *)
-val breaks : t -> int list
+(** Add a track mark to a frame *)
+val add_track_mark : t -> int -> t
 
-(** Set all the breaks of a frame. *)
-val set_breaks : t -> int list -> unit
+(** Add a multiple track marks to a frame *)
+val add_track_marks : t -> int list -> t
 
-(** Add a break to a frame (which should be past its current end position). *)
-val add_break : t -> int -> unit
+(** [true] is frame has a track mark. *)
+val has_track_marks : t -> bool
+
+(** [true] is frame has a track mark at the given position *)
+val has_track_mark : t -> int -> bool
+
+(** Remove all track marks from the frame. *)
+val drop_track_marks : t -> t
 
 (** {3 Metadata} *)
 
 exception No_metadata
 
-(** Attach metadata at a given position in the frame. *)
-val set_metadata : t -> int -> metadata -> unit
+(** Attach metadata at a given position to the frame. *)
+val add_metadata : t -> int -> metadata -> t
+
+(* Remove a metadata at a given position. *)
+val free_metadata : t -> int -> t
 
 (** Retrieve metadata at a given position. *)
 val get_metadata : t -> int -> metadata option
 
-(** Remove all metadata at given position. *)
-val free_metadata : t -> int -> unit
-
-(** Remove all metadata. *)
-val free_all_metadata : t -> unit
-
 (** Retrieve all metadata. *)
 val get_all_metadata : t -> (int * metadata) list
 
-(** Set all metadata. *)
-val set_all_metadata : t -> (int * metadata) list -> unit
+(** Attach multiple metadata to a frame. *)
+val add_all_metadata : t -> (int * metadata) list -> t
 
 (** {2 Content operations} *)
 
-exception No_chunk
-
-val get_chunk : t -> t -> unit
 val string_of_content_type : content_type -> string
+val assert_compatible : content_type -> content_type -> unit
 val compatible : content_type -> content_type -> bool
 
 (** {2 Format settings} *)
@@ -195,6 +236,7 @@ val duration : float Lazy.t
 val audio_of_main : int -> int
 
 val video_of_main : int -> int
+val video_of_main_f : int -> float
 val midi_of_main : int -> int
 val main_of_audio : int -> int
 val main_of_video : int -> int

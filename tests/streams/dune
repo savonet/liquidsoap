@@ -19,50 +19,122 @@
 
 (executable
  (name gen_dune)
+ (libraries liquidsoap_build_tools)
  (modules gen_dune))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file1.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=220:duration=5" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=5"
+   -ac
+   2
+   -metadata
+   "title=Test Title"
+   %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file2.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=440:duration=5" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=5"
+   -ac
+   2
+   %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file3.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=880:duration=5" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=880:duration=5"
+   -ac
+   2
+   %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target jingle1.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=220:duration=2" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=2"
+   -ac
+   2
+   %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target jingle2.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=440:duration=2" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=2"
+   -ac
+   2
+   %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target jingle3.mp3)
  (action
-  (run ffmpeg -f lavfi -i "sine=frequency=880:duration=2" -ac 2 %{target})))
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=880:duration=2"
+   -ac
+   2
+   %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file1.png)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -74,11 +146,14 @@
    %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target file2.png)
  (action
   (run
    ffmpeg
+   -hide_banner
+   -loglevel
+   error
    -f
    lavfi
    -i
@@ -90,7 +165,7 @@
    %{target})))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target jingles)
  (action
   (with-stdout-to
@@ -98,17 +173,253 @@
    (run echo "jingle1.mp3\njingle2.mp3\njingle3.mp3"))))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target playlist)
+ (deps ./file1.mp3 ./file2.mp3 ./file3.mp3)
  (action
   (with-stdout-to
    %{target}
    (run echo "file1.mp3\nfile2.mp3\nfile3.mp3"))))
 
 (rule
- (alias runtest)
+ (alias citest)
  (target huge_playlist)
+ (deps ./file1.mp3)
  (action
   (with-stdout-to
    %{target}
    (system "for i in `seq 1 100000`; do echo \"file$i.mp3\"; done"))))
+
+(rule
+ (alias citest)
+ (targets ssl.cert ssl.key)
+ (action
+  (run
+   openssl
+   req
+   -x509
+   -newkey
+   rsa:4096
+   -keyout
+   ssl.key
+   -out
+   ssl.cert
+   -sha256
+   -days
+   3650
+   -nodes
+   -subj
+   "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost")))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./icecast_ssl.liq
+  ./ssl.cert
+  ./ssl.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Icecast SSL connection"
+   liquidsoap
+   --stdlib
+   %{stdlib}
+   %{test_liq}
+   ./icecast_ssl.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./icecast_tls.liq
+  ./ssl.cert
+  ./ssl.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Icecast TLS connection"
+   liquidsoap
+   --stdlib
+   %{stdlib}
+   %{test_liq}
+   ./icecast_tls.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./icecast_ssl_tls.liq
+  ./ssl.cert
+  ./ssl.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Icecast SSL+TLS connection"
+   liquidsoap
+   --stdlib
+   %{stdlib}
+   %{test_liq}
+   ./icecast_ssl_tls.liq)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./icecast_tls_ssl.liq
+  ./ssl.cert
+  ./ssl.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/lib)
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Icecast TLS+SSL connection"
+   liquidsoap
+   --stdlib
+   %{stdlib}
+   %{test_liq}
+   ./icecast_tls_ssl.liq)))
+
+(rule
+ (alias citest)
+ (target replaygain_track_gain.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "REPLAYGAIN_TRACK_GAIN=-32.0 dB"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target r128_track_gain.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "R128_TRACK_GAIN=-4096"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target replaygain_r128_track_gain.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "REPLAYGAIN_TRACK_GAIN=-32.0 dB"
+   -metadata
+   "R128_TRACK_GAIN=-4096"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target replaygain_track_gain.opus)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "REPLAYGAIN_TRACK_GAIN=-32.0 dB"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target r128_track_gain.opus)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "R128_TRACK_GAIN=-4096"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target replaygain_r128_track_gain.opus)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   -metadata
+   "REPLAYGAIN_TRACK_GAIN=-32.0 dB"
+   -metadata
+   "R128_TRACK_GAIN=-4096"
+   %{target})))
+
+(rule
+ (alias citest)
+ (target without_replaygain_track_gain.mp3)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=220:duration=1"
+   %{target})))

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,34 +25,35 @@ open Source
 
 class echo (source : source) delay feedback ping_pong =
   object (self)
-    inherit operator ~name:"echo" [source] as super
-    method stype = source#stype
+    inherit operator ~name:"echo" [source]
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     val mutable effect = None
 
-    method! private wake_up a =
-      super#wake_up a;
-      effect <-
-        Some
-          (Audio.Effect.delay self#audio_channels
-             (Lazy.force Frame.audio_rate)
-             ~ping_pong (delay ()) (feedback ()))
+    initializer
+      self#on_wake_up (fun () ->
+          effect <-
+            Some
+              (Audio.Effect.delay self#audio_channels
+                 (Lazy.force Frame.audio_rate)
+                 ~ping_pong (delay ()) (feedback ())))
 
     val mutable past_pos = 0
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      let position = AFrame.position buf in
+    method private generate_frame =
+      let b =
+        Content.Audio.get_data (source#get_mutable_content Frame.Fields.audio)
+      in
+      let position = source#frame_audio_position in
       let effect = Option.get effect in
       effect#set_delay (delay ());
       effect#set_feedback (feedback ());
-      effect#process b offset (position - offset)
+      effect#process b 0 position;
+      source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
   end
 
 let _ =

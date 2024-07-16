@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,37 +22,34 @@
 
 open Source
 
-class compand (source : source) mu =
-  object
+class compand ~field (source : source) mu =
+  object (self)
     inherit operator ~name:"compand" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
-      let b = AFrame.pcm buf in
-      for c = offset to Array.length b - 1 do
+    method private generate_frame =
+      let pos = source#frame_audio_position in
+      let b = Content.Audio.get_data (source#get_mutable_content field) in
+      for c = 0 to self#audio_channels - 1 do
         let b_c = b.(c) in
-        for i = offset to AFrame.position buf - 1 do
+        for i = 0 to pos - 1 do
           (* Cf. http://en.wikipedia.org/wiki/Mu-law *)
           let sign = if b_c.(i) < 0. then -1. else 1. in
           b_c.(i) <-
-            sign *. log (1. +. (mu *. abs_float b_c.(i))) /. log (1. +. mu)
+            sign *. log (1. +. (mu *. Utils.abs_float b_c.(i))) /. log (1. +. mu)
         done
-      done
+      done;
+      source#set_frame_data field Content.Audio.lift_data b
   end
 
 let _ =
-  let frame_t =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.make ~audio:(Format_type.audio ()) ())
-  in
-  Lang.add_operator "compand"
+  let frame_t = Format_type.audio () in
+  Lang.add_track_operator ~base:Modules.track_audio "compand"
     [
       ("mu", Lang.float_t, Some (Lang.float 1.), None);
       ("", Lang.source_t frame_t, None, None);
@@ -60,5 +57,5 @@ let _ =
     ~return_t:frame_t ~category:`Audio ~descr:"Compand the signal."
     (fun p ->
       let f v = List.assoc v p in
-      let mu, src = (Lang.to_float (f "mu"), Lang.to_source (f "")) in
-      new compand src mu)
+      let mu, (field, src) = (Lang.to_float (f "mu"), Lang.to_track (f "")) in
+      (field, new compand ~field src mu))

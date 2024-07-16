@@ -25,44 +25,13 @@ Since seeking is currently only supported by request-based sources, it is recomm
 to hook the function as close as possible to the original source. Here is an example
 that implements a server/telnet seek function:
 
-```liquidsoap
-# A playlist source
-s = playlist("/path/to/music")
+```{.liquidsoap include="seek-telnet.liq"}
 
-# The server seeking function
-def seek(t) =
-  t = float_of_string(default=0.,t)
-  log("Seeking #{t} sec")
-  ret = source.seek(s,t)
-  "Seeked #{ret} seconds."
-end
-
-# Register the function
-server.register(namespace=source.id(s),
-                description="Seek to a relative position \
-                             in source #{source.id(s)}",
-                usage="seek <duration>",
-                "seek",seek)
 ```
 
 ## Cue points
 
-Sources that support seeking can also be used to implement cue points.
-The basic operator for this is `cue_cut`. Its has type:
-
-```
-(?id:string,?cue_in_metadata:string,
- ?cue_out_metadata:string,
- source(audio='#a,video='#b,midi='#c))->
-    source(audio='#a,video='#b,midi='#c)
-```
-
-Its parameters are:
-
-- `cue_in_metadata`: Metadata for cue in points, default: `"liq_cue_in"`.
-- `cue_out_metadata`: Metadata for cue out points, default: `"liq_cue_out"`.
-- The source to apply cue points to.
-
+File-based sources support cue-points to cut the beginning and end of tracks
 The values of cue-in and cue-out points are given in absolute
 position through the source's metadata. For instance, the following
 source will cue-in at 10 seconds and cue-out at 45 seconds on all its tracks:
@@ -70,8 +39,6 @@ source will cue-in at 10 seconds and cue-out at 45 seconds on all its tracks:
 ```liquidsoap
 s = playlist(prefix="annotate:liq_cue_in=\"10.\",liq_cue_out=\"45\":",
              "/path/to/music")
-
-s = cue_cut(s)
 ```
 
 As in the above example, you may use the `annotate` protocol to pass custom cue

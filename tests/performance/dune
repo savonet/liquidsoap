@@ -2,29 +2,31 @@
  (name gen_bigrecord)
  (preprocess
   (pps ppx_string))
+ (libraries mem_usage liquidsoap_core liquidsoap_lang)
  (modules gen_bigrecord))
 
 (rule
- (alias runtest)
+ (alias perftest)
  (target big-record.liq)
  (deps
   (:gen_bigrecord ./gen_bigrecord.exe))
  (action
-  (with-stdout-to
-   %{target}
-   (run %{gen_bigrecord}))))
+  (run %{gen_bigrecord} %{target})))
 
 (rule
- (alias runtest)
+ (alias perftest)
  (deps
   (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (source_tree ../../src/libs)
   (:small_record ./small-record.liq)
   (:big_record ./big-record.liq)
   (:erathostenes ./erathostenes.liq)
   (:performance performance.liq)
+  (:memory memory.liq)
   (:test_liq ../test.liq))
  (action
   (progn
    (run %{liquidsoap} %{test_liq} %{performance} %{small_record})
    (run %{liquidsoap} %{test_liq} %{performance} %{big_record})
-   (run %{liquidsoap} %{test_liq} %{performance} %{erathostenes}))))
+   (run %{liquidsoap} %{test_liq} %{performance} %{erathostenes})
+   (run %{liquidsoap} %{test_liq} %{performance} %{memory}))))

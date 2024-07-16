@@ -1,3 +1,76 @@
+let hls = {playlist=()}
+
+# Generate a main HLS playlist
+# @category String
+def hls.playlist.main(~extra_tags=[], ~prefix="", ~version=7, streams) =
+  prefix = prefix == "" or r/\/$/.test(prefix) ? prefix : "#{prefix}/"
+
+  streams =
+    list.fold(
+      fun (streams, s) ->
+        begin
+          let ({bandwidth, codecs, video_size?, ...s} :
+            string.{ bandwidth: int, codecs: string, video_size?: (int*int) }
+          ) = s
+          resolution =
+            if
+              null.defined(video_size)
+            then
+              let (w, h) = null.get(video_size)
+              ",RESOLUTION=#{w}x#{h}"
+            else
+              ""
+            end
+
+          [
+            ...streams,
+            "#EXT-X-STREAM-INF:BANDWIDTH=#{bandwidth},CODECS=#{
+              string.quote(codecs)
+            }#{resolution}",
+            "#{prefix}#{s}.m3u8"
+          ]
+        end,
+      [],
+      streams
+    )
+
+  string.concat(
+    separator="\r\n",
+    [
+      "#EXTM3U",
+      "#EXT-X-VERSION:#{version}",
+      ...extra_tags,
+      ...streams,
+
+      ""
+    ]
+  )
+end
+
+# @docof output.file.hls
+def replaces output.file.hls(
+  %argsof(output.file.hls[!main_playlist_writer]),
+  ~main_playlist_writer=null(
+    fun (~extra_tags, ~prefix, ~version, streams) ->
+      null(
+        hls.playlist.main(
+          extra_tags=extra_tags, prefix=prefix, version=version, streams
+        )
+      )
+  ),
+  dir,
+  streams,
+  s
+) =
+  output.file.hls(
+    %argsof(output.file.hls[!main_playlist_writer]),
+    main_playlist_writer=main_playlist_writer,
+    dir,
+    streams,
+    s
+  )
+end
+
 let input.hls = ()
 
 # Play an HLS stream.
@@ -6,86 +79,113 @@ let input.hls = ()
 # @param ~reload How often (in seconds) the playlist should be reloaded.
 # @param uri Playlist URI.
 # @flag experimental
-def input.hls.native(~id=null(),~reload=10.,uri)
+def input.hls.native(~id=null(), ~reload=10., uri) =
   playlistr = ref([])
   sequence = ref(0)
   playlist_uri = ref(uri)
   id = string.id.default(default="input.hls.native", id)
 
-  def load_playlist () =
-    pl = request.create(!playlist_uri)
-    if request.resolve(pl) then
+  def load_playlist() =
+    pl = request.create(playlist_uri())
+    if
+      request.resolve(pl)
+    then
       pl = request.filename(pl)
-
       m = r/#EXT-X-MEDIA-SEQUENCE:(\d+)/.exec(file.contents(pl))
       pl_sequence = m[1]
-      log.info(label=id,"Sequence: " ^ pl_sequence)
-      pl_sequence = int_of_string(default=0,pl_sequence)
+      log.info(
+        label=id,
+        "Sequence: " ^
+          pl_sequence
+      )
+      pl_sequence = int_of_string(default=0, pl_sequence)
+      files = playlist.parse(path=path.dirname(playlist_uri()) ^ "/", pl)
 
-      files = playlist.parse(path=path.dirname(!playlist_uri)^"/",pl)
+      def file_request(idx, el) =
+        let (meta, file) = el
 
-      def file_request(idx,el) =
-        let (meta,file) = el
-        s = list.fold(fun (cur, el) -> "#{cur},#{fst(el)}=#{string.escape(encoding=\"ascii\", snd(el))}", "", meta)
+        def escape(s) =
+          string.escape(encoding="ascii", s)
+        end
+
+        s =
+          list.fold(
+            fun (cur, el) -> "#{cur},#{fst(el)}=#{escape(snd(el))}", "", meta
+          )
+
         s = if s == "" then file else "annotate:#{s}:#{file}" end
-        (pl_sequence+idx, s)
+        (pl_sequence + idx, s)
       end
 
-      files = list.mapi(file_request,files)
-
-      let (first_idx, _) = list.hd(default=(-1,""),!playlistr)
+      files = list.mapi(file_request, files)
+      let (first_idx, _) = list.hd(default=(-1, ""), playlistr())
 
       def add_file(playlist, file) =
-        let (idx,_) = file
-        if first_idx < idx and not list.assoc.mem(idx, playlist) then
+        let (idx, _) = file
+        if
+          first_idx < idx and not list.assoc.mem(idx, playlist)
+        then
           list.append(playlist, [file])
         else
           playlist
         end
       end
 
-      playlistr := list.fold(add_file, !playlistr, files)
+      playlistr := list.fold(add_file, playlistr(), files)
     else
-      log.severe(label=id,"Couldn't read playlist: request resolution failed.")
+      log.severe(
+        label=id,
+        "Couldn't read playlist: request resolution failed."
+      )
       playlistr := []
     end
+
     request.destroy(pl)
   end
 
-  def rec next () =
-    if list.length(!playlistr) > 0 then
-      let (_,ret) = list.hd(default=(1,""),!playlistr)
-      playlistr := list.tl(!playlistr)
-      sequence := !sequence + 1
+  def rec next() =
+    if
+      list.length(playlistr()) > 0
+    then
+      let (_, ret) = list.hd(default=(1, ""), playlistr())
+      playlistr := list.tl(playlistr())
+      sequence := sequence() + 1
       request.create(ret)
     else
       null()
     end
   end
 
-  def find_stream () =
-    pl = request.create(!playlist_uri)
-    if request.resolve(pl) then
+  def find_stream() =
+    pl = request.create(playlist_uri())
+    if
+      request.resolve(pl)
+    then
       plfile = request.filename(pl)
+      m =
+        r/#EXT-X-STREAM-INF[^\n]*\n([^\r\n]*)\r?\n/.exec(file.contents(plfile))
 
-      m = r/#EXT-X-STREAM-INF[^\n]*\n([^\r\n]*)\r?\n/.exec(file.contents(plfile))
-      playlist_uri := list.assoc(default=!playlist_uri,1,m)
-
-      if not (string.contains(substring="/", !playlist_uri)) then
-        playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ !playlist_uri
+      playlist_uri := list.assoc(default=playlist_uri(), 1, m)
+      if
+        not (string.contains(substring="/", playlist_uri()))
+      then
+        playlist_uri := path.dirname(request.uri(pl)) ^ "/" ^ playlist_uri()
       end
-      log(label=id,"Playlist: " ^ !playlist_uri)
+
+      log(
+        label=id,
+        "Playlist: " ^
+          playlist_uri()
+      )
     end
   end
-  find_stream ()
 
-  source = request.dynamic(id=id,prefetch=10,next)
-
-  source = merge_tracks(source)
-
+  find_stream()
+  s = request.dynamic(id=id, prefetch=10, next)
+  let {track_marks = _, ...tracks} = source.tracks(s)
+  s = source(tracks)
   thread.run(every=reload, load_playlist)
-
-  source
+  s
 end
 
 let replaces input.hls = input.hls.native
@@ -97,7 +197,7 @@ let replaces input.hls = input.ffmpeg
 # @category Source / Input
 # @param ~id Force the value of the source ID.
 # @param uri Playlist URI.
-def input.hls(~id=null(), uri)
+def input.hls(~id=null(), uri) =
   input.hls(id=id, uri)
 end
 
@@ -106,31 +206,40 @@ let output.harbor.hls = ()
 # @flag hidden
 def output.harbor.hls.base(
   %argsof(output.file.hls[!segment_name]),
-  ~segment_name,~tmpdir,~port,~path,serve,formats,s) =
-  tmpdir = tmpdir ?? file.temp_dir("hls","")
+  ~segment_name,
+  ~tmpdir,
+  ~port,
+  ~path,
+  serve,
+  formats,
+  s
+) =
+  tmpdir = tmpdir ?? file.temp_dir("hls", "")
 
   def content_type(fname) =
     ext = file.extension(fname)
-    if ext == ".m3u8" then
+    if
+      ext == ".m3u8"
+    then
       "application/x-mpegURL"
     else
-      def f(cur,el) =
+      def f(cur, el) =
         format = snd(el)
-        if ext == ".#{encoder.extension(format)}" then
+        if
+          ext == ".#{encoder.extension(format)}"
+        then
           encoder.content_type(format)
         else
           cur
         end
       end
-      list.fold(f,"",formats)
+
+      list.fold(f, "", formats)
     end
   end
 
-  serve(port=port,path=path,content_type=content_type,tmpdir)
-
-  output.file.hls(
-    %argsof(output.file.hls),
-    tmpdir,formats,s)
+  serve(port=port, path=path, content_type=content_type, tmpdir)
+  output.file.hls(%argsof(output.file.hls), tmpdir, formats, s)
 end
 
 # Output the source stream to an HTTP live stream served from the harbor HTTP server.
@@ -139,18 +248,43 @@ end
 # @param ~headers Default response headers.
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~path Base path for hls URIs.
+# @param ~transport Http transport. Use `http.transport.ssl` or `http.transport.secure_transport`, when available, to enable HTTPS output
 # @param ~tmpdir Directory for generated files.
 # @param formats List of specifications for each stream: (name, format).
 def replaces output.harbor.hls(
   %argsof(output.file.hls[!segment_name]),
-  ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
-  ~headers=[("Access-Control-Allow-Origin","*")],
-  ~port=8000,~path="/",~tmpdir=null(),
-  formats,s) =
-  def serve(~port,~path,~content_type,dir) =
-    harbor.http.static(port=port,path=path,content_type=content_type,headers=headers,dir)
+  ~segment_name=(
+    fun (~position, ~extname, stream_name) ->
+      "#{stream_name}_#{position}.#{extname}"
+  ),
+  ~headers=[("Access-Control-Allow-Origin", "*")],
+  ~port=8000,
+  ~path="/",
+  ~tmpdir=null(),
+  ~transport=http.transport.unix,
+  formats,
+  s
+) =
+  def serve(~port, ~path, ~content_type, dir) =
+    harbor.http.static(
+      port=port,
+      path=path,
+      content_type=content_type,
+      headers=headers,
+      transport=transport,
+      dir
+    )
   end
-  output.harbor.hls.base(%argsof(output.file.hls),path=path,port=port,tmpdir=tmpdir,serve,formats,s)
+
+  output.harbor.hls.base(
+    %argsof(output.file.hls),
+    path=path,
+    port=port,
+    tmpdir=tmpdir,
+    serve,
+    formats,
+    s
+  )
 end
 
 %ifdef harbor.https.static
@@ -163,13 +297,31 @@ end
 # @param formats List of specifications for each stream: (name, format).
 def output.harbor.hls.https(
   %argsof(output.file.hls[!segment_name]),
-  ~segment_name=(fun (~position,~extname,stream_name) -> "#{stream_name}_#{position}.#{extname}"),
-  ~headers=[("Access-Control-Allow-Origin","*")],
-  ~port=8000,~path="/",~tmpdir=null(),
-  formats,s) =
-  def serve(~port,~path,~content_type,dir) =
-    harbor.https.static(port=port,path=path,content_type=content_type,headers=headers,dir)
+  ~segment_name=(
+    fun (~position, ~extname, stream_name) ->
+      "#{stream_name}_#{position}.#{extname}"
+  ),
+  ~headers=[("Access-Control-Allow-Origin", "*")],
+  ~port=8000,
+  ~path="/",
+  ~tmpdir=null(),
+  formats,
+  s
+) =
+  def serve(~port, ~path, ~content_type, dir) =
+    harbor.https.static(
+      port=port, path=path, content_type=content_type, headers=headers, dir
+    )
   end
-  output.harbor.hls.base(%argsof(output.file.hls),path=path,port=port,tmpdir=tmpdir,serve,formats,s)
+
+  output.harbor.hls.base(
+    %argsof(output.file.hls),
+    path=path,
+    port=port,
+    tmpdir=tmpdir,
+    serve,
+    formats,
+    s
+  )
 end
 %endif

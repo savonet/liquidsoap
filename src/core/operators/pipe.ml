@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -54,13 +54,11 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
   let bytes = Bytes.create Utils.pagesize in
   let source = Lang.to_source source_val in
   object (self)
-    inherit source ~name:"pipe" () as super
+    inherit source ~name:"pipe" ()
 
     (* We are expecting real-rate with a couple of hickups.. *)
-    inherit!
-      Child_support.base ~check_self_sync:false [source_val] as child_support
-
-    inherit Generated.source ~empty_on_abort:false ~bufferize ()
+    inherit Child_support.base ~check_self_sync:false [source_val]
+    inherit! Generated.source ~empty_on_abort:false ~bufferize ()
     val mutable samplesize = 16
     val mutable samplerate = Frame.audio_of_seconds 1.
 
@@ -81,7 +79,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       if not !header_read then (
         let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
         header_read := true;
-        Tutils.mutexify mutex
+        Mutex_utils.mutexify mutex
           (fun () ->
             if Wav_aiff.channels wav <> self#audio_channels then
               failwith "Invalid channels from pipe process!";
@@ -102,7 +100,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         Generator.put self#buffer Frame.Fields.audio
           (Content.Audio.lift_data ~offset ~length:duration data);
         let to_replay =
-          Tutils.mutexify mutex
+          Mutex_utils.mutexify mutex
             (fun () ->
               let pending = !replay_pending in
               let to_replay, pending =
@@ -139,28 +137,21 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     val mutable handler = None
     val to_write = Queue.create ()
-    method stype = `Fallible
+    method fallible = true
 
     method private get_handler =
       match handler with Some h -> h | None -> raise Process_handler.Finished
 
-    val mutable tmp = None
-
-    method tmp =
-      match tmp with
-        | Some t -> t
-        | None ->
-            let t = Frame.create self#content_type in
-            tmp <- Some t;
-            t
+    method private child_get =
+      let frame = ref self#empty_frame in
+      self#on_child_tick (fun () ->
+          if source#is_ready then frame := source#get_frame);
+      !frame
 
     method private get_to_write =
       if source#is_ready then (
-        Frame.clear self#tmp;
-        source#get self#tmp;
-        self#child_tick;
-        needs_tick <- false;
-        let buf = AFrame.pcm self#tmp in
+        let frame = self#child_get in
+        let buf = AFrame.pcm frame in
         let blen = Audio.length buf in
         let slen_of_len len = 2 * len * Array.length buf in
         let slen = slen_of_len blen in
@@ -169,7 +160,10 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         let metadata =
           List.sort
             (fun (pos, _) (pos', _) -> compare pos pos')
-            (Frame.get_all_metadata self#tmp)
+            (Frame.get_all_metadata frame)
+        in
+        let track_mark =
+          match Frame.track_marks frame with p :: _ -> Some p | [] -> None
         in
         let ofs =
           List.fold_left
@@ -177,8 +171,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
               let pos = slen_of_len pos in
               let len = pos - ofs in
               let next =
-                if pos = slen && Frame.is_partial self#tmp then
-                  `Break_and_metadata m
+                if track_mark = Some pos then `Break_and_metadata m
                 else `Metadata m
               in
               Queue.push { sbuf; next; ofs; len } to_write;
@@ -187,7 +180,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         in
         if ofs < slen then (
           let len = slen - ofs in
-          let next = if Frame.is_partial self#tmp then `Break else `Nothing in
+          let next = if track_mark <> None then `Break else `Nothing in
           Queue.push { sbuf; next; ofs; len } to_write))
 
     method private on_stdin pusher =
@@ -200,12 +193,12 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         if ret = len then (
           let action =
             if next <> `Nothing && replay_delay >= 0 then (
-              Tutils.mutexify mutex
+              Mutex_utils.mutexify mutex
                 (fun () -> replay_pending := (0, next) :: !replay_pending)
                 ();
               `Continue)
             else (
-              Tutils.mutexify mutex (fun () -> next_stop := next) ();
+              Mutex_utils.mutexify mutex (fun () -> next_stop := next) ();
               if next <> `Nothing then `Stop else `Continue)
           in
           ignore (Queue.take to_write);
@@ -222,7 +215,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       `Continue
 
     method private on_stop =
-      Tutils.mutexify mutex (fun e ->
+      Mutex_utils.mutexify mutex (fun e ->
           let ret = !next_stop in
           next_stop := `Nothing;
           header_read := false;
@@ -247,26 +240,26 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
                 true
             | _, `Nothing -> restart)
 
-    method! wake_up a =
-      super#wake_up a;
-      converter <-
-        Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
-          ~samplesize;
+    initializer
+      self#on_wake_up (fun () ->
+          source#wake_up;
+          converter <-
+            Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
+              ~samplesize;
 
-      source#get_ready [(self :> source)];
-      (* Now we can create the log function *)
-      log_ref := self#log#info "%s";
-      log_error := self#log#debug "%s";
-      handler <-
-        Some
-          (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
-             ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
-             ~priority:`Blocking ~on_stderr:self#on_stderr ~log process)
+          (* Now we can create the log function *)
+          log_ref := self#log#info "%s";
+          log_error := self#log#debug "%s";
+          handler <-
+            Some
+              (Process_handler.run ~on_stop:self#on_stop ~on_start:self#on_start
+                 ~on_stdout:self#on_stdout ~on_stdin:self#on_stdin
+                 ~priority:`Blocking ~on_stderr:self#on_stderr ~log process))
 
     method! abort_track = source#abort_track
 
     method! sleep =
-      Tutils.mutexify mutex
+      Mutex_utils.mutexify mutex
         (fun () ->
           try
             next_stop := `Sleep;
@@ -275,15 +268,6 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
             handler <- None
           with Process_handler.Finished -> ())
         ()
-
-    method! before_output =
-      super#before_output;
-      child_support#before_output
-
-    method! after_output =
-      super#after_output;
-      (* As long as we have a process, we let it drive the child source entirely. *)
-      if handler = None then child_support#after_output
   end
 
 let _ =

@@ -1,3 +1,36 @@
+audio = ()
+let audio.encode = ()
+
+# Encode audio track to pcm_s16
+# @category Source / Audio processing
+def audio.encode.pcm_s16(~id=null("audio.encode.pcm_s16"), s) =
+  let {audio, ...tracks} = source.tracks(s)
+  source(id=id, tracks.{audio=track.encode.audio.pcm_s16(audio)})
+end
+
+# Encode audio track to pcm_f32
+# @category Source / Audio processing
+def audio.encode.pcm_f32(~id=null("audio.encode.pcm_f32"), s) =
+  let {audio, ...tracks} = source.tracks(s)
+  source(id=id, tracks.{audio=track.encode.audio.pcm_f32(audio)})
+end
+
+let audio.decode = ()
+
+# Decode audio track to pcm_s16
+# @category Source / Audio processing
+def audio.decode.pcm_s16(~id=null("audio.decode.pcm_s16"), s) =
+  let {audio, ...tracks} = source.tracks(s)
+  source(id=id, tracks.{audio=track.decode.audio.pcm_s16(audio)})
+end
+
+# Decode audio track to pcm_f32
+# @category Source / Audio processing
+def audio.decode.pcm_f32(~id=null("audio.decode.pcm_f32"), s) =
+  let {audio, ...tracks} = source.tracks(s)
+  source(id=id, tracks.{audio=track.decode.audio.pcm_f32(audio)})
+end
+
 # Samplerate for audio.
 # @category Settings
 def audio.samplerate =
@@ -8,6 +41,39 @@ end
 # @category Settings
 def audio.channels =
   settings.frame.audio.channels
+end
+
+# Multiply the amplitude of the signal.
+# @category Source / Audio processing
+# @param f Multiplicative factor.
+# @argsof track.audio.amplify
+def amplify(~id=null("amplify"), %argsof(track.audio.amplify[!id]), f, s) =
+  tracks = source.tracks(s)
+  source(
+    id=id,
+    tracks.{
+      audio=
+        track.audio.amplify(
+          id=null("track.amplify"),
+          %argsof(track.audio.amplify[!id]),
+          f,
+          tracks.audio
+        )
+    }
+  )
+end
+
+# Clip samples, i.e. ensure that all values are between
+# `-1` and `1`: values lower than `-1` become `-1` and
+# values higher than `1` become `1`. `nan` values become `0`.
+# @category Source / Audio processing
+# @argsof track.audio.clip
+def clip(~id=null("clip"), %argsof(track.audio.clip[!id]), s) =
+  tracks = source.tracks(s)
+  source(
+    id=id,
+    tracks.{audio=track.audio.clip(%argsof(track.audio.clip), tracks.audio)}
+  )
 end
 
 lufs_builtin = lufs
@@ -36,337 +102,260 @@ lufs_builtin = lufs
 # @method gain Current amplification coefficient (in linear scale).
 # @method target_gain Current target amplification coefficient (in linear scale).
 # @method rms Current rms (in linear scale).
-def replaces normalize(~id=null(), ~target=getter(-13.), ~up=getter(10.), ~down=getter(.1), ~gain_min=-12., ~gain_max=12., ~lufs=false, ~lookahead=getter(0.), ~window=getter(.5), ~threshold=getter(-40.), ~track_sensitive=true, ~debug=null(), s)
+def replaces normalize(
+  ~id=null(),
+  ~target=getter(-13.),
+  ~up=getter(10.),
+  ~down=getter(.1),
+  ~gain_min=-12.,
+  ~gain_max=12.,
+  ~lufs=false,
+  ~lookahead=getter(0.),
+  ~window=getter(.5),
+  ~threshold=getter(-40.),
+  ~track_sensitive=true,
+  ~debug=null(),
+  s
+) =
   let (s, rms) =
-    if lufs then
+    if
+      lufs
+    then
       s = lufs_builtin(id=id, window=window, s)
       (s, {lin_of_dB(s.lufs())})
     else
       s = rms.smooth(id=id, duration=window, s)
       (s, s.rms)
     end
+
   v = ref(1.)
   frame = frame.duration()
   gain_min = lin_of_dB(gain_min)
   gain_max = lin_of_dB(gain_max)
-  def update()
-    target    = lin_of_dB(getter.get(target))
+
+  def update() =
+    target = lin_of_dB(getter.get(target))
     threshold = lin_of_dB(getter.get(threshold))
-    rms       = rms()
-    if rms >= threshold then
-      if !v * rms <= target then
-        up = 1. - exp (0. - frame / getter.get(up))
-        v := !v + up * ((target / rms) - !v)
+    rms = rms()
+    if
+      rms >= threshold
+    then
+      if
+        v() * rms <= target
+      then
+        up = 1. - exp(0. - frame / getter.get(up))
+        v := v() + up * ((target / rms) - v())
       else
-        down = 1. - exp (0. - frame / getter.get(down))
-        v := !v + down * ((target / rms) - !v)
+        down = 1. - exp(0. - frame / getter.get(down))
+        v := v() + down * ((target / rms) - v())
       end
-      v := max(gain_min, min(gain_max, !v))
+
+      v := max(gain_min, min(gain_max, v()))
     end
   end
-  def target_gain () = lin_of_dB(getter.get(target)) / rms() end
+
+  def target_gain() =
+    lin_of_dB(getter.get(target)) / rms()
+  end
+
   s =
-    if null.defined(debug) then
-      source.run(s, every=null.get(debug), {log.debug("rms: #{rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{!v} / #{target_gain()}")})
+    if
+      null.defined(debug)
+    then
+      source.run(
+        s,
+        every=null.get(debug),
+        {
+          log.debug(
+            "rms: #{rms()} / #{lin_of_dB(getter.get(target))}\tgain: #{v()} / #{
+              target_gain()
+            }"
+          )
+        }
+      )
     else
       s
     end
+
   s = source.on_frame(s, update)
   s = if track_sensitive then source.on_track(s, fun (_) -> v := 1.) else s end
-  amplify(id=id, {!v}, delay_line(lookahead, s)).{ rms = rms, gain = fun() -> !v, target_gain = target_gain }
+  amplify(id=id, {v()}, delay_line(lookahead, s)).{
+    rms=rms,
+    gain={v()},
+    target_gain=target_gain
+  }
 end
 
-
-# A limiter. This is a `compress` with tweaked parameters.
-# @category Source / Audio processing
-def limit(~attack=getter(50.), ~release=getter(200.), ~ratio=getter(20.), ~threshold=getter(-2.), ~pre_gain=getter(0.), ~gain=getter(0.), s)
-  compress(attack=attack, release=release, ratio=ratio, threshold=threshold, pre_gain=pre_gain, gain=gain, s)
+# Swap two channels of a stereo source.
+# @category Source / Conversion
+def swap(id=null("swap"), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=track.audio.swap(tracks.audio)})
 end
 
-# A bandpass filter obtained by chaining a low-pass and a high-pass filter.
+# Produce mono audio by taking the mean of all audio channels.
+# @category Source / Conversion
+# @argsof track.audio.mean
+def mean(~id=null("mean"), %argsof(track.audio.mean[!id]), s) =
+  tracks = source.tracks(s)
+  source(
+    id=id,
+    tracks.{audio=track.audio.mean(%argsof(track.audio.mean), tracks.audio)}
+  )
+end
+
+# Convert any pcm audio source into a stereo source.
+# @category Source / Conversion
+def stereo(~id=null("stereo"), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=track.audio.stereo(tracks.audio)})
+end
+
+# Extract the left channel of a stereo track
+# @category Source / Conversion
+# @param t Track to extract from
+def track.audio.stereo.left(~id=null("track.audio.stereo.left"), t) =
+  track.audio.mean(id=id, track.audio.stereo.pan(pan=-1., t))
+end
+
+# Extract the left channel of a stereo source
+# @category Source / Conversion
+# @param s Source to extract from
+def stereo.left(~id=null("stereo.left"), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=track.audio.stereo.left(tracks.audio)})
+end
+
+# Extract the right channel of a stereo track
+# @category Source / Conversion
+# @param s Track to extract from
+def track.audio.stereo.right(~id=null("track.audio.stereo.right"), t) =
+  track.audio.mean(id=id, track.audio.stereo.pan(pan=1., t))
+end
+
+# Extract the right channel of a stereo source
+# @category Source / Conversion
+# @param s Source to extract from
+def stereo.right(~id=null("stereo.right"), s) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=track.audio.stereo.right(tracks.audio)})
+end
+
+# Spacializer which allows controlling the width of the signal.
 # @category Source / Audio processing
-# @param id Force the value of the source ID.
-# @param ~low Lower frequency of the bandpass filter.
-# @param ~high Higher frequency of the bandpass filter.
-# @param ~q Q factor.
-def filter.iir.eq.low_high(~id=null(), ~low, ~high, ~q=1., s)
-  s = if not (getter.is_constant(high) and getter.get(high) == infinity) then filter.iir.eq.low(id=id, frequency=high, q=q, s) else s end
-  s = if not (getter.is_constant(low) and getter.get(low) == 0.) then filter.iir.eq.high(id=id, frequency=low, q=q, s) else s end
+# @param w Width of the signal (-1: mono, 0.: original, 1.: wide stereo).
+def stereo.width(~id=null("stereo.width"), w=getter(0.), (s:source)) =
+  tracks = source.tracks(s)
+  source(id=id, tracks.{audio=track.audio.stereo.width(w, tracks.audio)})
+end
+
+# Pan a stereo sound.
+# @category Source / Audio processing
+# @argsof track.audio.stereo.pan
+def stereo.pan(
+  ~id=null("stereo.pan"),
+  %argsof(track.audio.stereo.pan[!id]),
+  (s:source)
+) =
+  tracks = source.tracks(s)
+  source(
+    id=id,
+    tracks.{
+      audio=
+        track.audio.stereo.pan(%argsof(track.audio.stereo.pan), tracks.audio)
+    }
+  )
+end
+
+# Slow down or accelerate an audio stream by stretching (sounds lower) or squeezing it (sounds higher).
+# @category Source / Audio processing
+# @argsof track.audio.stretch
+def stretch(
+  ~id=null("stretch"),
+  %argsof(track.audio.stretch[!id]),
+  (s:source)
+) =
+  tracks = source.tracks(s)
+  source.audio(
+    id=id, track.audio.stretch(%argsof(track.audio.stretch), tracks.audio)
+  )
+end
+
+let stereo.ms = ()
+
+# Decode mid+side stereo (M/S) to left+right stereo.
+# @category Source / Audio processing
+# @argsof track.audio.stereo.ms.decode
+def stereo.ms.decode(
+  ~id=null("stereo.ms.decode"),
+  %argsof(track.audio.stereo.ms.decode[!id]),
+  (s:source)
+) =
+  tracks = source.tracks(s)
+  source(
+    id=id,
+    tracks.{
+      audio=
+        track.audio.stereo.ms.decode(
+          %argsof(track.audio.stereo.ms.decode), tracks.audio
+        )
+    }
+  )
+end
+
+# Encode left+right stereo to mid+side stereo (M/S).
+# @category Source / Audio processing
+# @argsof track.audio.stereo.ms.encode
+def stereo.ms.encode(
+  ~id=null("stereo.ms.encode"),
+  %argsof(track.audio.stereo.ms.encode[!id]),
+  (s:source)
+) =
+  tracks = source.tracks(s)
+  source(
+    id=id,
+    tracks.{
+      audio=
+        track.audio.stereo.ms.encode(
+          %argsof(track.audio.stereo.ms.encode), tracks.audio
+        )
+    }
+  )
+end
+
+%ifdef track.audio.stereotool
+# Process an audio source using stereotool
+# @argsof track.audio.stereotool
+# @category Source / Audio processing
+def stereotool(
+  ~id=null("stereotool"),
+  %argsof(track.audio.stereotool[!id]),
   s
-end
+) =
+  let {audio, metadata, track_marks, ..._} = source.tracks(s)
+  s = track.audio.stereotool(%argsof(track.audio.stereotool[!id]), audio)
+  let replaces s =
+    source(id=id, {audio=(s : pcm), metadata=metadata, track_marks=track_marks})
 
-let limiter = limit
-
-# Multiband compression. The list in argument specifies
-# - the `frequency` below which we should apply compression (it is above previous band)
-# - the `attack` time (ms)
-# - the `release` time (ms)
-# - the compression `ratio`
-# - the `threshold` for compression
-# - the `gain` for the band
-# @category Source / Audio processing
-# @param ~limit Also apply limiting to bands.
-# @param l Parameters for compression bands.
-# @param s Source on which multiband compression should be applied.
-def compress.multiband(~limit=true, ~wet=getter(1.), s, l)
-  # Check that the bands are with increasing frequencies.
-  for i = 0 to list.length(l) - 2 do
-    if getter.get(list.nth(l,i+1).frequency) < getter.get(list.nth(l,i).frequency) then failwith("Bands should be sorted.") end
-  end
-  # Process a band
-  def band(low, band)
-    high = if getter.is_constant(band.frequency) and getter.get(band.frequency) >= float_of_int(audio.samplerate()) / 2. then infinity else band.frequency end
-    s = filter.iir.eq.low_high(low=low, high=high, s)
-    s = compress(attack=band.attack, release=band.release, threshold=band.threshold, ratio=band.ratio, gain=band.gain, s)
-    if limit then limiter(s) else s end
-  end
-  l = list.mapi(fun (i, b) -> band(if i == 0 then 0. else list.nth(l,i-1).frequency end, b), l)
-  c = add(normalize=false, l)
-  s =
-    if not getter.is_constant(wet) or getter.get(wet) != 1. then
-      add(normalize=false, [amplify({1.-getter.get(wet)}, s), amplify(wet, c)])
-    else
-      c
-    end
-  # Limit to avoid bad surprises
-  limiter(s)
-end
-
-# Compress and normalize, producing a more uniform and "full" sound.
-# @category Source / Audio processing
-# @flag extra
-# @param s The input source.
-def nrj(s)
-  compress(threshold=-15.,ratio=3.,gain=3.,normalize(s))
-end
-
-# Multiband-compression.
-# @category Source / Audio processing
-# @flag extra
-# @param s The input source.
-def sky(s)
-  # 3-band crossover
-  low = fun(s) -> filter.iir.eq.low(frequency = 168., s)
-  mh = fun(s) -> filter.iir.eq.high(frequency = 100., s)
-  mid = fun(s) -> filter.iir.eq.low(frequency = 1800., s)
-  high = fun(s) -> filter.iir.eq.high(frequency = 1366., s)
-
-  # Add back
-  add(normalize = false,
-      [ compress(attack = 100., release = 200., threshold = -20.,
-                 ratio = 6., gain = 6.7, knee = 0.3,
-                 low(s)),
-        compress(attack = 100., release = 200., threshold = -20.,
-                 ratio = 6., gain = 6.7, knee = 0.3,
-                 mid(mh(s))),
-        compress(attack = 100., release = 200., threshold = -20.,
-                 ratio = 6., gain = 6.7, knee = 0.3,
-                 high(s))
-      ])
-end
-
-# Add some bass to the sound.
-# @category Source / Audio processing
-# @param ~frequency Frequency below which sound is considered as bass.
-# @param ~gain Amount of boosting (dB).
-# @param s Source whose bass should be boosted
-def bass_boost(~frequency=getter(200.), ~gain=getter(10.), s)
-  bass = limit(pre_gain=gain, filter.iir.eq.low(frequency=frequency, s))
-  add([s, bass])
-end
-
-%ifdef soundtouch
-# Increases the pitch, making voices sound like on helium.
-# @category Source / Audio processing
-# @flag extra
-# @param s The input source.
-def helium(s)
-  soundtouch(pitch=1.5,s)
+  s
 end
 %endif
 
-# Remove low frequencies often produced by microphones.
-# @category Source / Audio processing
-# @param ~frequency Frequency under which sound should be lowered.
-# @param s The input source.
-def mic_filter(~frequency=200., s)
-  filter(freq=frequency, q=1., mode="high", s)
-end
+# Defer the source's audio track by a given amount of time. Source will be
+# available when the given `delay` has been fully buffered. Use this operator
+# instead of `buffer` when buffering large amount of data as initial delay.
+# @argsof track.audio.defer[!id]
+# @param ~id Force the source's ID
+def defer(
+  ~id=null("defer"),
+  %argsof(track.audio.defer[!id]),
+  (s:source(audio=pcm_s16))
+) =
+  let {audio = a} = source.tracks(s)
+  a = track.audio.defer(%argsof(track.audio.defer[!id]), a)
 
-# Mix between dry and wet sources. Useful for testing effects. Typically:
-# ```
-# c = interactive.float("wetness", min=0., max=1., 1.)
-# s = dry_wet(c, s, effect(s))
-# ```
-# and vary `c` to hear the difference between the source without and with
-# the effect.
-# @category Source / Audio processing
-# @param ~power If `true` use constant power mixing.
-# @param wetness Wetness coefficient, from 0 (fully dry) to  1 (fully wet).
-# @param dry Dry source.
-# @param wet Wet source.
-def dry_wet(~power=false, wetness, dry, wet)
-  add(power=power, weights=[getter.map(fun(x) -> 1.-x, wetness), wetness], [dry, wet])
-end
-
-# Generate DTMF tones.
-# @category Source / Sound synthesis
-# @param ~duration Duration of a tone (in seconds).
-# @param ~delay Dealy between two successive tones (in seconds).
-# @param dtmf String describing DTMF tones to generates: it should contains characters 0 to 9, A to D, or * or #.
-def replaces dtmf(~duration=0.1, ~delay=0.05, dtmf)
-  l = ref([])
-  for i = 0 to string.length(dtmf) - 1 do
-    c = string.sub(dtmf, start=i, length=1)
-    let (row, col) =
-      if c == "1" then
-        (697., 1209.)
-      elsif c == "2" then
-        (697., 1336.)
-      elsif c == "3" then
-        (697., 1477.)
-      elsif c == "A" then
-        (697., 1633.)
-      elsif c == "4" then
-        (770., 1209.)
-      elsif c == "5" then
-        (770., 1336.)
-      elsif c == "6" then
-        (770., 1477.)
-      elsif c == "B" then
-        (770., 1633.)
-      elsif c == "7" then
-        (852., 1209.)
-      elsif c == "8" then
-        (852., 1336.)
-      elsif c == "9" then
-        (852., 1477.)
-      elsif c == "C" then
-        (852., 1633.)
-      elsif c == "*" then
-        (941., 1209.)
-      elsif c == "0" then
-        (941., 1336.)
-      elsif c == "#" then
-        (941., 1477.)
-      elsif c == "D" then
-        (941., 1633.)
-      else
-        (0., 0.)
-      end
-    s = add([sine(row, duration=duration), sine(col, duration=duration)])
-    l := blank(duration=delay) :: !l
-    l := s :: !l
-  end
-  l = list.rev(!l)
-  sequence(l)
-end
-
-# Mixing table controllable via source methods and optional
-# server/telnet commands.
-# @flag extra
-# @category Source / Audio processing
-# @param ~id Force the value of the source ID.
-# @param ~register_server_commands Register corresponding server commands
-def mix(~id=null(), ~register_server_commands=true, sources) =
-  id = string.id.default(default="mixer", id)
-
-  inputs = list.map(fun (s) ->
-    begin
-      volume      = ref(1.)
-      is_selected = ref(false)
-      is_single   = ref(false)
-
-      {
-        volume = fun () -> !volume,
-        set_volume = fun (v) -> volume := v,
-        selected = fun () -> !is_selected,
-        set_selected = fun (b) -> is_selected := b,
-        single = fun () -> !is_single,
-        set_single = fun (b) -> is_single := b,
-        source = s
-      }
-    end, sources)
-
-  insert_metadata_fn = ref(fun (_) -> ())
-
-  sources = list.map(fun (input) ->
-    begin
-      s = amplify(input.volume, input.source)
-      s = source.on_track(s, fun (_) ->
-         if input.single() then
-           input.set_selected(false)
-         end
-      )
-      s = source.on_metadata(s, fun (m) ->
-        begin
-          fn = !insert_metadata_fn
-          fn(m)
-        end
-      )
-      switch([(input.selected, s)])
-    end, inputs)
-
-  s = add(sources)
-  s = drop_metadata(s)
-  s = insert_metadata(s)
-  insert_metadata_fn := s.insert_metadata
-  s = merge_tracks(id=id, s)
-
-  if register_server_commands then
-     def status(input) =
-       "ready=#{source.is_ready(input.source)} selected=#{input.selected()} single=#{input.single()} volume=#{int_of_float(input.volume() * 100.)}% remaining=#{source.remaining(input.source)}"
-     end
-
-     server.register(namespace=source.id(s), description="Skip current track on all enabled sources.",
-                      "skip", fun (_) -> begin
-                         list.iter(fun (input) -> if input.selected() then source.skip(input.source) end, inputs)
-                         "OK"
-                      end)
-     server.register(namespace=source.id(s), description="Set volume for a given source.",
-                     usage="volume <source nb> <vol%>", "volume", fun (v) -> begin
-                         try
-                           let [i, v] = r/\s/.split(v)
-                           input = list.nth(inputs, int_of_string(i))
-                           input.set_volume(float_of_string(v))
-                           status(input)
-                         catch _ do
-                           "Usage: volume <source nb> <vol%>"
-                         end
-                      end)
-     server.register(namespace=source.id(s), description="Enable/disable a source.",
-                     usage="select <source nb> <true|false>", "select", fun (arg) -> begin
-                         try
-                           let [i, b] = r/\s/.split(arg)
-                           input = list.nth(inputs, int_of_string(i))
-                           input.set_selected(b == "true")
-                           status(input)
-                         catch _ do
-                           "Usage: select <source nb> <true|false>"
-                         end
-                      end)
-     server.register(namespace=source.id(s), description="Enable/disable automatic stop at the end of track.",
-                     usage="single <source nb> <true|false>", "single", fun (arg) -> begin
-                         try
-                           let [i, b] = r/\s/.split(arg)
-                           input = list.nth(inputs, int_of_string(i))
-                           input.set_single(b == "true")
-                           status(input)
-                         catch _ do
-                           "Usage: single <source nb> <true|false>"
-                         end
-                      end)
-     server.register(namespace=source.id(s), description="Display current status.",
-                     "status", fun (i) -> begin
-                         try
-                           status(list.nth(inputs, int_of_string(i)))
-                         catch _ do
-                           "Usage: status <source nb>"
-                         end
-                      end)
-     server.register(namespace=source.id(s), description="Print the list of input sources.",
-                     "inputs", fun (_) -> string.concat(separator=" ", list.map(fun (input) -> source.id(input.source), inputs)))
-  end
-
-  s.{inputs = inputs}
+  source(
+    id=id,
+    {audio=a, metadata=track.metadata(a), track_marks=track.track_marks(a)}
+  )
 end

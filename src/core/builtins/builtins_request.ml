@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,16 +23,38 @@
 let request = Modules.request
 
 let _ =
+  Lang.add_builtin ~base:request "is_static" ~category:`Liquidsoap
+    ~descr:"`true` if the given URI is assumed to be static, e.g. a file."
+    [("", Lang.string_t, None, None)]
+    Lang.bool_t
+    (fun p -> Lang.bool (Request.is_static (Lang.to_string (List.assoc "" p))))
+
+let _ =
   Lang.add_builtin ~base:request "create" ~category:`Liquidsoap
     ~descr:"Create a request from an URI."
     [
-      ("indicators", Lang.list_t Lang.string_t, Some (Lang.list []), None);
+      ( "cue_in_metadata",
+        Lang.nullable_t Lang.string_t,
+        Some (Lang.string "liq_cue_in"),
+        Some "Metadata for cue in points. Disabled if `null`." );
+      ( "cue_out_metadata",
+        Lang.nullable_t Lang.string_t,
+        Some (Lang.string "liq_cue_out"),
+        Some "Metadata for cue out points. Disabled if `null`." );
       ( "persistent",
         Lang.bool_t,
         Some (Lang.bool false),
         Some
           "Indicate that the request is persistent, i.e. that it may be used \
            again once it has been played." );
+      ( "resolve_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Set to `false` to prevent metadata resolution on this request." );
+      ( "excluded_metadata_resolvers",
+        Lang.list_t Lang.string_t,
+        Some (Lang.list []),
+        Some "List of metadata resolves to exclude when resolving metadata." );
       ( "temporary",
         Lang.bool_t,
         Some (Lang.bool false),
@@ -43,8 +65,18 @@ let _ =
     ]
     Request.Value.t
     (fun p ->
-      let indicators = List.assoc "indicators" p in
       let persistent = Lang.to_bool (List.assoc "persistent" p) in
+      let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
+      let excluded_metadata_resolvers =
+        List.map Lang.to_string
+          (Lang.to_list (List.assoc "excluded_metadata_resolvers" p))
+      in
+      let cue_in_metadata =
+        Lang.to_valued_option Lang.to_string (List.assoc "cue_in_metadata" p)
+      in
+      let cue_out_metadata =
+        Lang.to_valued_option Lang.to_string (List.assoc "cue_out_metadata" p)
+      in
       let initial = Lang.to_string (List.assoc "" p) in
       let l = String.length initial in
       let initial =
@@ -52,25 +84,15 @@ let _ =
         if l > 0 && initial.[l - 1] = '\n' then String.sub initial 0 (l - 1)
         else initial
       in
-      let indicators = List.map Lang.to_string (Lang.to_list indicators) in
-      let indicators = List.map (fun x -> Request.indicator x) indicators in
       let temporary = List.assoc "temporary" p |> Lang.to_bool in
-      let indicators =
-        if temporary then
-          Request.indicator ~temporary:true initial :: indicators
-        else indicators
-      in
-      Request.Value.to_value (Request.create ~persistent ~indicators initial))
+      Request.Value.to_value
+        (Request.create ~resolve_metadata ~persistent
+           ~excluded_metadata_resolvers ~cue_in_metadata ~cue_out_metadata
+           ~temporary initial))
 
 let _ =
   Lang.add_builtin ~base:request "resolve" ~category:`Liquidsoap
     [
-      ( "content_type",
-        Lang.nullable_t (Lang.source_t (Lang.univ_t ())),
-        Some Lang.null,
-        Some
-          "If specified, the request will be decoded with the same content \
-           type as the given source." );
       ( "timeout",
         Lang.float_t,
         Some (Lang.float 30.),
@@ -85,25 +107,9 @@ let _ =
        should not be decoded afterward: this is mostly useful to download \
        files such as playlists, etc."
     (fun p ->
-      let ctype =
-        List.assoc "content_type" p
-        |> Lang.to_option
-        |> Option.map (fun s -> (Lang.to_source s)#content_type)
-      in
       let timeout = Lang.to_float (List.assoc "timeout" p) in
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.bool
-        (try Request.Resolved = Request.resolve ~ctype r timeout
-         with _ -> false))
-
-let _ =
-  Lang.add_builtin ~base:request "read_metadata" ~category:`Liquidsoap
-    [("", Request.Value.t, None, None)]
-    Lang.unit_t ~descr:"Force reading the metadata of a request."
-    (fun p ->
-      let r = Request.Value.of_value (List.assoc "" p) in
-      Request.read_metadata r;
-      Lang.unit)
+      Lang.bool (try Request.resolve r timeout = `Resolved with _ -> false))
 
 let _ =
   Lang.add_builtin ~base:request "metadata" ~category:`Liquidsoap
@@ -111,7 +117,7 @@ let _ =
     Lang.metadata_t ~descr:"Get the metadata associated to a request."
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.metadata (Request.get_all_metadata r))
+      Lang.metadata (Request.metadata r))
 
 let _ =
   Lang.add_builtin ~base:request "log" ~category:`Liquidsoap
@@ -174,15 +180,47 @@ let _ =
 
 let _ =
   Lang.add_builtin ~base:request "duration" ~category:`Liquidsoap
-    [("", Lang.string_t, None, None)]
-    Lang.float_t
+    [
+      ( "resolve_metadata",
+        Lang.bool_t,
+        Some (Lang.bool true),
+        Some "Set to `false` to prevent metadata resolution on this request." );
+      ( "metadata",
+        Lang.metadata_t,
+        Some (Lang.list []),
+        Some "Optional metadata used to decode the file, e.g. `ffmpeg_options`."
+      );
+      ( "timeout",
+        Lang.float_t,
+        Some (Lang.float 30.),
+        Some "Limit in seconds to the duration of the resolving." );
+      ("", Lang.string_t, None, None);
+    ]
+    (Lang.nullable_t Lang.float_t)
     ~descr:
       "Compute the duration in seconds of audio data contained in a request. \
-       The computation may be expensive. Returns -1. if computation failed, \
+       The computation may be expensive. Returns `null` if computation failed, \
        typically if the file was not recognized as valid audio."
     (fun p ->
       let f = Lang.to_string (List.assoc "" p) in
-      Lang.float (try Request.duration f with Not_found -> -1.))
+      let resolve_metadata = Lang.to_bool (List.assoc "resolve_metadata" p) in
+      let metadata = Lang.to_metadata (List.assoc "metadata" p) in
+      let timeout = Lang.to_float (List.assoc "timeout" p) in
+      let r =
+        Request.create ~resolve_metadata ~metadata ~cue_in_metadata:None
+          ~cue_out_metadata:None f
+      in
+      if Request.resolve r timeout = `Resolved then (
+        match
+          Request.duration ~metadata:(Request.metadata r)
+            (Option.get (Request.get_filename r))
+        with
+          | Some f -> Lang.float f
+          | None -> Lang.null
+          | exception exn ->
+              let bt = Printexc.get_raw_backtrace () in
+              Lang.raise_as_runtime ~bt ~kind:"failure" exn)
+      else Lang.null)
 
 let _ =
   Lang.add_builtin ~base:request "id" ~category:`Liquidsoap
@@ -191,7 +229,7 @@ let _ =
     Lang.int_t
     (fun p ->
       let r = Request.Value.of_value (List.assoc "" p) in
-      Lang.int (Request.get_id r))
+      Lang.int (Request.id r))
 
 let _ =
   Lang.add_builtin ~base:request "status" ~category:`Liquidsoap
@@ -204,10 +242,11 @@ let _ =
       let r = Request.Value.of_value (List.assoc "" p) in
       let s =
         match Request.status r with
-          | Request.Idle -> "idle"
-          | Request.Resolving -> "resolving"
-          | Request.Ready -> "ready"
-          | Request.Playing -> "playing"
-          | Request.Destroyed -> "destroyed"
+          | `Idle -> "idle"
+          | `Resolving _ -> "resolving"
+          | `Ready -> "ready"
+          | `Playing _ -> "playing"
+          | `Destroyed -> "destroyed"
+          | `Failed -> "failed"
       in
       Lang.string s)

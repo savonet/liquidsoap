@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,18 +28,18 @@ let ( ++ ) = Int64.add
 let ticks_of_offset offset =
   Int64.of_float (offset *. float (Lazy.force Frame.main_rate))
 
-class on_offset ~force ~offset ~override f s =
+class on_offset ~force ~offset f s =
   object (self)
     inherit Source.operator ~name:"on_offset" [s]
     inherit Latest_metadata.source
-    method stype = s#stype
-    method is_ready = s#is_ready
+    method fallible = s#fallible
+    method private can_generate_frame = s#is_ready
     method remaining = s#remaining
     method abort_track = s#abort_track
-    method seek n = s#seek n
+    method seek_source = s#seek_source
     method self_sync = s#self_sync
     val mutable elapsed = 0L
-    val mutable offset = ticks_of_offset offset
+    method offset = ticks_of_offset (offset ())
     val mutable executed = false
 
     method private execute =
@@ -50,33 +50,27 @@ class on_offset ~force ~offset ~override f s =
            [("", Lang.float pos); ("", Lang.metadata latest_metadata)]);
       executed <- true
 
-    method private on_new_metadata =
-      try
-        let pos = Hashtbl.find latest_metadata override in
-        let pos =
-          try float_of_string pos
-          with Failure _ -> raise (Invalid_override pos)
-        in
-        let ticks = ticks_of_offset pos in
-        self#log#info "Setting new offset to %.02fs (%Li ticks)" pos ticks;
-        offset <- ticks
-      with
-        | Failure _ | Not_found -> ()
-        | Invalid_override pos ->
-            self#log#important "Invalid value for override metadata: %s" pos
+    method private on_new_metadata = ()
 
-    method private get_frame ab =
-      let pos = Int64.of_int (Frame.position ab) in
-      s#get ab;
-      self#save_latest_metadata ab;
-      let new_pos = Int64.of_int (Frame.position ab) in
-      elapsed <- elapsed ++ new_pos -- pos;
-      if (not executed) && offset <= elapsed then self#execute;
-      if Frame.is_partial ab then (
-        if force && not executed then self#execute;
-        executed <- false;
-        self#clear_latest_metadata;
-        elapsed <- 0L)
+    method private on_frame buf =
+      self#save_latest_metadata buf;
+      let new_pos = Int64.of_int (Frame.position buf) in
+      elapsed <- elapsed ++ new_pos;
+      if (not executed) && self#offset <= elapsed then self#execute
+
+    method private generate_frame =
+      let buf = s#get_frame in
+      match self#split_frame buf with
+        | frame, None ->
+            self#on_frame frame;
+            frame
+        | frame, Some new_frame ->
+            self#on_frame frame;
+            if force && not executed then self#execute;
+            executed <- false;
+            self#clear_latest_metadata;
+            elapsed <- Int64.of_int (Frame.position new_frame);
+            buf
   end
 
 let _ =
@@ -84,8 +78,8 @@ let _ =
   Lang.add_operator "on_offset"
     [
       ( "offset",
-        Lang.float_t,
-        Some (Lang.float (-1.)),
+        Lang.getter_t Lang.float_t,
+        None,
         Some
           "Execute handler when position in track is equal or more than to \
            this value." );
@@ -95,12 +89,6 @@ let _ =
         Some
           "Force execution of callback if track ends before 'offset' position \
            has been reached." );
-      ( "override",
-        Lang.string_t,
-        Some (Lang.string "liq_on_offset"),
-        Some
-          "Metadata field which, if present and containing a float, overrides \
-           the 'offset' parameter." );
       ( "",
         Lang.fun_t
           [(false, "", Lang.float_t); (false, "", Lang.metadata_t)]
@@ -119,9 +107,8 @@ let _ =
        given amount of time."
     ~return_t
     (fun p ->
-      let offset = Lang.to_float (List.assoc "offset" p) in
-      let force = Lang.to_bool (List.assoc "force" p) in
-      let override = Lang.to_string (List.assoc "override" p) in
+      let offset = List.assoc "offset" p |> Lang.to_float_getter in
+      let force = List.assoc "force" p |> Lang.to_bool in
       let f = Lang.assoc "" 1 p in
       let s = Lang.to_source (Lang.assoc "" 2 p) in
-      new on_offset ~offset ~force ~override f s)
+      new on_offset ~offset ~force f s)

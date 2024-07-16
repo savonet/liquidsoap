@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,6 +30,42 @@ let _ =
       Lang.unit)
 
 let _ =
+  Lang.add_builtin ~base:runtime_gc "minor" ~category:`Liquidsoap
+    ~descr:"Trigger full minor garbage collection." [] Lang.unit_t (fun _ ->
+      Gc.minor ();
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:runtime_gc "major_slice" ~category:`Liquidsoap
+    ~descr:
+      "Do a minor collection and a slice of major collection. The optional \
+       argument `n` is the size of the slice: the GC will do enough work to \
+       free (on average) `n` words of memory. If `0` (its default), the GC \
+       will try to do enough work to ensure that the next automatic slice has \
+       no work to do."
+    [("", Lang.int_t, Some (Lang.int 0), Some "Size of the slice")]
+    Lang.unit_t
+    (fun p ->
+      ignore (Gc.major_slice (Lang.to_int (List.assoc "" p)));
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:runtime_gc "major" ~category:`Liquidsoap
+    ~descr:
+      "Trigger a minor collection and finish the current major collection \
+       cycle.." [] Lang.unit_t (fun _ ->
+      Gc.major ();
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:runtime_gc "compact" ~category:`Liquidsoap
+    ~descr:
+      "Perform a full major collection and compact the heap. Note that heap \
+       compaction is a lengthy operation." [] Lang.unit_t (fun _ ->
+      Gc.compact ();
+      Lang.unit)
+
+let _ =
   let stat_t =
     Lang.record_t
       [
@@ -38,6 +74,7 @@ let _ =
         ("major_words", Lang.float_t);
         ("minor_collections", Lang.int_t);
         ("major_collections", Lang.int_t);
+        ("forced_major_collections", Lang.int_t);
         ("heap_words", Lang.int_t);
         ("heap_chunks", Lang.int_t);
         ("live_words", Lang.int_t);
@@ -58,6 +95,7 @@ let _ =
         major_words;
         minor_collections;
         major_collections;
+        forced_major_collections;
         heap_words;
         heap_chunks;
         live_words;
@@ -77,6 +115,7 @@ let _ =
         ("major_words", Lang.float major_words);
         ("minor_collections", Lang.int minor_collections);
         ("major_collections", Lang.int major_collections);
+        ("forced_major_collections", Lang.int forced_major_collections);
         ("heap_words", Lang.int heap_words);
         ("heap_chunks", Lang.int heap_chunks);
         ("live_words", Lang.int live_words);
@@ -91,13 +130,13 @@ let _ =
       ]
   in
   ignore
-    (Lang.add_builtin ~base:runtime_gc "stat" ~category:`Liquidsoap
+    (Lang.add_builtin ~base:runtime_gc "stat" ~category:`System
        ~descr:
          "Return the current values of the memory management counters. This \
           function examines every heap block to get the statistics." [] stat_t
        (fun _ -> stat (Gc.stat ())));
 
-  Lang.add_builtin ~base:runtime_gc "quick_stat" ~category:`Liquidsoap
+  Lang.add_builtin ~base:runtime_gc "quick_stat" ~category:`System
     ~descr:
       "Same as stat except that `live_words`, `live_blocks`, `free_words`, \
        `free_blocks`, `largest_free`, and `fragments` are set to `0`. This \
@@ -105,7 +144,7 @@ let _ =
        through the heap." [] stat_t (fun _ -> stat (Gc.quick_stat ()))
 
 let _ =
-  Lang.add_builtin ~base:runtime_gc "print_stat" ~category:`Liquidsoap
+  Lang.add_builtin ~base:runtime_gc "print_stat" ~category:`System
     ~descr:
       "Print the current values of the memory management counters in \
        human-readable form." [] Lang.unit_t (fun _ ->
@@ -176,11 +215,11 @@ let _ =
     }
   in
   ignore
-    (Lang.add_builtin ~base:runtime_gc "get" ~category:`Liquidsoap
+    (Lang.add_builtin ~base:runtime_gc "get" ~category:`System
        ~descr:"Return the current values of the GC parameters" [] control_t
        (fun _ -> control (Gc.get ())));
 
-  Lang.add_builtin ~base:runtime_gc "set" ~category:`Liquidsoap
+  Lang.add_builtin ~base:runtime_gc "set" ~category:`System
     ~descr:"Set the GC parameters."
     [("", control_t, None, None)]
     Lang.unit_t
@@ -192,10 +231,8 @@ let _ =
 let runtime_sys = Lang.add_module ~base:runtime "sys"
 
 let _ =
-  Lang.add_builtin_base ~category:`Liquidsoap
+  Lang.add_builtin_base ~category:`System
     ~descr:
       "Size of one word on the machine currently executing the program, in \
        bits. Either `32` or `64`."
-    ~base:runtime_sys "word_size"
-    Lang.(Ground (Ground.Int Sys.word_size))
-    Lang.int_t
+    ~base:runtime_sys "word_size" (`Int Sys.word_size) Lang.int_t

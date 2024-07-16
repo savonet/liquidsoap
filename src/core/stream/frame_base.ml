@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -34,13 +34,10 @@ module FieldNames = Hashtbl.Make (struct
 end)
 
 module Fields = struct
-  include Map.Make (struct
-    type t = int
+  include Liquidsoap_lang.Methods
 
-    let compare (x : int) (y : int) = x - y [@@inline always]
-  end)
-
-  type field = key
+  type field = int
+  type nonrec 'a t = (field, 'a) t
 
   let field_names = FieldNames.create 0
   let name_fields = Hashtbl.create 0
@@ -59,6 +56,7 @@ module Fields = struct
   let track_marks = register "track_marks"
   let audio = register "audio"
   let video = register "video"
+  let data = register "data"
   let midi = register "midi"
 
   let audio_n = function
@@ -68,6 +66,10 @@ module Fields = struct
   let video_n = function
     | 0 -> video
     | n -> register (Printf.sprintf "video_%d" (n + 1))
+
+  let data_n = function
+    | 0 -> data
+    | n -> register (Printf.sprintf "data_%d" (n + 1))
 
   let make =
     let audio_f = audio in
@@ -87,5 +89,44 @@ type field = Fields.field
 (** Precise description of the channel types for the current track. *)
 type content_type = Content_base.format Fields.t
 
+type t = Content_base.data Fields.t
+
+let position frame =
+  Option.value ~default:0
+    (Fields.fold
+       (fun _ c -> function
+         | None -> Some (Content_base.length c)
+         | Some p -> Some (min p (Content_base.length c)))
+       frame None)
+
+let remaining b = Lazy.force Frame_settings.size - position b
+let is_partial b = 0 < remaining b
+
 (** Metadata of a frame. *)
-type metadata = (string, string) Hashtbl.t
+module Metadata = Metadata_base
+
+type metadata = Metadata_base.t
+
+let audio_format ~pcm_kind params =
+  let lift_params =
+    match pcm_kind with
+      | _ when Content_audio.is_kind pcm_kind -> Content_audio.lift_params
+      | _ when Content_pcm_s16.is_kind pcm_kind -> Content_pcm_s16.lift_params
+      | _ when Content_pcm_f32.is_kind pcm_kind -> Content_pcm_f32.lift_params
+      | _ -> raise Content_base.Invalid
+  in
+  lift_params params
+
+let format_of_channels ~pcm_kind n =
+  audio_format ~pcm_kind
+    {
+      Content_audio.Specs.channel_layout =
+        Lazy.from_val (Audio_converter.Channel_layout.layout_of_channels n);
+    }
+
+let add_timed_content ?length content =
+  Fields.add Fields.track_marks
+    (Content_base.make ?length Content_timed.Track_marks.format)
+    (Fields.add Fields.metadata
+       (Content_base.make ?length Content_timed.Metadata.format)
+       content)

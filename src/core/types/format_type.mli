@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,16 +22,24 @@
 
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
+exception Never_type
+
 val descr : descr -> Type.descr
-val internal_media : Type.constr
+val pcm_audio : Type.constr
+val track : Type.constr
+val muxed_tracks : Type.constr
+val internal_tracks : Type.constr
 val content_type : Type.t -> Content_base.format
+val kind_handler : Content_base.kind * Type.t -> Type.custom_handler
 
 (** Some common types *)
-val audio : unit -> Type.t
+val audio : ?pcm_kind:Content_base.kind -> unit -> Type.t
 
-val audio_mono : unit -> Type.t
-val audio_stereo : unit -> Type.t
-val audio_n : int -> Type.t
+val audio_mono : ?pcm_kind:Content_base.kind -> unit -> Type.t
+val audio_stereo : ?pcm_kind:Content_base.kind -> unit -> Type.t
+val audio_n : ?pcm_kind:Content_base.kind -> int -> Type.t
 val video : unit -> Type.t
 val midi : unit -> Type.t
 val midi_n : int -> Type.t
+val track_marks : Type.t
+val metadata : Type.t

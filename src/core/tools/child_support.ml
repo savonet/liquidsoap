@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,59 +23,46 @@
 (** Utility for operators that need to control child source clocks. See [clock.mli]
     for a more detailed description. *)
 
-let finalise_child_clock child_clock source =
-  Clock.forget source#clock child_clock
-
 class virtual base ~check_self_sync children_val =
   let children = List.map Lang.to_source children_val in
   object (self)
     initializer
-    if check_self_sync then
-      List.iter
-        (fun c ->
-          if (Lang.to_source c)#self_sync <> (`Static, false) then
-            raise
-              (Error.Invalid_value
-                 ( c,
-                   "This source may control its own latency and cannot be used \
-                    with this operator." )))
-        children_val
+      if check_self_sync then
+        List.iter
+          (fun c ->
+            if (Lang.to_source c)#self_sync <> (`Static, None) then
+              raise
+                (Error.Invalid_value
+                   ( c,
+                     "This source may control its own latency and cannot be \
+                      used with this operator." )))
+          children_val
 
+    method virtual id : string
+    method virtual clock : Clock.t
+    method virtual pos : Pos.Option.t
     val mutable child_clock = None
 
-    (* If [true] during [#after_output], issue a [#end_tick] call
-       on the child clock, which makes it perform a whole streaming
-       loop. *)
-    val mutable needs_tick = true
-    method virtual id : string
-    method virtual clock : Source.clock_variable
-    method private child_clock = Option.get child_clock
-
-    method private set_clock =
+    initializer
       child_clock <-
         Some
-          (Clock.create_known
-             (new Clock.clock ~start:false (Printf.sprintf "%s.child" self#id)));
+          (Clock.create_sub_clock
+             ~id:(Clock.id self#clock ^ ".child")
+             self#clock)
 
-      Clock.unify self#clock
-        (Clock.create_unknown ~sources:[] ~sub_clocks:[self#child_clock]);
+    method child_clock =
+      match child_clock with Some c -> c | None -> assert false
 
-      List.iter (fun c -> Clock.unify self#child_clock c#clock) children;
+    method virtual log : Log.t
 
-      Gc.finalise (finalise_child_clock self#child_clock) self
+    initializer
+      List.iter
+        (fun s -> Clock.unify ~pos:self#pos self#child_clock s#clock)
+        children
 
-    method private child_tick =
-      (Clock.get self#child_clock)#end_tick;
-      List.iter (fun c -> c#after_output) children;
-      needs_tick <- false
+    method child_tick = Clock.tick self#child_clock
 
-    (* This methods always set [need_tick] to true. If the source is not
-       [#is_ready], [#after_output] is called during a clock tick,
-       which means that the children clock is _always_ animated by the
-       main clock when the source becomes unavailable. Otherwise, we
-       expect the source to make a decision about executing a child clock
-       tick as part of its [#get_frame] implementation. See [cross.ml] or
-       [soundtouch.ml] as examples. *)
-    method before_output = needs_tick <- true
-    method after_output = if needs_tick then self#child_tick
+    method on_child_tick fn =
+      Clock.on_tick self#child_clock fn;
+      self#child_tick
   end

@@ -1,9 +1,9 @@
-module type T = sig
-  type t
+type t
 
+module type T = sig
   val implementation : string
   val time : unit -> t
-  val sleep : t -> unit
+  val sleep_until : t -> unit
   val of_float : float -> t
   val to_float : t -> float
   val ( |+| ) : t -> t -> t
@@ -13,4 +13,7 @@ module type T = sig
   val ( |<=| ) : t -> t -> bool
 end
 
-val implementation : (module T) ref
+type implementation = (module T)
+
+val unix : implementation
+val implementations : (string, implementation) Hashtbl.t

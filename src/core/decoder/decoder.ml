@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -62,14 +62,16 @@ type fps = Decoder_utils.fps = { num : int; den : int }
 type buffer = {
   generator : Generator.t;
   put_pcm : ?field:Frame.field -> samplerate:int -> Content.Audio.data -> unit;
-  put_yuva420p : ?field:Frame.field -> fps:fps -> Content.Video.data -> unit;
+  put_yuva420p : ?field:Frame.field -> fps:fps -> Video.Canvas.image -> unit;
 }
 
 type decoder = {
   decode : buffer -> unit;
-  (* [seek x]: Skip [x] main ticks. Returns the number of ticks atcually
+  eof : buffer -> unit;
+  (* [seek x]: Skip [x] main ticks. Returns the number of ticks actually
      skipped. *)
   seek : int -> int;
+  close : unit -> unit;
 }
 
 type input = {
@@ -81,16 +83,11 @@ type input = {
   length : (unit -> int) option;
 }
 
-(** A decoder is a filling function and a closing function, called at least when
-    filling fails, i.e. the frame is partial. The closing function can be called
-    earlier e.g. if the user skips. In most cases, file decoders are wrapped
-    stream decoders. *)
 type file_decoder_ops = {
-  fill : Frame.t -> int;
-  (* Return remaining ticks. *)
+  fread : int -> Frame.t;
+  remaining : unit -> int;
   fseek : int -> int;
-  (* There is a record name clash here.. *)
-  close : unit -> unit;
+  fclose : unit -> unit;
 }
 
 type file_decoder =
@@ -109,11 +106,14 @@ type image_decoder = file -> Video.Image.t
 
 (** Decoder description. *)
 type decoder_specs = {
-  media_type : [ `Audio | `Video | `Audio_video | `Midi ];
   priority : unit -> int;
   file_extensions : unit -> string list option;
   mime_types : unit -> string list option;
-  file_type : ctype:Frame.content_type -> string -> Frame.content_type option;
+  file_type :
+    metadata:Frame.metadata ->
+    ctype:Frame.content_type ->
+    string ->
+    Frame.content_type option;
   file_decoder : file_decoder option;
   stream_decoder : (ctype:Frame.content_type -> string -> stream_decoder) option;
 }
@@ -188,11 +188,11 @@ let conf_mime_types =
     "Mime-types used for choosing audio and video file decoders"
     ~comments:
       [
-        "When a mime-type is available (e.g. with input.http), it can be used";
+        "When a mime-type is available (e.g. with input.http), it can be used ";
         "to guess which audio stream format is used.";
-        "This section contains the listings used for that detection, which you";
+        "This section contains the listings used for that detection, which you ";
         "might want to tweak if you encounter a new mime-type.";
-        "If you feel that new mime-types should be permanently added, please";
+        "If you feel that new mime-types should be permanently added, please ";
         "contact the developers.";
       ]
 
@@ -206,44 +206,36 @@ let conf_priorities =
     ~p:(conf_decoder#plug "priorities")
     "Priorities used for choosing audio and video file decoders"
 
-let test_file ?(log = log) ?mimes ?extensions fname =
-  if not (Sys.file_exists fname) then (
-    log#info "File %s does not exist!" (Lang_string.quote_string fname);
-    false)
-  else (
-    let ext_ok =
-      match extensions with
-        | None -> true
-        | Some extensions ->
-            let ret =
-              try List.mem (Utils.get_ext fname) extensions with _ -> false
-            in
-            if not ret then
-              log#info "Unsupported file extension for %s!"
-                (Lang_string.quote_string fname);
-            ret
-    in
-    let mime_ok =
-      match (mimes, Liqmagic.file_mime fname) with
-        | None, _ -> true
-        | _, None -> false
-        | Some mimes, Some mime ->
-            let mimes =
-              List.map
-                (fun mime -> List.hd (String.split_on_char ';' mime))
-                mimes
-            in
-            let ret = List.mem mime mimes in
-            if not ret then
-              log#info "Unsupported MIME type for %s: %s!"
-                (Lang_string.quote_string fname)
-                mime;
-            ret
-    in
-    ext_ok || mime_ok)
+let base_mime s = List.hd (String.split_on_char ';' s)
+
+let test_file ~(log : Log.t) ~extension ~mime ~mimes ~extensions fname =
+  let ext_ok =
+    match (extensions, extension) with
+      | None, _ -> true
+      | Some _, None -> false
+      | Some extensions, Some extension ->
+          let ret = List.mem extension extensions in
+          if ret then
+            log#info "Unsupported file extension for %s!"
+              (Lang_string.quote_string fname);
+          ret
+  in
+  let mime_ok =
+    match (mimes, mime) with
+      | None, _ -> true
+      | Some mimes, mime ->
+          let mimes = List.map base_mime mimes in
+          let ret = List.mem (base_mime mime) mimes in
+          if not ret then
+            log#info "Unsupported MIME type for %s: %s!"
+              (Lang_string.quote_string fname)
+              mime;
+          ret
+  in
+  ext_ok || mime_ok
 
 let channel_layout audio =
-  Lazy.force Content.(Audio.(get_params audio).Content.channel_layout)
+  Lazy.force Content.(Audio.(get_params audio).Content.Audio.channel_layout)
 
 let can_decode_type decoded_type target_type =
   let map_convertible cur (field, target_field) =
@@ -268,84 +260,78 @@ let can_decode_type decoded_type target_type =
   in
   Frame.compatible decoded_type target_type
 
-let decoder_modes ctype =
-  let has field = Frame.Fields.exists (fun k _ -> k = field) ctype in
-  match
-    (has Frame.Fields.audio, has Frame.Fields.video, has Frame.Fields.midi)
-  with
-    | true, true, false -> [`Audio_video]
-    | true, false, false -> [`Audio; `Audio_video]
-    | false, true, false -> [`Video; `Audio_video]
-    | false, false, true -> [`Midi]
-    | _ -> []
-
 exception Found of (string * Frame.content_type * decoder_specs)
 
 (** Get a valid decoder creator for [filename]. *)
 let get_file_decoder ~metadata ~ctype filename =
-  let modes = decoder_modes ctype in
-  let decoders =
-    List.filter
-      (fun (name, specs) ->
-        let log = Log.make ["decoder"; String.lowercase_ascii name] in
-        specs.file_decoder <> None
-        && List.mem specs.media_type modes
-        && test_file ~log ?mimes:(specs.mime_types ())
-             ?extensions:(specs.file_extensions ()) filename)
-      (get_decoders ())
-  in
-  if decoders = [] then (
-    log#important "No decoder available for %s!"
-      (Lang_string.quote_string filename);
+  if not (Sys.file_exists filename) then (
+    log#info "File %s does not exist!" (Lang_string.quote_string filename);
     None)
   else (
-    log#info "Available decoders: %s"
-      (String.concat ", "
-         (List.map
-            (fun (name, specs) ->
-              Printf.sprintf "%s (priority: %d)" name (specs.priority ()))
-            decoders));
-    try
-      List.iter
+    let extension = try Some (Utils.get_ext filename) with _ -> None in
+    let mime = Magic_mime.lookup filename in
+    let decoders =
+      List.filter
         (fun (name, specs) ->
-          log#info "Trying decoder %S" name;
-          try
-            match specs.file_type ~ctype filename with
-              | Some decoded_type ->
-                  if can_decode_type decoded_type ctype then
-                    raise (Found (name, decoded_type, specs))
-                  else
-                    log#info
-                      "Cannot decode file %s with decoder %s as %s. Detected \
-                       content: %s"
-                      (Lang_string.quote_string filename)
-                      name
-                      (Frame.string_of_content_type ctype)
-                      (Frame.string_of_content_type decoded_type)
-              | None -> ()
-          with
-            | Found v -> raise (Found v)
-            | exn ->
-                let bt = Printexc.get_backtrace () in
-                Utils.log_exception ~log ~bt
-                  (Printf.sprintf "Error while checking file's content: %s"
-                     (Printexc.to_string exn)))
-        decoders;
-      log#important "Available decoders cannot decode %s as %s"
-        (Lang_string.quote_string filename)
-        (Frame.string_of_content_type ctype);
-      None
-    with Found (name, decoded_type, specs) ->
-      log#info
-        "Selected decoder %s for file %s with expected kind %s and detected \
-         content %s"
-        name
-        (Lang_string.quote_string filename)
-        (Frame.string_of_content_type ctype)
-        (Frame.string_of_content_type decoded_type);
-      Some
-        ( name,
-          fun () -> (Option.get specs.file_decoder) ~metadata ~ctype filename ))
+          let log = Log.make ["decoder"; String.lowercase_ascii name] in
+          specs.file_decoder <> None
+          && test_file ~log ~extension ~mime ~mimes:(specs.mime_types ())
+               ~extensions:(specs.file_extensions ()) filename)
+        (get_decoders ())
+    in
+    if decoders = [] then (
+      log#important "No decoder available for %s!"
+        (Lang_string.quote_string filename);
+      None)
+    else (
+      log#info "Available decoders: %s"
+        (String.concat ", "
+           (List.map
+              (fun (name, specs) ->
+                Printf.sprintf "%s (priority: %d)" name (specs.priority ()))
+              decoders));
+      try
+        List.iter
+          (fun (name, specs) ->
+            log#info "Trying decoder %S" name;
+            try
+              match specs.file_type ~metadata ~ctype filename with
+                | Some decoded_type ->
+                    if can_decode_type decoded_type ctype then
+                      raise (Found (name, decoded_type, specs))
+                    else
+                      log#info
+                        "Cannot decode file %s with decoder %s as %s. Detected \
+                         content: %s"
+                        (Lang_string.quote_string filename)
+                        name
+                        (Frame.string_of_content_type ctype)
+                        (Frame.string_of_content_type decoded_type)
+                | None -> ()
+            with
+              | Found v -> raise (Found v)
+              | exn ->
+                  let bt = Printexc.get_backtrace () in
+                  Utils.log_exception ~log ~bt
+                    (Printf.sprintf "Error while checking file's content: %s"
+                       (Printexc.to_string exn)))
+          decoders;
+        log#important "Available decoders cannot decode %s as %s"
+          (Lang_string.quote_string filename)
+          (Frame.string_of_content_type ctype);
+        None
+      with Found (name, decoded_type, specs) ->
+        log#info
+          "Selected decoder %s for file %s with expected kind %s and detected \
+           content %s"
+          name
+          (Lang_string.quote_string filename)
+          (Frame.string_of_content_type ctype)
+          (Frame.string_of_content_type decoded_type);
+        Some
+          ( name,
+            fun () -> (Option.get specs.file_decoder) ~metadata ~ctype filename
+          )))
 
 (** Get a valid image decoder creator for [filename]. *)
 let get_image_file_decoder filename =
@@ -376,25 +362,16 @@ let get_image_file_decoder filename =
   with Exit -> !ans
 
 let get_stream_decoder ~ctype mime =
-  let modes = decoder_modes ctype in
   let decoders =
     List.filter
       (fun (_, specs) ->
         specs.stream_decoder <> None
-        && List.mem specs.media_type modes
         &&
         match specs.mime_types () with
           | None -> false
-          | Some mimes -> (
-              try
-                ignore
-                  (List.find
-                     (fun m ->
-                       try String.sub m 0 (String.length mime) = mime
-                       with Invalid_argument _ -> false)
-                     mimes);
-                true
-              with Not_found -> false))
+          | Some mimes ->
+              let mimes = List.map base_mime mimes in
+              List.mem (base_mime mime) mimes)
       (get_decoders ())
   in
   if decoders = [] then (
@@ -439,9 +416,7 @@ let mk_buffer ~ctype generator =
           in
 
           let get_channel_converter () =
-            let dst =
-              channel_layout (Frame.Fields.find Frame.Fields.audio ctype)
-            in
+            let dst = channel_layout (Frame.Fields.find field ctype) in
             match !current_channel_converter with
               | None -> mk_channel_converter dst
               | Some _ when !current_dst <> Some dst -> mk_channel_converter dst
@@ -454,7 +429,7 @@ let mk_buffer ~ctype generator =
             Generator.put generator field data)
         else fun ~samplerate:_ _ -> ()
       in
-      Hashtbl.add audio_handlers field handler;
+      Hashtbl.replace audio_handlers field handler;
       handler
   in
 
@@ -478,19 +453,31 @@ let mk_buffer ~ctype generator =
           let out_freq =
             Decoder_utils.{ num = Lazy.force Frame.video_rate; den = 1 }
           in
-          fun ~fps (data : Content.Video.data) ->
-            let data = Array.map video_scale data in
-            let data = video_resample ~in_freq:fps ~out_freq data in
-            let len = Video.Canvas.length data in
-            let data =
-              Content.Video.lift_data
-                ~length:(Frame_settings.main_of_video len)
-                data
-            in
-            Generator.put generator field data)
+          let params =
+            {
+              Content.Video.width = Some Frame.video_width;
+              height = Some Frame.video_height;
+            }
+          in
+          let interval = Frame.main_of_video 1 in
+          fun ~fps img ->
+            match video_resample ~in_freq:fps ~out_freq img with
+              | [] -> ()
+              | data ->
+                  let data =
+                    List.mapi
+                      (fun i img -> (i * interval, video_scale img))
+                      data
+                  in
+                  let length = List.length data * interval in
+                  let buf =
+                    Content.Video.lift_data
+                      { Content.Video.params; length; data }
+                  in
+                  Generator.put generator field buf)
         else fun ~fps:_ _ -> ()
       in
-      Hashtbl.add video_handlers field handler;
+      Hashtbl.replace video_handlers field handler;
       handler
   in
 
@@ -498,26 +485,33 @@ let mk_buffer ~ctype generator =
     get_audio_handler ~field ~samplerate data
   in
 
-  let put_yuva420p ?(field = Frame.Fields.video) ~fps data =
-    get_video_handler ~field ~fps data
+  let put_yuva420p ?(field = Frame.Fields.video) ~fps img =
+    get_video_handler ~field ~fps img
   in
 
   { generator; put_pcm; put_yuva420p }
 
-let mk_decoder ~filename ~close ~remaining ~buffer decoder =
-  let prebuf = Frame.main_of_seconds 0.5 in
+let mk_decoder ~filename ~remaining ~buffer decoder =
   let decoding_done = ref false in
 
-  let remaining frame offset =
-    remaining ()
-    + Generator.length buffer.generator
-    + Frame.position frame - offset
+  let remaining () =
+    try remaining () + Generator.length buffer.generator
+    with e ->
+      log#info "Error while getting decoder's remaining time: %s"
+        (Printexc.to_string e);
+      decoding_done := true;
+      0
   in
 
-  let fill frame =
+  let fclose () =
+    decoder.eof buffer;
+    decoder.close ()
+  in
+
+  let fread size =
     if not !decoding_done then (
       try
-        while Generator.length buffer.generator < prebuf do
+        while Generator.length buffer.generator < size do
           decoder.decode buffer
         done
       with e ->
@@ -529,15 +523,7 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
         decoding_done := true;
         if conf_debug#get then raise e);
 
-    let offset = Frame.position frame in
-    Generator.fill buffer.generator frame;
-
-    try remaining frame offset
-    with e ->
-      log#info "Error while getting decoder's remaining time: %s"
-        (Printexc.to_string e);
-      decoding_done := true;
-      0
+    Generator.slice buffer.generator size
   in
 
   let fseek len =
@@ -550,15 +536,18 @@ let mk_decoder ~filename ~close ~remaining ~buffer decoder =
       Generator.truncate buffer.generator len;
       len)
   in
-  { fill; fseek; close }
+  { fread; remaining; fseek; fclose }
 
-let file_decoder ~filename ~close ~remaining ~ctype decoder =
+let file_decoder ~filename ~remaining ~ctype decoder =
   let generator = Generator.create ~log:(log#info "%s") ctype in
   let buffer = mk_buffer ~ctype generator in
-  mk_decoder ~filename ~close ~remaining ~buffer decoder
+  mk_decoder ~filename ~remaining ~buffer decoder
 
 let opaque_file_decoder ~filename ~ctype create_decoder =
-  let fd = Unix.openfile filename [Unix.O_RDONLY; Unix.O_CLOEXEC] 0 in
+  let extra_flags = if Sys.win32 then [Unix.O_SHARE_DELETE] else [] in
+  let fd =
+    Unix.openfile filename ([Unix.O_RDONLY; Unix.O_CLOEXEC] @ extra_flags) 0
+  in
 
   let file_size = (Unix.stat filename).Unix.st_size in
   let proc_bytes = ref 0 in
@@ -590,7 +579,7 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
     out_ticks := !out_ticks + stop - start
   in
 
-  let decoder = { decoder with decode } in
+  let decoder = { decoder with decode; close = (fun () -> Unix.close fd) } in
 
   let remaining () =
     let in_bytes = tell () in
@@ -603,6 +592,4 @@ let opaque_file_decoder ~filename ~ctype create_decoder =
       int_of_float remaining_ticks)
   in
 
-  let close () = Unix.close fd in
-
-  mk_decoder ~filename ~close ~remaining ~buffer decoder
+  mk_decoder ~filename ~remaining ~buffer decoder

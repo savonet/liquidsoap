@@ -65,7 +65,9 @@ val kprint_string : ?pager:bool -> ((string -> unit) -> unit) -> unit
 module Version : sig
   type t = int list * string
 
+  val hash_fold_t : Term_hash.state -> t -> Term_hash.state
   val of_string : string -> t
+  val to_string : t -> string
   val num : t -> int list
   val str : t -> string
   val compare : t -> t -> int

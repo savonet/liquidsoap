@@ -21,18 +21,19 @@
 
 open Mm
 open OcamlCanvas.V1
+module Queue = Liquidsoap_lang.Queues.Queue
 
-let events = ref []
-let retain_event e = events := e :: !events
+let events = Queue.create ()
+let retain_event e = Queue.push events e
+let init = Lazy.from_fun Backend.init
 
-class output ~infallible ~autostart ~on_start ~on_stop source =
+class output ~infallible ~register_telnet ~autostart ~on_start ~on_stop source =
   object (self)
     inherit
       Output.output
-        ~name:"canvas" ~output_kind:"output.canvas" ~infallible ~on_start
-          ~on_stop source autostart
+        ~name:"canvas" ~output_kind:"output.canvas" ~register_telnet ~infallible
+          ~on_start ~on_stop source autostart
 
-    initializer Backend.init ()
     val mutable sleep = false
     method stop = ()
     val mutable canvas = None
@@ -70,12 +71,15 @@ class output ~infallible ~autostart ~on_start ~on_stop source =
 
     method send_frame buf =
       let width, height = self#video_dimensions in
-      let i =
-        Video.Canvas.get (VFrame.data buf) 0
-        |> Video.Canvas.Image.viewport width height
-        |> Video.Canvas.Image.render ~transparent:false
-      in
-      img <- Some i
+      match (VFrame.data buf).Content.Video.data with
+        | [] -> ()
+        | (_, i) :: _ ->
+            let i =
+              i
+              |> Video.Canvas.Image.viewport width height
+              |> Video.Canvas.Image.render ~transparent:false
+            in
+            img <- Some i
 
     method! reset = ()
   end
@@ -91,6 +95,7 @@ let _ =
     ~descr:"Display video stream using the Canvas library."
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in
+      let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
       let infallible = not (Lang.to_bool (List.assoc "fallible" p)) in
       let on_start =
         let f = List.assoc "on_start" p in
@@ -101,5 +106,6 @@ let _ =
         fun () -> ignore (Lang.apply f [])
       in
       let source = List.assoc "" p in
-      (new output ~infallible ~autostart ~on_start ~on_stop source
+      (new output
+         ~infallible ~register_telnet ~autostart ~on_start ~on_stop source
         :> Output.output))

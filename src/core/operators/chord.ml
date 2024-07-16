@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -46,38 +46,37 @@ let note_of_string s = note_of_string s - 12
 class chord metadata_name (source : source) =
   object (self)
     inherit operator ~name:"chord" [source]
-    method stype = source#stype
+    method fallible = source#fallible
     method remaining = source#remaining
-    method is_ready = source#is_ready
+    method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    method seek = source#seek
+    method seek_source = source#seek_source
     method self_sync = source#self_sync
     val mutable notes_on = []
 
-    method private get_frame buf =
-      let offset = MFrame.position buf in
-      source#get buf;
-      let m = MFrame.midi buf in
-      let pos = MFrame.position buf in
-      let meta = MFrame.get_all_metadata buf in
-      let meta = List.filter (fun (p, _) -> offset <= p && p < pos) meta in
+    method private generate_frame =
+      let buf = source#get_mutable_content Frame.Fields.midi in
+      let m = Content.Midi.get_data buf in
+      let meta = Frame.get_all_metadata source#get_frame in
       let chords =
         let ans = ref [] in
         List.iter
           (fun (t, m) ->
-            List.iter
-              (fun c ->
-                try
-                  let sub =
-                    Pcre.exec ~pat:"^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$" c
-                  in
-                  let n = Pcre.get_substring sub 1 in
-                  let n = note_of_string n in
-                  let m = Pcre.get_substring sub 2 in
-                  ans := (t, n, m) :: !ans
-                with Not_found ->
-                  self#log#important "Could not parse chord '%s'." c)
-              (Hashtbl.find_all m metadata_name))
+            match Frame.Metadata.find_opt metadata_name m with
+              | None -> ()
+              | Some c -> (
+                  try
+                    let sub =
+                      Pcre.exec
+                        ~rex:(Pcre.regexp "^([A-G-](?:b|#)?)(|M|m|M7|m7|dim)$")
+                        c
+                    in
+                    let n = Pcre.get_substring sub 1 in
+                    let n = note_of_string n in
+                    let m = Pcre.get_substring sub 2 in
+                    ans := (t, n, m) :: !ans
+                  with Not_found ->
+                    self#log#important "Could not parse chord '%s'." c))
           meta;
         List.rev !ans
       in
@@ -110,7 +109,8 @@ class chord metadata_name (source : source) =
               | "m7" -> play t [c; c + 3; c + 7; c + 10]
               | "dim" -> play t [c; c + 3; c + 6]
               | m -> self#log#debug "Unknown mode: %s\n%!" m))
-        chords
+        chords;
+      source#set_frame_data Frame.Fields.midi Content.Midi.lift_data m
   end
 
 let _ =

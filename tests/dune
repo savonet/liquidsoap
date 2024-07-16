@@ -1,13 +1,9 @@
 (executable
  (name gen_dune)
+ (libraries liquidsoap_build_tools)
  (modules gen_dune))
-
-(executable
- (name check_output)
- (modules check_output)
- (libraries unix pcre liquidsoap-lang))
 
 (executable
  (name run_test)
  (modules run_test)
- (libraries unix threads))
+ (libraries liquidsoap-lang.console unix threads))

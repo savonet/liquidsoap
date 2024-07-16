@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,10 +22,10 @@
 
 (** Read duration of ogg/flac files. *)
 
-let duration file =
+let duration ~metadata:_ file =
   let sync, fd = Ogg.Sync.create_from_file file in
-  Tutils.finalize
-    ~k:(fun () -> Unix.close fd)
+  Fun.protect
+    ~finally:(fun () -> Unix.close fd)
     (fun _ ->
       let test_flac () =
         (* Get First page *)
@@ -44,8 +44,8 @@ let duration file =
           let page = Ogg.Sync.read sync in
           if Ogg.Page.serialno page = serial then Ogg.Stream.put_page os page
         in
-        let callbacks = Flac_ogg.Decoder.get_callbacks (fun _ -> ()) in
-        let dec = Flac_ogg.Decoder.create packet os in
+        let callbacks = Flac_ogg.Decoder.get_callbacks os (fun _ -> ()) in
+        let dec = Flac.Decoder.create callbacks in
         let rec info () =
           try Flac.Decoder.init dec callbacks
           with Ogg.Not_enough_data ->

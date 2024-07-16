@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,6 +41,32 @@ let conf_scheduler =
         "Having more queues often do not make the program faster in average,";
         "but affect mostly the order in which tasks are processed.";
       ]
+
+type exit_status =
+  [ `None | `Exit of int | `Error of Printexc.raw_backtrace * exn ]
+
+type state = [ `Idle | `Starting | `Running | `Done of exit_status ]
+
+let internal_error_code = 128
+let state : state Atomic.t = Atomic.make `Idle
+let running () = match Atomic.get state with `Running -> true | _ -> false
+let finished () = match Atomic.get state with `Done _ -> true | _ -> false
+
+let exit_code () =
+  match Atomic.get state with
+    | `Done (`Exit code) -> code
+    | `Done (`Error _) -> 1
+    | `Idle -> 0
+    | _ -> internal_error_code
+
+let _exit code =
+  Dtools.Init.exec Dtools.Log.stop;
+  exit code
+
+let exit () =
+  match Atomic.get state with
+    | `Done (`Error (bt, err)) -> Printexc.raise_with_backtrace err bt
+    | _ -> exit (exit_code ())
 
 let generic_queues =
   Dtools.Conf.int
@@ -84,32 +110,6 @@ let scheduler_log =
     ~p:(conf_scheduler#plug "log")
     ~d:false "Log scheduler messages"
 
-let mutexify lock f x =
-  let after =
-    try
-      Mutex.lock lock;
-      fun () -> Mutex.unlock lock
-    with Sys_error _ -> fun () -> ()
-  in
-  try
-    let ans = f x in
-    after ();
-    ans
-  with e ->
-    let bt = Printexc.get_raw_backtrace () in
-    after ();
-    Printexc.raise_with_backtrace e bt
-
-let finalize ~k f =
-  try
-    let x = f () in
-    k ();
-    x
-  with e ->
-    let bt = Printexc.get_raw_backtrace () in
-    k ();
-    Printexc.raise_with_backtrace e bt
-
 let seems_locked =
   if Sys.win32 then fun _ -> true
   else fun m ->
@@ -124,7 +124,6 @@ let log = Log.make ["threads"]
   * i.e. not by raising an exception. *)
 
 let lock = Mutex.create ()
-let uncaught = ref None
 
 module Set = Set.Make (struct
   type t = string * Condition.t
@@ -138,7 +137,7 @@ let queues = ref Set.empty
 let join_all ~set () =
   let rec f () =
     try
-      mutexify lock
+      Mutex_utils.mutexify lock
         (fun () ->
           let name, c = Set.choose !set in
           log#info "Waiting for thread %s to shutdown" name;
@@ -149,20 +148,31 @@ let join_all ~set () =
   in
   f ()
 
-let no_problem = Condition.create ()
+let set_done, wait_done =
+  let read_done, write_done = Unix.pipe ~cloexec:true () in
+  let set_done () = ignore (Unix.write write_done (Bytes.create 1) 0 1) in
+  let wait_done () =
+    let rec wait_for_done () =
+      try Utils.select [read_done] [] [] (-1.)
+      with Unix.Unix_error (Unix.EINTR, _, _) -> wait_for_done ()
+    in
+    let r, _, _ = wait_for_done () in
+    assert (r = [read_done])
+  in
+  (set_done, wait_done)
 
 exception Exit
 
 let create ~queue f x s =
   let c = Condition.create () in
   let set = if queue then queues else all in
-  mutexify lock
+  Mutex_utils.mutexify lock
     (fun () ->
       let id =
         let process x =
           try
             f x;
-            mutexify lock
+            Mutex_utils.mutexify lock
               (fun () ->
                 set := Set.remove (s, c) !set;
                 log#info "Thread %S terminated (%d remaining)." s
@@ -179,25 +189,30 @@ let create ~queue f x s =
                     log#important "Thread %S failed: %s!" s e;
                     Printexc.raise_with_backtrace exn raw_bt
                 | e when queue ->
-                    log#severe "Queue %s crashed with exception %s\n%s" s
+                    Dtools.Init.exec Dtools.Log.stop;
+                    Printf.printf "Queue %s crashed with exception %s\n%s" s
                       (Printexc.to_string e) bt;
-                    log#critical
+                    Printf.printf
                       "PANIC: Liquidsoap has crashed, exiting.,\n\
-                       Please report at: savonet-users@lists.sf.net";
+                       Please report at: https://github.com/savonet/liquidsoap";
+                    Printf.printf "Queue %s crashed with exception %s\n%s" s
+                      (Printexc.to_string e) bt;
                     flush_all ();
-                    exit 1
+                    _exit 1
                 | e ->
                     log#important "Thread %S aborts with exception %s!" s
                       (Printexc.to_string e);
                     Printexc.raise_with_backtrace e raw_bt
             with e ->
-              let l = Pcre.split ~pat:"\n" bt in
+              let l = Pcre.split ~rex:(Pcre.regexp "\n") bt in
               List.iter (log#info "%s") l;
-              mutexify lock
+              Mutex_utils.mutexify lock
                 (fun () ->
                   set := Set.remove (s, c) !set;
-                  uncaught := Some e;
-                  Condition.signal no_problem;
+                  if
+                    Atomic.compare_and_set state `Running
+                      (`Done (`Error (raw_bt, e)))
+                  then set_done ();
                   Condition.signal c)
                 ();
               Printexc.raise_with_backtrace e raw_bt)
@@ -214,13 +229,32 @@ type priority =
   | `Maybe_blocking  (** Request resolutions vary a lot. *)
   | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
-let scheduler : priority Duppy.scheduler = Duppy.create ()
-let started = ref false
-let started_m = Mutex.create ()
-let has_started = mutexify started_m (fun () -> !started)
+let error_handlers = Stack.create ()
+
+exception Error_processed
+
+let rec error_handler ~bt exn =
+  try
+    Stack.iter
+      (fun handler -> if handler ~bt exn then raise Error_processed)
+      error_handlers;
+    false
+  with
+    | Error_processed -> true
+    | exn ->
+        let bt = Printexc.get_backtrace () in
+        error_handler ~bt exn
+
+let scheduler : priority Duppy.scheduler =
+  Duppy.create
+    ~on_error:(fun exn raw_bt ->
+      let bt = Printexc.raw_backtrace_to_string raw_bt in
+      if not (error_handler ~bt exn) then
+        Printexc.raise_with_backtrace exn raw_bt)
+    ()
 
 let () =
-  Lifecycle.on_scheduler_shutdown (fun () ->
+  Lifecycle.on_scheduler_shutdown ~name:"scheduler shutdown" (fun () ->
       log#important "Shutting down scheduler...";
       Duppy.stop scheduler;
       log#important "Scheduler shut down.")
@@ -244,84 +278,23 @@ let create f x name = create ~queue:false f x name
 let join_all () = join_all ~set:all ()
 
 let start () =
-  for i = 1 to generic_queues#get do
-    let name = Printf.sprintf "generic queue #%d" i in
-    new_queue ~name ()
-  done;
-  for i = 1 to fast_queues#get do
-    let name = Printf.sprintf "fast queue #%d" i in
-    new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
-  done;
-  for i = 1 to non_blocking_queues#get do
-    let name = Printf.sprintf "non-blocking queue #%d" i in
-    new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
-  done;
-  mutexify started_m (fun () -> started := true) ()
-
-(** Replace stdout/err by a pipe, and install a Duppy task that pulls data
-  * out of that pipe and logs it.
-  * Never use that when logging to stdout: it would just loop! *)
-let start_forwarding () =
-  let reopen fd =
-    let i, o = Unix.pipe ~cloexec:true () in
-    Unix.dup2 ~cloexec:true o fd;
-    Unix.close o;
-    Unix.set_close_on_exec i;
-    i
-  in
-  let in_stdout = reopen Unix.stdout in
-  let in_stderr = reopen Unix.stderr in
-  (* Without the eta-expansion, the timestamp is computed once for all. *)
-  let log_stdout =
-    let log = Log.make ["stdout"] in
-    fun s -> log#important "%s" s
-  in
-  let log_stderr =
-    let log = Log.make ["stderr"] in
-    fun s -> log#important "%s" s
-  in
-  let forward fd log =
-    let task ~priority f =
-      { Duppy.Task.priority; events = [`Read fd]; handler = f }
-    in
-    let len = Utils.pagesize in
-    let buffer = Bytes.create len in
-    let rec f (acc : string list) _ =
-      let n = Unix.read fd buffer 0 len in
-      let buffer = Bytes.unsafe_to_string buffer in
-      let rec split acc i =
-        match
-          try Some (String.index_from buffer i '\n') with Not_found -> None
-        with
-          | Some j when j < n ->
-              let line =
-                List.fold_left
-                  (fun s l -> l ^ s)
-                  (String.sub buffer i (j - i))
-                  acc
-              in
-              (* This _could_ be blocking! *)
-              log line;
-              split [] (j + 1)
-          | _ -> String.sub buffer i (n - i) :: acc
-      in
-      [task ~priority:`Non_blocking (f (split acc 0))]
-    in
-    Duppy.Task.add scheduler (task ~priority:`Maybe_blocking (f []))
-  in
-  forward in_stdout log_stdout;
-  forward in_stderr log_stderr
-
-let () =
-  ignore
-    (Dtools.Init.at_start (fun () ->
-         if Dtools.Init.conf_daemon#get then (
-           Dtools.Log.conf_stdout#set false;
-           start_forwarding ())))
+  if Atomic.compare_and_set state `Idle `Starting then (
+    for i = 1 to generic_queues#get do
+      let name = Printf.sprintf "generic queue #%d" i in
+      new_queue ~name ()
+    done;
+    for i = 1 to fast_queues#get do
+      let name = Printf.sprintf "fast queue #%d" i in
+      new_queue ~name ~priorities:(fun x -> x = `Maybe_blocking) ()
+    done;
+    for i = 1 to non_blocking_queues#get do
+      let name = Printf.sprintf "non-blocking queue #%d" i in
+      new_queue ~priorities:(fun x -> x = `Non_blocking) ~name ()
+    done)
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
-  mutexify m
+  Mutex_utils.mutexify m
     (fun () ->
       while not (f ()) do
         Condition.wait c m
@@ -342,53 +315,73 @@ type event =
   | `Write of Unix.file_descr
   | `Both of Unix.file_descr ]
 
-(* Wait for [`Read socker], [`Write socket] or [`Both socket] for at most
+(* Wait for [`Read socket], [`Write socket] or [`Both socket] for at most
  * [timeout] seconds on the given [socket]. Raises [Timeout elapsed_time]
  * if timeout is reached. *)
-let wait_for ?(log = fun _ -> ()) event timeout =
-  let start_time = Unix.gettimeofday () in
-  let max_time = start_time +. timeout in
-  let r, w =
-    match event with
-      | `Read socket -> ([socket], [])
-      | `Write socket -> ([], [socket])
-      | `Both socket -> ([socket], [socket])
-  in
-  let rec wait t =
-    let r, w, _ =
-      try Unix.select r w [] t
-      with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
+let wait_for =
+  let end_r, end_w = Unix.pipe ~cloexec:true () in
+  Lifecycle.before_core_shutdown ~name:"wait_for shutdown" (fun () ->
+      try ignore (Unix.write end_w (Bytes.create 1) 0 1) with _ -> ());
+  fun ?(log = fun _ -> ()) event timeout ->
+    let start_time = Unix.gettimeofday () in
+    let max_time = start_time +. timeout in
+    let r, w =
+      match event with
+        | `Read socket -> ([socket], [])
+        | `Write socket -> ([], [socket])
+        | `Both socket -> ([socket], [socket])
     in
-    if r = [] && w = [] then (
-      let current_time = Unix.gettimeofday () in
-      if current_time >= max_time then (
-        log "Timeout reached!";
-        raise (Timeout (current_time -. start_time)))
-      else wait (min 1. (max_time -. current_time)))
-  in
-  wait (min 1. timeout)
-
-(** Wait for some thread to crash *)
-let run = ref `Run
+    let rec wait t =
+      let r, w, _ =
+        try Utils.select (end_r :: r) w [] t
+        with Unix.Unix_error (Unix.EINTR, _, _) -> ([], [], [])
+      in
+      if List.mem end_r r then raise Exit;
+      if r = [] && w = [] then (
+        let current_time = Unix.gettimeofday () in
+        if current_time >= max_time then (
+          log "Timeout reached!";
+          raise (Timeout (current_time -. start_time)))
+        else wait (min 1. (max_time -. current_time)))
+    in
+    wait (min 1. timeout)
 
 let main () =
-  wait no_problem lock (fun () -> not (!run = `Run && !uncaught = None))
+  if Atomic.compare_and_set state `Starting `Running then wait_done ();
+  log#important "Main loop exited";
+  match Atomic.get state with
+    | `Done _ -> ()
+    | _ ->
+        log#critical "Internal state error!";
+        _exit internal_error_code
 
 let shutdown code =
-  if !run = `Run then (
-    run := `Exit code;
-    Condition.signal no_problem)
+  let new_state = `Done (`Exit code) in
+  if Atomic.compare_and_set state `Idle new_state then _exit code
+  else if Atomic.compare_and_set state `Starting new_state then (
+    log#critical "Shutdown called while starting!";
+    set_done ())
+  else if Atomic.compare_and_set state `Running new_state then set_done ()
+  else (
+    log#critical
+      "Shutdown called twice with different exit conditions! Last call takes \
+       precedence.";
+    Atomic.set state new_state)
 
-let exit_code () = match !run with `Exit code -> code | _ -> 0
+let cleanup () =
+  log#important "Waiting for main threads to terminate...";
+  join_all ();
+  log#important "Main threads terminated."
 
-(** Thread-safe lazy cell. *)
-let lazy_cell f =
-  let lock = Mutex.create () in
-  let c = ref None in
-  mutexify lock (fun () ->
-      match !c with
-        | Some v -> v
-        | None ->
-            let v = f () in
-            c := Some v;
-            v)
+let write_all ?timeout fd b =
+  let rec f ofs len =
+    (match timeout with
+      | None -> ()
+      | Some timeout -> wait_for (`Write fd) timeout);
+    match Unix.write fd b ofs len with
+      | 0 -> raise End_of_file
+      | n when n = len -> ()
+      | n -> f (ofs + n) (len - n)
+  in
+  let len = Bytes.length b in
+  if len > 0 then f 0 len

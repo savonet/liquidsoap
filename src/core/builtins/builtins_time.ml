@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ let _ =
         ( "week_day",
           ([], Lang.int_t),
           "Day of week (Sunday is 0 or 7, Saturday is 6)." );
-        ("year_day", ([], Lang.int_t), "Day of year.");
+        ("year_day", ([], Lang.int_t), "Day of year, between `1` and `366`.");
         ("dst", ([], Lang.bool_t), "Daylight time savings in effect.");
       ]
   in
@@ -88,8 +88,7 @@ let _ =
   let descr tz =
     Printf.sprintf
       "Convert a time in seconds into a date in the %s time zone (current time \
-       is used if no argument is provided). Fields meaning same as POSIX's `tm \
-       struct`. In particular, \"year\" is: year - 1900, i.e. 117 for 2017!"
+       is used if no argument is provided)."
       tz
   in
   ignore
@@ -144,6 +143,10 @@ let _ =
       Lang.float (Utils.mktime tm))
 
 let _ =
+  let processor =
+    MenhirLib.Convert.Simplified.traditional2revised
+      Liquidsoap_lang.Parser.time_predicate
+  in
   Lang.add_builtin ~category:`Time ~base:time "predicate"
     ~descr:"Parse a string as a time predicate"
     [("", Lang.string_t, None, None)]
@@ -153,14 +156,10 @@ let _ =
       let predicate = Lang.to_string v in
       let lexbuf = Sedlexing.Utf8.from_string predicate in
       try
-        let processor =
-          MenhirLib.Convert.Simplified.traditional2revised
-            Liquidsoap_lang.Parser.time_predicate
+        let tokenizer = Liquidsoap_lang.Preprocessor.mk_tokenizer lexbuf in
+        let predicate =
+          Liquidsoap_lang.Term_reducer.to_term (processor tokenizer)
         in
-        let tokenizer =
-          Liquidsoap_lang.Preprocessor.mk_tokenizer ~pwd:"" lexbuf
-        in
-        let predicate = processor tokenizer in
         Lang.val_fun [] (fun _ -> Liquidsoap_lang.Evaluation.eval predicate)
       with _ ->
         Lang.raise_error

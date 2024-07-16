@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,6 +30,8 @@ let _ =
         ("total_used_physical_memory", Lang.int_t);
         ("process_virtual_memory", Lang.int_t);
         ("process_physical_memory", Lang.int_t);
+        ("process_private_memory", Lang.int_t);
+        ("process_swapped_memory", Lang.int_t);
       ]
   in
   let mem_usage
@@ -40,6 +42,8 @@ let _ =
         total_used_physical_memory;
         process_virtual_memory;
         process_physical_memory;
+        process_private_memory;
+        process_swapped_memory;
       } =
     Lang.record
       [
@@ -49,16 +53,16 @@ let _ =
         ("total_used_physical_memory", Lang.int total_used_physical_memory);
         ("process_virtual_memory", Lang.int process_virtual_memory);
         ("process_physical_memory", Lang.int process_physical_memory);
+        ("process_private_memory", Lang.int process_private_memory);
+        ("process_swapped_memory", Lang.int process_swapped_memory);
       ]
   in
   let runtime_mem_usage =
-    Lang.add_builtin ~base:Modules.runtime "mem_usage" ~category:`Liquidsoap
-      ~flags:[`Hidden]
-      ~descr:"Return stats about the system and process memory." [] mem_usage_t
-      (fun _ -> mem_usage (Mem_usage.info ()))
+    Lang.add_builtin ~base:Modules.runtime "memory" ~category:`System
+      ~descr:"Returns information about the system and process' memory." []
+      mem_usage_t (fun _ -> mem_usage (Mem_usage.info ()))
   in
-  Lang.add_builtin ~base:runtime_mem_usage "prettify_bytes"
-    ~category:`Liquidsoap
+  Lang.add_builtin ~base:runtime_mem_usage "prettify_bytes" ~category:`String
     ~descr:"Returns a human-redable description of an amount of bytes."
     [
       ( "float_printer",

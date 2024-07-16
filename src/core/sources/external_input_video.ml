@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ class video ~name ~restart ~bufferize ~restart_on_error ~max ~on_data
       External_input.base
         ~name ?read_header ~restart ~restart_on_error ~on_data command
 
-    inherit Generated.source ~empty_on_abort:false ~bufferize ()
+    inherit! Generated.source ~empty_on_abort:false ~bufferize ()
   end
 
 (***** AVI *****)
@@ -74,11 +74,11 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Restart process when exited with error." );
-      ("", Lang.string_t, None, Some "Command to execute.");
+      ("", Lang.getter_t Lang.string_t, None, Some "Command to execute.");
     ]
     ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let video_format = ref None in
       let width = ref None in
       let height = ref None in
@@ -169,7 +169,7 @@ let _ =
                      (width * height * 3));
               let data = (Option.get !video_converter) data in
               Generator.put buffer Frame.Fields.video
-                (Content.Video.lift_data (Video.Canvas.single data))
+                (Content.Video.lift_image data)
           | `Frame (`Audio, _, data) ->
               let converter = Option.get !audio_converter in
               let data, ofs, len =
@@ -215,11 +215,11 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool false),
         Some "Restart process when exited with error." );
-      ("", Lang.string_t, None, Some "Command to execute.");
+      ("", Lang.getter_t Lang.string_t, None, Some "Command to execute.");
     ]
     ~return_t
     (fun p ->
-      let command = Lang.to_string (List.assoc "" p) in
+      let command = Lang.to_string_getter (List.assoc "" p) in
       let width = Lazy.force Frame.video_width in
       let height = Lazy.force Frame.video_height in
       let buflen = width * height * 3 in
@@ -234,8 +234,7 @@ let _ =
         (* Img.swap_rb data; *)
         (* Img.Effect.flip data; *)
         Generator.put buffer Frame.Fields.video
-          (Content.Video.lift_data
-             (Video.Canvas.single (Video.Canvas.Image.make data)))
+          (Content.Video.lift_image (Video.Canvas.Image.make data))
       in
       let bufferize = Lang.to_float (List.assoc "buffer" p) in
       let restart = Lang.to_bool (List.assoc "restart" p) in

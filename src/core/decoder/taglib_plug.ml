@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -44,6 +44,11 @@ let mime_types =
 let conf_taglib =
   Dtools.Conf.void ~p:(Decoder.conf_decoder#plug "taglib") "Taglib settings"
 
+let priority =
+  Dtools.Conf.int
+    ~p:(Request.conf_metadata_decoder_priorities#plug "taglib")
+    "Priority for the taglib metadata decoder" ~d:1
+
 let file_extensions =
   Dtools.Conf.list
     ~p:(Decoder.conf_file_extensions#plug "taglib")
@@ -55,19 +60,19 @@ let tag_aliases = [("track", "tracknumber")]
 
 (** We used to force the format. However, now that we check extensions, taglib's
   * automatic format detection should work. *)
-let get_tags fname =
+let get_tags ~metadata:_ ~extension ~mime fname =
   try
     if
       not
-        (Decoder.test_file ~log ~mimes:mime_types#get
-           ~extensions:file_extensions#get fname)
+        (Decoder.test_file ~log ~extension ~mime ~mimes:(Some mime_types#get)
+           ~extensions:(Some file_extensions#get) fname)
     then raise Invalid_file;
     let f =
       try Taglib.File.open_file `OggOpus fname
       with _ -> Taglib.File.open_file `Autodetect fname
     in
-    Tutils.finalize
-      ~k:(fun () -> Taglib.File.close_file f)
+    Fun.protect
+      ~finally:(fun () -> Taglib.File.close_file f)
       (fun () ->
         let tags =
           List.fold_left
@@ -99,4 +104,6 @@ let get_tags fname =
              (Printexc.to_string e));
         raise Not_found
 
-let () = Plug.register Request.mresolvers "taglib" ~doc:"" get_tags
+let () =
+  Plug.register Request.mresolvers "taglib" ~doc:""
+    { Request.priority = (fun () -> priority#get); resolver = get_tags }

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,14 +26,14 @@
 class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
   ~empty_on_abort () =
   let bufferize = Frame.main_of_seconds bufferize in
-  object (self)
+  object (self : < Source.source ; .. > as 'a)
     val mutable buffering = true
-    val mutable should_fail = false
-    val mutable cur_meta : Request.metadata option = None
+    val mutable add_track_mark = false
+    val mutable cur_meta : Frame.metadata option = None
     method virtual private log : Log.t
     method virtual private mutexify : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method virtual buffer : Generator.t
-    method self_sync : Source.self_sync = (`Static, false)
+    method self_sync : Clock.self_sync = (`Static, None)
 
     method seek len =
       if (not seek) || len <= 0 then 0
@@ -45,11 +45,12 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
             len)
           ()
 
-    method abort_track = should_fail <- true
+    method seek_source = (self :> Source.source)
+    method abort_track = add_track_mark <- true
     method private length = Generator.length self#buffer
     val mutable last_buffering_warning = -1
 
-    method is_ready =
+    method private can_generate_frame =
       let r = self#length in
       if buffering then (
         (* We have some data, but not enough for safely starting to play it. *)
@@ -57,16 +58,10 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
           last_buffering_warning <- r;
           self#log#debug "Not ready: need more buffering (%i/%i)." r bufferize);
         r > bufferize)
-      else (
-        (* This only happens if the end of track has not been played yet,
-         * after which the buffering phase will start again. Does not mean
-         * that we're not accumulating data, but it means that we don't know
-         * yet that we'll stop playing it until the buffer is full enough. *)
-        if r = 0 then self#log#info "Not ready for a new track: empty buffer.";
-        r > 0)
+      else r > 0
 
     method remaining =
-      if should_fail then 0
+      if add_track_mark then 0
       else if buffering && self#length <= bufferize then 0
       else Generator.remaining self#buffer
 
@@ -91,46 +86,30 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
         cur_meta <- new_meta;
         false)
 
-    method private replay_metadata pos frame =
+    method private replay_metadata frame =
       match cur_meta with
-        | None -> ()
-        | Some m -> Frame.set_metadata frame pos m
+        | None -> frame
+        | Some m -> Frame.add_metadata frame 0 m
 
-    method private get_frame ab =
+    method private generate_frame =
       self#mutexify
         (fun () ->
           let was_buffering = buffering in
-          let pos = Frame.position ab in
           buffering <- false;
-          if should_fail then (
-            self#log#info "Performing skip.";
-            should_fail <- false;
-            if empty_on_abort then Generator.clear self#buffer;
-            Frame.add_break ab (Frame.position ab))
-          else (
-            Generator.fill self#buffer ab;
-
-            (* Currently, we don't enter the buffering phase between tracks
-             * even when there's not enough data in the buffer. This is mostly
-             * historical because there was initially no breaks in generators.
-             * This may sometimes be better to do it (to avoid a lag breaking
-             * the new track) but not always (a total disconnection should cause
-             * the start of a new track anyway, since the content after it
-             * has nothing to do with the content before the connection). *)
-            if Frame.is_partial ab then self#log#info "End of track.";
-            if Generator.length self#buffer = 0 then (
-              self#log#info "Buffer emptied, buffering needed.";
-              buffering <- true);
-            if self#save_metadata ab && was_buffering && replay_meta then
-              self#replay_metadata pos ab))
+          if add_track_mark && empty_on_abort then Generator.clear self#buffer;
+          let buf = Generator.slice self#buffer (Lazy.force Frame.size) in
+          let buf =
+            if was_buffering || add_track_mark then (
+              self#log#info "Adding track mark.";
+              add_track_mark <- false;
+              Frame.add_track_mark buf 0)
+            else buf
+          in
+          if Generator.length self#buffer = 0 then (
+            self#log#info "Buffer emptied, buffering needed.";
+            buffering <- true);
+          if self#save_metadata buf && was_buffering && replay_meta then
+            self#replay_metadata buf
+          else buf)
         ()
-  end
-
-(* Reads data from a fixed buffer generator. The generator shouldn't be fed anymore. *)
-class consumer buffer =
-  object
-    inherit Source.source ~name:"buffer" ()
-    inherit source ~bufferize:0. ~empty_on_abort:true ()
-    method stype = `Fallible
-    method! buffer = buffer
   end

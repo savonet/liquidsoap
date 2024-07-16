@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ let init input =
       | None -> ()
       | Some f ->
           let time = !time_offset + Mad.get_current_time !dec Mad.Seconds in
-          if not (Hashtbl.mem index time) then Hashtbl.add index time (f ())
+          if not (Hashtbl.mem index time) then Hashtbl.replace index time (f ())
   in
   (* Add an initial index. *)
   update_index ();
@@ -102,6 +102,8 @@ let create_decoder input =
         let data = get_data () in
         let { Mad.samplerate } = get_info () in
         buffer.Decoder.put_pcm ~samplerate data);
+    eof = (fun _ -> ());
+    close = (fun _ -> ());
   }
 
 (** Configuration keys for mad. *)
@@ -142,8 +144,8 @@ let () =
  * that libmad can actually open the file -- which doesn't mean much. *)
 let file_type filename =
   let fd = Mad.openfile filename in
-  Tutils.finalize
-    ~k:(fun () -> Mad.close fd)
+  Fun.protect
+    ~finally:(fun () -> Mad.close fd)
     (fun () ->
       ignore (Mad.decode_frame_float fd);
       let f = Mad.get_frame_format fd in
@@ -153,7 +155,7 @@ let file_type filename =
           | Mad.Layer_II -> "II"
           | Mad.Layer_III -> "III"
       in
-      log#info
+      log#important
         "Libmad recognizes %S as mpeg audio (layer %s, %ikbps, %dHz, %d \
          channels)."
         filename layer (f.Mad.bitrate / 1000) f.Mad.samplerate f.Mad.channels;
@@ -171,25 +173,23 @@ let () =
       "Use libmad to decode any file if its MIME type or file extension is \
        appropriate."
     {
-      Decoder.media_type = `Audio;
-      priority = (fun () -> priority#get);
+      Decoder.priority = (fun () -> priority#get);
       file_extensions = (fun () -> Some file_extensions#get);
       mime_types = (fun () -> Some mime_types#get);
-      file_type = (fun ~ctype:_ f -> file_type f);
+      file_type = (fun ~metadata:_ ~ctype:_ f -> file_type f);
       file_decoder = Some create_file_decoder;
       stream_decoder = Some (fun ~ctype:_ _ -> create_decoder);
     }
 
 let check filename =
-  match Liqmagic.file_mime filename with
-    | Some mime -> List.mem mime mime_types#get
-    | None -> (
-        try
-          ignore (file_type filename);
-          true
-        with _ -> false)
+  List.mem (Magic_mime.lookup filename) mime_types#get
+  ||
+  try
+    ignore (file_type filename);
+    true
+  with _ -> false
 
-let duration file =
+let duration ~metadata:_ file =
   if not (check file) then raise Not_found;
   let ans = Mad.duration file in
   match ans with 0. -> raise Not_found | _ -> ans

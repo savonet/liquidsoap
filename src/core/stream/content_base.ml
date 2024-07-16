@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,10 +24,12 @@ type 'a chunk = { data : 'a; offset : int; length : int option }
 type ('a, 'b) chunks = { mutable params : 'a; mutable chunks : 'b chunk list }
 
 module Contents = struct
-  type format = ..
-  type kind = ..
+  type format_content
+  type format = string * format_content Unifier.t
+  type kind_content
+  type kind = string * kind_content
   type _type = int
-  type content = ..
+  type content
   type data = _type * content
 
   let _type = ref 0
@@ -37,10 +39,10 @@ module Contents = struct
     !_type
 end
 
-let merge_param ~name = function
+let merge_param ?(compare = fun x x' -> x = x') ~name = function
   | None, None -> None
   | None, Some p | Some p, None -> Some p
-  | Some p, Some p' when p = p' -> Some p
+  | Some p, Some p' when compare p p' -> Some p
   | _ -> failwith ("Incompatible " ^ name)
 
 let print_optional l =
@@ -58,11 +60,11 @@ module type ContentSpecs = sig
   type params
   type data
 
+  val name : string
   val make : ?length:int -> params -> data
   val length : data -> int
   val blit : data -> int -> data -> int -> int -> unit
   val copy : data -> data
-  val clear : data -> unit
   val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
@@ -138,7 +140,7 @@ let register_format_handler fn = Queue.add fn format_handlers
 
 exception Found_format of format_handler
 
-let get_params_handler p =
+let get_format_handler p =
   try
     Queue.iter
       (fun fn ->
@@ -163,7 +165,6 @@ let parse_param kind label value =
   with Parsed_format p -> p
 
 type data_handler = {
-  blit : data -> int -> data -> int -> int -> unit;
   fill : data -> int -> data -> int -> int -> unit;
   sub : data -> int -> int -> data;
   truncate : data -> int -> data;
@@ -171,13 +172,11 @@ type data_handler = {
   is_empty : data -> bool;
   copy : data -> data;
   format : data -> format;
-  clear : data -> unit;
   append : data -> data -> data;
 }
 
 let dummy_handler =
   {
-    blit = (fun _ _ _ _ _ -> raise Invalid);
     fill = (fun _ _ _ _ _ -> raise Invalid);
     sub = (fun _ _ _ -> raise Invalid);
     truncate = (fun _ _ -> raise Invalid);
@@ -185,7 +184,6 @@ let dummy_handler =
     is_empty = (fun _ -> raise Invalid);
     copy = (fun _ -> raise Invalid);
     format = (fun _ -> raise Invalid);
-    clear = (fun _ -> raise Invalid);
     append = (fun _ _ -> raise Invalid);
   }
 
@@ -197,8 +195,7 @@ let register_data_handler t h =
   Array.unsafe_set data_handlers t h
 
 let get_data_handler (t, _) = Array.unsafe_get data_handlers t
-let make ?length k = (get_params_handler k).make length
-let blit src = (get_data_handler src).blit src
+let make ?length k = (get_format_handler k).make length
 let fill src = (get_data_handler src).fill src
 let sub d = (get_data_handler d).sub d
 let truncate d = (get_data_handler d).truncate d
@@ -207,10 +204,9 @@ let length c = (get_data_handler c)._length c
 let append c c' = (get_data_handler c).append c c'
 let copy c = (get_data_handler c).copy c
 let format c = (get_data_handler c).format c
-let clear c = (get_data_handler c).clear c
-let kind p = (get_params_handler p).kind ()
+let kind p = (get_format_handler p).kind ()
 let default_format f = (get_kind_handler f).default_format ()
-let string_of_format k = (get_params_handler k).string_of_format ()
+let string_of_format k = (get_format_handler k).string_of_format ()
 
 let () =
   Printexc.register_printer (function
@@ -222,35 +218,35 @@ let () =
     | _ -> None)
 
 let merge p p' =
-  let { merge } = get_params_handler p in
+  let { merge } = get_format_handler p in
   try merge p' with _ -> raise (Incompatible_format (p, p'))
 
-let duplicate p = (get_params_handler p).duplicate ()
-let compatible p p' = (get_params_handler p).compatible p'
-let string_of_kind f = (get_kind_handler f).string_of_kind ()
+let duplicate p = (get_format_handler p).duplicate ()
+let compatible p p' = (get_format_handler p).compatible p'
+let string_of_kind k = (get_kind_handler k).string_of_kind ()
+let content_names = ref []
 
-type internal_entry = { is_kind : kind -> bool; is_format : format -> bool }
-
-type internal_entries = {
-  mutable none : internal_entry option;
-  mutable audio : internal_entry option;
-  mutable video : internal_entry option;
-  mutable midi : internal_entry option;
-}
-
-let internal_entries = { none = None; audio = None; video = None; midi = None }
-
-module MkContent (C : ContentSpecs) :
+module MkContentBase (C : ContentSpecs) :
   Content
     with type kind = C.kind
      and type params = C.params
      and type data = C.data = struct
-  type Contents.kind += Kind of C.kind
-  type Contents.format += Format of C.params Unifier.t
-  type Contents.content += Content of (C.params, C.data) chunks
+  include C
+
+  let () =
+    if List.mem C.name !content_names then
+      failwith "content name already registered!";
+    content_names := C.name :: !content_names
+
+  type chunked_data = (C.params, C.data) chunks
 
   let _type = Contents.register_type ()
-  let content = function _, Content d -> d | _ -> raise Invalid
+
+  let of_content : Contents.data -> chunked_data = function
+    | t, d when t = _type -> Obj.magic d
+    | _ -> raise Invalid
+
+  let to_content : chunked_data -> Contents.data = fun d -> (_type, Obj.magic d)
   let params { params } = params
 
   let chunk_length { data; offset; length } =
@@ -262,14 +258,21 @@ module MkContent (C : ContentSpecs) :
           if len = max_int then max_int else len - offset
 
   let length { chunks } =
-    List.fold_left (fun cur chunk -> cur + chunk_length chunk) 0 chunks
+    List.fold_left
+      (fun cur chunk ->
+        let chunk_length = chunk_length chunk in
+        if cur = max_int || chunk_length = max_int then max_int
+        else cur + chunk_length)
+      0 chunks
 
   let is_empty d = length d = 0
 
   let sub data ofs len =
     let start = ofs in
     let stop = start + len in
-    assert (stop <= length data);
+    let data_length = length data in
+    if data_length < start || data_length < stop then
+      raise (Invalid_argument "Content.sub");
     {
       data with
       chunks =
@@ -309,19 +312,14 @@ module MkContent (C : ContentSpecs) :
     in
     { data with chunks = f len data.chunks }
 
-  let copy_chunks =
-    List.map (fun chunk -> { chunk with data = C.copy chunk.data })
-
-  let copy data = { data with chunks = copy_chunks data.chunks }
-
   let append d d' =
-    let d = content d in
-    let d' = content d' in
-    (_type, Content { d with chunks = d.chunks @ d'.chunks })
+    let d = of_content d in
+    let d' = of_content d' in
+    to_content { d with chunks = d.chunks @ d'.chunks }
 
   let fill src src_pos dst dst_pos len =
-    let src = content src in
-    let dst = content dst in
+    let src = of_content src in
+    let dst = of_content dst in
     dst.params <- src.params;
     let dst_len = length dst in
     dst.chunks <-
@@ -329,89 +327,106 @@ module MkContent (C : ContentSpecs) :
       @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
     assert (dst_len = length dst)
 
-  let consolidate_chunks d =
-    match (length d, d.chunks) with
-      | 0, _ ->
-          d.chunks <- [];
-          d
-      | _, [{ offset = 0; length = None }] -> d
-      | length, _ ->
-          let buf = C.make ~length d.params in
-          ignore
-            (List.fold_left
-               (fun pos ({ data; offset } as chunk) ->
-                 let length = chunk_length chunk in
-                 C.blit data offset buf pos length;
-                 pos + length)
-               0 d.chunks);
-          d.chunks <- [{ offset = 0; length = Some length; data = buf }];
-          d
+  let consolidate_chunks =
+    let consolidate_chunk ~buf pos ({ data; offset } as chunk) =
+      let length = chunk_length chunk in
+      C.blit data offset buf pos length;
+      pos + length
+    in
+    fun ~copy d ->
+      match (length d, d.chunks) with
+        | 0, _ ->
+            d.chunks <- [];
+            { d with chunks = [] }
+        | _, [{ offset = 0; length = None }] when not copy -> d
+        | _, [{ offset = 0; length = Some l; data }]
+          when l = C.length data && not copy ->
+            d
+        | length, _ ->
+            let buf = C.make ~length d.params in
+            ignore (List.fold_left (consolidate_chunk ~buf) 0 d.chunks);
+            if copy then
+              {
+                d with
+                chunks = [{ offset = 0; length = Some length; data = buf }];
+              }
+            else (
+              d.chunks <- [{ offset = 0; length = Some length; data = buf }];
+              d)
 
-  let blit src src_pos dst dst_pos len =
-    let src = content src in
-    let dst = content dst in
-    dst.params <- src.params;
-    let dst_len = length dst in
-    dst.chunks <-
-      (sub dst 0 dst_pos).chunks @ (copy (sub src src_pos len)).chunks
-      @ (sub dst (dst_pos + len) (dst_len - len - dst_pos)).chunks;
-    assert (dst_len = length dst)
-
-  let clear d =
-    let d = content d in
-    List.iter (fun { data } -> C.clear data) d.chunks
+  let copy = consolidate_chunks ~copy:true
 
   let make ?length params =
     { params; chunks = [{ data = C.make ?length params; offset = 0; length }] }
 
+  let deref : Contents.format_content Unifier.t -> params =
+   fun p -> Obj.magic (Unifier.deref p)
+
+  let to_format_content : params -> Contents.format_content = Obj.magic
+  let to_kind_content : kind -> Contents.kind_content = Obj.magic
+  let to_kind : Contents.kind_content -> kind = Obj.magic
+
   let merge p p' =
-    let p' = match p' with Format p' -> p' | _ -> raise Invalid in
-    let m = C.merge (Unifier.deref p) (Unifier.deref p') in
-    Unifier.set p' m;
+    let p' = match p' with n, p' when n = C.name -> p' | _ -> raise Invalid in
+    let m = C.merge (deref p) (deref p') in
+    Unifier.set p' (to_format_content m);
     Unifier.(p <-- p')
 
   let compatible p p' =
     match p' with
-      | Format p' -> C.compatible (Unifier.deref p) (Unifier.deref p')
+      | n, p' when n = C.name -> C.compatible (deref p) (deref p')
       | _ -> false
 
-  let kind_of_string s = Option.map (fun p -> Kind p) (C.kind_of_string s)
+  let is_kind (n, _) = n = C.name
+  let lift_kind k : Contents.kind = (C.name, to_kind_content k)
+
+  let get_kind = function
+    | n, k when n = C.name -> to_kind k
+    | _ -> raise Invalid
+
+  let is_format (n, _) = n = C.name
+
+  let lift_params p : Contents.format =
+    (C.name, Unifier.make (to_format_content p))
+
+  let get_params = function
+    | n, p when n = C.name -> deref p
+    | _ -> raise Invalid
+
+  let is_data = function t, _ -> t = _type
+  let kind_of_string s = Option.map lift_kind (C.kind_of_string s)
 
   let format_of_string kind label value =
-    match kind with
-      | Kind _ ->
-          Option.map
-            (fun p -> Format (Unifier.make p))
-            (C.parse_param label value)
+    match (kind : Contents.kind) with
+      | n, _ when n = C.name ->
+          Option.map lift_params (C.parse_param label value)
       | _ -> None
 
   let () =
     register_kind_handler (function
-      | Kind f ->
+      | n, k when n = C.name ->
+          let k = to_kind k in
           Some
             {
-              default_format =
-                (fun () -> Format (Unifier.make (C.default_params f)));
-              string_of_kind = (fun () -> C.string_of_kind f);
+              default_format = (fun () -> lift_params (C.default_params k));
+              string_of_kind = (fun () -> C.string_of_kind k);
             }
       | _ -> None);
     register_format_handler (function
-      | Format p ->
+      | n, p when n = C.name ->
           Some
             {
-              kind = (fun () -> Kind C.kind);
-              make =
-                (fun length ->
-                  (_type, Content (make ?length (Unifier.deref p))));
+              kind = (fun () -> lift_kind C.kind);
+              make = (fun length -> to_content (make ?length (deref p)));
               merge = (fun p' -> merge p p');
-              duplicate = (fun () -> Format Unifier.(make (deref p)));
+              duplicate = (fun () -> (C.name, Unifier.(make (deref p))));
               compatible = (fun p' -> compatible p p');
               string_of_format =
                 (fun () ->
                   let kind = C.string_of_kind C.kind in
-                  let params = C.string_of_params (Unifier.deref p) in
+                  let params = C.string_of_params (deref p) in
                   match params with
-                    | "" -> C.string_of_kind C.kind
+                    | "" -> kind
                     | _ -> Printf.sprintf "%s(%s)" kind params);
             }
       | _ -> None);
@@ -419,38 +434,26 @@ module MkContent (C : ContentSpecs) :
     Queue.push format_of_string format_parsers;
     let data_handler =
       {
-        blit;
         fill;
-        sub = (fun d ofs len -> (_type, Content (sub (content d) ofs len)));
-        truncate = (fun d len -> (_type, Content (truncate (content d) len)));
-        is_empty = (fun d -> is_empty (content d));
-        copy = (fun d -> (_type, Content (copy (content d))));
-        format = (fun d -> Format (Unifier.make (params (content d))));
-        _length = (fun d -> length (content d));
-        clear;
+        sub = (fun d ofs len -> to_content (sub (of_content d) ofs len));
+        truncate = (fun d len -> to_content (truncate (of_content d) len));
+        is_empty = (fun d -> is_empty (of_content d));
+        copy = (fun d -> to_content (copy (of_content d)));
+        format = (fun d -> lift_params (params (of_content d)));
+        _length = (fun d -> length (of_content d));
         append;
       }
     in
     register_data_handler _type data_handler
 
-  let is_kind = function Kind _ -> true | _ -> false
-  let lift_kind f = Kind f
-  let get_kind = function Kind f -> f | _ -> raise Invalid
-  let is_format = function Format _ -> true | _ -> false
-  let lift_params p = Format (Unifier.make p)
-  let get_params = function Format p -> Unifier.deref p | _ -> raise Invalid
-  let is_data = function _, Content _ -> true | _ -> false
-
   let lift_data ?(offset = 0) ?length d =
-    ( _type,
-      Content { params = C.params d; chunks = [{ offset; length; data = d }] }
-    )
+    to_content { params = C.params d; chunks = [{ offset; length; data = d }] }
 
-  let get_chunked_data = function _, Content d -> d | _ -> raise Invalid
+  let get_chunked_data = of_content
 
   let get_data d =
     let d = get_chunked_data d in
-    match (consolidate_chunks d).chunks with
+    match (consolidate_chunks ~copy:false d).chunks with
       | [] -> C.make ~length:0 d.params
       | [{ data }] -> data
       | _ -> raise Invalid

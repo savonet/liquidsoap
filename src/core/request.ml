@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,6 +23,11 @@
 (** Plug for resolving, that is obtaining a file from an URI. [src/protocols]
     plugins provide ways to resolve URIs: fetch, generate, ... *)
 
+exception No_indicator
+exception Request_resolved
+exception Invalid_state
+exception Duration of float
+
 let conf =
   Dtools.Conf.void ~p:(Configure.conf#plug "request") "requests configuration"
 
@@ -32,9 +37,11 @@ let log = Log.make ["request"]
 
 let remove_file_proto s =
   (* First remove file:// 🤮 *)
-  let s = Pcre.substitute ~pat:"^file://" ~subst:(fun _ -> "") s in
+  let s =
+    Pcre.substitute ~rex:(Pcre.regexp "^file://") ~subst:(fun _ -> "") s
+  in
   (* Then remove file: 😇 *)
-  Pcre.substitute ~pat:"^file:" ~subst:(fun _ -> "") s
+  Pcre.substitute ~rex:(Pcre.regexp "^file:") ~subst:(fun _ -> "") s
 
 let home_unrelate s = Lang_string.home_unrelate (remove_file_proto s)
 
@@ -45,34 +52,17 @@ let parse_uri uri =
       (String.sub uri 0 i, String.sub uri (i + 1) (String.length uri - (i + 1)))
   with _ -> None
 
-(** Metadata *)
+type resolve_flag = [ `Resolved | `Failed | `Timeout ]
 
-type metadata = (string, string) Hashtbl.t
-
-let string_of_metadata metadata =
-  let b = Buffer.create 20 in
-  let f = Format.formatter_of_buffer b in
-  let first = ref true in
-  Hashtbl.iter
-    (fun k v ->
-      if !first then (
-        first := false;
-        try Format.fprintf f "%s=%s" k (Lang_string.quote_utf8_string v)
-        with _ -> ())
-      else (
-        try Format.fprintf f "\n%s=%s" k (Lang_string.quote_utf8_string v)
-        with _ -> ()))
-    metadata;
-  Format.pp_print_flush f ();
-  Buffer.contents b
-
-let short_string_of_metadata m =
-  "Title: "
-  ^
-  try
-    let t = Hashtbl.find m "title" in
-    if String.length t < 12 then t else String.sub t 0 9 ^ "..."
-  with Not_found -> "(undef)"
+type metadata_resolver = {
+  priority : unit -> int;
+  resolver :
+    metadata:Frame.metadata ->
+    extension:string option ->
+    mime:string ->
+    string ->
+    (string * string) list;
+}
 
 (** Log *)
 
@@ -92,77 +82,50 @@ let string_of_log log =
       else Printf.sprintf "\n[%s] %s" (pretty_date date) msg)
     "" log
 
-(** Requests.
-    The purpose of a request is to get a valid file. The file can contain media
-    in which case validity implies finding a working decoder, or can be
-    something arbitrary, like a playlist.
-    This file is fetched using protocols. For example the fetching can involve
-    querying a mysql database, receiving a list of new URIS, using http to
-    download the first URI, check it, fail, using smb to download the second,
-    success, have the file played, finish the request, erase the temporary
-    downloaded file.
-    This process involve a tree of URIs, represented by a list of lists.
-    Metadata is attached to every file in the tree, and the view of the
-    metadata from outside is the merging of all the metadata on the path
-    from the current active URI to the root.
-    At the end of the previous example, the tree looks like:
-    [ [ "/tmp/localfile_from_smb" ] ;
-      [
-        (* Some http://something was there but was removed without producing
-           anything. *)
-        "smb://something" ; (* The successfully downloaded URI *)
-        "ftp://another/uri" ;
-        (* maybe some more URIs are here, ready in case of more failures *)
-      ] ;
-      [ "mydb://myrequest" ] (* And this is the initial URI *)
-    ]
-  *)
+type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
 
-type indicator = { string : string; temporary : bool; metadata : metadata }
-type status = Idle | Resolving | Ready | Playing | Destroyed
+type status =
+  [ `Idle
+  | `Resolving of float
+  | `Ready
+  | `Playing of float
+  | `Destroyed
+  | `Failed ]
 
 type t = {
   id : int;
-  initial_uri : string;
-  mutable ctype : Frame.content_type option;
-  (* No kind for raw requests *)
+  resolve_metadata : bool;
+  excluded_metadata_resolvers : string list;
+  cue_in_metadata : string option;
+  cue_out_metadata : string option;
   persistent : bool;
-  (* The status of a request gives partial information of what's being done with
-     the request. The info is only partial because things can happen in
-     parallel. For example you can resolve a request in order to get a new file
-     from it while it is being played. For this reason, the separate resolving
-     and on_air information is not completely redundant, and do not necessarily
-     need to be part of the status information.  Actually this need is quite
-     rare, and I'm not sure this is a good choice. I'm wondering, so I keep the
-     current design. *)
   mutable status : status;
-  mutable resolving : float option;
-  mutable on_air : float option;
+  logger : Log.t;
   log : log;
-  mutable root_metadata : metadata;
-  mutable indicators : indicator list list;
-  mutable decoder : (unit -> Decoder.file_decoder_ops) option;
+  mutable indicators : indicator list;
+  mutable file_metadata : Frame.Metadata.t;
 }
 
-let ctype r = r.ctype
-let initial_uri r = r.initial_uri
-let status r = r.status
+let resolved t = match t.status with `Ready | `Playing _ -> true | _ -> false
 
-let indicator ?(metadata = Hashtbl.create 10) ?temporary s =
-  { string = home_unrelate s; temporary = temporary = Some true; metadata }
+let initial_uri r =
+  match List.rev r.indicators with { uri } :: _ -> uri | [] -> assert false
+
+let status { status } = status
+
+let indicator ?(metadata = Frame.Metadata.empty) ?temporary s =
+  { uri = home_unrelate s; temporary = temporary = Some true; metadata }
 
 (** Length *)
 let dresolvers_doc = "Methods to extract duration from a file."
 
 let dresolvers = Plug.create ~doc:dresolvers_doc "audio file formats (duration)"
 
-exception Duration of float
-
-let duration file =
+let compute_duration ~metadata file =
   try
     Plug.iter dresolvers (fun _ resolver ->
         try
-          let ans = resolver file in
+          let ans = resolver ~metadata file in
           raise (Duration ans)
         with
           | Duration e -> raise (Duration e)
@@ -170,52 +133,89 @@ let duration file =
     raise Not_found
   with Duration d -> d
 
+let duration ~metadata file =
+  try
+    match
+      ( Frame.Metadata.find_opt "duration" metadata,
+        Frame.Metadata.find_opt "cue_in" metadata,
+        Frame.Metadata.find_opt "cue_out" metadata )
+    with
+      | _, Some cue_in, Some cue_out ->
+          Some (float_of_string cue_out -. float_of_string cue_in)
+      | _, None, Some cue_out -> Some (float_of_string cue_out)
+      | Some v, _, _ -> Some (float_of_string v)
+      | None, cue_in, None ->
+          let duration = compute_duration ~metadata file in
+          let duration =
+            match cue_in with
+              | Some cue_in -> duration -. float_of_string cue_in
+              | None -> duration
+          in
+          Some duration
+  with _ -> None
+
+(** [get_filename request] returns
+  * [Some f] if the request successfully lead to a local file [f],
+  * [None] otherwise. *)
+let get_filename t =
+  if resolved t then Some (List.hd t.indicators).uri else None
+
 (** Manage requests' metadata *)
 
-let toplevel_metadata t =
-  match t.indicators with
-    | [] -> t.root_metadata
-    | [] :: _ -> assert false
-    | (h :: _) :: _ -> h.metadata
+let add_root_metadata t m =
+  let m = Frame.Metadata.add "rid" (string_of_int t.id) m in
+  let m = Frame.Metadata.add "initial_uri" (initial_uri t) m in
 
-let iter_metadata t f =
-  List.iter
-    (function [] -> assert false | h :: _ -> f h.metadata)
-    t.indicators;
-  f t.root_metadata
+  (* TOP INDICATOR *)
+  let m =
+    Frame.Metadata.add "temporary"
+      (match t.indicators with
+        | h :: _ -> if h.temporary then "true" else "false"
+        | _ -> "false")
+      m
+  in
 
-let set_metadata t k v = Hashtbl.replace (toplevel_metadata t) k v
-let set_root_metadata t k v = Hashtbl.replace t.root_metadata k v
+  let m =
+    match get_filename t with
+      | Some f -> Frame.Metadata.add "filename" f m
+      | None -> m
+  in
 
-exception Found of string
+  (* STATUS *)
+  match t.status with
+    | `Idle -> Frame.Metadata.add "status" "idle" m
+    | `Resolving d ->
+        let m =
+          Frame.Metadata.add "resolving" (pretty_date (Unix.localtime d)) m
+        in
+        Frame.Metadata.add "status" "resolving" m
+    | `Ready -> Frame.Metadata.add "status" "ready" m
+    | `Playing d ->
+        let m =
+          Frame.Metadata.add "on_air" (pretty_date (Unix.localtime d)) m
+        in
+        let m =
+          Frame.Metadata.add "on_air_timestamp" (Printf.sprintf "%.02f" d) m
+        in
+        Frame.Metadata.add "status" "playing" m
+    | `Destroyed -> Frame.Metadata.add "status" "destroyed" m
+    | `Failed -> Frame.Metadata.add "status" "failed" m
 
-let get_metadata t k =
-  try
-    iter_metadata t (fun h ->
-        try raise (Found (Hashtbl.find h k)) with Not_found -> ());
-    (try raise (Found (Hashtbl.find t.root_metadata k)) with Not_found -> ());
-    None
-  with Found s -> Some s
-
-let get_root_metadata t k =
-  try raise (Found (Hashtbl.find t.root_metadata k)) with
-    | Not_found -> None
-    | Found x -> Some x
-
-let get_all_metadata t =
-  let h = Hashtbl.create 20 in
-  iter_metadata t
-    (Hashtbl.iter (fun k v -> if not (Hashtbl.mem h k) then Hashtbl.add h k v));
-  h
+let metadata t =
+  add_root_metadata t
+    (List.fold_left
+       (fun m h -> Frame.Metadata.append h.metadata m)
+       t.file_metadata (List.rev t.indicators))
 
 (** Logging *)
 
-let add_log t i = Queue.add (Unix.localtime (Unix.time ()), i) t.log
+let add_log t i =
+  t.logger#info "%s" i;
+  Queue.add (Unix.localtime (Unix.time ()), i) t.log
+
 let get_log t = t.log
 
 (* Indicator tree management *)
-
-exception No_indicator
 
 let () =
   Printexc.register_printer (function
@@ -225,35 +225,25 @@ let () =
 let string_of_indicators t =
   let i = t.indicators in
   let string_of_list l = "[" ^ String.concat ", " l ^ "]" in
-  let i = List.map (List.map (fun i -> i.string)) i in
-  let i = List.map string_of_list i in
+  let i = (List.map (fun i -> i.uri)) i in
   string_of_list i
-
-let peek_indicator t =
-  match t.indicators with
-    | (h :: _) :: _ -> h
-    | [] :: _ -> assert false
-    | [] -> raise No_indicator
-
-let rec pop_indicator t =
-  let i, repop =
-    match t.indicators with
-      | (h :: l) :: ll ->
-          t.indicators <- (if l = [] then ll else l :: ll);
-          (h, l = [] && ll <> [])
-      | [] :: _ -> assert false
-      | [] -> raise No_indicator
-  in
-  if i.temporary then (
-    try Unix.unlink i.string
-    with e -> log#severe "Unlink failed: %S" (Printexc.to_string e));
-  t.decoder <- None;
-  if repop then pop_indicator t
 
 let conf_metadata_decoders =
   Dtools.Conf.list
     ~p:(conf#plug "metadata_decoders")
     ~d:[] "Decoders and order used to decode files' metadata."
+
+let conf_metadata_decoder_priorities =
+  Dtools.Conf.void
+    ~p:(conf_metadata_decoders#plug "priorities")
+    "Priorities used for applying metadata decoders. Decoder with the highest \
+     priority take precedence."
+
+let conf_request_metadata_priority =
+  Dtools.Conf.int ~d:5
+    ~p:(conf_metadata_decoder_priorities#plug "request_metadata")
+    "Priority for the request metadata. This include metadata set via \
+     `annotate`."
 
 let f c v =
   match c#get_d with
@@ -268,7 +258,9 @@ let get_decoders conf decoders =
           log#severe "Cannot find decoder %s" name;
           cur
   in
-  List.fold_left f [] (List.rev conf#get)
+  List.sort
+    (fun (_, d) (_, d') -> Stdlib.compare (d'.priority ()) (d.priority ()))
+    (List.fold_left f [] (List.rev conf#get))
 
 let mresolvers_doc = "Methods to extract metadata from a file."
 
@@ -276,13 +268,6 @@ let mresolvers =
   Plug.create
     ~register_hook:(fun name _ -> f conf_metadata_decoders name)
     ~doc:mresolvers_doc "metadata formats"
-
-let conf_override_metadata =
-  Dtools.Conf.bool
-    ~p:(conf_metadata_decoders#plug "override")
-    ~d:false
-    "Allow metadata resolvers to override metadata already set through \
-     annotate: or playlist resolution for instance."
 
 let conf_duration =
   Dtools.Conf.bool
@@ -292,6 +277,66 @@ let conf_duration =
      already present. This can take a long time and the use of this option is \
      not recommended: the proper way is to have a script precompute the \
      \"duration\" metadata."
+
+let conf_recode =
+  Dtools.Conf.bool
+    ~p:(conf_metadata_decoders#plug "recode")
+    ~d:true "Re-encode metadata strings in UTF-8"
+
+let conf_recode_excluded =
+  Dtools.Conf.list
+    ~d:["apic"; "metadata_block_picture"; "coverart"]
+    ~p:(conf_recode#plug "exclude")
+    "Exclude these metadata from automatic recording."
+
+let resolve_metadata ~initial_metadata ~excluded name =
+  let decoders = get_decoders conf_metadata_decoders mresolvers in
+  let decoders =
+    List.filter (fun (name, _) -> not (List.mem name excluded)) decoders
+  in
+  let high_priority_decoders, low_priority_decoders =
+    List.partition
+      (fun (_, { priority }) ->
+        conf_request_metadata_priority#get < priority ())
+      decoders
+  in
+  let convert =
+    if conf_recode#get then (
+      let excluded = conf_recode_excluded#get in
+      fun k v -> if not (List.mem k excluded) then Charset.convert v else v)
+    else fun _ x -> x
+  in
+  let extension = try Some (Utils.get_ext name) with _ -> None in
+  let mime = Magic_mime.lookup name in
+  let get_metadata ~metadata decoders =
+    List.fold_left
+      (fun metadata (_, { resolver }) ->
+        try
+          let ans = resolver ~metadata:initial_metadata ~extension ~mime name in
+          List.fold_left
+            (fun metadata (k, v) ->
+              let k = String.lowercase_ascii (convert k k) in
+              let v = convert k v in
+              if not (Frame.Metadata.mem k metadata) then
+                Frame.Metadata.add k v metadata
+              else metadata)
+            metadata ans
+        with _ -> metadata)
+      metadata decoders
+  in
+  let metadata =
+    get_metadata ~metadata:Frame.Metadata.empty high_priority_decoders
+  in
+  let metadata =
+    get_metadata
+      ~metadata:(Frame.Metadata.append initial_metadata metadata)
+      low_priority_decoders
+  in
+  if conf_duration#get then (
+    match duration ~metadata name with
+      | None -> metadata
+      | Some d -> Frame.Metadata.add "duration" (string_of_float d) metadata)
+  else metadata
 
 (** Sys.file_exists doesn't make a difference between existing files and files
     without enough permissions to list their attributes, for example when they
@@ -313,135 +358,17 @@ let file_is_readable name =
     true
   with Unix.Unix_error _ -> false
 
-let read_metadata t =
-  let indicator = peek_indicator t in
-  let name = indicator.string in
-  if not (file_exists name) then
-    log#important "File %s does not exist!" (Lang_string.quote_string name)
-  else if not (file_is_readable name) then
-    log#important "Read permission denied for %s!"
-      (Lang_string.quote_string name)
-  else
-    List.iter
-      (fun (_, resolver) ->
-        try
-          let ans = resolver name in
-          List.iter
-            (fun (k, v) ->
-              let k = String.lowercase_ascii k in
-              if conf_override_metadata#get || get_metadata t k = None then
-                Hashtbl.replace indicator.metadata k v)
-            ans;
-          if conf_duration#get && get_metadata t "duration" = None then (
-            try
-              Hashtbl.replace indicator.metadata "duration"
-                (string_of_float (duration name))
-            with Not_found -> ())
-        with _ -> ())
-      (get_decoders conf_metadata_decoders mresolvers)
-
-let local_check t =
-  let check_decodable ctype =
-    try
-      while t.decoder = None && file_exists (peek_indicator t).string do
-        let indicator = peek_indicator t in
-        let name = indicator.string in
-        let metadata = get_all_metadata t in
-        if not (file_is_readable name) then (
-          log#important "Read permission denied for %s!"
-            (Lang_string.quote_string name);
-          add_log t "Read permission denied!";
-          pop_indicator t)
-        else (
-          match Decoder.get_file_decoder ~metadata ~ctype name with
-            | Some (decoder_name, f) ->
-                t.decoder <- Some f;
-                set_root_metadata t "decoder" decoder_name;
-                read_metadata t;
-                t.status <- Ready
-            | None -> pop_indicator t)
-      done
-    with No_indicator -> ()
+let read_metadata r =
+  let i = List.hd r.indicators in
+  let metadata =
+    resolve_metadata ~initial_metadata:(metadata r)
+      ~excluded:r.excluded_metadata_resolvers i.uri
   in
-  match t.ctype with None -> () | Some t -> check_decodable t
+  r.file_metadata <- metadata
 
-let push_indicators t l =
-  if l <> [] then (
-    let hd = List.hd l in
-    add_log t
-      (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string hd.string));
-    t.indicators <- l :: t.indicators;
-    t.decoder <- None;
-
-    (* Performing a local check is quite fast and allows the request to be
-       instantly available if it is only made of valid local files, without any
-       need for a resolution process. *)
-    (* TODO: sometimes it's not that fast actually, and it'd be nice to be able
-       to disable this check in some cases, like playlist.safe. *)
-    local_check t)
-
-let resolved t =
-  t.indicators <> []
-  && Sys.file_exists (peek_indicator t).string
-  && (t.decoder <> None || t.ctype = None)
-
-(** [get_filename request] returns
-  * [Some f] if the request successfully lead to a local file [f],
-  * [None] otherwise. *)
-let get_filename t =
-  if resolved t then Some (List.hd (List.hd t.indicators)).string else None
-
-let update_metadata t =
-  let replace = Hashtbl.replace t.root_metadata in
-  replace "rid" (string_of_int t.id);
-  replace "initial_uri" t.initial_uri;
-
-  (* TOP INDICATOR *)
-  replace "temporary"
-    (match t.indicators with
-      | (h :: _) :: _ -> if h.temporary then "true" else "false"
-      | _ -> "false");
-  begin
-    match get_filename t with Some f -> replace "filename" f | None -> ()
-  end;
-
-  (* STATUS *)
-  begin
-    match t.resolving with
-      | Some d -> replace "resolving" (pretty_date (Unix.localtime d))
-      | None -> ()
-  end;
-  begin
-    match t.on_air with
-      | Some d ->
-          replace "on_air" (pretty_date (Unix.localtime d));
-          replace "on_air_timestamp" (Printf.sprintf "%.02f" d)
-      | None -> ()
-  end;
-  begin
-    match t.ctype with
-      | None -> ()
-      | Some ct -> replace "kind" (Frame.string_of_content_type ct)
-  end;
-  replace "status"
-    (match t.status with
-      | Idle -> "idle"
-      | Resolving -> "resolving"
-      | Ready -> "ready"
-      | Playing -> "playing"
-      | Destroyed -> "destroyed")
-
-let get_metadata t k =
-  update_metadata t;
-  get_metadata t k
-
-let get_all_metadata t =
-  update_metadata t;
-  get_all_metadata t
-
-let get_root_metadata t =
-  update_metadata t;
-  get_root_metadata t
+let push_indicator t i =
+  add_log t (Printf.sprintf "Pushed [%s;...]." (Lang_string.quote_string i.uri));
+  t.indicators <- i :: t.indicators
 
 (** Global management *)
 
@@ -454,38 +381,25 @@ module Pool = Pool.Make (struct
   let destroyed =
     {
       id = 0;
-      initial_uri = "";
-      ctype = None;
+      cue_in_metadata = None;
+      cue_out_metadata = None;
+      resolve_metadata = false;
+      excluded_metadata_resolvers = [];
       persistent = false;
-      status = Destroyed;
-      resolving = None;
-      on_air = None;
+      status = `Destroyed;
+      logger = Log.make [];
       log = Queue.create ();
-      root_metadata = Hashtbl.create 0;
       indicators = [];
-      decoder = None;
+      file_metadata = Frame.Metadata.empty;
     }
 
   let destroyed id = { destroyed with id }
-  let is_destroyed { status } = status = Destroyed
+  let is_destroyed { status } = status = `Destroyed
 end)
 
-let get_id t = t.id
+let id { id } = id
 let from_id id = Pool.find id
-let all_requests () = Pool.fold (fun k _ l -> k :: l) []
-
-let alive_requests () =
-  Pool.fold (fun k v l -> if v.status <> Destroyed then k :: l else l) []
-
-let is_on_air t = t.on_air <> None
-
-let on_air_requests () =
-  Pool.fold (fun k v l -> if is_on_air v then k :: l else l) []
-
-let is_resolving t = t.status = Resolving
-
-let resolving_requests () =
-  Pool.fold (fun k v l -> if is_resolving v then k :: l else l) []
+let all () = Pool.fold (fun _ r l -> r :: l) []
 
 (** Creation *)
 
@@ -494,77 +408,144 @@ let leak_warning =
     "Number of requests at which a leak warning should be issued."
 
 let destroy ?force t =
-  if t.status <> Destroyed then (
-    if t.status = Playing then t.status <- Ready;
+  if t.status <> `Destroyed then
     if force = Some true || not t.persistent then (
-      t.on_air <- None;
-      t.status <- Idle;
+      List.iter
+        (fun i ->
+          if i.temporary && file_exists i.uri then (
+            try Unix.unlink i.uri
+            with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)))
+        t.indicators;
 
-      (* Freeze the metadata *)
-      t.root_metadata <- get_all_metadata t;
-
-      (* Remove the URIs, unlink temporary files *)
-      while t.indicators <> [] do
-        pop_indicator t
-      done;
-      t.status <- Destroyed;
-      add_log t "Request finished."))
+      t.indicators <- [];
+      t.status <- `Destroyed;
+      add_log t "Request destroyed.")
 
 let finalise = destroy ~force:true
 
-let clean () =
-  Pool.iter (fun _ r -> if r.status <> Destroyed then destroy ~force:true r);
+let cleanup () =
+  Pool.iter (fun _ r -> if r.status <> `Destroyed then destroy ~force:true r);
   Pool.clear ()
 
-let create ?(metadata = []) ?(persistent = false) ?(indicators = []) u =
+let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
+    ?metadata ?(persistent = false) ?temporary ~cue_in_metadata
+    ~cue_out_metadata uri =
   (* Find instantaneous request loops *)
-  let () =
-    let n = Pool.size () in
-    if n > 0 && n mod leak_warning#get = 0 then
-      log#severe
-        "There are currently %d RIDs, possible request leak! Please check that \
-         you don't have a loop on empty/unavailable requests."
-        n
-  in
+  let n = Pool.size () in
+  if n > 0 && n mod leak_warning#get = 0 then
+    log#severe
+      "There are currently %d RIDs, possible request leak! Please check that \
+       you don't have a loop on empty/unavailable requests."
+      n;
   let t =
     let req =
       {
         id = 0;
-        initial_uri = u;
-        ctype = None;
+        cue_in_metadata;
+        cue_out_metadata;
+        resolve_metadata;
+        excluded_metadata_resolvers;
         (* This is fixed when resolving the request. *)
         persistent;
-        on_air = None;
-        resolving = None;
-        status = Idle;
-        decoder = None;
+        status = `Idle;
+        logger = Log.make [];
         log = Queue.create ();
-        root_metadata = Hashtbl.create 10;
         indicators = [];
+        file_metadata = Frame.Metadata.empty;
       }
     in
-    Pool.add (fun id -> { req with id })
+    Pool.add (fun id ->
+        { req with id; logger = Log.make ["request"; string_of_int id] })
   in
-  List.iter (fun (k, v) -> Hashtbl.replace t.root_metadata k v) metadata;
-  push_indicators t (if indicators = [] then [indicator u] else indicators);
+  push_indicator t (indicator ?metadata ?temporary uri);
   Gc.finalise finalise t;
   t
 
-let on_air t =
-  t.on_air <- Some (Unix.time ());
-  t.status <- Playing;
+let is_playing t =
+  if t.status <> `Ready then raise Invalid_state;
+  t.status <- `Playing (Unix.time ());
   add_log t "Currently on air."
 
-let get_decoder r = match r.decoder with None -> None | Some d -> Some (d ())
+let done_playing t =
+  match t.status with
+    | `Playing _ -> t.status <- `Ready
+    | _ -> raise Invalid_state
+
+let get_cue ~r = function
+  | None -> None
+  | Some m -> (
+      match Frame.Metadata.find_opt m (metadata r) with
+        | None -> None
+        | Some v -> (
+            match float_of_string_opt v with
+              | None ->
+                  r.logger#important "Invalid cue metadata %s: %s" m v;
+                  None
+              | Some v -> Some v))
+
+let get_base_decoder ~ctype r =
+  if not (resolved r) then None
+  else (
+    let filename = (List.hd r.indicators).uri in
+    let metadata = metadata r in
+    Decoder.get_file_decoder ~metadata ~ctype filename)
+
+let has_decoder ~ctype r = get_base_decoder ~ctype r <> None
+
+let get_decoder ~ctype r =
+  match get_base_decoder ~ctype r with
+    | None -> None
+    | Some (_, d) -> (
+        let decoder = d () in
+        let open Decoder in
+        let initial_pos =
+          match get_cue ~r r.cue_in_metadata with
+            | Some cue_in ->
+                r.logger#info "Cueing in to position: %.02f" cue_in;
+                let cue_in = Frame.main_of_seconds cue_in in
+                let seeked = decoder.fseek cue_in in
+                if seeked <> cue_in then
+                  r.logger#important
+                    "Initial seek mismatch! Expected: %d, effective: %d" cue_in
+                    seeked;
+                seeked
+            | None -> 0
+        in
+        match get_cue ~r r.cue_out_metadata with
+          | None -> Some decoder
+          | Some cue_out ->
+              let cue_out = Frame.main_of_seconds cue_out in
+              let pos = Atomic.make initial_pos in
+              let fread len =
+                if cue_out <= Atomic.get pos then decoder.fread 0
+                else (
+                  let old_pos = Atomic.get pos in
+                  let len = min len (cue_out - old_pos) in
+                  let buf = decoder.fread len in
+                  let filled = Frame.position buf in
+                  let new_pos = old_pos + filled in
+                  Atomic.set pos new_pos;
+                  if cue_out <= new_pos then (
+                    r.logger#info "Cueing out at position: %.02f"
+                      (Frame.seconds_of_main cue_out);
+                    Frame.slice buf (cue_out - old_pos))
+                  else (
+                    if Frame.is_partial buf then
+                      r.logger#important
+                        "End of track reached before cue-out point!";
+                    buf))
+              in
+              let remaining () =
+                match (decoder.remaining (), cue_out - Atomic.get pos) with
+                  | -1, r -> r
+                  | r, r' -> min r r'
+              in
+              Some { decoder with fread; remaining })
 
 (** Plugins registration. *)
 
-type resolver = string -> log:(string -> unit) -> float -> indicator list
-
-type protocol = {
-  resolve : string -> log:(string -> unit) -> float -> indicator list;
-  static : bool;
-}
+type resolver = string -> log:(string -> unit) -> float -> indicator option
+type protocol = { resolve : resolver; static : bool }
 
 let protocols_doc =
   "Methods to get a file. They are the first part of URIs: 'protocol:args'."
@@ -572,7 +553,7 @@ let protocols_doc =
 let protocols = Plug.create ~doc:protocols_doc "protocols"
 
 let is_static s =
-  if Sys.file_exists (home_unrelate s) then true
+  if file_exists (home_unrelate s) then true
   else (
     match parse_uri s with
       | Some (proto, _) -> (
@@ -583,85 +564,94 @@ let is_static s =
 
 (** Resolving engine. *)
 
-type resolve_flag = Resolved | Failed | Timeout
-
 exception ExnTimeout
 
-let resolve ~ctype t timeout =
-  assert (
-    t.ctype = None || Frame.compatible (Option.get t.ctype) (Option.get ctype));
+let should_fail = Atomic.make false
+
+let () =
+  Lifecycle.before_core_shutdown ~name:"Requests shutdown" (fun () ->
+      Atomic.set should_fail true)
+
+let resolve t timeout =
   log#debug "Resolving request %s." (string_of_indicators t);
-  t.ctype <- ctype;
-  t.resolving <- Some (Unix.time ());
-  t.status <- Resolving;
+  t.status <- `Resolving (Unix.time ());
   let maxtime = Unix.time () +. timeout in
-  let resolve_step () =
-    let i = peek_indicator t in
-    log#f 6 "Resolve step %s in %s." i.string (string_of_indicators t);
-    (* If the file is local we only need to check that it's valid, we'll
-       actually do that in a single local_check for all local indicators on the
-       top of the stack. *)
-    if file_exists i.string then local_check t
-    else (
-      match parse_uri i.string with
-        | Some (proto, arg) -> (
-            match Plug.get protocols proto with
-              | Some handler ->
-                  add_log t
-                    (Printf.sprintf "Resolving %s (timeout %.0fs)..."
-                       (Lang_string.quote_string i.string)
-                       timeout);
-                  let production =
-                    handler.resolve ~log:(add_log t) arg maxtime
-                  in
-                  if production = [] then (
-                    log#info
-                      "Failed to resolve %s! For more info, see server command \
-                       `request.trace %d`."
-                      (Lang_string.quote_string i.string)
-                      t.id;
-                    ignore (pop_indicator t))
-                  else push_indicators t production
-              | None ->
-                  log#important "Unknown protocol %S in URI %s!" proto
-                    (Lang_string.quote_string i.string);
-                  add_log t "Unknown protocol!";
-                  pop_indicator t)
-        | None ->
-            let log_level = if i.string = "" then 4 else 3 in
-            log#f log_level "Nonexistent file or ill-formed URI %s!"
-              (Lang_string.quote_string i.string);
-            add_log t "Nonexistent file or ill-formed URI!";
-            pop_indicator t)
+  let rec resolve i =
+    if Atomic.get should_fail then raise No_indicator;
+    let timeleft = maxtime -. Unix.time () in
+    if timeleft <= 0. then (
+      add_log t "Global timeout.";
+      raise ExnTimeout);
+
+    log#f 6 "Resolve step %s in %s." i.uri (string_of_indicators t);
+    (* If the file is local, this loop should always terminate. *)
+    if file_exists i.uri then (
+      if not (file_is_readable i.uri) then (
+        log#important "Read permission denied for %s!"
+          (Lang_string.quote_string i.uri);
+        add_log t "Read permission denied!";
+        raise No_indicator);
+      if t.resolve_metadata then read_metadata t;
+      raise Request_resolved);
+
+    match parse_uri i.uri with
+      | Some (proto, arg) -> (
+          match Plug.get protocols proto with
+            | Some handler -> (
+                add_log t
+                  (Printf.sprintf "Resolving %s (timeout %.0fs)..."
+                     (Lang_string.quote_string i.uri)
+                     timeout);
+                match handler.resolve ~log:(add_log t) arg maxtime with
+                  | None ->
+                      log#info
+                        "Failed to resolve %s! For more info, see server \
+                         command `request.trace %d`."
+                        (Lang_string.quote_string i.uri)
+                        t.id;
+                      raise No_indicator
+                  | Some i ->
+                      push_indicator t i;
+                      resolve i)
+            | None ->
+                log#important "Unknown protocol %S in URI %s!" proto
+                  (Lang_string.quote_string i.uri);
+                add_log t "Unknown protocol!";
+                raise No_indicator)
+      | None ->
+          let log_level = if i.uri = "" then 4 else 3 in
+          log#f log_level "Nonexistent file or ill-formed URI %s!"
+            (Lang_string.quote_string i.uri);
+          add_log t "Nonexistent file or ill-formed URI!";
+          raise No_indicator
   in
   let result =
     try
-      while not (resolved t) do
-        let timeleft = maxtime -. Unix.time () in
-        if timeleft > 0. then resolve_step ()
-        else (
-          add_log t "Global timeout.";
-          raise ExnTimeout)
-      done;
-      Resolved
+      if Atomic.get should_fail then raise No_indicator;
+      match t.indicators with i :: [] -> resolve i | _ -> assert false
     with
-      | ExnTimeout -> Timeout
+      | Request_resolved -> `Resolved
+      | ExnTimeout -> `Timeout
       | No_indicator ->
           add_log t "Every possibility failed!";
-          Failed
+          `Failed
   in
   log#debug "Resolved to %s." (string_of_indicators t);
   let excess = Unix.time () -. maxtime in
   if excess > 0. then log#severe "Time limit exceeded by %.2f secs!" excess;
-  t.resolving <- None;
-  if result <> Resolved then t.status <- Idle else t.status <- Ready;
+  if result <> `Resolved then t.status <- `Failed else t.status <- `Ready;
   result
+
+let resolve t timeout =
+  match t.status with
+    | `Resolving _ -> raise Invalid_state
+    | `Playing _ | `Ready -> `Resolved
+    | `Destroyed | `Failed -> `Failed
+    | _ -> resolve t timeout
 
 (* Make a few functions more user-friendly, internal stuff is over. *)
 
-let peek_indicator t = (peek_indicator t).string
-
-module Value = Value.MkAbstract (struct
+module Value = Value.MkCustom (struct
   type content = t
 
   let name = "request"
@@ -670,6 +660,6 @@ module Value = Value.MkAbstract (struct
     Runtime_error.raise ~pos ~message:"Requests cannot be represented as json"
       "json"
 
-  let descr r = Printf.sprintf "<request(id=%d)>" (get_id r)
+  let to_string r = Printf.sprintf "<request(id=%d)>" r.id
   let compare = Stdlib.compare
 end)

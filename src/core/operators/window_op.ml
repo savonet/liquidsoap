@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,12 +27,12 @@ type mode = RMS | Peak
 class window mode duration source =
   object (self)
     inherit
-      operator [source] ~name:(match mode with RMS -> "rms" | Peak -> "peak") as super
+      operator [source] ~name:(match mode with RMS -> "rms" | Peak -> "peak")
 
-    method stype = source#stype
-    method is_ready = source#is_ready
+    method fallible = source#fallible
+    method private can_generate_frame = source#is_ready
     method remaining = source#remaining
-    method seek = source#seek
+    method seek_source = source#seek_source
     method abort_track = source#abort_track
     method self_sync = source#self_sync
 
@@ -45,29 +45,28 @@ class window mode duration source =
     (** Last computed value (rms or peak). *)
     val mutable value = [||]
 
-    method! wake_up a =
-      super#wake_up a;
-      let channels = self#audio_channels in
-      acc <- Array.make channels 0.;
-      value <- Array.make channels 0.
+    initializer
+      self#on_wake_up (fun () ->
+          let channels = self#audio_channels in
+          acc <- Array.make channels 0.;
+          value <- Array.make channels 0.)
 
     val m = Mutex.create ()
-    method value = Tutils.mutexify m (fun () -> value) ()
+    method value = Mutex_utils.mutexify m (fun () -> value) ()
 
-    method private get_frame buf =
-      let offset = AFrame.position buf in
-      source#get buf;
+    method private generate_frame =
+      let frame = source#get_frame in
       let duration = duration () in
       if duration > 0. then (
         let duration = Frame.audio_of_seconds duration in
-        let position = AFrame.position buf in
-        let buf = AFrame.pcm buf in
-        for i = offset to position - 1 do
+        let position = AFrame.position frame in
+        let buf = AFrame.pcm frame in
+        for i = 0 to position - 1 do
           for c = 0 to self#audio_channels - 1 do
             let x = buf.(c).(i) in
             match mode with
               | RMS -> acc.(c) <- acc.(c) +. (x *. x)
-              | Peak -> acc.(c) <- max acc.(c) (abs_float x)
+              | Peak -> acc.(c) <- max acc.(c) (Utils.abs_float x)
           done;
           acc_dur <- acc_dur + 1;
           if acc_dur >= duration then (
@@ -85,8 +84,9 @@ class window mode duration source =
                         v)
             in
             acc_dur <- 0;
-            Tutils.mutexify m (fun () -> value <- value') ())
-        done)
+            Mutex_utils.mutexify m (fun () -> value <- value') ())
+        done);
+      frame
   end
 
 let declare ?base mode name frame_t fun_ret_t f_ans =

@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 
  *****************************************************************************)
 
@@ -44,7 +44,7 @@ let conf_add_borders =
 let add_borders () = conf_add_borders#get
 
 let () =
-  Lifecycle.on_init (fun () ->
+  Lifecycle.on_start ~name:"Gstreamer init" (fun () ->
       let debug =
         try int_of_string (Sys.getenv "LIQ_GST_DEBUG_LEVEL") with _ -> 0
       in
@@ -192,9 +192,9 @@ let flush ~log ?(types = [`Error; `Warning; `Info; `State_changed])
 let () =
   let loop = Gstreamer.Loop.create () in
   let main () = Gstreamer.Loop.run loop in
-  Lifecycle.on_start (fun () ->
+  Lifecycle.after_start ~name:"gstreamer loop start" (fun () ->
       log#info "Starting gstreamer event loop";
       ignore (Tutils.create main () "gstreamer_main_loop"));
-  Lifecycle.on_core_shutdown (fun () ->
+  Lifecycle.on_core_shutdown ~name:"gstreamer loop stop" (fun () ->
       log#info "Stopping streamer event loop";
       Gstreamer.Loop.quit loop)

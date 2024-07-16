@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 let samplerates = [8000; 12000; 16000; 24000; 48000]
 
 let () =
-  Lifecycle.on_start (fun () ->
+  Lifecycle.on_start ~name:"opus decoder initialization" (fun () ->
       let rate = Lazy.force Frame.audio_rate in
       let rec f = function
         | [] -> 48000

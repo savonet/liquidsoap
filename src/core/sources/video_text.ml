@@ -1,7 +1,7 @@
 (*****************************************************************************
 
-  Liquidsoap, a programmable audio stream generator.
-  Copyright 2003-2022 Savonet team
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2024 Savonet team
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ class text init render_text ttf ttf_size color duration text =
         render_text ~font:cur_ttf ~size:cur_ttf_size cur_text
       in
       let tf = Video.Image.create w h in
-      let tr, tg, tb = Image.RGB8.Color.of_int cur_color in
+      let tr, tg, tb = Video_effects.rgb_of_int cur_color in
       for y = 0 to h - 1 do
         for x = 0 to w - 1 do
           let a = get_pixel_rgba x y in
@@ -57,9 +57,8 @@ class text init render_text ttf ttf_size color duration text =
             self#render_text;
             Option.get text_frame
 
-    method private synthesize frame off len =
-      let off = Frame.video_of_main off in
-      let len = Frame.video_of_main len in
+    method private synthesize length =
+      let frame = Frame.create ~length Frame.Fields.empty in
       let ttf = ttf () in
       let ttf_size = ttf_size () in
       let color = color () in
@@ -74,13 +73,11 @@ class text init render_text ttf ttf_size color duration text =
         cur_text <- text;
         self#render_text);
       let tf = self#get_text_frame in
-      let buf = VFrame.data frame in
-      for i = off to off + len - 1 do
-        let img = buf.(i) in
-        let width = Video.Canvas.Image.width img in
-        let height = Video.Canvas.Image.height img in
-        buf.(i) <- Video.Canvas.Image.viewport width height tf
-      done
+      let create ~pos:_ ~width ~height () =
+        Video.Canvas.Image.viewport width height tf
+      in
+      let buf = self#generate_video ~field:Frame.Fields.video ~create length in
+      Frame.set_data frame Frame.Fields.video Content.Video.lift_data buf
   end
 
 let register name init render_text =
@@ -96,11 +93,11 @@ let register name init render_text =
           Some Lang.null,
           Some
             (Printf.sprintf "Path to ttf font file (default is `\"%s\"`)."
-               Configure.default_font) );
+               Configure.conf_default_font#get) );
         ("size", Lang.getter_t Lang.int_t, Some (Lang.int 18), Some "Font size.");
         ( "color",
           Lang.getter_t Lang.int_t,
-          Some (Lang.int 0xffffff),
+          Some (Lang.hex_int 0xffffff),
           Some "Text color (in 0xRRGGBB format)." );
         ( "duration",
           Lang.nullable_t Lang.float_t,
@@ -113,7 +110,7 @@ let register name init render_text =
         let ttf =
           List.assoc "font" p |> Lang.to_option
           |> Option.map Lang.to_string_getter
-          |> Option.value ~default:(fun () -> Configure.default_font)
+          |> Option.value ~default:(fun () -> Configure.conf_default_font#get)
         in
         let ttf_size = List.assoc "size" p |> Lang.to_int_getter in
         let color = List.assoc "color" p |> Lang.to_int_getter in

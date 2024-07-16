@@ -63,28 +63,8 @@ source clients should set their connection port to `n+1`.
 The `auth` function is a function, that takes a record `{user, password, address}` and returns a boolean representing whether the user
 should be granted access or not. Typical example can be:
 
-```liquidsoap
-def auth(args) =
-  # Call an external process to check
-  # the credentials:
-  # The script will return the string
-  # "true" of "false"
-  #
-  # First call the script. Make sure to apply proper escaping
-  # of the arguments to prevent command injection!
-  ret = process.read.lines("/path/to/script \
-         --user=#{args.user} --password=#{args.password}")
-  # Then get the first line of its output
-  ret = list.hd(default="",ret)
-  # Finally returns the boolean represented
-  # by the output (bool_of_string can also
-  # be used)
-  if ret == "true" then
-    true
-  else
-    false
-  end
-end
+```{.liquidsoap include="harbor-auth.liq"}
+
 ```
 
 In the case of the `ICY` (shoutcast) source protocol, there is no `user` parameter
@@ -101,26 +81,10 @@ When using harbor inputs, you first set the required settings, as described abov
 The unlabeled parameter is the mount point that the source client may connect
 to. It should be `"/"` for shoutcast source clients.
 
-The source client may use any of the recognized audio input codec. Hence, when using shoucast source clients, you need to have compiled liquidsoap with mp3 decoding support (`ocaml-mad`)
+The source client may use any of the recognized audio input codec. Hence, when using shoucast source clients, you need to have compiled liquidsoap with mp3 decoding support (`ocaml-mad`).
 
 A sample code can be:
 
-```liquidsoap
-settings.harbor.bind_addrs.set(["0.0.0.0"])
+```{.liquidsoap include="harbor-usage.liq" to=-1}
 
-# Some code...
-
-# This defines a source waiting on mount point
-# /test-harbor
-live = input.harbor("test-harbor",port=8080,password="xxx")
-
-# This is the final stream.
-# Uses the live source as soon as available,
-# and don't wait for an end of track, since
-# we don't want to cut the beginning of the live
-# stream.
-#
-# You may insert a jingle transition here...
-radio = fallback(track_sensitive=false,
-                 [live,files])
 ```
