@@ -76,7 +76,9 @@ let function_app_value_restriction fn =
           in
           List.filter (fun v -> not (List.memq v pl)) l
   in
-  filter_app_vars [] fn.Term.t = []
+  match Type.demeth fn.Term.t with
+    | { Type.descr = Arrow (_, t) } -> filter_app_vars [] t = []
+    | _ -> false
 
 (** Terms for which generalization is safe. *)
 let value_restriction t =
