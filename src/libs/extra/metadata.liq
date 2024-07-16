@@ -22,16 +22,14 @@ def file.cover.manager(
   temp_dir = file.temp_dir("cover-manager")
   on_cleanup({file.rmdir(temp_dir)})
 
-  last_cover_file = ref(default)
   current_cover_file = ref(default)
 
   def set_current_cover(filename) =
-    last_cover = last_cover_file()
-    last_cover_file := current_cover_file()
+    last_cover = current_cover_file()
     current_cover_file := filename
 
     if
-      last_cover != default and last_cover != filename
+      last_cover != default
     then
       log.info(
         label=id,
