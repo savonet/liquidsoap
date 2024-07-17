@@ -1,0 +1,54 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable audio stream generator.
+  Copyright 2003-2007 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+ *****************************************************************************)
+
+open Types
+
+let program = "/bin/echo"
+let proto_name = "echo"
+let static = false
+
+let resolve s ~log maxtime =
+  let out_i,out_o = Unix.pipe () in
+  let in_i,in_o = Unix.pipe () in
+  let pid = Unix.create_process program [|program;s|] in_i out_o Unix.stderr in
+  let chan = Unix.in_channel_of_descr out_i in
+  let rec aux () =
+    match try Some (input_line chan) with End_of_file -> None with
+    | None -> []
+    | Some s ->
+        (Request.indicator s)::(aux ())
+  in
+    Unix.close in_i ;
+    Unix.close out_o ;
+    let l = aux () in
+    (* If you add the following, the file will be deleted once played...
+     * Request.set_metadata req "temporary" "true" *)
+    ignore (Unix.waitpid [] pid) ;
+    Unix.close in_o ;
+    Unix.close out_i ;
+    l
+
+let () =
+  Request.protocols#register
+    ~sdoc:("Call an external program for resolving.")
+    proto_name
+    { Request.resolve = resolve ; Request.static = static }

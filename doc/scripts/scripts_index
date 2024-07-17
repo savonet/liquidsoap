@@ -1,0 +1,22 @@
+#!/bin/sh
+
+
+find pubtal-content -type d | grep scripts | while read SCRIPTS; do
+  if [ -d $SCRIPTS ]; then
+    INDEX="$SCRIPTS/index.txt"
+    rm -f $INDEX
+    cat > $INDEX << EOF
+title: Script snippet index
+
+h3. Script snippet index
+
+EOF
+    find $SCRIPTS -type f | grep -v '\.txt' | sort | 
+      while read i; do 
+         FILE=`basename $i`
+         LINK=`echo $FILE | sed -e 's#\.[^.]*$#.html#'`
+         echo "* \"$FILE\":$LINK" >> $INDEX
+     done
+  fi
+done
+

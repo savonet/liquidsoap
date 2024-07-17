@@ -1,0 +1,18 @@
+#!/bin/sh
+
+COMMAND=$1
+
+BYPASS=""
+
+OLDIR="`pwd`"
+
+while read i; do 
+	BASENAME="`basename $i`"
+	DIRNAME="`dirname $i`"
+	echo -en "Testing \033[1m$BASENAME\033[0m... ";
+	cd "$DIRNAME";
+        if `echo $BYPASS | grep -q "$BASENAME"`; then echo -e "\e[1;34m[bypass]"
+        else ($COMMAND "$BASENAME" > /dev/null 2> /dev/null && echo -e "\e[1;32m[ok]") || echo -e "\e[1;31m[failed]"; 
+        fi; 
+	tput sgr0; cd $OLDIR;
+	done

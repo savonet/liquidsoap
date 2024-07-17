@@ -1,0 +1,83 @@
+
+ Liquidsoap 0.3.7
+ ----------------
+
+ Dependencies :
+   mandatory:     ocaml-dtools>=0.1.3
+                  ocaml-duppy>=0.1.0
+                  ocaml-pcre
+   optional:      ocaml-shout>=0.2.6       for sending to Shoutcast & Icecast
+                  ocaml-ogg>=0.2.0
+                  ocaml-vorbis>=0.4.1      for Vorbis data
+                  ocaml-mad>=0.3.4         for MP3 decoding
+                  ocaml-lame>=0.2.2        for MP3 encoding
+                  ocaml-taglib>=0.1.2      for MP3ID3 metadata access
+                  ocaml-faac>=0.1.1        for AAC encoding
+                  ocaml-faad>=0.1.1        for AAC stream decoding
+                  ocaml-lastfm>=0.1.2      for lastfm protocol support
+		  ocaml-xmllight>=2.2      for lastfm protocol support
+		  ocaml-magic>=0.6         for file type detection
+                  ocaml-xmlplaylist>=0.1.1 for XML-based playlist formats
+                  ocaml-soundtouch>=0.1.4  for libsoundtouch's audio effects
+                  ocaml-ao>=0.1.9          for output via libao
+                  ocaml-alsa>=0.1.3        for ALSA I/O
+                  ocaml-portaudio>=0.1.2   for Portaudio I/O
+                  ocaml-bjack>=0.1.0       for Jack support
+                  ocaml-ladspa>=0.1.1      for LADSPA plugins
+                  camomile                 for charset recoding in metadata
+                  ocaml-jack>=0.1.0        for old Jack support (DEPRECATED)
+                  libortp>=1.0.0           for RTP stream I/O (EXPERIMENTAL)
+		  Other optional dependencies can be found in the download
+                  section of the project. All of them should be included in
+                  the -full tarball
+
+ Runtime optional dependencies:
+  * festival, sox, normalize for speech synthesis
+  * wget for http/https/ftp support
+  * ufetch (from ocaml-fetch) for smb support
+
+ How to install
+ --------------
+
+ *BSD users, as well as OSX users might need to export some variables 
+ that can be missing during the process:
+   % export CPPFLAGS=-I/usr/local/include
+   % export LDFLAGS=-L/usr/local/lib
+   % export OCAMLMKLIB_FLAGS=-L/usr/local/lib 
+ Also, liquidsoap needs GNU make. If you have a GNU make, this is normally
+ Detected during configuration. If this chec fails you can set the MAKE variable:
+   % export MAKE=`your make command`
+ The following assumes your MAKE command is make. Change to yours if different..
+
+ Now you can start the build configuration:
+   % ./configure
+
+ And then build the software:
+   % make
+
+ This builds liquidsoap.
+
+   % make doc
+
+ It will generate the HTML documentation, including a version of the scripting
+ API reference corresponding to your configuration. If Perl's module XML::DOM
+ is not available it only generate a stub reference and issue a warning.
+
+ Then, you may proceed to the installation. You may need to be root for that.
+ Also, user and group liquidsoap should be created prior to installation.
+ If you want to use other user/groups, please edit Makefile.defs -- unless
+ you prefer to re-run the configure script with the proper --with-user/group.
+
+   % make install (as root if needed)
+
+ For installing developers documentation, run:
+
+   % make api-doc-install
+
+ Then if you want services to be installed in $prefix/etc/init.d, run one of
+ the following. service is for a generic /bin/sh service, gentoo is for
+ a gentoo compliant service, to be used iff you've a gentoo linux.
+
+   % make (service|gentoo)-install
+
+ See /doc for understanding radio programming. I hope you'll have fun.

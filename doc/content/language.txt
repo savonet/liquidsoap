@@ -1,0 +1,122 @@
+title: Liquidsoap scripting language
+
+h3. Liquidsoap's scripting language
+
+
+Liquidsoap's scripting language is a simple functional language, with labels and optional parameters. It is statically typed, but infers types -- you don't have to write any types. To fit its particular purpose, it has first-class sources and requests (see "liquidsoap's concepts":concepts.html) and a syntax extension for simply specifying time intervals.
+
+h4. Constants
+
+
+The constants and their syntax are quite common:
+
+* integers, such as <code>42</code>;
+* floats, such as <code>3.14</code>;
+* booleans <code>true</code> and <code>false</code>;
+* strings, such as <code>"foo"</code> or <code>'bar'</code>.
+
+**Beware**: <code>3.0</code> is not an integer and <code>5</code> is not a float, the dot matters.
+
+Strings might be surrounded by double or single quotes. In both cases, you can escape the quote you're using: <code>"He said: \"Hello, you\"."</code> is valid but <code>'He said: "Hello, you".'</code> is equivalent and nicer.
+
+h4. Expressions
+
+You can form expressions by using:
+
+* Constants and variable identifiers. Identifiers start with an alphabetic character or an underscore, followed by alphanumerics, underscores, dots and quotes: @[A-Z a-z _][A-Z a-z 0-9 _.']*@.
+* Lists and pairs: <code>[expr,expr,...]</code> and <code>(expr,expr)</code>.
+* Comparison of values is done using @expr == expr@ and its negation is @expr != expr@. Most other usual operations are available, allowing usual things like @1+1 < 11@.
+* Application <code>f(x,y)</code> of arguments to a function. Application of labeled parameters is as follows: <code>f(x,foo=1,y,bar="baz")</code>. The interest of labels is that the order of two parameters doesn't matter as long as they have different labels.
+* Anonymous functions: <code>fun (arglist) -> expr</code>. Some arguments might have a label or an optional value. For example, the definition of a function with two named parameters, the second one being optional with default value <code>13</code> is as follows: <code>fun (~foo,~bar=13) -> ...</code>.
+* Definitions using def-end: @def pi = 3.14 end@ defining a ground value, @def source(x) = wrap2(wrap1(x)) end@ defining a function. The <code>=</code> is optional, you may prefer multi-line definitions without it. The arguments of a defined function are specified in the same way as for anonymous functions.
+* Shorter definitions using the equality: <code>pi = 3.14</code>. This is never an assignment, only a new local definition!
+* Conditionals @if expr then expr else expr end@, or more generally @if expr then expr (elsif expr then expr)* (else expr)? end@. The @else@ block can be omitted if the purpose of the conditional is not to compute a value (_e.g._ an integer or a list of strings) but only to have a side effect (_e.g._ printing something in one case, not doing anything in the other).
+* Sequencing: expressions may be sequenced, just juxtapose them. Usually one puts one expression per line. Optionally, they can be separated by a semicolon. The evaluation of a sequence triggers that of all of its sub-expressions, its value is that of the last sub-expression. Accordingly, the type of a sequence is that of its last sub-expression.
+* Parenthesis can be used to delimit explicitly expressions. In some places where only expressions can be written, as opposed to sequences of expressions, the @begin .. end@ block can be used to explicitly form a simple expression from a sequence. This notably happens with the simple form of definitions without @def .. end@, and in the body of anonymous functions. For example <code>fun (x) -> f1(x) ; f2(x)</code> will be read as <code>(fun (x) -> f1(x)) ; f2(x)</code> not as <code>fun (x) -> begin f1(x) ; f2(x) end</code>.
+* Code blocks: <code>{ expr }</code> is a shortcut for <code>fun () -> expr</code>.
+
+**No assignation, only definitions.** <code>x = expr</code> doesn't modify <code>x</code>, it just defines a new <code>x</code>. The expression <code>(x = s1 ; def y = x = s2 ; (x,s3) end ; (y,x))</code> evaluates to <code>((s2,s3),s1)</code>.
+
+**Function.** The return value of a function is the evaluation of its body where parameters have been substituted by their values. Accordingly, the type of the body is the return type of the function. If the body is a sequence, the return value will thus be its last expression, and the return type its type.
+
+%%(lang_func_type.liq)
+def foo ()
+  a = bar()
+  b = 1
+  "string"
+end
+# The return type of foo is string.
+# The full type of foo is ()->string.
+%%
+
+
+**Type of an application.** The type of an application is the return type of function if all mandatory arguments are applied. With the function @foo@ previously defined, @foo()@ is a string. Otherwise, the application is "partial", and the expression still has a function type.
+
+**Partial application.** Application of arguments can be partial. For example if <code>f</code> takes two integer arguments, <code>f(3)</code> is the function waiting for the second argument. This can be useful to instantiate once for all dummy parameters of a function:
+
+%%(lang_partial_application.liq)
+out = output.icecast.vorbis(host="streamer",port="8080",
+                            password="sesame")
+# out is a function waiting for the other parameters
+out(bitrate=112, my_radio)
+%%
+
+
+**Labels.** Labeled and unlabeled parameters can be given at any place in an application. The order of the arguments is up to permutation of arguments of distinct labels. For example <code>f(x,foo=1)</code> is the same as <code>f(foo=1,x)</code>, both are valid for any function <code>f(x,~foo,...)</code>. It makes things easier for the user, and gives its full power to the partial application.
+
+**Optional arguments.** Functions can be defined with an optional value for some parameter (as in <code>def f(x="bla",~foo=1) = ... end</code>), in which case it is not required to apply any argument on the label <code>foo</code>. The evaluation of the function is triggered after the first application which instantiated all mandatory parameters.
+
+h4. Types
+
+We believe in static typing especially for a script which is intended to run during weeks: we don't want to notice a mistake only when the special code for your rare live events is triggered! Moreover, we find it important to show that even for a simple script language like that, it is worth implementing type inference. It's not that hard, and makes life easier.
+
+The basic types are <code>int</code>, <code>float</code>, <code>bool</code>, <code>string</code>, but also <code>source</code> and <code>request</code>. Corresponding to pairs and lists, you get <code>(T*T)</code> and <code>[T]</code> types -- all elements of a list should have the same type. For example, <code>[(1,"un"),(2,"deux")]</code> has type <code>[(int*string)]</code>.
+
+A function type is noted as <code>(arg_types) -> return_type</code>. Labeled arguments are denoted as <code>~label:T</code> or <code>?label:T</code> for optional arguments. For example the following function has type <code>(source,source,?jingle:string) -> source</code>.
+
+%%(lang_fun_def.liq)
+fun (from,to,~jingle=default) ->
+  add ([ sequence([single(jingle), fallback([])]),
+         fade.initial(to) ])
+%%
+
+
+h4. Time intervals
+
+The scripting language also has a syntax extension for simply specifying time intervals.
+
+A date can be specified as <code>_w_h_m_s</code> where <code>_</code> are integers. It has the following meaning:
+* <code>w</code> stands for weekday, ranging from 0 to 7, where 1 is monday, and sunday is both 0 and 7.
+* <code>h</code> stands for hours, ranging from 0 to 23.
+* <code>m</code> stands for minutes, from 0 to 59.
+* <code>s</code> stands for seconds, from 0 to 59.
+All components @w@, @h@, @m@ and @s@ are optional. Finally, the @m@ can be omitted in dates of the form @_h_@ such as @12h30@.
+
+It is possible to use 24 (resp. 60) as the upper bound for hours (resp. seconds or minutes) in an interval, for example in <code>12h-24h</code>.
+
+Time intervals can be either of the form <code>DATE-DATE</code> or simply <code>DATE</code>. Their meaning should be intuitive: <code>10h-10h30</code> is valid everyday between 10:00 and 10:30; <code>0m</code> is valid during the first minute of every hour.
+
+This is typically used for specifying switch predicates:
+
+%%(switch_generic.liq)
+switch([
+  ({ 20h-22h30 }, prime_time),
+  ({ 1w }, monday_source),
+  ({ (6w or 7w) and 0h-12h }, week_ends_mornings),
+  ({ true }, default_source)
+])
+%%
+
+
+h4. Includes
+
+You can include other files, to compose complex configurations from multiple blocks of utility or configuration directives.
+
+%%
+# Store passwords in another configuration file,
+# so that the main config can be safely version-controlled.
+%include "passwords.liq"
+
+# Use the definitions from the other file here.
+%%
+
