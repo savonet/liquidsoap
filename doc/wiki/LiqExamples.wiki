@@ -1,0 +1,116 @@
+=====Cookbook=====
+
+The recipes show how to build a source with a particular feature. To try it, turn that into a script which plays the source directly to your speaker:
+%%(liquidsoap)
+#!/usr/bin/liquidsoap -v
+
+set log.dir = "/tmp"
+
+recipe = # <fill this>
+output.alsa(recipe)
+%%
+
+====Files====
+
+A source which infinitely repeats the same URI:
+%%(liquidsoap)
+single("/my/default.ogg")
+%%
+
+A source which plays a playlist of requests -- a playlist is a file with an URI per line.
+%%(liquidsoap)
+# Shuffle, play every URI, start over.
+playlist("/my/playlist.txt")
+# Do not randomize
+playlist(mode="normal", "/my/pl.m3u")
+# The playlist can come from any URI, can be reloaded every 10 minutes.
+playlist(reload="600","http://my/playlist.txt")
+%%
+
+When building your stream, you'll need to make it unfallible. Usually, you achieve that using a fallback switch (see below) with a branch made of a safe ##single## or ##playlist.safe##. Roughly, a single is safe when it is given a valid local audio file. A ##playlist.safe## behaves just like a playlist but will check that all files in the playlist are valid local audio files. This is quite an heavy check, you don't want to have large safe playlists.
+
+====Scheduling====
+
+%%(liquidsoap)
+# A fallback switch
+fallback([playlist("http://my/playlist"), single("/my/jingle.ogg")])
+# A scheduler, assuming you have defined the night and day sources
+switch([ ({0h-7h}, night), ({7h-24h}, day) ])
+%%
+
+====Fancy effects====
+
+%%(liquidsoap)
+# Add a jingle to your normal source at the beginning of every hour:
+add([normal,switch([({0m0s},jingle)])])
+%%
+
+Switch to a live show as soon as one is available. Make the show unavailable when it is silent, and skip tracks from the normal source if they contain too much silence.
+%%(liquidsoap)
+fallback(track_sensitive=false,
+	     [strip_blank(input.http("http://myicecast:8080/live.ogg")),
+	      skip_blank(normal)])
+%%
+
+Without the ##track_sensitive=false## the fallback would wait the end of a track to switch to the live. When using the blank detection operators, make sure to fine-tune their ##threshold## and ##length## (float) parameters.
+
+====Unix interface, dynamic requests====
+
+##request.dynamic## is a source which takes a custom function for creating its new requests. This function can be used to call an external program. The source expects a ##()->request## function. To create the request, the function will have to use the ##request## function which has type ##(string,?indicators:[string])##. The first string is the initial URI of the request, which is resolved to get an audio file. The second argument can be used to directly specify the first row of URIs (see the [[LiqConcepts concepts page]]), in which case the initial URI is just here for naming, and the resolving process will try your list of indicators one by one until a valid audio file is obtained.
+
+For example the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
+%%(liquidsoap)
+request.dynamic({ request("bar:foo",
+	                indicators=get_process_lines("cat "^quote("playlist.pls"))) })
+%%
+Of course a more interesting behaviour is obtained with a more interesting program than "cat".
+
+Another way of using an external program is to define a new protocol which uses it to resolve URIs. ##add_protocol## takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program, that's how we use [[bubble]] for example:
+%%(liquidsoap)
+add_protocol("bubble",
+	     fun (arg,delay) -> get_process_lines("/usr/bin/bubble-query "^quote(arg)))
+%%
+When resolving the URI ##bubble:artist="seeed"##, liquidsoap will call the function, which will call ##bubble-query 'artist="seed"'## which will output 10 lines, one URI per line.
+
+====Transitions====
+
+The switch-based operators (##switch##, ##fallback## and ##random##) support transitions. For every child, you can specify a transition function computing the output stream when moving from one child to another. This function is given two ##source## parameters: the child which is about to be left, and the new selected child. The default transition is ##fun (a,b) -> b##, it simply relays the new selected child source. Other possible transition functions:
+%%(liquidsoap)
+# A simple (long) cross-fade
+def crossfade(a,b)
+  add(normalize=false,
+	  [ sequence([ blank(duration=5.),
+	               fade.initial(duration=10.,b) ]),
+	    fade.final(duration=10.,a) ])
+end
+
+# Partially apply next to give it a jingle source.
+# It will fade out the old source, then play the jingle.
+# At the same time it fades in the new source.
+def next(j,a,b)
+  add(normalize=false,
+	  [ sequence(merge=true,
+	             [ blank(duration=3.),
+	               fade.initial(duration=6.,b) ]),
+	    sequence([fade.final(duration=9.,a),
+	              j,fallback([])]) ])
+end
+
+# A similar transition, which does a cross-fading from A to B
+# and adds a jingle
+def transition(j,a,b)
+  add(normalize=false,
+	  [ fade.initial(b),
+	    sequence(merge=true,
+	            [blank(duration=1.),j,fallback([])])]),
+	    fade.final(a) ])
+end
+%%
+
+Finally, we build a source which plays a playlist, and switches to the live show as soon as it starts, using the ##transition## function as a transition. At the end of the live, the playlist comes back with a cross-fading.
+%%(liquidsoap)
+fallback(track_sensitive=false,
+	     transitions=[ crossfade, transition(jingle) ],
+	     [ input.http("http://localhost:8000/live.ogg"),
+	       playlist("playlist.pls") ])
+%%

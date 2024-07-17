@@ -1,0 +1,47 @@
+
+  Core features:
+  ==============
+
+  * Transitions with non-zero "before" parameter don't work correctly,
+    as the before-trigger also occurs during the transition itself, resulting
+    in an ugly scattered sound effect.
+  * Generalize say_metadata as an operator taking a (metadata)->source function
+    and appending or prepending one track of the instantiated source to every 
+    track of the main source -- this requires a interpolate function in the 
+    scripting API.
+  * Move the metadatas (and skip, remaining ?) commands out of the outputs and 
+    put it in a dedicated operator which could be put anywhere in the stream, 
+    typically before metadata rewriting.
+  * There has been some reports of non-immediate coming back of the lives after 
+    stripped blanks.
+  * Enhance #remaining info ! It's OK to take time in the decodability check to 
+    compute the duration of a track, if it's cached for the actual decoding.
+  * Memoization for encodings of buffers. Keep them in the buffer.
+    Useful when saving a copy of icecast stream to a file.
+    The problem is that buffers are copied for outputs and multiple-fathered
+    sources, dealing with this may be tricky.
+  * Check WAV handling, add support for incorrect WAV format.
+  * Dynamic download time evaluation for queues.
+    Deal with big files download, which currently leads to timeout.
+  * Code like (1^"ba") in scripts causes silly error messages:
+    This value has type (string, string) -> string
+    but is expected to have type (int, string) -> '3!
+    The real mistake is that the int is expected to be a string.
+  * Decrease the cost of Vorbis.reset_metadata, which systematically
+    causes a latency on new tracks.
+
+  Plugins:
+  ========
+
+  * Ogg/vorbis rtp output
+  * Input mp3 stream via http.
+  * Add transitions to the add operator.
+  * Mini icecast server, in order to have more reactive systems for live
+    shows. Directly send the stream to liquidsoap.
+  * Binary clock.
+  * A fair scheduler for user requests.
+  * Long requests: as long as there is no request, and not much than an hour
+    long for example, play an user-requested playlist.
+    Actually this could come from a more general Request structure involving 
+    any nesting of alternatives and conjunctions, instead of only disjunctions 
+    as it is now.

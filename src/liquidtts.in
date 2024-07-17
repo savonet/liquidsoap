@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# This script is called from liquidsoap for generating a file
+# for "say:voice/text" URIs.
+# Usage: liquidtts text output_file voice
+
+echo $1 | @TEXT2WAVE@ > $2.tmp.wav && @SOX@ 2> /dev/null > /dev/null
+return=$?
+@RM@ $2.tmp.wav
+@NORMALIZE@ $2 2> /dev/null > /dev/null
+exit $return

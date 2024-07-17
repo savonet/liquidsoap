@@ -1,0 +1,75 @@
+
+#a-body {
+  color: black ;
+  background: #F0F0F0 ;
+
+  margin-left: auto ;
+  margin-right: auto ;
+  width: 60% ;
+}
+
+h1 { 
+  background: white ;
+  text-align: center ; 
+  font-size: 2em ;
+  padding: 0.1cm 1cm ;
+  border: 1px solid #AAA ;
+  margin-bottom: 0px ;
+}
+
+h2
+{
+  background: #F0F0F0 ;
+  font-size: 2em ;
+  padding: 0.1cm 1cm ;
+  margin: 0cm -1cm ;
+  margin-top: 1cm ;
+  border: 1px solid #AAA ;
+  }
+
+h3 { font-size: 2em }
+
+p { text-align: justify }
+
+a {
+  color: #40a ;
+}
+
+code {
+  color: #800;
+  font: sans-serif;
+}
+
+/* Class for programs seen as lists */
+.program { 
+  color: #800;
+  font: sans-serif;
+  list-style: none;
+}
+
+.program ul { list-style: none }
+.verbatim {
+  color: #800 ;
+  font: smaller fixed, sans-serif ;
+  white-space: pre ;
+}
+
+.rem { 
+  font-size: 0.9em ;
+  color: #666 ;
+}
+
+.center { text-align: center }
+
+#tableofcontents
+{ 
+  padding: 0.5cm 1cm ;
+  border: solid 1px #AAA ;
+  }
+
+#tableofcontents h1 {
+  font-size: 2em ;
+  border-style: none ;
+  background: none ;
+}
+#tableofcontents a { text-decoration: none }

@@ -1,0 +1,85 @@
+=====Liquidsoap's scripting language=====
+
+Liquidsoap's scripting language is a simple functional language, with labels and optional parameters. It is statically typed, but infers types -- you don't have to write any types. To fit its particular purpose, it has first-class sources and requests (see [[LiqConcepts liquidsoap's concepts]]) and a syntax extension for simply specifying time intervals.
+
+A liquidsoap script starts with a settings section. Then comes a sequence of expressions, where you mostly define sources and active sources, which will animate your stream.
+
+====Constants====
+
+Constants are used in the settings preamble and in the body of a script. Their syntax is quite common:
+~- integers, such as ##42##;
+~- floats, such as ##3.14##;
+~- booleans, ##true## and ##false##;
+~- strings, such as "foo" or 'bar'.
+
+**Beware**: ##3.0## is not an integer and ##5## is not a float, the dot matters.
+
+Strings might be surrounded by double or single quotes. In both cases, you can escape the quote you're using: ##"He said: \"Hello, you\"."## is valid but ##'He said: "Hello, you".'## is equivalent and nicer.
+
+====Settings====
+
+That part of the script allows you to control the global behaviour of liquidsoap: log file, log levels, daemon mode... by defining some of the [[LiqSettings available settings]].
+
+The settings preamble is very simple: a sequence of ##set VAR = CONST##. ##CONST## must be a constant of type bool, int or string as described earlier, or a list of strings noted as ##[ "foo", 'bar' ]##. More complex expressions are not allowed here.
+
+The type of a setting is very important: the ##int## setting "bla" and the ##bool## setting "bla" are distinct and can coexist; so if you put the wrong type for a configuration variable, it will simply be ignored by liquidsoap which will lookup only for the expected type.
+
+====Expressions====
+
+You can form expressions by using:
+~- Constants and variable identifiers. Identifier are made of alphanumerics, underscore and dot: ##[a-zA-Z0-9_\.]*##
+~- Lists and tuples: ##[expr,expr,...]## and ##(expr,expr,..)##
+~- Sequencing: expressions may be sequenced, just juxtapose them. Optionally, they can be separated by a semicolon.
+~- Application ##f(x,y)## of arguments to a function. Application of labeled parameters is as follows: ##f(x,foo=1,y,bar="baz")##. The relative order of two parameters doesn't matter as long as they have different labels.
+~- Definitions using def-end: ##def source(x) = s = wrap1(x) ; wrap2(s) end## or ##def pi = 3.14 end##. The ##=## is optional, you may prefer multi-line definitions without it. The definition of a function with two named parameters, the second one being optional with default value ##13## is as follows: ##def f(~foo,~bar=13) = body end##.
+~- Shorter definitions using the equality: ##pi = 3.14##. This is never an assignment, only a new local definition!
+~- Anonymous functions: ##fun (arglist) -> expr##. Don't forget to use parenthesis if you need more than one expr: ##fun (x) -> f1(x) ; f2(x)## will be read as ##(fun (x) -> f1(x)) ; f2(x)## not as ##fun (x) -> (f1(x) ; f2(x))##.
+~- Code blocks: ##{ expr }## is a shortcut for ##fun () -> expr##.
+
+**No assignation, only definitions.** ##x = expr## doesn't modify ##x##, it just defines a new ##x##. The expression ##(x = s1 ; def y = x = s2 ; (x,s3) end ; (y,x))## evaluates to ##((s2,s3),s1)##.
+
+**Partial application.** Application of arguments can be partial. For example if ##f## takes two integer arguments, ##f(3)## is the function waiting for the second argument. This can be useful to instantiate once for all dummy parameters of a function:
+%%(liquidsoap)
+out = output.icecast(host="streamer",port="8080",password="sesame")
+%%
+
+**Labels.** Labeled and unlabeled parameters can be given at any place in an application. The order of the arguments is up to permutation of arguments of distinct labels. For example ##f(x,foo=1)## is the same as ##f(foo=1,x)##, both are valid for any function ##f(x,~foo,...)##. It makes things easier for the user, and gives its full power to the partial application.
+
+**Optional arguments.** Functions can be defined with an optional value for some parameter (as in ##def f(x="bla",~foo=1) = ... end##), in which case it is not required to apply any argument on the label ##foo##. The evaluation of the function is triggered after the first application which instantiated all mandatory parameters.
+
+====Types====
+
+We believe in static typing especially for a script which is intended to run during weeks: we don't want to notice a mistake only when the special code for your rare live events is triggered! Moreover, we find it important to show that even for a simple script language like that, it is worth implementing type inference. It's not that hard, and makes life easier.
+
+The basic types are ##int##, ##float##, ##bool##, ##string##, but also ##source## and ##request##. Corresponding to pairs and lists, you get ##(T*T)## and ##[T]## types -- all elements of a list should have the same type. For example, ##[(1,"un"),(2,"deux)]## has type ##[(int*string)]##.
+
+A function type is noted as ##(arg_types) -> return_type##. Labeled arguments are denoted as ##~label:T## or ##?label:T## for optional arguments. For example the following function has type ##(source,source,?jingle:string) -> source##.
+%%(liquidsoap)
+fun (from,to,~jingle=default) ->
+	add ([ sequence([single(jingle), fallback([])]), fade.initial(to) ])
+%%
+
+====Time intervals====
+
+The scripting language also has a syntax extension for simply specifying time intervals.
+
+A date can be specified as ##?w?h?m?s## where ##?## are integers and all components ##?x## are optional.  It has the following meaning:
+~- ##w## stands for weekday, ranging from 0 to 7, where 1 is monday, and sunday is both 0 and 7.
+~- ##h## stands for hours, ranging from 0 to 23.
+~- ##m## stands for minutes, from 0 to 59.
+~- ##s## stands for seconds, from 0 to 59.
+
+It is possible to use 24 (resp. 60) as the upper bound for hours (resp. seconds or minutes) in an interval, for example in ##12h-24h##.
+It is possible to forget the ##m## for minutes if hours are specified -- and seconds unspecified, obviously.
+
+Time intervals can be either of the form ##DATE-DATE## or simply ##DATE##. Their meaning should be intuitive: ##10h-10h30## is valid everyday between 10:00 and 10:30; ##0m## is valid during the first minute of every hour.
+
+This is typically used for specifying switch predicates:
+%%(liquidsoap)
+switch([
+  ({ 20h-22h30 }, prime_time),
+  ({ 1w }, monday_source),
+  ({ (6w or 7w) and 0h-12h }, week_ends_mornings),
+  ({ true }, default_source)
+])
+%%

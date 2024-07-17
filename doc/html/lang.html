@@ -1,0 +1,1070 @@
+<html>
+<head>
+ <link rel="stylesheet" title="default" href="css/default_autodoc.css" />
+</head>
+<body id="ad-body"><div id="main">
+<div class="section">
+ <div  class="section-id">^</div>
+ <div class="type">(string, string) -&gt; string</div>
+ <div class="par">
+  Concatenate strings.
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">add</div>
+ <div class="type">(?id:string, ?normalize:bool, ?weights:[int], [source]) -&gt; source</div>
+ <div class="par">
+  Add sources, with normalization
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">[source]</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">normalize</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">[int]</span> <span class="name">weights</span>
+   <span class="item-head-right">[  ]</span>
+  </div><div class="item-body">Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">add_protocol</div>
+ <div class="type">(string, ((string, float) -&gt; [string])) -&gt; unit</div>
+ <div class="par">
+  Register a new protocol.
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">and</div>
+ <div class="type">(bool, bool) -&gt; bool</div>
+ <div class="par">
+  Return the conjunction of its arguments
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">assoc</div>
+ <div class="type">(string, [(string*string)]) -&gt; string</div>
+ <div class="par">
+  assoc k [...,(k,v),...] = v
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">blank</div>
+ <div class="type">(?id:string, ?duration:float) -&gt; source</div>
+ <div class="par">
+  This source is not very noisy :)
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">duration</span>
+   <span class="item-head-right">0.</span>
+  </div><div class="item-body">Duration of blank tracks, default means forever.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">change_volume</div>
+ <div class="type">(?id:string, float, source) -&gt; source</div>
+ <div class="par">
+  Scales the amplitude of the signal
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">multiplicative factor</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">delay</div>
+ <div class="type">(?id:string, float, source) -&gt; source</div>
+ <div class="par">
+  Prevents the child from being ready again too fast after a end of track
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">The source won't be ready less than this amount of seconds after any end of track</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">fade.final</div>
+ <div class="type">(?id:string, ?duration:float, source) -&gt; source</div>
+ <div class="par">
+  Fade a stream to silence.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">duration</span>
+   <span class="item-head-right">3.</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">fade.in</div>
+ <div class="type">(?id:string, ?duration:float, source) -&gt; source</div>
+ <div class="par">
+  Fade the beginning of every track.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">duration</span>
+   <span class="item-head-right">3.</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">fade.initial</div>
+ <div class="type">(?id:string, ?duration:float, source) -&gt; source</div>
+ <div class="par">
+  Fade the beginning of a stream.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">duration</span>
+   <span class="item-head-right">3.</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">fade.out</div>
+ <div class="type">(?id:string, ?duration:float, source) -&gt; source</div>
+ <div class="par">
+  Fade the end of tracks.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">duration</span>
+   <span class="item-head-right">3.</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">fallback</div>
+ <div class="type">(?id:string, ?track_sensitive:bool, ?before:float, ?transitions:[(source, source) -&gt; source], [source]) -&gt; source</div>
+ <div class="par">
+  At the beginning of each track, select the first ready child.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">[source]</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Select the first ready source in this list.</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">before</span>
+   <span class="item-head-right">0.</span>
+  </div><div class="item-body">EXPERIMENTAL: for track_sensitive switches, trigger transitions before the end of track.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">track_sensitive</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body">Re-select only on end of tracks</div>
+  <div class="item-head">
+   <span class="type">[(source, source) -&gt; source]</span> <span class="name">transitions</span>
+   <span class="item-head-right">[  ]</span>
+  </div><div class="item-body">Transition functions, padded with (fun (x,y) -&gt; y) functions.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">filter</div>
+ <div class="type">(?id:string, ~freq:int, ~q:float, ~mode:string, source) -&gt; source</div>
+ <div class="par">
+  Perform several kinds of filtering on the signal
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">freq</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">mode</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">low|high|band|notch</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">q</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">get_process_lines</div>
+ <div class="type">(string) -&gt; [string]</div>
+ <div class="par">
+  Perform a shell call and return the list of its output lines.
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">get_process_output</div>
+ <div class="type">(string) -&gt; string</div>
+ <div class="par">
+  Perform a shell call and return its output.
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">input.alsa</div>
+ <div class="type">(?id:string) -&gt; source</div>
+ <div class="par">
+  Alsa microphone input
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">input.http</div>
+ <div class="type">(?id:string, string) -&gt; source</div>
+ <div class="par">
+  Forwards the given ogg/vorbis http stream
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">URL of an http ogg stream.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">mix</div>
+ <div class="type">(?id:string, [source]) -&gt; source</div>
+ <div class="par">
+  Mixing table controllable via the telnet interface.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">[source]</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">on_metadata</div>
+ <div class="type">(?id:string, (([(string*string)]) -&gt; unit), source) -&gt; source</div>
+ <div class="par">
+  Call a given handler on metadata packets.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">([(string*string)]) -&gt; unit</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Function called on every metadata packet in the stream. It should be fast because it is ran in the main thread.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">or</div>
+ <div class="type">(bool, bool) -&gt; bool</div>
+ <div class="par">
+  Return the disjunction of its arguments
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">output.alsa</div>
+ <div class="type">(?id:string, ?device:string, ?start:bool, source) -&gt; source</div>
+ <div class="par">
+  Output the source's stream to an ALSA output device.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">device</span>
+   <span class="item-head-right">&quot;hw:0,0&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">start</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">output.dummy</div>
+ <div class="type">(?id:string, source) -&gt; source</div>
+ <div class="par">
+  Dummy output for debugging purposes.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">output.icecast</div>
+ <div class="type">(?id:string, ?start:bool, ?host:string, ?port:int, ?user:string, ?password:string, ?genre:string, ?url:string, ?description:string, ?public:bool, ?multicast_ip:string, ?mount:string, ?name:string, ?bitrate:int, ?freq:int, ?stereo:bool, source) -&gt; source</div>
+ <div class="par">
+  Send a Vorbis stream to an icecast-compatible server.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">bitrate</span>
+   <span class="item-head-right">128</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">description</span>
+   <span class="item-head-right">&quot;OCaml Radio!&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">freq</span>
+   <span class="item-head-right">44100</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">genre</span>
+   <span class="item-head-right">&quot;Misc&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">host</span>
+   <span class="item-head-right">&quot;localhost&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">mount</span>
+   <span class="item-head-right">&quot;Use [name].ogg&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">multicast_ip</span>
+   <span class="item-head-right">&quot;no_multicast&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">name</span>
+   <span class="item-head-right">&quot;Use [mount]&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">password</span>
+   <span class="item-head-right">&quot;hackme&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">port</span>
+   <span class="item-head-right">8000</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">public</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">start</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body">Start output threads on operator initialization.</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">stereo</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">url</span>
+   <span class="item-head-right">&quot;http://savonet.sf.net&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">user</span>
+   <span class="item-head-right">&quot;source&quot;</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">output.icecast.mp3</div>
+ <div class="type">(?id:string, ?start:bool, ?host:string, ?port:int, ?user:string, ?password:string, ?genre:string, ?url:string, ?description:string, ?public:bool, ?multicast_ip:string, ?mount:string, ?name:string, ?samplerate:int, ?quality:int, ?stereo:bool, source) -&gt; source</div>
+ <div class="par">
+  Output the source's stream to an icecast2 compatible server in MP3 format.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">description</span>
+   <span class="item-head-right">&quot;OCaml Radio!&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">genre</span>
+   <span class="item-head-right">&quot;Misc&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">host</span>
+   <span class="item-head-right">&quot;localhost&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">mount</span>
+   <span class="item-head-right">&quot;Use [name]&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">multicast_ip</span>
+   <span class="item-head-right">&quot;no_multicast&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">name</span>
+   <span class="item-head-right">&quot;Use [mount]&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">password</span>
+   <span class="item-head-right">&quot;hackme&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">port</span>
+   <span class="item-head-right">8000</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">public</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">quality</span>
+   <span class="item-head-right">5</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">samplerate</span>
+   <span class="item-head-right">0</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">start</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body">Start output threads on operator initialization.</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">stereo</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">url</span>
+   <span class="item-head-right">&quot;http://savonet.sf.net&quot;</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">user</span>
+   <span class="item-head-right">&quot;source&quot;</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">output.mp3</div>
+ <div class="type">(?id:string, ?start:bool, ?samplerate:int, ?quality:int, ?stereo:bool, string, source) -&gt; source</div>
+ <div class="par">
+  Output the source's stream as an MP3 file.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Filename where to output the MP3 stream.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">quality</span>
+   <span class="item-head-right">5</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">samplerate</span>
+   <span class="item-head-right">0</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">start</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body">Start output threads on operator initialization.</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">stereo</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">output.ogg</div>
+ <div class="type">(?id:string, ?start:bool, ?bitrate:int, ?freq:int, ?stereo:bool, string, source) -&gt; source</div>
+ <div class="par">
+  Output the source's stream as an OGG file.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Filename where to output the OGG stream.</div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">bitrate</span>
+   <span class="item-head-right">128</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">freq</span>
+   <span class="item-head-right">44100</span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">start</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body">Start output threads on operator initialization.</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">stereo</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">output.wav</div>
+ <div class="type">(?id:string, ?start:bool, string, source) -&gt; source</div>
+ <div class="par">
+  Output the source's stream to a WAV file.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">start</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">playlist</div>
+ <div class="type">(?id:string, ?length:float, ?default_duration:float, ?timeout:float, ?mode:string, ?reload:int, ?reload_mode:string, string) -&gt; source</div>
+ <div class="par">
+  Loop on a playlist of URIs.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">URI where to find the playlist</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">default_duration</span>
+   <span class="item-head-right">30.</span>
+  </div><div class="item-body">When unknown, assume this duration (in sec.) for files.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">length</span>
+   <span class="item-head-right">60.</span>
+  </div><div class="item-body">How much audio (in sec.) should be downloaded in advance.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">mode</span>
+   <span class="item-head-right">&quot;randomize&quot;</span>
+  </div><div class="item-body">normal|random|randomize</div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">reload</span>
+   <span class="item-head-right">0</span>
+  </div><div class="item-body">Amount of time (in seconds or rounds) before which the playlist is reloaded; 0 means never.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">reload_mode</span>
+   <span class="item-head-right">&quot;seconds&quot;</span>
+  </div><div class="item-body">rounds|seconds: unit of the 'reload' parameter</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">timeout</span>
+   <span class="item-head-right">20.</span>
+  </div><div class="item-body">Timeout (in sec.) for a single download.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">playlist.safe</div>
+ <div class="type">(?id:string, ?mode:string, ?reload:int, ?reload_mode:string, string) -&gt; source</div>
+ <div class="par">
+  Loop on a playlist of local files, and never fail. In order to do so, it has to check every file at the loading, so the streamer startup may take a few seconds. To avoid this, use a standard playlist, and put only a few local files in a default safe_playlist in order to ensure the liveness of the streamer.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">URI where to find the playlist</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">mode</span>
+   <span class="item-head-right">&quot;randomize&quot;</span>
+  </div><div class="item-body">normal|random|randomize</div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">reload</span>
+   <span class="item-head-right">0</span>
+  </div><div class="item-body">Amount of time (in seconds or rounds) before which the playlist is reloaded; 0 means never.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">reload_mode</span>
+   <span class="item-head-right">&quot;seconds&quot;</span>
+  </div><div class="item-body">rounds|seconds: unit of the 'reload' parameter</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">quote</div>
+ <div class="type">(string) -&gt; string</div>
+ <div class="par">
+  Escape shell metacharacters.
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">random</div>
+ <div class="type">(?id:string, ?track_sensitive:bool, ?before:float, ?transitions:[(source, source) -&gt; source], ?weights:[int], [source]) -&gt; source</div>
+ <div class="par">
+  At the beginning of every track, select a random ready child.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">[source]</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">before</span>
+   <span class="item-head-right">0.</span>
+  </div><div class="item-body">EXPERIMENTAL: for track_sensitive switches, trigger transitions before the end of track.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">track_sensitive</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body">Re-select only on end of tracks</div>
+  <div class="item-head">
+   <span class="type">[(source, source) -&gt; source]</span> <span class="name">transitions</span>
+   <span class="item-head-right">[  ]</span>
+  </div><div class="item-body">Transition functions, padded with (fun (x,y) -&gt; y) functions.</div>
+  <div class="item-head">
+   <span class="type">[int]</span> <span class="name">weights</span>
+   <span class="item-head-right">[  ]</span>
+  </div><div class="item-body">Weights of the children in the choice.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">request</div>
+ <div class="type">(?indicators:[string], string) -&gt; request</div>
+ <div class="par">
+  Create a request.
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">request.dynamic</div>
+ <div class="type">(?id:string, (() -&gt; request), ?length:float, ?default_duration:float, ?timeout:float) -&gt; source</div>
+ <div class="par">
+  Play request dynamically created by a given function.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">() -&gt; request</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">A function generating requests: an initial URI (possibly fake) together with an initial list of alternative indicators</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">default_duration</span>
+   <span class="item-head-right">30.</span>
+  </div><div class="item-body">When unknown, assume this duration (in sec.) for files.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">length</span>
+   <span class="item-head-right">60.</span>
+  </div><div class="item-body">How much audio (in sec.) should be downloaded in advance.</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">timeout</span>
+   <span class="item-head-right">20.</span>
+  </div><div class="item-body">Timeout (in sec.) for a single download.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">request.equeue</div>
+ <div class="type">(?id:string, ?length:float, ?default_duration:float, ?timeout:float) -&gt; source</div>
+ <div class="par">
+  Receive URIs from users, and play them. Insertion and deletion possible at any position.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">default_duration</span>
+   <span class="item-head-right">30.</span>
+  </div><div class="item-body">When unknown, assume this duration (in sec.) for files.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">length</span>
+   <span class="item-head-right">60.</span>
+  </div><div class="item-body">How much audio (in sec.) should be downloaded in advance.</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">timeout</span>
+   <span class="item-head-right">20.</span>
+  </div><div class="item-body">Timeout (in sec.) for a single download.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">request.queue</div>
+ <div class="type">(?id:string, ?length:float, ?default_duration:float, ?timeout:float) -&gt; source</div>
+ <div class="par">
+  Receive URIs from users, and play them.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">default_duration</span>
+   <span class="item-head-right">30.</span>
+  </div><div class="item-body">When unknown, assume this duration (in sec.) for files.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">length</span>
+   <span class="item-head-right">60.</span>
+  </div><div class="item-body">How much audio (in sec.) should be downloaded in advance.</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">timeout</span>
+   <span class="item-head-right">20.</span>
+  </div><div class="item-body">Timeout (in sec.) for a single download.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">rewrite_metadata</div>
+ <div class="type">(?id:string, [(string*string)], source) -&gt; source</div>
+ <div class="par">
+  Rewrite metadata on the fly.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">[(string*string)]</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">List of (target,value) rewriting rules.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">say_metadata</div>
+ <div class="type">(?id:string, source, ?pattern:string) -&gt; source</div>
+ <div class="par">
+  Pronounce some metadata after a track.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">pattern</span>
+   <span class="item-head-right">&quot;say:$(if $(artist),\&quot;It was $(artist)$(if $(title),\\\&quot;, $(title)\\\&quot;).\&quot;)&quot;</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">sequence</div>
+ <div class="type">(?id:string, ?merge:bool, [source]) -&gt; source</div>
+ <div class="par">
+  Play only one track of every successive source, except for the last one which is played as much as available.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">[source]</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">merge</span>
+   <span class="item-head-right">false</span>
+  </div><div class="item-body"></div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">sine</div>
+ <div class="type">(?id:string, int) -&gt; source</div>
+ <div class="par">
+  Plays a boring sine...
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Frequency of the sine</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">single</div>
+ <div class="type">(?id:string, string, ?length:float, ?default_duration:float, ?timeout:float) -&gt; source</div>
+ <div class="par">
+  Loop on a request. It never fails if the request is static, meaning that it can be fetched once. Typically, http, ftp, say requests are static, and time is not.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">URI where to find the file</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">default_duration</span>
+   <span class="item-head-right">30.</span>
+  </div><div class="item-body">When unknown, assume this duration (in sec.) for files.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">length</span>
+   <span class="item-head-right">60.</span>
+  </div><div class="item-body">How much audio (in sec.) should be downloaded in advance.</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">timeout</span>
+   <span class="item-head-right">20.</span>
+  </div><div class="item-body">Timeout (in sec.) for a single download.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">skip_blank</div>
+ <div class="type">(?id:string, ?threshold:float, ?length:float, source) -&gt; source</div>
+ <div class="par">
+  Skip track when detecting a blank
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">length</span>
+   <span class="item-head-right">20.</span>
+  </div><div class="item-body">Maximum silence length allowed.</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">threshold</span>
+   <span class="item-head-right">100.</span>
+  </div><div class="item-body">Intensity threshold under which the stream is considered to be blank.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">store_metadata</div>
+ <div class="type">(?id:string, ?size:int, source) -&gt; source</div>
+ <div class="par">
+  Keep track of the last N metadata packets in the stream, and make the history available via a server command.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">int</span> <span class="name">size</span>
+   <span class="item-head-right">10</span>
+  </div><div class="item-body">Size of the history</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">strip_blank</div>
+ <div class="type">(?id:string, ?threshold:float, ?length:float, source) -&gt; source</div>
+ <div class="par">
+  Strip blanks
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">source</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body"></div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">length</span>
+   <span class="item-head-right">20.</span>
+  </div><div class="item-body">Maximum silence length allowed.</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">threshold</span>
+   <span class="item-head-right">100.</span>
+  </div><div class="item-body">Intensity threshold under which the stream is considered to be blank.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">switch</div>
+ <div class="type">(?id:string, ?track_sensitive:bool, ?before:float, ?transitions:[(source, source) -&gt; source], ?strict:bool, ?single:[bool], [((() -&gt; bool)*source)]) -&gt; source</div>
+ <div class="par">
+  At the beginning of a track, select the first source Si such than the temporal predicate Ii is true.
+ </div>
+ <div class="item">
+  <div class="item-head">
+   <span class="type">[((() -&gt; bool)*source)]</span> <span class="name">(unlabeled)</span>
+   <span class="item-head-right"></span>
+  </div><div class="item-body">Sources Si with the interval Ii when they should be played.</div>
+  <div class="item-head">
+   <span class="type">float</span> <span class="name">before</span>
+   <span class="item-head-right">0.</span>
+  </div><div class="item-body">EXPERIMENTAL: for track_sensitive switches, trigger transitions before the end of track.</div>
+  <div class="item-head">
+   <span class="type">string</span> <span class="name">id</span>
+   <span class="item-head-right">&quot;&quot;</span>
+  </div><div class="item-body">Force the value of the source ID</div>
+  <div class="item-head">
+   <span class="type">[bool]</span> <span class="name">single</span>
+   <span class="item-head-right">[  ]</span>
+  </div><div class="item-body">Forbid the selection of a branch for two tracks in a row. The empty list stands for [false,...,false].</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">strict</span>
+   <span class="item-head-right">false</span>
+  </div><div class="item-body">Unset the operator's ready flag as soon as there is no valid interval, possibly interrupting ongoing tracks.</div>
+  <div class="item-head">
+   <span class="type">bool</span> <span class="name">track_sensitive</span>
+   <span class="item-head-right">true</span>
+  </div><div class="item-body">Re-select only on end of tracks</div>
+  <div class="item-head">
+   <span class="type">[(source, source) -&gt; source]</span> <span class="name">transitions</span>
+   <span class="item-head-right">[  ]</span>
+  </div><div class="item-body">Transition functions, padded with (fun (x,y) -&gt; y) functions.</div>
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">system</div>
+ <div class="type">(string) -&gt; unit</div>
+ <div class="par">
+  Shell command call.
+ </div>
+</div>
+<div class="section">
+ <div  class="section-id">time_in_mod</div>
+ <div class="type">(int, int, int) -&gt; bool</div>
+ <div class="par">
+  INTERNAL: time_in_mod(a,b,c) checks that the unix time T satisfies a &lt;= T mod c &lt; b
+ </div>
+</div>

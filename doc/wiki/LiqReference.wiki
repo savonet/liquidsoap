@@ -1,0 +1,370 @@
+=====^=====
+##(string, string) -> string##
+Concatenate strings.
+
+=====add=====
+##(?id:string, ?normalize:bool, ?weights:[int], [source]) -> source##
+Add sources, with normalization
+~- ##(unlabeled)## (##[source]##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##normalize## (##bool## | defaults to ##true##)
+~- ##weights## (##[int]## | defaults to ##[  ]##): Relative weight of the sources in the sum. The empty list stands for the homogeneous distribution.
+
+=====add_protocol=====
+##(string, ((string, float) -> [string])) -> unit##
+Register a new protocol.
+
+=====and=====
+##(bool, bool) -> bool##
+Return the conjunction of its arguments
+
+=====assoc=====
+##(string, [(string*string)]) -> string##
+assoc k [...,(k,v),...] = v
+
+=====blank=====
+##(?id:string, ?duration:float) -> source##
+This source is not very noisy :)
+~- ##duration## (##float## | defaults to ##0.##): Duration of blank tracks, default means forever.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====change_volume=====
+##(?id:string, float, source) -> source##
+Scales the amplitude of the signal
+~- ##(unlabeled)## (##source##)
+~- ##(unlabeled)## (##float##): multiplicative factor
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====delay=====
+##(?id:string, float, source) -> source##
+Prevents the child from being ready again too fast after a end of track
+~- ##(unlabeled)## (##source##)
+~- ##(unlabeled)## (##float##): The source won't be ready less than this amount of seconds after any end of track
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====fade.final=====
+##(?id:string, ?duration:float, source) -> source##
+Fade a stream to silence.
+~- ##(unlabeled)## (##source##)
+~- ##duration## (##float## | defaults to ##3.##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====fade.in=====
+##(?id:string, ?duration:float, source) -> source##
+Fade the beginning of every track.
+~- ##(unlabeled)## (##source##)
+~- ##duration## (##float## | defaults to ##3.##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====fade.initial=====
+##(?id:string, ?duration:float, source) -> source##
+Fade the beginning of a stream.
+~- ##(unlabeled)## (##source##)
+~- ##duration## (##float## | defaults to ##3.##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====fade.out=====
+##(?id:string, ?duration:float, source) -> source##
+Fade the end of tracks.
+~- ##(unlabeled)## (##source##)
+~- ##duration## (##float## | defaults to ##3.##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====fallback=====
+##(?id:string, ?track_sensitive:bool, ?before:float, ?transitions:[(source, source) -> source], [source]) -> source##
+At the beginning of each track, select the first ready child.
+~- ##(unlabeled)## (##[source]##): Select the first ready source in this list.
+~- ##before## (##float## | defaults to ##0.##): EXPERIMENTAL: for track_sensitive switches, trigger transitions before the end of track.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##track_sensitive## (##bool## | defaults to ##true##): Re-select only on end of tracks
+~- ##transitions## (##[(source, source) -> source]## | defaults to ##[  ]##): Transition functions, padded with (fun (x,y) -> y) functions.
+
+=====filter=====
+##(?id:string, ~freq:int, ~q:float, ~mode:string, source) -> source##
+Perform several kinds of filtering on the signal
+~- ##(unlabeled)## (##source##)
+~- ##freq## (##int##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##mode## (##string##): low|high|band|notch
+~- ##q## (##float##)
+
+=====get_process_lines=====
+##(string) -> [string]##
+Perform a shell call and return the list of its output lines.
+
+=====get_process_output=====
+##(string) -> string##
+Perform a shell call and return its output.
+
+=====input.alsa=====
+##(?id:string) -> source##
+Alsa microphone input
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====input.http=====
+##(?id:string, string) -> source##
+Forwards the given ogg/vorbis http stream
+~- ##(unlabeled)## (##string##): URL of an http ogg stream.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====input.rtp=====
+##(?id:string, ?ip:string, ?port:int) -> source##
+Input raw stream (including metadata) using RTP.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##ip## (##string## | defaults to ##&quot;224.0.1.20&quot;##): Broadcast address
+~- ##port## (##int## | defaults to ##8888##): Broadcast port
+
+=====mix=====
+##(?id:string, [source]) -> source##
+Mixing table controllable via the telnet interface.
+~- ##(unlabeled)## (##[source]##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====on_metadata=====
+##(?id:string, (([(string*string)]) -> unit), source) -> source##
+Call a given handler on metadata packets.
+~- ##(unlabeled)## (##source##)
+~- ##(unlabeled)## (##([(string*string)]) -> unit##): Function called on every metadata packet in the stream. It should be fast because it is ran in the main thread.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====or=====
+##(bool, bool) -> bool##
+Return the disjunction of its arguments
+
+=====output.alsa=====
+##(?id:string, ?device:string, ?start:bool, source) -> source##
+Output the source's stream to an ALSA output device.
+~- ##(unlabeled)## (##source##)
+~- ##device## (##string## | defaults to ##&quot;hw:0,0&quot;##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##start## (##bool## | defaults to ##true##)
+
+=====output.dummy=====
+##(?id:string, source) -> source##
+Dummy output for debugging purposes.
+~- ##(unlabeled)## (##source##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====output.icecast=====
+##(?id:string, ?start:bool, ?host:string, ?port:int, ?user:string, ?password:string, ?genre:string, ?url:string, ?description:string, ?public:bool, ?multicast_ip:string, ?mount:string, ?name:string, ?bitrate:int, ?freq:int, ?stereo:bool, source) -> source##
+Send a Vorbis stream to an icecast-compatible server.
+~- ##(unlabeled)## (##source##)
+~- ##bitrate## (##int## | defaults to ##128##)
+~- ##description## (##string## | defaults to ##&quot;OCaml Radio!&quot;##)
+~- ##freq## (##int## | defaults to ##44100##)
+~- ##genre## (##string## | defaults to ##&quot;Misc&quot;##)
+~- ##host## (##string## | defaults to ##&quot;localhost&quot;##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##mount## (##string## | defaults to ##&quot;Use [name].ogg&quot;##)
+~- ##multicast_ip## (##string## | defaults to ##&quot;no_multicast&quot;##)
+~- ##name## (##string## | defaults to ##&quot;Use [mount]&quot;##)
+~- ##password## (##string## | defaults to ##&quot;hackme&quot;##)
+~- ##port## (##int## | defaults to ##8000##)
+~- ##public## (##bool## | defaults to ##true##)
+~- ##start## (##bool## | defaults to ##true##): Start output threads on operator initialization.
+~- ##stereo## (##bool## | defaults to ##true##)
+~- ##url## (##string## | defaults to ##&quot;http://savonet.sf.net&quot;##)
+~- ##user## (##string## | defaults to ##&quot;source&quot;##)
+
+=====output.icecast.mp3=====
+##(?id:string, ?start:bool, ?host:string, ?port:int, ?user:string, ?password:string, ?genre:string, ?url:string, ?description:string, ?public:bool, ?multicast_ip:string, ?mount:string, ?name:string, ?samplerate:int, ?quality:int, ?stereo:bool, source) -> source##
+Output the source's stream to an icecast2 compatible server in MP3 format.
+~- ##(unlabeled)## (##source##)
+~- ##description## (##string## | defaults to ##&quot;OCaml Radio!&quot;##)
+~- ##genre## (##string## | defaults to ##&quot;Misc&quot;##)
+~- ##host## (##string## | defaults to ##&quot;localhost&quot;##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##mount## (##string## | defaults to ##&quot;Use [name]&quot;##)
+~- ##multicast_ip## (##string## | defaults to ##&quot;no_multicast&quot;##)
+~- ##name## (##string## | defaults to ##&quot;Use [mount]&quot;##)
+~- ##password## (##string## | defaults to ##&quot;hackme&quot;##)
+~- ##port## (##int## | defaults to ##8000##)
+~- ##public## (##bool## | defaults to ##true##)
+~- ##quality## (##int## | defaults to ##5##)
+~- ##samplerate## (##int## | defaults to ##0##)
+~- ##start## (##bool## | defaults to ##true##): Start output threads on operator initialization.
+~- ##stereo## (##bool## | defaults to ##true##)
+~- ##url## (##string## | defaults to ##&quot;http://savonet.sf.net&quot;##)
+~- ##user## (##string## | defaults to ##&quot;source&quot;##)
+
+=====output.mp3=====
+##(?id:string, ?start:bool, ?samplerate:int, ?quality:int, ?stereo:bool, string, source) -> source##
+Output the source's stream as an MP3 file.
+~- ##(unlabeled)## (##source##)
+~- ##(unlabeled)## (##string##): Filename where to output the MP3 stream.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##quality## (##int## | defaults to ##5##)
+~- ##samplerate## (##int## | defaults to ##0##)
+~- ##start## (##bool## | defaults to ##true##): Start output threads on operator initialization.
+~- ##stereo## (##bool## | defaults to ##true##)
+
+=====output.ogg=====
+##(?id:string, ?start:bool, ?bitrate:int, ?freq:int, ?stereo:bool, string, source) -> source##
+Output the source's stream as an OGG file.
+~- ##(unlabeled)## (##source##)
+~- ##(unlabeled)## (##string##): Filename where to output the OGG stream.
+~- ##bitrate## (##int## | defaults to ##128##)
+~- ##freq## (##int## | defaults to ##44100##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##start## (##bool## | defaults to ##true##): Start output threads on operator initialization.
+~- ##stereo## (##bool## | defaults to ##true##)
+
+=====output.rtp=====
+##(?id:string, ?start:bool, ?ip:string, ?port:int, ?ttl:int, source) -> source##
+Broadcast raw stream (includes metadata) using RTP.
+~- ##(unlabeled)## (##source##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##ip## (##string## | defaults to ##&quot;224.0.1.20&quot;##): Broadcast address
+~- ##port## (##int## | defaults to ##8888##): Broadcast port
+~- ##start## (##bool## | defaults to ##true##): Start output threads on operator initialization.
+~- ##ttl## (##int## | defaults to ##0##): Time to live: how far should the packets go ?
+
+=====output.wav=====
+##(?id:string, ?start:bool, string, source) -> source##
+Output the source's stream to a WAV file.
+~- ##(unlabeled)## (##source##)
+~- ##(unlabeled)## (##string##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##start## (##bool## | defaults to ##true##)
+
+=====playlist=====
+##(?id:string, ?length:float, ?default_duration:float, ?timeout:float, ?mode:string, ?reload:int, ?reload_mode:string, string) -> source##
+Loop on a playlist of URIs.
+~- ##(unlabeled)## (##string##): URI where to find the playlist
+~- ##default_duration## (##float## | defaults to ##30.##): When unknown, assume this duration (in sec.) for files.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##length## (##float## | defaults to ##60.##): How much audio (in sec.) should be downloaded in advance.
+~- ##mode## (##string## | defaults to ##&quot;randomize&quot;##): normal|random|randomize
+~- ##reload## (##int## | defaults to ##0##): Amount of time (in seconds or rounds) before which the playlist is reloaded; 0 means never.
+~- ##reload_mode## (##string## | defaults to ##&quot;seconds&quot;##): rounds|seconds: unit of the 'reload' parameter
+~- ##timeout## (##float## | defaults to ##20.##): Timeout (in sec.) for a single download.
+
+=====playlist.safe=====
+##(?id:string, ?mode:string, ?reload:int, ?reload_mode:string, string) -> source##
+Loop on a playlist of local files, and never fail. In order to do so, it has to check every file at the loading, so the streamer startup may take a few seconds. To avoid this, use a standard playlist, and put only a few local files in a default safe_playlist in order to ensure the liveness of the streamer.
+~- ##(unlabeled)## (##string##): URI where to find the playlist
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##mode## (##string## | defaults to ##&quot;randomize&quot;##): normal|random|randomize
+~- ##reload## (##int## | defaults to ##0##): Amount of time (in seconds or rounds) before which the playlist is reloaded; 0 means never.
+~- ##reload_mode## (##string## | defaults to ##&quot;seconds&quot;##): rounds|seconds: unit of the 'reload' parameter
+
+=====quote=====
+##(string) -> string##
+Escape shell metacharacters.
+
+=====random=====
+##(?id:string, ?track_sensitive:bool, ?before:float, ?transitions:[(source, source) -> source], ?weights:[int], [source]) -> source##
+At the beginning of every track, select a random ready child.
+~- ##(unlabeled)## (##[source]##)
+~- ##before## (##float## | defaults to ##0.##): EXPERIMENTAL: for track_sensitive switches, trigger transitions before the end of track.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##track_sensitive## (##bool## | defaults to ##true##): Re-select only on end of tracks
+~- ##transitions## (##[(source, source) -> source]## | defaults to ##[  ]##): Transition functions, padded with (fun (x,y) -> y) functions.
+~- ##weights## (##[int]## | defaults to ##[  ]##): Weights of the children in the choice.
+
+=====request=====
+##(?indicators:[string], string) -> request##
+Create a request.
+
+=====request.dynamic=====
+##(?id:string, (() -> request), ?length:float, ?default_duration:float, ?timeout:float) -> source##
+Play request dynamically created by a given function.
+~- ##(unlabeled)## (##() -> request##): A function generating requests: an initial URI (possibly fake) together with an initial list of alternative indicators
+~- ##default_duration## (##float## | defaults to ##30.##): When unknown, assume this duration (in sec.) for files.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##length## (##float## | defaults to ##60.##): How much audio (in sec.) should be downloaded in advance.
+~- ##timeout## (##float## | defaults to ##20.##): Timeout (in sec.) for a single download.
+
+=====request.equeue=====
+##(?id:string, ?length:float, ?default_duration:float, ?timeout:float) -> source##
+Receive URIs from users, and play them. Insertion and deletion possible at any position.
+~- ##default_duration## (##float## | defaults to ##30.##): When unknown, assume this duration (in sec.) for files.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##length## (##float## | defaults to ##60.##): How much audio (in sec.) should be downloaded in advance.
+~- ##timeout## (##float## | defaults to ##20.##): Timeout (in sec.) for a single download.
+
+=====request.queue=====
+##(?id:string, ?length:float, ?default_duration:float, ?timeout:float) -> source##
+Receive URIs from users, and play them.
+~- ##default_duration## (##float## | defaults to ##30.##): When unknown, assume this duration (in sec.) for files.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##length## (##float## | defaults to ##60.##): How much audio (in sec.) should be downloaded in advance.
+~- ##timeout## (##float## | defaults to ##20.##): Timeout (in sec.) for a single download.
+
+=====rewrite_metadata=====
+##(?id:string, [(string*string)], source) -> source##
+Rewrite metadata on the fly.
+~- ##(unlabeled)## (##source##)
+~- ##(unlabeled)## (##[(string*string)]##): List of (target,value) rewriting rules.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====say_metadata=====
+##(?id:string, source, ?pattern:string) -> source##
+Pronounce some metadata after a track.
+~- ##(unlabeled)## (##source##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##pattern## (##string## | defaults to ##&quot;say:$(if $(artist),\&quot;It was $(artist)$(if $(title),\\\&quot;, $(title)\\\&quot;).\&quot;)&quot;##)
+
+=====sequence=====
+##(?id:string, ?merge:bool, [source]) -> source##
+Play only one track of every successive source, except for the last one which is played as much as available.
+~- ##(unlabeled)## (##[source]##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##merge## (##bool## | defaults to ##false##)
+
+=====sine=====
+##(?id:string, int) -> source##
+Plays a boring sine...
+~- ##(unlabeled)## (##int##): Frequency of the sine
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+
+=====single=====
+##(?id:string, string, ?length:float, ?default_duration:float, ?timeout:float) -> source##
+Loop on a request. It never fails if the request is static, meaning that it can be fetched once. Typically, http, ftp, say requests are static, and time is not.
+~- ##(unlabeled)## (##string##): URI where to find the file
+~- ##default_duration## (##float## | defaults to ##30.##): When unknown, assume this duration (in sec.) for files.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##length## (##float## | defaults to ##60.##): How much audio (in sec.) should be downloaded in advance.
+~- ##timeout## (##float## | defaults to ##20.##): Timeout (in sec.) for a single download.
+
+=====skip_blank=====
+##(?id:string, ?threshold:float, ?length:float, source) -> source##
+Skip track when detecting a blank
+~- ##(unlabeled)## (##source##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##length## (##float## | defaults to ##20.##): Maximum silence length allowed.
+~- ##threshold## (##float## | defaults to ##100.##): Intensity threshold under which the stream is considered to be blank.
+
+=====store_metadata=====
+##(?id:string, ?size:int, source) -> source##
+Keep track of the last N metadata packets in the stream, and make the history available via a server command.
+~- ##(unlabeled)## (##source##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##size## (##int## | defaults to ##10##): Size of the history
+
+=====strip_blank=====
+##(?id:string, ?threshold:float, ?length:float, source) -> source##
+Strip blanks
+~- ##(unlabeled)## (##source##)
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##length## (##float## | defaults to ##20.##): Maximum silence length allowed.
+~- ##threshold## (##float## | defaults to ##100.##): Intensity threshold under which the stream is considered to be blank.
+
+=====switch=====
+##(?id:string, ?track_sensitive:bool, ?before:float, ?transitions:[(source, source) -> source], ?strict:bool, ?single:[bool], [((() -> bool)*source)]) -> source##
+At the beginning of a track, select the first source Si such than the temporal predicate Ii is true.
+~- ##(unlabeled)## (##[((() -> bool)*source)]##): Sources Si with the interval Ii when they should be played.
+~- ##before## (##float## | defaults to ##0.##): EXPERIMENTAL: for track_sensitive switches, trigger transitions before the end of track.
+~- ##id## (##string## | defaults to ##&quot;&quot;##): Force the value of the source ID
+~- ##single## (##[bool]## | defaults to ##[  ]##): Forbid the selection of a branch for two tracks in a row. The empty list stands for [false,...,false].
+~- ##strict## (##bool## | defaults to ##false##): Unset the operator's ready flag as soon as there is no valid interval, possibly interrupting ongoing tracks.
+~- ##track_sensitive## (##bool## | defaults to ##true##): Re-select only on end of tracks
+~- ##transitions## (##[(source, source) -> source]## | defaults to ##[  ]##): Transition functions, padded with (fun (x,y) -> y) functions.
+
+=====system=====
+##(string) -> unit##
+Shell command call.
+
+=====time_in_mod=====
+##(int, int, int) -> bool##
+INTERNAL: time_in_mod(a,b,c) checks that the unix time T satisfies a <= T mod c < b

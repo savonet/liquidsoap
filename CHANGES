@@ -1,0 +1,49 @@
+0.3.0 (27-08-2006)
+* Many minor and major fixes at every level!
+* Conversion of metadata to UTF8.
+* Got rid of too many threads by scheduling all download tasks
+  in a single thread, and handling all of the server's clients
+  in another single thread.
+* Simplified the time interval syntax and integrated it to the script language.
+* New protocol: Wget for FTP, HTTP and HTTPS.
+* Ability to define a new protocol from the script,
+  typically using an external app/script for resolution, such as bubble.
+* Ability to use an external app/script for dynamically creating requests.
+* New on_metadata operator for performing arbitrary actions (typically
+  a call to an external script) when metadata packets occur in a stream.
+* MP3 encoding, to file or shout.
+* API renamings and simplification.
+* Supports transition, as functions of type (source,source) -> source
+  in all switching operators: schedule, random, fallback.
+* Restart icecast2 outputs on failures.
+* Major changes to the scripting language which is more uniform and flexible,
+  has functions, a helpful (?) type inference, and a simple Ruby-like syntax.
+* Timing constraints and synchronization are managed by Root
+  in a centralized way, no more by the many outputs which need it.
+* Audio decoding is no more based on file extensions,
+  but on the existence of a valid decoder.
+* Added the equeue operators which allows interactive building of playlists,
+  supporting insertion and moving of queued requests -- queue only allows
+  you to push requests and cancel queued requests.
+* A Python-Gtk GUI for controlling operators, or more specifically as a console
+  for creating your live show -- to be updated, still unstable.
+* Alsa input and output.
+* Blank detection, automatically skips on too long blanks, or strip them.
+* Http ogg/vorbis relay, the way to relay live shows.
+* Interactive mixer.
+* The request system was mostly rewritten to really fulfill its specification.
+* The server is no more associated to the queue operator but is now something
+  external, in which all operators can plug commands. This much more logical
+  design lead to many more interactive controls. The syntax of command outputs
+  was also simplified for easier automated processing.
+* Dynamic loading of plugins.
+* Outputs are now operators. It makes it possible to output different streams
+  in a single instance of Liquidsoap, which RadioPi needed. As a consequence
+  we removed the restriction that one source must have at most one father,
+  without any extra burden for the user.
+
+0.2.0 (20-04-2005)
+* Proper initial release.
+
+0.1.0 (2004)
+* Release for academic demonstration, not functionnal.

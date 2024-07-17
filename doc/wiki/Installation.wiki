@@ -1,0 +1,50 @@
+=====Installation=====
+
+Several ways of installing liquidsoap are possible, depending on your Linux distribution. In most of the cases you'll need to figure out which features you want, to know which package you need to install.
+Here are liquidsoap's dependencies:
+~- [[http://www.ocaml-programming.de/programming/findlib.html ocamlfind]]
+~- ocaml-dtools
+~- ocaml-vorbis
+~- ocaml-shout
+And also optional dependencies:
+~- ocaml-mad for mp3 decoding
+~- [[http://www.underbit.com/products/mad/ libid3tag]] for reading mp3's id3 metadata
+~- ocaml-mp3id3 for reading mp3's id3 metadata
+~- [[http://camomile.sourceforge.net/ camomile]] for detecting metadata encodings and re-encoding them to utf8
+~- ocaml-lame for mp3 encoding
+~- ocaml-alsa for alsa input/output
+~- [[http://www.linphone.org/ libortp]] for RTP input/output
+~- [[http://www.gnu.org/software/wget/ wget]] for downloading remote files (http, https, ftp)
+~- ufetch (provided by ocaml-fetch) for downloading remote files (smb, http, ftp)
+~- [[http://www.cstr.ed.ac.uk/projects/festival/ festival]] for speech synthesis (say)
+
+====Debian====
+Debian packages are available on the [[http://sourceforge.net/project/showfiles.php?group_id=89802 download section]] of the project's page on sourceforge. A ##.deb## package, for example ##toto.deb##, can be installed using ##dpkg -i toto.deb##.
+Some day we hope that liquidsoap will be an official Debian package, then the installation procedure will simply be to type (as root):
+%%(bash)
+aptitude install liquidsoap
+%%
+
+====Gentoo====
+Gentoo users can use the [[http://svn.sourceforge.net/viewcvs.cgi/savonet/trunk/savonet/gentoo/ ebuilds]] which are available on the subversion repository. Assuming that you have ##/usr/local/overlays## in your ##PORTDIR_OVERLAY## (in ##make.conf##), just do a:
+%%(bash)
+svn co https://svn.sourceforge.net/svnroot/savonet/trunk/gentoo savonet
+%%
+
+====Install from source tarballs====
+Released source tarballs are available on the [[http://sourceforge.net/project/showfiles.php?group_id=89802 download section]] of the project's page on sourceforge. They all follow the GNU conventions, and are built and installed using the common ##./configure##, ##make## and ##make install##.
+
+====Subversion repository (and other distributions)====
+If you want a cutting-edge version, you can use the subversion repository. To get a copy of it, just run:
+%%(bash)
+svn co https://svn.sourceforge.net/svnroot/savonet/trunk savonet
+%%
+From every sub-project's directory you can build and install the package using ##./bootstrap##, ##./configure##, ##make## and optionally ##make install##.
+From the toplevel ##savonet## directory you can also directly build a vanilla liquidsoap. It's fast and doesn't require you to install the libraries. Among the optional features involving savonet's packages, it will enable ALSA input/output and mp3 decoding, but no mp3 decoding and no RTP. The steps to follow are simple:
+%%(bash)
+./bootstrap
+./configure
+make
+# To install liquidsoap, type as root
+make install
+%%

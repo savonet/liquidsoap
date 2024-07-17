@@ -1,0 +1,47 @@
+#!/bin/sh
+
+user=@install_user@
+group=@install_group@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+confdir=@sysconfdir@/liquidsoap
+liquidsoap=@bindir@/liquidsoap
+rundir=@localstatedir@/run/liquidsoap
+
+case "$1" in
+  stop)
+    echo -n "Stopping channels: "
+    cd $rundir
+    for liq in *.pid ; do
+      if test $liq != '*.pid' ; then
+        echo -n "$liq "
+        start-stop-daemon --stop --quiet --pidfile $liq
+      fi
+    done
+    echo "OK"
+    ;;
+
+  start)
+    echo -n "Starting channels: "
+    cd $confdir
+    for liq in *.liq ; do
+      if test $liq != '*.liq' ; then
+        echo -n "$liq "
+        start-stop-daemon --start --quiet --pidfile $rundir/${liq%.liq}.pid \
+          --chuid $user:$group --exec $liquidsoap -- -d $confdir/$liq
+      fi
+    done
+    echo "OK"
+    ;;
+
+  restart)
+    $0 stop
+    sleep 4
+    $0 start
+    ;;
+
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+    ;;
+esac
