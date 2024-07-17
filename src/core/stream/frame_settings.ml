@@ -37,15 +37,14 @@ let conf =
       ]
 
 let conf_duration =
-  Conf.float ~p:(conf#plug "duration") ~d:0.04
-    "Tentative frame duration in seconds"
+  Conf.float ~p:(conf#plug "duration") ~d:0.01 "Frame duration in seconds"
     ~comments:
       [
-        "Audio samplerate and video frame rate constrain the possible frame \
-         durations.";
-        "This setting is used as a hint for the duration, when \
-         'frame.audio.size'";
-        "is not provided.";
+        "Set frame duration, in seconds.";
+        "This setting control the latency of the streaming system. When set to";
+        "a smaller value, latency is reduced at the expense of more data";
+        "consumption. When set to a larger value, CPU and memory usage should";
+        "go down but latency should increase.";
         "Tweaking frame duration is tricky but needed when dealing with latency";
         "or getting soundcard I/O correctly synchronized with liquidsoap.";
       ]
