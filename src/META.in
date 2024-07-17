@@ -1,0 +1,7 @@
+name="liquidsoap"
+version="@version@"
+description="Liquidsoap library"
+requires="@requires@"
+archive(byte)="liquidsoap.cma"
+archive(native)="liquidsoap.cmxa"
+linkopts = "-thread"

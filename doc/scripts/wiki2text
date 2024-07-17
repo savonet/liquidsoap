@@ -1,0 +1,33 @@
+#!/usr/bin/perl
+
+use File::Basename;
+
+my $file = shift;
+my $base = basename($file);
+$base =~ s/(.*)\.[^\.]*/$1/;
+my $pre=0;
+my $counter=0;
+open(FILE,$file);
+
+while (<FILE>) {
+  s/##(.*?)##/<code>$1<\/code>/g;
+  s/=====(.*?)=====/h3. $1\n/;
+  s/====(.*?)====/h4. $1\n/;
+  s/===(.*?)===/h5. $1\n/;
+  s/==(.*?)==/h6. $1\n/;
+  s/~~~-/*** /;
+  s/~~-/** /;
+  s/~-/* /;
+  s/\/\/(.*?)\/\//_$1_/g;
+  if ($pre==0) 
+  {
+    s/%%(\(.*\))?/$pre=1;$counter+=1; "\n%%(${base}_$counter.raw)"/e;
+  } else {
+    s/%%/$pre=0; "%%\n"/e;
+  }
+  s/\[\[([^\s]*?)\]\]/"$1":$1.html/g;
+  s/\[\[([^\s]*?)\s(.*?)\]\]/"$2":$1.html/g;
+  print ;
+}
+
+close(FILE);

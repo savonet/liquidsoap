@@ -1,0 +1,148 @@
+#play {
+	background: transparent url("images/blocks/play/block_play_bg.png");
+	height: 124px;
+	margin: 0 0 2em;
+}
+
+#play-left {
+	background: transparent url("images/blocks/play/block_play_cl.png") no-repeat scroll top left;
+	width: 20px;
+	height: 124px;
+	float: left;
+	margin: 0;
+	padding: 0;
+}
+
+#play-right {
+	background: transparent url("images/blocks/play/block_play_cr.png") no-repeat scroll top left;
+	width: 20px;
+	height: 124px;
+	float: right;
+	margin: 0;
+	padding: 0;
+}
+
+#play h3 {
+	text-indent: -9000px;
+	height: 124px;
+	width: 58px;
+	float: left;
+	background: transparent url("images/blocks/play/block_play_arrow.png") no-repeat scroll top left;
+	margin: 0 8% 0 5%;
+	padding: 0;
+}
+
+#play p {
+	text-indent: -9000px;
+	height: 124px;
+	width: 203px;
+	float: left;
+	background: transparent url("images/blocks/play/block_play_text.png") no-repeat scroll top left;
+	margin: 0;
+	padding: 0;
+}
+
+h3#abcs {
+	display: none;
+}
+
+#fleche123 {
+	background: transparent url("images/blocks/fleche123.png") no-repeat scroll top left;
+	width: 393px;
+	height: 155px;
+	list-style-type: none;
+	padding: 0;
+	margin: 2em 0;
+	position: relative;
+}
+
+#fleche123 li a {
+	text-indent: -9000px;
+	display: block;
+	margin: 0;
+	padding: 0;
+	height: 132px;
+	position: absolute;
+}
+
+#fleche123 li#fleche123-is a {
+	width: 113px;
+}
+
+#fleche123 li#fleche123-dl a {
+	width: 135px;
+	left: 113px;
+}
+
+#fleche123 li#fleche123-ej a {
+	width: 82px;
+	left: 248px;
+}
+
+div.step {
+	margin: 0;
+	border: solid #C9F;
+	border-width: 0 1px 1px;
+	background-color: #FCF;
+	margin-bottom: 1em;
+}
+
+div.step h3 {
+	height: 20px;
+	margin: 0 -1px;
+	background: #906 url("images/tabs/tab_red_bg.png") repeat-x scroll top left;
+}
+
+div.step h3 span.left, div.step h3 span.right {
+	display: block;
+	height: 20px;
+	width: 10px;
+	background: transparent no-repeat scroll top left;
+}
+
+div.step h3 span.left {
+	background-image: url("images/tabs/tab_red_l.png");
+	float: left;
+}
+
+div.step h3 span.right {
+	background-image: url("images/tabs/tab_red_r.png");
+	float: right;
+	background-position: right top;
+}
+
+div.step h3 span.text {
+	padding: 0 0.5em;
+	margin-right: 2em;
+	float: right;
+	display: block;
+	text-indent: -9000px;
+	height: 18px;
+	background: #FFF no-repeat scroll center top;
+}
+
+div.step h3 span#step-download {
+	width: 68px;
+	background-image: url("images/tabs/btn_dl.png");
+}
+
+div.step h3 span#step-install {
+	width: 92px;
+	background-image: url("images/tabs/btn_iands.png");
+}
+
+div.step h3 span#step-enjoy {
+	width: 119px;
+	background-image: url("images/tabs/btn_eys.png");
+}
+
+div.step .step-content {
+	margin: 0;
+	padding: 0 0.5em;
+	text-align: justify;
+	font-size: 10pt;
+}
+
+div.step .step-content p {
+	text-indent: 1em;
+}

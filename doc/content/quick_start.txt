@@ -1,0 +1,198 @@
+title: Quick Start with Liquidsoap
+
+h3. Quickstart
+
+h4. The Internet radio toolchain
+
+"Liquidsoap":index.html is a general audio stream generator, but is mainly intended for Internet radios. Before starting with the proper Liquidsoap tutorial let's describe quickly the components of the internet radio toolchain, in case the reader is not familiar with it.
+
+The chain is made of:
+
+* the stream generator (Liquidsoap, "ices":http://www.icecast.org/ices.php, or for example a DJ-software running on your local PC) which creates an audio stream (Ogg Vorbis or MP3);
+* the streaming media server ("Icecast":http://www.icecast.org, "Shoutcast":http://www.shoutcast.com, ...) which relays several streams from their sources to their listeners;
+* the media player (xmms, Winamp, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
+
+!images/schema-webradio-inkscape.png(Internet radio toolchain)!
+
+The stream is always passed from the stream generator to the server, whether or not there are listeners. It is then sent by the server to every listener. The more listeners you have, the more bandwidth you need.
+
+If you use Icecast, you can broadcast more than one audio feed using the same server. Each audio feed or stream is identified by its "mount point" on the server. If you connect to the <code>foo.ogg</code> mount point, the URL of your stream will be "http://localhost:8000/foo.ogg":http://localhost:8000/foo.ogg -- assuming that your Icecast is on localhost on port 8000. If you need further information on this you might want to read Icecast's "documentation":http://www.icecast.org. A proper setup of a streaming server is required for running savonet.
+
+Now, let's create an audio stream.
+
+h4. Starting to use Liquidsoap
+
+In this tutorial we assume that you have a fully installedLiquidsoap. In particular the library <code>utils.liq</code> should have been installed, otherwise Liquidsoap won't know the operators which have been defined there. If you installed into the default <code>/usr/local</code> you will find it inside <code>/usr/local/lib/liquidsoap/</code>.
+
+h5. Sources
+
+A stream is built with Liquidsoap by using or creating sources. A source is an annotated audio stream. In the following picture we represent a stream which has at least three tracks (one of which starts before the snapshot), and a few metadata packets (notice that they do not necessarily coincide with new tracks).
+
+!images/stream.png(A stream)!
+
+In a Liquidsoap script, you build source objects. Liquidsoap provides many functions for creating sources from scratch (e.g. <code>playlist</code>), and also for creating complex sources by putting together simpler ones (e.g. <code>switch</code> in the following example). Some of these functions (typically the <code>output.*</code>) create an active source, which will continuously pull its children's stream and output it to speakers, to a file, to a streaming server, etc. These active sources are the roots of a Liquidsoap instance, the sources which bring life into it.
+
+h5. That source is fallible!
+
+There may always be errors with your streaming setup. If your source consists of a playlist, this playlist might not be able to find the files it contains because you put them at a wrong place. Liquidsoap also offers you a way to broadcast files from remote places. This remote connection might be broken at the time Liquidsoap expects it to be available. 
+In Liquidsoap, we say that a source is infallible if it will be always available. Otherwise, it is fallible. A playlist is fallible because it does not check its files in advance, and because files can be remote. A user request queue is an other example of fallible source. If <code>file.ogg</code> is a valid local file, then <code>single("file.ogg")</code> will be an infallible source. You can also build infallible playlists by using the <code>playlist.safe</code> function; it will then check all files at startup, and won't accept remote files.
+
+Liquidsoap checks that the child of an output is infallible, so that you can trust your output. The function <code>mksafe</code> takes a source and returns an infallible source, by streaming silence when the input stream becomes unavailable. The default speaker output <code>out</code> actually uses <code>mksafe</code> in its definition. For other outputs, we ask the user to explicitly write the fallback method, if one is needed. You can use <code>mksafe</code> (especially if you trust that your theoretically fallible source will never fail in practice), but there are other methods for dealing with failures, e.g. playing a default file: 
+
+%%
+fallback([put_your_source_here, single("failure.ogg")])
+%%
+
+h4. One-line expressions
+
+Liquidsoap is a scripting language. Many simple setups can be achieved by evaluating one-line expressions.
+
+h5. Playlists
+
+In the first example we'll play a playlist. Let's put a list of audio files in 
+<code>playlist.pls</code>: one filename per line, lines starting with a @#@ are 
+ignored. You can also put remote files' URLs, if your liquidsoap has 
+"support":help.html#plugins for the corresponding protocols. You can also use a directory name instead of a playlist, and liquidsoap will recursively look for audio files in it. Then just run:
+
+%%
+liquidsoap 'out(playlist("playlist.m3u"))'
+%%
+
+(Although full M3U format should be supported by liquidsoap, we advise you to use the much simpler one-file-per-line format.)
+
+Depending on your configuration, the output <code>out</code> will use AO, Alsa or OSS, or won't do anything if you do not have support for these libs. In that case, the next example is for you.
+
+h5. Streaming out to a server
+
+Liquidsoap is capable of playing audio on your speakers, but it can also send audio to a streaming server such as Icecast or Shoutcast. You can choose between two widespread audio codecs: MP3 and Ogg Vorbis. One instance of liquidsoap can stream one audio feed in many formats (and even many audio feeds in many formats!).
+
+You may already have an Icecast server. Otherwise you can install and configure your own Icecast server. The configuration typically consists in setting the admin and source passwords, in <code>/etc/icecast2/icecast.xml</code>. These passwords should really be changed if your server is visible from the hostile internet, unless you want people to kick your source as admins, or add their own source and steal your bandwidth.
+
+We are now going to send an audio stream, encoded as Ogg Vorbis, to an Icecast server:
+
+%%(icecast.sh)
+liquidsoap 
+  'output.icecast.vorbis(
+     host = "localhost", port = 8000, \
+     password = "hackme", mount = "liq.ogg", \
+     mksafe(playlist("playlist.m3u")))'
+%%
+
+The main difference with the previous is that we used <code>output.icecast.vorbis</code> instead of <code>out</code>. The second difference is the use of the <code>mksafe</code> which turns your fallible playlist source into an infallible source.
+
+Streaming to Shoutcast is quite similar, using the <code>output.shoutcast.mp3</code> function:
+
+%%(shoutcast.sh)
+liquidsoap 'output.shoutcast.mp3( \
+                host="localhost", port = 8000, \
+	        password = "changeme", \
+	        mksafe(playlist("playlist.m3u")))'
+%%
+
+h5. Input from another streaming server
+
+Liquidsoap can use another stream as an audio source. This may be useful if you do some live shows.
+
+%%(out.sh)
+liquidsoap '
+  out(input.http("http://dolebrai.net:8000/dolebrai.ogg"))'
+%%
+
+h5. Input from the soundcard
+
+If you're lucky and have a working ALSA support, try one of these... but beware that ALSA may not work out of the box.
+
+%%(alsa_output.sh)
+liquidsoap 'output.alsa(input.alsa())'
+%%
+
+%%(alsa_output_unbuffered.sh)
+liquidsoap 'output.alsa(bufferize = false,
+                        input.alsa(bufferize = false))'
+%%
+
+h5. Other examples
+
+You can play with many more examples. Here are a few more. To build your own, 
+lookup the "API documentation":reference.html to check what functions are available, and what parameters they accept.
+
+%%(out_playlist.sh)
+# Listen to your playlist, but normalize the volume
+liquidsoap 'out(normalize(playlist("playlist_file")))'
+%%
+
+%%(out_smartcross.sh)
+# ... same, but also add smart cross-fading
+liquidsoap 'out(smart_crossfade(
+                  normalize(playlist("playlist_file"))))'
+%%
+
+h4. Script files
+
+We have seen how to create a very basic stream using one-line expressions. If you need something a little bit more complicated, they will prove uneasy to manage. In order to make your code more readable, you can write it down to a file, named with the extension <code>.liq</code> (eg: <code>myscript.liq</code>).
+
+To run the script:
+
+<pre>
+liquidsoap myscript.liq
+</pre>
+
+On UNIX, you can also put <code>#!/path/to/your/liquidsoap</code> as the first line of your script ("shebang"). Don't forget to make the file executable:
+
+<pre>
+chmod u+x myscript.liq
+</pre>
+
+Then you'll be able to run it like this:
+
+<pre>
+./myscript.liq
+</pre>
+
+Usually, the path of the liquidsoap executable is <code>#/usr/bin/liquidsoap</code>, and we'll use this in the following.
+
+h4. A simple radio
+
+We will start with a basic radio station, that plays songs randomly chosen from a playlist, adds a few jingles (more or less one every four songs), and output an Ogg Vorbis stream to an Icecast server.
+
+Before reading the code of the corresponding liquidsoap script, it might be useful to visualize the streaming process with the following tree-like diagram. The idea is that the audio streams flows through this diagram, following the arrows. In this case the nodes (<code>fallback</code> and <code>random</code>) select one of the incoming streams and relay it. The final node <code>output.icecast.vorbis</code> is an output: it actively pulls the data out of the graph and sends it to the world.
+
+!images/basic-radio-graph.png(Graph for 'basic-radio.liq')!
+
+%%(radio_basic.liq)
+#!/usr/bin/liquidsoap
+# Log dir
+set("log.file.path","/tmp/basic-radio.log")
+
+# Music
+myplaylist = playlist("~/radio/music.m3u")
+# Some jingles
+jingles = playlist("~/radio/jingles.m3u")
+# If something goes wrong, we'll play this
+security = single("~/radio/sounds/default.ogg")
+
+# Start building the feed with music
+radio = myplaylist
+# Now add some jingles
+radio = random(weights = [1, 4],[jingles, radio])
+# And finally the security
+radio = fallback(track_sensitive = false, [radio, security])
+
+ # Stream it out
+output.icecast.vorbis(
+  host = "localhost", port = 8000,
+  password = "hackme", mount = "basic-radio.ogg",
+  radio)
+%%
+
+h4. What's next?
+
+You can first have a look at a "more complex example":complete_case.html. There is also a second tutorial about "advanced techniques":advanced.html.
+
+You should definitely learn how to get "help":help.html.
+If you know enough liquidsoap for your use, you'll only need to refer to the
+"scripting reference":reference.html, or see the "cookbook":cookbook.html.
+At some point,
+you might read more about Liquidsoap's "scripting language":language.html.
+For a better understanding  of liquidsoap,
+it is also good to look at the basic "concepts of the system":concepts.html.

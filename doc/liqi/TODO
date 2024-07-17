@@ -1,0 +1,7 @@
+Multiline list items
+URL syntax is ambiguous
+Unicode accentuated symbols
+
+Differences with Textile:
+ Emphasize (_) and bold-face (**) are restricted to within the same line.
+ Paragraphs can be made of multiple lines, a blank line separates paragraphs.

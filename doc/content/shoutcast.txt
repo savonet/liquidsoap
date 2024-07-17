@@ -1,0 +1,37 @@
+title: Streaming to Shoutcast
+
+h3. Streaming to Shoutcast
+
+
+Although LiquidSoap is primarily aimed at streaming to Icecast servers (that provide much more features than Shoutcast), it is also able to stream to Shoutcast, thanks to <code>libshout</code>.
+
+h4. <code>output.shoutcast.mp3</code>
+
+You can use the function <code>output.shoutcast.mp3</code> to feed
+your server with audio data:
+
+%%(shoutcast.liq)
+source = single("audiofile.ogg")
+
+output.shoutcast.mp3(host="shoutcast.example.org",
+                     port=8000, password="changeme",
+                     source)
+%%
+
+The options of <code>output.shoutcast.mp3</code> are the same as those of <code>output.icecast.mp3</code>, except for <code>mount</code> that does not exist in the Shoutcast world, and <code>protocol</code>, which is forced to ICY. This means you can set the bitrate, the samplerate, etc as you see fit. Don't forget to set your station's name / genre / description / website. Important note : you cannot set AIM / ICQ / IRC contacts, due to a limitation within libshout.
+
+The function is defined in <code>utils.liq</code>. You need to compile LiquidSoap with <code>lame</code> support, so that it can encode to MP3.
+
+h4. Shoutcast as relay
+
+A side note for those of you who feel they "need" to use Shoutcast for non-technical reasons (such as their stream directory service...): you can still benefit from Icecast's power by streaming to an Icecast server, and then relaying it through a Shoutcast server.
+
+In order to do that, you have to alias the root mountpoint ("<code>/</code>") to your MP3 mountpoint in your Icecast server configuration, like this:
+
+
+<pre>
+&lt;alias source="/" dest="/mystream.mp3" /&gt;
+</pre>
+
+
+Be careful that Icecast often aliases the status page (<code>/status.xsl</code>) with the <code>/</code>. In this case, comment out the status page alias before inserting yours.

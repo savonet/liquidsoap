@@ -1,0 +1,71 @@
+title: Customize metadata
+
+
+h3. Customize metadata using liquidsoap
+
+Liquidsoap has several mechanism for manipulating the metadata attached to your stream. In this page we quickly detail and compare the different operators, see the "language reference":reference.html for full details about them.
+
+**Warning**. The protocol used by Shoutcast and Icecast before version 2 does not support many fields. It mainly support one: <code>song</code>. So, if you need to customize the metadata displayed by these servers, you should customize only the <code>song</code> metadata.
+
+h4. Rewrite metadata
+
+<code>rewrite_metadata</code> rewrites metadata using a list of (target,rules). The semantic for the replacement rules is that of the <code>%</code> function. Namely, <code>(pattern % [...,(k,v),...])</code> changes in @pattern@ occurences of:
+
+* <code>'$(k)'</code> into <code>"v"</code>;
+* <code>'$(if $(k2),"a","b")'</code> into <code>"a"</code> if <code>k2</code> is found in the list, <code>"b"</code> otherwise.
+
+A sample code using this operator can be:
+%%(rewrite_metadata.liq)
+# The 'display_artist' field is passed using annotate.
+pattern = 
+  '$(if $(display_artist),"$(display_artist)","$(artist)")'
+rewrite_medatata([("artist",pattern)],source)
+%%
+
+h4. Map_metadata 
+
+The <code>map_metadata</code> operator applies a specified function to transform each metadata chunk of a stream. It can be used to add or decorate metadata, but is also useful in more complex cases.
+
+As an example of use, the <code>rewrite_metadata</code> operator is implemented as a specialization of @map_metadata@ as follows:
+%%(lang_rewrite.liq)
+# Rewrite metadata on the fly using a list of (target,rule).
+# @category Source / Track Processing
+# @param l  List of (target,value) rewriting rules
+# @param ~insert_missing \
+#           Treat track beginnings without metadata \
+#           as having empty ones.
+def rewrite_metadata(l,~insert_missing=true,s)
+  def map(m)
+    def apply(x)
+      label = fst(x)
+      meta = snd(x)
+      if list.mem_assoc(label,l) then
+        pattern = l[label]
+        (label,pattern % m)
+      else
+        (label,meta)
+      end
+    end
+    m = list.map(apply,m)
+    def add(m,x)
+      label = fst(x)
+      pattern = snd(x)
+      # If m does not have (label,_), then it was
+      # not processed previously, we have to
+      # add it now..
+      if not list.mem_assoc(label,m) then
+        list.append(m,[(label,pattern % m)])
+      else
+        m
+      end
+    end
+    list.fold(add,m,l)
+  end
+  map_metadata(map,insert_missing=insert_missing,s)
+end
+%%
+
+h4. Insert_medatata
+
+This operator is used for inserting metadata using a server command. If you have an @insert_metadata@ node named @ID@ in your configuration, you can connect to the server (either telnet or socket) and execute commands like: 
+<pre>ID.insert key1="val1",key2="val2",...</pre>

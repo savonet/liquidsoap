@@ -1,0 +1,65 @@
+title: HTTP and harbot inputs.
+
+h3. HTTP input
+
+Liquidsoap can create a source that pulls its data from an HTTP location. This location can be a distant file or playlist, or an icecast or shoutcast stream.
+
+To use it in your script, simply create a source that way:
+%%(http_source.liq)
+# url is a HTTP location, like
+# http://radiopi.org:8080/reggae
+source = input.http(url)
+%%
+
+This operator will pull regulary the given location for its data, so it should be used for locations that are assumed to be available most of the time. If not, it might generate unnecessary traffic and polute the logs. In this case, it is perhaps better to inverse the paradigm and use the <code>input.harbor</code> operator.
+
+h3. Harbor input
+
+Liquidsoap is also able to receive a source using icecast or shoutcast source protocol with the <code>input.harbor</code> operator. Using this operator, the running liquidsoap will open a network socket and wait for an incoming connection.
+
+This operator is very useful to seamlessly add live streams
+into your final streams:
+you configure the live source client to connect directly to liquidsoap,
+and manage the switch to and from the live inside your script.
+
+h4. Parameters
+
+The parameters for harbor can be retreived using
+<code>liquidsoap --conf-descr-key harbor</code>. They are:
+
+* <code>harbor.bind_addr</code>: IP address on which the HTTP stream receiver should listen. The default is <code>"0.0.0.0"</code>. You can use this parameter to restrict connections only to your LAN.
+* <code>harbor.port</code>: Port on which the HTTP stream receiver should listen. Defaults to <code>8005</code>.
+* <code>harbor.icy</code>: By default, harbor communicates with source clients using the Icecast2 protocol. Enable this setting if you plan to use the Shoutcast/ICY protocol instead. If so, you should configure the source clients to use port <code>harbor.port</code>, but beware that they will also need access to <code>harbor.port+1</code>.
+* <code>harbor.password</code>: Password for source connection. Defaults to <code>"hackme"</code>.
+* <code>harbor.username</code>: Username for source connection. Defaults to <code>"source"</code>.
+* <code>harbor.timeout</code>: Timeout for source connection, in seconds. Defaults to <code>30.</code>.
+
+h4. Usage
+
+When using harbor inputs, you first set the required settings, as described above. Then, you define each source using <code>input.harbor("mountpoint")</code>. This source is faillible and will become available when a source client is connected. 
+
+The unlabeled parameter is the mount point that the source client may connect
+to. It should be @"/"@ for shoutcast source clients.
+
+The source client may use any of the recognized audio input codec. Hence, when using shoucast source clients, you need to have compiled liquidsoap with mp3 decoding support (<code>ocaml-mad</code>)
+
+A sample code can be:
+%%(harbor_source.liq)
+set("harbor.bind_addr","0.0.0.0")
+set("harbor.port",8000)
+set("harbor.password","XXXX")
+
+# Some code...
+
+# This defines a source waiting on mount point /test-harbor
+live = input.harbor("test-harbor")
+
+# This is the final stream.
+# Uses the live source as soon as available,
+# and don't wait for an end of track, since 
+# we don't want to cut the beginning of the live
+# stream.
+#
+# You may insert a jingle transition here...
+radio = fallback(track_sensitive=false,[live,files])
+%%

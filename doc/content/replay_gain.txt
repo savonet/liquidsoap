@@ -1,0 +1,84 @@
+
+h3. Normalization and replay gain
+
+h4. Normalization
+
+If you want to have a constant average volume on an audio stream, you can use the <code>normalize</code> operator. However, this operator cannot guess the volume of the whole stream, and can be "surprised" by rapide changes of the volume. This can lead to a volume that is too low, too high, oscillates. In some cases, dynamic normalization also creates saturation.
+
+To tweak the normalization, several parameters are available. These are listed and explained in the "reference":reference.html and also visible by executing <code>liquidsoap -h normalize</code>. However, if the stream you want to normalize consist of audio files, using the replay gain technology might be a better choice.
+
+h4. Replay gain
+
+"Replay gain":http://www.replaygain.org is a proposed standard that is (more or less) respected by many open-source tools. It provides a way to obtain an overall uniform perceived loudness over a track or a set of tracks. The computation of the loudness is based on how the human ear actually perceives each range of frequency. Having computed the average perceived loudness on a track or an album, it is easy to renormalize the tracks when playing, ensuring a comfortable, consistent listening experience.
+
+Because it is track-based, replay gain does not suffer from the typical problems of stream-based, dynamic approaches. Namely, these distort the initial audio, since they constantly adapt the amplification factor. Sometimes it oscillates too quickly in a weird audible way. Sometimes it does not adapt quickly enough, leading to under or over-amplified sections.
+
+On the other hand, replay gain has its drawbacks. First, it requires an initial computation that is a bit costly. This computation can be done once for all for local files -- subsequent calls can then retrieve the result from the metadata. Although not impossible in theory, there is no recipe for liquidsoap to offer the same feature on remote files.
+
+h5. How to use replay gain in Liquidsoap
+
+In theory, there are two independant parts: computing the replay gain and tagging the files with that information, and retrieving the gain from the metadata when playing the file, in order to renormalize it. In practice, everybody will want to use the same script that triggers the computation if needed even if they do not need that part, because the replay gain metadata is stored in some exotic format that liquidsoap does not support directly yet. Instead, it relies on the replay gain computation tools to extract them.
+
+h5. Renormalizing according to some metadata field
+
+The <code>amplify()</code> operator can behave according to metadata. Its <code>override</code> parameter indicates a metadata field that, when present and well-formed, overrides the amplification factor. Well formed fields are floats (e.g. <code>2</code> or <code>0.7</code>) for linear amplification factors and floats postfixed with <code>dB</code> (e.g. <code>-2 dB</code>) for logarithmic ones.
+
+For replay gain implementation, the <code>amplify</code> operator would typically be added immediately on top of the basic tracks source, before transitions or other audio processing operators. We follow these lines in the next example, where the <code>replay_gain</code> field is used to carry the information:
+
+%%(replaygain.liq)
+list    = playlist("~/playlist")
+default = single("~/default.ogg")
+
+s = fallback([list,default])
+s = amplify(1.,override="replay_gain",s)
+
+# Here: other effects, and finally the output...
+%%
+
+h5. Computing and retrieving the data: the replay gain protocol
+
+In practice, the replay gain information can be found in various fields depending on the audio format and the replay gain computation tool. Here is a little script that does the translation for MP3 and Vorbis files. It works as a protocol resolver, taking a filename and returning an URI.
+
+You can run it outside of liquidsoap for testing. It requires the tools <code>mp3gain</code> and <code>vorbisgain</code>, and will affect your files: after the first computation of the replay gain, that information will be stored in the metadata.
+
+%%(replaygain.pl)
+#!/usr/bin/perl -w
+
+use strict ;
+
+my $file = $ARGV[0] || die ;
+
+if ($file =~ /\.mp3$/i) {
+
+  my $out = `nice -n 20 mp3gain "$file" 2> /dev/null` ;
+  $out =~ /Recommended "Track" dB change: (.*)$/m || die ;
+  print "annotate:replay_gain=\"$1 dB\":$file\n" ;
+
+} elsif ($file =~ /\.ogg$/i) {
+
+  system("nice -n 20 vorbisgain -f \"$file\" \
+          2>/dev/null >/dev/null") ;
+  my $info = `ogginfo "$file"` ;
+  $info =~ /REPLAYGAIN_TRACK_GAIN=(.*) dB/ || die ;
+  print "annotate:replay_gain=\"$1 dB\":$file\n" ;
+
+} else {
+
+  print "$file\n" ;
+
+}
+%%
+
+Then, we hook this script to the <code>replay_gain</code> protocol in our liquidsoap script:
+
+%%(replaygainproto.liq)
+# This would usually be done at the beginning of a script,
+# although it does not matter.
+add_protocol("replay_gain",
+  fun (arg,delay) ->
+    get_process_lines("/to/replaygain.pl #{quote(arg)}"))
+%%
+
+That's it. Now everytime you want to access a file, do it through your new protocol: for example replace <code>/path/to/file.mp3</code> by <code>replay_gain:/path/to/file.mp3</code>. The resolving of the protocol will trigger a call to our script, which will return an annotated request, finally resulting in your file with the extra <code>replay_gain</code> metadata.
+
+Prepending all files with <code>replay_gain</code> is easiest if you are using a script behind some <code>request.dynamic</code> operator. If you are using playlists, then you will have to edit them (preferably using a script or good macros) or change the way you generate them.

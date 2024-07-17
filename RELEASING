@@ -1,0 +1,20 @@
+-----------------------------
+- How to release liquidsoap -
+-----------------------------
+
+ [] Update copyright years in headers and check that all files have license
+     headers.
+ [] Check version in configure.ac, README and INSTALL.
+ [] Check version and contents in the man pages (mainly doc/liquidsoap.1).
+ [] Check files in liquidsoap_doc_sources in the Makefile.
+ [] Update dependencies in INSTALL.
+ [] Fill-in CHANGES, with the release date.
+ [] make tarball
+
+
+At least on one configuration (preferably all-yes)
+-----------------------------
+
+ [] Check that the tarball builds correctly.
+ [] Check that the doc builds correctly.
+ [] Check that the installation works.

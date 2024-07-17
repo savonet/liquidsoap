@@ -1,0 +1,18 @@
+title: Queued requests
+
+h3. Queued sources
+
+Liquidsoap has a built-in notion of a source being a queue of request. 
+
+There are two operators for creating such sources: @request.queue@ and @request.equeue@. The former is a queued source where you can only push new requests, while the later can be edited.
+
+More precisely, both operators deal with two queues: @primary@ and @secondary@ queue. The primary queue is a queue for requests that are meant for being played. In particular, it is not editable when using @request.equeue@. The primary queue is filled with the requests from the secondaty queue until it has enough data prepared. Requests in the secondary queue are not resolved, so they may be dropped if resolving failed when pusing them into the primary queue.
+
+You can set how many requests will be in that primary queue by tweaking the minimal length of audio data that you request, using the @length@ parameter. For instance, a value of @1.@ will most likely be filled with the first resolved request.
+
+Also, you can use the @default_duration@ when no duration is available from the file. This is the case with mp3, as the format doesn't allow a quick length checkout on a file.
+
+Duration can be also set per-request, using the "duration" metadata. 
+
+You can interact with those sources using the "command server":advanced.html.
+
