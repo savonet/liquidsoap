@@ -1,0 +1,177 @@
+
+.PHONY: all all-subdirs all-local 
+.PHONY: all-auto all-auto-ocaml-prog clean-buildings install-auto
+.PHONY: clean clean-subdirs clean-local
+.PHONY: install install-subdirs install-local
+.PHONY: dist tarball dist-subdirs dist-local
+.PHONY: doc doc-local doc-subdirs doc-auto
+
+include $(top_srcdir)/Makefile.defs
+
+all: all-local all-subdirs all-auto
+install: install-local install-subdirs install-auto
+clean: clean-subdirs clean-local clean-buildings
+	rm -f *.cmo *.cmi *.cmx *.cma *.cmxa *.o *.annot
+doc: doc-local doc-subdirs doc-auto
+
+# Those rules must be bound
+
+all-local:
+install-local:
+clean-local:
+
+# Recursions
+
+all-subdirs:
+	@for dir in $(SUBDIRS) ; do \
+		$(MAKE) -C $$dir all || exit $$? ; \
+	done
+
+install-subdirs:
+	@for dir in $(SUBDIRS) ; do \
+		$(MAKE) -C $$dir install || exit $$? ; \
+	done
+
+clean-subdirs:
+	-@for dir in $(SUBDIRS) ; do \
+		$(MAKE) -C $$dir clean || exit $$? ; \
+	done
+
+doc-subdirs:
+	-@for dir in $(SUBDIRS) ; do \
+		$(MAKE) -C $$dir doc || exit $$? ; \
+	done
+
+#
+# Install
+#
+##############################################################################
+
+install-auto: all-auto
+ifdef ocaml_progs
+	$(INSTALL) -d $(bindir)
+	for prog in $(ocaml_progs) ; do \
+		$(INSTALL_PROGRAM) $$prog $(bindir) || exit $$? ; \
+	done
+endif
+
+#
+# Automatic buildings
+#
+##############################################################################
+
+clean-buildings:
+	@if test -f auto_clean ; then \
+		cat auto_clean | xargs rm -f ; \
+		rm -f auto_clean ; \
+	fi
+ifdef ocaml_tests
+	rm -f *_depend
+endif
+ifdef ocaml_progs
+	rm -f *_depend
+	rm -f $(ocaml_progs)
+endif
+
+all-auto: all-auto-ocaml-prog
+
+all-auto-ocaml-prog:
+	@for prog in $(ocaml_progs) $(if $(BUILD_TESTS),$(ocaml_tests)) ; do \
+		make PROG=$$prog $$prog || exit $$? ; \
+	done
+
+ifdef PROG
+$(PROG)_headers=$(wildcard $($(PROG)_sources:.ml=.mli))
+
+-include $(PROG)_depend
+
+$(PROG)_depend: $($(PROG)_sources) $($(PROG)_headers)
+	$(V)echo OCAMLDEP
+	$(V)$(OCAMLDEP) $(_DEP_OPTS) $(DEP_OPTS) \
+		$($(PROG)_sources) $($(PROG)_headers) > $@
+
+$(PROG): $($(PROG)_sources:.ml=.$(o))
+	$(V)echo OCAMLC -o $(PROG)
+	$(V)$(OCAMLC) -o $(PROG) \
+		$(_OCAML_CFLAGS) $(OCAML_CFLAGS) \
+		$(_OCAML_LFLAGS) $(OCAML_LFLAGS) \
+		$($(PROG)_sources:.ml=.$(o)) $($(PROG)_objs)
+endif
+
+%.ml: %.mll
+	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
+	$(V)echo OCAMLLEX $<
+	$(V)$(OCAMLLEX) $<
+%.ml %.mli: %.mly
+	@echo $(@:.ml=.mli) $(@:.mli=.ml) >> auto_clean
+	$(V)echo OCAMLYACC $<
+	$(V)$(OCAMLYACC) $<
+
+%.$(o): %.ml
+	$(V)echo OCAMLC -c $<
+	$(V)$(OCAMLC) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) -c $<
+%.$(i): %.mli
+	$(V)echo OCAMLC -c $<
+	$(V)$(OCAMLC) $(_OCAML_CFLAGS) $(OCAML_CFLAGS) -c $<
+
+#
+# dist
+#
+##############################################################################
+
+dist-subdirs:
+	for dir in $(SUBDIRS) ; do \
+		mkdir $(DDIR)/$$dir || exit $$? ; \
+		DDIR="../$(DDIR)/$$dir" make -C $$dir dist-local \
+		|| exit $$? ; \
+	done
+
+dist-local: dist-subdirs
+ifdef DISTFILES
+	cp $(DISTFILES) $(DDIR)
+endif
+
+dist:
+	@a=`cd $(top_srcdir) ; pwd ` ; b=`pwd` ; [ "eq$$a" = "eq$$b" ] \
+		|| (echo You must be at toplevel to invoke make dist. \
+			&& exit $$?)
+	rm -rf $(DISTDIR)
+	mkdir $(DISTDIR)
+	DDIR=$(DISTDIR) make dist-local
+
+configure: configure.ac install-sh
+	./bootstrap
+
+# TODO don't put generated .ml in the tarball
+tarball: configure dist
+	tar cjf $(DISTDIR).tar.bz2 $(DISTDIR)
+	rm -rf $(DISTDIR)
+
+#
+# Documentation
+#
+###############################################################################
+
+ifdef PROG
+
+_OCAML_DFLAGS=$(shell echo $(_OCAML_CFLAGS) $(OCAML_CFLAGS) | perl -pe 's/(-g|-thread|-custom|-cclib\s*\S+)//g ; s/-package\s*([a-z])([^\s]+)/"-package $$1$$2 -hide ".(uc $$1).$$2/ge')
+_OCAML_DFILES=$(shell echo $($(PROG)_doc_sources) | perl -pe 's/[^\s]+\.[co]//g')
+_OCAML_DFILES_H=$(wildcard $(_OCAML_DFILES:.ml=.mli))
+
+$(PROG)_doc:
+	mkdir -p $(top_srcdir)/autodoc/$(PROG)
+	ocamlfind ocamldoc -stars -html -d $(top_srcdir)/autodoc/$(PROG) \
+	-t $(PROG) -I +threads \
+	$(OCAML_DFLAGS) $(_OCAML_DFLAGS) $(_OCAML_DFILES) $(_OCAML_DFILES_H)
+
+endif
+
+ifdef ocaml_progs
+doc-auto: all-auto-ocaml-prog
+	for prog in $(ocaml_progs) ; do \
+		PROG=$$prog make $${prog}_doc || exit $$? ; \
+	done
+endif
+
+doc-clean:
+	rm -rf $(top_srcdir)/autodoc/*

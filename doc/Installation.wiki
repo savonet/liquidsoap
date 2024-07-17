@@ -1,0 +1,102 @@
+=====Installation=====
+
+Several ways of installing liquidsoap are possible, depending on your Linux distribution. In most of the cases you'll need to figure out which features you want, to know which package you need to install.
+Here are liquidsoap's dependencies:
+~- [[http://www.ocaml-programming.de/programming/findlib.html ocamlfind]]
+~- ocaml-dtools
+~- ocaml-vorbis
+~- ocaml-shout
+And also optional dependencies:
+~- ocaml-mad for mp3 decoding
+~- [[http://www.underbit.com/products/mad/ libid3tag]] for reading mp3's id3 metadata
+~- ocaml-mp3id3 for reading mp3's id3 metadata
+~- [[http://camomile.sourceforge.net/ camomile]] for detecting metadata encodings and re-encoding them to utf8
+~- ocaml-lame for mp3 encoding
+~- ocaml-alsa for alsa input/output
+~- [[http://www.linphone.org/ libortp]] for RTP input/output
+~- [[http://www.gnu.org/software/wget/ wget]] for downloading remote files (http, https, ftp)
+~- ufetch (provided by ocaml-fetch) for downloading remote files (smb, http, ftp)
+~- [[http://www.cstr.ed.ac.uk/projects/festival/ festival]] for speech synthesis (say)
+
+====Debian====
+Debian packages are available on the [[http://sourceforge.net/project/showfiles.php?group_id=89802 download section]] of the project's page on sourceforge. A ##.deb## package, for example ##toto.deb##, can be installed using ##dpkg -i toto.deb##.
+Some day we hope that liquidsoap will be an official Debian package, then the installation procedure will simply be to type (as root):
+%%(bash)
+aptitude install liquidsoap
+%%
+
+====Gentoo====
+Gentoo users can use the [[http://svn.sourceforge.net/viewcvs.cgi/savonet/trunk/savonet/gentoo/ ebuilds]] which are available on the subversion repository. Assuming that you have ##/usr/local/overlays## in your ##PORTDIR_OVERLAY## (in ##make.conf##), just do a:
+%%(bash)
+svn co https://svn.sourceforge.net/svnroot/savonet/trunk/gentoo savonet
+%%
+
+====Install from source tarballs====
+Released source tarballs are available on the [[http://sourceforge.net/project/showfiles.php?group_id=89802 download section]] of the project's page on sourceforge. They all follow the GNU conventions, and are built and installed using the common ##./configure##, ##make## and ##make install##.
+
+====Subversion repository (and other distributions)====
+If you want a cutting-edge version, you can use the subversion repository. To get a copy of it, just run:
+%%(bash)
+svn co https://svn.sourceforge.net/svnroot/savonet/trunk savonet
+%%
+From every sub-project's directory you can build and install the package using ##./bootstrap##, ##./configure##, ##make## and optionally ##make install##.
+From the toplevel ##savonet## directory you can also directly build a vanilla liquidsoap. It's fast and doesn't require you to install the libraries. Among the optional features involving savonet's packages, it will enable ALSA input/output and mp3 decoding, but no mp3 decoding and no RTP. The steps to follow are simple:
+%%(bash)
+./bootstrap
+./configure
+make
+# To install liquidsoap, type as root
+make install
+%%
+
+====OSX (PowerPC)====
+In October 2006, ClaudioB has succeded in installing liquidsoap on an iBook PowerPC running OSX 10.4.8. 
+Since it can be a complicated process, you have here the steps you can follow to have it running on your machine as well:
+
+===Prerequisities for installing savonet on a powerpc OSX (version 10.4.7)===
+~- I have installed FINK from the ##FINK-0.8.1-POWERPC-INSTALLER.DMG##
+~-  I have installed SUBVERSION from ##SVN-CLIENT-1.3.1.DMG##
+~- I have installed OCAML from ##OCAML-3.09.3-PPC.DMG##
+~-  I have installed LIBMAD via ##fink install libmad## (version 0.15.1b-2)
+~- I have installed PKG-CONFIG from ##pkgconfig-0.18.tar##. Note: savonet uses ##PKG_PROG_PKG_CONFIG## which is a macro introduced in version 0.16 of pkg-config. For this reason, don't use FINK, which is stuck at version 0.15
+~~- untar ##PKGCONFIG-0.18.TAR## in ##$HOME/##
+~~- ##./configure, make and sudo make install##
+~- I have installed VORBIS-TOOLS via FINK. Note: this step requires FINK to use unstable packages; this means to edit /sw/etc/fink.conf as in:
+~- [[http://fink.sourceforge.net/faq/usage-fink.php]] - then run ##sudo gcc_select 4.0; fink selfupdate; fink index; fink scanpackages;## and finally ##fink install vorbis-tools##;
+~- I have installed FINDLIB for OCAML. Note: on OSX this step requires the use of GODI, see: [[http://bomberstudios.com/2006/06/07/compiling-mtasc-and-swfmill-for-intel-mac/]]
+~~- download ##GODI-BOOTSTRAP-20060405.TAR## and untar it in ##$HOME/##
+~~- run ##./bootstrap --prefix $HOME/src/godi##
+~~- change (or create) ##$HOME/.bashrc## by adding ##PATH=$PATH:$HOME/src/godi/bin:$HOME/src/godi/sbin##
+~~- run ##./bootstrap-stage2##
+~- I have installed LIBSHOUT 2 from LIBSHOUT-2.2.2.TAR. Note: this step requires Libshout 2 (Fink contains only Libshout 1) and must be made after having properly installed the Vorbis-Tools (otherwise ##./configure## will fail)
+~~- untar ##libshout-2.2.2.tar## in ##$HOME/##
+~~- run ##./configure##
+~~- run ##make##. In my case, running make would cause an error in one example. I don't know why. However I skipped over this trouble by opening ##Makefile##, searching for "##examples##" in the ##subdir=## and removing it. Then I ran make. It worked
+~~- run ##sudo make install##
+~- I have installed ICECAST 2 from ICECAST-2.3.1.TAR.GZ (untar, configure, make and install)
+~- I have installed LIBID3TAG via FINK INSTALL LIBID3TAG (version 0.15.1b)
+~- I have installed LAME from LAME-3.97.TAR.GZ  (untar, configure, make and install). Note: maybe it's not important, but I've executed ##./configure --with-vorbis##
+~- I have installed WGET via FINK INSTALL WGET
+~- I have created a user called liquidsoap and a group called liquidsoap (containing this user).
+~- I have downloaded SAVONET via ##svn co https://svn.sourceforge.net/svnroot/savonet/trunk savonet##
+
+===Installing savonet===
+~- Run ##./bootstrap##. It may happen that ./bootstrap doesn't work well due to pkg-config problems. In this case retry after running the following commands:
+~~- ##sudo ln -s /sw/share/aclocal/pkg.m4 /usr/share/aclocal##
+~~- ##sudo ln -s /sw/lib/pkgconfig/*.pc /usr/local/lib/pkgconfig##
+~- Run ##./configure##. It may happen that ./configure fails due to the fact that ALSA is not available on OSX. In this case retry after making the following changes to ##liquidsoap/Makefile.defs##:
+~~- delete ##"-I [..]/ocaml-alsa/src" from _OCAML_CFLAGS=##
+~~- delete ##"alsa.cma" from _OCAML_LFLAGS=##
+~~- delete ##"yes"## from ##W_ALSA=##
+~- It may happen that ##./configure## fails due to the fact that ocaml-mad doesn't find libmad downloaded via fink. In this case retry after running the following commands (##/sw## is your Fink directory):
+~~- ##sudo ln -s /sw/lib/libmad*.* /usr/lib##
+~~- ##sudo ln -s /sw/include/mad.h /usr/include##
+~- It may happen that ##./configure## fails due to the fact that ocaml-vorbis doesn't find ogg downloaded via fink. In this case retry after running the following commands (##/sw## is your Fink directory):
+~~- ##sudo ln -s /sw/lib/libogg*.* /usr/lib##
+~~- ##sudo ln -s /sw/include/ogg /usr/include##
+~~- ##sudo ln -s /sw/lib/vorbis*.* /usr/lib##
+~~- ##sudo ln -s /sw/include/vorbis /usr/include##
+~- run ##make##
+~- run ##sudo make install## ... and cross your fingers :)
+
+Now, as a final note, I want to point out that my OSX system was not "totally clean" when I installed LiquidSoap, so I'm not totally sure that this is *all* you need. But at least you will have a hint. How long does it take?  Well, for me it was about 4 days (!) but with this short guide it should take about 4 hours :)

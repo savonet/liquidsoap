@@ -1,0 +1,280 @@
+=====Using the telnet interface=====
+
+Tobias Luther was kind enough to write this tutorial about the use of liquidsoap's telnet interface. In this example there are two queues for requests, one with the id ##request##, one with the id ##scheduler##. There are also two switched playlists, one for daytime, one for nighttime and a playlist for jingles. Here's a list of commands with examples of their use in this case.
+
+Abbreviations:
+~- ##<rid>## = request id
+~- ##<uri>## = unique resource identifier, ##/path/to/file.ogg## is an example uri.
+
+====How to connect to the telnet server====
+
+The command ##telnet localhost 1234## opens a telnet session on the local host at port 1234, the port liquidsoap is running on by default. You can also do ##telnet server 1234## if liquidsoap's running on remote host ##server##, and it's server is public -- see [[LiqSettings settings]] for details.
+
+Note: It is also possible to connect to liquidsoap's telnet remotely, even though it's not public: just tunnel the telnet via a ssh connection. Create the tunnel by running ##ssh user@server -L 1234:localhost:1234##. Once the ssh connection has been established you can open another terminal and start the telnet using ##telnet localhost 1234## as if you were on the server.
+
+====Scripting for the telnet server====
+
+The telnet server can be ideally used for automation and scripting. Perl and Ruby have integrated telnet modules, bash scripting follows the following syntax: 
+%%(vi)
+#!/bin/bash
+(echo "telnet command"
+ echo "another telnet command"
+ echo "yet another telnet command") \
+| telnet localhost 1234
+%%
+
+For example, this pushes a request to the "request" queue and skips the currently running track:
+%%(vi)
+#!/bin/bash
+(echo "request.push /path/to/your/files/04 - le silence.ogg"
+ echo "yourradio.ogg.skip") \
+| telnet localhost 1234
+%%
+
+====General commands====
+
+===##help##===
+
+This lists the available commands.
+%%(vi)
+help
+Available commands:
+| alive
+| day.m3u.next
+| exit
+| help
+| jingles.pls.next
+| list
+| metadata <rid>
+| night.m3u.next
+| on_air
+| quit
+| yourradio.ogg.metadatas
+| yourradio.ogg.remaining
+| yourradio.ogg.skip
+| yourradio.ogg.start
+| yourradio.ogg.status
+| yourradio.ogg.stop
+| request.consider <rid>
+| request.ignore <rid>
+| request.push <uri>
+| request.queue
+| resolving
+| scheduler.consider <rid>
+| scheduler.ignore <rid>
+| scheduler.push <uri>
+| scheduler.queue
+| trace <rid>
+| uptime
+END
+%%
+
+===##uptime##===
+
+Displays liquidsoap's uptime.
+%%(vi)
+uptime
+0j 00h 27m 31s
+END
+%%
+
+===##alive##===
+
+Show all alive requests (pending, resolving, or playing), that are in our example used by playlists and queues. This is displayed as a list of RIDs.
+%%(vi)
+alive
+7 6 5 4 3 2 1
+END
+%%
+
+===##resolving##===
+
+Show all resolving requests, those which are being downloaded, synthesized, or whatever the protocol handler is doing to resolve them. The format is the same as ##alive##.
+
+===##metadata <rid>##===
+
+Displays metadata for a request.
+%%(vi)
+metadata 8
+title="le silence"
+temporary="false"
+license="Licensed under http://creativecommons.org/licenses/by-nc-nd/2.0/fr/"
+date="2004-10-01"
+artist="...anabase*"
+description="http://www.jamendo.com/ : Free music"
+rid="8"
+source_id="521"
+tracknumber="4"
+initial_uri="/path/to/your/files/04 - le silence.ogg"
+source="request"
+organization="http://www.jamendo.com/ : Free music"
+status="ready"
+filename="/path/to/your/files/04 - le silence.ogg"
+2nd_queue_pos="0"
+album="expédition vers l'intérieur"
+comment="http://www.jamendo.com/ : Free music"
+www="http://www.jamendo.com/?&184"
+END
+%%
+
+===##trace <rid>##===
+
+Trace the history of a request's resolving. See [[LiqConcepts concepts]] for details on resolving.
+%%(vi)
+trace 10
+[2006/11/12 16:46:20] Pushed ["/path/to/silence.ogg";...].
+[2006/11/12 16:46:20] "/path/to/silence.ogg" entered the secondary queue : position #1
+[2006/11/12 16:46:20] Entering the primary queue.
+[2006/11/12 16:52:11] Currently on air.
+END
+%%
+
+===##on_air##===
+
+Displays the requests that are currently being played. Most of the time there is only one, but in general there could be several, for example if you mix two playlists together.
+%%(vi)
+on_air
+8
+END
+%%
+
+===##exit##===
+
+Exits the telnet connection.
+%%(vi)
+exit
+Connection closed by foreign host
+%%
+
+===##quit##===
+
+Just like ##exit##.
+
+====Playlist commands====
+
+===##<playlist>.next##===
+
+Displays the upcoming tracks for a playlist, for example ##day.m3u##.
+%%(vi)
+day.m3u.next
+
+/path/to/your/files/04 - Le trottoir.ogg
+/path/to/your/files/csr002-01-twizzle-falling.mp3
+/path/to/your/files/GilbertoGil_Oslodum.ogg
+/path/to/your/files/01 - Mme Asperge.mp3
+/path/to/your/files/hb02_kosmo_knoedeltroete(rmx).mp3
+/path/to/your/files/01_Colida_Carni-War.mp3
+/path/to/your/files/01 - les trains.ogg
+/path/to/your/files/04_DHS0015.mp3
+
+END
+%%
+
+====Output commands====
+
+===##<output>.metadatas##===
+
+Displays metadata of already or currently-being played tracks, a metadata history.
+%%(vi)
+yourradio.ogg.metadatas
+--- 10 ---
+title="Passing"
+temporary="false"
+date="2006"
+composer=""
+artist="Pablo Cepeda"
+rid="5"
+on_air="2006/11/12 16:36:11"
+tracknumber="01"
+initial_uri="/path/to/your/files/kpu088-pablo-cepeda-01-passing.mp3"
+orig. artist=""
+source="day.m3u"
+status="playing"
+filename="/path/to/your/files/kpu088-pablo-cepeda-01-passing.mp3"
+genre="(52)Electronic"
+album="Le cicle du calme"
+comment="http://www.kikapu.com"
+--- 9 ---
+etc="etc..."
+END
+%%
+
+===##<output>.remaining##===
+
+Displays the remaining time in the current track, in seconds. This information is currently not very precise, and often simply unavailable, in which case the output is ##(undef)##.
+%%(vi)
+yourradio.ogg.remaining
+7 sec
+END
+%%
+
+===##<output>.skip##===
+
+Skips the currently playing track.
+%%(vi)
+yourradio.ogg.skip
+Done
+END
+%%
+
+===##<output>.start##===
+
+Start streaming if paused.
+%%(vi)
+yourradio.ogg.start
+
+END
+%%
+
+===##<output>.stop##===
+
+Pauses streaming, keeps liquidsoap running. The current track is continued when the stream is restarted, unless it's been consumed by another output in the meantime.
+%%(vi)
+yourradio.ogg.stop
+
+END
+%%
+
+==##<output>.status##==
+
+Displays the output's status. Obviously, if the stream is running it is "on", if it is paused it is "off".
+%%(vi)
+yourradio.ogg.status
+on
+END
+%%
+
+====Queue commands====
+
+Queue sources (##request.queue## and ##request.equeue##) have two queues. In the secondary one, requests are stored, waiting to be resolved. When needed, requests are taken out of the secondary queue, resolved, and then put into the primary one. Finally, one request is removed from the primary queue and played.
+
+===##<queue>.ignore <rid>##===
+
+Tells the queue to drop request ##rid## when it is popped out of the secondary queue.
+%%(vi)
+request.ignore 8
+OK
+END
+%%
+
+===##<queue>.consider <rid>##===
+
+Cancels a ##ignore##, if it's not too late, i.e. if the request hasn't been popped and droped already. Same format as ##ignore##.
+
+===##<queue>.push <uri>##===
+
+Pushes a request to the request queue.
+%%(vi)
+request.push /path/to/your/files/04 - le silence.ogg
+8
+END
+%%
+
+===##<queue>.queue##===
+
+Displays the list of ##<rid>## of the requests from both queues, and currently playing.
+%%(vi)
+request.queue
+8
+END
+%%
