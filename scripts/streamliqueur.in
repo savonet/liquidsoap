@@ -1,0 +1,65 @@
+#!@bindir@/liquidsoap
+
+# Set logging to stdout only
+set log.stdout = false
+set log.file = false
+
+# Stream ripper implemented in liquidsoap
+version = "0.1"
+usage = "Usage: streamliqueur URL [ path ] [ filename ]
+-> URL is the stream to rip
+-> optional path is the directory to rip to
+   if no path is given, current path will be used
+-> optional filename is the name of the riped file
+   You can use metadatas like $(artist)
+   if no name is given, 
+   $(if $(artist),\"$(artist) - \")$(if $(title),\"$(title)\",\"Unknown Title\").ogg
+   will be used."
+
+# Get arguments from command line
+url = argv(default="",1)
+pwd = list.hd(get_process_lines("pwd"))
+directory = argv(default=pwd,2)
+file = argv(
+         default='$(if $(artist),"$(artist) - ")$(if $(title),"$(title)","Unknown Title").ogg'
+	 ,3)
+
+# Set internal things
+state = interactive_float("state",0.)
+incompletedir = directory ^ "/INCOMPLETE/"
+completedir = directory ^ "/complete/"
+dump = incompletedir ^ file
+system("mkdir -p #{quote(incompletedir)}")
+system("mkdir -p #{quote(completedir)}")
+
+# Some logging:
+def echo(message)
+  system("echo #{quote(message)}")
+end
+
+# Move complete files to final directory
+def move_finished(meta)
+   if state () >= 2. then
+      # Ugly hack: get lastest modified file from INCOMPLETE
+      # This is needed, because we don't know old meta at this point..
+      file = list.hd(get_process_lines("ls -t #{quote(incompletedir)}"))
+      system("mv #{quote(incompletedir ^ file)} #{quote(completedir)}")
+      echo("Moved #{file} to #{completedir}")
+   else
+      nstate = state () + 1.
+      ignore(execute("var.set state = " ^ string_of(nstate)))
+   end
+   title = '$(if $(title),"$(title)","Unknown Title")$(if $(artist), " by $(artist)")'%[("title",meta['title']),("artist",meta['artist'])]
+   echo("New title: #{title}")
+end
+
+if url != "" then 
+   # Start ripping !
+   echo("Starting streamliqueur version #{version}")
+   echo("Ripping #{url} to #{directory}")
+   stream = on_metadata(move_finished,mksafe(input.http(url)))
+   ignore(output.file.vorbis(reopen_on_metadata=true,dump,stream))
+else
+   echo(usage)
+end
+

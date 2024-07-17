@@ -1,0 +1,17 @@
+=====Frequently Asked Questions=====
+
+====I started receiving this log on my streams: ##We must catchup 0.44 seconds (we've been late for 100 rounds)!## What does it mean?====
+
+Liquidsoap is a (sloppy) real-time application. I won't detail what the sloppiness is about, it really doesn't matter in most usages anyway. It obviously has to care about time, since it is streaming (audio) data which has an intended rate. The streaming process (read more about [[LiqConcepts liquidsoap's concepts]]) is split in rounds: in every round a tiny bit of data is computed and sent. A round has an intended duration. If the computation takes too long, that duration may be exceeded. In that case, liquidsoap will try to make the next rounds smaller to "catchup" on the latency. If the latency gets really high, liquidsoap reports it. It also reports if a little latency persists for more that 100 rounds, which is the case in that message.
+
+That's it for the stupid description. Now, when should one care about these warnings, and how to fix them ? In net radio usages, tiny delays don't matter and are not reported: there are severals buffers which hide the latency. (It matters more with low latency usages, typically hardware I/O.) If the latency gets really high, the users might get underruns, and you might experience disconnections. In that case it means that you liquidsoap setup is really too computation-expensive for your machine: consider downgrading quality, distributing encoding, removing audio processings, etc.
+
+There are two main process where you can suffer a bottleneck:
+
+1) Encoding on the fly
+2) Keepalive liquidsoap
+
+The first is normally high, specially if you use a single audio file and deliver it over too many different bitrates. I have noticed that over 40 reencodings on a pentium D liquidsoap starts complaining, if the recoding use high bitrates, it gets worse, for example you should expect more computation-expensive reencoding at 96kb than at 32kb. There is a simple and elegant solution, reencode by hand your audio files, and create parallel folders, normally space on disk is cheaper than processor speed and easier to increment.
+
+The second is the normal processor and RAM resources needed by a liquidsoap script to stay alive and keep communicated with your output, liquidsoap does not consume to much RAM, although situations may vary I have never seen a liquidsoap script using more than 3 Mbytes of RAM, the CPU usage is low if you do not reencode on the fly, and IS CONSTANT. to calculate how many liquidsoap scripts you can keep at the same time, just stop any other services, start a liquidsoap script and check how much processor uses.
+
