@@ -1,0 +1,41 @@
+=====Advanced techniques=====
+
+====Interaction with the server====
+
+To enable the telnet server, ##set server.telnet = true## (or use the ##-t## option).
+
+In "[[CompleteCaseAnalysis A Complete Case Analysis]]" we set up a ##request.queue## source to play user requests. To push requests in that queue you need to interact with the telnet server, which also provides many other services. By default it is only accessible from the host where [[Liquidsoap]] runs. You can learn more on that topic with the [[LiqTelnetTuto telnet tutorial]] and [[LiqSettings settings description]]. Here is a sample session:
+
+%%(telnet)
+dbaelde@selassie:~$ telnet localhost 1234
+Trying 127.0.0.1...
+Connected to localhost.localdomain.
+Escape character is '^]'.
+request.push /path/to/some/file.ogg
+5
+END
+metadata 5
+[...]
+END
+request.push http://remote/audio.ogg
+6
+END
+trace 6
+[...]
+END
+help
+[...]
+END
+exit
+%%
+Of course, telnet isn't user friendly. But it is easy to write scripts to interact with [[Liquidsoap]] in that way. Examples of such tools are [[liguidsoap]] and [[bottle]].
+
+====Daemon mode====
+
+The full installation of [[Liquidsoap]] will typically install ##/etc/liquidsoap##, ##/etc/init.d/liquidsoap## and ##/var/log/liquidsoap##. All these are meant for a particular usage of [[Liquidsoap]] when running a stable radio.
+
+Your ##.liq## files should go in ##/etc/liquidsoap##. You'll then start/stop them using the init script: ##/etc/init.d/liquidsoap start##. Your scripts don't need to have the ###!## line. [[Liquidsoap]] will automatically be ran on daemon mode (##-d## option) for them.
+
+You should not override the ##log.file.path##, because a logrotate configuration is also installed so that log files in the standard directory are truncated and compressed if they grow too big.
+
+It is not very convenient to detect errors when using the init script. We advise users to first check their modified scripts using ##liquidsoap --check /etc/liquidsoap/script.liq## before effectively restarting the daemon.

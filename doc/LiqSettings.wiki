@@ -1,0 +1,7 @@
+ =====Liquidsoap settings=====
+
+[[Liquidsoap]] [[LiqScript scripts]] contain settings, of the form ##set("settings.variable.path",value)##, for defining a few global variables affecting the behaviour of the application. The settings are typed, and can be ##string##, ##int##, ##bool## or ##string list##.
+
+You can have a list of available parameters, with their documentation, by running ##liquidsoap --conf-descr##. If you are interested in a particular settings section, like server-related stuff, use ##liquidsoap --conf-descr-key server##.
+
+The output of these commands is a valid liquidsoap script, which you can edit to set the values that you want, and load it (implicitly or not) before you other scripts.
