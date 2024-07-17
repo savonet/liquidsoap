@@ -99,6 +99,7 @@ val unify : pos:Liquidsoap_lang.Pos.Option.t -> t -> t -> unit
 val create_sub_clock : id:string -> t -> t
 val attach : t -> source -> unit
 val detach : t -> source -> unit
+val activate_pending_sources : t -> unit
 val ticks : t -> int
 val on_tick : t -> (unit -> unit) -> unit
 val tick : t -> unit

@@ -36,7 +36,7 @@ class soundtouch source_val rate tempo pitch =
     Typing.(source#frame_type <: consumer#frame_type)
   in
   object (self)
-    inherit operator ~name:"soundtouch" [(consumer :> Source.source)]
+    inherit operator ~name:"soundtouch" []
     inherit Child_support.base ~check_self_sync:true [source_val]
     val mutable st = None
     method fallible = source#fallible
