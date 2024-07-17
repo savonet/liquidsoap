@@ -1,0 +1,63 @@
+
+ Liquidsoap 0.3.3
+ ----------------
+
+ Dependencies :
+   mandatory:     ocaml-dtools>=0.1.3
+                  ocaml-shout>=0.2.3
+                  ocaml-vorbis>=0.3.1
+   optional:      ocaml-mad>=0.3.1         for MP3 decoding
+                  libid3tag                for MP3 tag decoding
+                  ocaml-mp3id3>=0.2.1      for MP3 tag decoding
+                  ocaml-lame>=0.2.0        for MP3 encoding
+                  ocaml-ao>=0.1.7.1        for output via libao
+                  ocaml-alsa>=0.1.1        for ALSA I/O (EXPERIMENTAL)
+                  libortp>=1.0.0           for RTP stream I/O (EXPERIMENTAL)
+
+ Runtime optional dependencies:
+  * festival, sox, normalize for speech synthesis
+  * wget for http/https/ftp support
+  * ufetch (from ocaml-fetch) for smb support
+
+ How to install
+ --------------
+
+ % ./configure
+
+ For the speech synthesis, a "liquidtts" script will be installed.
+ It makes use of text2wave (from festival) if found. Otherwise, it uses
+ false as a synthetizer, and you can edit it.
+ sox and normalize are also used in liquitts if installed.
+
+ % make
+
+ This builds liquidsoap.
+
+ % make doc
+ or
+ % make fakedoc
+
+ It will generate a reference file lang.html and the manual.pdf,
+ also including a reference. This requires Perl and its
+ XML::DOM module and also a working pdflatex installation, including 
+ the a4wide.sty model, included in tetex-extra package on debian. 
+ If you don't want to bother about the doc, you can skip it
+ using "make fakedoc".
+
+ Then, you may proceed to the installation. You may need to be root for that.
+ Also, user and group liquidsoap should be created prior to installation.
+ If you want to use other user/groups, please edit Makefile.defs.
+
+ % make install (as root if needed)
+
+ For installing developers documentation, run:
+
+ % make api-install-doc
+
+ Then if you want services to be installed in $prefix/etc/init.d, run one of
+ the following. service is for a generic /bin/sh service, gentoo is for
+ a gentoo compliant service, to be used iff you've a gentoo linux.
+
+ % make (service|gentoo)-install
+
+ See /doc for understanding radio programming. I hope you'll have fun.

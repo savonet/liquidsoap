@@ -1,0 +1,65 @@
+# @configure_input@
+
+DISTDIR=liquidsoap-@version@
+
+user=@install_user@
+group=@install_group@
+
+prefix= @prefix@
+exec_prefix= @exec_prefix@
+bindir= @bindir@
+libdir= @libdir@
+mandir= @mandir@
+sysconfdir = @sysconfdir@
+localstatedir = @localstatedir@
+datarootdir = @datarootdir@
+datadir = @datadir@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DIRECTORY = @INSTALL@ -d
+INSTALL_DATA = @INSTALL_DATA@
+CC = @CC@
+CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@
+LIBS = @LIBS@
+LDFLAGS = @LDFLAGS@
+
+_OCAML_CFLAGS= @ocamlcflags@
+_OCAML_LFLAGS= @ocamllflags@ -cclib "$(LDFLAGS)"
+_DEP_OPTS= @_DEP_OPTS@
+
+# Make the building quiet
+V=@
+
+o=@cmo@
+a=@cma@
+i=@cmi@
+BUILD_TESTS=
+
+BYTE=@BYTE@
+OCAMLC=@OCAMLC@
+OCAMLDEP=@OCAMLDEP@
+OCAMLLEX=@OCAMLLEX@
+OCAMLYACC=@OCAMLYACC@
+
+W_MP3=@W_MP3@
+W_MP3ID3=@W_MP3ID3@
+W_LAME=@W_LAME@
+W_RTP=@W_RTP@
+W_ALSA=@W_ALSA@
+W_JACK=@W_JACK@
+W_AO=@W_AO@
+W_PYTHON=@W_PYTHON@
+W_ID3TAG=@W_ID3TAG@
+W_SAMPLERATE=@W_SAMPLERATE@
+W_GRAPHICS=@W_GRAPHICS@
+W_GL=@W_GL@
+W_FAAC=@W_FAAC@
+W_FAAD=@W_FAAD@
+W_OSS=@W_OSS@
+W_SOUNDTOUCH=@W_SOUNDTOUCH@
+
+W_WGET=@W_WGET@
+
+ORTP_INCLUDE=@ORTP_INCLUDE@
+PYMDIR=@PYMDIR@

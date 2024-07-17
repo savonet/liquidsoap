@@ -1,0 +1,95 @@
+=====Liquidsoap settings=====
+
+[[Liquidsoap]] [[LiqScript scripts]] start with a settings section, for defining a few global variables affecting the behaviour of the application. The settings are typed, and can be ##string##, ##int##, ##bool## or ##string list##.
+
+Below is a presentation of available settings. Every section starts with a list of settings, together with their types. Then comes the description of the group of settings. Beware that default path values actually depend on your configuration.
+
+====Initialization====
+
+>>%%
+bool    daemon
+string  daemon.piddir  ("/var/run/liquidsoap")
+string  daemon.pidfile ("<script>.pid")
+%%
+>>
+
+Liquidsoap can detach and run as a daemon, if the ##daemon## flag is set. In that case it will put the PID of the daemon process in ##<daemon.piddir>/<daemon.pidfile>##.::c::
+
+====Logging====
+
+>>%%
+string    log.file     ("<scriptname>.log")
+string    log.dir      ("/var/log/liquidsoap")
+int       log.level    (3)
+bool      log.stdout   (false)
+%%
+::c::>>When executing a script file, [[Liquidsoap]] logs some information in ##<log.dir>/<log.file>##.
+
+It is often useful while debugging to directly see on the log on the standard output. The ""<code>log.stdout</code>"" can be set to ""<code>true</code>"" to achieve that.
+
+Finally you can tweak the amount of information by changing the log levels. The higher it is, the more info you get. Log level 1 is for errors, 2 for warnings, 3 for information, 4 for annoying information, etc. ""<code>log.level</code>"" is the default level, you can also filter your logs more specifically using the label-specific ""<code>log.level.[label]</code>"" settings.::c::
+
+====Server====
+
+>>%%
+bool   telnet              (false)
+int    telnet.port         (1234)
+string telnet.bind_addr    ("127.0.0.1")
+
+bool   socket              (false)
+int    telnet.port         (1234)
+string socket.file         ("<pid>.socket")
+string socket.dir          ("/var/run/liquidsoap")
+%%
+::c::>>You can interact with a running instance of liquidsoap using a simple text-based protocol using two methods.
+
+If you set ##telnet## to true you will be able to connect via TCP to liquidsoap on port ##telnet.port## from machines in the domain ##telnet.bind_addr##. The telnet command is particularly useful here, as well as the various telnet modules in script languages.
+
+If you set ##socket## to true you will be able to interact using the same protocol but through a UNIX domain socket ##<socket.dir>/<socket.file>##. The main advantage of this method is that you can restrict the access to the socket more precisely, using the permissions setting (which is up to umask). A useful command for interacting through a UNIX domain socket is ##socat stdin unix:<socket path>##.::c::
+
+====Audio format====
+
+>>%%
+int     frame.channels            (2)
+int     frame.samplerate          (44100)
+int     frame.size                (1024)
+%%
+>>These settings describe the internal PCM format used by liquidsoap. The stream is processed frame by frame. Changing the frame size has an effet on latency and can help to get liquidsoap and ALSA agree on a same format in order to run synchronously (better latency again).
+::c::
+
+====Alsa====
+
+>>%%
+float   alsa.buffer_duration        (4.)
+int     alsa.periods                (5)
+%%
+>>Those settings define some parameters for Alsa. The buffer duration is only used for ALSA buffered I/O, and affects the latency. Get more info on the efficient unbuffered ALSA I/O in the [[LiqExamples cookbook]].::c::
+
+====Misc====
+
+>>%%
+list    tag.encodings             (["UTF-8";"ISO-8859-1"])
+float   decoding.buffer.length    (10.)
+%%
+>>If your liquidsoap has charset reencoding support (using Camomile), then ##tag.encodings## is used to guess the encoding of strings.
+The next settings are really low-level, and one should rarely need to change them.
+
+For some features (typically ##fade.out()## and ##cross()##) Liquidsoap needs to know precisely the remaining time in a track. It only roughly evaluates it at the beginning of a file, but it has to be precise at the end. This is done by decoding data in advance in a buffer of duration ##decoding.buffer.length## seconds (defaults to 10). In a nutshell, if you use cross-fadings or fade-outs with a maximum duration of D, you should set the buffer's length to D too for perfect precision. However, it has a little cost on opening of a file while the buffer is filled, so be careful if you're short of computing power.::c::
+
+====Root process====
+
+>>%%
+float   max_latency      (60.)
+bool    root.sync        (true)
+%%
+>>Sometimes, liquidsoap may get a bit late, in which case it'll run faster for a while to fill the gap. But when the latency is higher than ##max_latency## seconds (defaults to 60), it'll restart all the outputs in order to cancel the latency. It shouldn't happen much, but it's there just in case.
+
+The ##root.sync## flag tells whether liquidsoap should take care of respecting real-time or not. Disabling it can be used for debugging or profiling, in order to have liquidsoap process data as fast as possible -- but it will flood any realtime output, like icecast, alsa or ao. It is also automatically disabled by the unbuffered ALSA I/O.::c::
+
+
+====Jack====
+
+>>%%
+string  jack.client_name     ("liquidsoap-<pid>")
+%%
+>>If you have enabled the (experimental) jack support, ##jack.client_name## defines the name [[Liquidsoap]] gives when connecting to the Jack server.::c::

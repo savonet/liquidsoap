@@ -1,0 +1,81 @@
+=====Concepts=====
+
+====Sources====
+
+Using liquidsoap is about writing a script describing how to build what you want. It is about building a stream using elementary streams and stream combinators, etc. Actually, it's a bit more than streams, we call them sources -- in liquidsoap's code there is a ##Source.source## type, and in ##*.liq## scripts one of the elementary datatypes is source.
+
+A source is a stream with metadata and track annotations. It is discretized as a stream of fixed-length buffers of raw audio, the frames. Every frame may have metadata inserted at any point, independently of track boundaries. At every instant, a source can be asked to fill a frame of data. Track boundaries are denoted by a single denial of completely filling a frame. More than one denial is taken as a failure, and liquidsoap chooses to crash in that case.
+
+To build sources in liquidsoap scripts, you need to call functions which return type is ##source##. For convenience, we categorize these functions into three classes. The //sources// (sorry for redundancy, poor historical reasons) are functions which don't need a source argument -- we might call them elementary sources. The //operators// need at least one source argument -- they're more about stream combination or manipulation. Finally, some of these are called //outputs//, because they are active operators (or active sources in a few cases): at every instant they will fill their buffer and do something with it. Other sources just wait to be asked (indirectly or not) by an output to fill some frame.
+
+All sources, operators and outputs are listed in the [[LiqReference scripting API reference]].
+
+===How does it work?===
+
+To clarify the picture let's study in more details an example.
+%%(python)
+radio = output.icecast(
+	mount="test.ogg",
+	random([ jingle , fallback([ playlist1 , playlist2 , playlist3 ])])
+	)
+%%
+At every tick, the output asks the "random" node for data, until it gets a full frame of raw audio. Then it encodes it, and sends it to the Icecast server. Suppose "random" has chosen the "fallback" node, and that only "playlist2" is available, and thus played. At every tick, the buffer is passed from "random" to "fallback" and then to "playlist2", which fills it, returns it to "fallback", which returns it to "random", which returns it to the output. Every step is local.
+
+At some point, "playlist2" ends a track. The "fallback" detects that on the returned buffer, and selects a new child for the next filling, depending on who's available. But it doesn't change the buffer, and returns it to "random", which also selects a new child, randomly, and return the buffer to the output. On next filling, the route of the frame can be different.
+
+It is possible to have the route changed inside a track, for example using the ##track_sensitive## option of fallback, which is typically done for instant switches to live shows when they start.
+
+===Fallibility===
+
+Outputs expect their input source to never fail, so that the stream never ends. Liquidsoap has a mechanism to verify this, and helps you think of all possible failures, and prevent them. Elementary sources are either //fallible// or //infallible//, and this liveness type is propagated through operators to finally compute the type of any source. A ##fallback## or ##random## source is infallible if and only if at least one of their children is infallible. A ##switch## is infallible if and only if it has one infallible child guarded by the trivial predicate ##{ true }##. And so on.
+
+On startup, outputs will check the liveness type of their input sources, and you'll get an error if one of these is fallible. The common answer to such errors is op add one fallback to play a default file or a checked playlist (##playlist.safe##) if the normal source fails. Often, the error is excessive, it simply means that your (unchecked) playlists could all be corrupted, which is unlikely. But sometimes, it also helps one to avoid the case where a playlist fails because it spent too much time trying to download remote files.
+
+===Caching mode===
+
+In some situations, a source must take care about the consistency of its output. If it is asked twice to fill buffers during the same time tick, it should fill them with the same data. Suppose for example that a playlist is listened by two outputs, and that it gives the first frame to the first output, the second frame to the second output: it would give the third frame to the first output during the second tick, and the output will have missed one frame.
+
+Keeping that in mind is required to understand the behaviour of some complex scripts. The high-level picture is enough for users, more details follow for developers and curious readers.
+
+The sources detect if they need to remember (cache) their previous output in order to replay it. To do that, clients of the source must register in advance. If two clients have registered, then the caching should be enabled. Actually that's a bit more complicated, because of transitions. Obviously the sources which use a transition involving some other source must register to it, because they may eventually use it. But a jingle used in two transitions by the same switching operator doesn't need caching. The solution involves two kinds of registering: //dynamic// and //static activations//. Activations are associated with a path in the graph of sources' nesting. The dynamic activation is a pre-registration allowing a real //static activation// to come later, possibly in the middle of a time tick, from a super-path -- //i.e.// a path of which the first one is a prefix. Two static activations trigger caching. The other reason for enabling caching is when there is one static activation and one dynamic activation which doesn't come from a prefix of the static activation's path. It means that the dynamic activation can yield at any moment to a static activation and that the source will be used by two sources at the same time.
+
+====Execution model====
+
+In your script you define a bunch of sources interacting together. The output sources hook their output function to the root thread manager. Then the streaming starts. At every tick the root thread calls the output hooks, and the outputs do their jobs. This task is the most important and shouldn't be disturbed. Thus, other tasks are done in auxiliary threads: file download, audio validity checking, http polling, playlist reloading... No blocking or expensive call should be done in the root thread. Remote files are completely downloaded to a local temporary file before use by the root thread. It also means that you shouldn't access NFS or any kind of falsely local files.
+
+====An abstract notion of files: requests====
+
+The request is an abstract notion of file which can be conveniently used for defining powerful sources. A request can denote a local file, a remote file, or even a dynamically generated file. They are resolved to a local file thanks to a set of //protocols//. Then, audio requests are transparently decoded thanks to a set of audio and metadata //formats//.
+
+The systematic use of requests to access files allows you to use remote URIs instead of local paths everywhere. It is perfectly OK to create a playlist for a remote list containing remote URIs: ""<code>playlist("http://my/friends/playlist.pls")</code>"".
+
+===The resolution process===
+
+The nice thing about resolution is that it is recursive and supports backtracking. An URI can be changed into a list of new ones, which are in turn resolved. The process succeeds if some valid local file appears at some point. If it doesn't succeed on one branch then it goes back to another branch. A typical complex resolution would be:
+
+~-##bubble:artist = "bodom"##
+~~-[[ftp://no/where]]
+~~~-Error
+~~-[[ftp://some/valid.ogg]]
+~~~-##/tmp/success.ogg##
+
+On top of that, metadata is extracted at every step in the branch. Usually, only the final local file yields interesting metadata (artist,album,...). But metadata can also be the nickname of the user who requested the song, set using the ##annotate## protocol.
+
+At the end of the resolution process, if the request is an audio one, liquidsoap check that the file is decodable: there should be a valid decoder for it (this isn't based on the extension but on the success of a format decoder), the decoder shouldn't yield an empty stream, and opening the decoder should be fast (less than 0.5 seconds), so that the opening of the audio file for its real playing in the main thread doesn't freeze it for too long.
+
+==Currently supported protocols==
+
+~- SMB, FTP and HTTP using ufetch (provided by our ocaml-fetch distribution)
+~- HTTP, HTTPS, FTP thanks to wget
+~- SAY for speech synthesis (requires festival): ##say:I am a robot## resolves to the WAV file resulting from the synthesis.
+~- TIME for speech synthesis of the current time: ##time: It is exactly @, and you're still listening to Geek Radio.##
+~- ANNOTATE for manually setting metadata, typically used in ""<code>annotate:nick="vodka-goo",media=irc,message="special for sam":ftp://bla/bla/bla</code>"". The extra metadata can then be synthesized in the audio stream, or merged into the standard metadata fields, or used on a rich web interface...
+
+It is also possible to add a new protocol from the script, as it is done with [[bubble]] for getting songs from a database query.
+
+===Currently supported formats===
+
+~-MPEG-1 Layer II (MP2) and Layer III (MP3) through libmad and [[OCamlLibs ocaml-mad]] ;
+~-Ogg Vorbis through libvorbis and [[OCamlLibs ocaml-vorbis]] ;
+~-WAV.
+~-AAC.

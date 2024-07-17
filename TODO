@@ -1,0 +1,75 @@
+
+  Ideas for the future...
+  =======================
+
+  * Get rid of Str, use only Pcre.
+  * Add analysis data fields in frames, which could be filled with 
+    rms/bpm/pitch/etc and be used generically for (smart) crossing.
+  * Operator for actively stripping blanks: do not simply hide the stream when 
+    it is silent, but actively pull and throw data away. This would be 
+    especially useful at the beginning of tracks, since skip is enough at the 
+    end.
+  * Add metadata-based per-track configuration to smart_cross().
+  * Use floats for dB in smartcross.
+  * Skip on sudden drop of intensity near end-of-tracks.
+  * Diffrent shapes for fade.*(): linear, sine, log.
+  * Polymorphism and subtyping.
+  * Handle more playlists formats in playlist(), notably the ones supported by 
+    input.http().
+  * Persistent metadata in frames, to avoid that track-insensitive switches
+    switching in the middle of a track do not get any metadata.
+  * Use Sndfile for raw input.
+  * ALSA input. Output needs polishing too.
+  * Fix (or deprecate) RTP input/output.
+  * Avoid float -> int -> float conversion for RTP.
+  * Add jack support and, perhaps fix the two above using jack !
+  * dB for intensities in normalize, etc.
+  * output.ogg() should split the stream in several files, using some kind of 
+    format for timestamping.
+  * Design and install some basic libraries for liquidsoap scripts
+  * mini icecast: passive input (don't try to GET repeatedly but accept POST)
+    and output (wait for a GET to send the data).
+  * Transitions with non-zero "before" parameter don't work correctly,
+    as the before-trigger also occurs during the transition itself, resulting
+    in an ugly scattered sound effect.
+  * Move the metadatas (and skip, remaining ?) commands out of the outputs and 
+    put it in a dedicated operator which could be put anywhere in the stream, 
+    typically before metadata rewriting.
+  * There has been some reports of non-immediate coming back of the lives after 
+    stripped blanks.
+  * Memoization for encodings of buffers. Keep them in the buffer.
+    Useful when saving a copy of icecast stream to a file.
+    The problem is that buffers are copied for outputs and multiple-fathered
+    sources, dealing with this may be tricky.
+  * Decrease the cost of Vorbis.reset_metadata, which systematically
+    causes a latency on new tracks.
+  * Name tracks, and allow processing only one of them.
+  * Theora support.
+  * Are the ref in Fmt really necessary / slower?
+  * offset_metadata() for the SACEM
+  * OpenGL based visualization (or coffee) operators...
+  * coffee() prepares coffee
+  * abstract over possible buffer contents, ensure consistency through typing
+  * mutable parameters for operators (e.g. for filters) which would be
+    registered in the telnet.
+  * Add transitions to the add operator.
+  * Binary clock.
+  * A fair scheduler for user requests.
+  * Long requests: as long as there is no request, and not much than an hour
+    long for example, play an user-requested playlist.
+    Actually this could come from a more general Request structure involving 
+    any nesting of alternatives and conjunctions, instead of only disjunctions 
+    as it is now.
+  * Dynamic download time evaluation for queues.
+    Deal with big files download, which currently leads to timeout.
+
+    LIGUID
+    ======
+  * Infos about files on the playlist.
+  * Improve crossfading.
+  * Change the tags.
+  * Drag and drop from nautilus.
+  * Tags seem to have a problem (utf8).
+  * Remove songs from the queue (does it really work?).
+  * Add shortcuts to dirs.
+  * Add a database of songs + quicksearch.

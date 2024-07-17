@@ -1,0 +1,57 @@
+=====Installation=====
+
+Several ways of installing liquidsoap are possible. 
+The recommended way for newcomers is to use the liquidsoap-full-xxx.tar.gz tarball. This tarball includes all required OCaml bindings and allows you to compile and install liquidsoap in a single configure, make and make install procedure. You will still need the coresponding C libraries and there developement files, though.
+
+For more advanced users, you can choose which features you want. Here are liquidsoap's dependencies (all OCaml libraries are distributed by Savonet, except Camomile):
+~- [[http://www.ocaml-programming.de/programming/findlib.html ocamlfind]]
+~- ocaml-dtools
+~- ocaml-vorbis
+~- ocaml-shout
+And also optional dependencies:
+~- ocaml-mad for mp3 decoding
+~- [[http://www.underbit.com/products/mad/ libid3tag]] for reading mp3's id3 metadata
+~- ocaml-mp3id3 for reading mp3's id3 metadata
+~- [[http://camomile.sourceforge.net/ camomile]] for detecting metadata encodings and re-encoding them to utf8
+~- ocaml-lame for mp3 encoding
+~- ocaml-alsa for alsa input/output
+~- [[http://www.linphone.org/ libortp]] for RTP input/output
+~- [[http://www.gnu.org/software/wget/ wget]] for downloading remote files (http, https, ftp)
+~- ufetch (provided by ocaml-fetch) for downloading remote files (smb, http, ftp)
+~- [[http://www.cstr.ed.ac.uk/projects/festival/ festival]] for speech synthesis (say)
+
+====Install from source tarballs====
+The primary mean of stable distribution is source tarballs. They are available on the [[http://sourceforge.net/project/showfiles.php?group_id=89802 download section]] of the project's page on sourceforge. They all follow the GNU conventions, and are built and installed using the common ##./configure##, ##make## and ##make install##.
+
+====Subversion repository (and other distributions)====
+If you want a cutting-edge version, you can use the subversion repository. To get a copy of it, just run:
+%%(bash)
+svn co https://svn.sourceforge.net/svnroot/savonet/trunk savonet
+%%
+From every sub-project's directory you can build and install the package using ##./bootstrap##, ##./configure##, ##make## and optionally ##make install##.
+From the toplevel ##savonet## directory you can also directly build a vanilla liquidsoap. It's fast and doesn't require you to install the libraries. The steps to follow are simple:
+%%(bash)
+# Edit PACKAGES to choose which feature you want
+./bootstrap
+./configure
+make
+# To install liquidsoap, you'll usually need to type the following as root
+make install
+%%
+
+====Debian====
+Debian packages are available for some libraries on the [[http://sourceforge.net/project/showfiles.php?group_id=89802 download section]] of the project's page on sourceforge. A ##.deb## package, for example ##toto.deb##, can be installed using ##dpkg -i toto.deb##.
+The main libraries already entered the official Debian distribution, and we're currently working on packaging liquidsoap too.
+
+====Ubuntu source install====
+You can find more informations on how to install LiquidSoap from source (Subversion) on [[InstallationUbuntu the Ubuntu page]].
+
+====Gentoo====
+Assuming that you have ##/usr/local/overlays## in your ##PORTDIR_OVERLAY## (in ##make.conf##), get our ebuilds by doing:
+%%
+svn co https://svn.sourceforge.net/svnroot/savonet/portage
+%%
+There is also a ##portage-scm## overlay for ##paludis##. And snapshots of ebuilds are available on the downloads section of our sourceforge page.
+
+====OSX====
+There have been successful installations on OSX (both Intel and PPC), using Fink and the Godi distribution of OCaml. Claudio reports his two successes on [[InstallationOSX the OSX page]].
