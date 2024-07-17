@@ -1,0 +1,51 @@
+=====Liquidsoap=====
+
+Liquidsoap is a powerful tool for building complex audio streaming systems, typically targetting internet radios. It consists of a simple [[LiqScript script]] language, which has a first-class notion of source (basically a //stream//) and provides elementary source constructors and source compositions from which you can build the streamer you want. This design makes liquidsoap flexible and easily extensible.
+
+We believe that liquidsoap is easy to use. For basic uses, the scripts simply consists of the definition of a tree of sources. It is good to use liquidsoap even for simple streams which could be produced by other tools, because it is extensible: when you want to make your stream more complex, you are still able to stay in the same framework, and your script will remain maintainable. Of course, this will require at some point a deeper understanding of liquidsoap and its [[LiqScript scripting language]].
+
+If you're new to liquidsoap, you'd probably like to read about the [[Installation installation]] procedure and take the [[LiqQuickstart quickstart tour]]. Then you may also enjoy to learn more about the main [[LiqConcepts concepts]] on which liquidsoap is built. When you'll master these concepts, you'll only need to take a look at the reference ([[LiqScript scripting language]], [[LiqReference API]] and [[LiqSettings settings]]) and get a few ideas from the [[LiqExamples recipes]] to be able to design whatever stream you need. Finally, have a look at the [[LiqTelnetTuto telnet tutorial]] to find out how to interact in various ways with a running liquidsoap.
+
+Liquidsoap is written in OCaml and is part of the [[Savonet savonet]] project.
+
+**Acknowledgement for the readers of the PDF version**. The file you're reading has been automatically generated from savonet's wiki. It can be useful to get directly there, in particular if you need to copy a code snippet: [[http://savonet.sf.net/wiki/Liquidsoap]].
+
+**Acknowledgement for the Wiki readers**. There is a PDF file automatically generated from selected pages of this wiki. It can be useful for printing, and is available in liquidsoap distribution.
+
+====Features====
+
+Here are a few things you can easily achieve using Liquidsoap:
+~- Playing from files, playlists, or script playlists (plays the file chosen by an external program).
+~- Transparent remote file access; easy addition of file resolution protocols.
+~- Scheduling of many sources, depending on time, priorities, etc.
+~- Queuing of user requests.
+~- Supports arbitrary transitions: you can have fade, cross-fade, jingle insertion, etc.
+~- Per-track settings of transitions via metadatas ##liq_fade_in##, ##liq_fade_out##, ##liq_start_next##, ##liq_append## and ##liq_prepend##.
+~- Input of other Icecast streams (Ogg/Vorbis or MP3): useful for switching to a live show.
+~- [[LiqBlankDetection Blank detection]].
+~- Definable event handlers on new tracks and excessive blank.
+~- Metadata rewriting.
+~- Multiple outputs in the same instance: you can have several quality settings, use several media or even broadcast several contents from the same instance.
+~- Output to icecast and peercast (mp3/ogg) or a local file (wav/mp3/ogg).
+~- Output to speakers using libao.
+~- Output to ALSA speaker, input from ALSA microphone. There are some unfixed issues there.
+~- [[LiqDistributedEncoding Distributed encoding]] using RTP (but it's unmaintained and experimental!)
+~- Arbitrary mixing of several sources together.
+~- Interactive control of many operators via telnet, or indirectly using perl/python scripts, pyGtk GUI, web/irc interfaces (not released, mail us)...
+~- Speech and sound synthesis.
+
+If you need something else, it's highly possible that you can have it -- at least by programming new sources/operators. Send us a mail, we'll be happy to discuss these questions.
+
+====Non-Features====
+
+Liquidsoap is a flexible tool for generating audio streams, that's all. We have used it for several internet radio projects, and we know that this flexibility is useful. However, an internet radio usually requires more than just an audio stream, and the other components cannot easily be built from basic primitives as we do in liquidsoap for streams. We don't have any magic solution for these, although we sometimes have some nice tools which could be adapted to various uses.
+
+Liquidsoap itself doesn't have a nice GUI or any graphical programming environment. You'll have to write the script by hand, and the only possible interaction with a running liquidsoap is the telnet server. However, we have modules for various languages (OCaml, Ruby, Python, Perl) providing high-level communication with liquidsoap. And there is a graphical application using the Python module for controlling a running liquidsoap: [[Liguidsoap liguidsoap]].
+
+Liquidsoap doesn't do any database or website stuff. It won't index your audio files, it won't allow your users to score songs on the web, etc. However, liquidsoap makes the interfacing with other tools easy, since it can call an external application (reading from the database) to get audio tracks, another one (updating last-played information) to notify that some file has been successfully played. The simplest example of this is [[Bubble bubble]], RadioPi also has a more complex system of its own along these lines.
+
+====History====
+
+~- 0.3.0 brought a lot of improvements at all levels, polishing, uniformization and documentation.
+~- 0.2.0 was the first working release, not so unstable and already featuring the main good ideas.
+~- 0.1.0 was the release we had to do at the end of the academic project, not working at all :p

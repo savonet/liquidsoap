@@ -1,0 +1,192 @@
+=====Quickstart=====
+
+====The internet radio toolchain====
+
+Liquidsoap is a general audio stream generator, but is mainly intended for internet radios. Before starting with the proper [[liquidsoap]] tutorial let's describe quickly the components of the internet radio toolchain, in case the reader is not familiar with it.
+
+The chain is made of:
+~- the stream generator ([[liquidsoap]], [[http://www.icecast.org/ices.php ices]], ...) which creates an audio stream (ogg or mp3);
+~- the streaming media server ([[http://www.icecast.org icecast]], shoutcast, ...) which relays several streams from their sources to their listeners;
+~- the media player (xmms, winamp, ...) which gets the audio stream from the streaming media server and plays it to the listener's speakers.
+
+The stream is always passed from the source to the server, whether or not there are listeners. It is then sent by the server to every listener. The more listeners you have, the more bandwidth you need.
+
+A source client is identified by its "mount point" on the server. If you connect to the ##foo.ogg## mount point, the URL of your stream will be [[http://localhost:8000/foo.ogg]] -- assuming that your icecast is on localhost on port 8000.
+
+You may have an already setup icecast server. Otherwise you can start the tutorial using liquidsoap's output to speakers, or immediately install and configure your icecast server. The configuration typically consists in setting the admin and source passwords, in ##/etc/icecast2/icecast.xml##. These passwords should really be changed if your server is visible from the hostile internet, unless you want people to kick your source as admins, or add their own source and steal your bandwidth.
+
+You'll have to provide liquidsoap with information about the icecast server, unless the default values are OK: host (defaults to ##localhost##), port (defaults to ##8000##, which is icecast's default) and source password (defaults to icecast's default ##hackme##).
+
+Now, let's create that audio stream.
+
+====Starting to use liquidsoap====
+
+Liquidsoap is a script language. To use it, you have to write a script in some file, say ##myscript.liq##, and then run ##liquidsoap myscript.liq##. You can also put ###!/path/to/your/liquidsoap## as the first line of your script, you'll then be able to run it by simply doing ##./myscript.liq##. Usually, the path of the ##liquidsoap## executable is ##/usr/bin/liquidsoap##, and we'll use this in the following.
+
+Liquidsoap will write log messages in a file, and possibly in the console, depending on the settings preamble of your script. In this tutorial, we'll always use the same settings, for simplicity:
+%%(liquidsoap)
+#!/usr/bin/liquidsoap
+
+# Put the log file in some directory where you have the write permission
+set log.dir = "/tmp"
+
+# Print log messages to the console
+set log.stdout = true
+# This can also be done by passing the -v option to liquidsoap
+%%
+Lines starting with ##### are ignored, they are just comments. Those who know ruby will note that this is not the only similarity with it's syntax.
+
+===A simple example===
+
+In the first example we'll play a playlist. Let's put a list of audio files in ##playlist.pls##: one file per line, lines starting with a ##### are ignored. The following liquidsoap script plays that list in shuffle mode:
+%%(liquidsoap)
+#!/usr/bin/liquidsoap -v
+
+set log.dir = "/tmp"
+
+output = ouput.ao
+# Output via libao is the most portable and stable option.
+# You may also be able to use output.alsa.
+# If you have a configured icecast server,
+# uncomment the next two lines and edit the parameters 
+# output = output.icecast(mount="foo.ogg",host="localhost",
+#                         port=8000,password="hackme")
+
+output(playlist.safe("playlist.pls"))
+%%
+
+Hopefully, you're now listening to your playlist, via icecast or not. You may have noticed that liquidsoap's startup is quite slow, especially if you have a large playlist. That's because we used the ##playlist.safe## source, which checks every file in the playlist and removes those which cannot be decoded -- and fails if none can. These checks are here because liquidsoap cares about your stream and makes sure that it'll never stop. Later in the tutorial we explain how to get safe sources without using the heavy ##playlist.safe## sources but a mix of unsafe ##playlist## sources and other safe sources.
+
+In a liquidsoap script, you build source objects. Liquidsoap provides many functions for creating sources from scratch (e.g. ##playlist##) and creating complex sources by wrapping simpler ones (e.g. ##switch## in the following example). Some of these functions (typically the ##output.*##) create an active source, which will continuously pull its children's stream and output it to speakers, icecast, etc. These active sources are the root of a liquidsoap instance, the sources which bring life into it.
+
+===A complex example===
+
+Now for a more complex example. The following script:
+~- sets up several outputs;
+~- plays different playlists during the day;
+~- inserts about 1 jingle every 5 songs;
+~- adds one special jingle at the beginning of every hour on top of the normal stream;
+~- plays user requests -- done via the telnet server;
+~- and relays live shows, inserting jingles as transitions between live shows and the usual program.
+
+%%(liquidsoap)
+#!/usr/bin/liquidsoap -v
+
+set log.dir = "/tmp"
+
+# A bunch of files and playlists,
+# supposedly all located in the same base dir.
+
+base = "~/radio/"
+
+default = single(base ^ "default.ogg")
+
+day     = playlist(base ^ "day.pls")
+night   = playlist(base ^ "night.pls")
+jingles = playlist(base ^ "jingles.pls")
+
+clock   = single(base ^ "clock.ogg")
+start   = single(base ^ "live_start.ogg")
+stop    = single(base ^ "live_stop.ogg")
+
+# The automated stream
+def radio
+  # Play user requests if there are any,
+  # otherwise one of our playlists,
+  # and the default file if anything goes wrong.
+  src = fallback([ request.queue(id="request"),
+	               switch([({ 6h-22h }, day),
+	                       ({ 22h-6h }, night)]),
+	               default])
+  # Add the normal jingles
+  src = random(weights=[1,5],[ jingles, src ])
+  # And the clock jingle
+  add([src, switch([({0m0s},clock)])])
+end
+
+# Add the ability to relay live shows
+# We first define the transition function
+def transition(jingle,a,b)
+  add(normalize=false,
+	  [ fade.initial(b),
+	    sequence(merge=true,
+	             [blank(duration=1.),jingle,fallback([])]),
+	    fade.final(a) ])
+end
+
+full =
+  fallback(track_sensitive=false,
+	       transitions=[ transition(start), transition(stop) ],
+	       [input.http("http://localhost:8000/live.ogg"),
+	        radio])
+
+# Output the full stream in OGG and MP3
+output.icecast.mp3(mount="radio",full)
+output.icecast(mount="radio.ogg",full)
+
+# Output the stream without live in OGG
+output.icecast(mount="radio_nolive.ogg",radio)
+%%
+To try this example you need to edit the file names. In order to witness the switch from one playlist to another you can change the time intervals. If it is 16:42, try the intervals ##0h-16h45## and ##16h45-24h## instead of ##6h-22h## and ##22h-6h##. To witness the clock jingle, you can ask for it to be played every minute by using the ##0s## interval instead of ##0m0s##.
+
+To try the transition to a live show you need to start a new stream on the ##live.ogg## mount of your server. You can send a playlist to it using the first example. To start a real live show you can use darkice, or simply liquidsoap if you have a working ALSA input, with the following script:
+%%(liquidsoap)
+#!/usr/bin/liquidsoap -v
+
+set log.dir = "/tmp"
+
+# Get your microphone output and send it to icecast
+# Add other icecast parameters if needed
+output.icecast(mount="live.ogg",input.alsa())
+%%
+
+===Interaction with the server===
+
+In the previous examples we set up a ##request.queue## source to play user requests. To push requests in that queue you need to interact with the telnet server, which also provides many other services. By default it is only accessible from the host where liquidsoap runs. You can learn more on that topic with the [[LiqTelnetTuto telnet tutorial] and [[LiqSettings settings description]]. Here is a sample session:
+%%(bla)
+dbaelde@selassie:~$ telnet localhost 1234
+Trying 127.0.0.1...
+Connected to localhost.localdomain.
+Escape character is '^]'.
+request.push /path/to/some/file.ogg
+5
+END
+metadata 5
+[...]
+END
+request.push http://remote/audio.ogg
+6
+END
+trace 6
+[...]
+END
+help
+[...]
+END
+exit
+%%
+Of course, telnet isn't user friendly. But it is easy to write scripts to interact with liquidsoap in that way. Examples of such tools are [[liguidsoap]] and [[bottle]].
+
+====That source is fallible??!====
+
+If you start trying your own examples, you will probably quickly run into that error. In liquidsoap, we say that a source is infallible if it will be always available: it will always be able to fill some audio frames. Otherwise, it is fallible. Liquidsoap checks that the child of an output is infallible, so that you can trust your output. Basically, it helps you to remember to always put some trusted file somewhere in the program.
+
+For example ##request.queue()## is not available when there is no user request, so it is fallible. A ##playlist## might become temporarily unavailable if it encounters an undecodable file, or if it needs to download files on an unreliable network. But ##playlist.safe("my.pls")## is always available if ##my.pls## is a valid file containing a playlist of valid local files -- because all files are checked in advance.
+
+The typical way to turn a fallible source ##src## into an infallible one is to pick a default valid local file ##failure.ogg## and use ##fallback([src,single("failure.ogg")])##. It will never fail, because if your initial source fails, the default local file will always be there to fill the stream.
+
+Use ##liquidsoap --check my.liq## for checking a file without running it, including fallibility checks.
+
+====Daemon mode====
+
+The full installation of liquidsoap will typically install ##/etc/liquidsoap##, ##/etc/init.d/liquidsoap## and ##/var/log/liquidsoap##. All these are meant for a particular usage of liquidsoap when running a serious radio.
+
+Your ##.liq## files should go in ##/etc/liquidsoap##. You'll then start/stop the radio using the init script: ##/etc/init.d/liquidsoap start##. Your scripts don't need to have the ###!## line. Liquidsoap will automatically be ran on daemon mode (##-d## option) for them.
+
+You should not override the ##log.dir##, because a logrotate configuration is also installed so that log files in the standard directory are truncated and compressed as they grow too big.
+
+It is not very convenient to detect errors when using the init script. We advise users to first check their modified scripts using ##liquidsoap --check /etc/liquidsoap/script.liq## before effectively restarting the daemon.
+
+====What's next?====
+
+You should now learn more about liquidsoap's [[LiqScript scripting language]]. Once you'll know the syntax and types, you'll probably need to refer to the [[LiqReference scripting reference]] and the [[LiqSettings settings reference]], or see [[LiqExamples examples]]. For a better understanding  of liquidsoap, it is also suggested to read more about the [[LiqConcepts concepts of the system]].

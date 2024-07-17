@@ -1,0 +1,51 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH LIQUIDTTS 1 "November 17, 2006" "Liquidtts 0.3.2"
+
+
+.SH NAME
+liquidtts \- speech synthesis for liquidsoap
+.\"
+.SH SYNOPSIS
+.B liquidtts
+.RI text
+.RI file
+.RI option
+.\"
+.SH DESCRIPTION
+.B liquidtts
+is a script intended to be called by liquidsoap to perform speech synthesis.
+Liquidsoap accepts URIs using the protocol
+.BR say
+of the following form
+.BR <say://option/text>,
+which are resolved by calling
+.BR liquidtts
+with the
+.BR text
+as its first argument, then a temporary output filename, and finally an
+.BR option
+-- typically a voice name or a language.
+
+The output file has prefix
+.BR .wav
+but it actually doesn't need to be a WAV file. Any format supported by
+.BR liquidsoap
+is fine.
+
+On most installations,
+.BR liquidtts
+uses festival's
+.BR text2wave
+script, and doesn't use the option. If 
+.BR festival
+isn't detected,
+.BR false
+is used as a synthetizer. In any case, this script can be edited for local 
+needs.
+
+.\"
+.SH SEE ALSO
+.BR liquidsoap(1)
+.\"
+.SH AUTHOR
+David Baelde for Savonet <savonet-users@lists.sourceforge.net>

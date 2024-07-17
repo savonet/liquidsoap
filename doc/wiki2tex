@@ -1,0 +1,82 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+my $last_item_depth = 0;
+my $in_verbatim = 0;
+my $fname = $ARGV[0];
+$fname =~ s/\.wiki//;
+
+sub quote {
+  local $_ = shift ;
+  s/#/\\#/g ;
+  s/~/\\ensuremath{\\sim}/g ;
+  return $_ ;
+}
+
+while(<>)
+{
+    s/""//g;
+    s/&quot;/"/g;
+    unless ($in_verbatim) {
+      s/\\/\\textbackslash{}/g ;
+      s/\$/\\\$/g;
+      s/\^/\\^{ }/g ;
+      s/_/\\_/g ;
+      s/\.\.\./\\ldots{}/g ;
+    }
+    s/^>>//;
+    s/<code>(.*?)<\/code>/\\texttt{$1}/g;
+    s/\/\/([^#]*?)\/\//\\emph{$1}/g;
+    s/\*\*(.*?)\*\*/\\textbf{$1}/g;
+    #s/##((?:[^#]|#[^#])*#?)##/my $truc = $1; $truc =~ s|\\_|_|g; $truc =~ s|\\ldots|...|g; "\\verb§$truc§"/ge;
+    s/##((?:[^#]|#[^#])*#?)##/"\\texttt{".quote($1)."}"/ge ;
+    s/\[\[([a-zA-Z]*?) ([^\]]*?)\]\]/\\hyperref[$1]{$2}/g;
+    s/\[\[([a-zA-Z]*?)\]\]/\\hyperref[$1]{$1}/g;
+    s/\[\[([^\]]*?) ([^\]]*?)\]\]/$2 (\\url{$1})/g;
+    s/\[\[([^\]]*?)\]\]/\\url{$1}/g;
+
+
+    s/=====[ ]*(.*)[ ]*=====/\n\\section{$1}/;
+    s/====[ ]*(.*)[ ]*====/\\subsection{$1}/;
+    s/===[ ]*(.*)[ ]*===/\\subsubsection{$1}/;
+    s/==[ ]*(.*)[ ]*==/\\paragraph{$1}/;
+    $_ .= "\\label{$fname}\n" if (/\\section/);
+
+    s/%%\(.*\)/$in_verbatim=1; "\\begin{Verbatim}[frame=single,fontsize=\\small]"/e;
+    s/%%/$in_verbatim=0; "\\end{Verbatim}"/e;
+
+    s/\%/\\\%/g unless $in_verbatim ;
+
+    if (/(~+)-/)
+    {
+        if ($last_item_depth != length($1))
+        {
+            if ($last_item_depth > length($1))
+            {
+                print "\\end{itemize}\n";
+            }
+            else
+            {
+                print "\\begin{itemize}\n";
+            }
+            $last_item_depth = length($1);
+        }
+    }
+    else
+    {
+        if ($last_item_depth != 0)
+        {
+            print "\\end{itemize}\n" while($last_item_depth-- > 0);
+        }
+    }
+    s/(~+)-/\\item /;
+
+    print $_;
+    print "\n" unless $in_verbatim;
+}
+
+if ($last_item_depth != 0)
+{
+    print "\\end{itemize}\n" while($last_item_depth-- > 0);
+}

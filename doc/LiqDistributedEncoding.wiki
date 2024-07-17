@@ -1,0 +1,22 @@
+=====Distributed encoding=====
+
+Using RTP, liquidsoap can directly output the raw stream with metadata. Then you can set up another liquidsoap instance on an other machine of your network which just inputs this RTP stream and encodes it, for example for sending to Icecast. It allows you to share the load on many machines, and also make the main liquidsoap process more independant of the Icecast servers. These can now crash or be restarted, you'll just have to restart the RTP encoders.
+
+Here is how to setup a RTP server:
+%%(python)
+set log.dir = "/tmp"
+set log.stdout = true
+set server.port = 1235
+
+output.rtp(single("/usr/share/mrpingouin/mp3bis/bodom/TheNail.ogg"))
+%%
+
+And here is the client, takes the RTP stream and plays it on your speakers:
+%%(python)
+set log.dir = "/tmp"
+set log.stdout = true
+
+output.alsa(input.rtp())
+%%
+
+The server port has been specified on the server to be different from the default 1234 used on the client, so that thet don't conflict if ran on the same host. If you want to run the client on another host, specify a sufficient TTL for the RTP output, default being 0: ##output.rtp(ttl=1,...)##.

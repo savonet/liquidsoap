@@ -1,0 +1,52 @@
+=====Liquidsoap settings=====
+
+[[Liquidsoap]] [[LiqScript scripts]] start with a settings section, for defining a few global variables affecting the behaviour of the application. The settings are typed, and can be ##string##, ##int##, ##bool## or ##string list##.
+
+Below is a presentation of available settings. Every section starts with a list of settings, together with their types. Then comes the description of the group of settings.
+
+====Logging====
+
+>>%%(python)
+string log.dir
+string log.file
+bool   log.stdout
+int    log.level
+int    log.level.[label]
+%%
+>>When executing ""<code>[script].liq</code>"", liquidsoap logs some information in ""<code>[log.dir]/[script].log</code>"". The default value for ""<code>[log.dir]</code>"" is set during configuration, typically ""<code>/var/log/liquidsoap</code>"". It can also be set using the ""<code>string</code>"" setting ""<code>log.dir</code>"". You can also override the filename, using the ""<code>log.file</code>"" setting.
+
+It is often useful while debugging to directly see on the log on the standard output. The ""<code>log.stdout</code>"" can be set to ""<code>true</code>"" to achieve that.
+
+Finally you can tweak the amount of information by changing the log levels. The higher it is, the less info you get. Log level 1 is for errors, 2 for warnings, 3 for information, 4 for annoying information, etc. ""<code>log.level</code>"" is the default level, you can also filter your logs more specifically using the label-specific ""<code>log.level.[label]</code>"" settings.
+
+====Daemon====
+
+>>%%(python)
+bool   daemon
+string daemon.piddir
+string daemon.piddfile
+%%
+>>Liquidsoap can detach and run as a daemon, if the ""<code>daemon</code>"" flag is set. In that case it will put the PID of the daemon process in ""<code>[daemon.piddir]/[script].pid</code>"". The default piddir is typically ""<code>/var/run/liquidsoap</code>"". As for the log file, the PID file can be overriden using the ""<code>daemon.pidfile</code>"" setting.
+
+====Server====
+
+>>%%(python)
+bool server
+int  server.port
+bool server.public
+%%
+>>You can interact with an instance of liquidsoap thanks to a simple telnet interface, where you can get info and control your sources. By default, that service is ran on port ##1234## and is only available from the local host, since it currently doesn't support any kind of access control or authentification. You can disable it, change the port and the availability to the full network thanks to these settings. For GeekRadio, the service is public in order to be available for an IRC bot running on another server, but it is then restricted to the local network by the firewall.
+
+====Misc====
+
+>>%%(python)
+string list tag.encodings
+int   max_rid
+float decoding.buffer.length
+float max_latency
+%%
+>>If your liquidsoap has charset reencoding support (using Camomile), then ##tag.encodings## is used to guess the encoding of strings. The default is ##["UTF-8","ISO-8859-1"]##.
+The next settings are really low-level, and one should rarely need to change them.
+The ##max_rid## allows you to tune the maximum request ID. Making it a bit larger allows to access requests a while after that they are destroyed, to read the request trace or metadata. On the other hand, having too many requests can be messy and a bit heavy.
+For some features (typically ##fade.out()## and ##cross()##) Liquidsoap needs to know precisely the remaining time in a track. It only roughly evaluates it at the beginning of a file, but it has to be precise at the end. This is done by decoding data in advance in a buffer of duration ##decoding.buffer.length## seconds (defaults to 10). In a nutshell, if you use cross-fadings or fade-outs with a maximum duration of D, you should set the buffer's length to D too for perfect precision. However, it has a little cost on opening of a file while the buffer is filled, so be careful if you're short of computing power.
+Sometimes, liquidsoap may get a bit late, in which case it'll run faster for a while to fill the gap. But when the latency is higher than ##max_latency## seconds (defaults to 60), it'll restart all the outputs in order to cancel the latency. It shouldn't happen much, but it's there just in case.
